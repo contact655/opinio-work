@@ -85,10 +85,10 @@ function CompanyCard({ company }: { company: any }) {
           </span>
         )}
 
-        {/* Job count badge — クリックで求人セクションへスクロール */}
+        {/* Job count badge — クリックで企業の求人一覧ページへ */}
         {jobCount > 0 && (
           <a
-            href={`/companies/${company.id}#jobs`}
+            href={`/companies/${company.id}/jobs`}
             className="absolute bottom-3 right-3 z-10 bg-primary text-white text-xs px-3 py-1 rounded-full hover:bg-primary-dark transition-colors"
           >
             求人 {jobCount}件
