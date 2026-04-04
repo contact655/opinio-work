@@ -50,10 +50,7 @@ function CompanyCard({ company }: { company: any }) {
   const hasPhotos = photos.length > 0;
 
   return (
-    <Link
-      href={`/companies/${company.id}`}
-      className="block cursor-pointer bg-white rounded-card-lg border border-card-border overflow-hidden hover:shadow-lg transition-shadow"
-    >
+    <div className="relative bg-white rounded-card-lg border border-card-border overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
       {/* Cover Image */}
       <div className="relative h-48">
         {hasPhotos ? (
@@ -83,9 +80,12 @@ function CompanyCard({ company }: { company: any }) {
 
         {/* Job count badge */}
         {jobCount > 0 && (
-          <span className="absolute bottom-3 right-3 bg-primary text-white text-xs px-3 py-1 rounded-full">
+          <Link
+            href={`/companies/${company.id}#jobs`}
+            className="absolute bottom-3 right-3 bg-primary text-white text-xs px-3 py-1 rounded-full relative z-10 hover:bg-primary-dark transition-colors"
+          >
             求人 {jobCount}件
-          </span>
+          </Link>
         )}
       </div>
 
@@ -144,12 +144,29 @@ function CompanyCard({ company }: { company: any }) {
               {company.location}
             </span>
           )}
-          <span className="text-sm text-primary font-medium hover:underline">
-            詳細を見る →
-          </span>
+          <div className="flex items-center gap-4">
+            {jobCount > 0 && (
+              <Link
+                href={`/companies/${company.id}#jobs`}
+                className="text-sm text-gray-500 hover:text-primary hover:underline relative z-10 transition-colors"
+              >
+                求人を見る
+              </Link>
+            )}
+            <span className="text-sm text-primary font-medium">
+              詳細を見る →
+            </span>
+          </div>
         </div>
       </div>
-    </Link>
+
+      {/* Stretched link — カード全体クリックで詳細ページへ */}
+      <Link
+        href={`/companies/${company.id}`}
+        className="absolute inset-0 z-0"
+        aria-label={`${company.name}の詳細を見る`}
+      />
+    </div>
   );
 }
 
