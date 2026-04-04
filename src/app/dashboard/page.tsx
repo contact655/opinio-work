@@ -171,7 +171,7 @@ export default function DashboardPage() {
                 </div>
                 {hasCompany ? (
                   <Link
-                    href="/company/edit"
+                    href="/company/dashboard"
                     className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-dark transition-colors"
                   >
                     企業管理
@@ -187,6 +187,7 @@ export default function DashboardPage() {
               </div>
               {hasCompany && data.companies.length > 0 && (
                 <div className="mt-4 pt-3 border-t border-gray-100 flex gap-4 text-sm">
+                  <Link href="/company/dashboard" className="text-gray-500 hover:text-primary transition-colors">企業ダッシュボード</Link>
                   <Link href="/company/edit" className="text-gray-500 hover:text-primary transition-colors">企業情報編集</Link>
                   <Link href="/company/jobs/new" className="text-gray-500 hover:text-primary transition-colors">求人作成</Link>
                 </div>

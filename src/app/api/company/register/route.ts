@@ -1,0 +1,97 @@
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { NextResponse } from "next/server";
+
+export async function POST(req: Request) {
+  // --- 認証チェック（通常のサーバークライアントで） ---
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    console.error("[company/register] no user found in session");
+    return NextResponse.json(
+      { error: "ログインが必要です。再度ログインしてからお試しください。" },
+      { status: 401 }
+    );
+  }
+
+  console.log("[company/register] authenticated user:", user.id, user.email);
+
+  // --- DB操作は管理クライアント（RLSバイパス）で ---
+  const admin = createAdminClient();
+  const body = await req.json();
+
+  if (!body.name || body.name.trim() === "") {
+    return NextResponse.json(
+      { error: "会社名は必須です" },
+      { status: 400 }
+    );
+  }
+
+  // 1. ow_companies に INSERT
+  const { data: company, error: companyError } = await admin
+    .from("ow_companies")
+    .insert({
+      user_id: user.id,
+      name: body.name.trim(),
+      name_en: body.name_en || null,
+      founded_at: body.founded_at || null,
+      employee_count: body.employee_count || null,
+      location: body.location || null,
+      industry: body.industry || null,
+      phase: body.phase || null,
+      url: body.url || null,
+      mission: body.mission || null,
+      description: body.description || null,
+      logo_url: body.logo_url || null,
+      plan: body.plan || "free",
+      status: "active",
+    })
+    .select("id, name")
+    .single();
+
+  if (companyError) {
+    console.error("[company/register] INSERT failed:", JSON.stringify(companyError));
+    return NextResponse.json(
+      { error: `企業登録に失敗: ${companyError.message}` },
+      { status: 500 }
+    );
+  }
+
+  console.log("[company/register] company created:", company.id, company.name);
+
+  // 2. カルチャータグを INSERT
+  const tags: { tag_category: string; tag_value: string }[] = body.tags || [];
+  if (tags.length > 0) {
+    const { error: tagError } = await admin
+      .from("ow_company_culture_tags")
+      .insert(
+        tags.map((t) => ({
+          company_id: company.id,
+          tag_category: t.tag_category,
+          tag_value: t.tag_value,
+        }))
+      );
+    if (tagError) {
+      console.error("[company/register] tags INSERT failed:", tagError.message);
+    }
+  }
+
+  // 3. company ロールを付与
+  const { error: roleError } = await admin
+    .from("ow_user_roles")
+    .insert({ user_id: user.id, role: "company" });
+
+  if (roleError && roleError.code !== "23505") {
+    console.error("[company/register] role INSERT failed:", roleError.message);
+  }
+
+  console.log("[company/register] SUCCESS");
+
+  return NextResponse.json({
+    success: true,
+    company: { id: company.id, name: company.name },
+  });
+}

@@ -25,7 +25,10 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setError(error.message);
+      const msg = error.message.includes("Invalid login")
+        ? "メールアドレスまたはパスワードが正しくありません"
+        : error.message;
+      setError(msg);
       setLoading(false);
     } else {
       // ログイン前のページに戻る（なければ /companies）

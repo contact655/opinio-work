@@ -173,11 +173,14 @@ export default function OnboardingPage() {
     }
 
     // candidateロールを付与
-    await fetch("/api/roles", {
+    const roleRes = await fetch("/api/roles", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: "candidate" }),
     });
+    if (!roleRes.ok) {
+      console.error("[onboarding] role assign failed:", await roleRes.text());
+    }
 
     setStep(3); // Complete step
     setLoading(false);

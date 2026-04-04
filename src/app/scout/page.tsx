@@ -38,26 +38,27 @@ const TABS = [
 export default function ScoutPage() {
   const [scouts, setScouts] = useState<Scout[]>([]);
   const [profile, setProfile] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     const supabase = createClient();
     const {
-      data: { user },
+      data: { user: authUser },
     } = await supabase.auth.getUser();
-    if (!user) {
+    if (!authUser) {
       setLoading(false);
       return;
     }
+    setUser(authUser);
 
-    // Load profile
-    const { data: prof } = await supabase
-      .from("ow_profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
-    setProfile(prof);
+    // Load profile via API (bypasses RLS)
+    const rolesRes = await fetch("/api/roles");
+    if (rolesRes.ok) {
+      const rolesData = await rolesRes.json();
+      setProfile(rolesData.profile);
+    }
 
     // Load scouts
     const { data } = await supabase
@@ -71,7 +72,7 @@ export default function ScoutPage() {
           ow_job_matching_tags(tag_category, tag_value)
         )`
       )
-      .eq("candidate_id", user.id)
+      .eq("candidate_id", authUser.id)
       .order("sent_at", { ascending: false });
 
     setScouts((data as Scout[]) || []);
@@ -123,10 +124,10 @@ export default function ScoutPage() {
               スカウトを受け取るにはプロフィール登録が必要です
             </p>
             <Link
-              href="/auth/signup"
+              href={user ? "/onboarding" : "/auth/signup"}
               className="text-primary hover:underline"
             >
-              無料登録はこちら
+              {user ? "プロフィールを登録する" : "無料登録はこちら"}
             </Link>
           </div>
         </main>

@@ -24,14 +24,17 @@ export async function addUserRole(supabase: SupabaseClient, role: UserRole): Pro
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
 
+  // upsert ではなく insert を使い、重複時は無視する
   const { error } = await supabase
     .from("ow_user_roles")
-    .upsert(
-      { user_id: user.id, role },
-      { onConflict: "user_id,role" }
-    );
+    .insert({ user_id: user.id, role });
 
-  return !error;
+  // 重複エラー (23505) は正常扱い
+  if (error && error.code !== "23505") {
+    console.error("[addUserRole] insert error:", error);
+    return false;
+  }
+  return true;
 }
 
 /**

@@ -3,6 +3,8 @@ import Footer from "@/components/Footer";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 async function getCompanies(query?: string) {
   const supabase = createClient();
   let q = supabase

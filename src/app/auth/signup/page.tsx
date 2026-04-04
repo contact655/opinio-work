@@ -19,24 +19,62 @@ export default function SignUpPage() {
     setError("");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: `${window.location.origin}/onboarding` },
     });
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
-      // candidateロールを付与
-      await fetch("/api/roles", {
+    // 「既に登録済み」の場合はログインを試行
+    if (signUpError && signUpError.message.includes("already registered")) {
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (loginError) {
+        setError("このメールアドレスは既に登録されています。ログインページからお試しください。");
+        setLoading(false);
+        return;
+      }
+      // ログイン成功 → ロール付与してリダイレクト
+      const roleRes = await fetch("/api/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "candidate" }),
       });
+      if (!roleRes.ok) {
+        console.error("[signup] role assign failed:", await roleRes.text());
+      }
       router.push("/onboarding");
+      return;
     }
+
+    if (signUpError) {
+      const msg = signUpError.message.includes("Password")
+        ? "パスワードは8文字以上で入力してください"
+        : signUpError.message;
+      setError(msg);
+      setLoading(false);
+      return;
+    }
+
+    // signUpが成功してもidentitiesが空の場合 = 既存ユーザー（Supabaseのセキュリティ対策）
+    if (signUpData.user && signUpData.user.identities?.length === 0) {
+      setError("このメールアドレスは既に登録されています。ログインページからお試しください。");
+      setLoading(false);
+      return;
+    }
+
+    // candidateロールを付与
+    const roleRes = await fetch("/api/roles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "candidate" }),
+    });
+    if (!roleRes.ok) {
+      console.error("[signup] role assign failed:", await roleRes.text());
+    }
+    router.push("/onboarding");
   }
 
   return (

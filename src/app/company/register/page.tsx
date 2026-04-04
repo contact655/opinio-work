@@ -175,77 +175,43 @@ export default function CompanyRegisterPage() {
   async function handleFinalSubmit() {
     setLoading(true);
     setError("");
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    if (!user) {
-      setError("ログインが必要です");
-      setLoading(false);
-      return;
-    }
-
-    // Create company
-    const { data: company, error: companyError } = await supabase
-      .from("ow_companies")
-      .insert({
-        user_id: user.id,
-        name: form.name,
-        name_en: form.name_en,
-        founded_at: form.founded_at,
-        employee_count: form.employee_count,
-        location: form.location,
-        industry: form.industry,
-        phase: form.phase,
-        url: form.url,
-        mission: form.mission,
-        description: form.description,
-        logo_url: logoUrl || null,
-        plan,
-        status: "pending",
-      })
-      .select()
-      .single();
-
-    if (companyError || !company) {
-      setError(companyError?.message || "企業登録に失敗しました");
-      setLoading(false);
-      return;
-    }
-
-    // Insert culture tags
+    // カルチャータグを構築
     const tags = [
-      ...workStyles.map((v) => ({
-        company_id: company.id,
-        tag_category: "work_style",
-        tag_value: v,
-      })),
-      ...cultures.map((v) => ({
-        company_id: company.id,
-        tag_category: "culture",
-        tag_value: v,
-      })),
-      ...benefits.map((v) => ({
-        company_id: company.id,
-        tag_category: "benefits",
-        tag_value: v,
-      })),
+      ...workStyles.map((v) => ({ tag_category: "work_style", tag_value: v })),
+      ...cultures.map((v) => ({ tag_category: "culture", tag_value: v })),
+      ...benefits.map((v) => ({ tag_category: "benefits", tag_value: v })),
     ];
 
-    if (tags.length > 0) {
-      await supabase.from("ow_company_culture_tags").insert(tags);
+    try {
+      const res = await fetch("/api/company/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          logo_url: logoUrl || null,
+          plan,
+          tags,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        console.error("[company register] API error:", result);
+        setError(result.error || "企業登録に失敗しました");
+        setLoading(false);
+        return;
+      }
+
+      console.log("[company register] SUCCESS:", result);
+      setLoading(false);
+      router.push("/company/dashboard");
+    } catch (err) {
+      console.error("[company register] fetch error:", err);
+      setError("通信エラーが発生しました。もう一度お試しください。");
+      setLoading(false);
     }
-
-    // companyロールを付与
-    await fetch("/api/roles", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: "company" }),
-    });
-
-    setLoading(false);
-    router.push("/company/edit");
   }
 
   if (checkingAuth) {

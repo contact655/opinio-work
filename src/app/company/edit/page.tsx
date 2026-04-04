@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/Header";
 
 const SECTIONS = [
@@ -27,6 +26,12 @@ const CULTURE_CHIPS: Record<string, string[]> = {
     "挑戦を歓迎",
     "ワークライフバランス",
     "スピード重視",
+    "英語環境",
+    "IPO準備中",
+    "CEO直下",
+    "女性活躍推進",
+    "服装自由",
+    "ペット可",
   ],
   benefits: [
     "ストックオプション",
@@ -56,40 +61,43 @@ export default function CompanyEditPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
+  const [error, setError] = useState("");
   const [activeSection, setActiveSection] = useState("basic");
 
   const loadCompany = useCallback(async () => {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const res = await fetch("/api/company/me");
+      const result = await res.json();
 
-    const { data } = await supabase
-      .from("ow_companies")
-      .select(
-        "*, ow_company_members(*), ow_company_culture_tags(tag_category, tag_value)"
-      )
-      .eq("user_id", user.id)
-      .single();
+      if (!res.ok) {
+        console.error("[company/edit] load error:", result);
+        setError(result.error || "データの取得に失敗しました");
+        setLoading(false);
+        return;
+      }
 
-    if (data) {
-      setCompany(data);
-      setMembers(
-        data.ow_company_members?.map((m: any) => ({
-          id: m.id,
-          name: m.name || "",
-          role: m.role || "",
-          background: m.background || "",
-          photo_url: m.photo_url || "",
-        })) || []
-      );
-      setCultureTags(
-        data.ow_company_culture_tags?.map((t: any) => ({
-          tag_category: t.tag_category,
-          tag_value: t.tag_value,
-        })) || []
-      );
+      const data = result.company;
+      if (data) {
+        setCompany(data);
+        setMembers(
+          data.ow_company_members?.map((m: any) => ({
+            id: m.id,
+            name: m.name || "",
+            role: m.role || "",
+            background: m.background || "",
+            photo_url: m.photo_url || "",
+          })) || []
+        );
+        setCultureTags(
+          data.ow_company_culture_tags?.map((t: any) => ({
+            tag_category: t.tag_category,
+            tag_value: t.tag_value,
+          })) || []
+        );
+      }
+    } catch (err) {
+      console.error("[company/edit] fetch error:", err);
+      setError("通信エラーが発生しました");
     }
     setLoading(false);
   }, []);
@@ -137,54 +145,42 @@ export default function CompanyEditPage() {
     if (!company) return;
     setSaving(true);
 
-    const supabase = createClient();
+    try {
+      const res = await fetch("/api/company/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: company.id,
+          name: company.name,
+          name_en: company.name_en,
+          founded_at: company.founded_at,
+          employee_count: company.employee_count,
+          location: company.location,
+          industry: company.industry,
+          phase: company.phase,
+          url: company.url,
+          mission: company.mission,
+          description: company.description,
+          logo_url: company.logo_url,
+          members,
+          cultureTags,
+        }),
+      });
 
-    // Update company
-    const { name, name_en, founded_at, employee_count, location, industry, phase, url, mission, description, logo_url } = company;
-    await supabase
-      .from("ow_companies")
-      .update({
-        name, name_en, founded_at, employee_count, location,
-        industry, phase, url, mission, description, logo_url,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", company.id);
+      const result = await res.json();
 
-    // Replace members
-    await supabase
-      .from("ow_company_members")
-      .delete()
-      .eq("company_id", company.id);
-    if (members.length > 0) {
-      await supabase.from("ow_company_members").insert(
-        members.map((m, i) => ({
-          company_id: company.id,
-          name: m.name,
-          role: m.role,
-          background: m.background,
-          photo_url: m.photo_url,
-          display_order: i,
-        }))
-      );
-    }
-
-    // Replace culture tags
-    await supabase
-      .from("ow_company_culture_tags")
-      .delete()
-      .eq("company_id", company.id);
-    if (cultureTags.length > 0) {
-      await supabase.from("ow_company_culture_tags").insert(
-        cultureTags.map((t) => ({
-          company_id: company.id,
-          tag_category: t.tag_category,
-          tag_value: t.tag_value,
-        }))
-      );
+      if (!res.ok) {
+        console.error("[company/edit] save error:", result);
+        setToast("保存に失敗しました");
+      } else {
+        setToast("保存しました");
+      }
+    } catch (err) {
+      console.error("[company/edit] save fetch error:", err);
+      setToast("通信エラーが発生しました");
     }
 
     setSaving(false);
-    setToast("保存しました ✓");
     setTimeout(() => setToast(""), 3000);
   }
 
@@ -194,6 +190,25 @@ export default function CompanyEditPage() {
         <Header />
         <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
           <p className="text-gray-400">読み込み中...</p>
+        </main>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Header />
+        <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">{error}</p>
+            <a
+              href="/company/register"
+              className="text-primary hover:underline"
+            >
+              企業登録はこちら
+            </a>
+          </div>
         </main>
       </>
     );
@@ -235,7 +250,11 @@ export default function CompanyEditPage() {
       <main className="pt-16 min-h-screen bg-background">
         {/* Toast */}
         {toast && (
-          <div className="fixed top-20 right-4 z-50 bg-primary text-white px-4 py-2 rounded-lg text-sm shadow-lg">
+          <div className={`fixed top-20 right-4 z-50 px-4 py-2 rounded-lg text-sm shadow-lg ${
+            toast.includes("失敗") || toast.includes("エラー")
+              ? "bg-red-500 text-white"
+              : "bg-primary text-white"
+          }`}>
             {toast}
           </div>
         )}
