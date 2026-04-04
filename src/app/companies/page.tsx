@@ -85,14 +85,11 @@ function CompanyCard({ company }: { company: any }) {
           </span>
         )}
 
-        {/* Job count badge — クリックで求人セクションへ */}
+        {/* Job count badge */}
         {jobCount > 0 && (
-          <Link
-            href={`/companies/${company.id}#jobs`}
-            className="absolute bottom-3 right-3 z-10 bg-primary text-white text-xs px-3 py-1 rounded-full hover:bg-primary-dark transition-colors"
-          >
+          <span className="absolute bottom-3 right-3 bg-primary text-white text-xs px-3 py-1 rounded-full">
             求人 {jobCount}件
-          </Link>
+          </span>
         )}
       </div>
 
