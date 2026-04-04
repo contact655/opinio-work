@@ -106,32 +106,74 @@ export default function OnboardingPage() {
       return;
     }
 
-    const { error } = await supabase.from("ow_profiles").insert({
-      user_id: user.id,
-      name: form.name,
-      name_kana: form.name_kana,
-      location: form.location,
-      job_type: form.job_type,
-      experience_years: form.experience_years,
-      skills: form.skills,
-      tools: form.tools,
-      bio: form.bio,
-      desired_work_style: form.desired_work_style,
-      desired_salary_min: form.desired_salary_min
-        ? parseInt(form.desired_salary_min)
-        : null,
-      desired_salary_max: form.desired_salary_max
-        ? parseInt(form.desired_salary_max)
-        : null,
-      desired_phase: form.desired_phase,
-      transfer_timing: form.transfer_timing,
-    });
+    // 既存プロフィールをチェック（upsertで対応）
+    const { data: existing } = await supabase
+      .from("ow_profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    if (error) {
-      console.error("Profile save error:", error);
+    let profileError;
+    if (existing) {
+      // 既存プロフィールを更新
+      const { error } = await supabase.from("ow_profiles").update({
+        name: form.name,
+        name_kana: form.name_kana,
+        location: form.location,
+        job_type: form.job_type,
+        experience_years: form.experience_years,
+        skills: form.skills,
+        tools: form.tools,
+        bio: form.bio,
+        desired_work_style: form.desired_work_style,
+        desired_salary_min: form.desired_salary_min
+          ? parseInt(form.desired_salary_min)
+          : null,
+        desired_salary_max: form.desired_salary_max
+          ? parseInt(form.desired_salary_max)
+          : null,
+        desired_phase: form.desired_phase,
+        transfer_timing: form.transfer_timing,
+        updated_at: new Date().toISOString(),
+      }).eq("user_id", user.id);
+      profileError = error;
+    } else {
+      // 新規プロフィール作成
+      const { error } = await supabase.from("ow_profiles").insert({
+        user_id: user.id,
+        name: form.name,
+        name_kana: form.name_kana,
+        location: form.location,
+        job_type: form.job_type,
+        experience_years: form.experience_years,
+        skills: form.skills,
+        tools: form.tools,
+        bio: form.bio,
+        desired_work_style: form.desired_work_style,
+        desired_salary_min: form.desired_salary_min
+          ? parseInt(form.desired_salary_min)
+          : null,
+        desired_salary_max: form.desired_salary_max
+          ? parseInt(form.desired_salary_max)
+          : null,
+        desired_phase: form.desired_phase,
+        transfer_timing: form.transfer_timing,
+      });
+      profileError = error;
+    }
+
+    if (profileError) {
+      console.error("Profile save error:", profileError);
       setLoading(false);
       return;
     }
+
+    // candidateロールを付与
+    await fetch("/api/roles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "candidate" }),
+    });
 
     setStep(3); // Complete step
     setLoading(false);

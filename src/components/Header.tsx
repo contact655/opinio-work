@@ -1,10 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    async function checkAuth() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setCheckingAuth(false);
+    }
+    checkAuth();
+  }, []);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setUser(null);
+    window.location.href = "/";
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-b border-card-border">
@@ -31,34 +51,60 @@ export default function Header() {
             >
               求人を見る
             </Link>
-            <Link
-              href="/scout"
-              className="text-sm text-gray-600 hover:text-foreground transition-colors"
-            >
-              スカウト
-            </Link>
+            {user && (
+              <Link
+                href="/scout"
+                className="text-sm text-gray-600 hover:text-foreground transition-colors"
+              >
+                スカウト
+              </Link>
+            )}
           </nav>
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link
-              href="/company/register"
-              className="text-sm text-gray-500 hover:text-primary transition-colors border border-card-border px-3 py-1.5 rounded-full"
-            >
-              企業の方はこちら
-            </Link>
-            <Link
-              href="/auth/login"
-              className="text-sm text-gray-600 hover:text-foreground transition-colors"
-            >
-              ログイン
-            </Link>
-            <Link
-              href="/auth/signup"
-              className="text-sm bg-primary text-white px-4 py-2 rounded-full hover:bg-primary-dark transition-colors"
-            >
-              無料登録
-            </Link>
+            {checkingAuth ? (
+              <div className="w-20 h-8" />
+            ) : user ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="text-sm text-gray-600 hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                  マイページ
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="text-sm text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  ログアウト
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/company/register"
+                  className="text-sm text-gray-500 hover:text-primary transition-colors border border-card-border px-3 py-1.5 rounded-full"
+                >
+                  企業の方はこちら
+                </Link>
+                <Link
+                  href="/auth/login"
+                  className="text-sm text-gray-600 hover:text-foreground transition-colors"
+                >
+                  ログイン
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="text-sm bg-primary text-white px-4 py-2 rounded-full hover:bg-primary-dark transition-colors"
+                >
+                  無料登録
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -111,36 +157,61 @@ export default function Header() {
             >
               求人を見る
             </Link>
-            <Link
-              href="/scout"
-              className="block text-sm text-gray-600"
-              onClick={() => setMenuOpen(false)}
-            >
-              スカウト
-            </Link>
+            {user && (
+              <Link
+                href="/scout"
+                className="block text-sm text-gray-600"
+                onClick={() => setMenuOpen(false)}
+              >
+                スカウト
+              </Link>
+            )}
             <hr className="border-card-border" />
-            <Link
-              href="/company/register"
-              className="block text-sm text-gray-500"
-              onClick={() => setMenuOpen(false)}
-            >
-              企業の方はこちら
-            </Link>
-            <hr className="border-card-border" />
-            <Link
-              href="/auth/login"
-              className="block text-sm text-gray-600"
-              onClick={() => setMenuOpen(false)}
-            >
-              ログイン
-            </Link>
-            <Link
-              href="/auth/signup"
-              className="block text-sm text-center bg-primary text-white px-4 py-2 rounded-full"
-              onClick={() => setMenuOpen(false)}
-            >
-              無料登録
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="block text-sm text-gray-600 font-medium"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  マイページ
+                </Link>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="block text-sm text-red-500"
+                >
+                  ログアウト
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/company/register"
+                  className="block text-sm text-gray-500"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  企業の方はこちら
+                </Link>
+                <hr className="border-card-border" />
+                <Link
+                  href="/auth/login"
+                  className="block text-sm text-gray-600"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  ログイン
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="block text-sm text-center bg-primary text-white px-4 py-2 rounded-full"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  無料登録
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

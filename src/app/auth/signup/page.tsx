@@ -29,6 +29,12 @@ export default function SignUpPage() {
       setError(error.message);
       setLoading(false);
     } else {
+      // candidateロールを付与
+      await fetch("/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "candidate" }),
+      });
       router.push("/onboarding");
     }
   }

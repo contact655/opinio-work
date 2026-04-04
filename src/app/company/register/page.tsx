@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/Header";
 
-const STEPS = [
+const STEPS_FULL = [
   "アカウント作成",
+  "企業情報",
+  "社員写真",
+  "カルチャー・働き方",
+  "プラン選択",
+];
+
+const STEPS_LOGGEDIN = [
   "企業情報",
   "社員写真",
   "カルチャー・働き方",
@@ -65,15 +72,19 @@ const BENEFIT_OPTIONS = [
 
 export default function CompanyRegisterPage() {
   const router = useRouter();
-  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [error, setError] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Step 1: Account
+  // step は実質ステップ（ログイン済みなら0=企業情報, 未ログインなら0=アカウント作成）
+  const [step, setStep] = useState(0);
+
+  // Step: Account (未ログイン時のみ)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Step 2: Company Info
+  // Step: Company Info
   const [form, setForm] = useState({
     name: "",
     name_en: "",
@@ -87,16 +98,43 @@ export default function CompanyRegisterPage() {
     description: "",
   });
 
-  // Step 3: Photos (URLs for now)
+  // Step: Photos
   const [logoUrl, setLogoUrl] = useState("");
 
-  // Step 4: Culture
+  // Step: Culture
   const [workStyles, setWorkStyles] = useState<string[]>([]);
   const [cultures, setCultures] = useState<string[]>([]);
   const [benefits, setBenefits] = useState<string[]>([]);
 
-  // Step 5: Plan
+  // Step: Plan
   const [plan, setPlan] = useState("free");
+
+  // 初回：ログイン状態をチェック
+  useEffect(() => {
+    async function checkAuth() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setIsLoggedIn(true);
+        setStep(0); // ログイン済みならステップ0=企業情報
+      } else {
+        setIsLoggedIn(false);
+        setStep(0); // 未ログインならステップ0=アカウント作成
+      }
+      setCheckingAuth(false);
+    }
+    checkAuth();
+  }, []);
+
+  const STEPS = isLoggedIn ? STEPS_LOGGEDIN : STEPS_FULL;
+
+  // ログイン済みの場合のステップオフセット
+  // 未ログイン: 0=account, 1=info, 2=photos, 3=culture, 4=plan
+  // ログイン済み: 0=info, 1=photos, 2=culture, 3=plan
+  const infoStep = isLoggedIn ? 0 : 1;
+  const photosStep = isLoggedIn ? 1 : 2;
+  const cultureStep = isLoggedIn ? 2 : 3;
+  const planStep = isLoggedIn ? 3 : 4;
 
   function updateForm(key: string, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -122,7 +160,8 @@ export default function CompanyRegisterPage() {
       setLoading(false);
       return;
     }
-    setStep(1);
+    setIsLoggedIn(true);
+    setStep(infoStep);
     setLoading(false);
   }
 
@@ -191,8 +230,26 @@ export default function CompanyRegisterPage() {
       await supabase.from("ow_company_culture_tags").insert(tags);
     }
 
+    // companyロールを付与
+    await fetch("/api/roles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "company" }),
+    });
+
     setLoading(false);
-    router.push("/company/edit");
+    router.push("/dashboard");
+  }
+
+  if (checkingAuth) {
+    return (
+      <>
+        <Header />
+        <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
+          <p className="text-gray-400">読み込み中...</p>
+        </main>
+      </>
+    );
   }
 
   return (
@@ -222,6 +279,13 @@ export default function CompanyRegisterPage() {
             </div>
           </div>
 
+          {/* ログイン済み通知 */}
+          {isLoggedIn && step === infoStep && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+              ログイン済みのアカウントに企業を追加登録します
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
               {error}
@@ -229,13 +293,25 @@ export default function CompanyRegisterPage() {
           )}
 
           <div className="bg-white rounded-card-lg p-8 border border-card-border">
-            {/* Step 1: Account */}
-            {step === 0 && (
+            {/* Step: Account (未ログイン時のみ) */}
+            {!isLoggedIn && step === 0 && (
               <div className="space-y-5">
                 <h2 className="text-xl font-bold">企業アカウント作成</h2>
                 <p className="text-sm text-gray-500">
                   会社のメールアドレスで登録してください
                 </p>
+
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                  すでにアカウントをお持ちですか？{" "}
+                  <button
+                    onClick={() => router.push("/auth/login")}
+                    className="text-primary font-medium hover:underline"
+                  >
+                    ログイン
+                  </button>
+                  してから企業登録できます。
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     会社メールアドレス
@@ -271,8 +347,8 @@ export default function CompanyRegisterPage() {
               </div>
             )}
 
-            {/* Step 2: Company Info */}
-            {step === 1 && (
+            {/* Step: Company Info */}
+            {step === infoStep && (isLoggedIn || step !== 0) && (
               <div className="space-y-4">
                 <h2 className="text-xl font-bold">企業情報</h2>
                 <div className="grid grid-cols-2 gap-4">
@@ -400,16 +476,18 @@ export default function CompanyRegisterPage() {
                   </div>
                 </div>
                 <div className="flex gap-3">
+                  {!isLoggedIn && (
+                    <button
+                      onClick={() => setStep(0)}
+                      className="flex-1 py-3 border border-gray-300 text-gray-600 font-medium rounded-full hover:bg-gray-50"
+                    >
+                      戻る
+                    </button>
+                  )}
                   <button
-                    onClick={() => setStep(0)}
-                    className="flex-1 py-3 border border-gray-300 text-gray-600 font-medium rounded-full hover:bg-gray-50"
-                  >
-                    戻る
-                  </button>
-                  <button
-                    onClick={() => setStep(2)}
+                    onClick={() => setStep(photosStep)}
                     disabled={!form.name}
-                    className="flex-1 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-dark disabled:opacity-50"
+                    className={`${isLoggedIn ? "w-full" : "flex-1"} py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-dark disabled:opacity-50`}
                   >
                     次へ
                   </button>
@@ -417,8 +495,8 @@ export default function CompanyRegisterPage() {
               </div>
             )}
 
-            {/* Step 3: Photos */}
-            {step === 2 && (
+            {/* Step: Photos */}
+            {step === photosStep && (
               <div className="space-y-5">
                 <h2 className="text-xl font-bold">社員写真・ロゴ</h2>
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
@@ -447,13 +525,13 @@ export default function CompanyRegisterPage() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setStep(1)}
+                    onClick={() => setStep(infoStep)}
                     className="flex-1 py-3 border border-gray-300 text-gray-600 font-medium rounded-full hover:bg-gray-50"
                   >
                     戻る
                   </button>
                   <button
-                    onClick={() => setStep(3)}
+                    onClick={() => setStep(cultureStep)}
                     className="flex-1 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-dark"
                   >
                     次へ
@@ -462,8 +540,8 @@ export default function CompanyRegisterPage() {
               </div>
             )}
 
-            {/* Step 4: Culture */}
-            {step === 3 && (
+            {/* Step: Culture */}
+            {step === cultureStep && (
               <div className="space-y-5">
                 <h2 className="text-xl font-bold">カルチャー・働き方</h2>
                 <div>
@@ -528,13 +606,13 @@ export default function CompanyRegisterPage() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setStep(2)}
+                    onClick={() => setStep(photosStep)}
                     className="flex-1 py-3 border border-gray-300 text-gray-600 font-medium rounded-full hover:bg-gray-50"
                   >
                     戻る
                   </button>
                   <button
-                    onClick={() => setStep(4)}
+                    onClick={() => setStep(planStep)}
                     className="flex-1 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-dark"
                   >
                     次へ
@@ -543,8 +621,8 @@ export default function CompanyRegisterPage() {
               </div>
             )}
 
-            {/* Step 5: Plan */}
-            {step === 4 && (
+            {/* Step: Plan */}
+            {step === planStep && (
               <div className="space-y-5">
                 <h2 className="text-xl font-bold">プラン選択</h2>
                 <div className="grid grid-cols-2 gap-4">
@@ -589,7 +667,7 @@ export default function CompanyRegisterPage() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setStep(3)}
+                    onClick={() => setStep(cultureStep)}
                     className="flex-1 py-3 border border-gray-300 text-gray-600 font-medium rounded-full hover:bg-gray-50"
                   >
                     戻る
