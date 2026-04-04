@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Header() {
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [jobCount, setJobCount] = useState<number | null>(null);
 
   useEffect(() => {
     async function checkAuth() {
@@ -31,9 +34,42 @@ export default function Header() {
       setCheckingAuth(false);
     }
     checkAuth();
+
+    // 求人数を取得
+    async function fetchJobCount() {
+      try {
+        const res = await fetch("/api/jobs/count");
+        if (res.ok) {
+          const data = await res.json();
+          setJobCount(data.count);
+        }
+      } catch (err) {
+        console.error("[Header] job count fetch error:", err);
+      }
+    }
+    fetchJobCount();
   }, []);
 
   const isCompany = roles.includes("company");
+
+  /** 現在のパスがhrefと一致するかを判定 */
+  function isActive(href: string) {
+    return pathname === href || pathname.startsWith(href + "/");
+  }
+
+  /** ナビリンクのクラスを返す */
+  function navClass(href: string) {
+    return isActive(href)
+      ? "text-sm text-primary font-semibold border-b-2 border-primary pb-0.5 transition-colors"
+      : "text-sm text-gray-600 hover:text-foreground transition-colors";
+  }
+
+  /** モバイルナビリンクのクラスを返す */
+  function mobileNavClass(href: string) {
+    return isActive(href)
+      ? "block text-sm text-primary font-semibold"
+      : "block text-sm text-gray-600";
+  }
 
   async function handleLogout() {
     const supabase = createClient();
@@ -60,43 +96,29 @@ export default function Header() {
               <div className="w-48 h-5" />
             ) : user && isCompany ? (
               <>
-                <Link
-                  href="/company/dashboard"
-                  className="text-sm text-gray-600 hover:text-foreground transition-colors"
-                >
+                <Link href="/company/dashboard" className={navClass("/company/dashboard")}>
                   求人を管理する
                 </Link>
-                <Link
-                  href="/company/edit"
-                  className="text-sm text-gray-600 hover:text-foreground transition-colors"
-                >
+                <Link href="/company/edit" className={navClass("/company/edit")}>
                   企業プロフィール
                 </Link>
-                <Link
-                  href="/company/jobs/new"
-                  className="text-sm text-gray-600 hover:text-foreground transition-colors"
-                >
+                <Link href="/company/jobs/new" className={navClass("/company/jobs/new")}>
                   求人を作成
                 </Link>
               </>
             ) : (
               <>
-                <Link
-                  href="/companies"
-                  className="text-sm text-gray-600 hover:text-foreground transition-colors"
-                >
+                <Link href="/companies" className={navClass("/companies")}>
                   企業を探す
                 </Link>
-                <Link
-                  href="/jobs"
-                  className="text-sm text-gray-600 hover:text-foreground transition-colors"
-                >
-                  求人を見る
+                <Link href="/jobs" className={navClass("/jobs")}>
+                  求人を見る{jobCount !== null && jobCount > 0 && (
+                    <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+                      {jobCount}
+                    </span>
+                  )}
                 </Link>
-                <Link
-                  href="/scout"
-                  className="text-sm text-gray-600 hover:text-foreground transition-colors"
-                >
+                <Link href="/scout" className={navClass("/scout")}>
                   スカウト
                 </Link>
               </>
@@ -183,49 +205,29 @@ export default function Header() {
           <div className="px-4 py-4 space-y-3">
             {user && isCompany ? (
               <>
-                <Link
-                  href="/company/dashboard"
-                  className="block text-sm text-gray-600"
-                  onClick={() => setMenuOpen(false)}
-                >
+                <Link href="/company/dashboard" className={mobileNavClass("/company/dashboard")} onClick={() => setMenuOpen(false)}>
                   求人を管理する
                 </Link>
-                <Link
-                  href="/company/edit"
-                  className="block text-sm text-gray-600"
-                  onClick={() => setMenuOpen(false)}
-                >
+                <Link href="/company/edit" className={mobileNavClass("/company/edit")} onClick={() => setMenuOpen(false)}>
                   企業プロフィール
                 </Link>
-                <Link
-                  href="/company/jobs/new"
-                  className="block text-sm text-gray-600"
-                  onClick={() => setMenuOpen(false)}
-                >
+                <Link href="/company/jobs/new" className={mobileNavClass("/company/jobs/new")} onClick={() => setMenuOpen(false)}>
                   求人を作成
                 </Link>
               </>
             ) : (
               <>
-                <Link
-                  href="/companies"
-                  className="block text-sm text-gray-600"
-                  onClick={() => setMenuOpen(false)}
-                >
+                <Link href="/companies" className={mobileNavClass("/companies")} onClick={() => setMenuOpen(false)}>
                   企業を探す
                 </Link>
-                <Link
-                  href="/jobs"
-                  className="block text-sm text-gray-600"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  求人を見る
+                <Link href="/jobs" className={mobileNavClass("/jobs")} onClick={() => setMenuOpen(false)}>
+                  求人を見る{jobCount !== null && jobCount > 0 && (
+                    <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+                      {jobCount}
+                    </span>
+                  )}
                 </Link>
-                <Link
-                  href="/scout"
-                  className="block text-sm text-gray-600"
-                  onClick={() => setMenuOpen(false)}
-                >
+                <Link href="/scout" className={mobileNavClass("/scout")} onClick={() => setMenuOpen(false)}>
                   スカウト
                 </Link>
               </>
