@@ -259,7 +259,7 @@ export default function CompanySections({
       </p>
 
       {/* Filters */}
-      <div className="flex gap-2 mb-8 overflow-x-auto pb-1 no-scrollbar">
+      <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-1 no-scrollbar">
         {FILTERS.map((f) => {
           const section = sections.find((s) => s.filter === f);
           if (!section) return null;
@@ -278,13 +278,31 @@ export default function CompanySections({
             </button>
           );
         })}
+        <Link
+          href="/companies/list"
+          className="flex-shrink-0 text-xs px-4 py-2 rounded-full border border-primary text-primary hover:bg-primary hover:text-white transition-colors font-medium"
+        >
+          全企業を見る →
+        </Link>
       </div>
 
       {/* Sections */}
       <div className="space-y-8">
         {sections.map((section) => (
           <section key={section.id} id={section.id} className="scroll-mt-24">
-            <h2 className="text-base font-bold mb-3">{section.title}</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-bold">{section.title}</h2>
+              <Link
+                href={
+                  section.filter === "すべて"
+                    ? "/companies/list"
+                    : `/companies/list?category=${encodeURIComponent(section.filter)}`
+                }
+                className="text-xs text-gray-400 hover:text-primary transition-colors"
+              >
+                すべて見る →
+              </Link>
+            </div>
             <Carousel companies={section.companies} />
           </section>
         ))}
