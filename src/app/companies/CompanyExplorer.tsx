@@ -518,39 +518,139 @@ function GridCard({ company }: { company: Company }) {
   );
 }
 
-// ─── View Toggle Icons ──────────────────────────────
+// ─── Grid5 Card (compact 5-col) ─────────────────────
 
-function ListIcon({ active }: { active: boolean }) {
+function Grid5Card({ company }: { company: Company }) {
+  const jobCount = company.ow_jobs?.length || 0;
+
   return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 18 18"
-      fill="none"
-      stroke={active ? "#1D9E75" : "#9ca3af"}
-      strokeWidth="1.5"
+    <Link
+      href={`/companies/${company.id}`}
+      className="block bg-white rounded-xl transition-all text-center"
+      style={{ border: "0.5px solid #e5e7eb", padding: "16px 8px 12px" }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#1D9E75")}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}
     >
-      <rect x="1" y="2" width="16" height="3" rx="1" />
-      <rect x="1" y="7.5" width="16" height="3" rx="1" />
-      <rect x="1" y="13" width="16" height="3" rx="1" />
-    </svg>
+      <div className="flex justify-center mb-2">
+        <CompanyLogo company={company} size={44} rounded={11} />
+      </div>
+      <h3 className="font-medium text-[12px] text-gray-800 leading-tight line-clamp-2 mb-1">
+        {company.name}
+      </h3>
+      {company.industry && (
+        <p className="text-[10px] text-gray-400 truncate mb-1.5">
+          {company.industry}
+        </p>
+      )}
+      {jobCount > 0 && (
+        <span
+          className="inline-block text-[10px] font-medium px-2 py-0.5 rounded-full"
+          style={{ background: "#E1F5EE", color: "#0F6E56" }}
+        >
+          {jobCount}件
+        </span>
+      )}
+    </Link>
   );
 }
 
-function GridIcon({ active }: { active: boolean }) {
+// ─── Section View helpers ───────────────────────────
+
+function isListed(c: Company): boolean {
+  const count = parseEmployeeCount(c.employee_count);
   return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 18 18"
-      fill="none"
-      stroke={active ? "#1D9E75" : "#9ca3af"}
-      strokeWidth="1.5"
-    >
-      <rect x="1" y="1" width="7" height="7" rx="1.5" />
-      <rect x="10" y="1" width="7" height="7" rx="1.5" />
-      <rect x="1" y="10" width="7" height="7" rx="1.5" />
-      <rect x="10" y="10" width="7" height="7" rx="1.5" />
+    count >= 300 ||
+    c.phase?.includes("上場") ||
+    c.phase?.includes("listed")
+  );
+}
+
+type SectionDef = {
+  id: string;
+  title: string;
+  filter: string;
+  companies: Company[];
+};
+
+function buildSections(companies: Company[]): SectionDef[] {
+  const sections: SectionDef[] = [
+    {
+      id: "new",
+      title: "注目の企業",
+      filter: "",
+      companies: companies.filter(isNew),
+    },
+    {
+      id: "gaishi",
+      title: "外資系・グローバル",
+      filter: "外資系",
+      companies: companies.filter(isGaishi),
+    },
+    {
+      id: "listed",
+      title: "日系上場企業",
+      filter: "上場・大手",
+      companies: companies.filter((c) => isListed(c) && !isGaishi(c)),
+    },
+    {
+      id: "startup",
+      title: "スタートアップ",
+      filter: "スタートアップ",
+      companies: companies.filter(isStartup),
+    },
+  ];
+  return sections.filter((s) => s.companies.length > 0);
+}
+
+// ─── View Toggle Icons ──────────────────────────────
+
+function ViewIcon({ type, active }: { type: string; active: boolean }) {
+  const c = active ? "#1D9E75" : "#9ca3af";
+  const w = 1.5;
+
+  if (type === "list") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke={c} strokeWidth={w}>
+        <rect x="1" y="2" width="16" height="3" rx="1" />
+        <rect x="1" y="7.5" width="16" height="3" rx="1" />
+        <rect x="1" y="13" width="16" height="3" rx="1" />
+      </svg>
+    );
+  }
+  if (type === "grid") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke={c} strokeWidth={w}>
+        <rect x="1" y="1" width="7" height="7" rx="1.5" />
+        <rect x="10" y="1" width="7" height="7" rx="1.5" />
+        <rect x="1" y="10" width="7" height="7" rx="1.5" />
+        <rect x="10" y="10" width="7" height="7" rx="1.5" />
+      </svg>
+    );
+  }
+  if (type === "grid5") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke={c} strokeWidth={w}>
+        <rect x="0.5" y="1" width="3" height="7" rx="0.8" />
+        <rect x="4.5" y="1" width="3" height="7" rx="0.8" />
+        <rect x="8.5" y="1" width="3" height="7" rx="0.8" />
+        <rect x="12.5" y="1" width="3" height="7" rx="0.8" />
+        <rect x="0.5" y="10" width="3" height="7" rx="0.8" />
+        <rect x="4.5" y="10" width="3" height="7" rx="0.8" />
+        <rect x="8.5" y="10" width="3" height="7" rx="0.8" />
+        <rect x="12.5" y="10" width="3" height="7" rx="0.8" />
+      </svg>
+    );
+  }
+  // section
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke={c} strokeWidth={w}>
+      <rect x="1" y="1" width="16" height="2" rx="0.8" />
+      <rect x="1" y="5" width="5" height="5" rx="1" />
+      <rect x="7" y="5" width="5" height="5" rx="1" />
+      <rect x="13" y="5" width="4" height="5" rx="1" />
+      <rect x="1" y="12" width="16" height="2" rx="0.8" />
+      <rect x="1" y="15.5" width="5" height="2" rx="0.8" />
+      <rect x="7" y="15.5" width="5" height="2" rx="0.8" />
     </svg>
   );
 }
@@ -568,7 +668,7 @@ export default function CompanyExplorer({
   const [category, setCategory] = useState("すべて");
   const [role, setRole] = useState("すべて");
   const [sort, setSort] = useState("jobs");
-  const [view, setView] = useState<"list" | "grid">("list");
+  const [view, setView] = useState<"list" | "grid" | "grid5" | "section">("list");
   const debounceRef = useRef<NodeJS.Timeout>();
 
   // Debounce search
@@ -739,25 +839,22 @@ export default function CompanyExplorer({
             className="flex items-center rounded-lg overflow-hidden"
             style={{ border: "0.5px solid #e5e7eb" }}
           >
-            <button
-              onClick={() => setView("list")}
-              className="p-1.5 transition-colors"
-              style={{
-                background: view === "list" ? "#E1F5EE" : "#fff",
-              }}
-            >
-              <ListIcon active={view === "list"} />
-            </button>
-            <button
-              onClick={() => setView("grid")}
-              className="p-1.5 transition-colors"
-              style={{
-                background: view === "grid" ? "#E1F5EE" : "#fff",
-                borderLeft: "0.5px solid #e5e7eb",
-              }}
-            >
-              <GridIcon active={view === "grid"} />
-            </button>
+            {(["list", "grid", "grid5", "section"] as const).map((v, i) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className="p-1.5 transition-colors"
+                title={
+                  v === "list" ? "リスト" : v === "grid" ? "2列" : v === "grid5" ? "5列" : "セクション"
+                }
+                style={{
+                  background: view === v ? "#E1F5EE" : "#fff",
+                  borderLeft: i > 0 ? "0.5px solid #e5e7eb" : undefined,
+                }}
+              >
+                <ViewIcon type={v} active={view === v} />
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -770,10 +867,42 @@ export default function CompanyExplorer({
               <ListCard key={c.id} company={c} />
             ))}
           </div>
-        ) : (
+        ) : view === "grid" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {filtered.map((c) => (
               <GridCard key={c.id} company={c} />
+            ))}
+          </div>
+        ) : view === "grid5" ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            {filtered.map((c) => (
+              <Grid5Card key={c.id} company={c} />
+            ))}
+          </div>
+        ) : (
+          /* section view */
+          <div className="space-y-8">
+            {buildSections(filtered).map((section) => (
+              <div key={section.id}>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-[15px] font-bold text-gray-800">
+                    {section.title}
+                  </h2>
+                  {section.filter && (
+                    <Link
+                      href={`/companies/list?category=${encodeURIComponent(section.filter)}`}
+                      className="text-[12px] text-gray-400 hover:text-[#1D9E75] transition-colors"
+                    >
+                      すべて見る →
+                    </Link>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                  {section.companies.map((c) => (
+                    <Grid5Card key={c.id} company={c} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )
