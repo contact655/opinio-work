@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/Header";
+import ImageUpload from "@/components/ImageUpload";
 
 const STEPS = ["基本情報", "経験・スキル", "希望条件", "完了"];
 
@@ -62,6 +63,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState("");
   const [form, setForm] = useState({
     name: "",
     name_kana: "",
@@ -134,6 +136,7 @@ export default function OnboardingPage() {
           : null,
         desired_phase: form.desired_phase,
         transfer_timing: form.transfer_timing,
+        photo_url: photoUrl || null,
         updated_at: new Date().toISOString(),
       }).eq("user_id", user.id);
       profileError = error;
@@ -158,6 +161,7 @@ export default function OnboardingPage() {
           : null,
         desired_phase: form.desired_phase,
         transfer_timing: form.transfer_timing,
+        photo_url: photoUrl || null,
       });
       profileError = error;
     }
@@ -212,6 +216,14 @@ export default function OnboardingPage() {
             {step === 0 && (
               <div className="space-y-5">
                 <h2 className="text-xl font-bold">基本情報</h2>
+                <ImageUpload
+                  currentUrl={photoUrl || null}
+                  onUpload={(url) => setPhotoUrl(url)}
+                  folder="profiles"
+                  label="プロフィール写真"
+                  hint="PNG・JPG、5MB以内"
+                  shape="circle"
+                />
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">

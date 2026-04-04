@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/Header";
+import ImageUpload from "@/components/ImageUpload";
 
 const STEPS_FULL = [
   "アカウント作成",
@@ -57,6 +58,12 @@ const CULTURE_OPTIONS = [
   "ワークライフバランス",
   "スピード重視",
   "丁寧なオンボーディング",
+  "英語環境",
+  "IPO準備中",
+  "CEO直下",
+  "女性活躍推進",
+  "服装自由",
+  "ペット可",
 ];
 
 const BENEFIT_OPTIONS = [
@@ -238,7 +245,7 @@ export default function CompanyRegisterPage() {
     });
 
     setLoading(false);
-    router.push("/dashboard");
+    router.push("/company/edit");
   }
 
   if (checkingAuth) {
@@ -508,21 +515,14 @@ export default function CompanyRegisterPage() {
                     <li>3名の写真を推奨</li>
                   </ul>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    企業ロゴURL
-                  </label>
-                  <input
-                    type="url"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="https://example.com/logo.png"
-                  />
-                  <p className="mt-1 text-xs text-gray-400">
-                    ※ 写真のアップロード機能は後日実装予定です
-                  </p>
-                </div>
+                <ImageUpload
+                  currentUrl={logoUrl || null}
+                  onUpload={(url) => setLogoUrl(url)}
+                  folder="logos"
+                  label="企業ロゴ"
+                  hint="PNG・JPG、5MB以内"
+                  shape="square"
+                />
                 <div className="flex gap-3">
                   <button
                     onClick={() => setStep(infoStep)}

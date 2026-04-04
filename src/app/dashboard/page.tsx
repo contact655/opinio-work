@@ -81,9 +81,15 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2">
                       <h2 className="font-bold text-lg">求職者</h2>
                       {hasCandidate ? (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">登録済み</span>
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 flex items-center gap-0.5">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                          登録済み
+                        </span>
                       ) : (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">未登録</span>
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500 flex items-center gap-0.5">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+                          追加
+                        </span>
                       )}
                     </div>
                     <p className="text-sm text-gray-500">
@@ -132,9 +138,15 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2">
                       <h2 className="font-bold text-lg">企業担当者</h2>
                       {hasCompany ? (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">登録済み</span>
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 flex items-center gap-0.5">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                          登録済み
+                        </span>
                       ) : (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">未登録</span>
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500 flex items-center gap-0.5">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+                          追加
+                        </span>
                       )}
                     </div>
                     {hasCompany && data.companies.length > 0 ? (
