@@ -24,7 +24,11 @@ export default function Header() {
           const res = await fetch("/api/roles");
           if (res.ok) {
             const data = await res.json();
-            setRoles(data.roles || []);
+            const fetchedRoles = data.roles || [];
+            setRoles(fetchedRoles);
+            console.log("[Header] user:", user.email, "roles:", fetchedRoles);
+          } else {
+            console.error("[Header] roles fetch status:", res.status);
           }
         } catch (err) {
           console.error("[Header] roles fetch error:", err);
@@ -51,6 +55,9 @@ export default function Header() {
   }, []);
 
   const isCompany = roles.includes("company");
+  const isCandidate = roles.includes("candidate");
+  const hasBothRoles = isCompany && isCandidate;
+  const isCompanyOnly = isCompany && !isCandidate;
 
   /** 現在のパスがhrefと一致するかを判定 */
   function isActive(href: string) {
@@ -79,6 +86,238 @@ export default function Header() {
     window.location.href = "/";
   }
 
+  // ─── ナビアイテム定義 ───────────────────────────────
+
+  const candidateNavItems = (
+    <>
+      <Link href="/companies" className={navClass("/companies")}>
+        企業を探す
+      </Link>
+      <Link href="/jobs" className={navClass("/jobs")}>
+        求人を見る{jobCount !== null && jobCount > 0 && (
+          <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+            {jobCount}
+          </span>
+        )}
+      </Link>
+      <Link href="/scout" className={navClass("/scout")}>
+        スカウト
+      </Link>
+    </>
+  );
+
+  const companyNavItems = (
+    <>
+      <Link href="/company/dashboard" className={navClass("/company/dashboard")}>
+        求人を管理する
+      </Link>
+      <Link href="/company/edit" className={navClass("/company/edit")}>
+        企業プロフィール
+      </Link>
+      <Link href="/company/jobs/new" className={navClass("/company/jobs/new")}>
+        求人を作成
+      </Link>
+    </>
+  );
+
+  const bothRolesNavItems = (
+    <>
+      <Link href="/companies" className={navClass("/companies")}>
+        企業を探す
+      </Link>
+      <Link href="/jobs" className={navClass("/jobs")}>
+        求人を見る{jobCount !== null && jobCount > 0 && (
+          <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+            {jobCount}
+          </span>
+        )}
+      </Link>
+      <Link href="/scout" className={navClass("/scout")}>
+        スカウト
+      </Link>
+    </>
+  );
+
+  // モバイル用
+  const candidateNavItemsMobile = (
+    <>
+      <Link href="/companies" className={mobileNavClass("/companies")} onClick={() => setMenuOpen(false)}>
+        企業を探す
+      </Link>
+      <Link href="/jobs" className={mobileNavClass("/jobs")} onClick={() => setMenuOpen(false)}>
+        求人を見る{jobCount !== null && jobCount > 0 && (
+          <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+            {jobCount}
+          </span>
+        )}
+      </Link>
+      <Link href="/scout" className={mobileNavClass("/scout")} onClick={() => setMenuOpen(false)}>
+        スカウト
+      </Link>
+    </>
+  );
+
+  const companyNavItemsMobile = (
+    <>
+      <Link href="/company/dashboard" className={mobileNavClass("/company/dashboard")} onClick={() => setMenuOpen(false)}>
+        求人を管理する
+      </Link>
+      <Link href="/company/edit" className={mobileNavClass("/company/edit")} onClick={() => setMenuOpen(false)}>
+        企業プロフィール
+      </Link>
+      <Link href="/company/jobs/new" className={mobileNavClass("/company/jobs/new")} onClick={() => setMenuOpen(false)}>
+        求人を作成
+      </Link>
+    </>
+  );
+
+  const bothRolesNavItemsMobile = (
+    <>
+      <Link href="/companies" className={mobileNavClass("/companies")} onClick={() => setMenuOpen(false)}>
+        企業を探す
+      </Link>
+      <Link href="/jobs" className={mobileNavClass("/jobs")} onClick={() => setMenuOpen(false)}>
+        求人を見る{jobCount !== null && jobCount > 0 && (
+          <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+            {jobCount}
+          </span>
+        )}
+      </Link>
+      <Link href="/scout" className={mobileNavClass("/scout")} onClick={() => setMenuOpen(false)}>
+        スカウト
+      </Link>
+    </>
+  );
+
+  // ─── ナビ選択 ───────────────────────────────────────
+
+  function getDesktopNav() {
+    if (!user) return candidateNavItems; // 未ログイン
+    if (hasBothRoles) return bothRolesNavItems;
+    if (isCompanyOnly) return companyNavItems;
+    return candidateNavItems; // candidate or no roles
+  }
+
+  function getMobileNav() {
+    if (!user) return candidateNavItemsMobile;
+    if (hasBothRoles) return bothRolesNavItemsMobile;
+    if (isCompanyOnly) return companyNavItemsMobile;
+    return candidateNavItemsMobile;
+  }
+
+  // ─── Auth ボタン ────────────────────────────────────
+
+  function getDesktopAuth() {
+    if (!user) {
+      return (
+        <>
+          <Link
+            href="/auth/login"
+            className="text-sm text-gray-600 hover:text-foreground transition-colors"
+          >
+            ログイン
+          </Link>
+          <Link
+            href="/auth/signup"
+            className="text-sm bg-primary text-white px-4 py-2 rounded-full hover:bg-primary-dark transition-colors"
+          >
+            無料登録
+          </Link>
+        </>
+      );
+    }
+
+    return (
+      <>
+        {/* 両方のロール → 企業管理リンク */}
+        {hasBothRoles && (
+          <Link
+            href="/company/dashboard"
+            className="text-sm text-gray-600 hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            企業管理
+          </Link>
+        )}
+        {/* candidate / 両方 → マイページ */}
+        {!isCompanyOnly && (
+          <Link
+            href="/dashboard"
+            className="text-sm text-gray-600 hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            マイページ
+          </Link>
+        )}
+        <button
+          onClick={handleLogout}
+          className="text-sm text-gray-400 hover:text-red-500 transition-colors"
+        >
+          ログアウト
+        </button>
+      </>
+    );
+  }
+
+  function getMobileAuth() {
+    if (!user) {
+      return (
+        <>
+          <Link
+            href="/auth/login"
+            className="block text-sm text-gray-600"
+            onClick={() => setMenuOpen(false)}
+          >
+            ログイン
+          </Link>
+          <Link
+            href="/auth/signup"
+            className="block text-sm text-center bg-primary text-white px-4 py-2 rounded-full"
+            onClick={() => setMenuOpen(false)}
+          >
+            無料登録
+          </Link>
+        </>
+      );
+    }
+
+    return (
+      <>
+        {hasBothRoles && (
+          <Link
+            href="/company/dashboard"
+            className="block text-sm text-gray-600 font-medium"
+            onClick={() => setMenuOpen(false)}
+          >
+            企業管理
+          </Link>
+        )}
+        {!isCompanyOnly && (
+          <Link
+            href="/dashboard"
+            className="block text-sm text-gray-600 font-medium"
+            onClick={() => setMenuOpen(false)}
+          >
+            マイページ
+          </Link>
+        )}
+        <button
+          onClick={() => {
+            setMenuOpen(false);
+            handleLogout();
+          }}
+          className="block text-sm text-red-500"
+        >
+          ログアウト
+        </button>
+      </>
+    );
+  }
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-b border-card-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -94,34 +333,8 @@ export default function Header() {
           <nav className="hidden md:flex items-center gap-8">
             {checkingAuth ? (
               <div className="w-48 h-5" />
-            ) : user && isCompany ? (
-              <>
-                <Link href="/company/dashboard" className={navClass("/company/dashboard")}>
-                  求人を管理する
-                </Link>
-                <Link href="/company/edit" className={navClass("/company/edit")}>
-                  企業プロフィール
-                </Link>
-                <Link href="/company/jobs/new" className={navClass("/company/jobs/new")}>
-                  求人を作成
-                </Link>
-              </>
             ) : (
-              <>
-                <Link href="/companies" className={navClass("/companies")}>
-                  企業を探す
-                </Link>
-                <Link href="/jobs" className={navClass("/jobs")}>
-                  求人を見る{jobCount !== null && jobCount > 0 && (
-                    <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
-                      {jobCount}
-                    </span>
-                  )}
-                </Link>
-                <Link href="/scout" className={navClass("/scout")}>
-                  スカウト
-                </Link>
-              </>
+              getDesktopNav()
             )}
           </nav>
 
@@ -129,41 +342,8 @@ export default function Header() {
           <div className="hidden md:flex items-center gap-3">
             {checkingAuth ? (
               <div className="w-20 h-8" />
-            ) : user ? (
-              <>
-                {!isCompany && (
-                  <Link
-                    href="/dashboard"
-                    className="text-sm text-gray-600 hover:text-foreground transition-colors flex items-center gap-1"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                    マイページ
-                  </Link>
-                )}
-                <button
-                  onClick={handleLogout}
-                  className="text-sm text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  ログアウト
-                </button>
-              </>
             ) : (
-              <>
-                <Link
-                  href="/auth/login"
-                  className="text-sm text-gray-600 hover:text-foreground transition-colors"
-                >
-                  ログイン
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="text-sm bg-primary text-white px-4 py-2 rounded-full hover:bg-primary-dark transition-colors"
-                >
-                  無料登録
-                </Link>
-              </>
+              getDesktopAuth()
             )}
           </div>
 
@@ -203,75 +383,9 @@ export default function Header() {
       {menuOpen && (
         <div className="md:hidden bg-white border-t border-card-border">
           <div className="px-4 py-4 space-y-3">
-            {user && isCompany ? (
-              <>
-                <Link href="/company/dashboard" className={mobileNavClass("/company/dashboard")} onClick={() => setMenuOpen(false)}>
-                  求人を管理する
-                </Link>
-                <Link href="/company/edit" className={mobileNavClass("/company/edit")} onClick={() => setMenuOpen(false)}>
-                  企業プロフィール
-                </Link>
-                <Link href="/company/jobs/new" className={mobileNavClass("/company/jobs/new")} onClick={() => setMenuOpen(false)}>
-                  求人を作成
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link href="/companies" className={mobileNavClass("/companies")} onClick={() => setMenuOpen(false)}>
-                  企業を探す
-                </Link>
-                <Link href="/jobs" className={mobileNavClass("/jobs")} onClick={() => setMenuOpen(false)}>
-                  求人を見る{jobCount !== null && jobCount > 0 && (
-                    <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
-                      {jobCount}
-                    </span>
-                  )}
-                </Link>
-                <Link href="/scout" className={mobileNavClass("/scout")} onClick={() => setMenuOpen(false)}>
-                  スカウト
-                </Link>
-              </>
-            )}
+            {getMobileNav()}
             <hr className="border-card-border" />
-            {user ? (
-              <>
-                {!isCompany && (
-                  <Link
-                    href="/dashboard"
-                    className="block text-sm text-gray-600 font-medium"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    マイページ
-                  </Link>
-                )}
-                <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    handleLogout();
-                  }}
-                  className="block text-sm text-red-500"
-                >
-                  ログアウト
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/auth/login"
-                  className="block text-sm text-gray-600"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  ログイン
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="block text-sm text-center bg-primary text-white px-4 py-2 rounded-full"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  無料登録
-                </Link>
-              </>
-            )}
+            {getMobileAuth()}
           </div>
         </div>
       )}
