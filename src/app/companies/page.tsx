@@ -50,7 +50,10 @@ function CompanyCard({ company }: { company: any }) {
   const hasPhotos = photos.length > 0;
 
   return (
-    <div className="bg-white rounded-card-lg border border-card-border overflow-hidden hover:shadow-lg transition-shadow">
+    <Link
+      href={`/companies/${company.id}`}
+      className="block bg-white rounded-card-lg border border-card-border overflow-hidden hover:shadow-lg transition-shadow"
+    >
       {/* Cover Image */}
       <div className="relative h-48">
         {hasPhotos ? (
@@ -141,15 +144,12 @@ function CompanyCard({ company }: { company: any }) {
               {company.location}
             </span>
           )}
-          <Link
-            href={`/companies/${company.id}`}
-            className="text-sm text-primary font-medium hover:underline"
-          >
-            求人を見る →
-          </Link>
+          <span className="text-sm text-primary font-medium">
+            企業を見る →
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
