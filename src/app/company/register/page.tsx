@@ -1,0 +1,612 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import Header from "@/components/Header";
+
+const STEPS = [
+  "アカウント作成",
+  "企業情報",
+  "社員写真",
+  "カルチャー・働き方",
+  "プラン選択",
+];
+
+const INDUSTRIES = [
+  "SaaS",
+  "CRM/MA",
+  "HR Tech",
+  "FinTech",
+  "HealthTech",
+  "EdTech",
+  "EC/リテール",
+  "メディア/広告",
+  "コンサルティング",
+  "その他IT",
+];
+
+const PHASES = [
+  { value: "early", label: "アーリーステージ" },
+  { value: "middle", label: "ミドルステージ" },
+  { value: "listed", label: "上場企業" },
+  { value: "foreign", label: "外資系" },
+];
+
+const WORK_STYLE_OPTIONS = [
+  "フルリモート",
+  "リモート中心（週1出社）",
+  "ハイブリッド（週2-3出社）",
+  "出社中心",
+  "フル出社",
+];
+
+const CULTURE_OPTIONS = [
+  "フラットな組織",
+  "裁量が大きい",
+  "チームワーク重視",
+  "成果主義",
+  "挑戦を歓迎",
+  "ワークライフバランス",
+  "スピード重視",
+  "丁寧なオンボーディング",
+];
+
+const BENEFIT_OPTIONS = [
+  "ストックオプション",
+  "書籍購入補助",
+  "資格取得支援",
+  "副業OK",
+  "フレックスタイム",
+  "育休・産休実績あり",
+  "社内勉強会",
+  "1on1面談",
+];
+
+export default function CompanyRegisterPage() {
+  const router = useRouter();
+  const [step, setStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Step 1: Account
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // Step 2: Company Info
+  const [form, setForm] = useState({
+    name: "",
+    name_en: "",
+    founded_at: "",
+    employee_count: "",
+    location: "",
+    industry: "",
+    phase: "",
+    url: "",
+    mission: "",
+    description: "",
+  });
+
+  // Step 3: Photos (URLs for now)
+  const [logoUrl, setLogoUrl] = useState("");
+
+  // Step 4: Culture
+  const [workStyles, setWorkStyles] = useState<string[]>([]);
+  const [cultures, setCultures] = useState<string[]>([]);
+  const [benefits, setBenefits] = useState<string[]>([]);
+
+  // Step 5: Plan
+  const [plan, setPlan] = useState("free");
+
+  function updateForm(key: string, value: string) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function toggleItem(
+    arr: string[],
+    setArr: (v: string[]) => void,
+    item: string
+  ) {
+    setArr(
+      arr.includes(item) ? arr.filter((i) => i !== item) : [...arr, item]
+    );
+  }
+
+  async function handleAccountCreate() {
+    setLoading(true);
+    setError("");
+    const supabase = createClient();
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+    setStep(1);
+    setLoading(false);
+  }
+
+  async function handleFinalSubmit() {
+    setLoading(true);
+    setError("");
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setError("ログインが必要です");
+      setLoading(false);
+      return;
+    }
+
+    // Create company
+    const { data: company, error: companyError } = await supabase
+      .from("ow_companies")
+      .insert({
+        user_id: user.id,
+        name: form.name,
+        name_en: form.name_en,
+        founded_at: form.founded_at,
+        employee_count: form.employee_count,
+        location: form.location,
+        industry: form.industry,
+        phase: form.phase,
+        url: form.url,
+        mission: form.mission,
+        description: form.description,
+        logo_url: logoUrl || null,
+        plan,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (companyError || !company) {
+      setError(companyError?.message || "企業登録に失敗しました");
+      setLoading(false);
+      return;
+    }
+
+    // Insert culture tags
+    const tags = [
+      ...workStyles.map((v) => ({
+        company_id: company.id,
+        tag_category: "work_style",
+        tag_value: v,
+      })),
+      ...cultures.map((v) => ({
+        company_id: company.id,
+        tag_category: "culture",
+        tag_value: v,
+      })),
+      ...benefits.map((v) => ({
+        company_id: company.id,
+        tag_category: "benefits",
+        tag_value: v,
+      })),
+    ];
+
+    if (tags.length > 0) {
+      await supabase.from("ow_company_culture_tags").insert(tags);
+    }
+
+    setLoading(false);
+    router.push("/company/edit");
+  }
+
+  return (
+    <>
+      <Header />
+      <main className="pt-16 min-h-screen bg-background">
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          {/* Progress */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-2">
+              {STEPS.map((s, i) => (
+                <span
+                  key={s}
+                  className={`text-xs font-medium ${
+                    i <= step ? "text-primary" : "text-gray-400"
+                  }`}
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+            <div className="h-1.5 bg-gray-200 rounded-full">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-300"
+                style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
+          <div className="bg-white rounded-card-lg p-8 border border-card-border">
+            {/* Step 1: Account */}
+            {step === 0 && (
+              <div className="space-y-5">
+                <h2 className="text-xl font-bold">企業アカウント作成</h2>
+                <p className="text-sm text-gray-500">
+                  会社のメールアドレスで登録してください
+                </p>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    会社メールアドレス
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="you@company.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    パスワード
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    minLength={8}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="8文字以上"
+                  />
+                </div>
+                <button
+                  onClick={handleAccountCreate}
+                  disabled={loading}
+                  className="w-full py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-dark transition-colors disabled:opacity-50"
+                >
+                  {loading ? "作成中..." : "アカウントを作成"}
+                </button>
+              </div>
+            )}
+
+            {/* Step 2: Company Info */}
+            {step === 1 && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-bold">企業情報</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium mb-1">
+                      会社名 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={(e) => updateForm("name", e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="株式会社〇〇"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      設立年
+                    </label>
+                    <input
+                      type="text"
+                      value={form.founded_at}
+                      onChange={(e) => updateForm("founded_at", e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="2020年"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      従業員数
+                    </label>
+                    <input
+                      type="text"
+                      value={form.employee_count}
+                      onChange={(e) =>
+                        updateForm("employee_count", e.target.value)
+                      }
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      所在地
+                    </label>
+                    <input
+                      type="text"
+                      value={form.location}
+                      onChange={(e) => updateForm("location", e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="東京都渋谷区"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      業界
+                    </label>
+                    <select
+                      value={form.industry}
+                      onChange={(e) => updateForm("industry", e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">選択</option>
+                      {INDUSTRIES.map((i) => (
+                        <option key={i} value={i}>
+                          {i}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      フェーズ
+                    </label>
+                    <select
+                      value={form.phase}
+                      onChange={(e) => updateForm("phase", e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">選択</option>
+                      {PHASES.map((p) => (
+                        <option key={p.value} value={p.value}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      コーポレートURL
+                    </label>
+                    <input
+                      type="url"
+                      value={form.url}
+                      onChange={(e) => updateForm("url", e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="https://example.com"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium mb-1">
+                      ミッション
+                    </label>
+                    <input
+                      type="text"
+                      value={form.mission}
+                      onChange={(e) => updateForm("mission", e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="企業のミッションやビジョン"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium mb-1">
+                      企業紹介文
+                    </label>
+                    <textarea
+                      value={form.description}
+                      onChange={(e) =>
+                        updateForm("description", e.target.value)
+                      }
+                      rows={4}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      placeholder="企業の特徴や魅力を教えてください"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep(0)}
+                    className="flex-1 py-3 border border-gray-300 text-gray-600 font-medium rounded-full hover:bg-gray-50"
+                  >
+                    戻る
+                  </button>
+                  <button
+                    onClick={() => setStep(2)}
+                    disabled={!form.name}
+                    className="flex-1 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-dark disabled:opacity-50"
+                  >
+                    次へ
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Photos */}
+            {step === 2 && (
+              <div className="space-y-5">
+                <h2 className="text-xl font-bold">社員写真・ロゴ</h2>
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                  <p className="font-semibold mb-1">撮影ガイドライン</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>カメラを見ていない自然な表情</li>
+                    <li>自然光での撮影推奨</li>
+                    <li>バストアップ〜顔アップ</li>
+                    <li>3名の写真を推奨</li>
+                  </ul>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    企業ロゴURL
+                  </label>
+                  <input
+                    type="url"
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="https://example.com/logo.png"
+                  />
+                  <p className="mt-1 text-xs text-gray-400">
+                    ※ 写真のアップロード機能は後日実装予定です
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="flex-1 py-3 border border-gray-300 text-gray-600 font-medium rounded-full hover:bg-gray-50"
+                  >
+                    戻る
+                  </button>
+                  <button
+                    onClick={() => setStep(3)}
+                    className="flex-1 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-dark"
+                  >
+                    次へ
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Culture */}
+            {step === 3 && (
+              <div className="space-y-5">
+                <h2 className="text-xl font-bold">カルチャー・働き方</h2>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    勤務スタイル
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {WORK_STYLE_OPTIONS.map((w) => (
+                      <button
+                        key={w}
+                        onClick={() => toggleItem(workStyles, setWorkStyles, w)}
+                        className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                          workStyles.includes(w)
+                            ? "bg-primary text-white border-primary"
+                            : "bg-white text-gray-600 border-gray-300 hover:border-primary"
+                        }`}
+                      >
+                        {w}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    組織文化
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {CULTURE_OPTIONS.map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => toggleItem(cultures, setCultures, c)}
+                        className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                          cultures.includes(c)
+                            ? "bg-primary text-white border-primary"
+                            : "bg-white text-gray-600 border-gray-300 hover:border-primary"
+                        }`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    福利厚生・待遇
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {BENEFIT_OPTIONS.map((b) => (
+                      <button
+                        key={b}
+                        onClick={() => toggleItem(benefits, setBenefits, b)}
+                        className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                          benefits.includes(b)
+                            ? "bg-primary text-white border-primary"
+                            : "bg-white text-gray-600 border-gray-300 hover:border-primary"
+                        }`}
+                      >
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep(2)}
+                    className="flex-1 py-3 border border-gray-300 text-gray-600 font-medium rounded-full hover:bg-gray-50"
+                  >
+                    戻る
+                  </button>
+                  <button
+                    onClick={() => setStep(4)}
+                    className="flex-1 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-dark"
+                  >
+                    次へ
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Plan */}
+            {step === 4 && (
+              <div className="space-y-5">
+                <h2 className="text-xl font-bold">プラン選択</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => setPlan("free")}
+                    className={`p-6 rounded-card border-2 text-left transition-colors ${
+                      plan === "free"
+                        ? "border-primary bg-primary-light"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <p className="text-lg font-bold">フリー</p>
+                    <p className="text-2xl font-bold mt-1">¥0</p>
+                    <p className="text-xs text-gray-500 mt-1">月額</p>
+                    <ul className="mt-4 space-y-1 text-xs text-gray-600">
+                      <li>✓ 企業ページ掲載</li>
+                      <li>✓ 求人掲載 3件まで</li>
+                      <li>✓ 応募者管理</li>
+                    </ul>
+                  </button>
+                  <button
+                    onClick={() => setPlan("standard")}
+                    className={`p-6 rounded-card border-2 text-left transition-colors relative ${
+                      plan === "standard"
+                        ? "border-primary bg-primary-light"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <span className="absolute -top-2 right-4 px-2 py-0.5 bg-primary text-white text-[10px] rounded-full">
+                      おすすめ
+                    </span>
+                    <p className="text-lg font-bold">スタンダード</p>
+                    <p className="text-2xl font-bold mt-1">¥49,800</p>
+                    <p className="text-xs text-gray-500 mt-1">月額</p>
+                    <ul className="mt-4 space-y-1 text-xs text-gray-600">
+                      <li>✓ フリープランの全機能</li>
+                      <li>✓ 求人掲載 無制限</li>
+                      <li>✓ スカウト送信</li>
+                      <li>✓ 優先表示</li>
+                    </ul>
+                  </button>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep(3)}
+                    className="flex-1 py-3 border border-gray-300 text-gray-600 font-medium rounded-full hover:bg-gray-50"
+                  >
+                    戻る
+                  </button>
+                  <button
+                    onClick={handleFinalSubmit}
+                    disabled={loading}
+                    className="flex-1 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-dark disabled:opacity-50"
+                  >
+                    {loading ? "登録中..." : "企業登録を完了する"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}
