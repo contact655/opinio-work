@@ -27,8 +27,8 @@ export default async function CompanyListPage({
   return (
     <>
       <Header />
-      <main className="pt-16 min-h-screen bg-background">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="pt-16 min-h-screen bg-white">
+        <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <CompanyListClient
             companies={companies}
             initialCategory={searchParams.category || ""}

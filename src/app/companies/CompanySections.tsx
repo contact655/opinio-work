@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useRef, useState, useEffect, useCallback } from "react";
 
-// ─── カテゴリ分類ロジック ───────────────────────────────
+// ─── タイプ定義 ─────────────────────────────────────────
 
 type Company = any;
+type Job = any;
+
+// ─── カテゴリ分類ロジック ───────────────────────────────
 
 const GAISHI_KEYWORDS = [
   "Google", "Amazon", "Microsoft", "Salesforce", "Meta", "Apple",
@@ -99,21 +102,11 @@ function buildSections(companies: Company[]): Section[] {
   return sections.filter((s) => s.companies.length > 0);
 }
 
-// ─── フィルターボタン ────────────────────────────────
-
-const FILTERS = [
-  "すべて",
-  "外資系",
-  "スタートアップ",
-  "上場・大手",
-  "フルリモート",
-];
-
-// ─── カード ─────────────────────────────────────────
+// ─── ロゴカラー ─────────────────────────────────────────
 
 const LOGO_COLORS = [
   "bg-blue-500",
-  "bg-green-500",
+  "bg-emerald-500",
   "bg-purple-500",
   "bg-orange-500",
   "bg-pink-500",
@@ -122,19 +115,24 @@ const LOGO_COLORS = [
   "bg-rose-500",
 ];
 
+// ─── 企業カード（ワンキャリア風） ──────────────────────
+
 function CompanyCard({ company }: { company: Company }) {
   const color =
     LOGO_COLORS[company.name.charCodeAt(0) % LOGO_COLORS.length];
+  const jobCount = company.ow_jobs?.length || 0;
 
   return (
     <Link
       href={`/companies/${company.id}`}
-      className="block bg-white rounded-xl p-4 h-[160px] hover:border-primary transition-colors"
-      style={{ border: "0.5px solid #e0e0e0" }}
+      className="group block bg-white rounded-xl p-4 h-[180px] hover:border-primary/50 transition-all hover:shadow-sm"
+      style={{ border: "0.5px solid #e5e7eb" }}
     >
       {/* Logo */}
-      <div className="flex justify-center mt-0.5 mb-3">
-        <div className="w-14 h-14 rounded-xl border border-gray-100 overflow-hidden flex items-center justify-center bg-gray-50 flex-shrink-0">
+      <div className="flex justify-center mb-3">
+        <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0"
+          style={{ border: "0.5px solid #e5e7eb" }}
+        >
           {company.logo_url ? (
             <img
               src={company.logo_url}
@@ -153,29 +151,91 @@ function CompanyCard({ company }: { company: Company }) {
 
       {/* Industry */}
       {company.industry && (
-        <p className="text-[11px] text-gray-400 truncate text-center mb-1">
+        <p className="text-[11px] text-gray-400 truncate text-center leading-none mb-1.5">
           {company.industry}
         </p>
       )}
 
       {/* Name */}
-      <h3 className="font-medium text-[13px] leading-tight line-clamp-1 text-center">
+      <h3 className="font-medium text-[13px] leading-tight line-clamp-2 text-center text-gray-800 mb-1.5">
         {company.name}
       </h3>
 
-      {/* Location */}
-      {company.location && (
-        <p className="text-[11px] text-gray-400 truncate text-center mt-1">
-          {company.location}
+      {/* Job count */}
+      {jobCount > 0 && (
+        <p className="text-[11px] text-primary font-medium text-center">
+          {jobCount}件の求人
         </p>
       )}
     </Link>
   );
 }
 
-// ─── カルーセル ──────────────────────────────────────
+// ─── 求人カード ─────────────────────────────────────────
 
-function Carousel({ companies }: { companies: Company[] }) {
+function JobCard({ job }: { job: Job }) {
+  const company = job.ow_companies;
+
+  return (
+    <Link
+      href={`/jobs/${job.id}`}
+      className="group block bg-white rounded-xl p-4 hover:border-primary/50 transition-all hover:shadow-sm"
+      style={{ border: "0.5px solid #e5e7eb", minHeight: "140px" }}
+    >
+      {/* Company info */}
+      {company && (
+        <div className="flex items-center gap-2 mb-2.5">
+          <div className="w-7 h-7 rounded-md overflow-hidden flex items-center justify-center flex-shrink-0 bg-gray-50"
+            style={{ border: "0.5px solid #e5e7eb" }}
+          >
+            {company.logo_url ? (
+              <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-[10px] font-bold text-gray-400">{company.name?.[0]}</span>
+            )}
+          </div>
+          <span className="text-[11px] text-gray-400 truncate">{company.name}</span>
+        </div>
+      )}
+
+      {/* Title */}
+      <h3 className="font-medium text-[13px] leading-snug text-gray-800 line-clamp-2 mb-2">
+        {job.title}
+      </h3>
+
+      {/* Meta */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {job.job_category && (
+          <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
+            {job.job_category}
+          </span>
+        )}
+        {job.salary_min && job.salary_max && (
+          <span className="text-[10px] text-gray-400">
+            {job.salary_min}〜{job.salary_max}万
+          </span>
+        )}
+        {job.location && (
+          <span className="text-[10px] text-gray-400">{job.location}</span>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+// ─── 汎用カルーセル ──────────────────────────────────────
+
+function Carousel({
+  children,
+  itemWidth = 160,
+  gap = 12,
+  slideCount = 5,
+}: {
+  children: React.ReactNode;
+  itemWidth?: number;
+  gap?: number;
+  slideCount?: number;
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
@@ -203,19 +263,20 @@ function Carousel({ companies }: { companies: Company[] }) {
     const el = scrollRef.current;
     if (!el) return;
     const card =
-      el.querySelector<HTMLElement>(":scope > div")?.offsetWidth || 160;
-    const dist = (card + 12) * 5;
+      el.querySelector<HTMLElement>(":scope > div")?.offsetWidth || itemWidth;
+    const dist = (card + gap) * slideCount;
     el.scrollBy({ left: dir === "left" ? -dist : dist, behavior: "smooth" });
   };
 
   return (
-    <div className="relative group">
+    <div className="relative group/carousel">
       {canLeft && (
         <button
           onClick={() => slide("left")}
-          className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+          style={{ border: "0.5px solid #e5e7eb" }}
         >
-          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
@@ -223,9 +284,10 @@ function Carousel({ companies }: { companies: Company[] }) {
       {canRight && (
         <button
           onClick={() => slide("right")}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+          style={{ border: "0.5px solid #e5e7eb" }}
         >
-          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
@@ -233,16 +295,10 @@ function Carousel({ companies }: { companies: Company[] }) {
 
       <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 -mx-1 px-1 no-scrollbar"
+        className="flex overflow-x-auto scroll-smooth snap-x snap-mandatory pb-1 no-scrollbar"
+        style={{ gap: `${gap}px` }}
       >
-        {companies.map((c) => (
-          <div
-            key={c.id}
-            className="flex-shrink-0 w-[calc((100%-3rem)/5)] min-w-[160px] snap-start"
-          >
-            <CompanyCard company={c} />
-          </div>
-        ))}
+        {children}
       </div>
     </div>
   );
@@ -252,56 +308,34 @@ function Carousel({ companies }: { companies: Company[] }) {
 
 export default function CompanySections({
   companies,
+  recentJobs,
 }: {
   companies: Company[];
+  recentJobs: Job[];
 }) {
   const sections = buildSections(companies);
 
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   return (
     <>
-      {/* Count */}
-      <p className="text-sm text-gray-500 mb-4">
-        {companies.length}社の企業が見つかりました
-      </p>
-
-      {/* Filters */}
-      <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-1 no-scrollbar">
-        {FILTERS.map((f) => {
-          const section = sections.find((s) => s.filter === f);
-          if (!section) return null;
-          return (
-            <button
-              key={f}
-              onClick={() => scrollTo(section.id)}
-              className="flex-shrink-0 text-xs px-4 py-2 rounded-full border bg-white text-gray-600 border-card-border hover:border-primary hover:text-primary transition-colors"
-            >
-              {f}
-              {section && (
-                <span className="ml-1 text-gray-400">
-                  {section.companies.length}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      {/* Count + View All */}
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-sm text-gray-400">
+          {companies.length}社の企業
+        </p>
         <Link
           href="/companies/list"
-          className="flex-shrink-0 text-xs px-4 py-2 rounded-full border border-primary text-primary hover:bg-primary hover:text-white transition-colors font-medium"
+          className="text-sm text-primary hover:underline font-medium"
         >
-          全企業を見る →
+          すべての企業を見る →
         </Link>
       </div>
 
-      {/* Sections */}
-      <div className="space-y-8">
+      {/* Company Sections */}
+      <div className="space-y-10">
         {sections.map((section) => (
           <section key={section.id} id={section.id} className="scroll-mt-24">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold">{section.title}</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[15px] font-bold text-gray-800">{section.title}</h2>
               <Link
                 href={
                   section.filter === "すべて"
@@ -313,9 +347,57 @@ export default function CompanySections({
                 すべて見る →
               </Link>
             </div>
-            <Carousel companies={section.companies} />
+            <Carousel itemWidth={160} gap={12} slideCount={5}>
+              {section.companies.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex-shrink-0 w-[160px] snap-start"
+                >
+                  <CompanyCard company={c} />
+                </div>
+              ))}
+            </Carousel>
           </section>
         ))}
+      </div>
+
+      {/* Recent Jobs Section */}
+      {recentJobs.length > 0 && (
+        <section className="mt-12">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[15px] font-bold text-gray-800">新着求人</h2>
+            <Link
+              href="/jobs"
+              className="text-xs text-gray-400 hover:text-primary transition-colors"
+            >
+              すべての求人を見る →
+            </Link>
+          </div>
+          <Carousel itemWidth={260} gap={12} slideCount={3}>
+            {recentJobs.map((job) => (
+              <div
+                key={job.id}
+                className="flex-shrink-0 w-[260px] snap-start"
+              >
+                <JobCard job={job} />
+              </div>
+            ))}
+          </Carousel>
+        </section>
+      )}
+
+      {/* All companies button */}
+      <div className="mt-12 text-center">
+        <Link
+          href="/companies/list"
+          className="inline-flex items-center gap-2 px-8 py-3 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          style={{ border: "0.5px solid #d1d5db" }}
+        >
+          すべての企業を見る
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
       </div>
 
       {/* No scrollbar style */}
