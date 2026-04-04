@@ -42,6 +42,12 @@ export default function Header() {
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
             <Link
+              href="/company/register"
+              className="text-sm text-gray-500 hover:text-primary transition-colors border border-card-border px-3 py-1.5 rounded-full"
+            >
+              企業の方はこちら
+            </Link>
+            <Link
               href="/auth/login"
               className="text-sm text-gray-600 hover:text-foreground transition-colors"
             >
@@ -111,6 +117,14 @@ export default function Header() {
               onClick={() => setMenuOpen(false)}
             >
               スカウト
+            </Link>
+            <hr className="border-card-border" />
+            <Link
+              href="/company/register"
+              className="block text-sm text-gray-500"
+              onClick={() => setMenuOpen(false)}
+            >
+              企業の方はこちら
             </Link>
             <hr className="border-card-border" />
             <Link
