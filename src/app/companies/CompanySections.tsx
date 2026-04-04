@@ -36,18 +36,13 @@ function isStartup(c: Company): boolean {
   );
 }
 
-function isMiddle(c: Company): boolean {
+function isListed(c: Company): boolean {
   const count = parseEmployeeCount(c.employee_count);
-  const phases = ["シリーズC", "シリーズD", "middle", "ミドル"];
+  const phases = ["上場", "listed", "ユニコーン", "シリーズC", "シリーズD", "middle", "ミドル"];
   return (
-    (count > 100 && count <= 1000) ||
+    count > 100 ||
     phases.some((p) => c.phase?.includes(p))
   );
-}
-
-function isListed(c: Company): boolean {
-  const phases = ["上場", "listed", "ユニコーン"];
-  return phases.some((p) => c.phase?.includes(p));
 }
 
 function isRemote(c: Company): boolean {
@@ -69,41 +64,33 @@ function buildSections(companies: Company[]): Section[] {
   const sections: Section[] = [
     {
       id: "featured",
-      title: "🏢 注目の企業",
+      title: "注目の企業",
       filter: "すべて",
-      companies: companies.slice(0, 12),
+      companies: companies.slice(0, 15),
     },
     {
       id: "gaishi",
-      title: "🌏 外資系・グローバル",
+      title: "外資系・グローバル",
       filter: "外資系",
       companies: companies.filter(isGaishi),
     },
     {
       id: "startup",
-      title: "🚀 スタートアップ",
+      title: "スタートアップ",
       filter: "スタートアップ",
       companies: companies.filter(isStartup),
     },
     {
-      id: "middle",
-      title: "📈 成長期・ミドル",
-      filter: "ミドル",
-      companies: companies.filter(
-        (c) => isMiddle(c) && !isGaishi(c)
-      ),
-    },
-    {
       id: "listed",
-      title: "🏛️ 上場企業・大手",
-      filter: "上場企業",
+      title: "上場・大手",
+      filter: "上場・大手",
       companies: companies.filter(
         (c) => isListed(c) && !isGaishi(c)
       ),
     },
     {
       id: "remote",
-      title: "🏠 フルリモート対応",
+      title: "フルリモート歓迎",
       filter: "フルリモート",
       companies: companies.filter(isRemote),
     },
@@ -118,12 +105,11 @@ const FILTERS = [
   "すべて",
   "外資系",
   "スタートアップ",
-  "ミドル",
-  "上場企業",
+  "上場・大手",
   "フルリモート",
 ];
 
-// ─── カルーセル ──────────────────────────────────────
+// ─── カード ─────────────────────────────────────────
 
 const LOGO_COLORS = [
   "bg-blue-500",
@@ -137,70 +123,47 @@ const LOGO_COLORS = [
 ];
 
 function CompanyCard({ company }: { company: Company }) {
-  const jobCount = company.ow_jobs?.length || 0;
   const color =
     LOGO_COLORS[company.name.charCodeAt(0) % LOGO_COLORS.length];
 
   return (
     <Link
       href={`/companies/${company.id}`}
-      className="block bg-white rounded-xl border border-card-border p-4 hover:shadow-lg transition-shadow h-full"
+      className="block bg-white rounded-lg border border-card-border p-3 hover:shadow-md transition-shadow h-full"
     >
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center bg-gray-50">
-          {company.logo_url ? (
-            <img
-              src={company.logo_url}
-              alt={company.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div
-              className={`w-full h-full ${color} flex items-center justify-center text-white text-base font-bold`}
-            >
-              {company.name[0]}
-            </div>
-          )}
-        </div>
-        <h3 className="font-semibold text-sm leading-tight line-clamp-2 flex-1 min-w-0">
-          {company.name}
-        </h3>
-      </div>
-
-      <div className="flex flex-wrap gap-1 mb-2.5">
-        {company.industry && (
-          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded">
-            {company.industry}
-          </span>
-        )}
-        {company.phase && (
-          <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded">
-            {company.phase}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between text-[11px] text-gray-400">
-        {company.location ? (
-          <span className="flex items-center gap-0.5 truncate">
-            <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            {company.location}
-          </span>
+      {/* Logo */}
+      <div className="w-full aspect-square rounded-md border border-gray-100 overflow-hidden flex items-center justify-center bg-gray-50 mb-2">
+        {company.logo_url ? (
+          <img
+            src={company.logo_url}
+            alt={company.name}
+            className="w-full h-full object-cover"
+          />
         ) : (
-          <span />
-        )}
-        {jobCount > 0 && (
-          <span className="text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
-            求人{jobCount}件
-          </span>
+          <div
+            className={`w-full h-full ${color} flex items-center justify-center text-white text-2xl font-bold`}
+          >
+            {company.name[0]}
+          </div>
         )}
       </div>
+
+      {/* Industry */}
+      {company.industry && (
+        <p className="text-[10px] text-gray-400 truncate mb-0.5">
+          {company.industry}
+        </p>
+      )}
+
+      {/* Name */}
+      <h3 className="font-semibold text-xs leading-tight line-clamp-2">
+        {company.name}
+      </h3>
     </Link>
   );
 }
+
+// ─── カルーセル ──────────────────────────────────────
 
 function Carousel({ companies }: { companies: Company[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -230,8 +193,8 @@ function Carousel({ companies }: { companies: Company[] }) {
     const el = scrollRef.current;
     if (!el) return;
     const card =
-      el.querySelector<HTMLElement>(":scope > div")?.offsetWidth || 200;
-    const dist = (card + 16) * 3;
+      el.querySelector<HTMLElement>(":scope > div")?.offsetWidth || 160;
+    const dist = (card + 12) * 5;
     el.scrollBy({ left: dir === "left" ? -dist : dist, behavior: "smooth" });
   };
 
@@ -240,7 +203,7 @@ function Carousel({ companies }: { companies: Company[] }) {
       {canLeft && (
         <button
           onClick={() => slide("left")}
-          className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -250,7 +213,7 @@ function Carousel({ companies }: { companies: Company[] }) {
       {canRight && (
         <button
           onClick={() => slide("right")}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -260,12 +223,12 @@ function Carousel({ companies }: { companies: Company[] }) {
 
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 -mx-1 px-1 no-scrollbar"
+        className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 -mx-1 px-1 no-scrollbar"
       >
         {companies.map((c) => (
           <div
             key={c.id}
-            className="flex-shrink-0 w-[calc((100%-2rem)/3)] min-w-[200px] snap-start"
+            className="flex-shrink-0 w-[calc((100%-3rem)/5)] min-w-[140px] snap-start"
           >
             <CompanyCard company={c} />
           </div>
@@ -318,10 +281,10 @@ export default function CompanySections({
       </div>
 
       {/* Sections */}
-      <div className="space-y-10">
+      <div className="space-y-8">
         {sections.map((section) => (
           <section key={section.id} id={section.id} className="scroll-mt-24">
-            <h2 className="text-lg font-bold mb-4">{section.title}</h2>
+            <h2 className="text-base font-bold mb-3">{section.title}</h2>
             <Carousel companies={section.companies} />
           </section>
         ))}
