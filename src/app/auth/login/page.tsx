@@ -28,7 +28,9 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      // ログイン前のページに戻る（なければ /companies）
+      const redirectTo = new URLSearchParams(window.location.search).get("redirect") || "/companies";
+      router.push(redirectTo);
       router.refresh();
     }
   }

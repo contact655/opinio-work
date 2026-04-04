@@ -60,68 +60,84 @@ export default function DashboardPage() {
       <main className="pt-16 min-h-screen bg-background">
         <div className="max-w-3xl mx-auto px-4 py-10">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold mb-1">ダッシュボード</h1>
+            <h1 className="text-2xl font-bold mb-1">マイページ</h1>
             <p className="text-sm text-gray-500">
-              {user.email} でログイン中
+              {user.email}
             </p>
           </div>
 
-          {/* Current Roles */}
+          {/* Registered Roles */}
           <div className="grid gap-4 mb-8">
             {/* Candidate Role */}
-            {hasCandidate && (
-              <div className="bg-white rounded-card-lg border border-card-border p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="font-bold text-lg">求職者として使う</h2>
-                      <p className="text-sm text-gray-500">
-                        {data.profile ? `${data.profile.name} さん` : "プロフィール未設定"}
-                      </p>
-                    </div>
+            <div className="bg-white rounded-card-lg border border-card-border p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasCandidate ? "bg-blue-100" : "bg-gray-100"}`}>
+                    <svg className={`w-6 h-6 ${hasCandidate ? "text-blue-600" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
                   </div>
-                  <div className="flex gap-2">
-                    <Link
-                      href="/companies"
-                      className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-dark transition-colors"
-                    >
-                      企業を探す
-                    </Link>
-                    <Link
-                      href="/jobs"
-                      className="px-4 py-2 border border-primary text-primary text-sm font-medium rounded-full hover:bg-primary-light transition-colors"
-                    >
-                      求人を見る
-                    </Link>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-bold text-lg">求職者</h2>
+                      {hasCandidate ? (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">登録済み</span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">未登録</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {hasCandidate
+                        ? (data.profile?.name ? `${data.profile.name} さん` : "プロフィール登録済み")
+                        : "プロフィールを登録して求人に応募できます"}
+                    </p>
                   </div>
                 </div>
-                <div className="mt-4 flex gap-3 text-sm">
-                  <Link href="/mypage/applications" className="text-gray-500 hover:text-primary">応募管理</Link>
-                  <span className="text-gray-300">|</span>
-                  <Link href="/scout" className="text-gray-500 hover:text-primary">スカウト</Link>
-                  <span className="text-gray-300">|</span>
-                  <Link href="/onboarding" className="text-gray-500 hover:text-primary">プロフィール編集</Link>
-                </div>
+                {hasCandidate ? (
+                  <Link
+                    href="/companies"
+                    className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-dark transition-colors"
+                  >
+                    企業を探す
+                  </Link>
+                ) : (
+                  <Link
+                    href="/onboarding"
+                    className="px-4 py-2 border border-primary text-primary text-sm font-medium rounded-full hover:bg-primary-light transition-colors"
+                  >
+                    登録する
+                  </Link>
+                )}
               </div>
-            )}
+              {hasCandidate && (
+                <div className="mt-4 pt-3 border-t border-gray-100 flex gap-4 text-sm">
+                  <Link href="/jobs" className="text-gray-500 hover:text-primary transition-colors">求人を見る</Link>
+                  <Link href="/mypage/applications" className="text-gray-500 hover:text-primary transition-colors">応募管理</Link>
+                  <Link href="/scout" className="text-gray-500 hover:text-primary transition-colors">スカウト</Link>
+                  <Link href="/onboarding" className="text-gray-500 hover:text-primary transition-colors">プロフィール編集</Link>
+                </div>
+              )}
+            </div>
 
             {/* Company Role */}
-            {hasCompany && data.companies.length > 0 && (
-              <div className="bg-white rounded-card-lg border border-card-border p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
+            <div className="bg-white rounded-card-lg border border-card-border p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasCompany ? "bg-green-100" : "bg-gray-100"}`}>
+                    <svg className={`w-6 h-6 ${hasCompany ? "text-green-600" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-bold text-lg">企業担当者</h2>
+                      {hasCompany ? (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">登録済み</span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">未登録</span>
+                      )}
                     </div>
-                    <div>
-                      <h2 className="font-bold text-lg">企業担当者として使う</h2>
+                    {hasCompany && data.companies.length > 0 ? (
                       <div className="flex flex-wrap gap-2 mt-1">
                         {data.companies.map((c) => (
                           <span key={c.id} className="text-sm text-gray-500 flex items-center gap-1">
@@ -136,22 +152,34 @@ export default function DashboardPage() {
                           </span>
                         ))}
                       </div>
-                    </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">企業を登録して求人を掲載できます</p>
+                    )}
                   </div>
+                </div>
+                {hasCompany ? (
                   <Link
                     href="/company/edit"
                     className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-dark transition-colors"
                   >
                     企業管理
                   </Link>
-                </div>
-                <div className="mt-4 flex gap-3 text-sm">
-                  <Link href="/company/edit" className="text-gray-500 hover:text-primary">企業情報編集</Link>
-                  <span className="text-gray-300">|</span>
-                  <Link href="/company/jobs/new" className="text-gray-500 hover:text-primary">求人作成</Link>
-                </div>
+                ) : (
+                  <Link
+                    href="/company/register"
+                    className="px-4 py-2 border border-primary text-primary text-sm font-medium rounded-full hover:bg-primary-light transition-colors"
+                  >
+                    企業登録
+                  </Link>
+                )}
               </div>
-            )}
+              {hasCompany && data.companies.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-gray-100 flex gap-4 text-sm">
+                  <Link href="/company/edit" className="text-gray-500 hover:text-primary transition-colors">企業情報編集</Link>
+                  <Link href="/company/jobs/new" className="text-gray-500 hover:text-primary transition-colors">求人作成</Link>
+                </div>
+              )}
+            </div>
 
             {/* Admin Role */}
             {hasAdmin && (
@@ -179,48 +207,6 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-
-          {/* Add Roles */}
-          {(!hasCandidate || !hasCompany) && (
-            <div>
-              <h2 className="text-sm font-bold text-gray-500 mb-3">役割を追加</h2>
-              <div className="grid gap-3">
-                {!hasCandidate && (
-                  <Link
-                    href="/onboarding"
-                    className="flex items-center gap-4 p-5 bg-white rounded-card-lg border border-dashed border-gray-300 hover:border-primary hover:bg-primary-light/30 transition-colors group"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                      <svg className="w-5 h-5 text-blue-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-700 group-hover:text-primary">求職者として登録する</p>
-                      <p className="text-xs text-gray-400">プロフィールを作成して、企業からスカウトを受け取れます</p>
-                    </div>
-                  </Link>
-                )}
-
-                {!hasCompany && (
-                  <Link
-                    href="/company/register"
-                    className="flex items-center gap-4 p-5 bg-white rounded-card-lg border border-dashed border-gray-300 hover:border-primary hover:bg-primary-light/30 transition-colors group"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
-                      <svg className="w-5 h-5 text-green-400 group-hover:text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-700 group-hover:text-primary">企業担当者として登録する</p>
-                      <p className="text-xs text-gray-400">企業情報を登録して求人を掲載できます</p>
-                    </div>
-                  </Link>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </main>
     </>
