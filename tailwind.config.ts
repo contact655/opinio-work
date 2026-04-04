@@ -9,8 +9,23 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        primary: "#1D9E75",
+        "primary-dark": "#178A65",
+        "primary-light": "#E8F5EF",
+        background: "#F5F4F0",
+        foreground: "#1a1a1a",
+        "card-border": "rgba(0,0,0,0.08)",
+      },
+      fontFamily: {
+        sans: [
+          "Hiragino Sans",
+          "Noto Sans JP",
+          "sans-serif",
+        ],
+      },
+      borderRadius: {
+        card: "16px",
+        "card-lg": "20px",
       },
     },
   },
