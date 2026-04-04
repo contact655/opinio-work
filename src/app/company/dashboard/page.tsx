@@ -200,11 +200,11 @@ export default function CompanyDashboardPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        job.status === "published"
+                        job.status === "active" || job.status === "published"
                           ? "bg-green-100 text-green-700"
                           : "bg-gray-100 text-gray-500"
                       }`}>
-                        {job.status === "published" ? "公開中" : "下書き"}
+                        {job.status === "active" || job.status === "published" ? "公開中" : "下書き"}
                       </span>
                       <Link
                         href={`/company/jobs/${job.id}/edit`}
