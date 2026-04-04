@@ -129,36 +129,46 @@ function CompanyCard({ company }: { company: Company }) {
   return (
     <Link
       href={`/companies/${company.id}`}
-      className="block bg-white rounded-lg border border-card-border p-3 hover:shadow-md transition-shadow h-full"
+      className="block bg-white rounded-xl p-4 h-[160px] hover:border-primary transition-colors"
+      style={{ border: "0.5px solid #e0e0e0" }}
     >
       {/* Logo */}
-      <div className="w-full aspect-square rounded-md border border-gray-100 overflow-hidden flex items-center justify-center bg-gray-50 mb-2">
-        {company.logo_url ? (
-          <img
-            src={company.logo_url}
-            alt={company.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div
-            className={`w-full h-full ${color} flex items-center justify-center text-white text-2xl font-bold`}
-          >
-            {company.name[0]}
-          </div>
-        )}
+      <div className="flex justify-center mt-0.5 mb-3">
+        <div className="w-14 h-14 rounded-xl border border-gray-100 overflow-hidden flex items-center justify-center bg-gray-50 flex-shrink-0">
+          {company.logo_url ? (
+            <img
+              src={company.logo_url}
+              alt={company.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div
+              className={`w-full h-full ${color} flex items-center justify-center text-white text-xl font-bold`}
+            >
+              {company.name[0]}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Industry */}
       {company.industry && (
-        <p className="text-[10px] text-gray-400 truncate mb-0.5">
+        <p className="text-[11px] text-gray-400 truncate text-center mb-1">
           {company.industry}
         </p>
       )}
 
       {/* Name */}
-      <h3 className="font-semibold text-xs leading-tight line-clamp-2">
+      <h3 className="font-medium text-[13px] leading-tight line-clamp-1 text-center">
         {company.name}
       </h3>
+
+      {/* Location */}
+      {company.location && (
+        <p className="text-[11px] text-gray-400 truncate text-center mt-1">
+          {company.location}
+        </p>
+      )}
     </Link>
   );
 }
@@ -228,7 +238,7 @@ function Carousel({ companies }: { companies: Company[] }) {
         {companies.map((c) => (
           <div
             key={c.id}
-            className="flex-shrink-0 w-[calc((100%-3rem)/5)] min-w-[140px] snap-start"
+            className="flex-shrink-0 w-[calc((100%-3rem)/5)] min-w-[160px] snap-start"
           >
             <CompanyCard company={c} />
           </div>
