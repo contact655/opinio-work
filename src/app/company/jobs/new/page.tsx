@@ -144,7 +144,7 @@ export default function JobCreatePage() {
     );
   }
 
-  async function handleSave(status: "draft" | "pending") {
+  async function handleSave(status: "draft" | "active") {
     if (!companyId || !form.title) return;
     setSaving(true);
 
@@ -198,9 +198,9 @@ export default function JobCreatePage() {
     }
 
     setSaving(false);
-    setToast(status === "draft" ? "下書き保存しました" : "公開申請しました");
+    setToast(status === "draft" ? "下書き保存しました" : "求人を公開しました");
     setTimeout(() => {
-      router.push("/company/edit");
+      router.push("/company/dashboard");
     }, 1500);
   }
 
@@ -268,11 +268,11 @@ export default function JobCreatePage() {
                   下書き保存
                 </button>
                 <button
-                  onClick={() => handleSave("pending")}
+                  onClick={() => handleSave("active")}
                   disabled={saving || !form.title}
                   className="w-full py-2.5 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-dark disabled:opacity-50"
                 >
-                  公開申請する
+                  求人を公開する
                 </button>
               </div>
             </div>
@@ -483,7 +483,7 @@ export default function JobCreatePage() {
         {/* Mobile Buttons */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-card-border p-4 flex gap-3">
           <button onClick={() => handleSave("draft")} disabled={saving} className="flex-1 py-3 border border-gray-300 text-gray-600 font-medium rounded-full">下書き保存</button>
-          <button onClick={() => handleSave("pending")} disabled={saving || !form.title} className="flex-1 py-3 bg-primary text-white font-medium rounded-full disabled:opacity-50">公開申請</button>
+          <button onClick={() => handleSave("active")} disabled={saving || !form.title} className="flex-1 py-3 bg-primary text-white font-medium rounded-full disabled:opacity-50">求人を公開</button>
         </div>
       </main>
     </>
