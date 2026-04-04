@@ -50,10 +50,14 @@ function CompanyCard({ company }: { company: any }) {
   const hasPhotos = photos.length > 0;
 
   return (
-    <Link
-      href={`/companies/${company.id}`}
-      className="block cursor-pointer bg-white rounded-card-lg border border-card-border overflow-hidden hover:shadow-lg transition-shadow"
-    >
+    <div className="relative bg-white rounded-card-lg border border-card-border overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+      {/* Stretched link — カード全体クリックで企業詳細へ */}
+      <Link
+        href={`/companies/${company.id}`}
+        className="absolute inset-0 z-0"
+        aria-label={`${company.name}の詳細を見る`}
+      />
+
       {/* Cover Image */}
       <div className="relative h-48">
         {hasPhotos ? (
@@ -81,11 +85,14 @@ function CompanyCard({ company }: { company: any }) {
           </span>
         )}
 
-        {/* Job count badge */}
+        {/* Job count badge — クリックで求人セクションへ */}
         {jobCount > 0 && (
-          <span className="absolute bottom-3 right-3 bg-primary text-white text-xs px-3 py-1 rounded-full">
+          <Link
+            href={`/companies/${company.id}#jobs`}
+            className="absolute bottom-3 right-3 z-10 bg-primary text-white text-xs px-3 py-1 rounded-full hover:bg-primary-dark transition-colors"
+          >
             求人 {jobCount}件
-          </span>
+          </Link>
         )}
       </div>
 
@@ -149,7 +156,7 @@ function CompanyCard({ company }: { company: any }) {
           </span>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
