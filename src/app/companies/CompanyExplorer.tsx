@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -33,6 +34,9 @@ const LOGO_COLORS = [
   "#3B82F6", "#10B981", "#8B5CF6", "#F97316",
   "#EC4899", "#14B8A6", "#6366F1", "#F43F5E",
 ];
+
+// 修正2: サービスリリース日 — この日以前に作成された企業にはNEWをつけない
+const LAUNCH_DATE = new Date("2026-04-04");
 
 // ─── Helpers ────────────────────────────────────────
 
@@ -67,15 +71,18 @@ function isStartup(c: Company): boolean {
   );
 }
 
-// ─── 修正2: NEW → 7日以内 / 注目 → 求人4件以上 ────
+// ─── 修正2: NEW → リリース後7日以内 / 注目 → 求人4件以上 ────
 
-function checkIsNew(c: Company, allSameDay: boolean): boolean {
-  if (allSameDay) return false; // 全社同日投入なら非表示
+function checkIsNew(c: Company): boolean {
   if (!c.created_at) return false;
-  return new Date(c.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const created = new Date(c.created_at);
+  return (
+    created > LAUNCH_DATE &&
+    created > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  );
 }
 
-function isFeatured(c: Company): boolean {
+function checkIsFeatured(c: Company): boolean {
   return (c.ow_jobs?.length || 0) >= 4;
 }
 
@@ -92,127 +99,59 @@ function getLogoColor(name: string): string {
   return LOGO_COLORS[name.charCodeAt(0) % LOGO_COLORS.length];
 }
 
-// ─── 修正1: Auto Stats（非公開を撲滅） ─────────────
+// ─── 修正3: Auto Stats（「非公開」を絶対に表示しない） ─────
 
 function getAutoStats(c: Company): Stat[] {
-  const currentYear = new Date().getFullYear();
   const empJp = c.employees_jp || parseEmployeeCount(c.employee_count);
   const foundedYear = c.founded_year || parseFounded(c.founded_at);
   const jobCount = c.ow_jobs?.length || 0;
+  const stats: Stat[] = [];
 
-  const tags = c.ow_company_culture_tags || [];
-  const hasRemoteTag = tags.some(
-    (t: any) =>
-      t.tag_category === "work_style" &&
-      (t.tag_value?.includes("リモート") || t.tag_value?.includes("remote"))
-  );
-
-  const isStartupCo =
-    (foundedYear > 0 && foundedYear >= currentYear - 5) ||
-    (empJp > 0 && empJp <= 100);
-  const isEnterprise =
-    (empJp > 0 && empJp >= 500) || c.is_listed === true || c.phase?.includes("上場");
-  const isLifestyle =
-    (c.remote_rate && c.remote_rate >= 70) ||
-    (c.avg_overtime != null && c.avg_overtime <= 20) ||
-    hasRemoteTag;
-
-  if (isStartupCo) {
-    return [
-      {
-        value: c.funding_total ?? (c.phase || "成長中"),
-        label: c.funding_total ? "資金調達" : "成長フェーズ",
-      },
-      {
-        value: empJp > 0 ? `${empJp}名` : "〜100名",
-        label: "社員数",
-      },
-      {
-        value:
-          c.early_resign_count === 0
-            ? "0件"
-            : c.avg_salary
-            ? `${c.avg_salary}万`
-            : jobCount > 0
-            ? `${jobCount}件`
-            : "応相談",
-        label:
-          c.early_resign_count === 0
-            ? "早期離職"
-            : c.avg_salary
-            ? "平均年収"
-            : jobCount > 0
-            ? "求人数"
-            : "平均年収",
-      },
-    ];
+  // 社員数（最優先）
+  if (empJp > 0) {
+    stats.push({ value: `${empJp.toLocaleString()}名`, label: "社員数" });
   }
 
-  if (isEnterprise) {
-    return [
-      {
-        value: empJp > 0 ? `${empJp.toLocaleString()}名` : "1,000名+",
-        label: "社員数(日本)",
-      },
-      {
-        value:
-          c.stock_market ?? (c.is_listed || c.phase?.includes("上場") ? "上場" : "非上場"),
-        label: "上場市場",
-      },
-      {
-        value: c.avg_salary ? `${c.avg_salary}万` : "600万+",
-        label: "平均年収",
-      },
-    ];
+  // 上場・フェーズ
+  if (c.stock_market) {
+    stats.push({ value: c.stock_market, label: "上場市場" });
+  } else if (c.is_listed === true || c.phase?.includes("上場")) {
+    stats.push({ value: "上場", label: "市場" });
+  } else if (c.phase) {
+    stats.push({ value: c.phase, label: "フェーズ" });
   }
 
-  if (isLifestyle) {
-    return [
-      {
-        value: c.remote_rate ? `${c.remote_rate}%` : "フルリモート",
-        label: "リモート率",
-        highlight: true,
-      },
-      {
-        value: c.avg_overtime != null ? `月${c.avg_overtime}h` : "月20h以下",
-        label: "平均残業",
-      },
-      {
-        value: c.avg_salary ? `${c.avg_salary}万` : "応相談",
-        label: "平均年収",
-      },
-    ];
+  // 平均年収
+  if (c.avg_salary && stats.length < 3) {
+    stats.push({ value: `${c.avg_salary}万`, label: "平均年収" });
   }
 
-  // デフォルト（非公開を最小限に）
-  return [
-    {
-      value: empJp > 0 ? `${empJp}名` : jobCount > 0 ? `${jobCount}件` : "非公開",
-      label: empJp > 0 ? "社員数" : jobCount > 0 ? "求人数" : "社員数",
-    },
-    {
-      value: c.avg_salary ? `${c.avg_salary}万` : c.industry || "応相談",
-      label: c.avg_salary ? "平均年収" : c.industry ? "業種" : "平均年収",
-    },
-    {
-      value:
-        foundedYear > 0
-          ? `${foundedYear}年`
-          : c.phase
-          ? c.phase
-          : jobCount > 0
-          ? `${jobCount}件`
-          : "成長中",
-      label:
-        foundedYear > 0
-          ? "設立"
-          : c.phase
-          ? "フェーズ"
-          : jobCount > 0
-          ? "求人数"
-          : "フェーズ",
-    },
-  ];
+  // リモート率
+  if (c.remote_rate && stats.length < 3) {
+    stats.push({ value: `${c.remote_rate}%`, label: "リモート率", highlight: true });
+  }
+
+  // 平均残業
+  if (c.avg_overtime != null && stats.length < 3) {
+    stats.push({ value: `月${c.avg_overtime}h`, label: "平均残業" });
+  }
+
+  // 設立年
+  if (foundedYear > 0 && stats.length < 3) {
+    stats.push({ value: `${foundedYear}年`, label: "設立" });
+  }
+
+  // 求人数（フォールバック）
+  if (jobCount > 0 && stats.length < 3) {
+    stats.push({ value: `${jobCount}件`, label: "求人数" });
+  }
+
+  // 業種（フォールバック）
+  if (c.industry && stats.length < 3) {
+    stats.push({ value: c.industry, label: "業種" });
+  }
+
+  return stats.slice(0, 3);
 }
 
 // ─── Company Logo ───────────────────────────────────
@@ -306,15 +245,9 @@ function TagButton({
 
 // ─── Badge Component ────────────────────────────────
 
-function CompanyBadges({
-  company,
-  allSameDay,
-}: {
-  company: Company;
-  allSameDay: boolean;
-}) {
-  const showNew = checkIsNew(company, allSameDay);
-  const showFeatured = isFeatured(company);
+function CompanyBadges({ company }: { company: Company }) {
+  const showNew = checkIsNew(company);
+  const showFeatured = checkIsFeatured(company);
   const jobCount = company.ow_jobs?.length || 0;
 
   return (
@@ -347,9 +280,114 @@ function CompanyBadges({
   );
 }
 
+// ─── 修正4: Favorite Button ─────────────────────────
+
+function FavoriteButton({
+  companyId,
+  initialFavorited,
+}: {
+  companyId: string;
+  initialFavorited: boolean;
+}) {
+  const [favorited, setFavorited] = useState(initialFavorited);
+  const [loading, setLoading] = useState(false);
+
+  const toggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (loading) return;
+    setLoading(true);
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = "/auth/signup";
+      return;
+    }
+
+    if (favorited) {
+      await supabase
+        .from("ow_saved_companies")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("company_id", companyId);
+    } else {
+      await supabase
+        .from("ow_saved_companies")
+        .insert({ user_id: user.id, company_id: companyId });
+    }
+
+    setFavorited(!favorited);
+    setLoading(false);
+  };
+
+  return (
+    <button
+      onClick={toggle}
+      className="flex items-center justify-center w-8 h-8 rounded-full transition-all"
+      style={{
+        background: favorited ? "#FCEBEB" : "transparent",
+        border: `0.5px solid ${favorited ? "#F09595" : "#e5e7eb"}`,
+      }}
+      title={favorited ? "気になるを解除" : "気になる"}
+    >
+      <svg
+        viewBox="0 0 16 16"
+        width="14"
+        height="14"
+        fill={favorited ? "#E24B4A" : "none"}
+        stroke={favorited ? "#E24B4A" : "#9ca3af"}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M8 13.5S2 9.5 2 5.5C2 3.5 3.5 2 5.5 2c1 0 2 .5 2.5 1.5C8.5 2.5 9.5 2 10.5 2 12.5 2 14 3.5 14 5.5c0 4-6 8-6 8z" />
+      </svg>
+    </button>
+  );
+}
+
+// ─── 修正5: Match Score Bar ─────────────────────────
+
+function MatchScoreBar({ score }: { score: number }) {
+  return (
+    <div className="flex items-center gap-1.5 mt-2">
+      <div className="flex-1 h-1 rounded-full bg-gray-100">
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${score}%`, background: "#1D9E75" }}
+        />
+      </div>
+      <span className="text-[10px] font-medium" style={{ color: "#1D9E75" }}>
+        {score}%マッチ
+      </span>
+    </div>
+  );
+}
+
+// ─── 修正1: Description Ellipsis helper ─────────────
+
+const descStyle: React.CSSProperties = {
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical" as const,
+  overflow: "hidden",
+};
+
 // ─── List Card ──────────────────────────────────────
 
-function ListCard({ company, allSameDay }: { company: Company; allSameDay: boolean }) {
+function ListCard({
+  company,
+  isSaved,
+  matchScore,
+}: {
+  company: Company;
+  isSaved: boolean;
+  matchScore?: number;
+}) {
   const jobCount = company.ow_jobs?.length || 0;
   const tags = company.ow_company_culture_tags || [];
   const topTags = tags.slice(0, 3);
@@ -371,13 +409,19 @@ function ListCard({ company, allSameDay }: { company: Company; allSameDay: boole
             <h3 className="font-semibold text-[14px] text-gray-800 truncate">
               {company.name}
             </h3>
-            <CompanyBadges company={company} allSameDay={allSameDay} />
+            <CompanyBadges company={company} />
           </div>
           {desc && (
-            <p className="text-[12px] text-gray-400 truncate leading-relaxed">{desc}</p>
+            <p
+              className="text-[12px] text-gray-400 leading-relaxed"
+              style={descStyle}
+            >
+              {desc}
+            </p>
           )}
         </div>
-        <div className="flex-shrink-0 self-center">
+        <div className="flex items-center gap-2 flex-shrink-0 self-center">
+          <FavoriteButton companyId={company.id} initialFavorited={isSaved} />
           {jobCount > 0 ? (
             <span
               className="inline-flex items-center gap-1 text-[12px] font-medium px-3 py-1.5 rounded-md"
@@ -425,18 +469,29 @@ function ListCard({ company, allSameDay }: { company: Company; allSameDay: boole
           ))}
         </div>
       )}
+
+      {matchScore != null && matchScore > 0 && <MatchScoreBar score={matchScore} />}
     </Link>
   );
 }
 
 // ─── Grid Card ──────────────────────────────────────
 
-function GridCard({ company, allSameDay }: { company: Company; allSameDay: boolean }) {
+function GridCard({
+  company,
+  isSaved,
+  matchScore,
+}: {
+  company: Company;
+  isSaved: boolean;
+  matchScore?: number;
+}) {
   const jobCount = company.ow_jobs?.length || 0;
   const tags = company.ow_company_culture_tags || [];
   const topTags = tags.slice(0, 2);
   const stats = getAutoStats(company);
   const color = getLogoColor(company.name);
+  const desc = company.description || company.mission || "";
 
   return (
     <Link
@@ -447,6 +502,9 @@ function GridCard({ company, allSameDay }: { company: Company; allSameDay: boole
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}
     >
       <div className="h-[56px] relative" style={{ background: `${color}20` }}>
+        <div className="absolute top-2 right-2 z-10">
+          <FavoriteButton companyId={company.id} initialFavorited={isSaved} />
+        </div>
         <div
           className="absolute -bottom-5 left-4"
           style={{ border: "2px solid #fff", borderRadius: 14, background: "#fff" }}
@@ -460,19 +518,17 @@ function GridCard({ company, allSameDay }: { company: Company; allSameDay: boole
           <h3 className="font-semibold text-[13px] text-gray-800 truncate">
             {company.name}
           </h3>
-          <CompanyBadges company={company} allSameDay={allSameDay} />
+          <CompanyBadges company={company} />
         </div>
 
-        <div className="flex items-center gap-2 mb-2.5">
-          {company.industry && (
-            <span className="text-[11px] text-gray-400">{company.industry}</span>
-          )}
-          {company.phase && (
-            <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
-              {company.phase}
-            </span>
-          )}
-        </div>
+        {desc && (
+          <p
+            className="text-[11px] text-gray-400 leading-relaxed mb-2"
+            style={descStyle}
+          >
+            {desc}
+          </p>
+        )}
 
         {topTags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
@@ -521,6 +577,8 @@ function GridCard({ company, allSameDay }: { company: Company; allSameDay: boole
             <span className="text-[11px] text-gray-300 py-1.5">現在求人なし</span>
           )}
         </div>
+
+        {matchScore != null && matchScore > 0 && <MatchScoreBar score={matchScore} />}
       </div>
     </Link>
   );
@@ -798,9 +856,14 @@ function SectionCarousel({ section }: { section: SectionDef }) {
 export default function CompanyExplorer({
   companies,
   initialView = "list",
+  savedCompanyIds = [],
+  matchScoreMap = {},
 }: {
   companies: Company[];
   initialView?: ViewMode;
+  savedCompanyIds?: string[];
+  matchScoreMap?: Record<string, number>;
+  isLoggedIn?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -813,16 +876,13 @@ export default function CompanyExplorer({
   const [view, setView] = useState<ViewMode>(initialView);
   const debounceRef = useRef<NodeJS.Timeout>();
 
-  // Check if all companies were created on the same day (batch import)
-  const allSameDay = useMemo(() => {
-    if (companies.length < 2) return false;
-    const dates = companies.map((c) =>
-      c.created_at ? new Date(c.created_at).toDateString() : ""
-    );
-    return dates.every((d) => d === dates[0]);
-  }, [companies]);
+  // Convert savedCompanyIds to Set for fast lookup
+  const savedSet = useMemo(
+    () => new Set(savedCompanyIds),
+    [savedCompanyIds]
+  );
 
-  // 修正3: URL param persistence for view mode
+  // URL param persistence for view mode
   const handleViewChange = (v: ViewMode) => {
     setView(v);
     const params = new URLSearchParams(searchParams.toString());
@@ -985,13 +1045,23 @@ export default function CompanyExplorer({
         view === "list" ? (
           <div className="space-y-3">
             {filtered.map((c) => (
-              <ListCard key={c.id} company={c} allSameDay={allSameDay} />
+              <ListCard
+                key={c.id}
+                company={c}
+                isSaved={savedSet.has(c.id)}
+                matchScore={matchScoreMap[c.id]}
+              />
             ))}
           </div>
         ) : view === "grid" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {filtered.map((c) => (
-              <GridCard key={c.id} company={c} allSameDay={allSameDay} />
+              <GridCard
+                key={c.id}
+                company={c}
+                isSaved={savedSet.has(c.id)}
+                matchScore={matchScoreMap[c.id]}
+              />
             ))}
           </div>
         ) : view === "grid5" ? (
