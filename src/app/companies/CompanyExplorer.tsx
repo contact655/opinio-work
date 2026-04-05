@@ -246,7 +246,7 @@ function ListCard({
           {jobCount > 0 ? (
             <span
               className="inline-flex items-center gap-1 text-[12px] font-medium px-3 py-1.5 rounded-md"
-              style={{ border: "0.5px solid #1D9E75", color: "#1D9E75" }}
+              style={{ border: "0.5px solid #5DCAA5", background: "#E1F5EE", color: "#0F6E56" }}
             >
               求人 {jobCount}件
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,20 +259,16 @@ function ListCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-0 mt-3 -mx-1">
+      <div className="flex mt-3" style={{ gap: 24 }}>
         {stats.map((s, i) => (
-          <div
-            key={i}
-            className="flex-1 text-center px-1"
-            style={i < stats.length - 1 ? { borderRight: "0.5px solid #f0f0f0" } : {}}
-          >
-            <div
-              className="text-[13px] font-semibold"
+          <div key={i} className="flex flex-col" style={{ gap: 2 }}>
+            <span
+              className="text-[15px] font-medium"
               style={{ color: s.highlight ? "#0F6E56" : "#374151" }}
             >
               {s.value}
-            </div>
-            <div className="text-[11px] text-gray-400 mt-0.5">{s.label}</div>
+            </span>
+            <span className="text-[11px] text-gray-400">{s.label}</span>
           </div>
         ))}
       </div>

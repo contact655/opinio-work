@@ -135,7 +135,6 @@ export default function Header() {
         </Link>
         <Link href="/career-consultation" className={cls("/career-consultation")} onClick={close}>
           キャリア相談
-          <NavBadge color="amber">NEW</NavBadge>
         </Link>
         <Link href="/messages" className={cls("/messages")} onClick={close}>
           メッセージ
