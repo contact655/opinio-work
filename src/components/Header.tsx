@@ -5,6 +5,29 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+// ─── Badge Component ────────────────────────────────
+function NavBadge({
+  children,
+  color,
+}: {
+  children: React.ReactNode;
+  color: "green" | "amber" | "red";
+}) {
+  const styles = {
+    green: { background: "#E1F5EE", color: "#0F6E56" },
+    amber: { background: "#FAEEDA", color: "#854F0B" },
+    red: { background: "#E24B4A", color: "#fff" },
+  };
+  return (
+    <span
+      className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+      style={styles[color]}
+    >
+      {children}
+    </span>
+  );
+}
+
 export default function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -12,6 +35,7 @@ export default function Header() {
   const [roles, setRoles] = useState<string[]>([]);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [jobCount, setJobCount] = useState<number | null>(null);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   useEffect(() => {
     async function checkAuth() {
@@ -26,12 +50,21 @@ export default function Header() {
             const data = await res.json();
             const fetchedRoles = data.roles || [];
             setRoles(fetchedRoles);
-            console.log("[Header] user:", user.email, "roles:", fetchedRoles);
-          } else {
-            console.error("[Header] roles fetch status:", res.status);
           }
         } catch (err) {
           console.error("[Header] roles fetch error:", err);
+        }
+
+        // 未読メッセージ数を取得
+        try {
+          const { count } = await supabase
+            .from("ow_messages")
+            .select("id", { count: "exact", head: true })
+            .eq("is_read", false)
+            .neq("sender_id", user.id);
+          if (count && count > 0) setUnreadCount(count);
+        } catch {
+          // ow_messages may not exist yet
         }
       }
 
@@ -59,19 +92,16 @@ export default function Header() {
   const hasBothRoles = isCompany && isCandidate;
   const isCompanyOnly = isCompany && !isCandidate;
 
-  /** 現在のパスがhrefと一致するかを判定 */
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + "/");
   }
 
-  /** ナビリンクのクラスを返す */
   function navClass(href: string) {
     return isActive(href)
       ? "text-sm text-primary font-semibold border-b-2 border-primary pb-0.5 transition-colors"
       : "text-sm text-gray-600 hover:text-foreground transition-colors";
   }
 
-  /** モバイルナビリンクのクラスを返す */
   function mobileNavClass(href: string) {
     return isActive(href)
       ? "block text-sm text-primary font-semibold"
@@ -86,138 +116,71 @@ export default function Header() {
     window.location.href = "/";
   }
 
-  // ─── ナビアイテム定義 ───────────────────────────────
+  // ─── 共通ナビリンク（求職者向け）─────────────────────
+  // 企業を探す → 求人を見る → キャリア相談 → メッセージ → スカウト
 
-  // 求職者向けナビ（企業を探す → 求人を見る → メッセージ → スカウト）
-  const candidateNavItems = (
-    <>
-      <Link href="/companies" className={navClass("/companies")}>
-        企業を探す
-      </Link>
-      <Link href="/jobs" className={navClass("/jobs")}>
-        求人を見る{jobCount !== null && jobCount > 0 && (
-          <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
-            {jobCount}
-          </span>
-        )}
-      </Link>
-      <Link href="/messages" className={navClass("/messages")}>
-        メッセージ
-      </Link>
-      <Link href="/scout" className={navClass("/scout")}>
-        スカウト
-      </Link>
-    </>
-  );
+  function renderCandidateNav(mobile: boolean) {
+    const cls = mobile ? mobileNavClass : navClass;
+    const close = mobile ? () => setMenuOpen(false) : undefined;
+    return (
+      <>
+        <Link href="/companies" className={cls("/companies")} onClick={close}>
+          企業を探す
+        </Link>
+        <Link href="/jobs" className={cls("/jobs")} onClick={close}>
+          求人を見る
+          {jobCount !== null && jobCount > 0 && (
+            <NavBadge color="green">{jobCount}</NavBadge>
+          )}
+        </Link>
+        <Link href="/career-consultation" className={cls("/career-consultation")} onClick={close}>
+          キャリア相談
+          <NavBadge color="amber">NEW</NavBadge>
+        </Link>
+        <Link href="/messages" className={cls("/messages")} onClick={close}>
+          メッセージ
+          {unreadCount > 0 && (
+            <NavBadge color="red">{unreadCount}</NavBadge>
+          )}
+        </Link>
+        <Link href="/scout" className={cls("/scout")} onClick={close}>
+          スカウト
+        </Link>
+      </>
+    );
+  }
 
-  // 企業担当者専用ナビ（企業管理系のみ）
-  const companyNavItems = (
-    <>
-      <Link href="/company/dashboard" className={navClass("/company/dashboard")}>
-        求人を管理する
-      </Link>
-      <Link href="/company/edit" className={navClass("/company/edit")}>
-        企業プロフィール
-      </Link>
-      <Link href="/company/jobs/new" className={navClass("/company/jobs/new")}>
-        求人を作成
-      </Link>
-    </>
-  );
-
-  // 両方のロール → 求職者向けナビのみ表示（企業管理はマイページから）
-  const bothRolesNavItems = (
-    <>
-      <Link href="/companies" className={navClass("/companies")}>
-        企業を探す
-      </Link>
-      <Link href="/jobs" className={navClass("/jobs")}>
-        求人を見る{jobCount !== null && jobCount > 0 && (
-          <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
-            {jobCount}
-          </span>
-        )}
-      </Link>
-      <Link href="/messages" className={navClass("/messages")}>
-        メッセージ
-      </Link>
-      <Link href="/scout" className={navClass("/scout")}>
-        スカウト
-      </Link>
-    </>
-  );
-
-  // モバイル用
-  const candidateNavItemsMobile = (
-    <>
-      <Link href="/companies" className={mobileNavClass("/companies")} onClick={() => setMenuOpen(false)}>
-        企業を探す
-      </Link>
-      <Link href="/jobs" className={mobileNavClass("/jobs")} onClick={() => setMenuOpen(false)}>
-        求人を見る{jobCount !== null && jobCount > 0 && (
-          <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
-            {jobCount}
-          </span>
-        )}
-      </Link>
-      <Link href="/messages" className={mobileNavClass("/messages")} onClick={() => setMenuOpen(false)}>
-        メッセージ
-      </Link>
-      <Link href="/scout" className={mobileNavClass("/scout")} onClick={() => setMenuOpen(false)}>
-        スカウト
-      </Link>
-    </>
-  );
-
-  const companyNavItemsMobile = (
-    <>
-      <Link href="/company/dashboard" className={mobileNavClass("/company/dashboard")} onClick={() => setMenuOpen(false)}>
-        求人を管理する
-      </Link>
-      <Link href="/company/edit" className={mobileNavClass("/company/edit")} onClick={() => setMenuOpen(false)}>
-        企業プロフィール
-      </Link>
-      <Link href="/company/jobs/new" className={mobileNavClass("/company/jobs/new")} onClick={() => setMenuOpen(false)}>
-        求人を作成
-      </Link>
-    </>
-  );
-
-  const bothRolesNavItemsMobile = (
-    <>
-      <Link href="/companies" className={mobileNavClass("/companies")} onClick={() => setMenuOpen(false)}>
-        企業を探す
-      </Link>
-      <Link href="/jobs" className={mobileNavClass("/jobs")} onClick={() => setMenuOpen(false)}>
-        求人を見る{jobCount !== null && jobCount > 0 && (
-          <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
-            {jobCount}
-          </span>
-        )}
-      </Link>
-      <Link href="/messages" className={mobileNavClass("/messages")} onClick={() => setMenuOpen(false)}>
-        メッセージ
-      </Link>
-      <Link href="/scout" className={mobileNavClass("/scout")} onClick={() => setMenuOpen(false)}>
-        スカウト
-      </Link>
-    </>
-  );
-
-  // ─── ナビ選択 ───────────────────────────────────────
+  // 企業担当者専用ナビ
+  function renderCompanyNav(mobile: boolean) {
+    const cls = mobile ? mobileNavClass : navClass;
+    const close = mobile ? () => setMenuOpen(false) : undefined;
+    return (
+      <>
+        <Link href="/company/dashboard" className={cls("/company/dashboard")} onClick={close}>
+          求人を管理する
+        </Link>
+        <Link href="/company/edit" className={cls("/company/edit")} onClick={close}>
+          企業プロフィール
+        </Link>
+        <Link href="/company/jobs/new" className={cls("/company/jobs/new")} onClick={close}>
+          求人を作成
+        </Link>
+      </>
+    );
+  }
 
   function getDesktopNav() {
-    if (!user) return candidateNavItems; // 未ログイン
-    if (hasBothRoles) return bothRolesNavItems;
-    if (isCompanyOnly) return companyNavItems;
-    return candidateNavItems; // candidate or no roles
+    if (!user) return renderCandidateNav(false);
+    if (hasBothRoles) return renderCandidateNav(false);
+    if (isCompanyOnly) return renderCompanyNav(false);
+    return renderCandidateNav(false);
   }
 
   function getMobileNav() {
-    if (!user) return candidateNavItemsMobile;
-    if (hasBothRoles) return bothRolesNavItemsMobile;
-    if (isCompanyOnly) return companyNavItemsMobile;
-    return candidateNavItemsMobile;
+    if (!user) return renderCandidateNav(true);
+    if (hasBothRoles) return renderCandidateNav(true);
+    if (isCompanyOnly) return renderCompanyNav(true);
+    return renderCandidateNav(true);
   }
 
   // ─── Auth ボタン ────────────────────────────────────
@@ -244,7 +207,6 @@ export default function Header() {
 
     return (
       <>
-        {/* マイページ（求職者 or 両方のロール） */}
         {!isCompanyOnly && (
           <Link
             href="/dashboard"

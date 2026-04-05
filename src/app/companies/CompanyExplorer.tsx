@@ -3,12 +3,21 @@
 import Link from "next/link";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import FavoriteButton from "@/components/FavoriteButton";
+import {
+  parseEmployeeCount,
+  isGaishi,
+  isStartup,
+  isListed,
+  checkIsNew,
+  checkIsFeatured,
+  getJobCategories,
+  getAutoStats,
+} from "@/lib/utils/companyStats";
 
 // ─── Types ──────────────────────────────────────────
 
 type Company = any;
-type Stat = { value: string; label: string; highlight?: boolean };
 type ViewMode = "list" | "grid" | "grid5" | "section";
 
 // ─── Constants ──────────────────────────────────────
@@ -25,120 +34,15 @@ const SORT_OPTIONS = [
   { value: "employees", label: "社員数順" },
 ];
 
-const GAISHI_KEYWORDS = [
-  "Google", "Amazon", "Microsoft", "Salesforce", "Meta", "Apple",
-  "Oracle", "SAP", "IBM", "Cisco", "Adobe",
-];
-
 const LOGO_COLORS = [
   "#3B82F6", "#10B981", "#8B5CF6", "#F97316",
   "#EC4899", "#14B8A6", "#6366F1", "#F43F5E",
 ];
 
-// 修正2: サービスリリース日 — この日以前に作成された企業にはNEWをつけない
-const LAUNCH_DATE = new Date("2026-04-04");
-
 // ─── Helpers ────────────────────────────────────────
-
-function parseEmployeeCount(s: string | null): number {
-  if (!s) return 0;
-  const m = s.match(/(\d[\d,]*)/);
-  return m ? parseInt(m[1].replace(/,/g, ""), 10) : 0;
-}
-
-function parseFounded(s: string | null): number {
-  if (!s) return 0;
-  const m = s.match(/(\d{4})/);
-  return m ? parseInt(m[1], 10) : 0;
-}
-
-function isGaishi(c: Company): boolean {
-  return GAISHI_KEYWORDS.some(
-    (k) => c.name?.includes(k) || c.name_en?.includes(k)
-  );
-}
-
-function isStartup(c: Company): boolean {
-  const count = c.employees_jp || parseEmployeeCount(c.employee_count);
-  const founded = c.founded_year || parseFounded(c.founded_at);
-  const currentYear = new Date().getFullYear();
-  return (
-    (founded > 0 && currentYear - founded <= 5) ||
-    (count > 0 && count <= 100) ||
-    ["シード", "シリーズA", "シリーズB", "early", "seed"].some(
-      (p) => c.phase?.includes(p)
-    )
-  );
-}
-
-// ─── 修正2: NEW → リリース後7日以内 / 注目 → 求人4件以上 ────
-
-function checkIsNew(c: Company): boolean {
-  if (!c.created_at) return false;
-  const created = new Date(c.created_at);
-  return (
-    created > LAUNCH_DATE &&
-    created > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  );
-}
-
-function checkIsFeatured(c: Company): boolean {
-  return (c.ow_jobs?.length || 0) >= 4;
-}
-
-function getJobCategories(c: Company): string[] {
-  const jobs = c.ow_jobs || [];
-  const cats = new Set<string>();
-  jobs.forEach((j: any) => {
-    if (j.job_category) cats.add(j.job_category);
-  });
-  return Array.from(cats);
-}
 
 function getLogoColor(name: string): string {
   return LOGO_COLORS[name.charCodeAt(0) % LOGO_COLORS.length];
-}
-
-// ─── 修正3: Auto Stats（「非公開」を絶対に表示しない） ─────
-
-function getAutoStats(c: Company): Stat[] {
-  const empJp = c.employees_jp || parseEmployeeCount(c.employee_count);
-  const foundedYear = c.founded_year || parseFounded(c.founded_at);
-  const jobCount = c.ow_jobs?.length || 0;
-  const stats: Stat[] = [];
-
-  // 社員数（最優先）
-  if (empJp > 0) {
-    stats.push({ value: `${empJp.toLocaleString()}名`, label: "社員数" });
-  }
-
-  // 上場・フェーズ
-  if (c.stock_market) {
-    stats.push({ value: c.stock_market, label: "上場市場" });
-  } else if (c.is_listed === true || c.phase?.includes("上場")) {
-    stats.push({ value: "上場", label: "市場" });
-  } else if (c.phase) {
-    stats.push({ value: c.phase, label: "フェーズ" });
-  }
-
-  // 3つ目: 優先度順で最初に見つかった項目
-  const thirdCandidates = [
-    c.avg_salary ? { value: c.avg_salary, label: "平均年収" } : null,
-    c.remote_rate ? { value: `${c.remote_rate}%`, label: "リモート率", highlight: true } : null,
-    (c.funding_total && c.funding_total !== "非公開") ? { value: c.funding_total, label: "調達額" } : null,
-    foundedYear > 0 ? { value: `${foundedYear}年`, label: "設立" } : null,
-    jobCount > 0 ? { value: `${jobCount}件`, label: "求人数" } : null,
-    c.industry ? { value: c.industry, label: "業種" } : null,
-  ];
-
-  for (const item of thirdCandidates) {
-    if (item && stats.length < 3) {
-      stats.push(item);
-      break;
-    }
-  }
-
-  return stats.slice(0, 3);
 }
 
 // ─── Company Logo ───────────────────────────────────
@@ -267,77 +171,7 @@ function CompanyBadges({ company }: { company: Company }) {
   );
 }
 
-// ─── 修正4: Favorite Button ─────────────────────────
-
-function FavoriteButton({
-  companyId,
-  initialFavorited,
-}: {
-  companyId: string;
-  initialFavorited: boolean;
-}) {
-  const [favorited, setFavorited] = useState(initialFavorited);
-  const [loading, setLoading] = useState(false);
-
-  const toggle = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (loading) return;
-    setLoading(true);
-
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      window.location.href = "/auth/signup";
-      return;
-    }
-
-    if (favorited) {
-      await supabase
-        .from("ow_saved_companies")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("company_id", companyId);
-    } else {
-      await supabase
-        .from("ow_saved_companies")
-        .insert({ user_id: user.id, company_id: companyId });
-    }
-
-    setFavorited(!favorited);
-    setLoading(false);
-  };
-
-  return (
-    <button
-      onClick={toggle}
-      className="flex items-center justify-center w-8 h-8 rounded-full transition-all"
-      style={{
-        background: favorited ? "#FCEBEB" : "transparent",
-        border: `0.5px solid ${favorited ? "#F09595" : "#e5e7eb"}`,
-      }}
-      title={favorited ? "気になるを解除" : "気になる"}
-    >
-      <svg
-        viewBox="0 0 16 16"
-        width="14"
-        height="14"
-        fill={favorited ? "#E24B4A" : "none"}
-        stroke={favorited ? "#E24B4A" : "#9ca3af"}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M8 13.5S2 9.5 2 5.5C2 3.5 3.5 2 5.5 2c1 0 2 .5 2.5 1.5C8.5 2.5 9.5 2 10.5 2 12.5 2 14 3.5 14 5.5c0 4-6 8-6 8z" />
-      </svg>
-    </button>
-  );
-}
-
-// ─── 修正5: Match Score Bar ─────────────────────────
+// ─── Match Score Bar ────────────────────────────────
 
 function MatchScoreBar({ score }: { score: number }) {
   return (
@@ -606,16 +440,6 @@ function Grid5Card({ company }: { company: Company }) {
 }
 
 // ─── Section View helpers ───────────────────────────
-
-function isListed(c: Company): boolean {
-  const count = c.employees_jp || parseEmployeeCount(c.employee_count);
-  return (
-    count >= 300 ||
-    c.is_listed === true ||
-    c.phase?.includes("上場") ||
-    c.phase?.includes("listed")
-  );
-}
 
 type SectionDef = {
   id: string;
