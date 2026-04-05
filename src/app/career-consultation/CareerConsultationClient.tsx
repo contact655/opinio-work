@@ -253,15 +253,16 @@ export default function CareerConsultationClient({
 
               {/* Title */}
               <h1 className="text-[28px] sm:text-[34px] font-bold text-gray-900 leading-tight mb-3">
-                IT/SaaS転職のリアルを、
+                エージェントじゃない。
                 <br />
-                現役実務家に聞く。
+                <em style={{ color: "#1D9E75", fontStyle: "normal" }}>現役実務家</em>が、本音で話す。
               </h1>
 
               {/* Sub text */}
               <p className="text-[14px] text-gray-500 leading-relaxed mb-6 max-w-lg">
-                営業・CS・マーケティング。SaaS各職種の現役プロフェッショナルが、
-                転職のリアルを正直に話します。エージェントではないから、営業は一切ありません。
+                営業・CS・マーケで今まさに働くSaaS実務家が、転職のリアルを正直に話します。
+                <br />
+                勧誘も営業も一切なし。ミスマッチのない転職のために。
               </p>
 
               {/* Stats bar */}

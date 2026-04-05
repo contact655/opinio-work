@@ -69,7 +69,16 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-gray-800 text-center text-xs text-gray-500">
+        {/* Concept copy */}
+        <div style={{ textAlign: "center", padding: "8px 0 16px", borderTop: "0.5px solid rgba(255,255,255,0.1)", marginTop: 24 }}>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
+            創業以来、早期離職ゼロ。
+            <br />
+            本当のマッチングだけを追求しています。
+          </p>
+        </div>
+
+        <div className="pt-4 border-t border-gray-800 text-center text-xs text-gray-500">
           &copy; {new Date().getFullYear()} Opinio Inc. All rights reserved.
         </div>
       </div>

@@ -751,6 +751,16 @@ export default function CompanyExplorer({
 
   return (
     <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* ─── Page Header ─── */}
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>
+          企業を探す
+        </h1>
+        <p style={{ fontSize: 13, color: "#6b7280" }}>
+          カルチャー・働き方・年収のリアルを知ってから、応募できます。
+        </p>
+      </div>
+
       {/* ─── Search Bar ─── */}
       <div className="mb-5">
         <div className="relative">

@@ -169,6 +169,16 @@ export default function JobsClient({
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* ─── Page Header ─── */}
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>
+          求人を見る
+        </h1>
+        <p style={{ fontSize: 13, color: "#6b7280" }}>
+          なぜあなたに合うか、理由まで届ける求人提案。
+        </p>
+      </div>
+
       {/* Search */}
       <form onSubmit={handleSearch} className="mb-6">
         <div className="relative">

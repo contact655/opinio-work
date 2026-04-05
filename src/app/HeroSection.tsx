@@ -206,8 +206,7 @@ export default function HeroSection({
   const stats = [
     { value: "128", unit: "社", label: "掲載企業" },
     { value: "200", unit: "名+", label: "登録求職者" },
-    { value: "0", unit: "件", label: "早期離職" },
-    { value: "120", unit: "社+", label: "クライアント" },
+    { value: "0", unit: "件", label: "早期離職（創業以来）" },
   ];
 
   // Duplicate logos for infinite loop
