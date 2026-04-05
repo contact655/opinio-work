@@ -432,7 +432,7 @@ function JobCardList({ job }: { job: Job }) {
 
       {/* Main info */}
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] text-gray-400 mb-0.5">{company?.name || "企業名非公開"}</p>
+        <p className="text-[11px] text-gray-400 mb-0.5">{company?.name || "企業名"}</p>
         <h3 className="text-sm font-medium text-gray-800 truncate">{job.title}</h3>
         <div className="flex items-center gap-2 mt-1 flex-wrap">
           {job.job_category && (
@@ -516,7 +516,7 @@ function JobCardGrid({ job }: { job: Job }) {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-gray-400 truncate">{company?.name || "企業名非公開"}</p>
+          <p className="text-xs text-gray-400 truncate">{company?.name || "企業名"}</p>
         </div>
         <FavoriteJobButton jobId={job.id} initialFavorited={false} />
       </div>

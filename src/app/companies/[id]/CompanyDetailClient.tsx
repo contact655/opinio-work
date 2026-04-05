@@ -209,16 +209,16 @@ export default function CompanyDetailClient({
 
   // 修正1: 「万万」「名名」の重複を修正
   const salaryDisplay = company.avg_salary ?? "応相談";
-  const employeeDisplay = company.employee_count
+  const employeeDisplay = company.employee_count && company.employee_count !== "非公開"
     ? /^\d+$/.test(company.employee_count) ? `${Number(company.employee_count).toLocaleString()}名` : company.employee_count
-    : "非公開";
+    : null;
 
   const heroStats = [
-    { value: employeeDisplay, label: "社員数" },
+    employeeDisplay ? { value: employeeDisplay, label: "社員数" } : null,
     { value: "4.2", label: "社員評価" },
     { value: salaryDisplay, label: "平均年収" },
-    { value: `${jobCount}件`, label: "求人数" },
-  ];
+    jobCount > 0 ? { value: `${jobCount}件`, label: "求人数" } : null,
+  ].filter(Boolean) as { value: string; label: string }[];
 
   return (
     <>
@@ -376,7 +376,7 @@ export default function CompanyDetailClient({
               <h2 className="text-[15px] font-bold text-gray-800 mb-4">企業情報</h2>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
                 {[
-                  { label: "従業員数", value: employeeDisplay !== "非公開" ? employeeDisplay : null },
+                  { label: "従業員数", value: employeeDisplay },
                   { label: "業界", value: company.industry },
                   { label: "所在地", value: company.location },
                   { label: "フェーズ", value: company.phase },

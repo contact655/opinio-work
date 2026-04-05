@@ -32,9 +32,9 @@ function getLogoUrl(company: any): string | null {
   return null;
 }
 
-function getEmployeeDisplay(company: any): string {
+function getEmployeeDisplay(company: any): string | null {
   const v = company?.employees_jp || company?.employee_count;
-  if (!v) return "非公開";
+  if (!v || v === "非公開") return null;
   if (/^\d+$/.test(v)) return `${Number(v).toLocaleString()}名`;
   return v;
 }
@@ -728,17 +728,14 @@ export default function JobDetailClient({
                     }}
                   >
                     {[
-                      { value: getEmployeeDisplay(company), label: "社員数" },
-                      {
-                        value: company.funding_total
-                          ? company.funding_total
-                          : company.founded_year
-                          ? `${company.founded_year}年`
-                          : "—",
-                        label: company.funding_total ? "調達額" : "設立",
-                      },
+                      getEmployeeDisplay(company) ? { value: getEmployeeDisplay(company), label: "社員数" } : null,
+                      company.funding_total && company.funding_total !== "非公開"
+                        ? { value: company.funding_total, label: "調達額" }
+                        : company.founded_year
+                        ? { value: `${company.founded_year}年`, label: "設立" }
+                        : null,
                       { value: "4.2", label: "社員評価" },
-                    ].map((s, i) => (
+                    ].filter(Boolean).map((s: any, i) => (
                       <div key={i} className="text-center">
                         <div className="text-[14px] font-bold text-gray-800">
                           {s.value}

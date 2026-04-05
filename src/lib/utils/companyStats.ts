@@ -115,6 +115,44 @@ export function getAutoStats(c: any): Stat[] {
   return stats.slice(0, 3);
 }
 
+// ─── Sanitize（「非公開」を絶対に出さない） ─────────
+
+/**
+ * 値が有効な表示用テキストかチェック。null / undefined / "非公開" / 空文字は null を返す
+ */
+export function sanitizeValue(v: string | number | null | undefined): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  if (!s || s === "非公開" || s === "N/A" || s === "-") return null;
+  return s;
+}
+
+// ─── Company Badges ─────────────────────────────────
+
+export type Badge = { label: string; color: string; bg: string };
+
+export function getCompanyBadges(c: any): Badge[] {
+  const badges: Badge[] = [];
+
+  if (checkIsNew(c)) {
+    badges.push({ label: "NEW", color: "#1D9E75", bg: "#E1F5EE" });
+  }
+  if (isGaishi(c)) {
+    badges.push({ label: "外資系", color: "#2563EB", bg: "#EFF6FF" });
+  }
+  if (isStartup(c)) {
+    badges.push({ label: "スタートアップ", color: "#7C3AED", bg: "#F5F3FF" });
+  }
+  if (isListed(c)) {
+    badges.push({ label: "上場企業", color: "#D97706", bg: "#FFFBEB" });
+  }
+  if (checkIsFeatured(c)) {
+    badges.push({ label: "注目", color: "#DC2626", bg: "#FEF2F2" });
+  }
+
+  return badges;
+}
+
 // ─── Job Categories ─────────────────────────────────
 
 export function getJobCategories(c: any): string[] {
