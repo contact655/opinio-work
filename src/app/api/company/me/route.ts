@@ -23,16 +23,18 @@ export async function GET() {
       "*, ow_company_members(*), ow_company_culture_tags(tag_category, tag_value)"
     )
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("[company/me GET] error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ company: data });
+  const companies = data || [];
+  return NextResponse.json({
+    company: companies[0] || null,   // 後方互換: 1社目
+    companies,                        // 全企業リスト
+  });
 }
 
 // PUT: 企業情報を更新
