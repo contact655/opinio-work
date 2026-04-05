@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // ─── Types ──────────────────────────────────────────
 
 type Company = any;
-
 type Stat = { value: string; label: string; highlight?: boolean };
+type ViewMode = "list" | "grid" | "grid5" | "section";
 
 // ─── Constants ──────────────────────────────────────
 
@@ -37,8 +38,8 @@ const LOGO_COLORS = [
 
 function parseEmployeeCount(s: string | null): number {
   if (!s) return 0;
-  const m = s.match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : 0;
+  const m = s.match(/(\d[\d,]*)/);
+  return m ? parseInt(m[1].replace(/,/g, ""), 10) : 0;
 }
 
 function parseFounded(s: string | null): number {
@@ -54,22 +55,28 @@ function isGaishi(c: Company): boolean {
 }
 
 function isStartup(c: Company): boolean {
-  const count = parseEmployeeCount(c.employee_count);
-  const founded = parseFounded(c.founded_at);
+  const count = c.employees_jp || parseEmployeeCount(c.employee_count);
+  const founded = c.founded_year || parseFounded(c.founded_at);
   const currentYear = new Date().getFullYear();
   return (
     (founded > 0 && currentYear - founded <= 5) ||
-    (count > 0 && count <= 50) ||
+    (count > 0 && count <= 100) ||
     ["シード", "シリーズA", "シリーズB", "early", "seed"].some(
       (p) => c.phase?.includes(p)
     )
   );
 }
 
-function isNew(c: Company): boolean {
-  const created = new Date(c.created_at);
-  const now = new Date();
-  return now.getTime() - created.getTime() < 14 * 24 * 60 * 60 * 1000;
+// ─── 修正2: NEW → 7日以内 / 注目 → 求人4件以上 ────
+
+function checkIsNew(c: Company, allSameDay: boolean): boolean {
+  if (allSameDay) return false; // 全社同日投入なら非表示
+  if (!c.created_at) return false;
+  return new Date(c.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+}
+
+function isFeatured(c: Company): boolean {
+  return (c.ow_jobs?.length || 0) >= 4;
 }
 
 function getJobCategories(c: Company): string[] {
@@ -85,36 +92,58 @@ function getLogoColor(name: string): string {
   return LOGO_COLORS[name.charCodeAt(0) % LOGO_COLORS.length];
 }
 
-// ─── Auto Stats ─────────────────────────────────────
+// ─── 修正1: Auto Stats（非公開を撲滅） ─────────────
 
 function getAutoStats(c: Company): Stat[] {
-  const emp = parseEmployeeCount(c.employee_count);
-  const founded = parseFounded(c.founded_at);
+  const currentYear = new Date().getFullYear();
+  const empJp = c.employees_jp || parseEmployeeCount(c.employee_count);
+  const foundedYear = c.founded_year || parseFounded(c.founded_at);
+  const jobCount = c.ow_jobs?.length || 0;
+
   const tags = c.ow_company_culture_tags || [];
-  const remoteTag = tags.find(
+  const hasRemoteTag = tags.some(
     (t: any) =>
       t.tag_category === "work_style" &&
       (t.tag_value?.includes("リモート") || t.tag_value?.includes("remote"))
   );
-  const currentYear = new Date().getFullYear();
+
   const isStartupCo =
-    (founded > 0 && currentYear - founded <= 5) || (emp > 0 && emp <= 50);
-  const isEnterprise = emp >= 500 || c.phase?.includes("上場");
-  const isLifestyle = remoteTag != null;
+    (foundedYear > 0 && foundedYear >= currentYear - 5) ||
+    (empJp > 0 && empJp <= 100);
+  const isEnterprise =
+    (empJp > 0 && empJp >= 500) || c.is_listed === true || c.phase?.includes("上場");
+  const isLifestyle =
+    (c.remote_rate && c.remote_rate >= 70) ||
+    (c.avg_overtime != null && c.avg_overtime <= 20) ||
+    hasRemoteTag;
 
   if (isStartupCo) {
     return [
       {
-        value: c.phase || "成長中",
-        label: "成長フェーズ",
+        value: c.funding_total ?? (c.phase || "成長中"),
+        label: c.funding_total ? "資金調達" : "成長フェーズ",
       },
       {
-        value: emp > 0 ? `${emp}名` : "非公開",
+        value: empJp > 0 ? `${empJp}名` : "〜100名",
         label: "社員数",
       },
       {
-        value: founded > 0 ? `${founded}年` : "非公開",
-        label: "設立",
+        value:
+          c.early_resign_count === 0
+            ? "0件"
+            : c.avg_salary
+            ? `${c.avg_salary}万`
+            : jobCount > 0
+            ? `${jobCount}件`
+            : "応相談",
+        label:
+          c.early_resign_count === 0
+            ? "早期離職"
+            : c.avg_salary
+            ? "平均年収"
+            : jobCount > 0
+            ? "求人数"
+            : "平均年収",
       },
     ];
   }
@@ -122,16 +151,17 @@ function getAutoStats(c: Company): Stat[] {
   if (isEnterprise) {
     return [
       {
-        value: emp > 0 ? `${emp}名` : "非公開",
+        value: empJp > 0 ? `${empJp.toLocaleString()}名` : "1,000名+",
         label: "社員数(日本)",
       },
       {
-        value: c.phase?.includes("上場") ? "上場" : "非上場",
+        value:
+          c.stock_market ?? (c.is_listed || c.phase?.includes("上場") ? "上場" : "非上場"),
         label: "上場市場",
       },
       {
-        value: founded > 0 ? `${founded}年` : "非公開",
-        label: "設立",
+        value: c.avg_salary ? `${c.avg_salary}万` : "600万+",
+        label: "平均年収",
       },
     ];
   }
@@ -139,33 +169,48 @@ function getAutoStats(c: Company): Stat[] {
   if (isLifestyle) {
     return [
       {
-        value: remoteTag?.tag_value || "リモートOK",
-        label: "勤務スタイル",
+        value: c.remote_rate ? `${c.remote_rate}%` : "フルリモート",
+        label: "リモート率",
         highlight: true,
       },
       {
-        value: emp > 0 ? `${emp}名` : "非公開",
-        label: "社員数",
+        value: c.avg_overtime != null ? `月${c.avg_overtime}h` : "月20h以下",
+        label: "平均残業",
       },
       {
-        value: founded > 0 ? `${founded}年` : "非公開",
-        label: "設立",
+        value: c.avg_salary ? `${c.avg_salary}万` : "応相談",
+        label: "平均年収",
       },
     ];
   }
 
+  // デフォルト（非公開を最小限に）
   return [
     {
-      value: emp > 0 ? `${emp}名` : "非公開",
-      label: "社員数(日本)",
+      value: empJp > 0 ? `${empJp}名` : jobCount > 0 ? `${jobCount}件` : "非公開",
+      label: empJp > 0 ? "社員数" : jobCount > 0 ? "求人数" : "社員数",
     },
     {
-      value: c.industry || "非公開",
-      label: "業種",
+      value: c.avg_salary ? `${c.avg_salary}万` : c.industry || "応相談",
+      label: c.avg_salary ? "平均年収" : c.industry ? "業種" : "平均年収",
     },
     {
-      value: founded > 0 ? `${founded}年` : "非公開",
-      label: "設立",
+      value:
+        foundedYear > 0
+          ? `${foundedYear}年`
+          : c.phase
+          ? c.phase
+          : jobCount > 0
+          ? `${jobCount}件`
+          : "成長中",
+      label:
+        foundedYear > 0
+          ? "設立"
+          : c.phase
+          ? "フェーズ"
+          : jobCount > 0
+          ? "求人数"
+          : "フェーズ",
     },
   ];
 }
@@ -259,9 +304,52 @@ function TagButton({
   );
 }
 
+// ─── Badge Component ────────────────────────────────
+
+function CompanyBadges({
+  company,
+  allSameDay,
+}: {
+  company: Company;
+  allSameDay: boolean;
+}) {
+  const showNew = checkIsNew(company, allSameDay);
+  const showFeatured = isFeatured(company);
+  const jobCount = company.ow_jobs?.length || 0;
+
+  return (
+    <>
+      {showNew && (
+        <span
+          className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+          style={{ background: "#E1F5EE", color: "#0F6E56" }}
+        >
+          NEW
+        </span>
+      )}
+      {showFeatured && !showNew && (
+        <span
+          className="text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0"
+          style={{ background: "#FAEEDA", color: "#854F0B" }}
+        >
+          注目
+        </span>
+      )}
+      {jobCount > 0 && (
+        <span
+          className="text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0"
+          style={{ background: "#E6F1FB", color: "#185FA5" }}
+        >
+          採用中
+        </span>
+      )}
+    </>
+  );
+}
+
 // ─── List Card ──────────────────────────────────────
 
-function ListCard({ company }: { company: Company }) {
+function ListCard({ company, allSameDay }: { company: Company; allSameDay: boolean }) {
   const jobCount = company.ow_jobs?.length || 0;
   const tags = company.ow_company_culture_tags || [];
   const topTags = tags.slice(0, 3);
@@ -273,14 +361,9 @@ function ListCard({ company }: { company: Company }) {
       href={`/companies/${company.id}`}
       className="block bg-white rounded-xl p-5 transition-all group"
       style={{ border: "0.5px solid #e5e7eb" }}
-      onMouseEnter={(e) =>
-        (e.currentTarget.style.borderColor = "#1D9E75")
-      }
-      onMouseLeave={(e) =>
-        (e.currentTarget.style.borderColor = "#e5e7eb")
-      }
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#1D9E75")}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}
     >
-      {/* Header row */}
       <div className="flex items-start gap-4">
         <CompanyLogo company={company} size={48} rounded={12} />
         <div className="flex-1 min-w-0">
@@ -288,52 +371,21 @@ function ListCard({ company }: { company: Company }) {
             <h3 className="font-semibold text-[14px] text-gray-800 truncate">
               {company.name}
             </h3>
-            {isNew(company) && (
-              <span
-                className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                style={{ background: "#E1F5EE", color: "#0F6E56" }}
-              >
-                NEW
-              </span>
-            )}
-            {jobCount > 0 && (
-              <span
-                className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                style={{ background: "#E6F1FB", color: "#185FA5" }}
-              >
-                採用中
-              </span>
-            )}
+            <CompanyBadges company={company} allSameDay={allSameDay} />
           </div>
           {desc && (
-            <p className="text-[12px] text-gray-400 truncate leading-relaxed">
-              {desc}
-            </p>
+            <p className="text-[12px] text-gray-400 truncate leading-relaxed">{desc}</p>
           )}
         </div>
-        {/* Job button */}
         <div className="flex-shrink-0 self-center">
           {jobCount > 0 ? (
             <span
-              className="inline-flex items-center gap-1 text-[12px] font-medium px-3 py-1.5 rounded-md transition-colors"
-              style={{
-                border: "0.5px solid #1D9E75",
-                color: "#1D9E75",
-              }}
+              className="inline-flex items-center gap-1 text-[12px] font-medium px-3 py-1.5 rounded-md"
+              style={{ border: "0.5px solid #1D9E75", color: "#1D9E75" }}
             >
               求人 {jobCount}件
-              <svg
-                className="w-3 h-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </span>
           ) : (
@@ -342,17 +394,12 @@ function ListCard({ company }: { company: Company }) {
         </div>
       </div>
 
-      {/* Stats row */}
       <div className="flex items-center gap-0 mt-3 -mx-1">
         {stats.map((s, i) => (
           <div
             key={i}
             className="flex-1 text-center px-1"
-            style={
-              i < stats.length - 1
-                ? { borderRight: "0.5px solid #f0f0f0" }
-                : {}
-            }
+            style={i < stats.length - 1 ? { borderRight: "0.5px solid #f0f0f0" } : {}}
           >
             <div
               className="text-[13px] font-semibold"
@@ -365,7 +412,6 @@ function ListCard({ company }: { company: Company }) {
         ))}
       </div>
 
-      {/* Tags row */}
       {topTags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3">
           {topTags.map((t: any, i: number) => (
@@ -385,7 +431,7 @@ function ListCard({ company }: { company: Company }) {
 
 // ─── Grid Card ──────────────────────────────────────
 
-function GridCard({ company }: { company: Company }) {
+function GridCard({ company, allSameDay }: { company: Company; allSameDay: boolean }) {
   const jobCount = company.ow_jobs?.length || 0;
   const tags = company.ow_company_culture_tags || [];
   const topTags = tags.slice(0, 2);
@@ -397,49 +443,26 @@ function GridCard({ company }: { company: Company }) {
       href={`/companies/${company.id}`}
       className="block bg-white rounded-xl overflow-hidden transition-all group"
       style={{ border: "0.5px solid #e5e7eb" }}
-      onMouseEnter={(e) =>
-        (e.currentTarget.style.borderColor = "#1D9E75")
-      }
-      onMouseLeave={(e) =>
-        (e.currentTarget.style.borderColor = "#e5e7eb")
-      }
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#1D9E75")}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}
     >
-      {/* Cover */}
-      <div
-        className="h-[56px] relative"
-        style={{ background: `${color}20` }}
-      >
-        {/* Logo overlapping */}
+      <div className="h-[56px] relative" style={{ background: `${color}20` }}>
         <div
           className="absolute -bottom-5 left-4"
-          style={{
-            border: "2px solid #fff",
-            borderRadius: 14,
-            background: "#fff",
-          }}
+          style={{ border: "2px solid #fff", borderRadius: 14, background: "#fff" }}
         >
           <CompanyLogo company={company} size={44} rounded={12} />
         </div>
       </div>
 
-      {/* Body */}
       <div className="pt-7 px-4 pb-4">
-        {/* Name + badges */}
         <div className="flex items-center gap-1.5 mb-1">
           <h3 className="font-semibold text-[13px] text-gray-800 truncate">
             {company.name}
           </h3>
-          {isNew(company) && (
-            <span
-              className="text-[9px] font-bold px-1 py-0.5 rounded flex-shrink-0"
-              style={{ background: "#E1F5EE", color: "#0F6E56" }}
-            >
-              NEW
-            </span>
-          )}
+          <CompanyBadges company={company} allSameDay={allSameDay} />
         </div>
 
-        {/* Industry / category */}
         <div className="flex items-center gap-2 mb-2.5">
           {company.industry && (
             <span className="text-[11px] text-gray-400">{company.industry}</span>
@@ -451,7 +474,6 @@ function GridCard({ company }: { company: Company }) {
           )}
         </div>
 
-        {/* Tags */}
         {topTags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {topTags.map((t: any, i: number) => (
@@ -466,23 +488,15 @@ function GridCard({ company }: { company: Company }) {
           </div>
         )}
 
-        {/* Stats grid */}
         <div
           className="grid grid-cols-3 gap-0 py-2.5 mb-3"
-          style={{
-            borderTop: "0.5px solid #f0f0f0",
-            borderBottom: "0.5px solid #f0f0f0",
-          }}
+          style={{ borderTop: "0.5px solid #f0f0f0", borderBottom: "0.5px solid #f0f0f0" }}
         >
           {stats.map((s, i) => (
             <div
               key={i}
               className="text-center"
-              style={
-                i < stats.length - 1
-                  ? { borderRight: "0.5px solid #f0f0f0" }
-                  : {}
-              }
+              style={i < stats.length - 1 ? { borderRight: "0.5px solid #f0f0f0" } : {}}
             >
               <div
                 className="text-[12px] font-semibold"
@@ -495,22 +509,16 @@ function GridCard({ company }: { company: Company }) {
           ))}
         </div>
 
-        {/* Job count footer */}
         <div className="flex justify-center">
           {jobCount > 0 ? (
             <span
               className="text-[11px] font-medium px-3 py-1.5 rounded-md w-full text-center"
-              style={{
-                background: "#E1F5EE",
-                color: "#0F6E56",
-              }}
+              style={{ background: "#E1F5EE", color: "#0F6E56" }}
             >
               求人 {jobCount}件を見る
             </span>
           ) : (
-            <span className="text-[11px] text-gray-300 py-1.5">
-              現在求人なし
-            </span>
+            <span className="text-[11px] text-gray-300 py-1.5">現在求人なし</span>
           )}
         </div>
       </div>
@@ -538,16 +546,14 @@ function Grid5Card({ company }: { company: Company }) {
         {company.name}
       </h3>
       {company.industry && (
-        <p className="text-[10px] text-gray-400 truncate mb-1.5">
-          {company.industry}
-        </p>
+        <p className="text-[10px] text-gray-400 truncate mb-1.5">{company.industry}</p>
       )}
       {jobCount > 0 && (
         <span
           className="inline-block text-[10px] font-medium px-2 py-0.5 rounded-full"
           style={{ background: "#E1F5EE", color: "#0F6E56" }}
         >
-          {jobCount}件
+          求人 {jobCount}件
         </span>
       )}
     </Link>
@@ -557,9 +563,10 @@ function Grid5Card({ company }: { company: Company }) {
 // ─── Section View helpers ───────────────────────────
 
 function isListed(c: Company): boolean {
-  const count = parseEmployeeCount(c.employee_count);
+  const count = c.employees_jp || parseEmployeeCount(c.employee_count);
   return (
     count >= 300 ||
+    c.is_listed === true ||
     c.phase?.includes("上場") ||
     c.phase?.includes("listed")
   );
@@ -575,10 +582,10 @@ type SectionDef = {
 function buildSections(companies: Company[]): SectionDef[] {
   const sections: SectionDef[] = [
     {
-      id: "new",
+      id: "featured",
       title: "注目の企業",
       filter: "",
-      companies: companies.filter(isNew),
+      companies: companies.filter((c) => (c.ow_jobs?.length || 0) >= 4),
     },
     {
       id: "gaishi",
@@ -655,21 +662,178 @@ function ViewIcon({ type, active }: { type: string; active: boolean }) {
   );
 }
 
+// ─── Section Carousel ──────────────────────────────
+
+const CARD_W = 148;
+const CARD_GAP = 10;
+const CARDS_PER_PAGE = 5;
+
+function SectionCarousel({ section }: { section: SectionDef }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const totalPages = Math.max(1, Math.ceil(section.companies.length / CARDS_PER_PAGE));
+
+  const updateState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 4);
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+    const pageWidth = (CARD_W + CARD_GAP) * CARDS_PER_PAGE;
+    const page = Math.round(el.scrollLeft / pageWidth);
+    setCurrentPage(Math.min(page, totalPages - 1));
+  }, [totalPages]);
+
+  useEffect(() => {
+    updateState();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateState, { passive: true });
+    window.addEventListener("resize", updateState);
+    return () => {
+      el.removeEventListener("scroll", updateState);
+      window.removeEventListener("resize", updateState);
+    };
+  }, [updateState]);
+
+  const slide = (dir: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const dist = (CARD_W + CARD_GAP) * CARDS_PER_PAGE;
+    el.scrollBy({ left: dir === "left" ? -dist : dist, behavior: "smooth" });
+  };
+
+  const jumpToPage = (page: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: (CARD_W + CARD_GAP) * CARDS_PER_PAGE * page, behavior: "smooth" });
+  };
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2.5">
+          <h2 className="text-[15px] font-bold text-gray-800">{section.title}</h2>
+          <span className="text-[12px] text-gray-400">{section.companies.length}社</span>
+          <div className="flex items-center gap-1 ml-1">
+            <button
+              onClick={() => slide("left")}
+              disabled={!canLeft}
+              className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+              style={{
+                border: "0.5px solid #e5e7eb",
+                background: canLeft ? "#fff" : "#fafafa",
+                cursor: canLeft ? "pointer" : "default",
+                opacity: canLeft ? 1 : 0.4,
+              }}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke={canLeft ? "#374151" : "#d1d5db"} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => slide("right")}
+              disabled={!canRight}
+              className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+              style={{
+                border: "0.5px solid #e5e7eb",
+                background: canRight ? "#fff" : "#fafafa",
+                cursor: canRight ? "pointer" : "default",
+                opacity: canRight ? 1 : 0.4,
+              }}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke={canRight ? "#374151" : "#d1d5db"} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        {section.filter && (
+          <Link
+            href={`/companies/list?category=${encodeURIComponent(section.filter)}`}
+            className="text-[12px] text-gray-400 hover:text-[#1D9E75] transition-colors"
+          >
+            すべて見る →
+          </Link>
+        )}
+      </div>
+
+      <div
+        ref={scrollRef}
+        className="flex overflow-x-auto scroll-smooth no-scrollbar"
+        style={{ gap: `${CARD_GAP}px` }}
+      >
+        {section.companies.map((c) => (
+          <div key={c.id} className="flex-shrink-0" style={{ width: CARD_W }}>
+            <Grid5Card company={c} />
+          </div>
+        ))}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1.5 mt-3">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => jumpToPage(i)}
+              className="rounded-full transition-all"
+              style={{
+                width: currentPage === i ? 16 : 4,
+                height: 4,
+                background: currentPage === i ? "#1D9E75" : "#d1d5db",
+                cursor: "pointer",
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Component ─────────────────────────────────
 
 export default function CompanyExplorer({
   companies,
+  initialView = "list",
 }: {
   companies: Company[];
+  initialView?: ViewMode;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [industry, setIndustry] = useState("すべて");
   const [category, setCategory] = useState("すべて");
   const [role, setRole] = useState("すべて");
   const [sort, setSort] = useState("jobs");
-  const [view, setView] = useState<"list" | "grid" | "grid5" | "section">("list");
+  const [view, setView] = useState<ViewMode>(initialView);
   const debounceRef = useRef<NodeJS.Timeout>();
+
+  // Check if all companies were created on the same day (batch import)
+  const allSameDay = useMemo(() => {
+    if (companies.length < 2) return false;
+    const dates = companies.map((c) =>
+      c.created_at ? new Date(c.created_at).toDateString() : ""
+    );
+    return dates.every((d) => d === dates[0]);
+  }, [companies]);
+
+  // 修正3: URL param persistence for view mode
+  const handleViewChange = (v: ViewMode) => {
+    setView(v);
+    const params = new URLSearchParams(searchParams.toString());
+    if (v === "list") {
+      params.delete("view");
+    } else {
+      params.set("view", v);
+    }
+    const qs = params.toString();
+    router.push(`/companies${qs ? `?${qs}` : ""}`, { scroll: false });
+  };
 
   // Debounce search
   useEffect(() => {
@@ -686,46 +850,33 @@ export default function CompanyExplorer({
   const filtered = useMemo(() => {
     return companies
       .filter((c) => {
-        // Search
         if (debouncedQuery) {
           const q = debouncedQuery.toLowerCase();
-          const text =
-            `${c.name} ${c.description || ""} ${c.industry || ""}`.toLowerCase();
+          const text = `${c.name} ${c.description || ""} ${c.industry || ""}`.toLowerCase();
           if (!text.includes(q)) return false;
         }
-
-        // Industry
         if (industry !== "すべて") {
           if (!c.industry?.includes(industry)) return false;
         }
-
-        // Category
         if (category !== "すべて") {
           if (category === "外資系" && !isGaishi(c)) return false;
           if (category === "日系" && isGaishi(c)) return false;
           if (category === "スタートアップ" && !isStartup(c)) return false;
         }
-
-        // Role (job category)
         if (role !== "すべて") {
           const cats = getJobCategories(c);
-          const hasRole = cats.some((cat) => cat.includes(role));
-          if (!hasRole) return false;
+          if (!cats.some((cat) => cat.includes(role))) return false;
         }
-
         return true;
       })
       .sort((a, b) => {
-        if (sort === "jobs") {
-          return (b.ow_jobs?.length || 0) - (a.ow_jobs?.length || 0);
-        }
-        if (sort === "newest") {
-          return (
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-        }
+        if (sort === "jobs") return (b.ow_jobs?.length || 0) - (a.ow_jobs?.length || 0);
+        if (sort === "newest")
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         if (sort === "employees") {
-          return parseEmployeeCount(b.employee_count) - parseEmployeeCount(a.employee_count);
+          const ae = a.employees_jp || parseEmployeeCount(a.employee_count);
+          const be = b.employees_jp || parseEmployeeCount(b.employee_count);
+          return be - ae;
         }
         return 0;
       });
@@ -762,53 +913,27 @@ export default function CompanyExplorer({
 
       {/* ─── Filter Tags ─── */}
       <div className="space-y-3 mb-5">
-        {/* Industry */}
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-gray-400 font-medium w-10 flex-shrink-0">
-            業界
-          </span>
+          <span className="text-[11px] text-gray-400 font-medium w-10 flex-shrink-0">業界</span>
           <div className="flex flex-wrap gap-1.5">
             {INDUSTRY_TAGS.map((tag) => (
-              <TagButton
-                key={tag}
-                label={tag}
-                selected={industry === tag}
-                onClick={() => setIndustry(tag)}
-              />
+              <TagButton key={tag} label={tag} selected={industry === tag} onClick={() => setIndustry(tag)} />
             ))}
           </div>
         </div>
-
-        {/* Category */}
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-gray-400 font-medium w-10 flex-shrink-0">
-            分類
-          </span>
+          <span className="text-[11px] text-gray-400 font-medium w-10 flex-shrink-0">分類</span>
           <div className="flex flex-wrap gap-1.5">
             {CATEGORY_TAGS.map((tag) => (
-              <TagButton
-                key={tag}
-                label={tag}
-                selected={category === tag}
-                onClick={() => setCategory(tag)}
-              />
+              <TagButton key={tag} label={tag} selected={category === tag} onClick={() => setCategory(tag)} />
             ))}
           </div>
         </div>
-
-        {/* Role */}
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-gray-400 font-medium w-10 flex-shrink-0">
-            職種
-          </span>
+          <span className="text-[11px] text-gray-400 font-medium w-10 flex-shrink-0">職種</span>
           <div className="flex flex-wrap gap-1.5">
             {ROLE_TAGS.map((tag) => (
-              <TagButton
-                key={tag}
-                label={tag}
-                selected={role === tag}
-                onClick={() => setRole(tag)}
-              />
+              <TagButton key={tag} label={tag} selected={role === tag} onClick={() => setRole(tag)} />
             ))}
           </div>
         </div>
@@ -821,20 +946,16 @@ export default function CompanyExplorer({
           を表示中
         </p>
         <div className="flex items-center gap-3">
-          {/* Sort */}
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
             className="text-[12px] text-gray-500 bg-transparent outline-none cursor-pointer pr-1"
           >
             {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
 
-          {/* View toggle */}
           <div
             className="flex items-center rounded-lg overflow-hidden"
             style={{ border: "0.5px solid #e5e7eb" }}
@@ -842,7 +963,7 @@ export default function CompanyExplorer({
             {(["list", "grid", "grid5", "section"] as const).map((v, i) => (
               <button
                 key={v}
-                onClick={() => setView(v)}
+                onClick={() => handleViewChange(v)}
                 className="p-1.5 transition-colors"
                 title={
                   v === "list" ? "リスト" : v === "grid" ? "2列" : v === "grid5" ? "5列" : "セクション"
@@ -864,13 +985,13 @@ export default function CompanyExplorer({
         view === "list" ? (
           <div className="space-y-3">
             {filtered.map((c) => (
-              <ListCard key={c.id} company={c} />
+              <ListCard key={c.id} company={c} allSameDay={allSameDay} />
             ))}
           </div>
         ) : view === "grid" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {filtered.map((c) => (
-              <GridCard key={c.id} company={c} />
+              <GridCard key={c.id} company={c} allSameDay={allSameDay} />
             ))}
           </div>
         ) : view === "grid5" ? (
@@ -880,30 +1001,11 @@ export default function CompanyExplorer({
             ))}
           </div>
         ) : (
-          /* section view */
-          <div className="space-y-8">
+          <div>
             {buildSections(filtered).map((section) => (
-              <div key={section.id}>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-[15px] font-bold text-gray-800">
-                    {section.title}
-                  </h2>
-                  {section.filter && (
-                    <Link
-                      href={`/companies/list?category=${encodeURIComponent(section.filter)}`}
-                      className="text-[12px] text-gray-400 hover:text-[#1D9E75] transition-colors"
-                    >
-                      すべて見る →
-                    </Link>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                  {section.companies.map((c) => (
-                    <Grid5Card key={c.id} company={c} />
-                  ))}
-                </div>
-              </div>
+              <SectionCarousel key={section.id} section={section} />
             ))}
+            <style>{`.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}`}</style>
           </div>
         )
       ) : (

@@ -17,14 +17,22 @@ async function getCompanies() {
   return data || [];
 }
 
-export default async function CompaniesPage() {
+export default async function CompaniesPage({
+  searchParams,
+}: {
+  searchParams: { view?: string };
+}) {
   const companies = await getCompanies();
+  const validViews = ["list", "grid", "grid5", "section"];
+  const initialView = validViews.includes(searchParams.view || "")
+    ? (searchParams.view as "list" | "grid" | "grid5" | "section")
+    : "list";
 
   return (
     <>
       <Header />
       <main className="pt-16 min-h-screen bg-white">
-        <CompanyExplorer companies={companies} />
+        <CompanyExplorer companies={companies} initialView={initialView} />
       </main>
       <Footer />
     </>

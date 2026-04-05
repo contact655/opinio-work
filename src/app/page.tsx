@@ -1,83 +1,85 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import HeroSection from "./HeroSection";
 
-/* ─── Hero Section ─── */
-function Hero() {
-  return (
-    <section className="relative h-[620px] flex items-center justify-center overflow-hidden">
-      {/* Background — 3 employee photos side by side (placeholder) */}
-      <div className="absolute inset-0 grid grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="bg-gray-300"
-            style={{
-              backgroundImage: `url(/placeholder-person-${i}.jpg)`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          />
-        ))}
-      </div>
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/[0.48]" />
+export const dynamic = "force-dynamic";
 
-      {/* Content */}
-      <div className="relative z-10 text-center text-white px-4 max-w-2xl mx-auto">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4">
-          あなたのキャリアに、
-          <br />
-          本当のことを。
-        </h1>
-        <p className="text-base sm:text-lg text-white/80 mb-8">
-          IT/SaaS業界のビジネス職に特化。
-          <br className="sm:hidden" />
-          カルチャー・雰囲気で企業を選べる転職サービス。
-        </p>
+/* ─── Data Fetching ─── */
 
-        {/* Email Registration CTA */}
-        <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-          <input
-            type="email"
-            placeholder="メールアドレスを入力"
-            className="flex-1 px-4 py-3 rounded-full text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-          <button
-            type="submit"
-            className="px-6 py-3 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-dark transition-colors"
-          >
-            無料で始める
-          </button>
-        </form>
-      </div>
-    </section>
-  );
-}
+async function getHeroData() {
+  const supabase = createClient();
 
-/* ─── Stats Bar ─── */
-function StatsBar() {
-  const stats = [
-    { value: "128社", label: "掲載企業" },
-    { value: "200名+", label: "登録求職者" },
-    { value: "0件", label: "早期離職" },
-    { value: "120社+", label: "クライアント" },
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Fetch active jobs with company info (more than 3 to allow dedup)
+  const { data: jobs } = await supabase
+    .from("ow_jobs")
+    .select("id, title, job_category, salary_min, salary_max, location, work_style, company_id, ow_companies(name, logo_url, url)")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  // Fetch company logos for ticker
+  const { data: companies } = await supabase
+    .from("ow_companies")
+    .select("name, logo_url, url")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  // Sample match percentages and reasons (assigned by match score desc)
+  const matchData = [
+    { percent: 92, reason: "カルチャーフィット・スキルセットが高い一致度です" },
+    { percent: 85, reason: "キャリアパスと希望条件がマッチしています" },
+    { percent: 78, reason: "業界経験と働き方の希望が合致しています" },
   ];
 
-  return (
-    <section className="bg-white border-y border-card-border">
-      <div className="max-w-5xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-        {stats.map((s) => (
-          <div key={s.label}>
-            <p className="text-2xl md:text-3xl font-bold text-primary">
-              {s.value}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">{s.label}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+  // Deduplicate by company_id — keep first (newest) job per company
+  const seenCompanies = new Set<string>();
+  const dedupedJobs = (jobs || []).filter((j: any) => {
+    if (!j.company_id || seenCompanies.has(j.company_id)) return false;
+    seenCompanies.add(j.company_id);
+    return true;
+  });
+
+  // Build match job cards (max 3, sorted by match score desc)
+  const matchJobs = dedupedJobs.slice(0, 3).map((j: any, idx: number) => {
+    const company = j.ow_companies;
+    const tags: string[] = [];
+    if (j.job_category) tags.push(j.job_category);
+    if (j.work_style) tags.push(j.work_style);
+    if (j.location) tags.push(j.location);
+
+    return {
+      id: j.id,
+      title: j.title,
+      company_name: company?.name || "企業名",
+      company_logo_url: company?.logo_url || null,
+      company_url: company?.url || null,
+      salary_min: j.salary_min,
+      salary_max: j.salary_max,
+      match_percent: matchData[idx].percent,
+      match_reason: matchData[idx].reason,
+      tags: tags.slice(0, 3),
+    };
+  });
+
+  const companyLogos = (companies || []).map((c: any) => ({
+    name: c.name,
+    logo_url: c.logo_url,
+    url: c.url,
+  }));
+
+  return {
+    matchJobs,
+    companyLogos,
+    isLoggedIn: !!user,
+  };
 }
 
 /* ─── Features ─── */
@@ -113,7 +115,7 @@ function Features() {
   ];
 
   return (
-    <section className="py-20 px-4">
+    <section className="py-20 px-4 bg-white">
       <div className="max-w-5xl mx-auto">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-4">
           opinio.workが選ばれる理由
@@ -125,7 +127,8 @@ function Features() {
           {features.map((f) => (
             <div
               key={f.title}
-              className="bg-white rounded-card p-8 border border-card-border text-center"
+              className="bg-white rounded-xl p-8 text-center"
+              style={{ border: "0.5px solid #e5e7eb" }}
             >
               <div className="flex justify-center mb-4">{f.icon}</div>
               <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
@@ -159,7 +162,7 @@ function Steps() {
   ];
 
   return (
-    <section className="py-20 px-4 bg-white">
+    <section className="py-20 px-4">
       <div className="max-w-5xl mx-auto">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
           3ステップで始める
@@ -167,7 +170,10 @@ function Steps() {
         <div className="grid md:grid-cols-3 gap-8">
           {steps.map((s) => (
             <div key={s.num} className="text-center">
-              <div className="w-14 h-14 rounded-full bg-primary-light text-primary text-xl font-bold flex items-center justify-center mx-auto mb-4">
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold"
+                style={{ background: "#E1F5EE", color: "#1D9E75" }}
+              >
                 {s.num}
               </div>
               <h3 className="text-lg font-semibold mb-2">{s.title}</h3>
@@ -201,7 +207,7 @@ function Testimonials() {
   ];
 
   return (
-    <section className="py-20 px-4">
+    <section className="py-20 px-4 bg-white">
       <div className="max-w-5xl mx-auto">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
           転職者の声
@@ -210,10 +216,14 @@ function Testimonials() {
           {voices.map((v) => (
             <div
               key={v.name}
-              className="bg-white rounded-card p-6 border border-card-border"
+              className="bg-white rounded-xl p-6"
+              style={{ border: "0.5px solid #e5e7eb" }}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-primary font-bold text-sm">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
+                  style={{ background: "#E1F5EE", color: "#1D9E75" }}
+                >
                   {v.name[0]}
                 </div>
                 <div>
@@ -235,7 +245,7 @@ function Testimonials() {
 /* ─── Footer CTA ─── */
 function FooterCTA() {
   return (
-    <section className="py-20 px-4 bg-primary text-white text-center">
+    <section className="py-20 px-4 text-white text-center" style={{ background: "#1D9E75" }}>
       <div className="max-w-2xl mx-auto">
         <h2 className="text-2xl md:text-3xl font-bold mb-4">
           まず、企業を見てみませんか？
@@ -246,13 +256,14 @@ function FooterCTA() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/companies"
-            className="px-8 py-3 bg-white text-primary font-medium rounded-full hover:bg-gray-100 transition-colors text-sm"
+            className="px-8 py-3 bg-white font-medium rounded-lg hover:bg-gray-100 transition-colors text-sm"
+            style={{ color: "#1D9E75" }}
           >
             企業一覧を見る
           </Link>
           <Link
             href="/auth/signup"
-            className="px-8 py-3 border border-white text-white font-medium rounded-full hover:bg-white/10 transition-colors text-sm"
+            className="px-8 py-3 border border-white text-white font-medium rounded-lg hover:bg-white/10 transition-colors text-sm"
           >
             無料で登録する
           </Link>
@@ -263,13 +274,18 @@ function FooterCTA() {
 }
 
 /* ─── Page ─── */
-export default function Home() {
+export default async function Home() {
+  const { matchJobs, companyLogos, isLoggedIn } = await getHeroData();
+
   return (
     <>
       <Header />
       <main className="pt-16">
-        <Hero />
-        <StatsBar />
+        <HeroSection
+          matchJobs={matchJobs}
+          companyLogos={companyLogos}
+          isLoggedIn={isLoggedIn}
+        />
         <Features />
         <Steps />
         <Testimonials />
