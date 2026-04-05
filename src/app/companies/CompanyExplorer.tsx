@@ -121,34 +121,21 @@ function getAutoStats(c: Company): Stat[] {
     stats.push({ value: c.phase, label: "フェーズ" });
   }
 
-  // 平均年収
-  if (c.avg_salary && stats.length < 3) {
-    stats.push({ value: `${c.avg_salary}万`, label: "平均年収" });
-  }
+  // 3つ目: 優先度順で最初に見つかった項目
+  const thirdCandidates = [
+    c.avg_salary ? { value: c.avg_salary, label: "平均年収" } : null,
+    c.remote_rate ? { value: `${c.remote_rate}%`, label: "リモート率", highlight: true } : null,
+    (c.funding_total && c.funding_total !== "非公開") ? { value: c.funding_total, label: "調達額" } : null,
+    foundedYear > 0 ? { value: `${foundedYear}年`, label: "設立" } : null,
+    jobCount > 0 ? { value: `${jobCount}件`, label: "求人数" } : null,
+    c.industry ? { value: c.industry, label: "業種" } : null,
+  ];
 
-  // リモート率
-  if (c.remote_rate && stats.length < 3) {
-    stats.push({ value: `${c.remote_rate}%`, label: "リモート率", highlight: true });
-  }
-
-  // 平均残業
-  if (c.avg_overtime != null && stats.length < 3) {
-    stats.push({ value: `月${c.avg_overtime}h`, label: "平均残業" });
-  }
-
-  // 設立年
-  if (foundedYear > 0 && stats.length < 3) {
-    stats.push({ value: `${foundedYear}年`, label: "設立" });
-  }
-
-  // 求人数（フォールバック）
-  if (jobCount > 0 && stats.length < 3) {
-    stats.push({ value: `${jobCount}件`, label: "求人数" });
-  }
-
-  // 業種（フォールバック）
-  if (c.industry && stats.length < 3) {
-    stats.push({ value: c.industry, label: "業種" });
+  for (const item of thirdCandidates) {
+    if (item && stats.length < 3) {
+      stats.push(item);
+      break;
+    }
   }
 
   return stats.slice(0, 3);
@@ -255,7 +242,7 @@ function CompanyBadges({ company }: { company: Company }) {
       {showNew && (
         <span
           className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
-          style={{ background: "#E1F5EE", color: "#0F6E56" }}
+          style={{ background: "#E6F1FB", color: "#185FA5" }}
         >
           NEW
         </span>

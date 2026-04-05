@@ -12,11 +12,17 @@ type RolesData = {
   companies: { id: string; name: string; status: string }[];
 };
 
+type SavedCompany = {
+  company_id: string;
+  company: { id: string; name: string; industry: string | null; url: string | null; logo_url: string | null };
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<RolesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [favorites, setFavorites] = useState<SavedCompany[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -32,6 +38,26 @@ export default function DashboardPage() {
       const res = await fetch("/api/roles");
       const rolesData = await res.json();
       setData(rolesData);
+
+      // Fetch favorites
+      try {
+        const { data: favData } = await supabase
+          .from("ow_saved_companies")
+          .select("company_id, ow_companies(id, name, industry, url, logo_url)")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        if (favData) {
+          setFavorites(
+            favData.map((f: any) => ({
+              company_id: f.company_id,
+              company: f.ow_companies,
+            }))
+          );
+        }
+      } catch {
+        // ow_saved_companies might not have FK relation, ignore
+      }
+
       setLoading(false);
     }
     load();
@@ -217,6 +243,50 @@ export default function DashboardPage() {
                     管理画面
                   </Link>
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* 気になる企業 */}
+          <div className="bg-white rounded-card-lg border border-card-border p-6">
+            <h2 className="text-[16px] font-bold mb-4">
+              気になる企業 {favorites.length}社
+            </h2>
+            {favorites.length === 0 ? (
+              <p className="text-[13px] text-gray-400 py-4 text-center">
+                気になる企業をブックマークすると、ここに表示されます
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {favorites.map((f) => {
+                  let logoUrl = f.company?.logo_url || null;
+                  if (!logoUrl && f.company?.url) {
+                    try { logoUrl = `https://logo.clearbit.com/${new URL(f.company.url).hostname}`; } catch {}
+                  }
+                  return (
+                    <Link
+                      key={f.company_id}
+                      href={`/companies/${f.company_id}`}
+                      className="flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-gray-50"
+                      style={{ border: "0.5px solid #f0f0f0" }}
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-gray-50 flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ border: "0.5px solid #e5e7eb" }}>
+                        {logoUrl ? (
+                          <img src={logoUrl} alt="" className="w-full h-full object-contain p-1" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        ) : (
+                          <span className="text-gray-400 text-xs font-bold">{f.company?.name?.[0] || "?"}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium text-gray-800 truncate">{f.company?.name || "不明"}</div>
+                        <div className="text-[11px] text-gray-400">{f.company?.industry || ""}</div>
+                      </div>
+                      <span className="text-[11px] font-medium flex-shrink-0" style={{ color: "#1D9E75" }}>
+                        詳細を見る →
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </div>
