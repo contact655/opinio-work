@@ -548,6 +548,56 @@ function JobCardGrid({ job }: { job: Job }) {
         </span>
       </div>
 
+      {/* Positives / Negatives */}
+      {(job.positives?.length > 0 || job.negatives?.length > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+          {/* ポジティブ */}
+          <div style={{ background: '#E1F5EE', border: '0.5px solid #9FE1CB', borderRadius: 10, padding: '10px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7 }}>
+              <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#1D9E75', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 500, flexShrink: 0 }}>+</div>
+              <span style={{ fontSize: 10, fontWeight: 500, color: '#0F6E56' }}>ここが良い</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {(job.positives?.length ? job.positives : ['情報収集中', '現役実務家に聞いてみましょう', '詳細は面談でご確認ください']).slice(0, 3).map((p: string, i: number) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 5, fontSize: 11, color: '#085041', lineHeight: 1.5 }}>
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#1D9E75', flexShrink: 0, marginTop: 4 }} />
+                  {p}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ネガティブ */}
+          <div style={{ background: job.negatives?.length ? '#FCEBEB' : '#f9fafb', border: `0.5px solid ${job.negatives?.length ? '#F7C1C1' : '#e5e7eb'}`, borderRadius: 10, padding: '10px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7 }}>
+              <div style={{ width: 16, height: 16, borderRadius: '50%', background: job.negatives?.length ? '#E24B4A' : '#d1d5db', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 500, flexShrink: 0 }}>
+                {job.negatives?.length ? '−' : '?'}
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 500, color: job.negatives?.length ? '#A32D2D' : '#9ca3af' }}>
+                {job.negatives?.length ? 'ここに注意' : 'ここに注意（情報不足）'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {(job.negatives?.length ? job.negatives : ['詳細な職場環境情報を収集中です', '現役実務家への相談をおすすめします', '面談で直接確認することを推奨します']).slice(0, 3).map((n: string, i: number) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 5, fontSize: 11, color: job.negatives?.length ? '#7B1F1F' : '#9ca3af', lineHeight: 1.5 }}>
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: job.negatives?.length ? '#E24B4A' : '#d1d5db', flexShrink: 0, marginTop: 4 }} />
+                  {n}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 情報不足の場合はキャリア相談への誘導 */}
+      {(!job.positives?.length || !job.negatives?.length) && (
+        <div style={{ textAlign: 'center', marginBottom: 12 }}>
+          <span className="text-[11px]" style={{ color: '#1D9E75' }}>
+            → この企業を知る実務家に相談する
+          </span>
+        </div>
+      )}
+
       {/* Bottom row */}
       <div className="flex items-center justify-between pt-3" style={{ borderTop: "0.5px solid #f0f0f0" }}>
         <div className="flex items-center gap-3">

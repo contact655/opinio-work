@@ -433,6 +433,64 @@ export default function JobDetailClient({
               )}
             </div>
 
+            {/* ─── ポジティブ・ネガティブ ─── */}
+            {(job.positives?.length > 0 || job.negatives?.length > 0) && (
+              <div
+                className="bg-white rounded-xl p-6"
+                style={{ border: "0.5px solid #e5e7eb" }}
+              >
+                <h2 className="text-[15px] font-bold text-gray-800 mb-4">
+                  この求人のポイント
+                </h2>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  {/* ポジティブ */}
+                  <div style={{ background: '#E1F5EE', border: '0.5px solid #9FE1CB', borderRadius: 12, padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#1D9E75', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>+</div>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#0F6E56' }}>ここが良い</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {(job.positives?.length ? job.positives : ['情報収集中', '現役実務家に聞いてみましょう', '詳細は面談でご確認ください']).slice(0, 3).map((p: string, i: number) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#085041', lineHeight: 1.6 }}>
+                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#1D9E75', flexShrink: 0, marginTop: 6 }} />
+                          {p}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ネガティブ */}
+                  <div style={{ background: job.negatives?.length ? '#FCEBEB' : '#f9fafb', border: `0.5px solid ${job.negatives?.length ? '#F7C1C1' : '#e5e7eb'}`, borderRadius: 12, padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: job.negatives?.length ? '#E24B4A' : '#d1d5db', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
+                        {job.negatives?.length ? '−' : '?'}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: job.negatives?.length ? '#A32D2D' : '#9ca3af' }}>
+                        {job.negatives?.length ? 'ここに注意' : 'ここに注意（情報不足）'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {(job.negatives?.length ? job.negatives : ['詳細な職場環境情報を収集中です', '現役実務家への相談をおすすめします', '面談で直接確認することを推奨します']).slice(0, 3).map((n: string, i: number) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: job.negatives?.length ? '#7B1F1F' : '#9ca3af', lineHeight: 1.6 }}>
+                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: job.negatives?.length ? '#E24B4A' : '#d1d5db', flexShrink: 0, marginTop: 6 }} />
+                          {n}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 情報不足の場合はキャリア相談への誘導 */}
+                {(!job.positives?.length || !job.negatives?.length) && (
+                  <div style={{ textAlign: 'center', marginTop: 14 }}>
+                    <Link href="/career-consultation" style={{ fontSize: 13, color: '#1D9E75', textDecoration: 'none' }}>
+                      → この企業を知る実務家に相談する
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ─── 求める人材 ─── */}
             {(job.requirements ||
               job.preferred ||
