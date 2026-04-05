@@ -218,23 +218,23 @@ function ListCard({
   return (
     <Link
       href={`/companies/${company.id}`}
-      className="block bg-white rounded-xl p-5 transition-all group"
-      style={{ border: "0.5px solid #e5e7eb" }}
+      className="block bg-white rounded-xl transition-all group"
+      style={{ border: "0.5px solid #e5e7eb", padding: "16px 18px" }}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#1D9E75")}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}
     >
       <div className="flex items-start gap-4">
-        <CompanyLogo company={company} size={48} rounded={12} />
+        <CompanyLogo company={company} size={56} rounded={12} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="font-semibold text-[14px] text-gray-800 truncate">
+          <div className="flex items-center gap-2 mb-1.5">
+            <h3 className="font-medium text-[16px] text-gray-800 truncate">
               {company.name}
             </h3>
             <CompanyBadges company={company} />
           </div>
           {desc && (
             <p
-              className="text-[12px] text-gray-400 leading-relaxed"
+              className="text-[13px] text-gray-400 leading-relaxed"
               style={descStyle}
             >
               {desc}
@@ -272,7 +272,7 @@ function ListCard({
             >
               {s.value}
             </div>
-            <div className="text-[10px] text-gray-400 mt-0.5">{s.label}</div>
+            <div className="text-[11px] text-gray-400 mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>
@@ -854,7 +854,7 @@ export default function CompanyExplorer({
       {/* ─── Results ─── */}
       {filtered.length > 0 ? (
         view === "list" ? (
-          <div className="space-y-3">
+          <div className="flex flex-col" style={{ gap: "10px" }}>
             {filtered.map((c) => (
               <ListCard
                 key={c.id}

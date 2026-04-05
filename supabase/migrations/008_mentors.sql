@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS mentors (
   avatar_initial text,
   avatar_color text DEFAULT '#1D9E75',
   current_company text,
-  current_role text,
+  "current_role" text,
   previous_career text,
   current_career text,
   roles text[],
@@ -35,7 +35,7 @@ DO $$ BEGIN
 END $$;
 
 -- サンプルデータ（10名）
-INSERT INTO mentors (name, avatar_initial, avatar_color, current_company, current_role, previous_career, current_career, roles, worries, bio, concerns, calendly_url, is_available, display_order) VALUES
+INSERT INTO mentors (name, avatar_initial, avatar_color, current_company, "current_role", previous_career, current_career, roles, worries, bio, concerns, calendly_url, is_available, display_order) VALUES
 ('田中 美咲', '田', '#1D9E75', 'Salesforce Japan', 'エンタープライズ営業', '大手メーカー営業', '外資SaaS営業', ARRAY['営業'], ARRAY['転職タイミング','年収交渉','外資転職'], '外資SaaSへの転職で年収300万円アップを経験。エンタープライズ営業歴5年。外資転職のリアルを詳しく話せます。', ARRAY['外資SaaSへの転職の進め方','年収交渉で失敗したくない','転職のタイミングがわからない'], 'https://calendly.com/dummy/30min', true, 1),
 ('佐藤 健', '佐', '#00A1E0', 'HubSpot Japan', 'カスタマーサクセス', 'SIer営業', 'SaaS CS', ARRAY['CS'], ARRAY['キャリアチェンジ','転職タイミング','スタートアップ'], 'SIer営業からSaaS CSへのキャリアチェンジを経験。CSとして3年、現在はチームリード。', ARRAY['営業からCSに転身できるの？','CSのキャリアパスが知りたい','SaaS CSの実際の仕事内容'], 'https://calendly.com/dummy/30min', true, 2),
 ('鈴木 陽子', '鈴', '#FF7A59', 'Zoho Japan', 'インサイドセールス', '人材業界IS', 'SaaS IS', ARRAY['営業'], ARRAY['転職タイミング','スタートアップ','年収交渉'], '人材業界ISからSaaS ISに転職。BDRチームのリードとして活躍中。', ARRAY['IS経験でSaaSに転職できる？','ベンチャーと大手どっちがいい？','年収を維持しながら転職したい'], 'https://calendly.com/dummy/30min', true, 3),
