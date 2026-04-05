@@ -33,7 +33,7 @@ function getLogoUrl(company: any): string | null {
 }
 
 function getEmployeeDisplay(company: any): string | null {
-  const v = company?.employees_jp || company?.employee_count;
+  const v = company?.employee_count;
   if (!v || v === "非公開") return null;
   if (/^\d+$/.test(v)) return `${Number(v).toLocaleString()}名`;
   return v;

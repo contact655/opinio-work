@@ -36,7 +36,7 @@ export default async function JobDetailPage({
     .select(
       `*,
       ow_companies(
-        id, name, industry, phase, employee_count, employees_jp,
+        id, name, industry, phase, employee_count,
         avg_salary, funding_total, founded_year,
         brand_color, url, logo_url
       ),

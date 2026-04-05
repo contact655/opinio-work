@@ -658,7 +658,13 @@ function MessagesContent() {
         <div className="flex-1 overflow-y-auto">
           {threads.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <p className="text-[12px] text-gray-400">スレッドなし</p>
+              <div className="w-10 h-10 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ background: "#E1F5EE" }}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#1D9E75" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                </svg>
+              </div>
+              <p className="text-[12px] text-gray-400 mb-2">メッセージはまだありません</p>
+              <Link href="/companies" className="text-[11px]" style={{ color: "#1D9E75" }}>企業を探す →</Link>
             </div>
           ) : (
             threads.map((thread) => (
