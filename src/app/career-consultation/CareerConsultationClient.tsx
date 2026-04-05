@@ -297,13 +297,15 @@ export default function CareerConsultationClient({
             {/* CTA button */}
             <div className="flex-shrink-0">
               <a
-                href="#mentors"
+                href="https://calendly.com/hshiba-opinio/30min"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-[14px] font-semibold px-6 py-3 rounded-full transition-colors"
                 style={{ background: "#1D9E75", color: "#fff" }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = "#0F6E56")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "#1D9E75")}
               >
-                今すぐ予約する
+                今すぐ予約する →
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
