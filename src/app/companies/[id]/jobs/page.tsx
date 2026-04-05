@@ -64,7 +64,7 @@ export default async function CompanyJobsPage({
                   {company.industry && <span>{company.industry}</span>}
                   {company.location && <span>{company.location}</span>}
                   {company.employee_count && (
-                    <span>{company.employee_count}名</span>
+                    <span>{/^\d+$/.test(company.employee_count) ? `${company.employee_count}名` : company.employee_count}</span>
                   )}
                 </div>
               </div>

@@ -15,7 +15,7 @@ async function getCompany(id: string) {
       ow_company_photos(id, photo_url, is_main, display_order),
       ow_company_members(id, name, role, background, photo_url, display_order),
       ow_company_culture_tags(id, tag_category, tag_value),
-      ow_jobs(id, title, job_category, salary_min, salary_max, location, work_style, status)`
+      ow_jobs(id, title, job_category, salary_min, salary_max, location, work_style, status, created_at)`
     )
     .eq("id", id)
     .single();

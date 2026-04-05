@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 // ─── Types ────────────────────────────────────────────
 
@@ -38,12 +39,6 @@ const LOGO_COLORS = [
 
 function getLogoColor(name: string): string {
   return LOGO_COLORS[name.charCodeAt(0) % LOGO_COLORS.length];
-}
-
-function parseEmployeeCount(s: string | null): number {
-  if (!s) return 0;
-  const m = s.match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : 0;
 }
 
 // ─── Company Logo ─────────────────────────────────────
@@ -142,7 +137,6 @@ export default function CompanyDetailClient({
   // 修正1: brand_color → カバー色（デフォルト #1D9E75）
   const coverColor = company.brand_color ?? "#1D9E75";
   const jobCount = jobs.length;
-  const emp = parseEmployeeCount(company.employee_count);
 
   // Sticky tab detection
   useEffect(() => {
@@ -156,7 +150,7 @@ export default function CompanyDetailClient({
     return () => observer.disconnect();
   }, []);
 
-  // 修正4: カジュアル面談リクエスト
+  // 修正4: カジュアル面談リクエスト（Supabase直接）
   const handleCasualRequest = async () => {
     if (!isLoggedIn) {
       router.push("/auth/signup");
@@ -164,18 +158,48 @@ export default function CompanyDetailClient({
     }
     setRequesting(true);
     try {
-      const res = await fetch("/api/casual-request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId: company.id }),
-      });
-      const data = await res.json();
-      if (data.threadId) {
-        router.push(`/messages?thread=${data.threadId}`);
-      } else {
-        // Thread table not ready yet — show confirmation
-        alert("カジュアル面談リクエストを送信しました");
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/auth/signup"); return; }
+
+      // 既存スレッドを確認
+      const { data: existing } = await supabase
+        .from("ow_threads")
+        .select("id")
+        .eq("company_id", company.id)
+        .eq("candidate_id", user.id)
+        .maybeSingle();
+
+      if (existing) {
+        router.push(`/messages?thread=${existing.id}`);
+        return;
       }
+
+      // 新規スレッド作成
+      const { data: thread, error } = await supabase
+        .from("ow_threads")
+        .insert({
+          company_id: company.id,
+          candidate_id: user.id,
+          status: "casual_requested",
+        })
+        .select()
+        .single();
+
+      if (error || !thread) {
+        console.error("Thread creation failed:", error);
+        alert("カジュアル面談リクエストを送信しました");
+        return;
+      }
+
+      // システムメッセージを自動投稿
+      await supabase.from("ow_messages").insert({
+        thread_id: thread.id,
+        sender_id: user.id,
+        content: `${company.name}へのカジュアル面談リクエストが送信されました`,
+      });
+
+      router.push(`/messages?thread=${thread.id}`);
     } catch {
       alert("カジュアル面談リクエストを送信しました");
     } finally {
@@ -183,10 +207,16 @@ export default function CompanyDetailClient({
     }
   };
 
+  // 修正1: 「万万」「名名」の重複を修正
+  const salaryDisplay = company.avg_salary ?? "応相談";
+  const employeeDisplay = company.employee_count
+    ? /^\d+$/.test(company.employee_count) ? `${Number(company.employee_count).toLocaleString()}名` : company.employee_count
+    : "非公開";
+
   const heroStats = [
-    { value: emp > 0 ? `${company.employee_count}` : "非公開", label: "社員数" },
+    { value: employeeDisplay, label: "社員数" },
     { value: "4.2", label: "社員評価" },
-    { value: company.avg_salary ? `${company.avg_salary}万` : company.industry?.includes("SaaS") || emp > 100 ? "650万" : "非公開", label: "平均年収" },
+    { value: salaryDisplay, label: "平均年収" },
     { value: `${jobCount}件`, label: "求人数" },
   ];
 
@@ -341,25 +371,29 @@ export default function CompanyDetailClient({
                 )}
               </section>
             )}
+            {/* 修正2: 企業情報セクションを2列グリッドに変更 */}
             <section className="bg-white rounded-xl p-6" style={{ border: "0.5px solid #e5e7eb" }}>
               <h2 className="text-[15px] font-bold text-gray-800 mb-4">企業情報</h2>
-              <dl className="grid grid-cols-2 gap-x-8 gap-y-3">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
                 {[
-                  { label: "設立", value: company.founded_at },
-                  { label: "従業員数", value: company.employee_count ? `${company.employee_count}名` : null },
+                  { label: "従業員数", value: employeeDisplay !== "非公開" ? employeeDisplay : null },
                   { label: "業界", value: company.industry },
                   { label: "所在地", value: company.location },
                   { label: "フェーズ", value: company.phase },
+                  { label: "設立", value: company.founded_year ? `${company.founded_year}年` : company.founded_at },
+                  { label: "平均年収", value: company.avg_salary },
+                  { label: "平均残業", value: company.avg_overtime ? `月${company.avg_overtime}時間` : null },
+                  { label: "リモート率", value: company.remote_rate ? `${company.remote_rate}%` : null },
                   { label: "公式サイト", value: company.url, isLink: true },
                 ].filter((item) => item.value).map((item) => (
-                  <div key={item.label} className="flex items-center justify-between py-2" style={{ borderBottom: "0.5px solid #f5f5f4" }}>
-                    <dt className="text-[13px] text-gray-400">{item.label}</dt>
-                    <dd className="text-[13px] font-medium text-gray-700">
+                  <div key={item.label}>
+                    <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 3 }}>{item.label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>
                       {item.isLink ? <a href={item.value!} target="_blank" rel="noopener noreferrer" className="text-[#1D9E75] hover:underline">公式サイト →</a> : item.value}
-                    </dd>
+                    </div>
                   </div>
                 ))}
-              </dl>
+              </div>
             </section>
             {members.length > 0 && (
               <section className="bg-white rounded-xl p-6" style={{ border: "0.5px solid #e5e7eb" }}>
@@ -393,11 +427,9 @@ export default function CompanyDetailClient({
             {jobCount > 0 ? (
               <div className="space-y-3">
                 {jobs.map((j: Job) => (
-                  <Link key={j.id} href={`/jobs/${j.id}`}
-                    className="block bg-white rounded-xl p-5 transition-all group" style={{ border: "0.5px solid #e5e7eb" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#1D9E75")}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}>
-                    <h3 className="text-[14px] font-semibold text-gray-800 mb-2 group-hover:text-[#1D9E75] transition-colors">{j.title}</h3>
+                  <div key={j.id}
+                    className="bg-white rounded-xl p-5 transition-all group" style={{ border: "0.5px solid #e5e7eb" }}>
+                    <h3 className="text-[14px] font-semibold text-gray-800 mb-2">{j.title}</h3>
                     <div className="flex flex-wrap items-center gap-2">
                       {j.job_category && <span className="text-[11px] px-2 py-0.5 rounded" style={{ background: "#f5f5f4", color: "#78716c" }}>{j.job_category}</span>}
                       {j.salary_min && j.salary_max && <span className="text-[11px] text-gray-400">{j.salary_min}〜{j.salary_max}万円</span>}
@@ -411,7 +443,17 @@ export default function CompanyDetailClient({
                       )}
                       {j.work_style && <span className="text-[11px] px-2 py-0.5 rounded" style={{ background: "#E1F5EE", color: "#0F6E56" }}>{j.work_style}</span>}
                     </div>
-                  </Link>
+                    {/* 修正3: 詳細を見るボタン + 掲載日 */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, marginTop: 10, borderTop: "0.5px solid #f0f0f0" }}>
+                      <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                        {j.created_at ? new Date(j.created_at).toLocaleDateString("ja-JP") + "掲載" : ""}
+                      </span>
+                      <Link href={`/jobs/${j.id}`}
+                        style={{ padding: "6px 14px", background: "#1D9E75", border: "none", borderRadius: 7, color: "#fff", fontSize: 12, fontWeight: 500, textDecoration: "none" }}>
+                        詳細を見る →
+                      </Link>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -466,6 +508,13 @@ export default function CompanyDetailClient({
                       ? `${company.paid_leave_rate}%`
                       : null,
                   },
+                  {
+                    icon: "👤",
+                    label: "平均年齢",
+                    value: company.avg_age
+                      ? `${company.avg_age}歳`
+                      : null,
+                  },
                 ].filter((item) => item.value !== null);
 
                 return workItems.length > 0 ? (
@@ -492,6 +541,20 @@ export default function CompanyDetailClient({
                 </div>
               )}
             </section>
+
+            {/* 修正5: company.tagsの表示 */}
+            {company.tags?.length > 0 && (
+              <section className="bg-white rounded-xl p-6" style={{ border: "0.5px solid #e5e7eb" }}>
+                <h2 className="text-[15px] font-bold text-gray-800 mb-4">タグ</h2>
+                <div className="flex flex-wrap gap-1.5">
+                  {company.tags.map((tag: string) => (
+                    <span key={tag} style={{ padding: "4px 10px", borderRadius: 999, fontSize: 12, background: "#E1F5EE", color: "#0F6E56" }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {cultureCatTags.length > 0 && (
               <section className="bg-white rounded-xl p-6" style={{ border: "0.5px solid #e5e7eb" }}>
