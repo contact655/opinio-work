@@ -1,0 +1,9 @@
+-- Add missing columns to ow_jobs for job detail page
+ALTER TABLE ow_jobs ADD COLUMN IF NOT EXISTS requirements TEXT;
+ALTER TABLE ow_jobs ADD COLUMN IF NOT EXISTS preferred TEXT;
+ALTER TABLE ow_jobs ADD COLUMN IF NOT EXISTS selection_flow TEXT[];
+ALTER TABLE ow_jobs ADD COLUMN IF NOT EXISTS work_hours TEXT;
+ALTER TABLE ow_jobs ADD COLUMN IF NOT EXISTS trial_period TEXT;
+ALTER TABLE ow_jobs ADD COLUMN IF NOT EXISTS holidays TEXT;
+ALTER TABLE ow_jobs ADD COLUMN IF NOT EXISTS benefits TEXT;
+ALTER TABLE ow_jobs ADD COLUMN IF NOT EXISTS avg_overtime TEXT;
