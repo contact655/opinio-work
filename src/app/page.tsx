@@ -82,35 +82,23 @@ async function getHeroData() {
   };
 }
 
-/* ─── Features ─── */
+/* ─── Reasons (ミスマッチをなくす3つの理由) ─── */
 function Features() {
-  const features = [
+  const reasons = [
     {
-      icon: (
-        <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      ),
-      title: "カルチャーで選べる",
-      desc: "社員の顔写真や雰囲気から、あなたに合った企業を見つけられます。条件だけでなく「人」で選ぶ転職を。",
-    },
-    {
-      icon: (
-        <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-        </svg>
-      ),
+      num: "0件",
       title: "マッチ理由が言葉で届く",
-      desc: "「なぜこの求人があなたに合うか」を箇条書きで表示。納得感のある求人提案を実現します。",
+      desc: "「なぜこの求人があなたに合うか」を具体的な理由とともに提示。納得して応募できます。",
     },
     {
-      icon: (
-        <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-        </svg>
-      ),
-      title: "早期離職ゼロ",
-      desc: "入社後の早期離職ゼロの実績。ミスマッチのない転職を実現する独自のマッチング精度。",
+      num: "10名",
+      title: "現役実務家に本音で聞ける",
+      desc: "Salesforce・HubSpotなど現役SaaS実務家が、転職のリアルを正直に話します。",
+    },
+    {
+      num: "128社",
+      title: "カルチャーまで見えている",
+      desc: "年収・社員数だけでなく、リモート率・平均残業・社員の声まで事前に確認できます。",
     },
   ];
 
@@ -118,21 +106,26 @@ function Features() {
     <section className="py-20 px-4 bg-white">
       <div className="max-w-5xl mx-auto">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-4">
-          opinio.workが選ばれる理由
+          ミスマッチをなくす3つの理由
         </h2>
         <p className="text-center text-gray-500 text-sm mb-12">
-          条件ではなく、人の顔・雰囲気で企業を選べる新しい転職体験
+          創業以来、早期離職ゼロ。その仕組みをご紹介します。
         </p>
         <div className="grid md:grid-cols-3 gap-8">
-          {features.map((f) => (
+          {reasons.map((r) => (
             <div
-              key={f.title}
+              key={r.title}
               className="bg-white rounded-xl p-8 text-center"
               style={{ border: "0.5px solid #e5e7eb" }}
             >
-              <div className="flex justify-center mb-4">{f.icon}</div>
-              <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+              <div
+                className="text-[28px] font-bold mb-3"
+                style={{ color: "#1D9E75" }}
+              >
+                {r.num}
+              </div>
+              <h3 className="text-lg font-semibold mb-2">{r.title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">{r.desc}</p>
             </div>
           ))}
         </div>

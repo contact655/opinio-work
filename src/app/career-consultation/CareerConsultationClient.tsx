@@ -259,11 +259,25 @@ export default function CareerConsultationClient({
               </h1>
 
               {/* Sub text */}
-              <p className="text-[14px] text-gray-500 leading-relaxed mb-6 max-w-lg">
+              <p className="text-[14px] text-gray-500 leading-relaxed mb-5 max-w-lg">
                 営業・CS・マーケで今まさに働くSaaS実務家が、転職のリアルを正直に話します。
-                <br />
                 勧誘も営業も一切なし。ミスマッチのない転職のために。
               </p>
+
+              {/* なぜ現役実務家なのか */}
+              <div style={{ background: "#E1F5EE", borderRadius: 10, padding: "12px 16px", marginBottom: 20, maxWidth: 460 }}>
+                <div style={{ fontSize: 10, color: "#0F6E56", fontWeight: 500, marginBottom: 8 }}>なぜ現役実務家なのか</div>
+                {[
+                  "エージェントは紹介料が発生するため中立な意見が言えない",
+                  "今まさに現場で働く人が、最もリアルな情報を持っている",
+                  "「転職しない」という選択肢も含めて正直に話せる",
+                ].map((text, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12, color: "#085041", marginBottom: 4 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#1D9E75", flexShrink: 0, marginTop: 4 }} />
+                    {text}
+                  </div>
+                ))}
+              </div>
 
               {/* Stats bar */}
               <div className="flex items-center gap-0 mb-6">

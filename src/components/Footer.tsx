@@ -70,8 +70,8 @@ export default function Footer() {
         </div>
 
         {/* Concept copy */}
-        <div style={{ textAlign: "center", padding: "8px 0 16px", borderTop: "0.5px solid rgba(255,255,255,0.1)", marginTop: 24 }}>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
+        <div style={{ textAlign: "center", paddingTop: 16, marginTop: 16, borderTop: "0.5px solid rgba(255,255,255,0.1)" }}>
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.7 }}>
             創業以来、早期離職ゼロ。
             <br />
             本当のマッチングだけを追求しています。

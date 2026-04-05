@@ -241,11 +241,27 @@ export default function HeroSection({
                 </span>
               </h1>
 
-              <p className="text-[14px] text-gray-400 leading-relaxed mb-8 max-w-md">
+              <p className="text-[14px] text-gray-400 leading-relaxed mb-6 max-w-md">
                 IT/SaaS業界のビジネス職に特化。
                 <br />
                 カルチャー・雰囲気で企業を選べる転職サービス。
               </p>
+
+              {/* 早期離職ゼロの理由 */}
+              <div style={{
+                background: "#E1F5EE",
+                borderRadius: 10,
+                padding: "12px 16px",
+                marginBottom: 24,
+                maxWidth: 400,
+              }}>
+                <div style={{ fontSize: 10, color: "#0F6E56", fontWeight: 500, marginBottom: 4 }}>
+                  早期離職ゼロの理由
+                </div>
+                <div style={{ fontSize: 12, color: "#085041", lineHeight: 1.6 }}>
+                  カルチャー・働き方・マッチ理由を事前に知れるから、入社後のギャップが生まれません。創業以来、早期離職は0件です。
+                </div>
+              </div>
 
               {/* CTA */}
               <div className="flex items-center gap-3 mb-12">
