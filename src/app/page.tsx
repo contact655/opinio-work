@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import HeroSection from "./HeroSection";
+import { getMatchReason } from "@/lib/utils/matchReason";
 
 export const dynamic = "force-dynamic";
 
@@ -32,12 +33,8 @@ async function getHeroData() {
     .order("created_at", { ascending: false })
     .limit(20);
 
-  // Sample match percentages and reasons (assigned by match score desc)
-  const matchData = [
-    { percent: 92, reason: "カルチャーフィット・スキルセットが高い一致度です" },
-    { percent: 85, reason: "キャリアパスと希望条件がマッチしています" },
-    { percent: 78, reason: "業界経験と働き方の希望が合致しています" },
-  ];
+  // マッチ度（デモ用スコア — 高い順に割り当て）
+  const matchPercents = [92, 85, 78];
 
   // Deduplicate by company_id — keep first (newest) job per company
   const seenCompanies = new Set<string>();
@@ -47,13 +44,14 @@ async function getHeroData() {
     return true;
   });
 
-  // Build match job cards (max 3, sorted by match score desc)
+  // Build match job cards (max 3, with specific match reasons per job)
   const matchJobs = dedupedJobs.slice(0, 3).map((j: any, idx: number) => {
     const company = j.ow_companies;
     const tags: string[] = [];
     if (j.job_category) tags.push(j.job_category);
     if (j.work_style) tags.push(j.work_style);
     if (j.location) tags.push(j.location);
+    const percent = matchPercents[idx] ?? 75;
 
     return {
       id: j.id,
@@ -63,8 +61,8 @@ async function getHeroData() {
       company_url: company?.url || null,
       salary_min: j.salary_min,
       salary_max: j.salary_max,
-      match_percent: matchData[idx].percent,
-      match_reason: matchData[idx].reason,
+      match_percent: percent,
+      match_reason: getMatchReason(j, percent),
       tags: tags.slice(0, 3),
     };
   });
