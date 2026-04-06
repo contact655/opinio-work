@@ -2,16 +2,27 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { createClient } from "@/lib/supabase/server";
 import CompanyExplorer from "./CompanyExplorer";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
+
+// 必要なカラムだけ取得して高速化
+const COMPANY_COLUMNS = `
+  id, name, industry, description,
+  employee_count, is_listed, stock_market, phase,
+  avg_salary, remote_rate, funding_total, founded_year, founded_at,
+  brand_color, url, logo_url, location,
+  created_at, avg_overtime, paid_leave_rate, avg_age, status,
+  mission, category,
+  ow_jobs(id, title, job_category, status, location, salary_min, salary_max, work_style, created_at),
+  ow_company_culture_tags(tag_category, tag_value)
+`;
 
 async function getCompanies() {
   const supabase = createClient();
   const { data } = await supabase
     .from("ow_companies")
-    .select(
-      `*, ow_jobs(id, title, job_category), ow_company_culture_tags(tag_category, tag_value)`
-    )
+    .select(COMPANY_COLUMNS)
     .eq("status", "active")
     .order("created_at", { ascending: false });
   return data || [];
@@ -43,21 +54,52 @@ async function getMatchScores(userId: string): Promise<Record<string, number>> {
   }
 }
 
-export default async function CompaniesPage({
-  searchParams,
-}: {
-  searchParams: { view?: string };
-}) {
-  const supabase = createClient();
-  const companies = await getCompanies();
+/* ─── Loading Skeleton ─── */
+function CompaniesLoadingSkeleton() {
+  return (
+    <>
+      <Header />
+      <main className="pt-16 min-h-screen bg-white">
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 16px" }}>
+          {/* Search bar skeleton */}
+          <div style={{ height: 44, background: "#f5f5f4", borderRadius: 10, marginBottom: 20 }} className="animate-pulse" />
+          {/* Card skeletons */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className="animate-pulse"
+                style={{
+                  height: 110,
+                  background: "#fafaf8",
+                  borderRadius: 13,
+                  border: "0.5px solid #e5e7eb",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+/* ─── Content (streamed via Suspense) ─── */
+async function CompaniesContent({ viewParam }: { viewParam?: string }) {
+  const supabase = createClient();
+
+  // 全データを並列取得
+  const companiesPromise = getCompanies();
+  const userPromise = supabase.auth.getUser();
+
+  const [companies, { data: { user } }] = await Promise.all([
+    companiesPromise,
+    userPromise,
+  ]);
 
   const validViews = ["list", "grid", "grid5", "section"];
-  const initialView = validViews.includes(searchParams.view || "")
-    ? (searchParams.view as "list" | "grid" | "grid5" | "section")
+  const initialView = validViews.includes(viewParam || "")
+    ? (viewParam as "list" | "grid" | "grid5" | "section")
     : "list";
 
   let savedIds: string[] = [];
@@ -85,5 +127,17 @@ export default async function CompaniesPage({
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function CompaniesPage({
+  searchParams,
+}: {
+  searchParams: { view?: string };
+}) {
+  return (
+    <Suspense fallback={<CompaniesLoadingSkeleton />}>
+      <CompaniesContent viewParam={searchParams.view} />
+    </Suspense>
   );
 }

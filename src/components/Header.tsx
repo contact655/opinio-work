@@ -284,19 +284,29 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* Desktop Nav */}
+          {/* Desktop Nav — checkingAuth中もデフォルトナビを表示（バッジのみ非表示） */}
           <nav className="hidden md:flex items-center gap-8">
-            {checkingAuth ? (
-              <div className="w-48 h-5" />
-            ) : (
-              getDesktopNav()
-            )}
+            {getDesktopNav()}
           </nav>
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
             {checkingAuth ? (
-              <div className="w-20 h-8" />
+              /* 認証チェック中はログイン/登録ボタンを表示 */
+              <>
+                <Link
+                  href="/auth/login"
+                  className="text-sm text-gray-600 hover:text-foreground transition-colors"
+                >
+                  ログイン
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="text-sm bg-primary text-white px-4 py-2 rounded-full hover:bg-primary-dark transition-colors"
+                >
+                  無料登録
+                </Link>
+              </>
             ) : (
               getDesktopAuth()
             )}
