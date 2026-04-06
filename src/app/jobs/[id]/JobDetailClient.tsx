@@ -427,9 +427,12 @@ export default function JobDetailClient({
                   {job.description}
                 </p>
               ) : (
-                <p className="text-[13px] text-gray-400 text-center py-6">
-                  準備中
-                </p>
+                <div className="text-center py-6">
+                  <p className="text-[13px] text-gray-400 mb-2">カジュアル面談でご確認ください。</p>
+                  <Link href="/career-consultation" className="text-[12px]" style={{ color: "#1D9E75" }}>
+                    → この企業を知る現役実務家に相談する
+                  </Link>
+                </div>
               )}
             </div>
 
