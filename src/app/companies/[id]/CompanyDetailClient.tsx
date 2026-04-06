@@ -378,7 +378,7 @@ export default function CompanyDetailClient({
             {/* 修正2: 企業情報セクションを2列グリッドに変更 */}
             <section className="bg-white rounded-xl p-6" style={{ border: "0.5px solid #e5e7eb" }}>
               <h2 className="text-[15px] font-bold text-gray-800 mb-4">企業情報</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px" }}>
                 {[
                   { label: "従業員数", value: employeeDisplay },
                   { label: "業界", value: company.industry },
@@ -391,7 +391,7 @@ export default function CompanyDetailClient({
                   { label: "公式サイト", value: company.url, isLink: true },
                 ].filter((item) => item.value).map((item) => (
                   <div key={item.label}>
-                    <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 3 }}>{item.label}</div>
+                    <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>{item.label}</div>
                     <div style={{ fontSize: 13, fontWeight: 500 }}>
                       {item.isLink ? <a href={item.value!} target="_blank" rel="noopener noreferrer" className="text-[#1D9E75] hover:underline">公式サイト →</a> : item.value}
                     </div>
@@ -447,7 +447,17 @@ export default function CompanyDetailClient({
                       )}
                       {j.work_style && <span className="text-[11px] px-2 py-0.5 rounded" style={{ background: "#E1F5EE", color: "#0F6E56" }}>{j.work_style}</span>}
                     </div>
-                    {/* 修正3: 詳細を見るボタン + 掲載日 */}
+                    {/* マッチ度バー（ログイン時のみ） */}
+                    {matchScore && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+                        <span style={{ fontSize: 10, color: "#9ca3af", flexShrink: 0 }}>マッチ度</span>
+                        <div style={{ flex: 1, height: 4, borderRadius: 2, background: "#f0f0f0" }}>
+                          <div style={{ height: "100%", borderRadius: 2, background: "#1D9E75", width: `${matchScore.overall_score}%`, transition: "width 0.5s ease" }} />
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#1D9E75", flexShrink: 0 }}>{matchScore.overall_score}%</span>
+                      </div>
+                    )}
+                    {/* 詳細を見るボタン + 掲載日 */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, marginTop: 10, borderTop: "0.5px solid #f0f0f0" }}>
                       <span style={{ fontSize: 11, color: "#9ca3af" }}>
                         {j.created_at ? new Date(j.created_at).toLocaleDateString("ja-JP") + "掲載" : ""}
