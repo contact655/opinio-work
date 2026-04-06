@@ -84,12 +84,9 @@ export async function GET(request: Request) {
       );
 
       // TODO: Resend導入後にメール送信を有効化
-      // await resend.emails.send({
-      //   from: 'opinio.work <noreply@opinio.co.jp>',
-      //   to: user.email,
-      //   subject: `今週のあなたへのおすすめ求人 ${topJobs.length}件`,
-      //   html: generateWeeklyEmail(topJobs, user),
-      // })
+      // メールテンプレートは generateWeeklyEmail(topJobs) で生成可能
+      const _html = generateWeeklyEmail(topJobs);
+      void _html; // Resend導入後に使用
 
       sent++;
     }
@@ -116,7 +113,7 @@ function getDefaultReason(job: any): string {
 }
 
 // Resend導入後に使用するメールテンプレート
-export function generateWeeklyEmail(topJobs: any[]): string {
+function generateWeeklyEmail(topJobs: any[]): string {
   const jobsHtml = topJobs
     .map((j) => {
       const company = j.ow_companies;
