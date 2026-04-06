@@ -20,6 +20,8 @@ type Mentor = {
   calendly_url: string | null;
   is_available: boolean;
   display_order: number;
+  success_count: number | null;
+  total_sessions: number | null;
 };
 
 // ─── Constants ──────────────────────────────────────
@@ -165,6 +167,22 @@ function MentorCard({ mentor }: { mentor: Mentor }) {
           </ul>
         </div>
       )}
+
+      {/* 実績 */}
+      {(mentor.total_sessions || mentor.success_count) ? (
+        <div className="flex gap-3 mb-3 px-1">
+          {mentor.total_sessions != null && mentor.total_sessions > 0 && (
+            <div style={{ fontSize: 11, color: "#6b7280" }}>
+              <strong style={{ color: "#1D9E75", fontWeight: 600 }}>{mentor.total_sessions}</strong>件の相談実績
+            </div>
+          )}
+          {mentor.success_count != null && mentor.success_count > 0 && (
+            <div style={{ fontSize: 11, color: "#6b7280" }}>
+              <strong style={{ color: "#1D9E75", fontWeight: 600 }}>{mentor.success_count}</strong>名がSaaS転職成功
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {/* Footer */}
       <div

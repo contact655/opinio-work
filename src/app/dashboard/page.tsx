@@ -142,7 +142,8 @@ export default function DashboardPage() {
                 )}
               </div>
               {hasCandidate && (
-                <div className="mt-4 pt-3 border-t border-gray-100 flex gap-4 text-sm">
+                <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap gap-4 text-sm">
+                  <Link href="/dashboard/job-tracking" className="text-primary font-medium hover:text-primary-dark transition-colors">転職活動の進捗</Link>
                   <Link href="/jobs" className="text-gray-500 hover:text-primary transition-colors">求人を見る</Link>
                   <Link href="/mypage/applications" className="text-gray-500 hover:text-primary transition-colors">応募管理</Link>
                   <Link href="/scout" className="text-gray-500 hover:text-primary transition-colors">スカウト</Link>

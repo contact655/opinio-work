@@ -112,8 +112,22 @@ function ShareButton() {
 
 // ─── Main Component ───────────────────────────────────
 
+type PostHireReport = {
+  id: string;
+  months_after: number;
+  culture_match: number | null;
+  workstyle_match: number | null;
+  salary_match: number | null;
+  overall_satisfaction: number | null;
+  good_points: string | null;
+  concerns: string | null;
+  gap_from_expectation: string | null;
+  would_recommend: boolean | null;
+  created_at: string;
+};
+
 export default function CompanyDetailClient({
-  company, jobs, members, cultureTags, reviews, matchScore, isLoggedIn,
+  company, jobs, members, cultureTags, reviews, matchScore, isLoggedIn, postHireReports,
 }: {
   company: Company;
   jobs: Job[];
@@ -123,6 +137,7 @@ export default function CompanyDetailClient({
   matchScore: MatchScore;
   isLoggedIn: boolean;
   hasProfile?: boolean;
+  postHireReports?: PostHireReport[];
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
@@ -612,6 +627,70 @@ export default function CompanyDetailClient({
               )}
             </section>
 
+            {/* 入社後レポート */}
+            {postHireReports && postHireReports.length > 0 && (
+              <section className="bg-white rounded-xl p-6" style={{ border: "0.5px solid #e5e7eb" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <h2 className="text-[15px] font-bold text-gray-800">入社後レポート</h2>
+                  <span style={{ fontSize: 11, color: "#9ca3af" }}>{postHireReports.length}件の投稿</span>
+                </div>
+
+                {/* 平均スコア */}
+                {(() => {
+                  const reports = postHireReports;
+                  const avg = (key: string) => {
+                    const vals = reports.map((r: any) => r[key]).filter((v: any) => v != null);
+                    return vals.length > 0 ? Math.round(vals.reduce((s: number, v: number) => s + v, 0) / vals.length * 10) / 10 : null;
+                  };
+                  const scores = [
+                    { label: "カルチャー", score: avg("culture_match") },
+                    { label: "働き方", score: avg("workstyle_match") },
+                    { label: "年収・評価", score: avg("salary_match") },
+                    { label: "総合満足度", score: avg("overall_satisfaction") },
+                  ].filter(s => s.score !== null);
+
+                  return scores.length > 0 ? (
+                    <div style={{ display: "grid", gridTemplateColumns: `repeat(${scores.length}, 1fr)`, gap: 12, marginBottom: 16, padding: 14, background: "#fafaf8", borderRadius: 10 }}>
+                      {scores.map(item => (
+                        <div key={item.label} style={{ textAlign: "center" }}>
+                          <div style={{ fontSize: 20, fontWeight: 600, color: "#1D9E75" }}>{item.score}</div>
+                          <div style={{ fontSize: 10, color: "#9ca3af" }}>{item.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* 個別レポート */}
+                <div className="space-y-3">
+                  {postHireReports.map((r: any) => (
+                    <div key={r.id} style={{ borderLeft: "2px solid #1D9E75", paddingLeft: 12, paddingTop: 4, paddingBottom: 4 }}>
+                      <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 4 }}>
+                        入社{r.months_after}ヶ月後{r.would_recommend != null ? ` · ${r.would_recommend ? "友人に薦める" : "薦めない"}` : ""}
+                      </div>
+                      {r.good_points && <p style={{ fontSize: 12, color: "#374151", marginBottom: 4, lineHeight: 1.6 }}>&#x2705; {r.good_points}</p>}
+                      {r.concerns && <p style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.6 }}>&#x26A0;&#xFE0F; {r.concerns}</p>}
+                    </div>
+                  ))}
+                </div>
+
+                <Link href={`/post-hire/${company.id}`} style={{ display: "block", textAlign: "center", fontSize: 12, color: "#1D9E75", textDecoration: "none", marginTop: 12 }}>
+                  + 入社後レポートを投稿する
+                </Link>
+              </section>
+            )}
+
+            {/* 入社後レポートがない場合のCTA */}
+            {(!postHireReports || postHireReports.length === 0) && (
+              <section className="bg-white rounded-xl p-6 text-center" style={{ border: "0.5px solid #e5e7eb" }}>
+                <h2 className="text-[15px] font-bold text-gray-800 mb-2">入社後レポート</h2>
+                <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 12 }}>まだ投稿がありません</p>
+                <Link href={`/post-hire/${company.id}`} style={{ fontSize: 12, color: "#1D9E75", textDecoration: "none" }}>
+                  + この企業の入社後レポートを投稿する
+                </Link>
+              </section>
+            )}
+
             {members.length > 0 && (
               <section className="bg-white rounded-xl p-6" style={{ border: "0.5px solid #e5e7eb" }}>
                 <h2 className="text-[15px] font-bold text-gray-800 mb-4">チームメンバー</h2>
@@ -719,6 +798,25 @@ export default function CompanyDetailClient({
                   </section>
                 )}
 
+                {/* 採用担当者の顔出し */}
+                {company.recruiter_name && (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", background: "#fafaf8", borderRadius: 10, marginBottom: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: company.brand_color ?? "#1D9E75", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 500, flexShrink: 0 }}>
+                      {company.recruiter_name[0]}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 2 }}>
+                        採用担当：{company.recruiter_name}{company.recruiter_role ? `（${company.recruiter_role}）` : ""}
+                      </div>
+                      {company.recruiter_message && (
+                        <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6 }}>
+                          &ldquo;{company.recruiter_message}&rdquo;
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="text-center pt-2">
                   <button onClick={handleCasualRequest} disabled={requesting}
                     className="inline-flex items-center gap-2 text-[14px] font-medium px-8 py-3.5 rounded-lg text-white transition-colors disabled:opacity-60"
@@ -730,6 +828,9 @@ export default function CompanyDetailClient({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
+                  <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 6 }}>
+                    カジュアルに30分話すだけ。選考には影響しません。
+                  </p>
                 </div>
               </div>
             )}

@@ -44,6 +44,22 @@ async function getReviews(companyId: string) {
   return data || [];
 }
 
+async function getPostHireReports(companyId: string) {
+  const supabase = createClient();
+  try {
+    const { data } = await supabase
+      .from("ow_post_hire_reports")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("is_published", true)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    return data || [];
+  } catch {
+    return [];
+  }
+}
+
 async function hasProfile(userId: string) {
   const supabase = createClient();
   const { data } = await supabase
@@ -74,17 +90,26 @@ export default async function CompanyDetailPage({
   let profileExists = false;
   let reviews: any[] = [];
 
+  let postHireReports: any[] = [];
+
   if (user) {
-    const [matchResult, profileResult, reviewsResult] = await Promise.all([
+    const [matchResult, profileResult, reviewsResult, reportsResult] = await Promise.all([
       getMatchScore(user.id, params.id).catch(() => null),
       hasProfile(user.id).catch(() => false),
       getReviews(params.id).catch(() => []),
+      getPostHireReports(params.id).catch(() => []),
     ]);
     matchScore = matchResult;
     profileExists = profileResult;
     reviews = reviewsResult;
+    postHireReports = reportsResult;
   } else {
-    reviews = await getReviews(params.id).catch(() => []);
+    const [reviewsResult, reportsResult] = await Promise.all([
+      getReviews(params.id).catch(() => []),
+      getPostHireReports(params.id).catch(() => []),
+    ]);
+    reviews = reviewsResult;
+    postHireReports = reportsResult;
   }
 
   // 修正5: 求人の重複除去（IDベース）
@@ -116,6 +141,7 @@ export default async function CompanyDetailPage({
           matchScore={matchScore}
           isLoggedIn={isLoggedIn}
           hasProfile={profileExists}
+          postHireReports={postHireReports}
         />
       </main>
       <Footer />
