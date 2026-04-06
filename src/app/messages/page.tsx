@@ -549,6 +549,7 @@ function MessagesContent() {
 
       if (!user) {
         router.push("/auth/login?redirect=/messages");
+        setLoading(false);
         return;
       }
       setUserId(user.id);
@@ -601,9 +602,9 @@ function MessagesContent() {
         }
       } catch (err) {
         console.error("Messages load error:", err);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     }
     load();
   }, [router, threadParam]);

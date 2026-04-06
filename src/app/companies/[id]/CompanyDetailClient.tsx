@@ -210,7 +210,11 @@ export default function CompanyDetailClient({
   // 修正1: 「万万」「名名」の重複を修正
   const salaryDisplay = company.avg_salary ?? "応相談";
   const employeeDisplay = company.employee_count && company.employee_count !== "非公開"
-    ? /^\d+$/.test(company.employee_count) ? `${Number(company.employee_count).toLocaleString()}名` : company.employee_count
+    ? /^\d+$/.test(company.employee_count)
+      ? `${Number(company.employee_count).toLocaleString()}名`
+      : String(company.employee_count).includes("名")
+        ? company.employee_count
+        : `${company.employee_count}名`
     : null;
 
   const heroStats = [

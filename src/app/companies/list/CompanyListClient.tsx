@@ -168,7 +168,7 @@ function CompanyRow({ company }: { company: Company }) {
             <span className="text-[11px] text-gray-400">{company.industry}</span>
           )}
           {company.employee_count && (
-            <span className="text-[11px] text-gray-400">{/^\d+$/.test(company.employee_count) ? `${company.employee_count}名` : company.employee_count}</span>
+            <span className="text-[11px] text-gray-400">{/^\d+$/.test(company.employee_count) ? `${company.employee_count}名` : String(company.employee_count).includes("名") ? company.employee_count : `${company.employee_count}名`}</span>
           )}
           {company.location && (
             <span className="text-[11px] text-gray-400">{company.location}</span>

@@ -76,14 +76,21 @@ export function checkIsFeatured(c: any): boolean {
 // ─── Auto Stats（「非公開」を絶対に表示しない） ─────
 
 export function getAutoStats(c: any): Stat[] {
-  const empJp = c.employees_jp || parseEmployeeCount(c.employee_count);
+  const empRaw = c.employee_count;
+  const empDisplay = empRaw == null || empRaw === "" || empRaw === "非公開"
+    ? null
+    : /^\d+$/.test(String(empRaw))
+      ? `${Number(empRaw).toLocaleString()}名`
+      : String(empRaw).includes("名")
+        ? String(empRaw)
+        : `${empRaw}名`;
   const foundedYear = c.founded_year || parseFounded(c.founded_at);
   const jobCount = c.ow_jobs?.length || 0;
   const stats: Stat[] = [];
 
   // 社員数（最優先）
-  if (empJp > 0) {
-    stats.push({ value: `${empJp.toLocaleString()}名`, label: "社員数" });
+  if (empDisplay) {
+    stats.push({ value: empDisplay, label: "社員数" });
   }
 
   // 上場・フェーズ
@@ -95,9 +102,9 @@ export function getAutoStats(c: any): Stat[] {
     stats.push({ value: c.phase, label: "フェーズ" });
   }
 
-  // 3つ目: 優先度順で最初に見つかった項目
-  const thirdCandidates = [
-    c.avg_salary ? { value: c.avg_salary, label: "平均年収" } : null,
+  // 残りの枠を優先度順で埋める（「非公開」は絶対に表示しない）
+  const candidates = [
+    c.avg_salary && c.avg_salary !== "非公開" ? { value: c.avg_salary, label: "平均年収" } : null,
     c.remote_rate ? { value: `${c.remote_rate}%`, label: "リモート率", highlight: true } : null,
     (c.funding_total && c.funding_total !== "非公開") ? { value: c.funding_total, label: "調達額" } : null,
     foundedYear > 0 ? { value: `${foundedYear}年`, label: "設立" } : null,
@@ -105,11 +112,9 @@ export function getAutoStats(c: any): Stat[] {
     c.industry ? { value: c.industry, label: "業種" } : null,
   ];
 
-  for (const item of thirdCandidates) {
-    if (item && stats.length < 3) {
-      stats.push(item);
-      break;
-    }
+  for (const item of candidates) {
+    if (stats.length >= 3) break;
+    if (item) stats.push(item);
   }
 
   return stats.slice(0, 3);

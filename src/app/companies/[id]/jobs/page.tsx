@@ -64,7 +64,7 @@ export default async function CompanyJobsPage({
                   {company.industry && <span>{company.industry}</span>}
                   {company.location && <span>{company.location}</span>}
                   {company.employee_count && (
-                    <span>{/^\d+$/.test(company.employee_count) ? `${company.employee_count}名` : company.employee_count}</span>
+                    <span>{/^\d+$/.test(company.employee_count) ? `${company.employee_count}名` : String(company.employee_count).includes("名") ? company.employee_count : `${company.employee_count}名`}</span>
                   )}
                 </div>
               </div>
