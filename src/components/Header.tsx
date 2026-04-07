@@ -117,7 +117,7 @@ export default function Header() {
   }
 
   // ─── 共通ナビリンク（求職者向け）─────────────────────
-  // 企業を探す → 求人を見る → キャリア相談 → メッセージ → スカウト
+  // 企業を探す → キャリア相談 → 求人を見る → メッセージ → スカウト
 
   function renderCandidateNav(mobile: boolean) {
     const cls = mobile ? mobileNavClass : navClass;
@@ -127,14 +127,14 @@ export default function Header() {
         <Link href="/companies" className={cls("/companies")} onClick={close}>
           企業を探す
         </Link>
+        <Link href="/career-consultation" className={cls("/career-consultation")} onClick={close}>
+          キャリア相談
+        </Link>
         <Link href="/jobs" className={cls("/jobs")} onClick={close}>
           求人を見る
           {jobCount !== null && jobCount > 0 && (
             <NavBadge color="green">{jobCount}</NavBadge>
           )}
-        </Link>
-        <Link href="/career-consultation" className={cls("/career-consultation")} onClick={close}>
-          キャリア相談
         </Link>
         <Link href="/messages" className={cls("/messages")} onClick={close}>
           メッセージ

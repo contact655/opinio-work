@@ -263,32 +263,42 @@ export default function HeroSection({
                 </div>
               </div>
 
-              {/* CTA */}
-              <div className="flex items-center gap-3 mb-12">
+              {/* CTA — 対話起点 */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24, maxWidth: 400 }}>
                 <Link
-                  href="/auth/signup"
-                  className="text-[14px] font-medium px-7 py-3.5 rounded-lg text-white transition-colors"
-                  style={{ background: "#1D9E75" }}
+                  href="/career-consultation"
+                  className="text-[14px] font-medium text-white transition-colors text-center"
+                  style={{ display: "block", padding: "14px 20px", background: "#1D9E75", borderRadius: 10 }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "#0F6E56")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "#1D9E75")}
                 >
-                  無料で始める
+                  現役SaaS実務家に無料で相談する →
                 </Link>
                 <Link
                   href="/companies"
-                  className="text-[14px] font-medium px-7 py-3.5 rounded-lg transition-colors"
-                  style={{ border: "0.5px solid #d1d5db", color: "#374151" }}
+                  className="text-[13px] transition-colors text-center"
+                  style={{
+                    display: "block",
+                    padding: "13px 20px",
+                    border: "0.5px solid #d1d5db",
+                    borderRadius: 10,
+                    color: "#6b7280",
+                    background: "transparent",
+                  }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = "#1D9E75";
                     e.currentTarget.style.color = "#1D9E75";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.borderColor = "#d1d5db";
-                    e.currentTarget.style.color = "#374151";
+                    e.currentTarget.style.color = "#6b7280";
                   }}
                 >
-                  企業を見る
+                  まず企業を見てみる
                 </Link>
+              </div>
+              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 24 }}>
+                完全無料 · 営業なし · 30分で気づきが変わる
               </div>
 
               {/* ── Stats Bar ── */}
