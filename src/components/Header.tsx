@@ -189,6 +189,12 @@ export default function Header() {
       return (
         <>
           <Link
+            href="/for-companies"
+            className="text-xs text-gray-400 hover:text-primary transition-colors"
+          >
+            採用担当者の方
+          </Link>
+          <Link
             href="/auth/login"
             className="text-sm text-gray-600 hover:text-foreground transition-colors"
           >

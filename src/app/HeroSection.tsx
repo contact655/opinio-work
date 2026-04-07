@@ -296,6 +296,17 @@ export default function HeroSection({
                 >
                   まず企業を見てみる
                 </Link>
+                <div style={{ textAlign: "center", paddingTop: 4 }}>
+                  <Link
+                    href="/for-companies"
+                    className="text-[12px] transition-colors"
+                    style={{ color: "#9ca3af", textDecoration: "none" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#1D9E75")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "#9ca3af")}
+                  >
+                    採用担当者の方はこちら →
+                  </Link>
+                </div>
               </div>
               <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 24 }}>
                 完全無料 · 営業なし · 30分で気づきが変わる
