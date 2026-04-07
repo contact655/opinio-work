@@ -9,11 +9,11 @@ export const dynamic = "force-dynamic";
 // 必要なカラムだけ取得して高速化
 const COMPANY_COLUMNS = `
   id, name, industry, description,
-  employee_count, is_listed, stock_market, phase,
+  employee_count, phase,
   avg_salary, remote_rate, funding_total, founded_year, founded_at,
   brand_color, url, logo_url, location,
   created_at, avg_overtime, paid_leave_rate, avg_age, status,
-  mission, category,
+  mission,
   ow_jobs(id, title, job_category, status, location, salary_min, salary_max, work_style, created_at),
   ow_company_culture_tags(tag_category, tag_value)
 `;
