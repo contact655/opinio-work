@@ -47,7 +47,7 @@ function CompanyLogo({ company, size = 64 }: { company: Company; size?: number }
   const [imgError, setImgError] = useState(false);
   let clearbitUrl: string | null = null;
   if (company.url) {
-    try { clearbitUrl = `https://logo.clearbit.com/${new URL(company.url).hostname}`; } catch {}
+    try { clearbitUrl = `https://www.google.com/s2/favicons?domain=${new URL(company.url).hostname}&sz=128`; } catch {}
   }
   const logoUrl = company.logo_url || clearbitUrl;
   const color = getLogoColor(company.name);

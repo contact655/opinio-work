@@ -262,7 +262,7 @@ export default function DashboardPage() {
                 {favorites.map((f) => {
                   let logoUrl = f.company?.logo_url || null;
                   if (!logoUrl && f.company?.url) {
-                    try { logoUrl = `https://logo.clearbit.com/${new URL(f.company.url).hostname}`; } catch {}
+                    try { logoUrl = `https://www.google.com/s2/favicons?domain=${new URL(f.company.url).hostname}&sz=128`; } catch {}
                   }
                   return (
                     <Link

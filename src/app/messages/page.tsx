@@ -86,7 +86,7 @@ function getLogoUrl(company: any): string | null {
   if (company.logo_url) return company.logo_url;
   if (company.url) {
     try {
-      return `https://logo.clearbit.com/${new URL(company.url).hostname}`;
+      return `https://www.google.com/s2/favicons?domain=${new URL(company.url).hostname}&sz=128`;
     } catch {}
   }
   return null;

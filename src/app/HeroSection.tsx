@@ -50,7 +50,7 @@ function SmallLogo({
   let clearbit: string | null = null;
   if (companyUrl) {
     try {
-      clearbit = `https://logo.clearbit.com/${new URL(companyUrl).hostname}`;
+      clearbit = `https://www.google.com/s2/favicons?domain=${new URL(companyUrl).hostname}&sz=128`;
     } catch {}
   }
   const src = logoUrl || clearbit;
@@ -159,7 +159,7 @@ function TickerLogo({ company }: { company: CompanyLogo }) {
   let clearbit: string | null = null;
   if (company.url) {
     try {
-      clearbit = `https://logo.clearbit.com/${new URL(company.url).hostname}`;
+      clearbit = `https://www.google.com/s2/favicons?domain=${new URL(company.url).hostname}&sz=128`;
     } catch {}
   }
   const src = company.logo_url || clearbit;

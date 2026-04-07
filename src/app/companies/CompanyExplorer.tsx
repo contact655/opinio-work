@@ -60,7 +60,7 @@ function CompanyLogo({
   let clearbitUrl: string | null = null;
   if (company.url) {
     try {
-      clearbitUrl = `https://logo.clearbit.com/${new URL(company.url).hostname}`;
+      clearbitUrl = `https://www.google.com/s2/favicons?domain=${new URL(company.url).hostname}&sz=128`;
     } catch {}
   }
   const logoUrl = company.logo_url || clearbitUrl;
