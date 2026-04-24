@@ -3,8 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/common";
 import { Footer } from "@/components/common";
-import { MOCK_COMPANIES, formatUpdated, type Company } from "../mockCompanies";
-import { getCompanyDetail, type CompanyDetail, type MemberRow, type InterviewCard, type ArticleItem } from "./mockDetailData";
+import { formatUpdated, type Company } from "../mockCompanies";
+import { type CompanyDetail, type MemberRow, type InterviewCard, type ArticleItem } from "./mockDetailData";
+import { getCompanyById } from "@/lib/supabase/queries";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -55,8 +56,9 @@ export async function generateMetadata({
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  const company = MOCK_COMPANIES.find((c) => c.id === params.id);
-  if (!company) return { title: "企業が見つかりません" };
+  const result = await getCompanyById(params.id);
+  if (!result) return { title: "企業が見つかりません" };
+  const { company } = result;
   return {
     title: `${company.name} — 企業情報 | Opinio`,
     description: company.tagline,
@@ -819,10 +821,8 @@ function ArticlesSection({ articles }: { articles: ArticleItem[] }) {
   );
 }
 
-function RelatedSection({ related }: { related: string[] }) {
-  const relatedCompanies = related
-    .map((id) => MOCK_COMPANIES.find((c) => c.id === id))
-    .filter(Boolean) as Company[];
+function RelatedSection({ related: _ }: { related: string[] }) {
+  const relatedCompanies: Company[] = [];
 
   if (relatedCompanies.length === 0) return null;
 
@@ -984,15 +984,15 @@ function Sidebar({ company, detail }: { company: Company; detail: CompanyDetail 
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function CompanyDetailPage({
+export default async function CompanyDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const company = MOCK_COMPANIES.find((c) => c.id === params.id);
-  if (!company) return notFound();
+  const result = await getCompanyById(params.id);
+  if (!result) return notFound();
 
-  const detail = getCompanyDetail(company);
+  const { company, detail } = result;
   const currentCount = detail.current.reduce((s, r) => s + r.count, 0);
   const alumniCount = detail.alumni.reduce((s, r) => s + r.count, 0);
 

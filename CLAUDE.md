@@ -18,12 +18,12 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🚀 明日のセッションで最初にやること
+## 🚀 次のセッションで最初にやること
 
 ```
-1. この CLAUDE.md を読む（今ここ）
-2. Phase 5 Stage 1 実装計画を確認（下記「Phase 5 実装計画」セクション）
-3. Claude Code に「Stage 1 の実装を開始してください」と送る
+Phase 5 Stage 1 完了済み（2026-04-24）
+次は Phase 5 Stage 2: 認証フロー（/auth サインアップ → ow_users 自動作成）
+または Phase 3: 企業側プロダクト（/biz/*）
 ```
 
 ---
@@ -178,7 +178,29 @@ experiences: [
 
 ## ════════════════════════════════════════
 
-## Phase 5: Supabase 接続（次フェーズ）
+## Phase 5: Supabase 接続
+
+### ✅ Stage 1 完了（2026-04-24）
+
+**対象ページ**: `/companies`, `/companies/[id]`, `/jobs`, `/jobs/[id]`
+
+**新規ファイル**: `src/lib/supabase/queries.ts`
+- `getCompanies()` — ow_companies 一覧
+- `getCompanyById(id)` — ow_companies 詳細 + ow_jobs（そのカンパニーの求人）
+- `getJobs()` — ow_jobs 一覧 + ow_companies（会社情報）
+- `getJobById(id)` — ow_jobs 詳細 + ow_companies（会社情報）
+
+**変更ファイル**:
+- `companies/page.tsx` — `MOCK_COMPANIES` → `getCompanies()`（async Server Component）
+- `companies/[id]/page.tsx` — `getCompanyDetail` → `getCompanyById()`
+- `jobs/page.tsx` — `MOCK_JOBS` → `getJobs()`、`JobCard` に `companies` prop 追加
+- `jobs/[id]/page.tsx` — `getJobById`(mock) → `fetchJobById`(Supabase)、`relatedJobs = []`
+
+**継続 mock**: `/mentors`, `/articles`, Phase 4 ページ（profile/edit, mypage, casual-meeting, reserve）は mock のまま
+
+---
+
+## Phase 5 Stage 2 以降（未実装）
 
 ### Supabase 現状確認（2026-04-24 確認済み）
 
@@ -256,7 +278,7 @@ is_available, success_count, total_sessions, display_order
 
 | 段階 | 内容 | 認証要否 | 状態 |
 |------|------|---------|------|
-| **Stage 1** | 読み取り専用ページ（/companies, /jobs, /mentors） | 不要 | **次回実施** |
+| **Stage 1** | 読み取り専用ページ（/companies, /jobs） | 不要 | **✅ 完了（2026-04-24）** |
 | Stage 2 | 認証フロー（/auth サインアップ → ow_users 自動作成） | 必要 | 未着手 |
 | Stage 3 | プロフィール編集（/profile/edit 認証ガード + 自分のデータ） | 必要 | 未着手 |
 | Stage 4 | マイページ（/mypage 認証ガード + 関連データ集約） | 必要 | 未着手 |

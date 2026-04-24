@@ -3,14 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/common";
 import { Footer } from "@/components/common";
-import { MOCK_COMPANIES } from "../../companies/mockCompanies";
-import {
-  getJobById,
-  getJobsByCompany,
-  type Job,
-  type PositionMember,
-} from "../mockJobData";
-import { MOCK_ARTICLES } from "../../articles/mockArticleData";
+import { type Company } from "../../companies/mockCompanies";
+import { type Job, type PositionMember } from "../mockJobData";
+import { getJobById as fetchJobById } from "@/lib/supabase/queries";
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
@@ -19,11 +14,11 @@ export async function generateMetadata({
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  const job = getJobById(params.id);
-  if (!job) return { title: "求人 — Opinio" };
-  const company = MOCK_COMPANIES.find((c) => c.id === job.company_id);
+  const result = await fetchJobById(params.id);
+  if (!result) return { title: "求人 — Opinio" };
+  const { job, company } = result;
   return {
-    title: `${job.role} — ${company?.name ?? ""} — Opinio`,
+    title: `${job.role} — ${company.name} — Opinio`,
     description: job.highlight,
   };
 }
@@ -76,16 +71,14 @@ function StatusBadge({ status, label }: { status: PositionMember["status"]; labe
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function JobDetailPage({ params }: { params: { id: string } }) {
-  const job = getJobById(params.id);
-  if (!job) notFound();
+export default async function JobDetailPage({ params }: { params: { id: string } }) {
+  const result = await fetchJobById(params.id);
+  if (!result) notFound();
 
-  const company = MOCK_COMPANIES.find((c) => c.id === job.company_id);
-  if (!company) notFound();
+  const { job, company } = result;
 
   const initial = company.name.charAt(0).toUpperCase();
-  const relatedJobs = getJobsByCompany(job.company_id).filter((j) => j.id !== job.id).slice(0, 4);
-  const relatedArticle = MOCK_ARTICLES.find((a) => a.company_id === job.company_id);
+  const relatedJobs: Job[] = [];
 
   return (
     <>
@@ -474,46 +467,7 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
                 }>
                   関連する取材レポート
                 </SecTitle>
-                {relatedArticle ? (
-                  <Link href={`/articles/${relatedArticle.slug}`} style={{ textDecoration: "none" }}>
-                    <div style={{
-                      display: "flex", gap: 14, padding: "14px 16px",
-                      border: "1px solid var(--line)", borderRadius: 10, background: "var(--bg-tint)",
-                      cursor: "pointer", transition: "border-color 0.2s",
-                    }}
-                      className="related-article-card"
-                    >
-                      <div style={{
-                        width: 80, height: 60, borderRadius: 8, flexShrink: 0,
-                        background: relatedArticle.eyecatch_gradient,
-                        display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
-                        fontSize: 26, opacity: 0.8,
-                      }}>
-                        📰
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          display: "flex", alignItems: "center", gap: 6, fontSize: 10,
-                          color: "var(--ink-mute)", marginBottom: 5, fontWeight: 600,
-                        }}>
-                          <span style={{ padding: "2px 7px", borderRadius: 4, background: "var(--success-soft)", color: "var(--success)" }}>
-                            編集部取材
-                          </span>
-                          {company.name}
-                        </div>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5, marginBottom: 4 }}>
-                          {relatedArticle.title}
-                        </div>
-                        <div style={{
-                          fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6,
-                          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-                        } as React.CSSProperties}>
-                          {relatedArticle.subtitle}
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
+                {(
                   <div style={{
                     display: "flex", gap: 14, padding: "14px 16px",
                     border: "1px solid var(--line)", borderRadius: 10, background: "var(--bg-tint)",

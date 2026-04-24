@@ -5,11 +5,11 @@ import { Header } from "@/components/common";
 import { Footer } from "@/components/common";
 import CompanyFilterBar from "./CompanyFilterBar";
 import {
-  MOCK_COMPANIES,
   filterCompanies,
   formatUpdated,
   type Company,
 } from "./mockCompanies";
+import { getCompanies } from "@/lib/supabase/queries";
 
 export const metadata: Metadata = {
   title: "IT/SaaS企業を知る — Opinio",
@@ -227,11 +227,13 @@ function MentorRow({
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
-export default function CompaniesPage({
+export default async function CompaniesPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
+  const allCompanies = await getCompanies();
+
   const params = {
     industry:  typeof searchParams.industry  === "string" ? searchParams.industry  : undefined,
     phase:     typeof searchParams.phase     === "string" ? searchParams.phase     : undefined,
@@ -240,7 +242,7 @@ export default function CompaniesPage({
     sort:      typeof searchParams.sort      === "string" ? searchParams.sort      : undefined,
   };
 
-  const companies = filterCompanies(MOCK_COMPANIES, params);
+  const companies = filterCompanies(allCompanies, params);
   const total = companies.length;
 
   return (
@@ -262,7 +264,7 @@ export default function CompaniesPage({
               fontFamily: "Inter, sans-serif", fontSize: 18, fontWeight: 700,
               color: "var(--royal)", display: "flex", alignItems: "center", gap: 4,
             }}>
-              {MOCK_COMPANIES.length}社
+              {allCompanies.length}社
               <span style={{ fontSize: 12, fontWeight: 400, color: "var(--ink-mute)" }}>掲載中</span>
             </span>
           </div>

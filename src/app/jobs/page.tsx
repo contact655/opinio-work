@@ -3,13 +3,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Header } from "@/components/common";
 import { Footer } from "@/components/common";
-import {
-  MOCK_JOBS,
-  filterJobs,
-  type Job,
-} from "./mockJobData";
-import { MOCK_COMPANIES } from "../companies/mockCompanies";
+import { type Job } from "./mockJobData";
+import { type Company } from "../companies/mockCompanies";
 import JobFilterBar from "./JobFilterBar";
+import { getJobs } from "@/lib/supabase/queries";
 
 export const metadata: Metadata = {
   title: "求人を見つける — Opinio",
@@ -31,8 +28,8 @@ function freshLabel(days: number): string {
 
 // ─── Job Card ─────────────────────────────────────────────────────────────────
 
-function JobCard({ job }: { job: Job }) {
-  const company = MOCK_COMPANIES.find((c) => c.id === job.company_id);
+function JobCard({ job, companies }: { job: Job; companies: Company[] }) {
+  const company = companies.find((c) => c.id === job.company_id);
   if (!company) return null;
 
   const initial = company.name.charAt(0).toUpperCase();
@@ -206,7 +203,9 @@ function JobCard({ job }: { job: Job }) {
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
-export default function JobsPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function JobsPage({ searchParams }: { searchParams: SearchParams }) {
+  const { jobs: allJobs, companies } = await getJobs();
+
   const params = {
     dept:       typeof searchParams.dept       === "string" ? searchParams.dept       : undefined,
     salary:     typeof searchParams.salary     === "string" ? searchParams.salary     : undefined,
@@ -216,8 +215,17 @@ export default function JobsPage({ searchParams }: { searchParams: SearchParams 
     sort:       typeof searchParams.sort       === "string" ? searchParams.sort       : undefined,
   };
 
-  const jobs = filterJobs(MOCK_JOBS, params);
-  const newThisWeek = MOCK_JOBS.filter((j) => j.updated_days_ago <= 7).length;
+  // Filter jobs (industry uses companies from Supabase, not MOCK_COMPANIES)
+  let jobs = [...allJobs];
+  if (params.dept)       jobs = jobs.filter((j) => j.dept === params.dept);
+  if (params.salary)     { const min = parseInt(params.salary, 10); if (!isNaN(min)) jobs = jobs.filter((j) => j.salary_max >= min); }
+  if (params.work_style) jobs = jobs.filter((j) => j.work_style === params.work_style || j.tags.includes(params.work_style!));
+  if (params.location)   jobs = jobs.filter((j) => j.location.includes(params.location!));
+  if (params.industry)   { const ids = companies.filter((c) => c.industry === params.industry).map((c) => c.id); jobs = jobs.filter((j) => ids.includes(j.company_id)); }
+  if (params.sort === "salary") jobs.sort((a, b) => b.salary_max - a.salary_max);
+  else jobs.sort((a, b) => a.updated_days_ago - b.updated_days_ago);
+
+  const newThisWeek = allJobs.filter((j) => j.updated_days_ago <= 7).length;
 
   return (
     <>
@@ -236,7 +244,7 @@ export default function JobsPage({ searchParams }: { searchParams: SearchParams 
                 求人を、見つける。
               </h1>
               <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "var(--ink-mute)" }}>
-                <strong style={{ color: "var(--royal)", fontSize: 18, fontWeight: 700 }}>{MOCK_JOBS.length.toLocaleString()}</strong>件
+                <strong style={{ color: "var(--royal)", fontSize: 18, fontWeight: 700 }}>{allJobs.length.toLocaleString()}</strong>件
               </span>
             </div>
 
@@ -278,7 +286,7 @@ export default function JobsPage({ searchParams }: { searchParams: SearchParams 
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {jobs.map((job) => (
-                <JobCard key={job.id} job={job} />
+                <JobCard key={job.id} job={job} companies={companies} />
               ))}
             </div>
           )}
