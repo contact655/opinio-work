@@ -18,6 +18,16 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🚀 明日のセッションで最初にやること
+
+```
+1. この CLAUDE.md を読む（今ここ）
+2. Phase 5 Stage 1 実装計画を確認（下記「Phase 5 実装計画」セクション）
+3. Claude Code に「Stage 1 の実装を開始してください」と送る
+```
+
+---
+
 ## 実装済みページ全一覧（2026-04-24 時点）
 
 ### Phase 2 — 求職者側 公開ページ（閲覧）
@@ -44,16 +54,17 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## Phase 4 実装サマリー（2026-04-24）
+## Phase 4 実装サマリー（2026-04-24 完成）
 
 ### 実装規模
+
 | フェーズ | ページ | 行数 |
 |---------|--------|------|
 | Phase 4a | `/profile/edit` | +11,368行 |
 | Phase 4b | `/mypage` | +12,858行 |
 | Phase 4c | `/companies/[id]/casual-meeting` | +13,634行 |
 | Phase 4d | `/mentors/[id]/reserve` | +14,409行 |
-| **今日の合計** | | **+52,269行** |
+| **Phase 4 合計** | | **+52,269行** |
 | **プロジェクト累計** | | **約88,000行超** |
 
 ### Phase 4a: `/profile/edit`
@@ -63,41 +74,56 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 - 職種マスター: 2階層ドロップダウン（7カテゴリ × サブロール）
 - キャリア CRUD: 追加・編集・削除・現職フラグ
 - プロフィール完成度プログレスバー（6項目で計算）
-- 関連ファイル:
-  - `src/app/profile/edit/page.tsx` — メインページ
-  - `src/app/profile/edit/CareerModal.tsx` — キャリア追加・編集モーダル
-  - `src/app/profile/edit/mockProfileData.ts` — ProfileData 型 + MOCK_PROFILE
-  - `src/app/profile/edit/roleData.ts` — 職種マスター（ROLE_CATEGORIES）
 
 ### Phase 4b: `/mypage`
 - 6ビュー切替（ダッシュボード / カジュアル面談 / メンター相談 / ブックマーク / 受けた相談 / スケジュール）
 - `isMentor` トグル → サイドバーに「メンター管理」セクションを動的表示
 - ステータスピル 6状態: pending(amber) / company_contacted(royal) / scheduled(purple) / completed(gray) / declined(error) / approved(success)
-- 承認アクション → バッジカウントリアクティブ更新
-- Mock ロール切替バー（通常ユーザー / メンター登録済み）
-- 関連ファイル:
-  - `src/app/mypage/page.tsx` — メインページ（全ビュー含む）
-  - `src/app/mypage/mockMypageData.ts` — 全型定義 + モックデータ
 
 ### Phase 4c: `/companies/[id]/casual-meeting`
 - **在籍企業制約**（Hisato 思想）: `MOCK_PROFILE.experiences[isCurrent=true]` と企業 ID を照合し、在籍中なら申込不可表示
 - 求人 ID 引き継ぎ: `?job_id=xxx` で宛先カードに求人情報表示、`× 紐づけを外す` で解除
-- プロフィール共有チェックボックス（デフォルト ON）
-- 転職意向4択ラジオ
-- テキストエリア2本（きっかけ・質問、ともに必須）
-- **warm orange グラデーション** CTA（カジュアル感を色で表現）
-- 3ステップ成功モーダル
-- エントリーポイント: `/companies/[id]` サイドバー + `/jobs/[id]` サイドバー
+- **warm orange グラデーション** CTA + 3ステップ成功モーダル
 
 ### Phase 4d: `/mentors/[id]/reserve`
 - `mentor.themes` から相談テーマを動的生成（メンターごとに異なる）
 - 5ステップフロー可視化（申請→編集部確認→メンター承認→日程調整→対話）
-- テーマ複数選択（`Set<string>`）+ 必須バリデーション
-- 相談内容3テキストエリア（状況・質問 必須、背景 任意）
-- 希望曜日7択 + 時間帯6択（`Set<string>`、任意）
-- **royal グラデーション** CTA（深い対話を色で表現）+ 無料バッジ（MVP期間配慮）
-- 5ステップ成功モーダル（編集部精査フロー明示）
-- エントリーポイント: `/mentors` 一覧の「話を聞く（30分）」ボタン（既実装済み）
+- 希望曜日7択 + 時間帯6択（`Set<string>`）
+- **royal グラデーション** CTA + 無料バッジ（MVP期間配慮）+ 5ステップ成功モーダル
+
+---
+
+## デザインシステム
+
+### CSS カスタムプロパティ（globals.css）
+```css
+--royal: #002366; --royal-50: #EFF3FC; --royal-100: #DCE5F7;
+--accent: #3B5FD9; --success: #059669; --success-soft: #ECFDF5;
+--warm: #F59E0B; --warm-soft: #FEF3C7;
+--purple: #7C3AED; --purple-soft: #F3E8FF;
+--error: #DC2626; --error-soft: #FEE2E2;
+--ink: #0F172A; --ink-soft: #475569; --ink-mute: #94A3B8;
+--line: #E2E8F0; --line-soft: #F1F5F9; --bg-tint: #F8FAFC;
+```
+
+### フォント・CTA
+- フォント: `"Noto Serif JP"` 見出し / `"Noto Sans JP"` 本文 / `Inter` 数字・ラベル
+- ステータスピル: pending(amber) / royal(pending_review) / purple(scheduled) / gray(completed) / error(declined) / success(approved)
+- CTA 色: warm orange（カジュアル面談）/ royal blue（メンター予約・企業詳細）
+
+---
+
+## Hisato 思想（実装済み）
+
+1. **キャリアを考え続ける人**: 「転職活動中」フラグなし。情報収集中でも使える
+2. **Users 統合設計**: `is_mentor` フラグ1つで求職者↔メンター動的発動（マイページで実証済み）
+3. **スカウトしない、採用を**: 企業→求職者へのスカウト機能なし。対話から始まる設計
+4. **運営の丁寧な介在**: メンター登録は個別声がけ、相談は編集部が精査してから転送
+5. **モニター期配慮**: 料金表示なし、無料バッジ（MVP期間中は無料）のみ
+6. **在籍企業制約**: 現在在籍中の企業へのカジュアル面談申込を UI でブロック
+7. **数値データ撤廃**: マッチ度%・星評価なし。求職者が自分で判断する
+8. **position_members**: 各求人に「この職種を経験した人」を表示。snapshot思想
+9. **取材時スナップショット**: 記事の `role_at_interview` + `current_status` で時制を両方表示
 
 ---
 
@@ -122,35 +148,20 @@ experiences: [
     startedAt: "2024-04",
     isCurrent: true,              // ← /companies/layerx/casual-meeting が blocked
   },
-  { displayCompanyName: "株式会社タイミー", isCurrent: false },  // 前職
-  { displayCompanyName: "株式会社リクルート", isCurrent: false }, // 最初
+  { displayCompanyName: "株式会社タイミー", isCurrent: false },
+  { displayCompanyName: "株式会社リクルート", isCurrent: false },
 ]
 ```
 
-```typescript
-// src/app/mypage/mockMypageData.ts
-MOCK_USER.currentRole = "株式会社LayerX · プロダクトマネージャー（Bakuraku事業）"
-```
-
 > **デモポイント**: `/companies/layerx/casual-meeting` → 「現在ご在籍中の企業です」表示
-> `/companies/smarthr/casual-meeting` → 通常フォーム
 
 ---
 
-## 主要データモデル
+## 主要データモデル（mock）
 
 ### `src/app/companies/mockCompanies.ts`
-```typescript
-type Company = {
-  id: string; name: string; tagline: string; mission: string;
-  industry: string; phase: string; employees: string;
-  founded: string; hq: string; gradient: string;
-  logo_url?: string; website?: string;
-  highlights: string[]; tech_stack: string[];
-}
-```
 - 12社収録: layerx / smarthr / hubspot / salesforce / ubie / freee / sansan / moneyforward / datadog / kubell / notion / pksha
-- `MOCK_COMPANIES` export
+- `MOCK_COMPANIES` export（`Company` 型）
 
 ### `src/app/jobs/mockJobData.ts`
 - 15求人収録（12社）、`getJobById()`, `filterJobs()`, `getJobsByCompany()` export
@@ -158,111 +169,203 @@ type Company = {
 
 ### `src/app/mentors/mockMentorData.ts`
 - 17名収録、`MOCK_MENTORS`, `filterMentors()` export
-- `id` は kebab-case（例: `watanabe-miho`, `nakamura-yuki`）→ `/mentors/[id]/reserve` の URL
+- `id` は kebab-case（例: `watanabe-miho`）→ `/mentors/[id]/reserve` の URL
 
 ### `src/app/articles/mockArticleData.ts`
 - 10記事収録: employee×2 / mentor×4 / ceo×2 / report×2
-- `getArticleBySlug()`, `filterArticles()` export
-
-### `src/app/profile/edit/mockProfileData.ts`
-- `ProfileData` 型、`MOCK_PROFILE`, `LOCATIONS`, `AGE_RANGES` export
-- **田中翔太さんの現職は LayerX**（`companyType: "master"`, `companyId: "layerx"`）
-
-### `src/app/mypage/mockMypageData.ts`
-- `CasualMeeting`, `MentorReservation`, `Bookmark`, `ReceivedRequest` 型
-- `PILL_STYLES`, `STATUS_LABEL`, `STATUS_VARIANT` — ステータスピルシステム
-- `MOCK_CASUAL_MEETINGS`(4件), `MOCK_MENTOR_RESERVATIONS`(3件)
-- `MOCK_BOOKMARKS_ARTICLES`(5), `MOCK_BOOKMARKS_COMPANIES`(4), `MOCK_BOOKMARKS_MENTORS`(3)
-- `MOCK_RECEIVED_REQUESTS`(4件: pending×2 + completed×2)
 
 ---
 
-## ファイル構造（Phase 4 追加分）
+## ════════════════════════════════════════
 
+## Phase 5: Supabase 接続（次フェーズ）
+
+### Supabase 現状確認（2026-04-24 確認済み）
+
+#### 環境・パッケージ（すべて準備完了）
+
+| 項目 | 状態 |
+|------|------|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ 設定済み（.env.local） |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ 設定済み |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ 設定済み |
+| `@supabase/supabase-js` | ✅ v2.101.1 |
+| `@supabase/ssr` | ✅ v0.10.0 |
+| `src/lib/supabase/client.ts` | ✅ createBrowserClient 実装済み |
+| `src/lib/supabase/server.ts` | ✅ createServerClient + cookies 実装済み |
+| `src/lib/supabase/admin.ts` | ✅ service role client 実装済み |
+| `src/lib/supabase/middleware.ts` | ✅ 実装済み |
+
+#### テーブル確認結果（2026-04-24 時点）
+
+| テーブル名 | 行数 | ID形式 | 状態 |
+|-----------|------|--------|------|
+| `ow_companies` | 13行 | UUID | ✅ データあり（全件 `is_published: false`） |
+| `ow_jobs` | 25行 | UUID | ✅ データあり（全件 `status: "active"`） |
+| `mentors` | 10行 | UUID | ✅ データあり（`ow_mentors` ではなく `mentors`） |
+| `ow_users` | 23行 | UUID | ✅ データあり（auth.users連携済み） |
+| `ow_roles` | 29行 | UUID | ✅ データあり |
+| `ow_articles` | ❌ なし | — | 記事テーブルは存在しない |
+
+#### mock vs Supabase 重要差分
+
+| 差分 | mock データ | Supabase | 対応方針 |
+|------|------------|----------|---------|
+| **Company ID形式** | スラッグ（`"layerx"`） | UUID | URL を UUID ベースに変更 |
+| **テーブル名** | ow_mentors 想定 | `mentors`（ow_ なし） | クエリで `mentors` を使う |
+| **company.gradient** | `gradient` フィールド | `logo_gradient` | マッピング層で変換 |
+| **company.is_published** | N/A | 全件 false | dev環境ではフィルター無効化 |
+| **job_count** | 数値あり | 別途 COUNT 必要 | ow_jobs を JOIN or 0固定 |
+| **mentor.initial** | `initial` フィールド | `avatar_initial` | マッピング層で変換 |
+| **mentor.gradient** | `gradient` フィールド | `avatar_color` | マッピング層で変換 |
+| **mentor.themes** | `themes: string[]` | `question_tags: string[]` | マッピング層で変換 |
+| **career_chain** | 構造化配列 | テキスト（`current_career`, `previous_career`） | 簡略化 or パース |
+| **position_members** | 構造化配列 | Supabase にない | 空配列でフォールバック |
+| **記事** | mock 10件あり | テーブルなし | `/articles` は mock 継続 |
+
+#### ow_companies 主要カラム（95カラム中、Stage 1 で使うもの）
 ```
-src/app/
-├── profile/
-│   └── edit/
-│       ├── page.tsx              # プロフィール編集（"use client"）
-│       ├── CareerModal.tsx       # キャリア追加・編集モーダル
-│       ├── mockProfileData.ts    # ProfileData 型 + MOCK_PROFILE
-│       └── roleData.ts           # 職種マスター（7カテゴリ）
-├── mypage/
-│   ├── page.tsx                  # マイページ（6ビュー, "use client"）
-│   └── mockMypageData.ts         # 全型 + モックデータ
-├── companies/
-│   └── [id]/
-│       └── casual-meeting/
-│           └── page.tsx          # カジュアル面談申込（"use client" + Suspense）
-└── mentors/
-    └── [id]/
-        └── reserve/
-            └── page.tsx          # メンター相談予約（"use client"）
+id, name, tagline, mission, industry, phase,
+employee_count, logo_gradient, logo_letter, logo_url,
+location, url, remote_work_status, flex_time, side_job_ok,
+accepting_casual_meetings, is_published, updated_at,
+fit_positives, fit_negatives, why_join, description,
+founded_year, avg_salary, avg_age, female_ratio
+```
+
+#### ow_jobs 主要カラム（50カラム中、Stage 1 で使うもの）
+```
+id, company_id, title, job_category, employment_type,
+work_style, location, salary_min, salary_max,
+description, requirements, preferred_skills, catch_copy,
+one_liner, selection_process, status, published_at, updated_at,
+remote_work_status
+```
+
+#### mentors 主要カラム（21カラム）
+```
+id, name, avatar_initial, avatar_color, bio, catchphrase,
+current_company, current_role, current_career, previous_career,
+roles, question_tags, worries, concerns,
+is_available, success_count, total_sessions, display_order
 ```
 
 ---
 
-## Hisato 思想（実装済み）
+### Phase 5 段階的実装ロードマップ
 
-1. **キャリアを考え続ける人**: 「転職活動中」フラグなし。情報収集中でも使える
-2. **Users 統合設計**: `is_mentor` フラグ1つで求職者↔メンター動的発動（マイページで実証済み）
-3. **スカウトしない、採用を**: 企業→求職者へのスカウト機能なし。対話から始まる設計
-4. **運営の丁寧な介在**: メンター登録は個別声がけ、相談は編集部が精査してから転送
-5. **モニター期配慮**: 料金表示なし、無料バッジ（MVP期間中は無料）のみ
-6. **在籍企業制約**: 現在在籍中の企業へのカジュアル面談申込を UI でブロック
-7. **数値データ撤廃**: マッチ度%・星評価なし。求職者が自分で判断する
-8. **position_members**: 各求人に「この職種を経験した人」を表示。scnashot思想
-9. **取材時スナップショット**: 記事の `role_at_interview` + `current_status` で時制を両方表示
+| 段階 | 内容 | 認証要否 | 状態 |
+|------|------|---------|------|
+| **Stage 1** | 読み取り専用ページ（/companies, /jobs, /mentors） | 不要 | **次回実施** |
+| Stage 2 | 認証フロー（/auth サインアップ → ow_users 自動作成） | 必要 | 未着手 |
+| Stage 3 | プロフィール編集（/profile/edit 認証ガード + 自分のデータ） | 必要 | 未着手 |
+| Stage 4 | マイページ（/mypage 認証ガード + 関連データ集約） | 必要 | 未着手 |
+| Stage 5 | アクションページ（カジュアル面談・メンター予約の永続化） | 必要 | 未着手 |
 
 ---
 
-## 次のセッションで着手すべきタスク
+### Stage 1 実装計画（詳細）
 
-### 🔥 Phase 5: Supabase 接続（次の最優先）
+#### 作業ファイル一覧
 
-**開始前の確認事項（最初に必ず実行）:**
-```bash
-# 環境変数確認
-cat /Users/hisato/opinio-work/.env.local | grep SUPABASE
-
-# パッケージ確認
-cat /Users/hisato/opinio-work/package.json | grep supabase
-
-# クライアント確認
-ls /Users/hisato/opinio-work/src/lib/supabase.ts
-
-# 既存テーブル確認（Supabase CLI or ダッシュボード）
-# ow_companies, ow_jobs, ow_mentors, ow_articles の投入状況
-# auth.users → ow_users 自動作成トリガー
-# RLS ポリシー（anon SELECT 許可）
+**新規作成:**
+```
+src/lib/supabase/queries.ts   ← 型付きクエリ関数 + Supabase→mock型マッピング
 ```
 
-**段階的実装ロードマップ:**
-
-| 段階 | 内容 | 認証要否 |
-|------|------|---------|
-| 段階1 | 読み取り専用ページ（/companies, /jobs, /mentors, /articles） | 不要（anon SELECT） |
-| 段階2 | 認証フロー（/auth サインアップ → ow_users 自動作成） | 必要 |
-| 段階3 | プロフィール編集（/profile/edit に認証ガード + 自分のデータ読み書き） | 必要 |
-| 段階4 | マイページ（/mypage に認証ガード + 関連データ集約） | 必要 |
-| 段階5 | アクションページ（カジュアル面談・メンター予約の永続化） | 必要 |
-
-**マスタデータ移行:**
+**修正（list pages → Supabase fetch に切り替え）:**
 ```
-mockCompanies.ts   → ow_companies テーブル
-mockJobData.ts     → ow_jobs テーブル（現在未作成の可能性）
-mockMentorData.ts  → ow_mentors テーブル（現在未作成の可能性）
-mockArticleData.ts → ow_articles テーブル（一部既存）
-mockProfileData.ts → ow_users + ow_experiences テーブル
+src/app/companies/page.tsx    ← getCompanies() 呼び出し
+src/app/jobs/page.tsx         ← getJobs() 呼び出し
+src/app/mentors/page.tsx      ← getMentors() 呼び出し
 ```
 
-### Phase 3: 企業側プロダクト（Phase 5 の後）
-- `/biz/auth` — 企業側ログイン
-- `/biz/dashboard` — ダッシュボード（面談申込件数、求人一覧）
-- `/biz/meetings` — カジュアル面談管理（pending → company_contacted → scheduled）
-- `/biz/jobs` — 求人管理（CRUD）
-- `/biz/company` — 企業情報編集
-- `/biz/analytics` — 分析
+**修正（detail pages → UUID で Supabase fetch）:**
+```
+src/app/companies/[id]/page.tsx          ← getCompanyById(uuid)
+src/app/jobs/[id]/page.tsx               ← getJobById(uuid) + company JOIN
+src/app/mentors/[id]/reserve/page.tsx    ← getMentorById(uuid)
+```
+
+**変更なし（mock 継続）:**
+```
+src/app/articles/page.tsx         ← ow_articles テーブルなし
+src/app/articles/[slug]/page.tsx  ← mock 継続
+src/app/companies/[id]/casual-meeting/page.tsx  ← Phase 5 Stage 5 で対応
+```
+
+#### queries.ts に実装する関数
+
+```typescript
+// src/lib/supabase/queries.ts
+
+// ── Companies ──────────────────────────────────────────────────────
+getCompanies(filter?: CompanyFilter): Promise<Company[]>
+getCompanyById(id: string): Promise<Company | null>
+
+// ── Jobs ───────────────────────────────────────────────────────────
+getJobs(filter?: JobFilter): Promise<Job[]>     // ow_jobs JOIN ow_companies
+getJobById(id: string): Promise<Job | null>     // company 情報込み
+
+// ── Mentors ────────────────────────────────────────────────────────
+getMentors(filter?: MentorFilter): Promise<Mentor[]>
+getMentorById(id: string): Promise<Mentor | null>
+```
+
+#### カラムマッピング仕様
+
+```
+// Company型マッピング
+ow_companies.id             → Company.id         (UUID そのまま使用)
+ow_companies.name           → Company.name        (株式会社プレフィックス含む)
+ow_companies.tagline        → Company.tagline
+ow_companies.industry       → Company.industry
+ow_companies.phase          → Company.phase
+ow_companies.employee_count → Company.employee_count
+ow_companies.logo_gradient  → Company.gradient    (null なら royal fallback)
+ow_companies.logo_letter    → Company.initial     (null なら name[0])
+ow_companies.accepting_casual_meetings → Company.accepting_casual_meetings
+ow_companies.updated_at     → Company.updated_days_ago (daysSince 計算)
+ow_companies.is_published   → Company.is_dimmed   (!is_published)
+// work_styles: remote_work_status + flex_time + side_job_ok から推定
+
+// Mentor型マッピング
+mentors.id              → Mentor.id
+mentors.avatar_initial  → Mentor.initial
+mentors.avatar_color    → Mentor.gradient
+mentors.name            → Mentor.name
+mentors.current_company → Mentor.current_company
+mentors.current_role    → Mentor.current_role
+mentors.question_tags   → Mentor.themes
+mentors.roles[0]        → Mentor.dept
+mentors.is_available    → (フィルター用)
+// career_chain: current_career + previous_career テキストから1-2ステップ生成
+
+// Job型マッピング
+ow_jobs.id              → Job.id
+ow_jobs.company_id      → Job.company_id          (UUID)
+ow_jobs.title           → Job.role
+ow_jobs.job_category    → Job.dept
+ow_jobs.employment_type → Job.employment_type
+ow_jobs.location        → Job.location
+ow_jobs.work_style      → Job.work_style
+ow_jobs.salary_min      → Job.salary_min
+ow_jobs.salary_max      → Job.salary_max
+ow_jobs.catch_copy      → Job.highlight
+ow_jobs.published_at    → Job.is_new (7日以内)
+ow_jobs.updated_at      → Job.updated_days_ago
+// position_members: [] (Supabase にないため空配列)
+```
+
+#### URL変更による影響
+
+- `/companies/layerx` → `/companies/{uuid}` （**URL構造が変わる**）
+- `/jobs/smarthr-csm` → `/jobs/{uuid}`
+- `/mentors/watanabe-miho` → `/mentors/{uuid}`
+- `casual-meeting/reserve` の内部リンクも UUID に更新が必要
+
+> **注意**: Phase 4 で実装した `casual-meeting` ページの在籍企業制約は、
+> Phase 5 Stage 5 で `ow_users.experiences` が整備されるまで mock 継続。
 
 ---
 
@@ -277,6 +380,18 @@ mockProfileData.ts → ow_users + ow_experiences テーブル
 - `useSearchParams()` を使う場合は Suspense でラップ必須（Next.js 14 要件）
 - `useParams()` のみなら Suspense 不要
 - Phase 4c（casual-meeting）は Suspense あり、Phase 4d（reserve）は Suspense なし
+- **Phase 5 Stage 1**: list/detail pages は Server Component（`async`）にする
+
+### Supabase Server Component パターン
+```typescript
+// Server Component（async）でのデータ取得
+import { getCompanies } from "@/lib/supabase/queries";
+
+export default async function CompaniesPage() {
+  const companies = await getCompanies();
+  return <CompanyList companies={companies} />;
+}
+```
 
 ### nativeInputValueSetter パターン（React state 更新）
 - preview_fill や DOM 直接書き換えでは React state が更新されない
@@ -288,57 +403,33 @@ src/app/companies/mockCompanies.ts(219,31): error TS2802
   Type 'Set<string>' can only be iterated through when using '--downlevelIteration'
 ```
 - ビルド・動作には影響しない
-- 直すなら `Array.from(new Set(...))` に置き換え
 
-### CSS カスタムプロパティ（globals.css）
-```css
---royal: #002366; --royal-50: #EFF3FC; --royal-100: #DCE5F7;
---accent: #3B5FD9; --success: #059669; --success-soft: #ECFDF5;
---warm: #F59E0B; --warm-soft: #FEF3C7;
---purple: #7C3AED; --purple-soft: #F3E8FF;
---error: #DC2626; --error-soft: #FEE2E2;
---ink: #0F172A; --ink-soft: #475569; --ink-mute: #94A3B8;
---line: #E2E8F0; --line-soft: #F1F5F9; --bg-tint: #F8FAFC;
-```
+---
 
-### デザインシステム
-- フォント: `"Noto Serif JP"` 見出し / `"Noto Sans JP"` 本文 / `Inter` 数字・ラベル
-- ステータスピル: pending(amber) / royal(pending_review) / purple(scheduled) / gray(completed) / error(declined) / success(approved)
-- CTAグラデーション色の使い分け:
-  - warm orange: カジュアル面談（軽い接触）
-  - royal blue: メンター予約（深い対話）
-  - royal blue: 企業詳細 CTA（標準）
+## Phase 3: 企業側プロダクト（Phase 5 の後に着手）
+
+- `/biz/auth` — 企業側ログイン
+- `/biz/dashboard` — ダッシュボード（面談申込件数、求人一覧）
+- `/biz/meetings` — カジュアル面談管理（pending → company_contacted → scheduled）
+- `/biz/jobs` — 求人管理（CRUD）
+- `/biz/company` — 企業情報編集
+- `/biz/analytics` — 分析
 
 ---
 
 ## コミット履歴（直近）
 
 ```
-feat: Phase 4 complete - user-side product 100% done
+feat: Phase 4 complete + Phase 5 preparation (2026-04-24)
   - Phase 4a: /profile/edit (+11,368行)
   - Phase 4b: /mypage (+12,858行)
   - Phase 4c: /companies/[id]/casual-meeting (+13,634行)
   - Phase 4d: /mentors/[id]/reserve (+14,409行)
-  Total: +52,269行 / プロジェクト累計: 約88,000行超
+  - Phase 5 Stage 1 実装計画を CLAUDE.md に記載
+  - Supabase 現状確認完了（テーブル・スキーマ・差分）
 
+feat: Phase 4 complete - user-side product 100% done (2026-04-24)
 feat: Phase 4b mypage — 6-view dashboard, is_mentor toggle, status pills
 feat: Phase 4a profile/edit — auto-save, career CRUD, company 3-pattern
 feat: Phase 2g articles (mock data, list, detail, cross-links)
-feat: Phase 2f mentors (mock data, list, filter)
-feat: Phase 2d/2e jobs (mock data, list, detail, position_members)
-feat: Phase 2b/2c companies (mock data, list, detail)
-```
-
----
-
-## 明日の再開クイックガイド
-
-```
-1. このファイル（CLAUDE.md）を読む ← 今ここ
-2. dev サーバーが起動しているか確認: localhost:3000
-3. Phase 5 開始前確認:
-   cat /Users/hisato/opinio-work/.env.local
-   cat /Users/hisato/opinio-work/package.json | grep supabase
-4. 段階1から: /companies, /jobs, /mentors, /articles を
-   mockXxx.ts → Supabase の anon SELECT に切り替え
 ```
