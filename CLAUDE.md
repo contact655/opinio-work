@@ -2,12 +2,15 @@
 
 ## プロジェクト概要
 
-IT/SaaS 業界に特化したキャリアプラットフォーム。求職者側の閲覧体験（Phase 2）が完成済み。
+IT/SaaS 業界に特化したキャリアプラットフォーム。
+**求職者側プロダクト（Phase 2 + Phase 4）が 2026-04-24 に 100% 完成。**
 
 - **リポジトリ**: `/Users/hisato/opinio-work/`
 - **ワークツリー**: `/Users/hisato/opinio-work/.claude/worktrees/silly-kowalevski-e4eca2/`
 - **プレビューサーバー**: `localhost:3000`（`npm run dev` from worktree）
 - **launch.json**: `/Users/hisato/opinio-work/.claude/launch.json`
+- **モックHTML + 仕様書**: `/Users/hisato/opinio-mock/`
+- **仕様書**: `/Users/hisato/opinio-mock/OPINIO_IMPLEMENTATION_SPEC.md`
 
 > **重要**: dev サーバーは **ワークツリー** から起動している。
 > ファイルは必ず worktree パスに書くこと。
@@ -15,10 +18,13 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。求職者側
 
 ---
 
-## Phase 2 完成ページ一覧（求職者側 公開ページ）
+## 実装済みページ全一覧（2026-04-24 時点）
+
+### Phase 2 — 求職者側 公開ページ（閲覧）
 
 | ページ | パス | ファイル |
 |--------|------|---------|
+| トップ | `/` | `src/app/page.tsx` |
 | 企業一覧 | `/companies` | `src/app/companies/page.tsx` |
 | 企業詳細 | `/companies/[id]` | `src/app/companies/[id]/page.tsx` |
 | 求人一覧 | `/jobs` | `src/app/jobs/page.tsx` |
@@ -26,6 +32,108 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。求職者側
 | メンター一覧 | `/mentors` | `src/app/mentors/page.tsx` |
 | 記事一覧 | `/articles` | `src/app/articles/page.tsx` |
 | 記事詳細 | `/articles/[slug]` | `src/app/articles/[slug]/page.tsx` |
+
+### Phase 4 — 求職者側 対話アクションページ（2026-04-24 完成）
+
+| ページ | パス | ファイル |
+|--------|------|---------|
+| プロフィール編集 | `/profile/edit` | `src/app/profile/edit/page.tsx` |
+| マイページ | `/mypage` | `src/app/mypage/page.tsx` |
+| カジュアル面談申込 | `/companies/[id]/casual-meeting` | `src/app/companies/[id]/casual-meeting/page.tsx` |
+| メンター相談予約 | `/mentors/[id]/reserve` | `src/app/mentors/[id]/reserve/page.tsx` |
+
+---
+
+## Phase 4 実装サマリー（2026-04-24）
+
+### 実装規模
+| フェーズ | ページ | 行数 |
+|---------|--------|------|
+| Phase 4a | `/profile/edit` | +11,368行 |
+| Phase 4b | `/mypage` | +12,858行 |
+| Phase 4c | `/companies/[id]/casual-meeting` | +13,634行 |
+| Phase 4d | `/mentors/[id]/reserve` | +14,409行 |
+| **今日の合計** | | **+52,269行** |
+| **プロジェクト累計** | | **約88,000行超** |
+
+### Phase 4a: `/profile/edit`
+- Notion スタイルサイドバー（基本情報 / キャリア / SNS / アカウント設定）
+- 自動保存 700ms デバウンス（idle → saving → saved 3状態 UX）
+- 会社名3パターン: master（MOCK_COMPANIES から検索）/ 自由入力 / 匿名表示
+- 職種マスター: 2階層ドロップダウン（7カテゴリ × サブロール）
+- キャリア CRUD: 追加・編集・削除・現職フラグ
+- プロフィール完成度プログレスバー（6項目で計算）
+- 関連ファイル:
+  - `src/app/profile/edit/page.tsx` — メインページ
+  - `src/app/profile/edit/CareerModal.tsx` — キャリア追加・編集モーダル
+  - `src/app/profile/edit/mockProfileData.ts` — ProfileData 型 + MOCK_PROFILE
+  - `src/app/profile/edit/roleData.ts` — 職種マスター（ROLE_CATEGORIES）
+
+### Phase 4b: `/mypage`
+- 6ビュー切替（ダッシュボード / カジュアル面談 / メンター相談 / ブックマーク / 受けた相談 / スケジュール）
+- `isMentor` トグル → サイドバーに「メンター管理」セクションを動的表示
+- ステータスピル 6状態: pending(amber) / company_contacted(royal) / scheduled(purple) / completed(gray) / declined(error) / approved(success)
+- 承認アクション → バッジカウントリアクティブ更新
+- Mock ロール切替バー（通常ユーザー / メンター登録済み）
+- 関連ファイル:
+  - `src/app/mypage/page.tsx` — メインページ（全ビュー含む）
+  - `src/app/mypage/mockMypageData.ts` — 全型定義 + モックデータ
+
+### Phase 4c: `/companies/[id]/casual-meeting`
+- **在籍企業制約**（Hisato 思想）: `MOCK_PROFILE.experiences[isCurrent=true]` と企業 ID を照合し、在籍中なら申込不可表示
+- 求人 ID 引き継ぎ: `?job_id=xxx` で宛先カードに求人情報表示、`× 紐づけを外す` で解除
+- プロフィール共有チェックボックス（デフォルト ON）
+- 転職意向4択ラジオ
+- テキストエリア2本（きっかけ・質問、ともに必須）
+- **warm orange グラデーション** CTA（カジュアル感を色で表現）
+- 3ステップ成功モーダル
+- エントリーポイント: `/companies/[id]` サイドバー + `/jobs/[id]` サイドバー
+
+### Phase 4d: `/mentors/[id]/reserve`
+- `mentor.themes` から相談テーマを動的生成（メンターごとに異なる）
+- 5ステップフロー可視化（申請→編集部確認→メンター承認→日程調整→対話）
+- テーマ複数選択（`Set<string>`）+ 必須バリデーション
+- 相談内容3テキストエリア（状況・質問 必須、背景 任意）
+- 希望曜日7択 + 時間帯6択（`Set<string>`、任意）
+- **royal グラデーション** CTA（深い対話を色で表現）+ 無料バッジ（MVP期間配慮）
+- 5ステップ成功モーダル（編集部精査フロー明示）
+- エントリーポイント: `/mentors` 一覧の「話を聞く（30分）」ボタン（既実装済み）
+
+---
+
+## モックデータ — 田中翔太さん（統一ペルソナ）
+
+Phase 4 全体で使用している架空ユーザー。**変更した場合は全ファイルを整合させること。**
+
+```typescript
+// src/app/profile/edit/mockProfileData.ts
+name: "田中 翔太"
+email: "tanaka@example.com"
+avatarColor: "linear-gradient(135deg, #002366, #3B5FD9)"
+
+experiences: [
+  {
+    id: "exp-1",
+    companyType: "master",
+    companyId: "layerx",          // ← 在籍企業制約のデモキー
+    displayCompanyName: "株式会社LayerX",
+    roleCategoryId: "product_manager",
+    roleTitle: "プロダクトマネージャー（Bakuraku事業）",
+    startedAt: "2024-04",
+    isCurrent: true,              // ← /companies/layerx/casual-meeting が blocked
+  },
+  { displayCompanyName: "株式会社タイミー", isCurrent: false },  // 前職
+  { displayCompanyName: "株式会社リクルート", isCurrent: false }, // 最初
+]
+```
+
+```typescript
+// src/app/mypage/mockMypageData.ts
+MOCK_USER.currentRole = "株式会社LayerX · プロダクトマネージャー（Bakuraku事業）"
+```
+
+> **デモポイント**: `/companies/layerx/casual-meeting` → 「現在ご在籍中の企業です」表示
+> `/companies/smarthr/casual-meeting` → 通常フォーム
 
 ---
 
@@ -44,123 +152,117 @@ type Company = {
 - 12社収録: layerx / smarthr / hubspot / salesforce / ubie / freee / sansan / moneyforward / datadog / kubell / notion / pksha
 - `MOCK_COMPANIES` export
 
-### `src/app/companies/[id]/mockDetailData.ts`
-- 企業詳細専用モックデータ（インタビュー・求人・文化スコアなど）
-- `getDetailByCompanyId(id)` helper
-
 ### `src/app/jobs/mockJobData.ts`
-```typescript
-type Job = {
-  id: string; company_id: string; role: string; dept: string;
-  employment_type: string; location: string; work_style: string;
-  salary_min: number; salary_max: number;
-  tags: string[]; highlight: string;
-  overview: string; main_tasks: string[];
-  required_skills: string[]; preferred_skills: string[];
-  benefits: BenefitRow[]; selection_flow: SelectionStep[];
-  position_members: PositionMember[]; // ← Hisato思想の核心
-  related_article_title: string; related_article_excerpt: string;
-}
-
-type PositionMember = {
-  initial: string; gradient: string; name: string;
-  catch: string; period: string; date: string;
-  status: "current" | "moved" | "alumni";
-  status_label: string; is_mentor: boolean;
-}
-```
-- 15求人収録（12社）
-- `MOCK_JOBS`, `filterJobs()`, `getJobById()`, `getJobsByCompany()` export
-- `JOB_DEPTS`, `SALARY_PRESETS`, `WORK_STYLES`, `JOB_LOCATIONS` 定数
+- 15求人収録（12社）、`getJobById()`, `filterJobs()`, `getJobsByCompany()` export
+- `PositionMember.is_mentor: true` で `/mentors` と紐づく
 
 ### `src/app/mentors/mockMentorData.ts`
-```typescript
-type Mentor = {
-  id: string; initial: string; gradient: string;
-  name: string; current_company: string; current_role: string;
-  career_chain: { label: string; is_current: boolean }[];
-  company_logos: { initial: string; gradient: string; name: string }[];
-  themes: string[]; dept: string; industry: string;
-  related_job_ids: string[]; related_company_ids: string[];
-}
-```
-- 17名収録、mockJobData.ts の `position_members[is_mentor=true]` と完全一致
-- `MOCK_MENTORS`, `filterMentors()`, `MENTOR_DEPTS`, `MENTOR_INDUSTRIES`, `MENTOR_THEMES` export
+- 17名収録、`MOCK_MENTORS`, `filterMentors()` export
+- `id` は kebab-case（例: `watanabe-miho`, `nakamura-yuki`）→ `/mentors/[id]/reserve` の URL
 
 ### `src/app/articles/mockArticleData.ts`
-```typescript
-type ArticleType = "employee" | "mentor" | "ceo" | "report";
-
-type Article = {
-  slug: string; type: ArticleType;
-  title: string; subtitle: string; date: string; read_min: number;
-  company_id: string; company_name: string;
-  company_initial: string; company_gradient: string;
-  eyecatch_gradient: string;
-  subject?: ArticleSubject;      // employee/mentor/ceo
-  subjects?: ArticleSubject[];   // report（複数）
-  editor_note?: string;
-  body?: string[]; quote?: string; qa?: QA[];
-  editor_outro?: string;
-  themes?: ThemeItem[];          // mentor のみ
-  chapters?: Chapter[];          // report のみ
-  related_job_ids: string[];
-  related_article_slugs: string[];
-}
-```
 - 10記事収録: employee×2 / mentor×4 / ceo×2 / report×2
-- `MOCK_ARTICLES`, `getArticleBySlug()`, `filterArticles()` export
-- `TYPE_BADGE`, `TYPE_EYECATCH_ICON`, `ARTICLE_TYPES` 定数
+- `getArticleBySlug()`, `filterArticles()` export
+
+### `src/app/profile/edit/mockProfileData.ts`
+- `ProfileData` 型、`MOCK_PROFILE`, `LOCATIONS`, `AGE_RANGES` export
+- **田中翔太さんの現職は LayerX**（`companyType: "master"`, `companyId: "layerx"`）
+
+### `src/app/mypage/mockMypageData.ts`
+- `CasualMeeting`, `MentorReservation`, `Bookmark`, `ReceivedRequest` 型
+- `PILL_STYLES`, `STATUS_LABEL`, `STATUS_VARIANT` — ステータスピルシステム
+- `MOCK_CASUAL_MEETINGS`(4件), `MOCK_MENTOR_RESERVATIONS`(3件)
+- `MOCK_BOOKMARKS_ARTICLES`(5), `MOCK_BOOKMARKS_COMPANIES`(4), `MOCK_BOOKMARKS_MENTORS`(3)
+- `MOCK_RECEIVED_REQUESTS`(4件: pending×2 + completed×2)
 
 ---
 
-## ファイル構造
+## ファイル構造（Phase 4 追加分）
 
 ```
 src/app/
-├── page.tsx                        # トップページ（ArticlesPreview セクション含む）
-├── globals.css                     # CSS変数（--royal, --accent, --success, etc.）
-├── layout.tsx
+├── profile/
+│   └── edit/
+│       ├── page.tsx              # プロフィール編集（"use client"）
+│       ├── CareerModal.tsx       # キャリア追加・編集モーダル
+│       ├── mockProfileData.ts    # ProfileData 型 + MOCK_PROFILE
+│       └── roleData.ts           # 職種マスター（7カテゴリ）
+├── mypage/
+│   ├── page.tsx                  # マイページ（6ビュー, "use client"）
+│   └── mockMypageData.ts         # 全型 + モックデータ
 ├── companies/
-│   ├── page.tsx                    # 企業一覧（Server Component + Suspense）
-│   ├── CompanyFilterBar.tsx        # "use client" フィルター
-│   ├── mockCompanies.ts            # 12社
 │   └── [id]/
-│       ├── page.tsx                # 企業詳細（2カラム・sidebar）
-│       └── mockDetailData.ts
-├── jobs/
-│   ├── page.tsx                    # 求人一覧
-│   ├── JobFilterBar.tsx            # "use client"
-│   ├── mockJobData.ts              # 15求人
-│   └── [id]/
-│       └── page.tsx                # 求人詳細（position_members, 選考フロー）
-├── mentors/
-│   ├── page.tsx                    # メンター一覧
-│   ├── MentorFilterBar.tsx         # "use client"
-│   └── mockMentorData.ts           # 17名
-├── articles/
-│   ├── page.tsx                    # 記事一覧（4タイプ）
-│   ├── ArticleFilterBar.tsx        # "use client"
-│   ├── mockArticleData.ts          # 10記事
-│   └── [slug]/
-│       └── page.tsx                # 記事詳細（type別レンダリング）
-└── ...（auth, business, dashboard など既存）
-
-src/components/
-└── common/
-    ├── index.ts
-    ├── Header.tsx
-    └── Footer.tsx
+│       └── casual-meeting/
+│           └── page.tsx          # カジュアル面談申込（"use client" + Suspense）
+└── mentors/
+    └── [id]/
+        └── reserve/
+            └── page.tsx          # メンター相談予約（"use client"）
 ```
 
 ---
 
-## 設計思想（Hisato 思想）
+## Hisato 思想（実装済み）
 
-1. **position_members**: 各求人に「この職種を経験した人」を表示。`status: current | moved | alumni` + `is_mentor` フラグで遷移状況を可視化
-2. **取材時スナップショット**: 記事の `role_at_interview` + `current_status` で「取材時と現在」を両方見せる
-3. **数値マッチスコアなし**: 求職者が自分で判断する設計
-4. **データ整合性**: mockJobData ↔ mockMentorData ↔ mockArticleData で同一人物は同一 gradient/initial/name
+1. **キャリアを考え続ける人**: 「転職活動中」フラグなし。情報収集中でも使える
+2. **Users 統合設計**: `is_mentor` フラグ1つで求職者↔メンター動的発動（マイページで実証済み）
+3. **スカウトしない、採用を**: 企業→求職者へのスカウト機能なし。対話から始まる設計
+4. **運営の丁寧な介在**: メンター登録は個別声がけ、相談は編集部が精査してから転送
+5. **モニター期配慮**: 料金表示なし、無料バッジ（MVP期間中は無料）のみ
+6. **在籍企業制約**: 現在在籍中の企業へのカジュアル面談申込を UI でブロック
+7. **数値データ撤廃**: マッチ度%・星評価なし。求職者が自分で判断する
+8. **position_members**: 各求人に「この職種を経験した人」を表示。scnashot思想
+9. **取材時スナップショット**: 記事の `role_at_interview` + `current_status` で時制を両方表示
+
+---
+
+## 次のセッションで着手すべきタスク
+
+### 🔥 Phase 5: Supabase 接続（次の最優先）
+
+**開始前の確認事項（最初に必ず実行）:**
+```bash
+# 環境変数確認
+cat /Users/hisato/opinio-work/.env.local | grep SUPABASE
+
+# パッケージ確認
+cat /Users/hisato/opinio-work/package.json | grep supabase
+
+# クライアント確認
+ls /Users/hisato/opinio-work/src/lib/supabase.ts
+
+# 既存テーブル確認（Supabase CLI or ダッシュボード）
+# ow_companies, ow_jobs, ow_mentors, ow_articles の投入状況
+# auth.users → ow_users 自動作成トリガー
+# RLS ポリシー（anon SELECT 許可）
+```
+
+**段階的実装ロードマップ:**
+
+| 段階 | 内容 | 認証要否 |
+|------|------|---------|
+| 段階1 | 読み取り専用ページ（/companies, /jobs, /mentors, /articles） | 不要（anon SELECT） |
+| 段階2 | 認証フロー（/auth サインアップ → ow_users 自動作成） | 必要 |
+| 段階3 | プロフィール編集（/profile/edit に認証ガード + 自分のデータ読み書き） | 必要 |
+| 段階4 | マイページ（/mypage に認証ガード + 関連データ集約） | 必要 |
+| 段階5 | アクションページ（カジュアル面談・メンター予約の永続化） | 必要 |
+
+**マスタデータ移行:**
+```
+mockCompanies.ts   → ow_companies テーブル
+mockJobData.ts     → ow_jobs テーブル（現在未作成の可能性）
+mockMentorData.ts  → ow_mentors テーブル（現在未作成の可能性）
+mockArticleData.ts → ow_articles テーブル（一部既存）
+mockProfileData.ts → ow_users + ow_experiences テーブル
+```
+
+### Phase 3: 企業側プロダクト（Phase 5 の後）
+- `/biz/auth` — 企業側ログイン
+- `/biz/dashboard` — ダッシュボード（面談申込件数、求人一覧）
+- `/biz/meetings` — カジュアル面談管理（pending → company_contacted → scheduled）
+- `/biz/jobs` — 求人管理（CRUD）
+- `/biz/company` — 企業情報編集
+- `/biz/analytics` — 分析
 
 ---
 
@@ -171,6 +273,15 @@ src/components/
   `/Users/hisato/opinio-work/.claude/worktrees/silly-kowalevski-e4eca2/src/...`
 - dev サーバーもワークツリーから起動している（launch.json の `npm run dev`）
 
+### "use client" + Suspense パターン
+- `useSearchParams()` を使う場合は Suspense でラップ必須（Next.js 14 要件）
+- `useParams()` のみなら Suspense 不要
+- Phase 4c（casual-meeting）は Suspense あり、Phase 4d（reserve）は Suspense なし
+
+### nativeInputValueSetter パターン（React state 更新）
+- preview_fill や DOM 直接書き換えでは React state が更新されない
+- eval で `Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set` を使い、`new Event('input', { bubbles: true })` で発火
+
 ### 既知の TypeScript エラー（既存・非クリティカル）
 ```
 src/app/companies/mockCompanies.ts(219,31): error TS2802
@@ -179,65 +290,55 @@ src/app/companies/mockCompanies.ts(219,31): error TS2802
 - ビルド・動作には影響しない
 - 直すなら `Array.from(new Set(...))` に置き換え
 
-### Server Component + "use client" 分離
-- ページ本体は Server Component（SEO・初期データ用）
-- フィルターバーは `"use client"` + `<Suspense>` でラップ
-- Server Component 内で `<style jsx>` は使わない → `<style>{}` タグで代替
-
 ### CSS カスタムプロパティ（globals.css）
 ```css
 --royal: #002366; --royal-50: #EFF3FC; --royal-100: #DCE5F7;
 --accent: #3B5FD9; --success: #059669; --success-soft: #ECFDF5;
 --warm: #F59E0B; --warm-soft: #FEF3C7;
 --purple: #7C3AED; --purple-soft: #F3E8FF;
+--error: #DC2626; --error-soft: #FEE2E2;
 --ink: #0F172A; --ink-soft: #475569; --ink-mute: #94A3B8;
---line: #E2E8F0; --bg-tint: #F8FAFC;
+--line: #E2E8F0; --line-soft: #F1F5F9; --bg-tint: #F8FAFC;
 ```
 
-### Tailwind JIT 任意値
-- 2カラムレイアウト: `className="grid gap-7 [grid-template-columns:1fr] lg:[grid-template-columns:1fr_320px]"`
-- モバイル非表示: `className="hidden lg:flex"`
+### デザインシステム
+- フォント: `"Noto Serif JP"` 見出し / `"Noto Sans JP"` 本文 / `Inter` 数字・ラベル
+- ステータスピル: pending(amber) / royal(pending_review) / purple(scheduled) / gray(completed) / error(declined) / success(approved)
+- CTAグラデーション色の使い分け:
+  - warm orange: カジュアル面談（軽い接触）
+  - royal blue: メンター予約（深い対話）
+  - royal blue: 企業詳細 CTA（標準）
 
 ---
 
-## 次に着手すべきタスク
-
-### Phase 3: 企業側管理画面（Recruiter Side）
-- `/business/` 配下のダッシュボード
-- 求人投稿・編集フォーム
-- 取材依頼・掲載管理
-- Supabase の `business_*` テーブル連携
-
-### Phase 4: ユーザー認証・マイページ
-- `/auth/` ログイン・サインアップ（既存あり、要整理）
-- `/mypage/` ブックマーク・応募履歴
-- `/onboarding/` 初回登録フロー
-
-### Supabase 接続（Phase 2 → 本番データ）
-求職者側の各ページを mock から実データに切り替え:
-1. `mockCompanies.ts` → `ow_companies` テーブル
-2. `mockJobData.ts` → `ow_jobs` テーブル（現在未作成）
-3. `mockMentorData.ts` → `ow_mentors` テーブル（現在未作成）
-4. `mockArticleData.ts` → `ow_articles` テーブル（一部既存）
-
-### コンテンツ拡充
-- 企業詳細の `mockDetailData.ts` を全12社分作成（現在は一部のみ）
-- メンター予約フロー `/mentors/[id]/reserve` の実装
-- 求人応募フロー `/jobs/[id]/apply` の実装
-
----
-
-## 直近コミット履歴（Phase 2 実装時）
+## コミット履歴（直近）
 
 ```
+feat: Phase 4 complete - user-side product 100% done
+  - Phase 4a: /profile/edit (+11,368行)
+  - Phase 4b: /mypage (+12,858行)
+  - Phase 4c: /companies/[id]/casual-meeting (+13,634行)
+  - Phase 4d: /mentors/[id]/reserve (+14,409行)
+  Total: +52,269行 / プロジェクト累計: 約88,000行超
+
+feat: Phase 4b mypage — 6-view dashboard, is_mentor toggle, status pills
+feat: Phase 4a profile/edit — auto-save, career CRUD, company 3-pattern
 feat: Phase 2g articles (mock data, list, detail, cross-links)
-  - mockArticleData.ts: 10記事 × 4タイプ
-  - /articles 一覧 + ArticleFilterBar
-  - /articles/[slug] type別レンダリング
-  - トップページ ArticlesPreview セクション
-  - 求人詳細 → 記事リンク
-
 feat: Phase 2f mentors (mock data, list, filter)
 feat: Phase 2d/2e jobs (mock data, list, detail, position_members)
 feat: Phase 2b/2c companies (mock data, list, detail)
+```
+
+---
+
+## 明日の再開クイックガイド
+
+```
+1. このファイル（CLAUDE.md）を読む ← 今ここ
+2. dev サーバーが起動しているか確認: localhost:3000
+3. Phase 5 開始前確認:
+   cat /Users/hisato/opinio-work/.env.local
+   cat /Users/hisato/opinio-work/package.json | grep supabase
+4. 段階1から: /companies, /jobs, /mentors, /articles を
+   mockXxx.ts → Supabase の anon SELECT に切り替え
 ```

@@ -892,15 +892,21 @@ function Sidebar({ company, detail }: { company: Company; detail: CompanyDetail 
           求人を見る →
         </Link>
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          {["この企業を追う", "先輩に相談"].map((label) => (
-            <button key={label} style={{
-              flex: 1, padding: 10, background: "rgba(255,255,255,0.1)", color: "#fff",
-              border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8,
-              fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer",
-            }}>
-              {label}
-            </button>
-          ))}
+          <button style={{
+            flex: 1, padding: 10, background: "rgba(255,255,255,0.1)", color: "#fff",
+            border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8,
+            fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer",
+          }}>
+            この企業を追う
+          </button>
+          <Link href={`/companies/${company.id}/casual-meeting`} style={{
+            flex: 1, padding: 10, background: "rgba(255,255,255,0.1)", color: "#fff",
+            border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8,
+            fontSize: 12, fontWeight: 600, textDecoration: "none", textAlign: "center",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            面談を申し込む
+          </Link>
         </div>
       </div>
 

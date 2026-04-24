@@ -667,14 +667,14 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
                   <div style={{ color: "#fff", fontSize: 14, fontWeight: 700, marginBottom: 14, lineHeight: 1.4 }}>
                     {company.name}の<br />社員に相談する
                   </div>
-                  <button style={{
-                    width: "100%", padding: "11px 0",
+                  <Link href={`/companies/${job.company_id}/casual-meeting?job_id=${job.id}`} style={{
+                    display: "block", width: "100%", padding: "11px 0",
                     background: "#fff", color: "var(--royal)",
-                    border: "none", borderRadius: 8,
-                    fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    borderRadius: 8, fontSize: 13, fontWeight: 700,
+                    textDecoration: "none", textAlign: "center",
                   }}>
                     カジュアル面談を申し込む
-                  </button>
+                  </Link>
                 </div>
                 <button style={{
                   width: "100%", padding: "11px 0",
