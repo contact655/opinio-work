@@ -3,12 +3,25 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyCard } from "@/components/business/CompanyCard";
 import { DashboardStatCards } from "@/components/business/DashboardStatCards";
 import { JobPerformanceList } from "@/components/business/JobPerformanceList";
+import { UpgradeBanner } from "@/components/business/UpgradeBanner";
+import { EditorInvitation } from "@/components/business/EditorInvitation";
+import { PendingMeetings } from "@/components/business/PendingMeetings";
+import { ActivityList } from "@/components/business/ActivityList";
+import { MatchCandidates } from "@/components/business/MatchCandidates";
+import { JobStatusCards } from "@/components/business/JobStatusCards";
+import { TeamMembers } from "@/components/business/TeamMembers";
+import { RecruiterProfile } from "@/components/business/RecruiterProfile";
 import {
   mockTenantContext,
   mockTodoCounts,
   mockMonthlyStats,
   mockJobStatusCounts,
   mockJobPerformance,
+  mockPendingMeetings,
+  mockActivities,
+  mockMatchCandidates,
+  mockTeamMembers,
+  mockRecruiterProfile,
 } from "@/lib/business/mockTenantContext";
 
 function getGreeting(hour: number): string {
@@ -103,6 +116,9 @@ export function DashboardMockView() {
         planType={ctx.planType}
       />
 
+      {/* ── Upgrade banner (free plan only) ── */}
+      <UpgradeBanner planType={ctx.planType} />
+
       {/* ── Stat cards (4枚) ── */}
       <DashboardStatCards
         todoCounts={mockTodoCounts}
@@ -111,17 +127,40 @@ export function DashboardMockView() {
         activeJobCount={mockJobStatusCounts.active}
       />
 
-      {/* ── S1b placeholders ──────────────────────────────────────
-          以下のセクションは Session S1b で実装する:
-          - UpgradeBanner       (無料プラン訴求バナー)
-          - EditorInvitation    (Opinio編集部取材案内バナー)
-          - PendingMeetings     (未対応カジュアル面談リスト)
-          - ActivityList        (最近のアクティビティ)
-          - MatchCandidates     (マッチ候補者 free/paid)
-          - JobStatusCards      (求人ステータス3カード)
-          - TeamMembers         (チームメンバー)
-          - RecruiterProfile    (採用担当者公開設定widget)
-      ─────────────────────────────────────────────────────────── */}
+      {/* ── Editor invitation ── */}
+      <EditorInvitation />
+
+      {/* ── 2-col: PendingMeetings + ActivityList ── */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 16,
+        marginTop: 4,
+      }}>
+        <PendingMeetings meetings={mockPendingMeetings} />
+        <ActivityList activities={mockActivities} />
+      </div>
+
+      {/* ── Match candidates ── */}
+      <div style={{ marginTop: 16 }}>
+        <MatchCandidates candidates={mockMatchCandidates} planType={ctx.planType} />
+      </div>
+
+      {/* ── 2-col: JobStatusCards + TeamMembers ── */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 16,
+        marginTop: 16,
+      }}>
+        <JobStatusCards counts={mockJobStatusCounts} />
+        <TeamMembers members={mockTeamMembers} planType={ctx.planType} />
+      </div>
+
+      {/* ── Recruiter profile widget ── */}
+      <div style={{ marginTop: 16 }}>
+        <RecruiterProfile profile={mockRecruiterProfile} />
+      </div>
 
       {/* ── Job performance ── */}
       <section style={{
@@ -129,7 +168,7 @@ export function DashboardMockView() {
         border: "1px solid var(--line)",
         borderRadius: 14,
         padding: "22px 26px",
-        marginTop: 4,
+        marginTop: 16,
       }}>
         <div style={{
           display: "flex", alignItems: "baseline", justifyContent: "space-between",

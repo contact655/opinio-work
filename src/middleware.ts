@@ -18,6 +18,11 @@ export async function middleware(request: NextRequest) {
   // 既存のセッション同期
   const response = await updateSession(request);
 
+  // BIZ_MOCK_MODE=true の場合は /biz/ 認証チェックをスキップ（dev 専用）
+  if (process.env.BIZ_MOCK_MODE === "true") {
+    return response;
+  }
+
   // /biz/ 配下かつ public ページでない場合に認証チェック
   if (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) {
     const supabase = createServerClient(

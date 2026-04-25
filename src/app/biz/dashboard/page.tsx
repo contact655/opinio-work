@@ -3,6 +3,14 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyCard } from "@/components/business/CompanyCard";
 import { DashboardStatCards } from "@/components/business/DashboardStatCards";
 import { JobPerformanceList } from "@/components/business/JobPerformanceList";
+import { UpgradeBanner } from "@/components/business/UpgradeBanner";
+import { EditorInvitation } from "@/components/business/EditorInvitation";
+import { PendingMeetings } from "@/components/business/PendingMeetings";
+import { ActivityList } from "@/components/business/ActivityList";
+import { MatchCandidates } from "@/components/business/MatchCandidates";
+import { JobStatusCards } from "@/components/business/JobStatusCards";
+import { TeamMembers } from "@/components/business/TeamMembers";
+// RecruiterProfile: S1c で ow_users 接続後に有効化
 import { DashboardMockView } from "./DashboardMockView";
 import {
   getTenantContext,
@@ -133,6 +141,9 @@ export default async function BizDashboardPage() {
         planType={ctx.planType}
       />
 
+      {/* ── Upgrade banner (free plan only) ── */}
+      <UpgradeBanner planType={ctx.planType} />
+
       {/* ── Stat cards (4枚) ── */}
       <DashboardStatCards
         todoCounts={todoCounts}
@@ -141,25 +152,48 @@ export default async function BizDashboardPage() {
         activeJobCount={jobStatusCounts.active}
       />
 
-      {/* ── S1b placeholders ──────────────────────────────────────
-          以下のセクションは Session S1b で実装する:
-          - UpgradeBanner       (無料プラン訴求バナー)
-          - EditorInvitation    (Opinio編集部取材案内バナー)
-          - PendingMeetings     (未対応カジュアル面談リスト)
-          - ActivityList        (最近のアクティビティ)
-          - MatchCandidates     (マッチ候補者 free/paid)
-          - JobStatusCards      (求人ステータス3カード)
-          - TeamMembers         (チームメンバー)
-          - RecruiterProfile    (採用担当者公開設定widget)
-      ─────────────────────────────────────────────────────────── */}
+      {/* ── Editor invitation ── */}
+      <EditorInvitation />
 
-      {/* ── Job performance (S1b で JobStatusCards + 求人管理リンクに統合予定) ── */}
+      {/* ── 2-col: PendingMeetings + ActivityList ── */}
+      {/* S1c: PendingMeetings・ActivityList は Supabase テーブル実装後に差し替え */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 16,
+        marginTop: 4,
+      }}>
+        <PendingMeetings meetings={[]} />
+        <ActivityList activities={[]} />
+      </div>
+
+      {/* ── Match candidates (Supabase なし → 空ロック状態) ── */}
+      <div style={{ marginTop: 16 }}>
+        <MatchCandidates candidates={[]} planType={ctx.planType} />
+      </div>
+
+      {/* ── 2-col: JobStatusCards + TeamMembers ── */}
+      {/* S1c: TeamMembers は ow_user_roles から実装予定 */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 16,
+        marginTop: 16,
+      }}>
+        <JobStatusCards counts={jobStatusCounts} />
+        <TeamMembers members={[]} planType={ctx.planType} />
+      </div>
+
+      {/* ── Recruiter profile widget ── */}
+      {/* S1c: RecruiterProfile は ow_users から実装予定 */}
+
+      {/* ── Job performance ── */}
       <section style={{
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 14,
         padding: "22px 26px",
-        marginTop: 4,
+        marginTop: 16,
       }}>
         <div style={{
           display: "flex", alignItems: "baseline", justifyContent: "space-between",

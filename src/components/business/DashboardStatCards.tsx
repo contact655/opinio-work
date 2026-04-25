@@ -1,3 +1,4 @@
+"use client";
 import type { TodoCounts, MonthlyStatsWithDelta } from "@/lib/business/dashboard";
 
 type Props = {
