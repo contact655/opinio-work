@@ -200,7 +200,7 @@ export default function JobCreatePage() {
     setSaving(false);
     setToast(status === "draft" ? "下書き保存しました" : "求人を公開しました");
     setTimeout(() => {
-      router.push("/company/dashboard");
+      router.push("/biz/dashboard");
     }, 1500);
   }
 
@@ -209,7 +209,7 @@ export default function JobCreatePage() {
       <>
         <Header />
         <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
-          <p className="text-gray-400">読み込み中...</p>
+          <p className="text-gray-600">読み込み中...</p>
         </main>
       </>
     );
@@ -222,7 +222,7 @@ export default function JobCreatePage() {
         <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
             <p className="text-gray-500 mb-4">先に企業登録を完了してください</p>
-            <a href="/company/register" className="text-primary hover:underline">企業登録はこちら</a>
+            <a href="/biz/auth/signup" className="text-primary hover:underline">企業登録はこちら</a>
           </div>
         </main>
       </>
@@ -339,7 +339,7 @@ export default function JobCreatePage() {
                       <button onClick={() => addRequirement("must")} className="text-xs text-primary hover:underline">+ 追加</button>
                     </div>
                     {requirements.filter((r) => r.type === "must").length === 0 && (
-                      <button onClick={() => addRequirement("must")} className="w-full py-3 border border-dashed border-gray-300 rounded-lg text-sm text-gray-400 hover:border-primary hover:text-primary">+ 必須要件を追加</button>
+                      <button onClick={() => addRequirement("must")} className="w-full py-3 border border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-primary hover:text-primary">+ 必須要件を追加</button>
                     )}
                     {requirements.map((r, i) =>
                       r.type === "must" ? (
@@ -358,7 +358,7 @@ export default function JobCreatePage() {
                       <button onClick={() => addRequirement("want")} className="text-xs text-primary hover:underline">+ 追加</button>
                     </div>
                     {requirements.filter((r) => r.type === "want").length === 0 && (
-                      <button onClick={() => addRequirement("want")} className="w-full py-3 border border-dashed border-gray-300 rounded-lg text-sm text-gray-400 hover:border-primary hover:text-primary">+ 歓迎要件を追加</button>
+                      <button onClick={() => addRequirement("want")} className="w-full py-3 border border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-primary hover:text-primary">+ 歓迎要件を追加</button>
                     )}
                     {requirements.map((r, i) =>
                       r.type === "want" ? (
@@ -415,7 +415,7 @@ export default function JobCreatePage() {
                       )}
                     </div>
                   ))}
-                  <button onClick={addProcessStep} className="w-full py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-400 hover:border-primary hover:text-primary mt-2">+ ステップを追加</button>
+                  <button onClick={addProcessStep} className="w-full py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-primary hover:text-primary mt-2">+ ステップを追加</button>
                 </div>
               </section>
             )}
@@ -453,7 +453,7 @@ export default function JobCreatePage() {
           {/* Right Preview */}
           <aside className="hidden xl:block w-[300px] flex-shrink-0">
             <div className="sticky top-24">
-              <p className="text-xs text-gray-400 mb-2">求人プレビュー</p>
+              <p className="text-xs text-gray-600 mb-2">求人プレビュー</p>
               <div className="bg-white rounded-card border border-card-border p-5 space-y-3">
                 <div className="flex gap-2">
                   {form.job_category && <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full">{form.job_category}</span>}

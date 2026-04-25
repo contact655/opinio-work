@@ -220,13 +220,13 @@ export default function Header() {
 
     return (
       <>
-        <Link href="/company/dashboard" className={mobile ? "block" : "transition-colors"} style={sty("/company/dashboard")} onClick={close} {...hoverHandlers("/company/dashboard")}>
+        <Link href="/biz/dashboard" className={mobile ? "block" : "transition-colors"} style={sty("/biz/dashboard")} onClick={close} {...hoverHandlers("/biz/dashboard")}>
           求人を管理する
         </Link>
-        <Link href="/company/edit" className={mobile ? "block" : "transition-colors"} style={sty("/company/edit")} onClick={close} {...hoverHandlers("/company/edit")}>
+        <Link href="/biz/company" className={mobile ? "block" : "transition-colors"} style={sty("/biz/company")} onClick={close} {...hoverHandlers("/biz/company")}>
           企業プロフィール
         </Link>
-        <Link href="/company/jobs/new" className={mobile ? "block" : "transition-colors"} style={sty("/company/jobs/new")} onClick={close} {...hoverHandlers("/company/jobs/new")}>
+        <Link href="/biz/jobs/new" className={mobile ? "block" : "transition-colors"} style={sty("/biz/jobs/new")} onClick={close} {...hoverHandlers("/biz/jobs/new")}>
           求人を作成
         </Link>
       </>

@@ -72,7 +72,7 @@ export default function ForCompaniesPage() {
               style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}
             >
               <Link
-                href="/company/register"
+                href="/biz/auth/signup"
                 style={{
                   padding: "13px 28px",
                   background: "#1D9E75",
@@ -217,7 +217,7 @@ export default function ForCompaniesPage() {
 
             <div style={{ textAlign: "center", marginTop: 40 }}>
               <Link
-                href="/company/register"
+                href="/biz/auth/signup"
                 style={{
                   display: "inline-block",
                   padding: "14px 32px",

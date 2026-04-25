@@ -206,7 +206,7 @@ export default function CompanyRegisterPage() {
 
       console.log("[company register] SUCCESS:", result);
       setLoading(false);
-      router.push("/company/dashboard");
+      router.push("/biz/dashboard");
     } catch (err) {
       console.error("[company register] fetch error:", err);
       setError("通信エラーが発生しました。もう一度お試しください。");
@@ -219,7 +219,7 @@ export default function CompanyRegisterPage() {
       <>
         <Header />
         <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
-          <p className="text-gray-400">読み込み中...</p>
+          <p className="text-gray-600">読み込み中...</p>
         </main>
       </>
     );
@@ -237,7 +237,7 @@ export default function CompanyRegisterPage() {
                 <span
                   key={s}
                   className={`text-xs font-medium ${
-                    i <= step ? "text-primary" : "text-gray-400"
+                    i <= step ? "text-primary" : "text-gray-600"
                   }`}
                 >
                   {s}
@@ -277,7 +277,7 @@ export default function CompanyRegisterPage() {
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
                   すでにアカウントをお持ちですか？{" "}
                   <button
-                    onClick={() => router.push("/auth/login")}
+                    onClick={() => router.push("/biz/auth")}
                     className="text-primary font-medium hover:underline"
                   >
                     ログイン
@@ -482,12 +482,11 @@ export default function CompanyRegisterPage() {
                   </ul>
                 </div>
                 <ImageUpload
+                  bucketName="company-covers"
                   currentUrl={logoUrl || null}
                   onUpload={(url) => setLogoUrl(url)}
-                  folder="logos"
-                  label="企業ロゴ"
-                  hint="PNG・JPG、5MB以内"
-                  shape="square"
+                  shape="rectangle"
+                  placeholder="企業ロゴをアップロード（PNG・JPG、5MB以内）"
                 />
                 <div className="flex gap-3">
                   <button

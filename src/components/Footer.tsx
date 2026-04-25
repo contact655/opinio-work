@@ -59,7 +59,7 @@ export default function Footer() {
             <h4 className="text-sm font-semibold mb-3">企業の方</h4>
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
-                <Link href="/company/register" className="hover:text-white">
+                <Link href="/biz/auth/signup" className="hover:text-white">
                   企業登録
                 </Link>
               </li>
