@@ -3,21 +3,13 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyCard } from "@/components/business/CompanyCard";
 import { DashboardStatCards } from "@/components/business/DashboardStatCards";
 import { JobPerformanceList } from "@/components/business/JobPerformanceList";
-import { DashboardMockView } from "./DashboardMockView";
 import {
-  getTenantContext,
-  getTodoCounts,
-  getMonthlyStats,
-  getJobPerformance,
-  getJobStatusCounts,
-} from "@/lib/business/dashboard";
-import { createClient } from "@/lib/supabase/server";
-
-export const dynamic = "force-dynamic";
-
-export const metadata = {
-  title: "ダッシュボード | Opinio Business",
-};
+  mockTenantContext,
+  mockTodoCounts,
+  mockMonthlyStats,
+  mockJobStatusCounts,
+  mockJobPerformance,
+} from "@/lib/business/mockTenantContext";
 
 function getGreeting(hour: number): string {
   if (hour < 12) return "おはようございます";
@@ -25,72 +17,13 @@ function getGreeting(hour: number): string {
   return "おかえりなさい";
 }
 
-async function NoTenantPage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const userName = user?.email ? user.email.split("@")[0] : "ご担当者";
-  return (
-    <BusinessLayout userName={userName}>
-      <div style={{
-        background: "#fff",
-        borderRadius: 14,
-        border: "1px solid var(--line)",
-        padding: 40,
-        textAlign: "center",
-        maxWidth: 560, margin: "60px auto",
-      }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>🏢</div>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-          企業アカウントを追加しますか？
-        </h2>
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 22 }}>
-          このアカウントには企業ロールが紐付いていません。<br />
-          自社情報・求人を管理するには企業アカウントの追加申請が必要です。
-        </p>
-        <Link
-          href="/biz/auth/signup"
-          style={{
-            display: "inline-block", padding: "12px 28px", borderRadius: 8,
-            fontSize: 14, fontWeight: 600,
-            background: "var(--royal)", color: "#fff", textDecoration: "none",
-          }}
-        >
-          企業アカウントを追加 →
-        </Link>
-        <div style={{ marginTop: 16 }}>
-          <Link href="/" style={{ fontSize: 12, color: "var(--ink-mute)", textDecoration: "underline" }}>
-            候補者サイトに戻る
-          </Link>
-        </div>
-      </div>
-    </BusinessLayout>
-  );
-}
-
-export default async function BizDashboardPage() {
-  const ctx = await getTenantContext();
-
-  if (!ctx) {
-    // NEXT_PUBLIC_BIZ_MOCK_MODE=true の場合のみモックで描画（dev 専用）
-    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") {
-      return <DashboardMockView />;
-    }
-    return <NoTenantPage />;
-  }
-
-  const [todoCounts, monthlyStats, jobPerformance, jobStatusCounts] = await Promise.all([
-    getTodoCounts(ctx.tenantId),
-    getMonthlyStats(ctx.tenantId),
-    getJobPerformance(ctx.tenantId),
-    getJobStatusCounts(ctx.tenantId),
-  ]);
-
+export function DashboardMockView() {
+  const ctx = mockTenantContext;
   const hour = new Date().getHours();
   const greeting = getGreeting(hour);
   const today = new Date().toLocaleDateString("ja-JP", {
     year: "numeric", month: "long", day: "numeric", weekday: "short",
   });
-
   const greetingName = ctx.userName.includes(" ")
     ? ctx.userName.split(" ").slice(-1)[0]
     : ctx.userName;
@@ -103,6 +36,43 @@ export default async function BizDashboardPage() {
       tenantLogoLetter={ctx.logoLetter}
       planType={ctx.planType}
     >
+      {/* ── Dev mock banner ── */}
+      <div style={{
+        marginBottom: 20,
+        padding: "10px 16px",
+        background: "linear-gradient(135deg, #7C3AED, #5B21B6)",
+        borderRadius: 10,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 12,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 14 }}>🧪</span>
+          <div>
+            <span style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 10, fontWeight: 700,
+              color: "rgba(255,255,255,0.7)", letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              marginRight: 8,
+            }}>
+              Development Mode
+            </span>
+            <span style={{ fontSize: 12, color: "#fff", fontWeight: 500 }}>
+              モックデータを表示中。本番では実テナントのデータに切り替わります。
+            </span>
+          </div>
+        </div>
+        <span style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 10, fontWeight: 700,
+          padding: "3px 10px", borderRadius: 100,
+          background: "rgba(255,255,255,0.15)",
+          color: "#fff", whiteSpace: "nowrap",
+        }}>
+          NEXT_PUBLIC_BIZ_MOCK_MODE=true
+        </span>
+      </div>
+
       {/* ── Greeting header ── */}
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "baseline",
@@ -135,10 +105,10 @@ export default async function BizDashboardPage() {
 
       {/* ── Stat cards (4枚) ── */}
       <DashboardStatCards
-        todoCounts={todoCounts}
-        monthlyStats={monthlyStats}
+        todoCounts={mockTodoCounts}
+        monthlyStats={mockMonthlyStats}
         planType={ctx.planType}
-        activeJobCount={jobStatusCounts.active}
+        activeJobCount={mockJobStatusCounts.active}
       />
 
       {/* ── S1b placeholders ──────────────────────────────────────
@@ -153,7 +123,7 @@ export default async function BizDashboardPage() {
           - RecruiterProfile    (採用担当者公開設定widget)
       ─────────────────────────────────────────────────────────── */}
 
-      {/* ── Job performance (S1b で JobStatusCards + 求人管理リンクに統合予定) ── */}
+      {/* ── Job performance ── */}
       <section style={{
         background: "#fff",
         border: "1px solid var(--line)",
@@ -181,7 +151,7 @@ export default async function BizDashboardPage() {
             求人管理へ →
           </Link>
         </div>
-        <JobPerformanceList jobs={jobPerformance} />
+        <JobPerformanceList jobs={mockJobPerformance} />
       </section>
     </BusinessLayout>
   );
