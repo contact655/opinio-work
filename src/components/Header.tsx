@@ -6,27 +6,6 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 // ─── Badge Component ────────────────────────────────
-function NavBadge({
-  children,
-  color,
-}: {
-  children: React.ReactNode;
-  color: "green" | "amber" | "red";
-}) {
-  const styles = {
-    green: { background: "#E1F5EE", color: "#0F6E56" },
-    amber: { background: "#FAEEDA", color: "#854F0B" },
-    red: { background: "#E24B4A", color: "#fff" },
-  };
-  return (
-    <span
-      className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-      style={styles[color]}
-    >
-      {children}
-    </span>
-  );
-}
 
 export default function Header() {
   const pathname = usePathname();
@@ -35,7 +14,6 @@ export default function Header() {
   const [roles, setRoles] = useState<string[]>([]);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [newJobCount, setNewJobCount] = useState<number>(0);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -55,18 +33,6 @@ export default function Header() {
           }
         } catch (err) {
           console.error("[Header] roles fetch error:", err);
-        }
-
-        // 未読メッセージ数を取得
-        try {
-          const { count } = await supabase
-            .from("ow_messages")
-            .select("id", { count: "exact", head: true })
-            .eq("is_read", false)
-            .neq("sender_id", user.id);
-          if (count && count > 0) setUnreadCount(count);
-        } catch {
-          // ow_messages may not exist yet
         }
 
         // 前回ログイン以降の新着求人数を取得
@@ -300,19 +266,6 @@ export default function Header() {
           <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
-          {/* 未読バッジ */}
-          {unreadCount > 0 && (
-            <span style={{
-              position: "absolute", top: -2, right: -2,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: 16, height: 16, borderRadius: "50%",
-              background: "#e24b4a", color: "#fff",
-              fontSize: 9, fontWeight: 700,
-              border: "2px solid #fff",
-            }}>
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
         </button>
 
         {/* ドロップダウン */}
@@ -335,20 +288,6 @@ export default function Header() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
                 マイページ
-              </Link>
-              <Link
-                href="/messages"
-                className="flex items-center gap-2 px-4 py-2.5 text-[14px] hover:bg-gray-50 transition-colors"
-                style={{ color: "#374151", fontWeight: 500 }}
-                onClick={() => setProfileDropdownOpen(false)}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                </svg>
-                メッセージ
-                {unreadCount > 0 && (
-                  <NavBadge color="red">{unreadCount}</NavBadge>
-                )}
               </Link>
               <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
               <button
@@ -401,17 +340,6 @@ export default function Header() {
           onClick={() => setMenuOpen(false)}
         >
           マイページ
-        </Link>
-        <Link
-          href="/messages"
-          className="block"
-          style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}
-          onClick={() => setMenuOpen(false)}
-        >
-          メッセージ
-          {unreadCount > 0 && (
-            <NavBadge color="red">{unreadCount}</NavBadge>
-          )}
         </Link>
         <button
           onClick={() => {

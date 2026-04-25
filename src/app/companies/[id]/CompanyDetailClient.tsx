@@ -9,7 +9,6 @@ import { getJobCategoryStyle } from "@/lib/utils/jobCategoryStyle";
 import { getCompanyLogoSources } from "@/lib/utils/companyLogo";
 import { getMentorAvatarProps } from "@/lib/utils/mentorAvatar";
 import { getCompanyPerspective, formatUpdatedAt } from "@/lib/companyPerspective";
-import { CompanyActionButtons } from "@/components/CompanyActionButtons";
 import { CompanyLinks } from "@/components/CompanyLinks";
 import { SelectionProcess } from "@/components/SelectionProcess";
 import { HiringPolicy } from "@/components/HiringPolicy";
@@ -137,7 +136,6 @@ export default function CompanyDetailClient({
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [jobsPage, setJobsPage] = useState(1);
   const [isSticky, setIsSticky] = useState(false);
-  const [requesting, setRequesting] = useState(false);
   const tabRef = useRef<HTMLDivElement>(null);
   // modalMember removed — members now navigate to detail page
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -197,62 +195,6 @@ export default function CompanyDetailClient({
     return () => observer.disconnect();
   }, []);
 
-  // 修正4: カジュアル面談リクエスト（Supabase直接）
-  const handleCasualRequest = async () => {
-    if (!isLoggedIn) {
-      router.push("/auth/signup");
-      return;
-    }
-    setRequesting(true);
-    try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/auth/signup"); return; }
-
-      // 既存スレッドを確認
-      const { data: existing } = await supabase
-        .from("ow_threads")
-        .select("id")
-        .eq("company_id", company.id)
-        .eq("candidate_id", user.id)
-        .maybeSingle();
-
-      if (existing) {
-        router.push(`/messages?thread=${existing.id}`);
-        return;
-      }
-
-      // 新規スレッド作成
-      const { data: thread, error } = await supabase
-        .from("ow_threads")
-        .insert({
-          company_id: company.id,
-          candidate_id: user.id,
-          status: "casual_requested",
-        })
-        .select()
-        .single();
-
-      if (error || !thread) {
-        console.error("Thread creation failed:", error);
-        alert("カジュアル面談リクエストを送信しました");
-        return;
-      }
-
-      // システムメッセージを自動投稿
-      await supabase.from("ow_messages").insert({
-        thread_id: thread.id,
-        sender_id: user.id,
-        content: `${company.name}へのカジュアル面談リクエストが送信されました`,
-      });
-
-      router.push(`/messages?thread=${thread.id}`);
-    } catch {
-      alert("カジュアル面談リクエストを送信しました");
-    } finally {
-      setRequesting(false);
-    }
-  };
 
   // 修正1: 「万万」「名名」の重複を修正
   const salaryDisplay = company.avg_salary ?? "応相談";
@@ -902,12 +844,8 @@ export default function CompanyDetailClient({
             <CompanyLinks socialLinks={(company as any).social_links} companyName={company.name} />
 
             {/* Fix 17 + 18 + 20: Action buttons (scout / compare / follow) */}
-            <section style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 12 }}>
-                この企業を追う
-              </div>
-              {/* Fix 11: 求人を見るボタン（求人がある場合のみ） */}
-              {jobCount > 0 && (
+            {jobCount > 0 && (
+              <section style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
                 <button
                   onClick={() => { setActiveTab("jobs"); tabRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
                   style={{
@@ -921,18 +859,12 @@ export default function CompanyDetailClient({
                     borderRadius: 10,
                     cursor: "pointer",
                     textAlign: "center",
-                    marginBottom: 10,
                   }}
                 >
                   求人を見る（{jobCount}件）→
                 </button>
-              )}
-              <CompanyActionButtons
-                companyId={company.id}
-                companyName={company.name}
-                isLoggedIn={!!isLoggedIn}
-              />
-            </section>
+              </section>
+            )}
 
             {/* Fix 19 (revised): 選考プロセスの透明化 */}
             <SelectionProcess data={(company as any).selection_process} />
@@ -2028,16 +1960,16 @@ export default function CompanyDetailClient({
                 )}
 
                 <div className="text-center pt-2">
-                  <button onClick={handleCasualRequest} disabled={requesting}
-                    className="inline-flex items-center gap-2 text-[14px] font-medium px-8 py-3.5 rounded-lg text-white transition-colors disabled:opacity-60"
+                  <Link href={`/companies/${company.id}/casual-meeting`}
+                    className="inline-flex items-center gap-2 text-[14px] font-medium px-8 py-3.5 rounded-lg text-white transition-colors"
                     style={{ background: "#1D9E75" }}
-                    onMouseEnter={(e) => { if (!requesting) e.currentTarget.style.background = "#0F6E56"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "#1D9E75"; }}>
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#0F6E56"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#1D9E75"; }}>
                     話を聞きに行く
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
-                  </button>
+                  </Link>
                   <p style={{ fontSize: 11, color: "#6b7280", marginTop: 6 }}>
                     カジュアルに30分話すだけ。選考には影響しません。
                   </p>

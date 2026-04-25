@@ -1,61 +1,283 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
-type RolesData = {
-  roles: string[];
-  profile: { id: string; name: string } | null;
-  companies: { id: string; name: string; status: string }[];
+// ─── Types ───────────────────────────────────────────
+
+type SavedJob = {
+  id: string;
+  job_id: string;
+  job: {
+    id: string;
+    title: string;
+    job_category: string | null;
+    salary_min: number | null;
+    salary_max: number | null;
+    location: string | null;
+    company: {
+      id: string;
+      name: string;
+      url: string | null;
+      logo_url: string | null;
+    } | null;
+  } | null;
 };
 
-type SavedCompany = {
-  company_id: string;
-  company: { id: string; name: string; industry: string | null; url: string | null; logo_url: string | null };
+type NewJob = {
+  id: string;
+  title: string;
+  job_category: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  location: string | null;
+  created_at: string;
+  company: {
+    id: string;
+    name: string;
+    url: string | null;
+    logo_url: string | null;
+  } | null;
 };
+
+// ─── Helpers ─────────────────────────────────────────
+
+function getLogoUrl(entity: { logo_url?: string | null; url?: string | null } | null): string | null {
+  if (!entity) return null;
+  if (entity.logo_url) return entity.logo_url;
+  if (entity.url) {
+    try {
+      return `https://www.google.com/s2/favicons?domain=${new URL(entity.url).hostname}&sz=128`;
+    } catch {}
+  }
+  return null;
+}
+
+function formatSalary(min: number | null, max: number | null): string {
+  if (!min && !max) return "応相談";
+  if (min && max) return `${min}〜${max}万`;
+  if (min) return `${min}万〜`;
+  if (max) return `〜${max}万`;
+  return "応相談";
+}
+
+// ─── Logo Component ──────────────────────────────────
+
+function Logo({ src, name, size = 36 }: { src: string | null; name: string; size?: number }) {
+  const [err, setErr] = useState(false);
+  return (
+    <div
+      className="rounded-lg bg-gray-50 flex-shrink-0 overflow-hidden flex items-center justify-center"
+      style={{ width: size, height: size, border: "0.5px solid #e5e7eb" }}
+    >
+      {src && !err ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" className="w-full h-full object-contain p-1" onError={() => setErr(true)} />
+      ) : (
+        <span className="text-gray-500 text-xs font-bold">{name[0] || "?"}</span>
+      )}
+    </div>
+  );
+}
+
+// ─── Status tracker card data ────────────────────────
+
+const TRACKER_STATUSES = [
+  { key: "applied", label: "応募済み", icon: "📄" },
+  { key: "doc_review", label: "書類選考中", icon: "📋" },
+  { key: "interview", label: "面接中", icon: "🎤" },
+  { key: "offered", label: "内定", icon: "🎉" },
+] as const;
+
+// Map raw DB status values to our 4 tracker buckets
+function mapStatusToBucket(status: string): string {
+  switch (status) {
+    case "applied":
+      return "applied";
+    case "pending":
+    case "screening":
+    case "doc_review":
+      return "doc_review";
+    case "interview":
+    case "interview1":
+    case "interview_final":
+      return "interview";
+    case "offer":
+    case "offered":
+    case "accepted":
+      return "offered";
+    default:
+      return "applied";
+  }
+}
+
+// ─── Main Component ──────────────────────────────────
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [data, setData] = useState<RolesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-  const [favorites, setFavorites] = useState<SavedCompany[]>([]);
+
+  // Section 1: Application tracker
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({
+    applied: 0,
+    doc_review: 0,
+    interview: 0,
+    offered: 0,
+  });
+  const [hasApplications, setHasApplications] = useState(false);
+
+  // Section 2: Saved jobs
+  const [savedJobs, setSavedJobs] = useState<SavedJob[]>([]);
+
+  // Section 3: New jobs since last login
+  const [newJobs, setNewJobs] = useState<NewJob[]>([]);
+  const [newJobsCount, setNewJobsCount] = useState(0);
+
+  // Apply action
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+
+  const handleApply = useCallback(
+    async (jobId: string) => {
+      if (!user || applyingId) return;
+      setApplyingId(jobId);
+      const supabase = createClient();
+      try {
+        await supabase.from("ow_applications").insert({
+          candidate_id: user.id,
+          job_id: jobId,
+          status: "applied",
+        });
+        setAppliedIds((prev) => new Set(prev).add(jobId));
+        // Update tracker count
+        setStatusCounts((prev) => ({ ...prev, applied: prev.applied + 1 }));
+        setHasApplications(true);
+      } catch {
+        // ignore
+      }
+      setApplyingId(null);
+    },
+    [user, applyingId]
+  );
 
   useEffect(() => {
     async function load() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/auth/login");
+        router.push("/auth/signin");
         return;
       }
       setUser(user);
 
-      const res = await fetch("/api/roles");
-      const rolesData = await res.json();
-      setData(rolesData);
-
-      // Fetch favorites
+      // ── Section 1: Fetch applications for status tracker ──
       try {
-        const { data: favData } = await supabase
-          .from("ow_saved_companies")
-          .select("company_id, ow_companies(id, name, industry, url, logo_url)")
+        const { data: apps } = await supabase
+          .from("ow_applications")
+          .select("id, status")
+          .or(`candidate_id.eq.${user.id},user_id.eq.${user.id}`);
+
+        if (apps && apps.length > 0) {
+          setHasApplications(true);
+          const counts: Record<string, number> = {
+            applied: 0,
+            doc_review: 0,
+            interview: 0,
+            offered: 0,
+          };
+          apps.forEach((a: any) => {
+            const bucket = mapStatusToBucket(a.status);
+            if (counts[bucket] !== undefined) counts[bucket]++;
+          });
+          setStatusCounts(counts);
+
+          // Track already-applied job IDs
+          const { data: appJobs } = await supabase
+            .from("ow_applications")
+            .select("job_id")
+            .or(`candidate_id.eq.${user.id},user_id.eq.${user.id}`);
+          if (appJobs) {
+            setAppliedIds(new Set(appJobs.map((a: any) => a.job_id)));
+          }
+        }
+      } catch {
+        // ow_applications may not exist
+      }
+
+      // ── Section 2: Fetch saved jobs (ow_job_favorites) ──
+      try {
+        const { data: favs } = await supabase
+          .from("ow_job_favorites")
+          .select("id, job_id")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
-        if (favData) {
-          setFavorites(
-            favData.map((f: any) => ({
-              company_id: f.company_id,
-              company: f.ow_companies,
-            }))
+
+        if (favs && favs.length > 0) {
+          const ids = favs.map((f: any) => f.job_id);
+          const { data: jobs } = await supabase
+            .from("ow_jobs")
+            .select("id, title, job_category, salary_min, salary_max, location, ow_companies(id, name, url, logo_url)")
+            .in("id", ids)
+            .eq("status", "active");
+
+          const jobMap = new Map(
+            (jobs || []).map((j: any) => [
+              j.id,
+              { ...j, company: j.ow_companies || null },
+            ])
+          );
+          setSavedJobs(
+            favs
+              .map((f: any) => ({
+                id: f.id,
+                job_id: f.job_id,
+                job: jobMap.get(f.job_id) || null,
+              }))
+              .filter((f: SavedJob) => f.job !== null)
           );
         }
       } catch {
-        // ow_saved_companies might not have FK relation, ignore
+        // ignore
+      }
+
+      // ── Section 3: New jobs since last login ──
+      try {
+        const { data: profile } = await supabase
+          .from("ow_profiles")
+          .select("last_login_at")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        const lastLogin = profile?.last_login_at;
+        if (lastLogin) {
+          const { data: newJobsData, count } = await supabase
+            .from("ow_jobs")
+            .select("id, title, job_category, salary_min, salary_max, location, created_at, ow_companies(id, name, url, logo_url)", { count: "exact" })
+            .eq("status", "active")
+            .gt("created_at", lastLogin)
+            .order("created_at", { ascending: false })
+            .limit(5);
+
+          if (newJobsData && newJobsData.length > 0) {
+            setNewJobs(
+              newJobsData.map((j: any) => ({
+                ...j,
+                company: j.ow_companies || null,
+              }))
+            );
+            setNewJobsCount(count || newJobsData.length);
+          }
+        }
+      } catch {
+        // ignore
       }
 
       setLoading(false);
@@ -67,232 +289,257 @@ export default function DashboardPage() {
     return (
       <>
         <Header />
-        <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
-          <p className="text-gray-400">読み込み中...</p>
+        <main className="pt-16 min-h-screen" style={{ background: "#f8f9fa" }}>
+          <div className="flex items-center justify-center" style={{ minHeight: "60vh" }}>
+            <p style={{ fontSize: 14, color: "#9ca3af" }}>読み込み中...</p>
+          </div>
         </main>
       </>
     );
   }
 
-  if (!data || !user) return null;
-
-  const hasCandidate = data.roles.includes("candidate");
-  const hasCompany = data.roles.includes("company");
-  const hasAdmin = data.roles.includes("admin");
+  if (!user) return null;
 
   return (
     <>
       <Header />
-      <main className="pt-16 min-h-screen bg-background">
-        <div className="max-w-3xl mx-auto px-4 py-10">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold mb-1">マイページ</h1>
-            <p className="text-sm text-gray-500">
-              {user.email}
-            </p>
+      <main className="pt-16 min-h-screen" style={{ background: "#f8f9fa" }}>
+        <div className="max-w-[760px] mx-auto px-4 py-10">
+          {/* ─── Page Title ─── */}
+          <div style={{ marginBottom: 32 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: "#111827", marginBottom: 4 }}>
+              マイページ
+            </h1>
+            <p style={{ fontSize: 13, color: "#9ca3af" }}>{user.email}</p>
           </div>
 
-          {/* Registered Roles */}
-          <div className="grid gap-4 mb-8">
-            {/* Candidate Role */}
-            <div className="bg-white rounded-card-lg border border-card-border p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasCandidate ? "bg-blue-100" : "bg-gray-100"}`}>
-                    <svg className={`w-6 h-6 ${hasCandidate ? "text-blue-600" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="font-bold text-lg">求職者</h2>
-                      {hasCandidate ? (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 flex items-center gap-0.5">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                          登録済み
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500 flex items-center gap-0.5">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
-                          追加
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      {hasCandidate
-                        ? (data.profile?.name ? `${data.profile.name} さん` : "プロフィール登録済み")
-                        : "プロフィールを登録して求人に応募できます"}
-                    </p>
-                  </div>
-                </div>
-                {hasCandidate ? (
-                  <Link
-                    href="/companies"
-                    className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-dark transition-colors"
-                  >
-                    企業を探す
-                  </Link>
-                ) : (
-                  <Link
-                    href="/onboarding"
-                    className="px-4 py-2 border border-primary text-primary text-sm font-medium rounded-full hover:bg-primary-light transition-colors"
-                  >
-                    登録する
-                  </Link>
-                )}
-              </div>
-              {hasCandidate && (
-                <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap gap-4 text-sm">
-                  <Link href="/dashboard/job-tracking" className="text-primary font-medium hover:text-primary-dark transition-colors">転職活動の進捗</Link>
-                  <Link href="/jobs" className="text-gray-500 hover:text-primary transition-colors">求人を見る</Link>
-                  <Link href="/mypage/applications" className="text-gray-500 hover:text-primary transition-colors">応募管理</Link>
-                  <Link href="/scout" className="text-gray-500 hover:text-primary transition-colors">スカウト</Link>
-                  <Link href="/onboarding" className="text-gray-500 hover:text-primary transition-colors">プロフィール編集</Link>
-                </div>
-              )}
-            </div>
+          {/* ═══ Section 1: 応募状況トラッカー ═══ */}
+          <section style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 12 }}>
+              応募状況
+            </h2>
 
-            {/* Company Role */}
-            <div className="bg-white rounded-card-lg border border-card-border p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasCompany ? "bg-green-100" : "bg-gray-100"}`}>
-                    <svg className={`w-6 h-6 ${hasCompany ? "text-green-600" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="font-bold text-lg">企業担当者</h2>
-                      {hasCompany ? (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 flex items-center gap-0.5">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                          登録済み
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500 flex items-center gap-0.5">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
-                          追加
-                        </span>
-                      )}
-                    </div>
-                    {hasCompany && data.companies.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {data.companies.map((c) => (
-                          <span key={c.id} className="text-sm text-gray-500 flex items-center gap-1">
-                            {c.name}
-                            <span className={`px-1.5 py-0.5 text-[10px] rounded-full ${
-                              c.status === "active" ? "bg-green-100 text-green-700" :
-                              c.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                              "bg-red-100 text-red-700"
-                            }`}>
-                              {c.status === "active" ? "承認済" : c.status === "pending" ? "審査中" : "停止"}
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">企業を登録して求人を掲載できます</p>
-                    )}
-                  </div>
-                </div>
-                {hasCompany ? (
-                  <Link
-                    href="/company/dashboard"
-                    className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-dark transition-colors"
-                  >
-                    企業管理
-                  </Link>
-                ) : (
-                  <Link
-                    href="/company/register"
-                    className="px-4 py-2 border border-primary text-primary text-sm font-medium rounded-full hover:bg-primary-light transition-colors"
-                  >
-                    企業登録
-                  </Link>
-                )}
+            {!hasApplications ? (
+              <div
+                style={{
+                  background: "#fff",
+                  borderRadius: 12,
+                  padding: "32px 16px",
+                  textAlign: "center",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)",
+                }}
+              >
+                <p style={{ fontSize: 14, color: "#9ca3af", marginBottom: 12 }}>
+                  まだ応募した求人がありません
+                </p>
+                <Link
+                  href="/jobs"
+                  style={{ fontSize: 13, fontWeight: 500, color: "#1D9E75" }}
+                >
+                  求人を探す →
+                </Link>
               </div>
-              {hasCompany && data.companies.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-gray-100 flex gap-4 text-sm">
-                  <Link href="/company/dashboard" className="text-gray-500 hover:text-primary transition-colors">企業ダッシュボード</Link>
-                  <Link href="/company/edit" className="text-gray-500 hover:text-primary transition-colors">企業情報編集</Link>
-                  <Link href="/company/jobs/new" className="text-gray-500 hover:text-primary transition-colors">求人作成</Link>
-                </div>
-              )}
-            </div>
-
-            {/* Admin Role */}
-            {hasAdmin && (
-              <div className="bg-white rounded-card-lg border border-card-border p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="font-bold text-lg">管理者</h2>
-                      <p className="text-sm text-gray-500">システム全体の管理</p>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+                {TRACKER_STATUSES.map(({ key, label, icon }) => (
+                  <div
+                    key={key}
+                    style={{
+                      background: "#f9fafb",
+                      borderRadius: 12,
+                      padding: 16,
+                      textAlign: "center",
+                      border: "1px solid #f3f4f6",
+                    }}
+                  >
+                    <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
+                    <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontSize: 24, fontWeight: 500, color: "#111827" }}>
+                      {statusCounts[key] || 0}
                     </div>
                   </div>
-                  <Link
-                    href="/admin"
-                    className="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-full hover:bg-gray-900 transition-colors"
-                  >
-                    管理画面
-                  </Link>
-                </div>
+                ))}
               </div>
             )}
-          </div>
+          </section>
 
-          {/* 気になる企業 */}
-          <div className="bg-white rounded-card-lg border border-card-border p-6">
-            <h2 className="text-[16px] font-bold mb-4">
-              気になる企業 {favorites.length}社
+          {/* ═══ Section 2: 保存済み求人 ═══ */}
+          <section style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 12 }}>
+              保存済み求人
             </h2>
-            {favorites.length === 0 ? (
-              <p className="text-[13px] text-gray-400 py-4 text-center">
-                気になる企業をブックマークすると、ここに表示されます
+
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 12,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)",
+              }}
+            >
+              {savedJobs.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "32px 16px" }}>
+                  <p style={{ fontSize: 14, color: "#9ca3af", marginBottom: 12 }}>
+                    気になる求人のハートを押すとここに表示されます
+                  </p>
+                  <Link href="/jobs" style={{ fontSize: 13, fontWeight: 500, color: "#1D9E75" }}>
+                    求人を探す →
+                  </Link>
+                </div>
+              ) : (
+                <div>
+                  {savedJobs.map((sf, idx) => {
+                    const j = sf.job;
+                    if (!j) return null;
+                    const comp = j.company;
+                    const isApplied = appliedIds.has(j.id);
+                    return (
+                      <div
+                        key={sf.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "14px 20px",
+                          borderTop: idx > 0 ? "1px solid #f3f4f6" : undefined,
+                        }}
+                      >
+                        <Logo src={getLogoUrl(comp)} name={comp?.name || "?"} />
+                        <Link href={`/jobs/${j.id}`} className="flex-1 min-w-0" style={{ textDecoration: "none" }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }} className="truncate">
+                            {comp?.name ? `${comp.name}` : ""}
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginTop: 1 }} className="truncate">
+                            {j.title}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+                            {[j.job_category, formatSalary(j.salary_min, j.salary_max), j.location]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </div>
+                        </Link>
+                        {/* 応募するボタン */}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (!isApplied) handleApply(j.id);
+                          }}
+                          disabled={isApplied || applyingId === j.id}
+                          style={{
+                            flexShrink: 0,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            padding: "7px 16px",
+                            borderRadius: 8,
+                            border: "none",
+                            cursor: isApplied ? "default" : "pointer",
+                            background: isApplied ? "#f3f4f6" : "#1D9E75",
+                            color: isApplied ? "#9ca3af" : "#fff",
+                            transition: "background 0.15s",
+                          }}
+                        >
+                          {applyingId === j.id ? "..." : isApplied ? "応募済み" : "応募する"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* ═══ Section 3: 前回から新着 ═══ */}
+          {newJobs.length > 0 && (
+            <section style={{ marginBottom: 32 }}>
+              <h2 style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 4 }}>
+                前回から新着
+              </h2>
+              <p style={{ fontSize: 13, color: "#059669", fontWeight: 500, marginBottom: 12 }}>
+                前回のログイン以降 {newJobsCount}件の新着求人があります
               </p>
-            ) : (
-              <div className="space-y-2">
-                {favorites.map((f) => {
-                  let logoUrl = f.company?.logo_url || null;
-                  if (!logoUrl && f.company?.url) {
-                    try { logoUrl = `https://www.google.com/s2/favicons?domain=${new URL(f.company.url).hostname}&sz=128`; } catch {}
-                  }
+
+              <div
+                style={{
+                  background: "#fff",
+                  borderRadius: 12,
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)",
+                }}
+              >
+                {newJobs.map((j, idx) => {
+                  const comp = j.company;
+                  const dateStr = new Date(j.created_at).toLocaleDateString("ja-JP", {
+                    month: "short",
+                    day: "numeric",
+                  });
                   return (
                     <Link
-                      key={f.company_id}
-                      href={`/companies/${f.company_id}`}
-                      className="flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-gray-50"
-                      style={{ border: "0.5px solid #f0f0f0" }}
+                      key={j.id}
+                      href={`/jobs/${j.id}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "14px 20px",
+                        borderTop: idx > 0 ? "1px solid #f3f4f6" : undefined,
+                        textDecoration: "none",
+                      }}
+                      className="hover:bg-gray-50 transition-colors"
                     >
-                      <div className="w-9 h-9 rounded-lg bg-gray-50 flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ border: "0.5px solid #e5e7eb" }}>
-                        {logoUrl ? (
-                          <img src={logoUrl} alt="" className="w-full h-full object-contain p-1" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                        ) : (
-                          <span className="text-gray-400 text-xs font-bold">{f.company?.name?.[0] || "?"}</span>
-                        )}
-                      </div>
+                      <Logo src={getLogoUrl(comp)} name={comp?.name || "?"} />
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-medium text-gray-800 truncate">{f.company?.name || "不明"}</div>
-                        <div className="text-[11px] text-gray-400">{f.company?.industry || ""}</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }} className="truncate">
+                          {comp?.name || "企業名"}
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginTop: 1 }} className="truncate">
+                          {j.title}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+                          {[j.job_category, formatSalary(j.salary_min, j.salary_max), j.location]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </div>
                       </div>
-                      <span className="text-[11px] font-medium flex-shrink-0" style={{ color: "#1D9E75" }}>
-                        詳細を見る →
+                      <span style={{
+                        flexShrink: 0,
+                        fontSize: 10,
+                        fontWeight: 600,
+                        padding: "3px 8px",
+                        borderRadius: 999,
+                        background: "#e1f5ee",
+                        color: "#085041",
+                      }}>
+                        {dateStr}
                       </span>
                     </Link>
                   );
                 })}
+                {newJobsCount > 5 && (
+                  <div style={{ textAlign: "center", padding: "12px 16px", borderTop: "1px solid #f3f4f6" }}>
+                    <Link href="/jobs?sort=newest" style={{ fontSize: 13, fontWeight: 500, color: "#1D9E75" }}>
+                      すべての新着求人を見る →
+                    </Link>
+                  </div>
+                )}
               </div>
-            )}
+            </section>
+          )}
+
+          {/* ─── Quick Links ─── */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 13, paddingTop: 8 }}>
+            <Link href="/mypage/profile" style={{ color: "#6b7280", textDecoration: "none" }} className="hover:text-gray-900 transition-colors">
+              プロフィール編集
+            </Link>
+            <span style={{ color: "#d1d5db" }}>·</span>
+            <Link href="/career-consultation" style={{ color: "#6b7280", textDecoration: "none" }} className="hover:text-gray-900 transition-colors">
+              キャリア相談
+            </Link>
+            <span style={{ color: "#d1d5db" }}>·</span>
+            <Link href="/dashboard/job-tracking" style={{ color: "#6b7280", textDecoration: "none" }} className="hover:text-gray-900 transition-colors">
+              転職トラッキング
+            </Link>
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

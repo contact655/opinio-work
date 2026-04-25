@@ -69,7 +69,7 @@ export default function JobTrackingPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/auth/login?redirect=/dashboard/job-tracking");
+        router.push("/auth/signin?redirect=/dashboard/job-tracking");
         return;
       }
 
@@ -153,7 +153,7 @@ export default function JobTrackingPage() {
       <>
         <Header />
         <main className="pt-16 min-h-screen bg-white flex items-center justify-center">
-          <p className="text-[13px] text-gray-400">読み込み中...</p>
+          <p className="text-[13px] text-gray-600">読み込み中...</p>
         </main>
       </>
     );
@@ -218,9 +218,7 @@ export default function JobTrackingPage() {
                   {/* カード */}
                   {stageItems.map((item) => {
                     const logo = getLogoUrl(item.company);
-                    const href = item.threadId
-                      ? `/messages?thread=${item.threadId}`
-                      : `/companies/${item.company?.id}`;
+                    const href = `/companies/${item.company?.id}`;
 
                     return (
                       <Link
