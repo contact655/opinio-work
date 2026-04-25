@@ -27,6 +27,32 @@
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 20px;
+
+  /* ── Biz / Global design tokens (opinio-biz-dashboard-v2 準拠) ── */
+  /* Phase 3: /biz/* で使用。Phase 6 で求職者側にも展開予定。      */
+  --royal: #002366;
+  --royal-deep: #001A4D;
+  --royal-50: #EFF3FC;
+  --royal-100: #DCE5F7;
+  --accent: #3B5FD9;
+  --ink: #0F172A;
+  --ink-soft: #475569;
+  --ink-mute: #94A3B8;
+  --line: #E2E8F0;
+  --line-soft: #F1F5F9;
+  --bg-tint: #F8FAFC;
+  --success: #059669;
+  --success-soft: #ECFDF5;
+  --warm: #F59E0B;
+  --warm-soft: #FEF3C7;
+  --purple: #7C3AED;
+  --purple-soft: #F3E8FF;
+  --gold: #D97706;
+  --gold-soft: #FEF3C7;
+  --error: #DC2626;
+  --error-soft: #FEE2E2;
+  --pink: #DB2777;
+  --pink-soft: #FCE7F3;
 }
 
 @media (prefers-color-scheme: dark) {

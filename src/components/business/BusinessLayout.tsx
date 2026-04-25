@@ -8,17 +8,92 @@ import { createClient } from "@/lib/supabase/client";
 type Props = {
   userName: string;
   tenantName?: string;
+  tenantLogoGradient?: string | null;
+  tenantLogoLetter?: string | null;
+  planType?: string | null;
   children: React.ReactNode;
 };
 
 const NAV_ITEMS = [
-  { href: "/biz/dashboard", label: "ダッシュボード" },
-  { href: "/biz/jobs", label: "求人" },
-  { href: "/biz/meetings", label: "面談" },
-  { href: "/biz/company", label: "企業情報" },
+  {
+    href: "/biz/dashboard",
+    label: "ダッシュボード",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+      </svg>
+    ),
+  },
+  {
+    href: "/biz/company",
+    label: "企業情報",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+        <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>
+      </svg>
+    ),
+  },
+  {
+    href: "/biz/jobs",
+    label: "求人管理",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+        <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
+      </svg>
+    ),
+  },
+  {
+    href: "/biz/meetings",
+    label: "カジュアル面談",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    ),
+  },
 ];
 
-export function BusinessLayout({ userName, tenantName, children }: Props) {
+function PlanPill({ planType }: { planType?: string | null }) {
+  if (!planType) {
+    return (
+      <span style={{
+        padding: "2px 8px", borderRadius: 100,
+        fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700,
+        letterSpacing: "0.1em",
+        background: "var(--line-soft)", color: "var(--ink-soft)",
+        border: "1px solid var(--line)",
+        marginLeft: 6,
+      }}>FREE</span>
+    );
+  }
+  const labelMap: Record<string, string> = {
+    performance: "成果報酬",
+    saas_monthly: "SaaS月額",
+    saas_yearly: "SaaS年額",
+  };
+  return (
+    <span style={{
+      padding: "2px 8px", borderRadius: 100,
+      fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700,
+      letterSpacing: "0.1em",
+      background: "linear-gradient(135deg, var(--gold), #B45309)",
+      color: "#fff",
+      marginLeft: 6,
+    }}>
+      {labelMap[planType] ?? "有料"}
+    </span>
+  );
+}
+
+export function BusinessLayout({
+  userName,
+  tenantName,
+  tenantLogoGradient,
+  tenantLogoLetter,
+  planType,
+  children,
+}: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [avatarOpen, setAvatarOpen] = useState(false);
@@ -34,7 +109,9 @@ export function BusinessLayout({ userName, tenantName, children }: Props) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [avatarOpen]);
 
-  const initial = (userName || "?").trim().charAt(0).toUpperCase();
+  const userInitial = (userName || "?").trim().charAt(0).toUpperCase();
+  const logoLetter = tenantLogoLetter || (tenantName || "?").trim().charAt(0).toUpperCase();
+  const logoGradient = tenantLogoGradient || "linear-gradient(135deg, #F97316, #EA580C)";
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + "/");
@@ -48,130 +125,261 @@ export function BusinessLayout({ userName, tenantName, children }: Props) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#FAFAFA", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      {/* Header */}
+    <div style={{
+      minHeight: "100vh",
+      background: "var(--bg-tint)",
+      fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+      WebkitFontSmoothing: "antialiased",
+    }}>
+      {/* ── Topbar ── */}
       <header style={{
-        background: "#fff",
-        borderBottom: "0.5px solid #e5e7eb",
-        position: "sticky", top: 0, zIndex: 40,
+        position: "sticky", top: 0, zIndex: 100,
+        background: "rgba(255,255,255,0.96)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderBottom: "1px solid var(--line)",
+        padding: "12px 28px",
+        display: "flex",
+        alignItems: "center",
+        gap: 24,
       }}>
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
-            {/* Logo */}
-            <Link href="/biz/dashboard" style={{ display: "flex", alignItems: "baseline", gap: 6, textDecoration: "none" }}>
-              <span style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.5px" }}>Opinio</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#1D9E75", padding: "2px 8px", borderRadius: 6, background: "#E1F5EE" }}>Business</span>
-            </Link>
+        {/* Brand */}
+        <Link href="/biz/dashboard" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+          <span style={{
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 700, fontSize: 20,
+            color: "var(--royal)",
+            letterSpacing: "-0.02em",
+          }}>Opinio</span>
+          <span style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 9, fontWeight: 700,
+            letterSpacing: "0.15em",
+            padding: "2px 7px",
+            background: "var(--royal)", color: "#fff",
+            borderRadius: 3,
+            textTransform: "uppercase",
+          }}>Business</span>
+        </Link>
 
-            {/* Nav (desktop) */}
-            <nav className="hidden md:flex" style={{ gap: 28 }}>
-              {NAV_ITEMS.map((n) => (
-                <Link
-                  key={n.href}
-                  href={n.href}
-                  style={{
-                    fontSize: 14,
-                    fontWeight: isActive(n.href) ? 700 : 500,
-                    color: isActive(n.href) ? "#0f172a" : "#6b7280",
-                    textDecoration: "none",
-                    paddingBottom: 2,
-                    borderBottom: isActive(n.href) ? "2px solid #1D9E75" : "2px solid transparent",
-                  }}
-                >
-                  {n.label}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Right: Bell + Avatar */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {/* Notification bell (UI only, MVP) */}
-              <button
-                aria-label="通知"
-                style={{
-                  width: 36, height: 36, borderRadius: 8,
-                  background: "transparent",
-                  border: "0.5px solid #e5e7eb",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer",
-                  color: "#6b7280",
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-              </button>
-
-              {/* Avatar */}
-              <div className="relative" ref={avatarRef}>
-                <button
-                  onClick={() => setAvatarOpen(!avatarOpen)}
-                  aria-label="アカウントメニュー"
-                  style={{
-                    width: 36, height: 36, borderRadius: "50%",
-                    background: "#0f172a", color: "#fff",
-                    fontSize: 14, fontWeight: 700,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    cursor: "pointer", border: "none",
-                  }}
-                >
-                  {initial}
-                </button>
-                {avatarOpen && (
-                  <div style={{
-                    position: "absolute", right: 0, top: 44,
-                    minWidth: 200, background: "#fff",
-                    borderRadius: 8, boxShadow: "0 4px 20px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
-                    overflow: "hidden",
-                  }}>
-                    <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6" }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{userName}</div>
-                      {tenantName && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{tenantName}</div>}
-                    </div>
-                    <button
-                      onClick={handleLogout}
-                      style={{
-                        width: "100%", textAlign: "left",
-                        padding: "10px 16px", fontSize: 13, color: "#374151", fontWeight: 500,
-                        background: "transparent", border: "none", cursor: "pointer",
-                      }}
-                    >
-                      ログアウト
-                    </button>
-                  </div>
-                )}
-              </div>
+        {/* Company identifier */}
+        {tenantName && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            paddingLeft: 20,
+            borderLeft: "1px solid var(--line)",
+          }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 6,
+              background: logoGradient,
+              color: "#fff",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 13,
+              flexShrink: 0,
+            }}>
+              {logoLetter}
             </div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+              {tenantName}
+            </span>
+            <PlanPill planType={planType} />
           </div>
+        )}
 
-          {/* Mobile nav */}
-          <div className="md:hidden" style={{ display: "flex", gap: 18, paddingBottom: 10, overflowX: "auto" }}>
-            {NAV_ITEMS.map((n) => (
+        <div style={{ flex: 1 }} />
+
+        {/* User menu */}
+        <div className="relative" ref={avatarRef}>
+          <button
+            onClick={() => setAvatarOpen(!avatarOpen)}
+            aria-label="アカウントメニュー"
+            style={{
+              display: "flex", alignItems: "center", gap: 10,
+              cursor: "pointer", padding: "6px 12px 6px 6px",
+              borderRadius: 100, border: "none", background: "transparent",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <div style={{
+              width: 28, height: 28, borderRadius: "50%",
+              background: "linear-gradient(135deg, var(--royal), var(--accent))",
+              color: "#fff",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontWeight: 600, fontSize: 12,
+            }}>
+              {userInitial}
+            </div>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontFamily: "'Noto Sans JP', sans-serif", fontSize: 12, color: "var(--ink)", fontWeight: 500 }}>
+                {userName}
+              </div>
+              <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>Admin</div>
+            </div>
+          </button>
+
+          {avatarOpen && (
+            <div style={{
+              position: "absolute", right: 0, top: 48,
+              minWidth: 200, background: "#fff",
+              borderRadius: 10,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
+              overflow: "hidden", zIndex: 200,
+            }}>
+              <div style={{ padding: "12px 16px", borderBottom: "0.5px solid var(--line-soft)" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{userName}</div>
+                {tenantName && <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>{tenantName}</div>}
+              </div>
               <Link
-                key={n.href}
-                href={n.href}
+                href="/biz/company"
+                onClick={() => setAvatarOpen(false)}
                 style={{
-                  fontSize: 13,
-                  fontWeight: isActive(n.href) ? 700 : 500,
-                  color: isActive(n.href) ? "#0f172a" : "#6b7280",
+                  display: "block", padding: "10px 16px",
+                  fontSize: 13, color: "var(--ink-soft)", fontWeight: 500,
                   textDecoration: "none",
-                  paddingBottom: 4,
-                  borderBottom: isActive(n.href) ? "2px solid #1D9E75" : "2px solid transparent",
-                  whiteSpace: "nowrap",
                 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
               >
-                {n.label}
+                企業情報を編集
               </Link>
-            ))}
-          </div>
+              <button
+                onClick={handleLogout}
+                style={{
+                  width: "100%", textAlign: "left",
+                  padding: "10px 16px", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500,
+                  background: "transparent", border: "none", cursor: "pointer",
+                  borderTop: "0.5px solid var(--line-soft)",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              >
+                ログアウト
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Main */}
-      <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8" style={{ paddingTop: 24, paddingBottom: 48 }}>
-        {children}
-      </main>
+      {/* ── Body: sidebar + main ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "calc(100vh - 57px)" }}>
+
+        {/* Sidebar */}
+        <aside style={{
+          background: "#fff",
+          borderRight: "1px solid var(--line)",
+          padding: "20px 0",
+          position: "sticky",
+          top: 57,
+          alignSelf: "start",
+          height: "calc(100vh - 57px)",
+          overflowY: "auto",
+        }}>
+          <div style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 10, fontWeight: 700, color: "var(--ink-mute)",
+            letterSpacing: "0.1em", textTransform: "uppercase",
+            padding: "0 20px 8px",
+          }}>
+            採用活動
+          </div>
+
+          <nav>
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "9px 20px",
+                    fontSize: 13, fontWeight: active ? 600 : 500,
+                    color: active ? "var(--royal)" : "var(--ink-soft)",
+                    textDecoration: "none",
+                    borderLeft: `3px solid ${active ? "var(--royal)" : "transparent"}`,
+                    background: active ? "var(--royal-50)" : "transparent",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)";
+                      (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
+                      (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-soft)";
+                    }
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ color: active ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0 }}>
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Plan widget */}
+          <div style={{ margin: "20px 16px 0" }}>
+            {planType ? (
+              <div style={{
+                padding: 14, borderRadius: 10, textAlign: "center",
+                background: "linear-gradient(135deg, var(--success-soft) 0%, #D1FAE5 100%)",
+                border: "1px solid #A7F3D0",
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", marginBottom: 4 }}>有料プラン利用中</div>
+                <div style={{ fontSize: 10, color: "var(--ink-soft)", lineHeight: 1.6 }}>すべての機能が利用可能です</div>
+              </div>
+            ) : (
+              <div style={{
+                padding: 14, borderRadius: 10, textAlign: "center",
+                background: "linear-gradient(135deg, var(--gold-soft) 0%, #FEF3C7 100%)",
+                border: "1px solid #FDE68A",
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)", marginBottom: 4 }}>無料プラン</div>
+                <div style={{ fontSize: 10, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 10 }}>
+                  有料プランで求人掲載・候補者の可視化が可能に
+                </div>
+                <button style={{
+                  padding: "6px 14px", width: "100%",
+                  background: "var(--royal)", color: "#fff",
+                  border: "none", borderRadius: 6,
+                  fontFamily: "inherit", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                }}>
+                  有料プランを見る
+                </button>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <main style={{ padding: "28px 36px 60px", maxWidth: 1200, minWidth: 0 }}>
+          {children}
+        </main>
+      </div>
+
+      {/* Mobile fallback nav (≤768px) */}
+      <style>{`
+        @media (max-width: 768px) {
+          .biz-layout-grid { grid-template-columns: 1fr !important; }
+          .biz-layout-sidebar {
+            position: static !important;
+            height: auto !important;
+            border-right: none !important;
+            border-bottom: 1px solid var(--line) !important;
+            padding: 12px 0 !important;
+          }
+          .biz-layout-sidebar nav { flex-direction: row; overflow-x: auto; }
+          .biz-layout-main { padding: 20px 16px 48px !important; }
+        }
+      `}</style>
     </div>
   );
 }

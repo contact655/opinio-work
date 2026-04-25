@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
-import { TodoList } from "@/components/business/TodoList";
-import { StatsGrid } from "@/components/business/StatsGrid";
+import { CompanyCard } from "@/components/business/CompanyCard";
+import { DashboardStatCards } from "@/components/business/DashboardStatCards";
 import { JobPerformanceList } from "@/components/business/JobPerformanceList";
 import {
   getTenantContext,
   getTodoCounts,
   getMonthlyStats,
   getJobPerformance,
+  getJobStatusCounts,
 } from "@/lib/business/dashboard";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -16,56 +18,11 @@ export const metadata = {
   title: "ダッシュボード | Opinio Business",
 };
 
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 11) return "おはようございます";
-  if (h < 18) return "こんにちは";
-  return "こんばんは";
+function getGreeting(hour: number): string {
+  if (hour < 12) return "おはようございます";
+  if (hour < 18) return "こんにちは";
+  return "おかえりなさい";
 }
-
-export default async function BusinessDashboardPage() {
-  const ctx = await getTenantContext();
-
-  // ロール未保有: 企業アカウント追加導線
-  if (!ctx) {
-    return <NoTenantPage />;
-  }
-
-  const [todo, stats, jobs] = await Promise.all([
-    getTodoCounts(ctx.tenantId),
-    getMonthlyStats(ctx.tenantId),
-    getJobPerformance(ctx.tenantId),
-  ]);
-
-  return (
-    <BusinessLayout userName={ctx.userName} tenantName={ctx.tenantName}>
-      {/* Greeting */}
-      <header style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", margin: 0, marginBottom: 6, letterSpacing: "-0.01em" }}>
-          {greeting()}、{ctx.userName}様
-        </h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#6b7280" }}>
-          <span>{ctx.tenantName}</span>
-          <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#cbd5e1" }} />
-          <span style={{ padding: "2px 10px", borderRadius: 999, background: "#fafaf7", border: "0.5px solid #e8e4dc", fontSize: 11, fontWeight: 600, color: "#0f172a" }}>
-            {ctx.planLabel}
-          </span>
-        </div>
-      </header>
-
-      {/* Sections */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-        <TodoList counts={todo} />
-        <StatsGrid stats={stats} />
-        <JobPerformanceList jobs={jobs} />
-      </div>
-    </BusinessLayout>
-  );
-}
-
-// ─── 企業ロール未保有時 ─────────────────────────────────
-
-import { createClient } from "@/lib/supabase/server";
 
 async function NoTenantPage() {
   const supabase = createClient();
@@ -75,35 +32,149 @@ async function NoTenantPage() {
     <BusinessLayout userName={userName}>
       <div style={{
         background: "#fff",
-        borderRadius: 12,
-        border: "0.5px solid #e5e7eb",
+        borderRadius: 14,
+        border: "1px solid var(--line)",
         padding: 40,
         textAlign: "center",
         maxWidth: 560, margin: "60px auto",
       }}>
-        <div style={{ fontSize: 36, marginBottom: 16 }}>🏢</div>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>
-          企業アカウントを追加しますか?
+        <div style={{ fontSize: 40, marginBottom: 16 }}>🏢</div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+          企業アカウントを追加しますか？
         </h2>
-        <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.7, marginBottom: 22 }}>
-          このアカウントには、企業ロールが紐付いていません。<br />
-          自社情報・求人を管理するには、企業アカウントの追加申請が必要です。
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 22 }}>
+          このアカウントには企業ロールが紐付いていません。<br />
+          自社情報・求人を管理するには企業アカウントの追加申請が必要です。
         </p>
         <Link
           href="/biz/auth/signup"
           style={{
-            display: "inline-block", padding: "12px 28px", borderRadius: 10,
-            fontSize: 14, fontWeight: 600, background: "#1D9E75", color: "#fff", textDecoration: "none",
+            display: "inline-block", padding: "12px 28px", borderRadius: 8,
+            fontSize: 14, fontWeight: 600,
+            background: "var(--royal)", color: "#fff", textDecoration: "none",
           }}
         >
           企業アカウントを追加 →
         </Link>
         <div style={{ marginTop: 16 }}>
-          <Link href="/" style={{ fontSize: 12, color: "#6b7280", textDecoration: "underline" }}>
+          <Link href="/" style={{ fontSize: 12, color: "var(--ink-mute)", textDecoration: "underline" }}>
             候補者サイトに戻る
           </Link>
         </div>
       </div>
+    </BusinessLayout>
+  );
+}
+
+export default async function BizDashboardPage() {
+  const ctx = await getTenantContext();
+  if (!ctx) return <NoTenantPage />;
+
+  const [todoCounts, monthlyStats, jobPerformance, jobStatusCounts] = await Promise.all([
+    getTodoCounts(ctx.tenantId),
+    getMonthlyStats(ctx.tenantId),
+    getJobPerformance(ctx.tenantId),
+    getJobStatusCounts(ctx.tenantId),
+  ]);
+
+  const hour = new Date().getHours();
+  const greeting = getGreeting(hour);
+  const today = new Date().toLocaleDateString("ja-JP", {
+    year: "numeric", month: "long", day: "numeric", weekday: "short",
+  });
+
+  const greetingName = ctx.userName.includes(" ")
+    ? ctx.userName.split(" ").slice(-1)[0]
+    : ctx.userName;
+
+  return (
+    <BusinessLayout
+      userName={ctx.userName}
+      tenantName={ctx.tenantName}
+      tenantLogoGradient={ctx.logoGradient}
+      tenantLogoLetter={ctx.logoLetter}
+      planType={ctx.planType}
+    >
+      {/* ── Greeting header ── */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "baseline",
+        marginBottom: 24,
+      }}>
+        <h1 style={{
+          fontFamily: "'Noto Serif JP', serif",
+          fontWeight: 500, fontSize: 24,
+          color: "var(--ink)", letterSpacing: "0.02em",
+          margin: 0,
+        }}>
+          {greeting}、{greetingName}さん。
+        </h1>
+        <span style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 12, color: "var(--ink-mute)", fontWeight: 500,
+        }}>
+          {today}
+        </span>
+      </div>
+
+      {/* ── Company card ── */}
+      <CompanyCard
+        tenantId={ctx.tenantId}
+        tenantName={ctx.tenantName}
+        logoGradient={ctx.logoGradient}
+        logoLetter={ctx.logoLetter}
+        planType={ctx.planType}
+      />
+
+      {/* ── Stat cards (4枚) ── */}
+      <DashboardStatCards
+        todoCounts={todoCounts}
+        monthlyStats={monthlyStats}
+        planType={ctx.planType}
+        activeJobCount={jobStatusCounts.active}
+      />
+
+      {/* ── S1b placeholders ──────────────────────────────────────
+          以下のセクションは Session S1b で実装する:
+          - UpgradeBanner       (無料プラン訴求バナー)
+          - EditorInvitation    (Opinio編集部取材案内バナー)
+          - PendingMeetings     (未対応カジュアル面談リスト)
+          - ActivityList        (最近のアクティビティ)
+          - MatchCandidates     (マッチ候補者 free/paid)
+          - JobStatusCards      (求人ステータス3カード)
+          - TeamMembers         (チームメンバー)
+          - RecruiterProfile    (採用担当者公開設定widget)
+      ─────────────────────────────────────────────────────────── */}
+
+      {/* ── Job performance (S1b で JobStatusCards + 求人管理リンクに統合予定) ── */}
+      <section style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 14,
+        padding: "22px 26px",
+        marginTop: 4,
+      }}>
+        <div style={{
+          display: "flex", alignItems: "baseline", justifyContent: "space-between",
+          marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--line)",
+        }}>
+          <div style={{
+            fontFamily: "'Noto Serif JP', serif",
+            fontSize: 15, fontWeight: 600, color: "var(--ink)",
+            display: "flex", alignItems: "baseline", gap: 8,
+          }}>
+            求人パフォーマンス
+            <span style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 9, fontWeight: 700,
+              color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
+            }}>Job Performance</span>
+          </div>
+          <Link href="/biz/jobs" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+            求人管理へ →
+          </Link>
+        </div>
+        <JobPerformanceList jobs={jobPerformance} />
+      </section>
     </BusinessLayout>
   );
 }

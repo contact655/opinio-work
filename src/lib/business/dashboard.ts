@@ -17,6 +17,15 @@ export type TenantContext = {
   planType: "performance" | "saas_monthly" | "saas_yearly" | null;
   planLabel: string;
   userName: string;
+  logoGradient: string | null;
+  logoLetter: string | null;
+};
+
+export type JobStatusCounts = {
+  active: number;
+  review: number;
+  draft: number;
+  closed: number;
 };
 
 export type TodoCounts = {
@@ -93,7 +102,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
 
     const { data: companyRow } = await supabase
       .from("ow_companies")
-      .select("name")
+      .select("name, logo_gradient, logo_letter, logo_url")
       .eq("id", roleRow.tenant_id)
       .maybeSingle();
 
@@ -123,6 +132,8 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       planType,
       planLabel: planType ? PLAN_LABELS[planType] || "—" : "未設定",
       userName,
+      logoGradient: (companyRow as any)?.logo_gradient ?? null,
+      logoLetter: (companyRow as any)?.logo_letter ?? null,
     };
   } catch {
     return null;
@@ -187,6 +198,27 @@ export async function getMonthlyStats(tenantId: string): Promise<MonthlyStatsWit
     };
   } catch {
     return { current: ZERO_STATS, previous: ZERO_STATS, delta: { applications: 0, scouts: 0, interviews: 0, offers: 0 } };
+  }
+}
+
+// ─── Job Status Counts ────────────────────────────────
+
+export async function getJobStatusCounts(tenantId: string): Promise<JobStatusCounts> {
+  const supabase = createClient();
+  try {
+    const { data } = await supabase
+      .from("ow_jobs")
+      .select("status")
+      .eq("company_id", tenantId);
+    const rows = data || [];
+    return {
+      active: rows.filter((r: any) => r.status === "active").length,
+      review: rows.filter((r: any) => r.status === "review").length,
+      draft: rows.filter((r: any) => r.status === "draft").length,
+      closed: rows.filter((r: any) => r.status === "closed").length,
+    };
+  } catch {
+    return { active: 0, review: 0, draft: 0, closed: 0 };
   }
 }
 
