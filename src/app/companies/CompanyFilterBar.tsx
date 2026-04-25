@@ -14,7 +14,7 @@ const INK_MUTE = "#94A3B8";
 
 function Dropdown({
   label,
-  param,
+  param: _param,  // intentionally unused; kept for API consistency
   options,
   value,
   onSelect,

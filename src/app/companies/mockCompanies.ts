@@ -216,9 +216,9 @@ export const MOCK_COMPANIES: Company[] = [
 
 // ─── Filter helpers ───────────────────────────────────────────────────────────
 
-export const INDUSTRIES = [...new Set(MOCK_COMPANIES.map((c) => c.industry))].sort();
+export const INDUSTRIES = Array.from(new Set(MOCK_COMPANIES.map((c) => c.industry))).sort();
 
-export const PHASES = [...new Set(MOCK_COMPANIES.map((c) => c.phase))];
+export const PHASES = Array.from(new Set(MOCK_COMPANIES.map((c) => c.phase)));
 
 export const EMPLOYEE_RANGES = [
   { label: "50名以下",   min: 0,    max: 50 },

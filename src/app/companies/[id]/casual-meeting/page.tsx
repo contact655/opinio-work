@@ -190,6 +190,7 @@ function CasualMeetingForm() {
   const jobIdParam = searchParams.get("job_id");
 
   const company = MOCK_COMPANIES.find((c) => c.id === companyId);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const job = jobIdParam ? getJobById(jobIdParam) : null;
   const isCurrentEmployer = checkIsCurrentEmployer(companyId);
 

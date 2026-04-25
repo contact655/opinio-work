@@ -688,7 +688,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
         {/* ── employee / mentor / ceo body ── */}
         {article.type !== "report" && (
           <>
-            {/* EDITOR'S NOTE */}
+            {/* EDITOR&apos;S NOTE */}
             {article.editor_note && (
               <div style={{
                 padding: "18px 22px", background: "var(--bg-tint)",
@@ -699,7 +699,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                   fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: 8,
                 }}>
-                  EDITOR'S NOTE
+                  EDITOR&apos;S NOTE
                 </div>
                 <p style={{ fontSize: 14, lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
                   {article.editor_note}
@@ -744,7 +744,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                   fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: 10,
                 }}>
-                  EDITOR'S OUTRO
+                  EDITOR&apos;S OUTRO
                 </div>
                 <p style={{ fontSize: 14, lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
                   {article.editor_outro}
@@ -785,7 +785,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                   fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: 8,
                 }}>
-                  EDITOR'S NOTE
+                  EDITOR&apos;S NOTE
                 </div>
                 <p style={{ fontSize: 14, lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
                   {article.editor_note}
@@ -806,7 +806,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                   fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: 10,
                 }}>
-                  EDITOR'S OUTRO
+                  EDITOR&apos;S OUTRO
                 </div>
                 <p style={{ fontSize: 14, lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
                   {article.editor_outro}

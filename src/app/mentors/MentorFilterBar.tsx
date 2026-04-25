@@ -11,13 +11,7 @@ const INK_MUTE = "#94A3B8";
 
 // ─── Dropdown ─────────────────────────────────────────────────────────────────
 
-function Dropdown({
-  label,
-  options,
-  paramKey,
-  value,
-  onSelect,
-}: {
+function Dropdown({ label, options, paramKey: _paramKey, value, onSelect }: {
   label: string;
   options: string[];
   paramKey: string;

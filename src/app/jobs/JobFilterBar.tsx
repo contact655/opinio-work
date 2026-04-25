@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback } from "react";
-import { JOB_DEPTS, SALARY_PRESETS, WORK_STYLES } from "./mockJobData";
+import { JOB_DEPTS, SALARY_PRESETS } from "./mockJobData";
 
 const ROYAL = "#002366";
 const LINE = "#E2E8F0";

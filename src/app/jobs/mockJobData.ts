@@ -1,4 +1,3 @@
-import type { Company } from "../companies/mockCompanies";
 import { MOCK_COMPANIES } from "../companies/mockCompanies";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -40,6 +40,7 @@ const FRESHNESS_STYLE: Record<string, { bg: string; color: string; border: strin
   sns:       { bg: "#FCE7F3", color: "#DB2777", border: "#FBCFE8", label: "企業発信" },
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SOURCE_STYLE: Record<string, { bg: string; color: string }> = {
   note:    { bg: "#E0F7F3", color: "#0F766E" },
   x:       { bg: "#F1F5F9", color: "#0F172A" },
@@ -456,6 +457,7 @@ function AboutSection({ company, detail }: { company: Company; detail: CompanyDe
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function WorkStyleSection({ company, detail }: { company: Company; detail: CompanyDetail }) {
   return (
     <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 16, padding: "28px 32px", marginBottom: 20 }}>
@@ -821,7 +823,8 @@ function ArticlesSection({ articles }: { articles: ArticleItem[] }) {
   );
 }
 
-function RelatedSection({ related: _ }: { related: string[] }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function RelatedSection({ related }: { related: string[] }) {
   const relatedCompanies: Company[] = [];
 
   if (relatedCompanies.length === 0) return null;

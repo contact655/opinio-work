@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/common";
 import { Footer } from "@/components/common";
-import { type Company } from "../../companies/mockCompanies";
 import { type Job, type PositionMember } from "../mockJobData";
 import { getJobById as fetchJobById } from "@/lib/supabase/queries";
 

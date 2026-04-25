@@ -161,7 +161,7 @@ export default function MentorReservePage() {
   function toggleTheme(theme: string) {
     setSelectedThemes((prev) => {
       const next = new Set(prev);
-      next.has(theme) ? next.delete(theme) : next.add(theme);
+      if (next.has(theme)) { next.delete(theme); } else { next.add(theme); }
       return next;
     });
     setErrors((prev) => ({ ...prev, themes: "" }));
@@ -170,7 +170,7 @@ export default function MentorReservePage() {
   function toggleDay(day: string) {
     setSelectedDays((prev) => {
       const next = new Set(prev);
-      next.has(day) ? next.delete(day) : next.add(day);
+      if (next.has(day)) { next.delete(day); } else { next.add(day); }
       return next;
     });
   }
@@ -178,7 +178,7 @@ export default function MentorReservePage() {
   function toggleTime(time: string) {
     setSelectedTimes((prev) => {
       const next = new Set(prev);
-      next.has(time) ? next.delete(time) : next.add(time);
+      if (next.has(time)) { next.delete(time); } else { next.add(time); }
       return next;
     });
   }

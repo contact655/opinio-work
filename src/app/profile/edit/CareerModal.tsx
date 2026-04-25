@@ -3,10 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { MOCK_COMPANIES } from "@/app/companies/mockCompanies";
 import {
-  ROLE_CATEGORIES,
   searchRoles,
   getRoleLabelById,
-  getRoleCategoryLabel,
 } from "./roleData";
 import type { Experience, CompanyType } from "./mockProfileData";
 
@@ -48,7 +46,7 @@ const EMPTY_FORM: CareerFormState = {
 // ─── Sub: Company type radio ──────────────────────────────────────────────────
 
 function CompanyTypeOption({
-  type, label, desc, active, onClick,
+  type: _type, label, desc, active, onClick,
 }: {
   type: CompanyType; label: string; desc: string; active: boolean; onClick: () => void;
 }) {
@@ -181,7 +179,7 @@ function CompanyMasterSearch({
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{c.name}</div>
                 <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 1 }}>
-                  {c.industry} · {c.employees}
+                  {c.industry} · {c.employee_count}名
                 </div>
               </div>
             </div>
@@ -450,7 +448,7 @@ export default function CareerModal({ open, editTarget, onClose, onSave }: Props
               </div>
               <CompanyMasterSearch
                 value={form.companyId}
-                onChange={(id, name) => { set("companyId", id); }}
+                onChange={(id, _name) => { set("companyId", id); }}
               />
               <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6, lineHeight: 1.6 }}>
                 マスタにない企業は「登録されていない企業を自由入力」を選んでください。
