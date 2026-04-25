@@ -4,6 +4,7 @@
 
 IT/SaaS 業界に特化したキャリアプラットフォーム。
 **求職者側プロダクト（Phase 2 + Phase 4）が 2026-04-24 に 100% 完成。**
+**Phase 5 Stage 1（Supabase 接続 - 読み取り専用）が 2026-04-25 に完成。**
 
 - **リポジトリ**: `/Users/hisato/opinio-work/`
 - **ワークツリー**: `/Users/hisato/opinio-work/.claude/worktrees/silly-kowalevski-e4eca2/`
@@ -21,7 +22,7 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 ## 🚀 次のセッションで最初にやること
 
 ```
-Phase 5 Stage 1 完了済み（2026-04-24）
+Phase 5 Stage 1 完了済み（2026-04-25）本番マージ済み
 次は Phase 5 Stage 2: 認証フロー（/auth サインアップ → ow_users 自動作成）
 または Phase 3: 企業側プロダクト（/biz/*）
 ```
@@ -278,7 +279,7 @@ is_available, success_count, total_sessions, display_order
 
 | 段階 | 内容 | 認証要否 | 状態 |
 |------|------|---------|------|
-| **Stage 1** | 読み取り専用ページ（/companies, /jobs） | 不要 | **✅ 完了（2026-04-24）** |
+| **Stage 1** | 読み取り専用ページ（/companies, /jobs） | 不要 | **✅ 完了（2026-04-25 本番マージ）** |
 | Stage 2 | 認証フロー（/auth サインアップ → ow_users 自動作成） | 必要 | 未着手 |
 | Stage 3 | プロフィール編集（/profile/edit 認証ガード + 自分のデータ） | 必要 | 未着手 |
 | Stage 4 | マイページ（/mypage 認証ガード + 関連データ集約） | 必要 | 未着手 |
@@ -442,6 +443,15 @@ src/app/companies/mockCompanies.ts(219,31): error TS2802
 ## コミット履歴（直近）
 
 ```
+feat: Phase 5 Stage 1 - switch 4 pages to Supabase live data (2026-04-25)
+  - /companies: 13 companies from ow_companies
+  - /companies/[id]: company detail with UUID-based URL
+  - /jobs: 25 jobs from ow_jobs with filters
+  - /jobs/[id]: job detail with ow_companies JOIN
+  - Fix: lazy-init Supabase client in cron route
+  - Fix: ESLint/TypeScript build errors (14 files)
+  - Fix: /auth Suspense wrapper for useSearchParams
+
 feat: Phase 4 complete + Phase 5 preparation (2026-04-24)
   - Phase 4a: /profile/edit (+11,368行)
   - Phase 4b: /mypage (+12,858行)
