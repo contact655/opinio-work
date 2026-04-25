@@ -151,7 +151,7 @@ function CompanyCard({ company }: { company: Company }) {
 
       {/* Industry */}
       {company.industry && (
-        <p className="text-[11px] text-gray-400 truncate text-center leading-none mb-1.5">
+        <p className="text-[11px] text-gray-600 truncate text-center leading-none mb-1.5">
           {company.industry}
         </p>
       )}
@@ -191,10 +191,10 @@ function JobCard({ job }: { job: Job }) {
             {company.logo_url ? (
               <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-[10px] font-bold text-gray-400">{company.name?.[0]}</span>
+              <span className="text-[10px] font-bold text-gray-600">{company.name?.[0]}</span>
             )}
           </div>
-          <span className="text-[11px] text-gray-400 truncate">{company.name}</span>
+          <span className="text-[11px] text-gray-600 truncate">{company.name}</span>
         </div>
       )}
 
@@ -206,17 +206,17 @@ function JobCard({ job }: { job: Job }) {
       {/* Meta */}
       <div className="flex flex-wrap items-center gap-1.5">
         {job.job_category && (
-          <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
+          <span className="text-[10px] text-gray-600 bg-gray-50 px-1.5 py-0.5 rounded">
             {job.job_category}
           </span>
         )}
         {job.salary_min && job.salary_max && (
-          <span className="text-[10px] text-gray-400">
+          <span className="text-[10px] text-gray-600">
             {job.salary_min}〜{job.salary_max}万
           </span>
         )}
         {job.location && (
-          <span className="text-[10px] text-gray-400">{job.location}</span>
+          <span className="text-[10px] text-gray-600">{job.location}</span>
         )}
       </div>
     </Link>
@@ -319,7 +319,7 @@ export default function CompanySections({
     <>
       {/* Count + View All */}
       <div className="flex items-center justify-between mb-6">
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-600">
           {companies.length}社の企業
         </p>
         <Link
@@ -342,7 +342,7 @@ export default function CompanySections({
                     ? "/companies/list"
                     : `/companies/list?category=${encodeURIComponent(section.filter)}`
                 }
-                className="text-xs text-gray-400 hover:text-primary transition-colors"
+                className="text-xs text-gray-600 hover:text-primary transition-colors"
               >
                 すべて見る →
               </Link>
@@ -368,7 +368,7 @@ export default function CompanySections({
             <h2 className="text-[15px] font-bold text-gray-800">新着求人</h2>
             <Link
               href="/jobs"
-              className="text-xs text-gray-400 hover:text-primary transition-colors"
+              className="text-xs text-gray-600 hover:text-primary transition-colors"
             >
               すべての求人を見る →
             </Link>

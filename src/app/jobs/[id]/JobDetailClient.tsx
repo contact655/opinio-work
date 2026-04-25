@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatSalaryRange } from "@/lib/utils/formatSalary";
 import { getMatchReason } from "@/lib/utils/matchReason";
+import { getJobCategoryStyle } from "@/lib/utils/jobCategoryStyle";
+import { ApplyForm } from "@/components/jobs/ApplyForm";
+import { getCompanyLogoUrl } from "@/lib/utils/companyLogo";
 
 // ─── Types ───────────────────────────────────────────
 type Props = {
@@ -17,54 +20,44 @@ type Props = {
   mustReqs: any[];
   wantReqs: any[];
   similarJobs: any[];
+  sameCompanyJobs: any[];
+  sameCategoryJobs?: any[];
+  sameSalaryJobs?: any[];
+  jobMembers: any[];
 };
 
 // ─── Helpers ─────────────────────────────────────────
 
 function getLogoUrl(company: any): string | null {
-  if (!company) return null;
-  if (company.logo_url) return company.logo_url;
-  if (company.url) {
-    try {
-      return `https://www.google.com/s2/favicons?domain=${new URL(company.url).hostname}&sz=128`;
-    } catch {}
-  }
-  return null;
+  return getCompanyLogoUrl(company);
 }
 
-function getEmployeeDisplay(company: any): string | null {
-  const v = company?.employee_count;
-  if (!v || v === "非公開") return null;
-  if (/^\d+$/.test(v)) return `${Number(v).toLocaleString()}名`;
-  return v;
+function workStyleLabel(ws: string | null): string {
+  if (!ws) return "";
+  if (ws.includes("フル") && ws.includes("リモート")) return "フルリモート";
+  if (ws.includes("リモート")) return "リモート中心";
+  if (ws === "remote") return "フルリモート";
+  if (ws === "hybrid" || ws.includes("ハイブリッド")) return "ハイブリッド";
+  if (ws === "office" || ws.includes("オフィス")) return "オフィス出社";
+  return ws;
 }
 
 // ─── Logo Component ──────────────────────────────────
 
-function CompanyLogo({
-  company,
-  size = 52,
-  bgOpacity = false,
-}: {
-  company: any;
-  size?: number;
-  bgOpacity?: boolean;
-}) {
-  const [imgError, setImgError] = useState(false);
+function CompanyLogo({ company, size = 48 }: { company: any; size?: number }) {
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
   const logoUrl = getLogoUrl(company);
-  const brandColor = company?.brand_color ?? "#1D9E75";
 
-  if (imgError || !logoUrl) {
+  if (failed || !logoUrl) {
     return (
       <div
-        className="flex items-center justify-center font-bold text-white flex-shrink-0"
         style={{
-          width: size,
-          height: size,
-          borderRadius: 14,
-          backgroundColor: bgOpacity ? `${brandColor}26` : brandColor,
-          color: bgOpacity ? brandColor : "#fff",
-          fontSize: size * 0.35,
+          width: size, height: size, borderRadius: 12,
+          backgroundColor: "#f3f4f6", color: "#6b7280",
+          fontSize: size * 0.35, fontWeight: 500,
+          border: "0.5px solid #e5e7eb",
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
         }}
       >
         {company?.name?.[0] ?? "?"}
@@ -74,38 +67,27 @@ function CompanyLogo({
 
   return (
     <div
-      className="flex items-center justify-center flex-shrink-0 overflow-hidden"
       style={{
-        width: size,
-        height: size,
-        borderRadius: 14,
-        backgroundColor: bgOpacity ? `${brandColor}26` : "#f5f5f4",
+        width: size, height: size, borderRadius: 12,
+        border: "1px solid #e5e7eb", background: loaded ? "#fff" : "#f3f4f6",
+        padding: loaded ? 6 : 0, overflow: "hidden", flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
       }}
     >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={logoUrl}
-        alt={company?.name}
-        onError={() => setImgError(true)}
-        className="object-contain"
-        style={{ width: size * 0.7, height: size * 0.7 }}
-      />
-    </div>
-  );
-}
-
-// ─── Score Bar ────────────────────────────────────────
-
-function MatchBar({ score }: { score: number }) {
-  return (
-    <div className="flex-1 h-2 bg-white/60 rounded-full overflow-hidden">
-      <div
-        className="h-full rounded-full transition-all duration-700"
-        style={{
-          width: `${score}%`,
-          background:
-            score >= 70 ? "#1D9E75" : score >= 40 ? "#F59E0B" : "#EF4444",
+        alt=""
+        style={{ width: "100%", height: "100%", objectFit: "contain", display: loaded ? "block" : "none" }}
+        onLoad={(e) => {
+          const img = e.target as HTMLImageElement;
+          if (img.naturalWidth === 0) { setFailed(true); } else { setLoaded(true); }
         }}
+        onError={() => setFailed(true)}
       />
+      {!loaded && (
+        <span style={{ fontSize: size * 0.35, fontWeight: 500, color: "#6b7280" }}>{company?.name?.[0] ?? "?"}</span>
+      )}
     </div>
   );
 }
@@ -120,765 +102,693 @@ export default function JobDetailClient({
   isLoggedIn,
   mustReqs,
   wantReqs,
+  // similarJobs is kept for backward compat but no longer used (see tabs)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   similarJobs,
+  sameCompanyJobs,
+  sameCategoryJobs = [],
+  sameSalaryJobs = [],
+  jobMembers,
 }: Props) {
   const router = useRouter();
   const [favorited, setFavorited] = useState(initialFavorited);
   const [favLoading, setFavLoading] = useState(false);
+  const [showApplyForm, setShowApplyForm] = useState(false);
+  // Related jobs tab: "category" | "salary" | "company"
+  const [relatedTab, setRelatedTab] = useState<"category" | "salary" | "company">(() => {
+    // Default: whichever has data, prioritizing category
+    if (sameCategoryJobs.length > 0) return "category";
+    if (sameSalaryJobs.length > 0) return "salary";
+    return "company";
+  });
 
-  const brandColor = company?.brand_color ?? "#1D9E75";
   const salaryDisplay = formatSalaryRange(job.salary_min, job.salary_max);
   const score = matchScore?.overall_score ?? null;
   const matchReason =
     matchScore?.match_reasons?.[0] ?? getMatchReason(job, score ?? 70);
 
-  // 選考フロー
-  const selectionSteps: string[] =
-    job.selection_flow && job.selection_flow.length > 0
-      ? job.selection_flow
-      : job.selection_process && Array.isArray(job.selection_process)
-      ? job.selection_process.map((s: any) =>
-          typeof s === "string" ? s : s.name
-        )
-      : ["書類選考", "カジュアル面談", "一次面接", "最終面接"];
-
-  // タグ一覧
-  const tags = [
-    job.job_category,
-    job.work_style,
-    job.employment_type,
-    job.location,
-  ].filter(Boolean);
-
-  // 勤務条件グリッド
-  const conditionItems = [
-    {
-      label: "年収",
-      value: salaryDisplay !== "応相談" ? salaryDisplay : null,
-    },
-    { label: "雇用形態", value: job.employment_type },
-    { label: "勤務地", value: job.location },
-    { label: "勤務スタイル", value: job.work_style },
-    { label: "勤務時間", value: job.work_hours },
-    {
-      label: "平均残業",
-      value: job.avg_overtime
-        ? job.avg_overtime.includes("時間")
-          ? job.avg_overtime
-          : `月${job.avg_overtime}時間`
-        : null,
-    },
-    { label: "試用期間", value: job.trial_period },
-    { label: "休日", value: job.holidays },
-    { label: "諸手当", value: job.benefits },
-  ].filter((item) => item.value);
+  const createdDate = job.created_at
+    ? new Date(job.created_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })
+    : null;
 
   // ─── Favorite Toggle ────────────────────────────────
   const toggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (favLoading) return;
-
-    if (!isLoggedIn) {
-      router.push("/auth/signup");
-      return;
-    }
-
+    if (!isLoggedIn) { router.push("/auth/login"); return; }
     setFavLoading(true);
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
     if (favorited) {
-      await supabase
-        .from("ow_job_favorites")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("job_id", job.id);
+      await supabase.from("ow_favorites").delete().eq("user_id", user.id).eq("target_type", "job").eq("target_id", job.id);
     } else {
-      await supabase
-        .from("ow_job_favorites")
-        .insert({ user_id: user.id, job_id: job.id });
+      await supabase.from("ow_favorites").insert({ user_id: user.id, target_type: "job", target_id: job.id });
     }
     setFavorited(!favorited);
     setFavLoading(false);
   };
 
-  // ─── Apply / Casual ─────────────────────────────────
-  const handleApply = () => {
-    if (!isLoggedIn) {
-      router.push("/auth/signup");
-      return;
-    }
-    // TODO: implement application flow
-    alert("応募機能は準備中です");
-  };
-
-  const handleCasual = async () => {
-    if (!isLoggedIn) {
-      router.push("/auth/signup");
-      return;
-    }
-    try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user || !company) return;
-
-      const { data: existing } = await supabase
-        .from("ow_threads")
-        .select("id")
-        .eq("company_id", company.id)
-        .eq("candidate_id", user.id)
-        .maybeSingle();
-
-      if (existing) {
-        router.push(`/messages?thread=${existing.id}`);
-        return;
-      }
-
-      const { data: thread } = await supabase
-        .from("ow_threads")
-        .insert({
-          company_id: company.id,
-          candidate_id: user.id,
-          status: "casual_requested",
-        })
-        .select()
-        .single();
-
-      if (thread) {
-        await supabase.from("ow_messages").insert({
-          thread_id: thread.id,
-          sender_id: user.id,
-          content: `${company.name}へのカジュアル面談リクエストが送信されました`,
-        });
-        router.push(`/messages?thread=${thread.id}`);
-      } else {
-        alert("カジュアル面談リクエストを送信しました");
-      }
-    } catch {
-      alert("カジュアル面談リクエストを送信しました");
-    }
-  };
-
   return (
     <>
-      {/* ─── Breadcrumb ─── */}
-      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <nav className="flex items-center gap-1.5 text-[12px]">
-          <Link
-            href="/jobs"
-            className="text-gray-400 hover:text-[#1D9E75] transition-colors"
-          >
-            求人一覧
-          </Link>
-          <svg
-            className="w-3 h-3 text-gray-300"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-          <span className="text-gray-600 font-medium truncate max-w-[300px]">
-            {job.title}
-          </span>
-        </nav>
-      </div>
+      {/* ═══ 1. Hero Area (unified, compact) ═══ */}
+      <div style={{ background: "#fff", borderBottom: "0.5px solid #e5e7eb" }}>
+        <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8" style={{ padding: "20px 0 20px" }}>
+          <div className="px-4 sm:px-6 lg:px-0">
+            {/* Breadcrumb */}
+            <nav className="flex items-center gap-2" style={{ fontSize: 12, marginBottom: 10 }}>
+              <Link href="/jobs" style={{ color: "#1a6fd4", textDecoration: "none" }}>求人一覧</Link>
+              <span style={{ color: "#d1d5db" }}>›</span>
+              <span style={{ color: "#6b7280" }} className="truncate max-w-[300px]">{job.title}</span>
+            </nav>
 
-      {/* ─── 2-Column Layout ─── */}
-      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="flex gap-6 items-start">
-          {/* ═══ Left Column ═══ */}
-          <div className="flex-1 min-w-0 space-y-5">
-            {/* ─── Hero Card ─── */}
-            <div
-              className="bg-white rounded-xl overflow-hidden"
-              style={{ border: "0.5px solid #e5e7eb" }}
-            >
-              {/* Brand color cover */}
-              <div style={{ height: 8, background: brandColor }} />
+            {/* Company name link */}
+            {company && (
+              <Link
+                href={`/companies/${company.id}`}
+                style={{ fontSize: 13, color: "#6b7280", textDecoration: "none", display: "inline-block", marginBottom: 4 }}
+              >
+                {company.name}
+              </Link>
+            )}
 
-              <div className="p-6 relative">
-                {/* Favorite button (top-right) */}
-                <button
-                  onClick={toggleFavorite}
-                  disabled={favLoading}
-                  className="absolute top-5 right-5 flex items-center justify-center w-9 h-9 rounded-full transition-all"
-                  style={{
-                    background: favorited ? "#FCEBEB" : "transparent",
-                    border: `0.5px solid ${favorited ? "#F09595" : "#e5e7eb"}`,
-                    cursor: "pointer",
-                  }}
-                  title={favorited ? "気になるを解除" : "気になる"}
-                >
-                  <svg
-                    viewBox="0 0 16 16"
-                    width="15"
-                    height="15"
-                    fill={favorited ? "#E24B4A" : "none"}
-                    stroke={favorited ? "#E24B4A" : "#9ca3af"}
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M8 13.5S2 9.5 2 5.5C2 3.5 3.5 2 5.5 2c1 0 2 .5 2.5 1.5C8.5 2.5 9.5 2 10.5 2 12.5 2 14 3.5 14 5.5c0 4-6 8-6 8z" />
-                  </svg>
-                </button>
-
-                {/* Company logo + name */}
-                <div className="flex items-center gap-3 mb-3">
-                  <CompanyLogo company={company} size={52} bgOpacity />
-                  <div>
-                    {company && (
-                      <Link
-                        href={`/companies/${company.id}`}
-                        className="text-[13px] text-gray-500 hover:text-[#1D9E75] transition-colors"
-                      >
-                        {company.name}
-                      </Link>
-                    )}
-                  </div>
-                </div>
-
-                {/* Job title */}
-                <h1
-                  className="mb-4 text-gray-900 leading-snug"
-                  style={{ fontSize: 22, fontWeight: 500 }}
-                >
-                  {job.title}
-                </h1>
-
-                {/* Tags */}
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-5">
-                    {tags.map((tag, i) => (
-                      <span
-                        key={i}
-                        className="text-[11px] px-2.5 py-1 rounded-full"
-                        style={{
-                          background: i === 0 ? "#E1F5EE" : "#f5f5f4",
-                          color: i === 0 ? "#0F6E56" : "#78716c",
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Match banner */}
-                <div
-                  className="rounded-xl p-4"
-                  style={{ background: "#E1F5EE" }}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0 text-center">
-                      <div
-                        className="font-bold"
-                        style={{ fontSize: 28, color: "#1D9E75" }}
-                      >
-                        {score !== null ? `${score}%` : "—"}
-                      </div>
-                      <div
-                        className="text-[10px] font-medium"
-                        style={{ color: "#0F6E56" }}
-                      >
-                        マッチ度
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="text-[12px] leading-relaxed mb-2"
-                        style={{ color: "#0F6E56" }}
-                      >
-                        {score !== null
-                          ? matchReason
-                          : isLoggedIn
-                          ? "プロフィールを入力するとマッチ度が表示されます"
-                          : "会員登録してマッチ度を確認しましょう"}
-                      </p>
-                      {score !== null && <MatchBar score={score} />}
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {/* Title + Favorite */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
+              <h1 style={{ fontSize: 24, fontWeight: 600, color: "#0f172a", lineHeight: 1.35, margin: 0, flex: 1 }}>
+                {job.title}
+              </h1>
+              <button
+                onClick={toggleFavorite}
+                disabled={favLoading}
+                style={{
+                  width: 36, height: 36, borderRadius: "50%", flexShrink: 0, cursor: "pointer",
+                  background: favorited ? "#FCEBEB" : "transparent",
+                  border: `1.5px solid ${favorited ? "#F09595" : "#e5e7eb"}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+                title={favorited ? "気になるを解除" : "気になる"}
+              >
+                <svg viewBox="0 0 16 16" width="15" height="15" fill={favorited ? "#E24B4A" : "none"} stroke={favorited ? "#E24B4A" : "#9ca3af"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 13.5S2 9.5 2 5.5C2 3.5 3.5 2 5.5 2c1 0 2 .5 2.5 1.5C8.5 2.5 9.5 2 10.5 2 12.5 2 14 3.5 14 5.5c0 4-6 8-6 8z" />
+                </svg>
+              </button>
             </div>
 
-            {/* ─── 仕事内容 ─── */}
-            <div
-              className="bg-white rounded-xl p-6"
-              style={{ border: "0.5px solid #e5e7eb" }}
-            >
-              <h2 className="text-[15px] font-bold text-gray-800 mb-4">
-                仕事内容
-              </h2>
-              {job.description ? (
-                <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap">
-                  {job.description}
-                </p>
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-[13px] text-gray-400 mb-2">カジュアル面談でご確認ください。</p>
-                  <Link href="/career-consultation" className="text-[12px]" style={{ color: "#1D9E75" }}>
-                    → この企業を知る現役実務家に相談する
-                  </Link>
+            {/* Primary job info row: Salary + Location + Overtime */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "center", marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>年収</span>
+                <span style={{ fontSize: 20, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.01em" }}>{salaryDisplay}</span>
+              </div>
+              {job.location && (
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                  <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>勤務地</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{job.location}</span>
+                </div>
+              )}
+              {job.avg_overtime && (
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                  <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>平均残業</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{job.avg_overtime}</span>
                 </div>
               )}
             </div>
 
-            {/* ─── ポジティブ・ネガティブ ─── */}
-            {(job.positives?.length > 0 || job.negatives?.length > 0) && (
-              <div
-                className="bg-white rounded-xl p-6"
-                style={{ border: "0.5px solid #e5e7eb" }}
-              >
-                <h2 className="text-[15px] font-bold text-gray-800 mb-4">
-                  この求人のポイント
-                </h2>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                  {/* ポジティブ */}
-                  <div style={{ background: '#E1F5EE', border: '0.5px solid #9FE1CB', borderRadius: 12, padding: '14px 16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#1D9E75', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>+</div>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#0F6E56' }}>ここが良い</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {(job.positives?.length ? job.positives : ['情報収集中', '現役実務家に聞いてみましょう', '詳細は面談でご確認ください']).slice(0, 3).map((p: string, i: number) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#085041', lineHeight: 1.6 }}>
-                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#1D9E75', flexShrink: 0, marginTop: 6 }} />
-                          {p}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2">
+              {job.job_category && (
+                <span style={{ fontSize: 12, fontWeight: 500, padding: "3px 12px", borderRadius: 999, ...getJobCategoryStyle(job.job_category) }}>
+                  {job.job_category}
+                </span>
+              )}
+              {job.work_style && (
+                <span style={{ fontSize: 12, fontWeight: 500, color: "#059669", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 12px", borderRadius: 999 }}>
+                  {workStyleLabel(job.work_style)}
+                </span>
+              )}
+              {job.employment_type && (
+                <span style={{ fontSize: 12, fontWeight: 500, color: "#6b7280", background: "#f9fafb", border: "1px solid #e5e7eb", padding: "3px 12px", borderRadius: 999 }}>
+                  {job.employment_type}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-                  {/* ネガティブ */}
-                  <div style={{ background: job.negatives?.length ? '#FCEBEB' : '#f9fafb', border: `0.5px solid ${job.negatives?.length ? '#F7C1C1' : '#e5e7eb'}`, borderRadius: 12, padding: '14px 16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: job.negatives?.length ? '#E24B4A' : '#d1d5db', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
-                        {job.negatives?.length ? '−' : '?'}
+      {/* ═══ 3. Opinioの見解 (full-width, promoted below first view) ═══ */}
+      {(job.fit_positives?.length > 0 || job.fit_negatives?.length > 0 || job.positives?.length > 0 || job.negatives?.length > 0 || job.agent_comment) && (
+        <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8" style={{ paddingTop: 24 }}>
+          <div style={{ background: "#fafaf7", borderRadius: 16, padding: 24, border: "1.5px solid #e8e4dc" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "#0f172a", padding: "3px 10px", borderRadius: 6 }}>Opinio</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>この求人の見解</span>
+            </div>
+            <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 16px 0" }}>現役社員・OBの声をもとにしたAI分析</p>
+
+            {job.agent_comment && (
+              <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, marginBottom: 16 }}>{job.agent_comment}</p>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* フィットしやすい点 */}
+              {(job.fit_positives?.length > 0 || job.positives?.length > 0) && (
+                <div style={{ background: "#f0fdf4", borderRadius: 10, padding: 16, borderLeft: "3px solid #10b981" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#15803d", marginBottom: 10 }}>フィットしやすい点</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {(job.fit_positives || job.positives || []).slice(0, 3).map((item: string, i: number) => (
+                      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ade80", flexShrink: 0, marginTop: 6 }} />
+                        <span style={{ fontSize: 13, color: "#14532d", lineHeight: 1.5 }}>{item}</span>
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: job.negatives?.length ? '#A32D2D' : '#9ca3af' }}>
-                        {job.negatives?.length ? 'ここに注意' : 'ここに注意（情報不足）'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {(job.negatives?.length ? job.negatives : ['詳細な職場環境情報を収集中です', '現役実務家への相談をおすすめします', '面談で直接確認することを推奨します']).slice(0, 3).map((n: string, i: number) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: job.negatives?.length ? '#7B1F1F' : '#9ca3af', lineHeight: 1.6 }}>
-                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: job.negatives?.length ? '#E24B4A' : '#d1d5db', flexShrink: 0, marginTop: 6 }} />
-                          {n}
-                        </div>
-                      ))}
-                    </div>
+                    ))}
                   </div>
                 </div>
+              )}
 
-                {/* 情報不足の場合はキャリア相談への誘導 */}
-                {(!job.positives?.length || !job.negatives?.length) && (
-                  <div style={{ textAlign: 'center', marginTop: 14 }}>
-                    <Link href="/career-consultation" style={{ fontSize: 13, color: '#1D9E75', textDecoration: 'none' }}>
-                      → この企業を知る実務家に相談する
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ─── 求める人材 ─── */}
-            {(job.requirements ||
-              job.preferred ||
-              mustReqs.length > 0 ||
-              wantReqs.length > 0) && (
-              <div
-                className="bg-white rounded-xl p-6"
-                style={{ border: "0.5px solid #e5e7eb" }}
-              >
-                <h2 className="text-[15px] font-bold text-gray-800 mb-4">
-                  求める人材
-                </h2>
-
-                {/* Text-based requirements */}
-                {job.requirements && (
-                  <div className="mb-5">
-                    <h3 className="text-[12px] font-semibold mb-2 flex items-center gap-2">
-                      <span
-                        className="px-2 py-0.5 text-[10px] rounded"
-                        style={{ background: "#FEE2E2", color: "#DC2626" }}
-                      >
-                        必須
-                      </span>
-                    </h3>
-                    <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap">
-                      {job.requirements}
-                    </p>
-                  </div>
-                )}
-                {job.preferred && (
-                  <div className="mb-5">
-                    <h3 className="text-[12px] font-semibold mb-2 flex items-center gap-2">
-                      <span
-                        className="px-2 py-0.5 text-[10px] rounded"
-                        style={{ background: "#DBEAFE", color: "#2563EB" }}
-                      >
-                        歓迎
-                      </span>
-                    </h3>
-                    <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap">
-                      {job.preferred}
-                    </p>
-                  </div>
-                )}
-
-                {/* List-based requirements (ow_job_requirements) */}
-                {mustReqs.length > 0 && !job.requirements && (
-                  <div className="mb-5">
-                    <h3 className="text-[12px] font-semibold mb-2 flex items-center gap-2">
-                      <span
-                        className="px-2 py-0.5 text-[10px] rounded"
-                        style={{ background: "#FEE2E2", color: "#DC2626" }}
-                      >
-                        必須
-                      </span>
-                    </h3>
-                    <ul className="space-y-1.5">
-                      {mustReqs.map((r: any) => (
-                        <li
-                          key={r.id}
-                          className="flex items-start gap-2 text-[13px] text-gray-600"
-                        >
-                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                          {r.content}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {wantReqs.length > 0 && !job.preferred && (
-                  <div>
-                    <h3 className="text-[12px] font-semibold mb-2 flex items-center gap-2">
-                      <span
-                        className="px-2 py-0.5 text-[10px] rounded"
-                        style={{ background: "#DBEAFE", color: "#2563EB" }}
-                      >
-                        歓迎
-                      </span>
-                    </h3>
-                    <ul className="space-y-1.5">
-                      {wantReqs.map((r: any) => (
-                        <li
-                          key={r.id}
-                          className="flex items-start gap-2 text-[13px] text-gray-600"
-                        >
-                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
-                          {r.content}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ─── 勤務条件 ─── */}
-            {conditionItems.length > 0 && (
-              <div
-                className="bg-white rounded-xl p-6"
-                style={{ border: "0.5px solid #e5e7eb" }}
-              >
-                <h2 className="text-[15px] font-bold text-gray-800 mb-4">
-                  勤務条件
-                </h2>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "12px 24px",
-                  }}
-                >
-                  {conditionItems.map((item) => (
-                    <div key={item.label}>
-                      <div
-                        style={{ fontSize: 11, color: "#9ca3af", marginBottom: 3 }}
-                      >
-                        {item.label}
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 500 }}>
-                        {item.value}
-                      </div>
+              {/* 注意点 */}
+              <div style={{ background: "#fffbeb", borderRadius: 10, padding: 16, borderLeft: "3px solid #f59e0b" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#92400e", marginBottom: 10 }}>注意点</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {((job.fit_negatives || job.negatives || []).length > 0
+                    ? (job.fit_negatives || job.negatives || [])
+                    : ["詳細な職場環境情報を収集中です", "メンターへの相談をおすすめします"]
+                  ).slice(0, 3).map((item: string, i: number) => (
+                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fbbf24", flexShrink: 0, marginTop: 6 }} />
+                      <span style={{ fontSize: 13, color: "#78350f", lineHeight: 1.5 }}>{item}</span>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
-
-            {/* ─── 選考フロー ─── */}
-            <div
-              className="bg-white rounded-xl p-6"
-              style={{ border: "0.5px solid #e5e7eb" }}
-            >
-              <h2 className="text-[15px] font-bold text-gray-800 mb-4">
-                選考フロー
-              </h2>
-              <div className="space-y-0">
-                {selectionSteps.map((step, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="flex flex-col items-center">
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
-                        style={{ background: "#1D9E75" }}
-                      >
-                        {i + 1}
-                      </div>
-                      {i < selectionSteps.length - 1 && (
-                        <div
-                          className="w-[1.5px] flex-1 min-h-[24px]"
-                          style={{ background: "#d1d5db" }}
-                        />
-                      )}
-                    </div>
-                    <div className="pb-5">
-                      <p className="text-[13px] font-medium text-gray-700 pt-1">
-                        {step}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* ═══ Right Column (Sidebar) ═══ */}
-          <aside
-            className="hidden lg:block flex-shrink-0"
-            style={{ width: 320 }}
-          >
-            <div className="sticky top-[80px] space-y-5">
-              {/* ─── 応募カード ─── */}
-              <div
-                className="bg-white rounded-xl p-5"
-                style={{ border: "0.5px solid #e5e7eb" }}
-              >
-                {/* Salary */}
-                <div className="mb-4 text-center">
-                  <div
-                    style={{ fontSize: 22, fontWeight: 700, color: "#1D9E75" }}
-                  >
-                    {salaryDisplay}
-                  </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">年収</div>
-                </div>
+      {/* ═══ 4. Two-Column Content ═══ */}
+      <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8" style={{ paddingTop: 24, paddingBottom: 48 }}>
+        <div style={{ display: "flex", gap: 28, alignItems: "flex-start" }}>
 
-                {/* CTA Buttons */}
-                <button
-                  onClick={handleApply}
-                  className="w-full py-3 rounded-lg text-[13px] font-medium text-white transition-colors mb-2"
-                  style={{ background: "#1D9E75" }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#0F6E56")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "#1D9E75")
-                  }
-                >
-                  この求人に応募する
-                </button>
-                <button
-                  onClick={handleCasual}
-                  className="w-full py-3 rounded-lg text-[13px] font-medium transition-colors"
-                  style={{
-                    border: "1px solid #1D9E75",
-                    color: "#1D9E75",
-                    background: "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#E1F5EE";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                  }}
-                >
-                  カジュアル面談を申し込む
-                </button>
+          {/* ─── Left Column (Main) ─── */}
+          <div className="flex-1 min-w-0" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-                {/* Note */}
-                <p className="text-[11px] text-gray-400 text-center mt-3 mb-4">
-                  応募後3営業日以内にご連絡いたします
-                </p>
-
-                {/* Divider */}
-                <div
-                  style={{
-                    height: "0.5px",
-                    background: "#e5e7eb",
-                    margin: "0 -4px 12px",
-                  }}
+            {/* Mobile-only inline apply form (shown when user tapped mobile CTA) */}
+            {showApplyForm && (
+              <div className="lg:hidden" style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                <ApplyForm
+                  jobId={job.id}
+                  jobTitle={job.title}
+                  companyName={company?.name ?? ""}
                 />
+              </div>
+            )}
 
-                {/* Info list */}
-                <div className="space-y-2.5">
-                  {[
-                    {
-                      label: "掲載日",
-                      value: job.created_at
-                        ? new Date(job.created_at).toLocaleDateString("ja-JP")
-                        : null,
-                    },
-                    { label: "職種", value: job.job_category },
-                    { label: "勤務形態", value: job.work_style },
-                    { label: "雇用形態", value: job.employment_type },
-                  ]
-                    .filter((item) => item.value)
-                    .map((item) => (
-                      <div
-                        key={item.label}
-                        className="flex items-center justify-between"
-                      >
-                        <span className="text-[11px] text-gray-400">
-                          {item.label}
-                        </span>
-                        <span className="text-[12px] font-medium text-gray-700">
-                          {item.value}
-                        </span>
+            {/* Card: 一緒に働くメンバー */}
+            {jobMembers && jobMembers.length > 0 && (
+              <div style={{ background: "#fafaf7", borderRadius: 16, padding: 24, border: "1.5px solid #e8e4dc", marginBottom: 32 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a", marginBottom: 4 }}>
+                  一緒に働くメンバー
+                </h3>
+                <p style={{ fontSize: 12, color: "#888", marginBottom: 16, margin: "0 0 16px 0" }}>
+                  実際にこのポジションで働くメンバーです
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {jobMembers.map((jm: any) => {
+                    const member = jm.member;
+                    if (!member) return null;
+                    return (
+                      <div key={member.id} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                        {member.photo_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={member.photo_url}
+                            alt=""
+                            style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: 52, height: 52, borderRadius: "50%",
+                            background: "#e8e4dc", display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 18, fontWeight: 500, color: "#666", flexShrink: 0,
+                          }}>
+                            {member.name?.[0] ?? "?"}
+                          </div>
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a", marginBottom: 2 }}>
+                            {member.name}
+                          </div>
+                          <div style={{ fontSize: 12, color: "#555", marginBottom: 6 }}>
+                            {member.role}
+                          </div>
+                          {member.job_types && member.job_types.length > 0 && (
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+                              {member.job_types.map((type: string, i: number) => (
+                                <span key={i} style={{
+                                  fontSize: 11,
+                                  background: "#f0faf4",
+                                  color: "#2d7a4f",
+                                  border: "0.5px solid #b7e4c7",
+                                  borderRadius: 99,
+                                  padding: "2px 8px",
+                                }}>
+                                  {type}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {member.background && (
+                            <div style={{
+                              fontSize: 12, color: "#888", lineHeight: 1.7,
+                              background: "#fff", border: "0.5px solid #e8e4dc",
+                              borderRadius: 8, padding: "8px 12px",
+                            }}>
+                              {member.background}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ))}
+                    );
+                  })}
                 </div>
               </div>
+            )}
 
-              {/* ─── 企業カード ─── */}
+            {/* Card: 仕事内容 */}
+            <div style={{ background: "#fff", borderRadius: 12, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", borderLeft: "3px solid #059669", paddingLeft: 12, marginBottom: 16 }}>
+                仕事内容
+              </h2>
+              {job.description ? (
+                <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.8, whiteSpace: "pre-wrap", margin: 0 }}>
+                  {job.description}
+                </p>
+              ) : (
+                <div style={{ textAlign: "center", padding: "24px 0" }}>
+                  <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 8 }}>詳細はメンターに直接確認できます。</p>
+                  <Link href="/career-consultation" style={{ fontSize: 13, color: "#1a6fd4", textDecoration: "none", fontWeight: 500 }}>メンターに聞く →</Link>
+                </div>
+              )}
+            </div>
+
+            {/* Card: 募集背景（常に表示） */}
+            <div style={{ background: "#fff", borderRadius: 12, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0f172a", borderLeft: "3px solid #2d7a4f", borderRadius: 0, paddingLeft: 12, marginBottom: 16 }}>
+                募集背景
+              </h2>
+              {job.appeal ? (
+                <p style={{ fontSize: 14, lineHeight: 1.8, color: "#333", whiteSpace: "pre-wrap", margin: 0 }}>
+                  {job.appeal}
+                </p>
+              ) : (
+                <p style={{ fontSize: 14, color: "#aaa", margin: 0 }}>準備中です</p>
+              )}
+            </div>
+
+            {/* Card: 求める人物像 */}
+            {(job.requirements || job.preferred || mustReqs.length > 0 || wantReqs.length > 0) && (
+              <div style={{ background: "#fff", borderRadius: 12, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", borderLeft: "3px solid #059669", paddingLeft: 12, marginBottom: 16 }}>
+                  求める人物像
+                </h2>
+
+                {/* 必須 */}
+                {(job.requirements || mustReqs.length > 0) && (
+                  <div style={{ marginBottom: 24 }}>
+                    <span style={{
+                      fontSize: 12, fontWeight: 700, letterSpacing: "0.05em",
+                      background: "#dc2626", color: "#fff",
+                      padding: "4px 12px", borderRadius: 6,
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      marginBottom: 12,
+                      boxShadow: "0 1px 2px rgba(220, 38, 38, 0.2)",
+                    }}>
+                      <span style={{ fontSize: 10 }}>●</span>
+                      必須
+                    </span>
+                    {job.requirements ? (
+                      <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{job.requirements}</div>
+                    ) : (
+                      <ul style={{ display: "flex", flexDirection: "column", gap: 8, margin: 0, padding: 0, listStyle: "none" }}>
+                        {mustReqs.map((r: any) => (
+                          <li key={r.id} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 14, color: "#374151" }}>
+                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#f87171", flexShrink: 0, marginTop: 7 }} />
+                            {r.content}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {/* 歓迎 */}
+                {(job.preferred || wantReqs.length > 0) && (
+                  <div>
+                    <span style={{
+                      fontSize: 12, fontWeight: 700, letterSpacing: "0.05em",
+                      background: "#1d4ed8", color: "#fff",
+                      padding: "4px 12px", borderRadius: 6,
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      marginBottom: 12,
+                      boxShadow: "0 1px 2px rgba(29, 78, 216, 0.2)",
+                    }}>
+                      <span style={{ fontSize: 10 }}>○</span>
+                      歓迎
+                    </span>
+                    {job.preferred ? (
+                      <div style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{job.preferred}</div>
+                    ) : (
+                      <ul style={{ display: "flex", flexDirection: "column", gap: 8, margin: 0, padding: 0, listStyle: "none" }}>
+                        {wantReqs.map((r: any) => (
+                          <li key={r.id} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 14, color: "#6b7280" }}>
+                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#93c5fd", flexShrink: 0, marginTop: 7 }} />
+                            {r.content}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Card: 勤務条件（常に表示） */}
+            <div style={{ background: "#fff", borderRadius: 12, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0f172a", borderLeft: "3px solid #2d7a4f", borderRadius: 0, paddingLeft: 12, marginBottom: 16 }}>
+                勤務条件
+              </h2>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <tbody>
+                  {[
+                    { label: "勤務時間", value: job.work_hours },
+                    { label: "平均残業", value: job.avg_overtime },
+                    { label: "休日・休暇", value: job.holidays },
+                    { label: "試用期間", value: job.trial_period },
+                  ].map((row, i) => (
+                    <tr key={i} style={{ borderBottom: "0.5px solid #eee" }}>
+                      <td style={{ width: "30%", padding: "10px 0", fontSize: 13, color: "#888", verticalAlign: "top" }}>
+                        {row.label}
+                      </td>
+                      <td style={{ padding: "10px 0", fontSize: 14, color: row.value ? "#333" : "#bbb", lineHeight: 1.7 }}>
+                        {row.value ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Card: 福利厚生（常に表示） */}
+            <div style={{ background: "#fff", borderRadius: 12, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0f172a", borderLeft: "3px solid #2d7a4f", borderRadius: 0, paddingLeft: 12, marginBottom: 16 }}>
+                福利厚生
+              </h2>
+              {job.benefits ? (
+                <p style={{ fontSize: 14, lineHeight: 1.8, color: "#333", whiteSpace: "pre-wrap", margin: 0 }}>
+                  {job.benefits}
+                </p>
+              ) : (
+                <p style={{ fontSize: 14, color: "#bbb", margin: 0 }}>—</p>
+              )}
+            </div>
+
+            {/* Card: 選考フロー（常に表示） */}
+            <div style={{ background: "#fff", borderRadius: 12, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0f172a", borderLeft: "3px solid #2d7a4f", borderRadius: 0, paddingLeft: 12, marginBottom: 16 }}>
+                選考フロー
+              </h2>
+              {job.selection_flow && job.selection_flow.length > 0 ? (
+                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                  {job.selection_flow.map((step: string, i: number) => (
+                    <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      <span style={{
+                        background: "#f0faf4", border: "1px solid #b7e4c7",
+                        borderRadius: 999, padding: "6px 16px",
+                        fontSize: 13, color: "#2d7a4f", fontWeight: 500,
+                      }}>
+                        {step}
+                      </span>
+                      {i < job.selection_flow.length - 1 && (
+                        <span style={{ color: "#ccc", fontSize: 16 }}>→</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: 14, color: "#bbb", margin: 0 }}>—</p>
+              )}
+            </div>
+
+          </div>
+
+          {/* ─── Right Column (Sidebar) ─── */}
+          <aside className="hidden lg:block" style={{ width: 300, flexShrink: 0, alignSelf: "flex-start", position: "sticky", top: 80 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+              {/* Sidebar Card 1: 企業情報サマリ */}
               {company && (
-                <div
-                  className="bg-white rounded-xl p-5"
-                  style={{ border: "0.5px solid #e5e7eb" }}
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <CompanyLogo company={company} size={40} bgOpacity />
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-medium text-gray-800 truncate">
-                        {company.name}
-                      </p>
-                      <div className="flex items-center gap-2 text-[11px] text-gray-400">
-                        {company.industry && <span>{company.industry}</span>}
-                        {company.phase && (
-                          <span
-                            className="px-1.5 py-0.5 rounded"
-                            style={{ background: "#f5f5f4" }}
-                          >
-                            {company.phase}
-                          </span>
-                        )}
+                <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                  <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
+                    <CompanyLogo company={company} size={40} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{company.name}</div>
+                      <div style={{ fontSize: 12, color: "#6b7280" }}>
+                        {[company.industry, company.phase].filter(Boolean).join(" · ")}
                       </div>
                     </div>
                   </div>
-
-                  {/* Stats */}
-                  <div
-                    className="grid grid-cols-3 gap-0 py-3 mb-4"
-                    style={{
-                      borderTop: "0.5px solid #f0f0f0",
-                      borderBottom: "0.5px solid #f0f0f0",
-                    }}
-                  >
+                  {/* Info grid */}
+                  <div style={{ borderTop: "0.5px solid #e5e7eb" }}>
                     {[
-                      getEmployeeDisplay(company) ? { value: getEmployeeDisplay(company), label: "社員数" } : null,
-                      company.funding_total && company.funding_total !== "非公開"
-                        ? { value: company.funding_total, label: "調達額" }
-                        : company.founded_year
-                        ? { value: `${company.founded_year}年`, label: "設立" }
-                        : null,
-                      { value: "4.2", label: "社員評価" },
-                    ].filter(Boolean).map((s: any, i) => (
-                      <div key={i} className="text-center">
-                        <div className="text-[14px] font-bold text-gray-800">
-                          {s.value}
-                        </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">
-                          {s.label}
-                        </div>
+                      company.industry && { label: "業界", value: company.industry },
+                      company.phase && { label: "フェーズ", value: company.phase },
+                      company.employee_count && { label: "社員数", value: `${company.employee_count}名` },
+                    ].filter(Boolean).map((item: any) => (
+                      <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "0.5px solid #f3f4f6" }}>
+                        <span style={{ fontSize: 12, color: "#6b7280" }}>{item.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: "#0f172a" }}>{item.value}</span>
                       </div>
                     ))}
                   </div>
-
                   <Link
                     href={`/companies/${company.id}`}
-                    className="block text-center text-[12px] font-medium transition-colors"
-                    style={{ color: "#1D9E75" }}
+                    style={{ display: "block", textAlign: "center", fontSize: 13, fontWeight: 500, color: "#1a6fd4", textDecoration: "none", marginTop: 14 }}
                   >
                     企業詳細を見る →
                   </Link>
                 </div>
               )}
 
-              {/* ─── 関連求人カード ─── */}
-              {similarJobs.length > 0 && (
-                <div
-                  className="bg-white rounded-xl p-5"
-                  style={{ border: "0.5px solid #e5e7eb" }}
-                >
-                  <h3 className="text-[13px] font-bold text-gray-800 mb-3">
-                    関連求人
+              {/* Sidebar Card 2: 応募CTA */}
+              <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                {!showApplyForm ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        if (!isLoggedIn) { router.push("/auth/signup"); return; }
+                        setShowApplyForm(true);
+                      }}
+                      style={{ width: "100%", padding: "14px 0", borderRadius: 12, fontSize: 15, fontWeight: 500, color: "#fff", background: "#1a9e75", border: "none", cursor: "pointer" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "#0F6E56"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "#1a9e75"; }}
+                    >
+                      この求人に応募する
+                    </button>
+                    <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", textAlign: "center", margin: "8px 0 4px" }}>
+                      応募を迷っている場合は
+                    </p>
+                    <Link
+                      href="/career-consultation"
+                      style={{ display: "block", fontSize: 13, color: "#1a9e75", textAlign: "center", textDecoration: "none" }}
+                    >
+                      メンターに無料相談する
+                    </Link>
+                    {/* マッチ度：応募ボタンの下に控えめに表示 */}
+                    {score !== null && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, padding: "10px 12px", background: "#F9FAF7", border: "0.5px solid #e8e4dc", borderRadius: 8 }}>
+                        <div style={{ textAlign: "center", flexShrink: 0 }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: "#1D9E75" }}>{score}%</div>
+                          <div style={{ fontSize: 9, fontWeight: 600, color: "#0F6E56" }}>マッチ度</div>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 10, color: "#6b7280", lineHeight: 1.5, margin: 0 }}>{matchReason}</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <ApplyForm
+                    jobId={job.id}
+                    jobTitle={job.title}
+                    companyName={company?.name ?? ""}
+                  />
+                )}
+                {/* マッチ度未算出メッセージ */}
+                {isLoggedIn && score === null && (
+                  <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", paddingTop: 16, margin: 0, textAlign: "center", borderTop: "0.5px solid #f3f4f6", marginTop: 16 }}>
+                    プロフィールを入力するとマッチ度が表示されます
+                  </p>
+                )}
+              </div>
+
+              {/* Sidebar Card 3: 関連求人（3タブ切替） */}
+              {(sameCategoryJobs.length > 0 || sameSalaryJobs.length > 0 || sameCompanyJobs.length > 0) && (
+                <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>
+                    関連する求人
                   </h3>
-                  <div className="space-y-3">
-                    {similarJobs.map((sj: any) => {
-                      const sjCompany = sj.ow_companies as any;
-                      const sjSalary = formatSalaryRange(
-                        sj.salary_min,
-                        sj.salary_max
-                      );
+
+                  {/* Tabs */}
+                  <div style={{ display: "flex", gap: 4, marginBottom: 12, borderBottom: "0.5px solid #e5e7eb" }}>
+                    {([
+                      { key: "category" as const, label: "同職種", count: sameCategoryJobs.length, disabled: sameCategoryJobs.length === 0 },
+                      { key: "salary" as const, label: "同年収帯", count: sameSalaryJobs.length, disabled: sameSalaryJobs.length === 0 },
+                      { key: "company" as const, label: "同企業", count: sameCompanyJobs.length, disabled: sameCompanyJobs.length === 0 },
+                    ]).map((tab) => {
+                      const isActive = relatedTab === tab.key;
                       return (
-                        <Link
-                          key={sj.id}
-                          href={`/jobs/${sj.id}`}
-                          className="block p-3 rounded-lg transition-all"
-                          style={{ border: "0.5px solid #f0f0f0" }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.borderColor = "#1D9E75")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.borderColor = "#f0f0f0")
-                          }
+                        <button
+                          key={tab.key}
+                          onClick={() => !tab.disabled && setRelatedTab(tab.key)}
+                          disabled={tab.disabled}
+                          style={{
+                            flex: 1,
+                            padding: "8px 4px",
+                            fontSize: 12,
+                            fontWeight: isActive ? 700 : 500,
+                            color: tab.disabled ? "#d1d5db" : isActive ? "#1a9e75" : "#6b7280",
+                            background: "transparent",
+                            border: "none",
+                            borderBottom: isActive ? "2px solid #1a9e75" : "2px solid transparent",
+                            cursor: tab.disabled ? "not-allowed" : "pointer",
+                            transition: "all 0.15s",
+                            marginBottom: -0.5,
+                          }}
                         >
-                          <div className="flex items-start gap-2.5">
-                            {sjCompany && (
-                              <CompanyLogo
-                                company={sjCompany}
-                                size={32}
-                                bgOpacity
-                              />
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[12px] font-medium text-gray-800 truncate mb-0.5">
-                                {sj.title}
-                              </p>
-                              <p className="text-[11px] text-gray-400 truncate">
-                                {sjCompany?.name}
-                              </p>
-                              <div className="flex items-center justify-between mt-1.5">
-                                <span className="text-[11px] text-gray-500">
-                                  {sjSalary}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
+                          {tab.label}
+                          {!tab.disabled && (
+                            <span style={{ fontSize: 10, marginLeft: 4, color: isActive ? "#1a9e75" : "#9ca3af" }}>
+                              ({tab.count})
+                            </span>
+                          )}
+                        </button>
                       );
                     })}
                   </div>
+
+                  {/* Tab content */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {(() => {
+                      const currentList =
+                        relatedTab === "category" ? sameCategoryJobs :
+                        relatedTab === "salary" ? sameSalaryJobs :
+                        sameCompanyJobs;
+                      const displayList = currentList.slice(0, 3);
+
+                      if (displayList.length === 0) {
+                        return (
+                          <p style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "16px 0", margin: 0 }}>
+                            該当する求人がありません
+                          </p>
+                        );
+                      }
+
+                      return displayList.map((sj: any) => {
+                        const sjCompany = sj.ow_companies as any;
+                        const sjSalary = formatSalaryRange(sj.salary_min, sj.salary_max);
+                        // For "company" tab, don't re-show company name (we already know)
+                        const showCompany = relatedTab !== "company";
+                        return (
+                          <Link
+                            key={sj.id}
+                            href={`/jobs/${sj.id}`}
+                            style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: 12, borderRadius: 8, border: "0.5px solid #e5e7eb", textDecoration: "none", background: "#f9fafb" }}
+                          >
+                            {showCompany && sjCompany && <CompanyLogo company={sjCompany} size={32} />}
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>
+                                {sj.title}
+                              </div>
+                              {showCompany && (
+                                <div style={{ fontSize: 12, color: "#6b7280" }}>{sjCompany?.name}</div>
+                              )}
+                              <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 2 }}>
+                                {sj.job_category && relatedTab !== "category" && (
+                                  <span style={{ fontSize: 11, color: "#6b7280" }}>{sj.job_category}</span>
+                                )}
+                                <span style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{sjSalary}</span>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      });
+                    })()}
+                  </div>
                 </div>
+              )}
+
+              {/* 掲載日 */}
+              {createdDate && (
+                <p style={{ fontSize: 11, color: "#aaa", marginTop: 8, textAlign: "center" }}>
+                  掲載日：{createdDate}
+                </p>
               )}
             </div>
           </aside>
         </div>
       </div>
+
+      {/* ═══ Mobile Fixed Bottom CTA (hidden when apply form is open) ═══ */}
+      {!showApplyForm && (
+      <div
+        className="lg:hidden"
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: "#fff",
+          borderTop: "1px solid #e5e7eb",
+          padding: "12px 16px",
+          zIndex: 40,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        {score !== null && (
+          <div style={{ flexShrink: 0, textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#1D9E75" }}>{score}%</div>
+            <div style={{ fontSize: 9, color: "#0F6E56", fontWeight: 600 }}>マッチ度</div>
+          </div>
+        )}
+        <button
+          onClick={() => {
+            if (!isLoggedIn) { router.push("/auth/signup"); return; }
+            setShowApplyForm(true);
+            // Scroll to the inline form after it renders
+            setTimeout(() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }, 50);
+          }}
+          style={{
+            flex: 1,
+            padding: "12px 0",
+            borderRadius: 10,
+            fontSize: 15,
+            fontWeight: 600,
+            color: "#fff",
+            background: "#1a9e75",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          この求人に応募する
+        </button>
+      </div>
+      )}
     </>
   );
 }

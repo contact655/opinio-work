@@ -7,13 +7,13 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div>
-            <span className="text-xl font-bold">
-              opinio<span className="text-primary">.work</span>
+            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px" }}>
+              Opinio
             </span>
             <p className="mt-3 text-sm text-gray-400">
               Truth to Careers
               <br />
-              採用の情報非対称をなくす
+              キャリアに、第三者の目を。
             </p>
           </div>
 
@@ -23,7 +23,27 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
                 <Link href="/companies" className="hover:text-white">
-                  企業を探す
+                  企業
+                </Link>
+              </li>
+              <li>
+                <Link href="/jobs" className="hover:text-white">
+                  募集
+                </Link>
+              </li>
+              <li>
+                <Link href="/career-consultation" className="hover:text-white">
+                  相談
+                </Link>
+              </li>
+              <li>
+                <Link href="/articles" className="hover:text-white">
+                  記事
+                </Link>
+              </li>
+              <li>
+                <Link href="/consultation-cases" className="hover:text-white">
+                  相談事例
                 </Link>
               </li>
               <li>
@@ -52,7 +72,17 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
                 <Link href="/about" className="hover:text-white">
-                  opinio.workについて
+                  Opinioについて
+                </Link>
+              </li>
+              <li>
+                <Link href="/about/scope" className="hover:text-white">
+                  対象業界
+                </Link>
+              </li>
+              <li>
+                <Link href="/about/selection-criteria" className="hover:text-white">
+                  掲載企業の審査基準
                 </Link>
               </li>
               <li>

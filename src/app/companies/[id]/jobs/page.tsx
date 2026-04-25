@@ -47,7 +47,7 @@ export default async function CompanyJobsPage({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-xl font-bold text-gray-400">
+                  <span className="text-xl font-bold text-gray-600">
                     {company.name[0]}
                   </span>
                 )}
@@ -124,7 +124,7 @@ export default async function CompanyJobsPage({
                         {job.salary_min && job.salary_max && (
                           <span className="text-sm text-gray-600 flex items-center gap-1">
                             <svg
-                              className="w-4 h-4 text-gray-400"
+                              className="w-4 h-4 text-gray-600"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -140,7 +140,7 @@ export default async function CompanyJobsPage({
                           </span>
                         )}
                         {job.location && (
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <span className="text-xs text-gray-600 flex items-center gap-1">
                             <svg
                               className="w-3.5 h-3.5"
                               fill="none"
@@ -174,7 +174,7 @@ export default async function CompanyJobsPage({
             </div>
           ) : (
             <div className="text-center py-20">
-              <p className="text-gray-400 text-lg mb-2">
+              <p className="text-gray-600 text-lg mb-2">
                 現在募集中の求人はありません
               </p>
               <Link

@@ -98,7 +98,7 @@ function FilterSection({
 }) {
   return (
     <div className="mb-6">
-      <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+      <h3 className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-2">
         {title}
       </h3>
       <div className="space-y-0.5">
@@ -165,13 +165,13 @@ function CompanyRow({ company }: { company: Company }) {
         </Link>
         <div className="flex items-center gap-3 mt-0.5">
           {company.industry && (
-            <span className="text-[11px] text-gray-400">{company.industry}</span>
+            <span className="text-[11px] text-gray-600">{company.industry}</span>
           )}
           {company.employee_count && (
-            <span className="text-[11px] text-gray-400">{/^\d+$/.test(company.employee_count) ? `${company.employee_count}名` : String(company.employee_count).includes("名") ? company.employee_count : `${company.employee_count}名`}</span>
+            <span className="text-[11px] text-gray-600">{/^\d+$/.test(company.employee_count) ? `${company.employee_count}名` : String(company.employee_count).includes("名") ? company.employee_count : `${company.employee_count}名`}</span>
           )}
           {company.location && (
-            <span className="text-[11px] text-gray-400">{company.location}</span>
+            <span className="text-[11px] text-gray-600">{company.location}</span>
           )}
         </div>
       </div>
@@ -180,7 +180,7 @@ function CompanyRow({ company }: { company: Company }) {
       <div className="flex items-center gap-3 flex-shrink-0">
         {jobCount > 0 ? (
           <>
-            <span className="text-[11px] text-gray-400">
+            <span className="text-[11px] text-gray-600">
               求人 {jobCount}件
             </span>
             <Link
@@ -194,7 +194,7 @@ function CompanyRow({ company }: { company: Company }) {
         ) : (
           <Link
             href={`/companies/${company.id}`}
-            className="text-[12px] text-gray-400 font-medium px-3 py-1.5 rounded-md hover:bg-gray-50 transition-colors"
+            className="text-[12px] text-gray-600 font-medium px-3 py-1.5 rounded-md hover:bg-gray-50 transition-colors"
             style={{ border: "0.5px solid #d1d5db" }}
           >
             詳細を見る
@@ -286,17 +286,17 @@ export default function CompanyListClient({
       <div className="mb-6">
         <Link
           href="/companies"
-          className="text-[12px] text-gray-400 hover:text-primary transition-colors"
+          className="text-[12px] text-gray-600 hover:text-primary transition-colors"
         >
           企業トップ
         </Link>
-        <span className="text-[12px] text-gray-300 mx-1.5">/</span>
+        <span className="text-[12px] text-gray-500 mx-1.5">/</span>
         <span className="text-[12px] text-gray-600">企業一覧</span>
       </div>
 
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-lg font-bold text-gray-800">企業一覧</h1>
-        <p className="text-[13px] text-gray-400">
+        <p className="text-[13px] text-gray-600">
           {filtered.length}社
           {activeFilterCount > 0 && (
             <span className="ml-1">
@@ -309,7 +309,7 @@ export default function CompanyListClient({
       {/* Search */}
       <div className="mb-6">
         <div className="relative">
-          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -338,7 +338,7 @@ export default function CompanyListClient({
                   setCategory(""); setPhase(""); setWorkstyle(""); setLocation("");
                   router.push("/companies/list", { scroll: false });
                 }}
-                className="w-full text-[11px] text-gray-400 hover:text-red-500 mt-1 transition-colors text-left px-3"
+                className="w-full text-[11px] text-gray-600 hover:text-red-500 mt-1 transition-colors text-left px-3"
               >
                 フィルターをクリア
               </button>
@@ -349,14 +349,14 @@ export default function CompanyListClient({
         {/* Main list */}
         <div className="flex-1 min-w-0">
           {filtered.length > 0 ? (
-            <div className="bg-white rounded-xl overflow-hidden" style={{ border: "0.5px solid #e5e7eb" }}>
+            <div className="bg-white rounded-xl overflow-hidden shadow-card">
               {filtered.map((c) => (
                 <CompanyRow key={c.id} company={c} />
               ))}
             </div>
           ) : (
             <div className="text-center py-20">
-              <p className="text-gray-400 text-sm mb-3">
+              <p className="text-gray-600 text-sm mb-3">
                 該当する企業が見つかりませんでした
               </p>
               <button

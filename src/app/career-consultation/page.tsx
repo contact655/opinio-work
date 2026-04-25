@@ -29,14 +29,43 @@ async function getMentors() {
   }
 }
 
+async function getUserProfile(userId: string) {
+  const supabase = createClient();
+  try {
+    const { data } = await supabase
+      .from("ow_profiles")
+      .select("job_type, experience_years, worry, consultation_tags, current_company_type")
+      .eq("user_id", userId)
+      .single();
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 export default async function CareerConsultationPage() {
+  const supabase = createClient();
   const mentors = await getMentors();
+
+  // Get current user & profile
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isLoggedIn = !!user;
+  let userProfile = null;
+  if (user) {
+    userProfile = await getUserProfile(user.id).catch(() => null);
+  }
 
   return (
     <>
       <Header />
       <main className="pt-16 min-h-screen bg-white">
-        <CareerConsultationClient mentors={mentors} />
+        <CareerConsultationClient
+          mentors={mentors}
+          isLoggedIn={isLoggedIn}
+          userProfile={userProfile}
+        />
       </main>
       <Footer />
     </>

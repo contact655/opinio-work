@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import FavoriteButton from "@/components/FavoriteButton";
+import { getCompanyLogoSources } from "@/lib/utils/companyLogo";
 import {
   parseEmployeeCount,
   isGaishi,
@@ -12,7 +13,6 @@ import {
   checkIsNew,
   checkIsFeatured,
   getJobCategories,
-  getAutoStats,
 } from "@/lib/utils/companyStats";
 
 // ─── Types ──────────────────────────────────────────
@@ -27,23 +27,14 @@ const INDUSTRY_TAGS = [
 ];
 const CATEGORY_TAGS = ["すべて", "外資系", "日系", "スタートアップ"];
 const ROLE_TAGS = ["すべて", "営業", "CS", "マーケ", "インサイドセールス"];
+const LOCATION_TAGS = ["すべて", "東京", "大阪・関西", "名古屋", "福岡", "リモート可"];
 
 const SORT_OPTIONS = [
   { value: "jobs", label: "求人数順" },
+  { value: "match", label: "マッチ度順" },
   { value: "newest", label: "新着順" },
   { value: "employees", label: "社員数順" },
 ];
-
-const LOGO_COLORS = [
-  "#3B82F6", "#10B981", "#8B5CF6", "#F97316",
-  "#EC4899", "#14B8A6", "#6366F1", "#F43F5E",
-];
-
-// ─── Helpers ────────────────────────────────────────
-
-function getLogoColor(name: string): string {
-  return LOGO_COLORS[name.charCodeAt(0) % LOGO_COLORS.length];
-}
 
 // ─── Company Logo ───────────────────────────────────
 
@@ -56,46 +47,71 @@ function CompanyLogo({
   size?: number;
   rounded?: number;
 }) {
-  const [imgError, setImgError] = useState(false);
-  let clearbitUrl: string | null = null;
-  if (company.url) {
-    try {
-      clearbitUrl = `https://www.google.com/s2/favicons?domain=${new URL(company.url).hostname}&sz=128`;
-    } catch {}
-  }
-  const logoUrl = company.logo_url || clearbitUrl;
-  const color = getLogoColor(company.name);
+  // Build logo source chain: logo_url → Clearbit (website_url) → Clearbit (url) → Google favicon → initial
+  const sources = getCompanyLogoSources(company);
+  const [srcIndex, setSrcIndex] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const currentSrc = sources[srcIndex] ?? null;
+  const showInitial = !currentSrc || (!loaded && srcIndex >= sources.length);
 
-  if (imgError || !logoUrl) {
-    return (
-      <div
-        className="flex items-center justify-center text-white font-bold flex-shrink-0"
-        style={{
-          width: size,
-          height: size,
-          borderRadius: rounded,
-          backgroundColor: color,
-          fontSize: size * 0.38,
-        }}
-      >
-        {company.name[0]}
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={logoUrl}
-      alt={company.name}
-      onError={() => setImgError(true)}
-      className="object-cover flex-shrink-0"
+  const initialFallback = (
+    <div
       style={{
         width: size,
         height: size,
         borderRadius: rounded,
-        border: "0.5px solid #e5e7eb",
+        background: '#f3f4f6',
+        border: '0.5px solid #e5e7eb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: size * 0.35,
+        color: '#6b7280',
+        fontWeight: 500,
+        flexShrink: 0,
       }}
-    />
+    >
+      {company.name[0]}
+    </div>
+  );
+
+  if (showInitial && !currentSrc) return initialFallback;
+
+  return (
+    <div
+      className="flex items-center justify-center flex-shrink-0 overflow-hidden"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: rounded,
+        border: "1px solid #e5e7eb",
+        background: loaded ? "#fff" : "#f3f4f6",
+        padding: loaded ? 6 : 0,
+      }}
+    >
+      {currentSrc && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={currentSrc}
+          alt=""
+          style={{ width: "100%", height: "100%", objectFit: "contain", display: loaded ? "block" : "none" }}
+          onLoad={(e) => {
+            const img = e.target as HTMLImageElement;
+            if (img.naturalWidth === 0) {
+              setSrcIndex((i) => i + 1);
+            } else {
+              setLoaded(true);
+            }
+          }}
+          onError={() => { setLoaded(false); setSrcIndex((i) => i + 1); }}
+        />
+      )}
+      {!loaded && (
+        <span style={{ fontSize: size * 0.35, fontWeight: 500, color: "#6b7280" }}>
+          {company.name[0]}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -113,21 +129,42 @@ function TagButton({
   return (
     <button
       onClick={onClick}
-      className="text-[12px] px-3 py-1.5 rounded-md transition-all whitespace-nowrap"
+      className="transition-all whitespace-nowrap"
       style={
         selected
           ? {
-              background: "#E1F5EE",
-              border: "0.5px solid #5DCAA5",
-              color: "#0F6E56",
-              fontWeight: 500,
+              fontSize: 14,
+              fontWeight: 600,
+              background: "#059669",
+              border: "1.5px solid #059669",
+              color: "#fff",
+              borderRadius: 999,
+              padding: "6px 16px",
             }
           : {
+              fontSize: 14,
+              fontWeight: 500,
               background: "#fff",
-              border: "0.5px solid #e5e7eb",
-              color: "#6b7280",
+              border: "1.5px solid #d1d5db",
+              color: "#1f2937",
+              borderRadius: 999,
+              padding: "6px 16px",
             }
       }
+      onMouseEnter={(e) => {
+        if (!selected) {
+          e.currentTarget.style.borderColor = "#059669";
+          e.currentTarget.style.color = "#059669";
+          e.currentTarget.style.background = "#f0fdf4";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!selected) {
+          e.currentTarget.style.borderColor = "#d1d5db";
+          e.currentTarget.style.color = "#1f2937";
+          e.currentTarget.style.background = "#fff";
+        }
+      }}
     >
       {label}
     </button>
@@ -161,8 +198,8 @@ function CompanyBadges({ company }: { company: Company }) {
       )}
       {jobCount > 0 && (
         <span
-          className="text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0"
-          style={{ background: "#E6F1FB", color: "#185FA5" }}
+          className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+          style={{ background: "#dcfce7", color: "#15803d", border: "1px solid #86efac" }}
         >
           採用中
         </span>
@@ -173,30 +210,7 @@ function CompanyBadges({ company }: { company: Company }) {
 
 // ─── Match Score Bar ────────────────────────────────
 
-function MatchScoreBar({ score }: { score: number }) {
-  return (
-    <div className="flex items-center gap-1.5 mt-2">
-      <div className="flex-1 h-1 rounded-full bg-gray-100">
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${score}%`, background: "#1D9E75" }}
-        />
-      </div>
-      <span className="text-[10px] font-medium" style={{ color: "#1D9E75" }}>
-        {score}%マッチ
-      </span>
-    </div>
-  );
-}
-
 // ─── 修正1: Description Ellipsis helper ─────────────
-
-const descStyle: React.CSSProperties = {
-  display: "-webkit-box",
-  WebkitLineClamp: 2,
-  WebkitBoxOrient: "vertical" as const,
-  overflow: "hidden",
-};
 
 // ─── List Card ──────────────────────────────────────
 
@@ -210,84 +224,93 @@ function ListCard({
   matchScore?: number;
 }) {
   const jobCount = company.ow_jobs?.length || 0;
-  const tags = company.ow_company_culture_tags || [];
-  const topTags = tags.slice(0, 3);
-  const stats = getAutoStats(company);
-  const desc = company.description || company.mission || "";
+  const rawDesc = company.tagline || company.description || company.mission || "";
+  // 先頭1文（句点 or 30文字で切り捨て）
+  const catchphrase = (() => {
+    if (!rawDesc) return "";
+    const firstSentence = rawDesc.split(/[。\n]/)[0];
+    if (firstSentence.length <= 30) return firstSentence;
+    return firstSentence.slice(0, 30) + "...";
+  })();
 
   return (
     <Link
       href={`/companies/${company.id}`}
-      className="block bg-white rounded-xl transition-all group"
-      style={{ border: "0.5px solid #e5e7eb", padding: "16px 18px" }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#1D9E75")}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}
+      className="block bg-white transition-all duration-150 group"
+      style={{
+        padding: "16px 20px",
+        borderRadius: 16,
+        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.10), 0 2px 4px -1px rgba(0,0,0,0.06)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.12), 0 4px 6px -2px rgba(0,0,0,0.08)";
+        e.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0,0,0,0.10), 0 2px 4px -1px rgba(0,0,0,0.06)";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
     >
-      <div className="flex items-start gap-4">
-        <CompanyLogo company={company} size={56} rounded={12} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <h3 className="font-medium text-[16px] text-gray-800 truncate">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* ロゴ + カラードット */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <CompanyLogo company={company} size={48} rounded={10} />
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: company.cover_color || '#1d6fa5',
+            flexShrink: 0,
+          }}/>
+        </div>
+
+        {/* 本文 */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }} className="truncate">
               {company.name}
             </h3>
             <CompanyBadges company={company} />
           </div>
-          {desc && (
-            <p
-              className="text-[13px] text-gray-400 leading-relaxed"
-              style={descStyle}
-            >
-              {desc}
+          {catchphrase && (
+            <p style={{ fontSize: 13, color: "#6b7280", margin: 0, lineHeight: 1.5 }} className="truncate">
+              {catchphrase}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0 self-center">
-          <FavoriteButton companyId={company.id} initialFavorited={isSaved} />
-          {jobCount > 0 ? (
-            <span
-              className="inline-flex items-center gap-1 text-[12px] font-medium px-3 py-1.5 rounded-md"
-              style={{ border: "0.5px solid #5DCAA5", background: "#E1F5EE", color: "#0F6E56" }}
-            >
-              求人 {jobCount}件
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+
+        {/* ♡ハート */}
+        <FavoriteButton companyId={company.id} initialFavorited={isSaved} />
+
+        {/* ボタン群 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '120px', flexShrink: 0 }}>
+          {matchScore != null && matchScore > 0 && (
+            <div style={{
+              fontSize: '14px', fontWeight: 500, color: '#1D9E75',
+              border: '0.5px solid #d1d5db', borderRadius: '8px',
+              padding: '9px 0', textAlign: 'center', background: 'white', width: '100%',
+            }}>
+              マッチ度 {matchScore}%
+            </div>
+          )}
+          <span style={{
+            fontSize: '13px', fontWeight: 600, padding: '8px 16px', borderRadius: '8px',
+            background: 'transparent', color: '#1a1a1a', border: '1.5px solid #d0d0d0',
+            textAlign: 'center', display: 'block', width: '100%',
+            transition: 'all 0.15s',
+          }}>
+            詳細 →
+          </span>
+          {jobCount > 0 && (
+            <span style={{
+              fontSize: '14px', padding: '9px 0', borderRadius: '8px',
+              background: '#fff', color: '#0f172a', border: '0.5px solid #d1d5db',
+              textAlign: 'center', display: 'block', width: '100%',
+            }}>
+              求人 {jobCount}件 &gt;
             </span>
-          ) : (
-            <span className="text-[12px] text-gray-300">求人なし</span>
           )}
         </div>
       </div>
 
-      <div className="flex mt-3" style={{ gap: 24 }}>
-        {stats.map((s, i) => (
-          <div key={i} className="flex flex-col" style={{ gap: 2 }}>
-            <span
-              className="text-[15px] font-medium"
-              style={{ color: s.highlight ? "#0F6E56" : "#374151" }}
-            >
-              {s.value}
-            </span>
-            <span className="text-[11px] text-gray-400">{s.label}</span>
-          </div>
-        ))}
-      </div>
-
-      {topTags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {topTags.map((t: any, i: number) => (
-            <span
-              key={i}
-              className="text-[10px] px-2 py-0.5 rounded-full"
-              style={{ background: "#f5f5f4", color: "#78716c" }}
-            >
-              {t.tag_value}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {matchScore != null && matchScore > 0 && <MatchScoreBar score={matchScore} />}
     </Link>
   );
 }
@@ -304,98 +327,104 @@ function GridCard({
   matchScore?: number;
 }) {
   const jobCount = company.ow_jobs?.length || 0;
-  const tags = company.ow_company_culture_tags || [];
-  const topTags = tags.slice(0, 2);
-  const stats = getAutoStats(company);
-  const color = getLogoColor(company.name);
-  const desc = company.description || company.mission || "";
+  const rawDesc = company.tagline || company.description || company.mission || "";
+  const catchphrase = (() => {
+    if (!rawDesc) return "";
+    const firstSentence = rawDesc.split(/[。\n]/)[0];
+    if (firstSentence.length <= 30) return firstSentence;
+    return firstSentence.slice(0, 30) + "...";
+  })();
 
   return (
     <Link
       href={`/companies/${company.id}`}
-      className="block bg-white rounded-xl overflow-hidden transition-all group"
-      style={{ border: "0.5px solid #e5e7eb" }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#1D9E75")}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}
+      className="block bg-white overflow-hidden transition-all duration-150 group"
+      style={{
+        borderRadius: 16,
+        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.10), 0 2px 4px -1px rgba(0,0,0,0.06)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.12), 0 4px 6px -2px rgba(0,0,0,0.08)";
+        e.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0,0,0,0.10), 0 2px 4px -1px rgba(0,0,0,0.06)";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
     >
-      <div className="h-[56px] relative" style={{ background: `${color}20` }}>
+      <div className="relative" style={{ height: 100 }}>
+        {company.header_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={company.header_image_url}
+            alt={company.name}
+            style={{
+              width: "100%", height: 100,
+              objectFit: "cover",
+              borderRadius: "16px 16px 0 0",
+            }}
+          />
+        ) : (
+          <div style={{
+            width: '100%',
+            height: 100,
+            background: `linear-gradient(135deg, ${company.cover_color || '#1d6fa5'}, ${company.cover_color || '#1d6fa5'}cc)`,
+            borderRadius: '16px 16px 0 0',
+          }} />
+        )}
         <div className="absolute top-2 right-2 z-10">
           <FavoriteButton companyId={company.id} initialFavorited={isSaved} />
         </div>
         <div
           className="absolute -bottom-5 left-4"
-          style={{ border: "2px solid #fff", borderRadius: 14, background: "#fff" }}
+          style={{ border: "2px solid #fff", borderRadius: 12, background: "#fff" }}
         >
-          <CompanyLogo company={company} size={44} rounded={12} />
+          <CompanyLogo company={company} size={44} rounded={10} />
         </div>
       </div>
 
       <div className="pt-7 px-4 pb-4">
-        <div className="flex items-center gap-1.5 mb-1">
-          <h3 className="font-semibold text-[13px] text-gray-800 truncate">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <h3 style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }} className="truncate">
             {company.name}
           </h3>
           <CompanyBadges company={company} />
         </div>
 
-        {desc && (
-          <p
-            className="text-[11px] text-gray-400 leading-relaxed mb-2"
-            style={descStyle}
-          >
-            {desc}
+        {catchphrase && (
+          <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 10px 0", lineHeight: 1.5 }} className="truncate">
+            {catchphrase}
           </p>
         )}
 
-        {topTags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {topTags.map((t: any, i: number) => (
-              <span
-                key={i}
-                className="text-[10px] px-2 py-0.5 rounded-full"
-                style={{ background: "#f5f5f4", color: "#78716c" }}
-              >
-                {t.tag_value}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div
-          className="grid grid-cols-3 gap-0 py-2.5 mb-3"
-          style={{ borderTop: "0.5px solid #f0f0f0", borderBottom: "0.5px solid #f0f0f0" }}
-        >
-          {stats.map((s, i) => (
-            <div
-              key={i}
-              className="text-center"
-              style={i < stats.length - 1 ? { borderRight: "0.5px solid #f0f0f0" } : {}}
-            >
-              <div
-                className="text-[12px] font-semibold"
-                style={{ color: s.highlight ? "#0F6E56" : "#374151" }}
-              >
-                {s.value}
-              </div>
-              <div className="text-[9px] text-gray-400 mt-0.5">{s.label}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {matchScore != null && matchScore > 0 && (
+            <div style={{
+              fontSize: '14px', fontWeight: 500, color: '#1D9E75',
+              border: '0.5px solid #d1d5db', borderRadius: '8px',
+              padding: '9px 0', textAlign: 'center', background: 'white', width: '100%',
+            }}>
+              マッチ度 {matchScore}%
             </div>
-          ))}
-        </div>
-
-        <div className="flex justify-center">
-          {jobCount > 0 ? (
-            <span
-              className="text-[11px] font-medium px-3 py-1.5 rounded-md w-full text-center"
-              style={{ background: "#E1F5EE", color: "#0F6E56" }}
-            >
-              求人 {jobCount}件を見る
+          )}
+          <span style={{
+            fontSize: '13px', fontWeight: 600, padding: '8px 16px', borderRadius: '8px',
+            background: 'transparent', color: '#1a1a1a', border: '1.5px solid #d0d0d0',
+            textAlign: 'center', display: 'block', width: '100%',
+            transition: 'all 0.15s',
+          }}>
+            詳細 →
+          </span>
+          {jobCount > 0 && (
+            <span style={{
+              fontSize: '14px', padding: '9px 0', borderRadius: '8px',
+              background: '#fff', color: '#0f172a', border: '0.5px solid #d1d5db',
+              textAlign: 'center', display: 'block', width: '100%',
+            }}>
+              求人 {jobCount}件 &gt;
             </span>
-          ) : (
-            <span className="text-[11px] text-gray-300 py-1.5">現在求人なし</span>
           )}
         </div>
-
-        {matchScore != null && matchScore > 0 && <MatchScoreBar score={matchScore} />}
       </div>
     </Link>
   );
@@ -409,24 +438,22 @@ function Grid5Card({ company }: { company: Company }) {
   return (
     <Link
       href={`/companies/${company.id}`}
-      className="block bg-white rounded-xl transition-all text-center"
-      style={{ border: "0.5px solid #e5e7eb", padding: "16px 8px 12px" }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#1D9E75")}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}
+      className="block bg-white rounded-xl transition-shadow duration-200 text-center shadow-card hover:shadow-card-hover"
+      style={{ padding: "16px 8px 12px" }}
     >
       <div className="flex justify-center mb-2">
         <CompanyLogo company={company} size={44} rounded={11} />
       </div>
-      <h3 className="font-medium text-[12px] text-gray-800 leading-tight line-clamp-2 mb-1">
+      <h3 className="leading-tight line-clamp-2 mb-1" style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>
         {company.name}
       </h3>
       {company.industry && (
-        <p className="text-[10px] text-gray-400 truncate mb-1.5">{company.industry}</p>
+        <p className="truncate mb-1.5" style={{ fontSize: 12, color: "#6b7280" }}>{company.industry}</p>
       )}
       {jobCount > 0 && (
         <span
-          className="inline-block text-[10px] font-medium px-2 py-0.5 rounded-full"
-          style={{ background: "#E1F5EE", color: "#0F6E56" }}
+          className="inline-block px-2 py-0.5 rounded-full"
+          style={{ fontSize: 13, fontWeight: 600, color: "#059669", background: "#f0fdf4" }}
         >
           求人 {jobCount}件
         </span>
@@ -580,8 +607,8 @@ function SectionCarousel({ section }: { section: SectionDef }) {
     <div className="mb-8">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5">
-          <h2 className="text-[15px] font-bold text-gray-800">{section.title}</h2>
-          <span className="text-[12px] text-gray-400">{section.companies.length}社</span>
+          <h2 className="text-[15px] font-bold text-gray-900">{section.title}</h2>
+          <span className="text-[12px] text-gray-600">{section.companies.length}社</span>
           <div className="flex items-center gap-1 ml-1">
             <button
               onClick={() => slide("left")}
@@ -618,7 +645,7 @@ function SectionCarousel({ section }: { section: SectionDef }) {
         {section.filter && (
           <Link
             href={`/companies/list?category=${encodeURIComponent(section.filter)}`}
-            className="text-[12px] text-gray-400 hover:text-[#1D9E75] transition-colors"
+            className="text-[12px] text-gray-600 hover:text-[#1D9E75] transition-colors"
           >
             すべて見る →
           </Link>
@@ -679,6 +706,7 @@ export default function CompanyExplorer({
   const [industry, setIndustry] = useState("すべて");
   const [category, setCategory] = useState("すべて");
   const [role, setRole] = useState("すべて");
+  const [locationFilter, setLocationFilter] = useState("すべて");
   const [sort, setSort] = useState("jobs");
   const [view, setView] = useState<ViewMode>(initialView);
   const debounceRef = useRef<NodeJS.Timeout>();
@@ -734,10 +762,30 @@ export default function CompanyExplorer({
           const cats = getJobCategories(c);
           if (!cats.some((cat) => cat.includes(role))) return false;
         }
+        if (locationFilter !== "すべて") {
+          const loc = (c.location || c.headquarters || "").toLowerCase();
+          const jobLocations = (c.ow_jobs || []).map((j: any) => (j.location || j.work_style || "").toLowerCase()).join(" ");
+          const allText = `${loc} ${jobLocations}`;
+          if (locationFilter === "東京") {
+            if (!allText.includes("東京")) return false;
+          } else if (locationFilter === "大阪・関西") {
+            if (!allText.includes("大阪") && !allText.includes("関西")) return false;
+          } else if (locationFilter === "名古屋") {
+            if (!allText.includes("名古屋")) return false;
+          } else if (locationFilter === "福岡") {
+            if (!allText.includes("福岡")) return false;
+          } else if (locationFilter === "リモート可") {
+            const remoteText = `${allText} ${(c.work_style || "").toLowerCase()}`;
+            if (!remoteText.includes("リモート") && !remoteText.includes("remote") && !remoteText.includes("フルリモート")) return false;
+          }
+        }
         return true;
       })
       .sort((a, b) => {
         if (sort === "jobs") return (b.ow_jobs?.length || 0) - (a.ow_jobs?.length || 0);
+        if (sort === "match") {
+          return (matchScoreMap[b.id] || 0) - (matchScoreMap[a.id] || 0);
+        }
         if (sort === "newest")
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         if (sort === "employees") {
@@ -747,16 +795,16 @@ export default function CompanyExplorer({
         }
         return 0;
       });
-  }, [companies, debouncedQuery, industry, category, role, sort]);
+  }, [companies, debouncedQuery, industry, category, role, locationFilter, sort, matchScoreMap]);
 
   return (
     <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* ─── Page Header ─── */}
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 500, marginBottom: 4 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: "#111827", marginBottom: 4 }}>
           企業を探す
         </h1>
-        <p style={{ fontSize: 13, color: "#6b7280" }}>
+        <p style={{ fontSize: 14, color: "#6b7280" }}>
           カルチャー・働き方・年収のリアルを知ってから、応募できます。
         </p>
       </div>
@@ -765,7 +813,7 @@ export default function CompanyExplorer({
       <div className="mb-5">
         <div className="relative">
           <svg
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-400"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-600"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -782,35 +830,45 @@ export default function CompanyExplorer({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="企業名・業界・キーワードで検索"
-            className="w-full pl-12 pr-4 py-3 bg-[#FAFAF9] rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-[#1D9E75] focus:bg-white transition-colors"
-            style={{ border: "0.5px solid #e5e7eb" }}
+            className="w-full pl-12 pr-4 bg-white focus:outline-none transition-colors"
+            style={{ height: 48, fontSize: 15, color: "#111827", border: "1.5px solid #e5e7eb", borderRadius: 10 }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "#059669"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; }}
           />
         </div>
       </div>
 
       {/* ─── Filter Tags ─── */}
-      <div className="space-y-3 mb-5">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-gray-400 font-medium w-10 flex-shrink-0">業界</span>
-          <div className="flex flex-wrap gap-1.5">
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+        <div className="flex items-center" style={{ gap: 12 }}>
+          <span className="flex-shrink-0" style={{ fontSize: 14, fontWeight: 600, color: "#374151", minWidth: 48 }}>業界</span>
+          <div className="flex flex-wrap" style={{ gap: 8 }}>
             {INDUSTRY_TAGS.map((tag) => (
               <TagButton key={tag} label={tag} selected={industry === tag} onClick={() => setIndustry(tag)} />
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-gray-400 font-medium w-10 flex-shrink-0">分類</span>
-          <div className="flex flex-wrap gap-1.5">
+        <div className="flex items-center" style={{ gap: 12 }}>
+          <span className="flex-shrink-0" style={{ fontSize: 14, fontWeight: 600, color: "#374151", minWidth: 48 }}>分類</span>
+          <div className="flex flex-wrap" style={{ gap: 8 }}>
             {CATEGORY_TAGS.map((tag) => (
               <TagButton key={tag} label={tag} selected={category === tag} onClick={() => setCategory(tag)} />
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-gray-400 font-medium w-10 flex-shrink-0">職種</span>
-          <div className="flex flex-wrap gap-1.5">
+        <div className="flex items-center" style={{ gap: 12 }}>
+          <span className="flex-shrink-0" style={{ fontSize: 14, fontWeight: 600, color: "#374151", minWidth: 48 }}>職種</span>
+          <div className="flex flex-wrap" style={{ gap: 8 }}>
             {ROLE_TAGS.map((tag) => (
               <TagButton key={tag} label={tag} selected={role === tag} onClick={() => setRole(tag)} />
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center" style={{ gap: 12 }}>
+          <span className="flex-shrink-0" style={{ fontSize: 14, fontWeight: 600, color: "#374151", minWidth: 48 }}>勤務地</span>
+          <div className="flex flex-wrap" style={{ gap: 8 }}>
+            {LOCATION_TAGS.map((tag) => (
+              <TagButton key={tag} label={tag} selected={locationFilter === tag} onClick={() => setLocationFilter(tag)} />
             ))}
           </div>
         </div>
@@ -818,17 +876,21 @@ export default function CompanyExplorer({
 
       {/* ─── Toolbar: count + sort + view ─── */}
       <div className="flex items-center justify-between mb-4">
-        <p className="text-[13px] text-gray-500">
-          <span className="font-semibold text-gray-800">{filtered.length}社</span>
-          を表示中
-        </p>
+        <div>
+          <p className="text-[13px] text-gray-500" style={{ margin: 0 }}>
+            IT/SaaS厳選 <span className="font-semibold text-gray-900">{filtered.length}社</span>
+          </p>
+          <p style={{ fontSize: 12, color: "#9ca3af", margin: "2px 0 0 0" }}>Opinioが審査・掲載を承認した企業のみ</p>
+        </div>
         <div className="flex items-center gap-3">
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
             className="text-[12px] text-gray-500 bg-transparent outline-none cursor-pointer pr-1"
           >
-            {SORT_OPTIONS.map((opt) => (
+            {SORT_OPTIONS
+              .filter((opt) => opt.value !== "match" || Object.keys(matchScoreMap).length > 0)
+              .map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
@@ -860,7 +922,7 @@ export default function CompanyExplorer({
       {/* ─── Results ─── */}
       {filtered.length > 0 ? (
         view === "list" ? (
-          <div className="flex flex-col" style={{ gap: "10px" }}>
+          <div className="flex flex-col" style={{ gap: "16px" }}>
             {filtered.map((c) => (
               <ListCard
                 key={c.id}
@@ -871,7 +933,7 @@ export default function CompanyExplorer({
             ))}
           </div>
         ) : view === "grid" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {filtered.map((c) => (
               <GridCard
                 key={c.id}
@@ -898,7 +960,7 @@ export default function CompanyExplorer({
       ) : (
         <div className="text-center py-20">
           <div className="text-4xl mb-3">🔍</div>
-          <p className="text-gray-400 text-[14px] mb-2">
+          <p className="text-gray-600 text-[14px] mb-2">
             該当する企業が見つかりませんでした
           </p>
           <button
@@ -907,6 +969,7 @@ export default function CompanyExplorer({
               setIndustry("すべて");
               setCategory("すべて");
               setRole("すべて");
+              setLocationFilter("すべて");
             }}
             className="text-[13px] font-medium transition-colors"
             style={{ color: "#1D9E75" }}

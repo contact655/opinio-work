@@ -18,14 +18,19 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
+          "var(--font-inter)",
+          "var(--font-noto)",
           "Hiragino Sans",
-          "Noto Sans JP",
           "sans-serif",
         ],
       },
       borderRadius: {
         card: "16px",
         "card-lg": "20px",
+      },
+      boxShadow: {
+        card: "0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)",
+        "card-hover": "0 4px 16px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04)",
       },
     },
   },

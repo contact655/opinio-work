@@ -55,7 +55,7 @@ export default function FavoriteJobButton({
         border: `0.5px solid ${favorited ? "#F09595" : "#e5e7eb"}`,
         cursor: "pointer",
       }}
-      title={favorited ? "気になるを解除" : "気になる"}
+      title={favorited ? "保存を解除" : "求人を保存"}
     >
       <svg
         viewBox="0 0 16 16"
