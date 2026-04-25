@@ -22,9 +22,9 @@ import { MOCK_COMPANIES } from "@/app/companies/mockCompanies";
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: { id: string };
 }): Promise<Metadata> {
-  const article = getArticleBySlug(params.slug);
+  const article = getArticleBySlug(params.id);
   if (!article) return { title: "記事 — Opinio" };
   return {
     title: `${article.title} — Opinio`,
@@ -33,7 +33,7 @@ export async function generateMetadata({
 }
 
 export function generateStaticParams() {
-  return MOCK_ARTICLES.map((a) => ({ slug: a.slug }));
+  return MOCK_ARTICLES.map((a) => ({ id: a.slug }));
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -587,8 +587,8 @@ function RelatedJobs({ jobIds }: { jobIds: string[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ArticlePage({ params }: { params: { slug: string } }) {
-  const article = getArticleBySlug(params.slug);
+export default function ArticlePage({ params }: { params: { id: string } }) {
+  const article = getArticleBySlug(params.id);
   if (!article) notFound();
 
   const badge = TYPE_BADGE[article.type];

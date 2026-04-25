@@ -1245,7 +1245,7 @@ export default function CompanyDetailClient({
                       style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", cursor: "pointer" }}
                       onMouseEnter={() => setHover(true)}
                       onMouseLeave={() => setHover(false)}
-                      onClick={() => { router.push(`/members/${cm.id}`); }}
+                      onClick={() => { router.push(`/users/${cm.id}`); }}
                     >
                       <div style={{
                         width: "72px", height: "72px", borderRadius: "12px",
@@ -1415,7 +1415,7 @@ export default function CompanyDetailClient({
                   {members.map((m) => (
                     <Link
                       key={m.id}
-                      href={`/members/${m.id}`}
+                      href={`/users/${m.id}`}
                       className="flex items-center gap-3"
                       style={{
                         background: "#f9fafb",
