@@ -18,13 +18,27 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🚀 次のセッションで最初にやること
+## 🎯 次のセッションでやること
 
-```
-Phase 5 Stage 1 完了済み（2026-04-24）
-次は Phase 5 Stage 2: 認証フロー（/auth サインアップ → ow_users 自動作成）
-または Phase 3: 企業側プロダクト（/biz/*）
-```
+Phase 4（Supabase 本番接続）が **完全完了（2026-04-27）**。次は以下の中から選択:
+
+### 🟢 推奨 1: photos の Supabase Storage 接続（1.5 時間）
+- /biz/company の最後の残課題（TODO コメントあり）
+- ow_company_photos テーブル CRUD + Supabase Storage 連携
+- caption/category カラムの追加 migration
+
+### 🟢 推奨 2: Phase 5 Stage 2 — 認証フロー強化（2〜3 時間）
+- メール認証後の onboarding フロー実装
+- パスワードリセット完全実装
+- OAuth プロバイダー追加（Google 等）の検討
+
+### 🟡 推奨 3: /biz/dashboard placeholder 解消（1 時間）
+- PendingMeetings, ActivityList, MatchCandidates, TeamMembers を実 DB 接続
+- 既存パターン（fetchXxxForCompany）を踏襲
+
+### 🟡 推奨 4: /biz/members チーム管理画面（2〜3 時間）
+- migration 037 で整った RLS 基盤（auth_is_company_member/admin）を活用
+- ow_company_admins の admin/member 管理 UI
 
 ---
 
@@ -428,30 +442,69 @@ src/app/companies/mockCompanies.ts(219,31): error TS2802
 
 ---
 
-## Phase 3: 企業側プロダクト（Phase 5 の後に着手）
+## ✅ Phase 4: Supabase 本番接続フェーズ（完了 2026-04-27）
 
-- `/biz/auth` — 企業側ログイン
-- `/biz/dashboard` — ダッシュボード（面談申込件数、求人一覧）
-- `/biz/meetings` — カジュアル面談管理（pending → company_contacted → scheduled）
-- `/biz/jobs` — 求人管理（CRUD）
-- `/biz/company` — 企業情報編集
-- `/biz/analytics` — 分析
+| ページ | パス | 状態 |
+|--------|------|------|
+| 企業側ログイン | `/biz/auth` | ✅ 実装済み |
+| ダッシュボード | `/biz/dashboard` | ✅ 実装済み（一部 placeholder 残） |
+| 企業情報編集 | `/biz/company` | ✅ **READ + WRITE 完了**（photos のみ Storage 連携が次フェーズ） |
+| カジュアル面談管理 | `/biz/meetings` | 未着手 |
+| 求人管理 | `/biz/jobs` | 未着手 |
+| 分析 | `/biz/analytics` | 未着手 |
+
+### /biz/company Supabase接続 詳細（2026-04-27 完了）
+
+**新規ファイル:**
+- `src/lib/business/company.ts` — DbCompany型, transformDbToForm, transformFormToDb, fetchCompanyForTenant
+- `src/app/api/biz/company/route.ts` — PUT（全フィールド自動保存）, PATCH（is_published トグル）
+- `src/app/biz/company/CompanyEditClient.tsx` — `"use client"` (~560行), hasInteracted autosave pattern
+
+**変更ファイル:**
+- `src/app/biz/company/page.tsx` — async Server Component に書き換え（691行 → 30行）
+
+**重要実装パターン:**
+- `hasInteracted = useRef(false)` — React 18 Strict Mode 対策（isFirstRender パターンは NG）
+- Client は BizCompany (camelCase) を JSON で送信; Server 側で transformFormToDb を1回だけ呼ぶ
+- `ow_user_roles.tenant_id`（primary）+ `ow_companies.user_id .limit(1)`（fallback）で company ID 解決
+
+### Phase 4 で適用した RLS 修正 migration
+
+| Migration | 内容 | ロールバック |
+|-----------|------|------------|
+| 035 | ow_user_roles RLS 自己参照解消 + tenant_id backfill | `supabase/rollbacks/035_rollback.sql` |
+| 036 | auth_is_admin() に SET row_security = off（PG15+ 対応）| `supabase/rollbacks/036_rollback.sql` |
+| 037 | ow_company_admins RLS 自己参照解消（auth_is_company_member/admin）| `supabase/rollbacks/037_rollback.sql` |
+
+### Phase 4 で得た重要技術知見
+
+1. **PG15+ の SECURITY DEFINER は内部でも RLS が適用される**
+   → 関数定義に `SET row_security = off` が必須
+2. **Vercel build は ESLint strict mode**
+   → 未使用 import が build 失敗の原因になる（ローカル dev は警告のみ）
+3. **React 18 Strict Mode の二重 mount**
+   → autosave 系では `hasInteracted` ref パターンが安全（`isFirstRender` パターンは NG）
+4. **クライアント・サーバーの責務分離**
+   → 型変換は API Route 側に集約、クライアントは原 form を送る（double-transform バグを防ぐ）
 
 ---
 
 ## コミット履歴（直近）
 
 ```
-feat: Phase 4 complete + Phase 5 preparation (2026-04-24)
-  - Phase 4a: /profile/edit (+11,368行)
-  - Phase 4b: /mypage (+12,858行)
-  - Phase 4c: /companies/[id]/casual-meeting (+13,634行)
-  - Phase 4d: /mentors/[id]/reserve (+14,409行)
-  - Phase 5 Stage 1 実装計画を CLAUDE.md に記載
-  - Supabase 現状確認完了（テーブル・スキーマ・差分）
+fix(rls): resolve ow_company_admins infinite recursion (Bug 3) [a576684]
+  - migration 037: auth_is_company_member/admin + WITH CHECK
 
+fix(biz/company): remove unused transformFormToDb import [4e2e9a0]
+  - Vercel build failure 修正（@typescript-eslint/no-unused-vars）
+
+feat(biz/company): Phase 4 S5 - production READ/WRITE via Supabase [e45d7c6]
+  - src/lib/business/company.ts (新規)
+  - src/app/api/biz/company/route.ts (新規)
+  - src/app/biz/company/CompanyEditClient.tsx (新規)
+  - src/app/biz/company/page.tsx (Server Component に書き換え)
+  - migrations 035, 036 (RLS修正 + tenant_id backfill)
+
+feat: Phase 4 complete + Phase 5 preparation (2026-04-24)
 feat: Phase 4 complete - user-side product 100% done (2026-04-24)
-feat: Phase 4b mypage — 6-view dashboard, is_mentor toggle, status pills
-feat: Phase 4a profile/edit — auto-save, career CRUD, company 3-pattern
-feat: Phase 2g articles (mock data, list, detail, cross-links)
 ```
