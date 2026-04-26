@@ -8,7 +8,6 @@ import { CompanyPublishStatusBar } from "@/components/business/CompanyPublishSta
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
 import { OfficePhotoSection } from "@/components/business/OfficePhotoSection";
 import { RequirementsTagInput } from "@/components/business/RequirementsTagInput";
-import { transformFormToDb } from "@/lib/business/company";
 import {
   COMPANY_SECTIONS,
   INDUSTRY_OPTIONS,
