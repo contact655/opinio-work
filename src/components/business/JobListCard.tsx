@@ -1,3 +1,6 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import type { BizJob, JobStatus } from "@/lib/business/mockJobs";
 import { JobStatusBadge } from "./JobStatusBadge";
 
@@ -90,9 +93,12 @@ function renderActions(
   onStatusChange?: (jobId: string, newStatus: JobStatus) => void,
   onDelete?: (jobId: string) => void,
   onDuplicate?: (jobId: string) => void,
+  onNavigate?: (path: string) => void,
 ) {
   const del = onDelete ? () => onDelete(job.id) : undefined;
   const dup = onDuplicate ? () => onDuplicate(job.id) : undefined;
+  const edit = onNavigate ? () => onNavigate(`/biz/jobs/${job.id}/edit`) : undefined;
+  const viewPublic = onNavigate ? () => onNavigate(`/jobs/${job.id}`) : undefined;
 
   switch (job.status) {
     case "rejected":
@@ -107,11 +113,11 @@ function renderActions(
     case "published":
       return (
         <>
-          <ActionBtn label="公開ページを見る" />
+          <ActionBtn label="公開ページを見る" onClick={viewPublic} />
           <ActionBtn label="複製" onClick={dup} />
           <IconBtn title="非公開にする"
             onClick={onStatusChange ? () => onStatusChange(job.id, "private") : undefined} />
-          <ActionBtn label="編集" primary />
+          <ActionBtn label="編集" primary onClick={edit} />
         </>
       );
     case "pending_review":
@@ -137,7 +143,7 @@ function renderActions(
         <>
           <ActionBtn label="複製" onClick={dup} />
           <IconBtn title="削除" isDelete onClick={del} />
-          <ActionBtn label="編集を続ける" primary />
+          <ActionBtn label="編集を続ける" primary onClick={edit} />
         </>
       );
     case "private":
@@ -199,6 +205,7 @@ function renderDateMeta(job: BizJob) {
 }
 
 export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Props) {
+  const router = useRouter();
   const isPrivate = job.status === "private";
 
   return (
@@ -355,7 +362,7 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
 
         {/* アクションボタン群 */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
-          {renderActions(job, onStatusChange, onDelete, onDuplicate)}
+          {renderActions(job, onStatusChange, onDelete, onDuplicate, router.push)}
         </div>
       </div>
     </div>
