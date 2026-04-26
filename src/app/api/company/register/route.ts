@@ -79,7 +79,35 @@ export async function POST(req: Request) {
     }
   }
 
-  // 3. company ロールを付与
+  // 3. ow_users.id を auth_id から取得して ow_company_admins に INSERT
+  const { data: owUser, error: owUserError } = await admin
+    .from("ow_users")
+    .select("id")
+    .eq("auth_id", user.id)
+    .single();
+
+  if (owUserError || !owUser) {
+    console.error("[company/register] ow_users not found for auth_id:", user.id, owUserError?.message);
+    // ow_users トリガーが遅延した場合のフォールバック: warning のみ（company は作成済み）
+  } else {
+    const { error: adminError } = await admin
+      .from("ow_company_admins")
+      .insert({
+        user_id: owUser.id,
+        company_id: company.id,
+        department: body.department || null,
+        role_title: body.role_title || null,
+        permission: "admin",
+      });
+
+    if (adminError && adminError.code !== "23505") {
+      console.error("[company/register] ow_company_admins INSERT failed:", adminError.message);
+    } else {
+      console.log("[company/register] ow_company_admins created");
+    }
+  }
+
+  // 4. company ロールを付与（旧テーブル共存: TODO: ow_company_admins 移行後に削除）
   const { error: roleError } = await admin
     .from("ow_user_roles")
     .insert({ user_id: user.id, role: "company" });
