@@ -1,30 +1,48 @@
 import type { MeetingApplication } from "@/lib/business/mockMeetings";
 import { MeetingStatusBadge } from "./MeetingStatusBadge";
 
+type MemoSaveState = "idle" | "saving" | "saved";
+
 type Props = {
   meeting: MeetingApplication | null;
+  memoDraft?: string;
+  memoSaveState?: MemoSaveState;
+  isPrevDisabled?: boolean;
+  isNextDisabled?: boolean;
+  onStatusChange?: (newStatus: import("@/lib/business/mockMeetings").MeetingStatus) => void;
+  onAssignToMe?: () => void;
+  onMemoChange?: (text: string) => void;
+  onReply?: () => void;
+  onScheduleAdjust?: () => void;
+  onProfileDetail?: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
 };
 
-function IconBtn({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
+function IconBtn({ children, onClick, disabled }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       style={{
         width: 32, height: 32,
         border: "1px solid var(--line)",
         background: "#fff",
-        color: "var(--ink-soft)",
+        color: disabled ? "var(--line)" : "var(--ink-soft)",
         borderRadius: 7,
-        cursor: "pointer",
+        cursor: disabled ? "default" : "pointer",
         display: "flex", alignItems: "center", justifyContent: "center",
         transition: "all 0.2s",
+        opacity: disabled ? 0.4 : 1,
       }}
       onMouseEnter={(e) => {
+        if (disabled) return;
         e.currentTarget.style.borderColor = "var(--royal-100)";
         e.currentTarget.style.background = "var(--royal-50)";
         e.currentTarget.style.color = "var(--royal)";
       }}
       onMouseLeave={(e) => {
+        if (disabled) return;
         e.currentTarget.style.borderColor = "var(--line)";
         e.currentTarget.style.background = "#fff";
         e.currentTarget.style.color = "var(--ink-soft)";
@@ -38,9 +56,11 @@ function IconBtn({ children, onClick }: { children: React.ReactNode; onClick?: (
 function ActionBtn({
   children,
   variant = "default",
+  onClick,
 }: {
   children: React.ReactNode;
   variant?: "default" | "primary" | "danger";
+  onClick?: () => void;
 }) {
   const base: React.CSSProperties = {
     padding: "8px 14px",
@@ -57,6 +77,7 @@ function ActionBtn({
   };
   return (
     <button
+      onClick={onClick}
       style={styles[variant]}
       onMouseEnter={(e) => {
         if (variant === "primary") {
@@ -137,22 +158,39 @@ function BlockField({ label, children }: { label: string; children: React.ReactN
   );
 }
 
-export function MeetingDetailPanel({ meeting: m }: Props) {
+export function MeetingDetailPanel({
+  meeting: m,
+  memoDraft,
+  memoSaveState = "idle",
+  isPrevDisabled,
+  isNextDisabled,
+  onStatusChange,
+  onAssignToMe,
+  onMemoChange,
+  onReply,
+  onScheduleAdjust,
+  onProfileDetail,
+  onPrev,
+  onNext,
+}: Props) {
   if (!m) {
     return (
       <div style={{
         flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
         flexDirection: "column", gap: 12, color: "var(--ink-mute)",
+        height: "100%",
       }}>
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
-        <div style={{ fontSize: 13, fontWeight: 500 }}>申込を選択してください</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)" }}>申込を選択してください</div>
+        <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>左のリストから申込を選んでください</div>
       </div>
     );
   }
 
   const questions = m.questions.split("\n").filter(Boolean);
+  const memoValue = memoDraft ?? m.companyMemo;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -194,12 +232,12 @@ export function MeetingDetailPanel({ meeting: m }: Props) {
         </div>
 
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <IconBtn>
+          <IconBtn onClick={onPrev} disabled={isPrevDisabled}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="m15 18-6-6 6-6"/>
             </svg>
           </IconBtn>
-          <IconBtn>
+          <IconBtn onClick={onNext} disabled={isNextDisabled}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="m9 18 6-6-6-6"/>
             </svg>
@@ -218,32 +256,36 @@ export function MeetingDetailPanel({ meeting: m }: Props) {
         flexWrap: "wrap",
         flexShrink: 0,
       }}>
-        <ActionBtn variant="primary">
+        <ActionBtn variant="primary" onClick={onReply}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <path d="m22 2-7 20-4-9-9-4 20-7z"/>
           </svg>
           返信する
         </ActionBtn>
-        <ActionBtn>
+        <ActionBtn onClick={onScheduleAdjust}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
           </svg>
           日程を調整する
         </ActionBtn>
-        <ActionBtn>
+        <ActionBtn onClick={onProfileDetail}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
           </svg>
           プロフィール詳細
         </ActionBtn>
         <div style={{ flex: 1 }} />
-        <ActionBtn>
+        <ActionBtn onClick={() => onStatusChange?.("completed")}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <path d="M20 6 9 17l-5-5"/>
           </svg>
           面談完了をマーク
         </ActionBtn>
-        <ActionBtn variant="danger">
+        <ActionBtn variant="danger" onClick={() => {
+          if (window.confirm("この面談を見送りますか？")) {
+            onStatusChange?.("declined");
+          }
+        }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <path d="M18 6 6 18M6 6l12 12"/>
           </svg>
@@ -319,13 +361,15 @@ export function MeetingDetailPanel({ meeting: m }: Props) {
                 </svg>
                 <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>まだ対応者がいません</span>
               </div>
-              <button style={{
-                padding: "8px 14px",
-                fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                border: "none", borderRadius: 7,
-                background: "var(--accent)", color: "#fff", cursor: "pointer",
-                display: "inline-flex", alignItems: "center", gap: 4,
-              }}>
+              <button
+                onClick={onAssignToMe}
+                style={{
+                  padding: "8px 14px",
+                  fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                  border: "none", borderRadius: 7,
+                  background: "var(--accent)", color: "#fff", cursor: "pointer",
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                }}>
                 ✓ 自分が対応する
               </button>
             </div>
@@ -473,11 +517,17 @@ export function MeetingDetailPanel({ meeting: m }: Props) {
             <span style={{ fontSize: 12, fontWeight: 700, color: "#78350F" }}>
               · 社内共有メモ
             </span>
+            {memoSaveState === "saving" && (
+              <span style={{ fontSize: 10, color: "#B45309", marginLeft: "auto" }}>保存中…</span>
+            )}
+            {memoSaveState === "saved" && (
+              <span style={{ fontSize: 10, color: "var(--success)", marginLeft: "auto" }}>✓ 保存済み</span>
+            )}
           </div>
 
           <textarea
-            readOnly
-            defaultValue={m.companyMemo}
+            value={memoValue}
+            onChange={(e) => onMemoChange?.(e.target.value)}
             placeholder="チームメンバーと共有するメモを書いてください..."
             style={{
               width: "100%",
@@ -494,6 +544,8 @@ export function MeetingDetailPanel({ meeting: m }: Props) {
               outline: "none",
               boxSizing: "border-box",
             }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--warm)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "#FDE68A"; }}
           />
 
           <div style={{ fontSize: 10, color: "#78350F", marginTop: 6 }}>
