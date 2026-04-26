@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 const STATUS_TABS = [
@@ -112,7 +113,11 @@ export default function AdminCompaniesPage() {
             ) : (
               filtered.map((c) => (
                 <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{c.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link href={`/admin/companies/${c.id}`} className="text-blue-600 hover:underline">
+                      {c.name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-gray-600">{c.industry || "-"}</td>
                   <td className="px-4 py-3 text-gray-600">{c.location || "-"}</td>
                   <td className="px-4 py-3 text-gray-600">{c.employee_count || "-"}</td>

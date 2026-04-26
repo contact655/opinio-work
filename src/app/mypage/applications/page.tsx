@@ -127,7 +127,7 @@ export default function ApplicationsPage() {
       <>
         <Header />
         <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
-          <p className="text-gray-400">読み込み中...</p>
+          <p className="text-gray-600">読み込み中...</p>
         </main>
       </>
     );
@@ -217,7 +217,7 @@ export default function ApplicationsPage() {
             {/* Application List */}
             {filtered.length === 0 ? (
               <div className="text-center py-16">
-                <p className="text-gray-400 text-lg mb-2">応募はまだありません</p>
+                <p className="text-gray-600 text-lg mb-2">応募はまだありません</p>
                 <Link
                   href="/companies"
                   className="text-primary hover:underline text-sm"
@@ -252,7 +252,7 @@ export default function ApplicationsPage() {
                             />
                           ) : (
                             <div className="w-full h-full bg-gray-100 flex items-center justify-center min-h-[140px]">
-                              <span className="text-2xl font-bold text-gray-300">
+                              <span className="text-2xl font-bold text-gray-500">
                                 {company?.name?.[0]}
                               </span>
                             </div>
@@ -269,7 +269,7 @@ export default function ApplicationsPage() {
                               >
                                 {job?.title}
                               </Link>
-                              <p className="text-xs text-gray-400 mt-0.5">
+                              <p className="text-xs text-gray-600 mt-0.5">
                                 {company?.name}
                               </p>
                             </div>
@@ -297,7 +297,7 @@ export default function ApplicationsPage() {
                                       className={`text-[10px] mt-1 ${
                                         i <= currentStep
                                           ? "text-primary font-medium"
-                                          : "text-gray-400"
+                                          : "text-gray-600"
                                       }`}
                                     >
                                       {step}
@@ -309,7 +309,7 @@ export default function ApplicationsPage() {
                           )}
 
                           {/* Footer */}
-                          <div className="flex items-center justify-between text-xs text-gray-400">
+                          <div className="flex items-center justify-between text-xs text-gray-600">
                             <span>
                               応募日:{" "}
                               {new Date(app.applied_at).toLocaleDateString(

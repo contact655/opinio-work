@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>企業向け 無料登録 / ログイン — Opinio Business</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --royal: #002366;
+    --royal-deep: #001A4D;
+    --royal-50: #EFF3FC;
+    --royal-100: #DCE5F7;
+    --accent: #3B5FD9;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --line: #E2E8F0;
+    --line-soft: #F1F5F9;
+    --bg: #FFFFFF;
+    --bg-tint: #F8FAFC;
+    --success: #059669;
+    --success-soft: #ECFDF5;
+    --warm: #F59E0B;
+    --warm-soft: #FEF3C7;
+    --error: #DC2626;
+    --error-soft: #FEE2E2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-tint);
+    color: var(--ink);
+    font-family: "Noto Sans JP", -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* Layout */
+  .layout {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+  }
+  
+  /* 左サイド：ブランディング */
+  .brand-side {
+    background: linear-gradient(135deg, var(--royal-deep) 0%, var(--royal) 40%, var(--accent) 100%);
+    color: #fff;
+    padding: 44px 56px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .brand-side::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(255,255,255,0.08) 0%, transparent 45%),
+      radial-gradient(circle at 85% 85%, rgba(255,255,255,0.06) 0%, transparent 45%);
+    pointer-events: none;
+  }
+  .brand-side__top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+  .brand-side__logo {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    letter-spacing: -0.02em;
+  }
+  .brand-side__biz-tag {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    padding: 3px 8px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .brand-side__main {
+    margin: auto 0;
+    position: relative;
+  }
+  .brand-side__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 500;
+    font-size: 46px;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+    margin-bottom: 18px;
+  }
+  .brand-side__subtitle {
+    font-size: 14px;
+    line-height: 1.9;
+    opacity: 0.9;
+    max-width: 460px;
+    margin-bottom: 36px;
+  }
+  .brand-side__subtitle strong { color: #fff; font-weight: 600; }
+
+  /* 4つの特徴カード（グリッド） */
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    max-width: 500px;
+  }
+  .feature-card {
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+  }
+  .feature-card__icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  .feature-card__title {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+  .feature-card__desc {
+    font-size: 11px;
+    opacity: 0.75;
+    line-height: 1.6;
+  }
+  
+  .brand-side__foot {
+    margin-top: auto;
+    font-size: 11px;
+    opacity: 0.55;
+    position: relative;
+    padding-top: 32px;
+  }
+
+  /* 右サイド：フォーム */
+  .form-side {
+    padding: 40px 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #fff;
+    overflow-y: auto;
+  }
+  .form-wrap {
+    max-width: 440px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* モード切替タブ */
+  .mode-tabs {
+    display: flex;
+    background: var(--bg-tint);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 28px;
+    border: 1px solid var(--line);
+  }
+  .mode-tab {
+    flex: 1;
+    padding: 9px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .mode-tab.active {
+    background: #fff;
+    color: var(--royal);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  }
+  .mode-tab:hover:not(.active) { color: var(--ink); }
+
+  /* フォームヘッダー */
+  .form-head {
+    margin-bottom: 24px;
+  }
+  .form-head__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: var(--ink);
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+  .form-head__subtitle {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.8;
+  }
+
+  /* 料金訴求バナー */
+  .price-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--success-soft);
+    border: 1px solid #A7F3D0;
+    border-radius: 10px;
+    margin-bottom: 24px;
+    font-size: 12px;
+    color: #065F46;
+  }
+  .price-banner__icon {
+    width: 28px; height: 28px;
+    background: var(--success);
+    color: #fff;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .price-banner__body { line-height: 1.6; }
+  .price-banner__body strong { font-weight: 700; }
+
+  /* フォーム */
+  .form-group { margin-bottom: 16px; }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .form-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .form-label__required {
+    color: var(--error);
+    font-size: 11px;
+  }
+  .form-input, .form-select {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--line);
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: #fff;
+    transition: all 0.15s;
+  }
+  .form-input:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--royal);
+    box-shadow: 0 0 0 3px var(--royal-50);
+  }
+  .form-input::placeholder { color: var(--ink-mute); }
+  .form-hint {
+    font-size: 10px;
+    color: var(--ink-mute);
+    margin-top: 4px;
+    line-height: 1.6;
+  }
+  .form-hint.warning {
+    color: var(--warm);
+  }
+  .form-hint.warning::before {
+    content: "⚠ ";
+  }
+
+  /* 既存ユーザー通知 */
+  .existing-notice {
+    display: flex;
+    gap: 10px;
+    padding: 14px 16px;
+    background: var(--royal-50);
+    border: 1px solid var(--royal-100);
+    border-radius: 10px;
+    margin-top: 10px;
+    animation: slideIn 0.3s ease-out;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .existing-notice__icon {
+    width: 28px; height: 28px;
+    background: var(--royal);
+    color: #fff;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .existing-notice__body { flex: 1; min-width: 0; }
+  .existing-notice__title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--royal);
+    margin-bottom: 4px;
+  }
+  .existing-notice__desc {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+  .existing-notice__desc strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .existing-notice__actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .existing-notice__btn {
+    padding: 7px 12px;
+    background: var(--royal);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .existing-notice__btn:hover { background: var(--royal-deep); }
+  .existing-notice__btn-link {
+    padding: 7px 12px;
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .existing-notice__btn-link:hover {
+    background: #fff;
+    color: var(--ink);
+  }
+  .form-select {
+    appearance: none;
+    cursor: pointer;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  
+  .form-input-wrap {
+    position: relative;
+  }
+  .form-input-wrap .form-input {
+    padding-right: 42px;
+  }
+  .form-input-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-mute);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 6px;
+  }
+  .form-input-icon:hover {
+    background: var(--bg-tint);
+    color: var(--ink);
+  }
+
+  /* ボタン */
+  .form-submit {
+    width: 100%;
+    padding: 13px;
+    background: var(--royal);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+    box-shadow: 0 4px 14px rgba(0, 35, 102, 0.2);
+  }
+  .form-submit:hover {
+    background: var(--royal-deep);
+    transform: translateY(-1px);
+  }
+
+  /* アカウント統合の説明 */
+  .unified-account-notice {
+    display: flex;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--bg-tint);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    margin-top: 14px;
+    margin-bottom: 4px;
+  }
+  .unified-account-notice__icon {
+    width: 26px; height: 26px;
+    background: var(--royal-50);
+    color: var(--royal);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .unified-account-notice__body {
+    flex: 1;
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+  .unified-account-notice__body strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  /* 利用規約チェックボックス */
+  .form-terms {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .form-terms input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--royal);
+    flex-shrink: 0;
+    margin-top: 1px;
+    cursor: pointer;
+  }
+  .form-terms a { color: var(--royal); text-decoration: underline; font-weight: 500; }
+
+  /* フォーム切替リンク */
+  .form-switch {
+    text-align: center;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .form-switch a {
+    color: var(--royal);
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .form-switch a:hover { text-decoration: underline; }
+
+  /* パスワード忘れ */
+  .forgot-link {
+    text-align: right;
+    margin-top: -12px;
+    margin-bottom: 12px;
+  }
+  .forgot-link a {
+    font-size: 11px;
+    color: var(--royal);
+    font-weight: 500;
+  }
+  .forgot-link a:hover { text-decoration: underline; }
+
+  /* フォーム切替 */
+  .form-view { display: none; }
+  .form-view.active { display: block; }
+
+  /* 求職者側へのリンク */
+  .to-job-seeker {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 7px 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .to-job-seeker:hover {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+  }
+
+  /* レスポンシブ */
+  @media (max-width: 1000px) {
+    .layout { grid-template-columns: 1fr; }
+    .brand-side {
+      padding: 28px 24px;
+      min-height: 360px;
+    }
+    .brand-side__title { font-size: 28px; margin-bottom: 12px; }
+    .brand-side__subtitle { font-size: 12px; margin-bottom: 20px; }
+    .features-grid { gap: 8px; }
+    .feature-card { padding: 10px 12px; }
+    .feature-card__icon { width: 24px; height: 24px; margin-bottom: 6px; }
+    .feature-card__title { font-size: 12px; }
+    .feature-card__desc { font-size: 10px; }
+    .brand-side__foot { display: none; }
+    .form-side { padding: 28px 20px; }
+    .to-job-seeker { top: 14px; right: 14px; }
+  }
+  @media (max-width: 500px) {
+    .features-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- 左：ブランディング -->
+  <div class="brand-side">
+    <a href="#" class="to-job-seeker">
+      求職者の方はこちら →
+    </a>
+
+    <div class="brand-side__top">
+      <span class="brand-side__logo">Opinio</span>
+      <span class="brand-side__biz-tag">BUSINESS</span>
+    </div>
+
+    <div class="brand-side__main">
+      <h1 class="brand-side__title">スカウトしない、<br/>採用を。</h1>
+      <p class="brand-side__subtitle">
+        Opinioは、企業と個人が対等に対話する場所。<br/>
+        <strong>スカウトを送らなくても、本当にフィットする人材が来る採用</strong>を実現します。<br/>
+        まずは企業情報を登録して、Opinioの世界を体験してください。<br/><br/>
+        <span style="opacity:0.8;font-size:13px;">※ 既に個人アカウントをお持ちの方も、同じメールでご利用いただけます。</span>
+      </p>
+
+      <div class="features-grid">
+        <!-- 1. スカウト不要 -->
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="feature-card__title">スカウト不要</div>
+          <div class="feature-card__desc">本人から直接コンタクトが来ます。採用担当者の業務時間を奪いません。</div>
+        </div>
+
+        <!-- 2. マッチ可視化 -->
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+          </div>
+          <div class="feature-card__title">マッチ候補者の可視化</div>
+          <div class="feature-card__desc">求人条件にフィットしそうな登録ユーザーが、一覧で見えます。</div>
+        </div>
+
+        <!-- 3. 自然言語検索 -->
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          </div>
+          <div class="feature-card__title">自然言語検索</div>
+          <div class="feature-card__desc">「大企業開拓の営業」で検索した人にも、エンタープライズセールス求人が届く。</div>
+        </div>
+
+        <!-- 4. 編集部取材 -->
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+          </div>
+          <div class="feature-card__title">編集部が取材</div>
+          <div class="feature-card__desc">Opinio編集部が第三者視点で御社を取材。深い記事が対話のきっかけに。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-side__foot">
+      © 2026 Opinio Business · 企業向け採用プラットフォーム
+    </div>
+  </div>
+
+  <!-- 右：フォーム -->
+  <div class="form-side">
+    <div class="form-wrap">
+
+      <!-- モード切替 -->
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="signup">新規登録（無料）</button>
+        <button class="mode-tab" data-mode="login">ログイン</button>
+      </div>
+
+      <!-- サインアップフォーム -->
+      <div class="form-view active" id="form-signup">
+        <div class="form-head">
+          <h2 class="form-head__title">始める。</h2>
+          <p class="form-head__subtitle">
+            企業情報を登録し、Opinioで人材との対話を始めましょう。<br/>
+            登録後、すぐに企業情報の編集やカジュアル面談の受信が可能です。
+          </p>
+        </div>
+
+        <form onsubmit="event.preventDefault(); alert('モックなので実際の登録は行われません');">
+          <!-- 企業情報 -->
+          <div class="form-group">
+            <label class="form-label">企業名<span class="form-label__required">必須</span></label>
+            <input type="text" class="form-input" placeholder="株式会社〇〇" required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">業種<span class="form-label__required">必須</span></label>
+              <select class="form-select" required>
+                <option value="">選択してください</option>
+                <option>IT / SaaS</option>
+                <option>コンサルティング</option>
+                <option>金融 / FinTech</option>
+                <option>製造業</option>
+                <option>小売 / EC</option>
+                <option>メディア</option>
+                <option>医療 / ヘルスケア</option>
+                <option>その他</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">従業員数<span class="form-label__required">必須</span></label>
+              <select class="form-select" required>
+                <option value="">選択してください</option>
+                <option>1-10名</option>
+                <option>11-50名</option>
+                <option>51-100名</option>
+                <option>101-300名</option>
+                <option>301-1,000名</option>
+                <option>1,001名以上</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 担当者情報 -->
+          <div class="form-group">
+            <label class="form-label">ご担当者のお名前<span class="form-label__required">必須</span></label>
+            <input type="text" class="form-input" placeholder="山田 太郎" required />
+            <div class="form-hint">採用担当者・人事担当者の方の氏名をご入力ください。</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">部署・役職<span class="form-label__required">必須</span></label>
+            <input type="text" class="form-input" placeholder="例：人事部 採用マネージャー" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">企業メールアドレス<span class="form-label__required">必須</span></label>
+            <input type="email" class="form-input" placeholder="yamada@your-company.co.jp" required />
+            <div class="form-hint warning">企業ドメインのメールアドレスをご入力ください（gmail・yahoo等の個人アドレスはご利用いただけません）</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">パスワード<span class="form-label__required">必須</span></label>
+            <div class="form-input-wrap">
+              <input type="password" class="form-input" placeholder="8文字以上" required minlength="8" />
+              <span class="form-input-icon" onclick="togglePassword(this)" title="表示/非表示">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+            </div>
+            <div class="form-hint">8文字以上。英数字を組み合わせてください。</div>
+          </div>
+
+          <!-- Opinioアカウント思想の説明 -->
+          <div class="unified-account-notice">
+            <div class="unified-account-notice__icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+            </div>
+            <div class="unified-account-notice__body">
+              <strong>Opinioアカウントは1つ。</strong>あなたのキャリア情報（プロフィール・職歴）は、企業担当者としての情報と共通で管理されます。採用候補者からは「採用担当者のキャリア」として見られるため、<strong>信頼の基盤</strong>になります。
+            </div>
+          </div>
+
+          <div class="form-terms">
+            <input type="checkbox" id="signup-terms" required />
+            <label for="signup-terms">
+              <a href="#" target="_blank">利用規約</a>、<a href="#" target="_blank">プライバシーポリシー</a>に同意します
+            </label>
+          </div>
+
+          <button type="submit" class="form-submit">登録する</button>
+        </form>
+
+        <div class="form-switch">
+          すでにアカウントをお持ちの方は<a href="#" onclick="switchMode('login'); return false;">ログイン</a>
+        </div>
+      </div>
+
+      <!-- ログインフォーム -->
+      <div class="form-view" id="form-login">
+        <div class="form-head">
+          <h2 class="form-head__title">おかえりなさい。</h2>
+          <p class="form-head__subtitle">
+            企業メールアドレスとパスワードでログインしてください。
+          </p>
+        </div>
+
+        <form onsubmit="event.preventDefault(); alert('モックなので実際のログインは行われません');">
+          <div class="form-group">
+            <label class="form-label">企業メールアドレス</label>
+            <input type="email" class="form-input" placeholder="yamada@your-company.co.jp" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">パスワード</label>
+            <div class="form-input-wrap">
+              <input type="password" class="form-input" placeholder="パスワード" required />
+              <span class="form-input-icon" onclick="togglePassword(this)" title="表示/非表示">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="forgot-link">
+            <a href="#">パスワードをお忘れですか？</a>
+          </div>
+
+          <button type="submit" class="form-submit">ログイン</button>
+        </form>
+
+        <div class="form-switch">
+          アカウントをお持ちでない方は<a href="#" onclick="switchMode('signup'); return false;">新規登録（無料）</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // モード切替
+  function switchMode(mode) {
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.mode === mode);
+    });
+    document.querySelectorAll('.form-view').forEach(view => {
+      view.classList.toggle('active', view.id === `form-${mode}`);
+    });
+  }
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchMode(tab.dataset.mode));
+  });
+
+  // パスワード表示/非表示
+  function togglePassword(iconEl) {
+    const input = iconEl.parentElement.querySelector('input');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+
+  // 既存ユーザー検知（モック）
+  // 本番では Supabase API で users テーブルを検索
+  const mockExistingUsers = [
+    'tanaka@example.com',
+    'tanaka@timee.co.jp',
+    'yamada@timee.co.jp'
+  ];
+  function checkExistingUser(input) {
+    const email = input.value.trim().toLowerCase();
+    const notice = document.getElementById('existing-user-notice');
+    if (!email) {
+      notice.style.display = 'none';
+      return;
+    }
+    if (mockExistingUsers.includes(email)) {
+      notice.style.display = 'flex';
+    } else {
+      notice.style.display = 'none';
+    }
+  }
+  function clearEmailCheck() {
+    document.getElementById('email-check').value = '';
+    document.getElementById('existing-user-notice').style.display = 'none';
+    document.getElementById('email-check').focus();
+  }
+</script>
+
+</body>
+</html>

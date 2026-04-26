@@ -3,157 +3,184 @@
 import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type ImageUploadProps = {
+interface ImageUploadProps {
+  bucketName: string;
   currentUrl: string | null;
   onUpload: (url: string) => void;
-  folder: string; // e.g. "logos", "profiles"
-  label?: string;
-  hint?: string;
-  shape?: "square" | "circle";
-};
+  shape: "circle" | "rectangle";
+  placeholder?: string;
+  width?: number;
+  height?: number;
+  maxSizeMB?: number;
+}
 
 export default function ImageUpload({
+  bucketName,
   currentUrl,
   onUpload,
-  folder,
-  label = "画像をアップロード",
-  hint,
-  shape = "square",
+  shape,
+  placeholder = "?",
+  width = 80,
+  height = 80,
+  maxSizeMB = 5,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentUrl);
   const [error, setError] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  const isCircle = shape === "circle";
+
+  const handleFile = async (file: File) => {
     if (!file) return;
 
-    // Validate
-    if (!file.type.startsWith("image/")) {
-      setError("画像ファイルを選択してください");
+    // Validate type
+    if (
+      !["image/jpeg", "image/png", "image/webp"].includes(file.type)
+    ) {
+      setError("JPEG / PNG / WebP のみ対応しています");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("ファイルサイズは5MB以内にしてください");
+
+    // Validate size
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      setError(`ファイルサイズは${maxSizeMB}MB以内にしてください`);
       return;
     }
 
     setError("");
     setUploading(true);
 
-    // Preview
-    const reader = new FileReader();
-    reader.onload = (ev) => setPreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
-
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError("ログインが必要です");
-        setUploading(false);
-        return;
-      }
+      // Preview
+      const reader = new FileReader();
+      reader.onload = (e) => setPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
 
-      const ext = file.name.split(".").pop() || "png";
-      const filePath = `${user.id}/${folder}/${Date.now()}.${ext}`;
+      // Upload
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const filePath = `${user?.id ?? "public"}/${Date.now()}.${file.name.split(".").pop()}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("ow-uploads")
-        .upload(filePath, file, { upsert: true });
+        .from(bucketName)
+        .upload(filePath, file, { cacheControl: "3600", upsert: true });
 
-      if (uploadError) {
-        setError(uploadError.message);
-        setUploading(false);
-        return;
-      }
+      if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("ow-uploads")
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(bucketName).getPublicUrl(filePath);
 
-      onUpload(urlData.publicUrl);
-    } catch {
+      onUpload(publicUrl);
+    } catch (err: any) {
+      console.error("Upload error:", err);
       setError("アップロードに失敗しました");
+    } finally {
+      setUploading(false);
     }
+  };
 
-    setUploading(false);
-  }
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
 
   return (
     <div>
-      {label && (
-        <label className="block text-sm font-medium mb-2">{label}</label>
-      )}
-
-      <div className="flex items-start gap-4">
-        {/* Preview */}
-        <div
-          className={`flex-shrink-0 border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden ${
-            shape === "circle"
-              ? "w-20 h-20 rounded-full"
-              : "w-24 h-24 rounded-lg"
-          }`}
-        >
-          {preview ? (
-            <img
-              src={preview}
-              alt="プレビュー"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <svg
-              className="w-8 h-8 text-gray-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          )}
-        </div>
-
-        {/* Upload button */}
-        <div className="flex-1">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
+      <div
+        onClick={() => !uploading && inputRef.current?.click()}
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        style={{
+          width: isCircle ? width : "100%",
+          height: isCircle ? height : 200,
+          borderRadius: isCircle ? "50%" : 12,
+          border: `2px dashed ${uploading ? "#059669" : "#d1d5db"}`,
+          overflow: "hidden",
+          cursor: uploading ? "wait" : "pointer",
+          position: "relative",
+          background: preview ? "transparent" : "#f9fafb",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "border-color 0.2s",
+        }}
+      >
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={preview}
+            alt="preview"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+        ) : (
+          <span
+            style={{
+              fontSize: isCircle ? 24 : 14,
+              color: "#9ca3af",
+              fontWeight: 600,
+              textAlign: "center",
+              padding: 8,
+            }}
           >
-            {uploading ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                アップロード中...
-              </span>
-            ) : (
-              "ファイルを選択"
-            )}
-          </button>
-          {hint && (
-            <p className="mt-1 text-xs text-gray-400">{hint}</p>
-          )}
-          {error && (
-            <p className="mt-1 text-xs text-red-500">{error}</p>
-          )}
+            {uploading ? "..." : placeholder}
+          </span>
+        )}
+
+        {/* Hover overlay */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: 0,
+            transition: "opacity 0.2s",
+            borderRadius: isCircle ? "50%" : 12,
+          }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.opacity = "1")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.opacity = "0")
+          }
+        >
+          <span
+            style={{ color: "white", fontSize: 13, fontWeight: 600 }}
+          >
+            {uploading ? "アップロード中..." : "写真を変更"}
+          </span>
         </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFile(file);
+          }}
+        />
       </div>
+
+      {error && (
+        <p
+          style={{
+            fontSize: 12,
+            color: "#dc2626",
+            marginTop: 6,
+          }}
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 }

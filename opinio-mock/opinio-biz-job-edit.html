@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>求人編集 — Opinio Business</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --royal: #002366;
+    --royal-deep: #001A4D;
+    --royal-50: #EFF3FC;
+    --royal-100: #DCE5F7;
+    --accent: #3B5FD9;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --line: #E2E8F0;
+    --line-soft: #F1F5F9;
+    --bg: #FFFFFF;
+    --bg-tint: #F8FAFC;
+    --success: #059669;
+    --success-soft: #ECFDF5;
+    --warm: #F59E0B;
+    --warm-soft: #FEF3C7;
+    --purple: #7C3AED;
+    --purple-soft: #F3E8FF;
+    --pink: #DB2777;
+    --pink-soft: #FCE7F3;
+    --error: #DC2626;
+    --error-soft: #FEE2E2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-tint);
+    color: var(--ink);
+    font-family: "Noto Sans JP", -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ============ トップバー ============ */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .topbar__brand { display: flex; align-items: center; gap: 8px; }
+  .topbar__brand-text {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--royal);
+    letter-spacing: -0.02em;
+  }
+  .topbar__biz-tag {
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 2px 7px;
+    background: var(--royal);
+    color: #fff;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .topbar__back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 20px;
+    border-left: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .topbar__back:hover { color: var(--royal); }
+  .topbar__center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .topbar__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .save-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--ink-mute);
+    padding: 4px 10px;
+    border-radius: 100px;
+    background: var(--bg-tint);
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+  .save-status.saving {
+    color: var(--warm);
+    background: var(--warm-soft);
+  }
+  .save-status.saved {
+    color: var(--success);
+    background: var(--success-soft);
+  }
+  .topbar__actions { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    transition: all 0.2s;
+  }
+  .btn:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+  .btn--primary {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .btn--primary:hover { background: var(--royal-deep); color: #fff; }
+
+  /* ============ レイアウト ============ */
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 57px);
+  }
+
+  /* セクションサブナビ */
+  .subnav {
+    background: var(--bg-tint);
+    border-right: 1px solid var(--line);
+    padding: 20px 0;
+    position: sticky;
+    top: 57px;
+    align-self: start;
+    height: calc(100vh - 57px);
+    overflow-y: auto;
+  }
+  .subnav__head {
+    padding: 0 20px 16px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 12px;
+  }
+  .subnav__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .subnav__hint {
+    font-size: 10px;
+    color: var(--ink-mute);
+    line-height: 1.6;
+  }
+  .subnav__nav { display: flex; flex-direction: column; }
+  .subnav__item {
+    padding: 9px 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 3px solid transparent;
+    justify-content: space-between;
+    transition: all 0.15s;
+  }
+  .subnav__item:hover { background: #fff; color: var(--ink); }
+  .subnav__item.active {
+    background: #fff;
+    color: var(--royal);
+    border-left-color: var(--royal);
+    font-weight: 700;
+  }
+  .subnav__item-status {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .subnav__item-status.complete { color: var(--success); }
+  .subnav__item-status.empty { color: var(--warm); }
+
+  /* 進捗バー */
+  .subnav__progress {
+    margin: 16px 20px;
+    padding: 14px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .subnav__progress-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .subnav__progress-value {
+    color: var(--royal);
+  }
+  .subnav__progress-bar {
+    height: 5px;
+    background: var(--bg-tint);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .subnav__progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--royal), var(--accent));
+    border-radius: 100px;
+  }
+  .subnav__progress-desc {
+    font-size: 10px;
+    color: var(--ink-mute);
+    line-height: 1.6;
+  }
+
+  /* ============ メインエリア ============ */
+  .main {
+    padding: 32px 40px 60px;
+    max-width: 900px;
+  }
+
+  /* 差し戻し通知（最重要） */
+  .rejection-banner {
+    background: linear-gradient(135deg, var(--error-soft) 0%, #fff 100%);
+    border: 1.5px solid #FCA5A5;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 16px;
+  }
+  .rejection-banner__icon {
+    width: 40px; height: 40px;
+    background: var(--error);
+    color: #fff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .rejection-banner__body { flex: 1; }
+  .rejection-banner__label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--error);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .rejection-banner__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #7F1D1D;
+    margin-bottom: 10px;
+  }
+  .rejection-banner__message {
+    font-size: 13px;
+    color: #7F1D1D;
+    line-height: 1.8;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid #FECACA;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .rejection-banner__meta {
+    font-size: 11px;
+    color: #991B1B;
+  }
+
+  .main__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 500;
+    font-size: 24px;
+    color: var(--ink);
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+  .main__desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+    line-height: 1.9;
+  }
+
+  /* セクションブロック */
+  .form-section {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 26px 30px;
+    margin-bottom: 18px;
+  }
+  .form-section__title {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--ink);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .form-section__desc {
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin-bottom: 18px;
+    line-height: 1.7;
+  }
+
+  /* フォーム要素 */
+  .form-group { margin-bottom: 18px; }
+  .form-group:last-child { margin-bottom: 0; }
+  .form-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .form-label__required {
+    color: var(--error);
+    font-size: 11px;
+  }
+  .form-label__optional {
+    color: var(--ink-mute);
+    font-size: 10px;
+    font-weight: 400;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: #fff;
+    transition: all 0.15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--royal);
+    box-shadow: 0 0 0 3px var(--royal-50);
+  }
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.8;
+  }
+  .form-select {
+    appearance: none;
+    cursor: pointer;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  .form-hint {
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-top: 6px;
+    line-height: 1.7;
+  }
+
+  /* 2カラム */
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .form-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* 給与レンジ */
+  .salary-range {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr 60px;
+    gap: 8px;
+    align-items: center;
+  }
+  .salary-range__separator {
+    color: var(--ink-mute);
+    font-weight: 600;
+  }
+  .salary-range__unit {
+    font-size: 12px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  /* 雇用形態（チップ式選択） */
+  .chip-options {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .chip-option {
+    padding: 8px 16px;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chip-option:hover {
+    border-color: var(--royal-100);
+    background: var(--royal-50);
+    color: var(--royal);
+  }
+  .chip-option.active {
+    border-color: var(--royal);
+    background: var(--royal);
+    color: #fff;
+  }
+
+  /* マークダウンエディタ */
+  .markdown-editor {
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .markdown-editor:focus-within {
+    border-color: var(--royal);
+    box-shadow: 0 0 0 3px var(--royal-50);
+  }
+  .markdown-toolbar {
+    display: flex;
+    gap: 2px;
+    padding: 6px 8px;
+    background: var(--bg-tint);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .md-btn {
+    padding: 5px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .md-btn:hover {
+    background: #fff;
+    color: var(--royal);
+  }
+  .md-btn-divider {
+    width: 1px;
+    background: var(--line);
+    margin: 4px 4px;
+  }
+  .markdown-textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    background: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.8;
+    resize: vertical;
+    min-height: 200px;
+  }
+  .markdown-textarea:focus { outline: none; }
+
+  /* タグ入力 */
+  .tag-input-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+  }
+  .tag-input-wrap:focus-within {
+    border-color: var(--royal);
+    box-shadow: 0 0 0 3px var(--royal-50);
+  }
+  .tag-pill {
+    padding: 4px 10px;
+    background: var(--royal-50);
+    color: var(--royal);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .tag-pill.preferred {
+    background: var(--purple-soft);
+    color: var(--purple);
+  }
+  .tag-pill__remove {
+    cursor: pointer;
+    opacity: 0.7;
+  }
+  .tag-pill__remove:hover { opacity: 1; }
+  .tag-input {
+    flex: 1;
+    min-width: 100px;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--ink);
+    background: transparent;
+    padding: 4px;
+  }
+
+  /* 選考プロセス（ステップエディタ） */
+  .process-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .process-step {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--bg-tint);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .process-step__num {
+    width: 32px; height: 32px;
+    background: var(--royal);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .process-step__input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    border-radius: 5px;
+  }
+  .process-step__input:hover { background: #fff; border-color: var(--line); }
+  .process-step__input:focus {
+    outline: none;
+    background: #fff;
+    border-color: var(--royal);
+  }
+  .process-step__remove {
+    width: 26px; height: 26px;
+    background: transparent;
+    border: none;
+    color: var(--ink-mute);
+    cursor: pointer;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .process-step__remove:hover {
+    color: var(--error);
+    background: var(--error-soft);
+  }
+  .add-step-btn {
+    padding: 10px;
+    background: #fff;
+    border: 1.5px dashed var(--line);
+    border-radius: 8px;
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .add-step-btn:hover {
+    border-color: var(--royal);
+    color: var(--royal);
+    background: var(--royal-50);
+  }
+
+  /* 採用担当者選択 */
+  .assignee-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .assignee-option {
+    display: grid;
+    grid-template-columns: 18px 36px 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg-tint);
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .assignee-option:hover {
+    border-color: var(--royal-100);
+    background: var(--royal-50);
+  }
+  .assignee-option.active {
+    border-color: var(--royal);
+    background: var(--royal-50);
+  }
+  .assignee-option__check {
+    width: 18px; height: 18px;
+    border: 2px solid var(--line);
+    border-radius: 4px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .assignee-option.active .assignee-option__check {
+    border-color: var(--royal);
+    background: var(--royal);
+  }
+  .assignee-option.active .assignee-option__check::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 5px;
+    width: 4px; height: 8px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .assignee-option__avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .assignee-option__name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .assignee-option__role {
+    font-size: 11px;
+    color: var(--ink-mute);
+  }
+
+  /* 公開設定 */
+  .visibility-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .visibility-option {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--bg-tint);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .visibility-option:hover {
+    border-color: var(--royal-100);
+    background: var(--royal-50);
+  }
+  .visibility-option.active {
+    border-color: var(--royal);
+    background: var(--royal-50);
+  }
+  .visibility-option__icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .visibility-option__icon.public { background: var(--success); color: #fff; }
+  .visibility-option__icon.private { background: var(--ink-mute); color: #fff; }
+  .visibility-option__body { flex: 1; }
+  .visibility-option__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+  .visibility-option__desc {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+
+  /* ビュー切替 */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* 公開申請ボタンエリア */
+  .submit-area {
+    background: linear-gradient(135deg, var(--royal-50) 0%, #fff 100%);
+    border: 1px solid var(--royal-100);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-top: 24px;
+    text-align: center;
+  }
+  .submit-area__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--royal);
+    margin-bottom: 8px;
+  }
+  .submit-area__desc {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.8;
+    margin-bottom: 16px;
+  }
+  .submit-btn-large {
+    padding: 12px 32px;
+    background: var(--royal);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(0, 35, 102, 0.2);
+  }
+  .submit-btn-large:hover {
+    background: var(--royal-deep);
+    transform: translateY(-1px);
+  }
+  .submit-area__terms {
+    font-size: 10px;
+    color: var(--ink-mute);
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+
+  /* レスポンシブ */
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 200px 1fr; }
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .subnav {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 0;
+    }
+    .subnav__nav { flex-direction: row; overflow-x: auto; padding: 0 12px; }
+    .subnav__item { border-left: none; border-bottom: 2px solid transparent; white-space: nowrap; flex-shrink: 0; }
+    .subnav__item.active { border-left: none; border-bottom-color: var(--royal); }
+    .subnav__head, .subnav__progress { display: none; }
+    .main { padding: 24px 20px; }
+    .form-row, .form-row-3, .salary-range { grid-template-columns: 1fr; }
+    .topbar { padding: 10px 16px; gap: 12px; flex-wrap: wrap; }
+    .topbar__back { padding-left: 0; border: none; }
+    .topbar__title { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- トップバー -->
+<header class="topbar">
+  <div class="topbar__brand">
+    <span class="topbar__brand-text">Opinio</span>
+    <span class="topbar__biz-tag">Business</span>
+  </div>
+  <a href="#" class="topbar__back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    求人一覧に戻る
+  </a>
+  <div class="topbar__center">
+    <span class="topbar__title">マーケティングディレクター（業務委託）</span>
+    <span class="save-status saved" id="save-status">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+      下書きを自動保存しました
+    </span>
+  </div>
+  <div class="topbar__actions">
+    <button class="btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      プレビュー
+    </button>
+    <button class="btn btn--primary">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      公開申請する
+    </button>
+  </div>
+</header>
+
+<!-- レイアウト -->
+<div class="layout">
+
+  <!-- サブナビ -->
+  <aside class="subnav">
+    <div class="subnav__head">
+      <div class="subnav__title">求人を編集</div>
+      <div class="subnav__hint">編集すると下書きに保存されます。「公開申請」で運営審査(2-3営業日)後に公開されます。</div>
+    </div>
+    <nav class="subnav__nav">
+      <div class="subnav__item active" data-view="basic">
+        基本情報 <span class="subnav__item-status complete">✓</span>
+      </div>
+      <div class="subnav__item" data-view="salary">
+        給与・労働条件 <span class="subnav__item-status complete">✓</span>
+      </div>
+      <div class="subnav__item" data-view="content">
+        仕事内容 <span class="subnav__item-status complete">✓</span>
+      </div>
+      <div class="subnav__item" data-view="requirements">
+        求める人物像 <span class="subnav__item-status empty">未入力</span>
+      </div>
+      <div class="subnav__item" data-view="process">
+        選考プロセス <span class="subnav__item-status complete">✓</span>
+      </div>
+      <div class="subnav__item" data-view="assignee">
+        採用担当者 <span class="subnav__item-status complete">✓</span>
+      </div>
+      <div class="subnav__item" data-view="settings">
+        公開設定
+      </div>
+    </nav>
+
+    <div class="subnav__progress">
+      <div class="subnav__progress-title">
+        <span>入力進捗</span>
+        <span class="subnav__progress-value">85%</span>
+      </div>
+      <div class="subnav__progress-bar">
+        <div class="subnav__progress-fill" style="width:85%;"></div>
+      </div>
+      <div class="subnav__progress-desc">
+        全項目を入力すると、公開申請がスムーズに進みます。
+      </div>
+    </div>
+  </aside>
+
+  <!-- メイン -->
+  <main class="main">
+
+    <!-- 差し戻し通知（最重要） -->
+    <div class="rejection-banner">
+      <div class="rejection-banner__icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="rejection-banner__body">
+        <div class="rejection-banner__label">運営から差し戻しがありました</div>
+        <div class="rejection-banner__title">「求める人物像」セクションを修正してください</div>
+        <div class="rejection-banner__message">
+          現在の記述に、業務に直接関係のない属性(年齢・性別など)に関する条件が含まれています。男女雇用機会均等法・年齢差別の観点から修正をお願いします。<br/><br/>
+          具体例：「20代〜30代前半の女性歓迎」→ 業務遂行に必要なスキル・経験で記述してください。修正後、再度「公開申請」ボタンを押してください。
+        </div>
+        <div class="rejection-banner__meta">2026年4月20日 16:42 · Opinio編集部 担当：竹内</div>
+      </div>
+    </div>
+
+    <!-- ============ 基本情報ビュー ============ -->
+    <div class="view active" id="view-basic">
+      <h1 class="main__title">基本情報</h1>
+      <p class="main__desc">求人の基本情報を入力してください。求職者側の検索・一覧表示に使われる重要な項目です。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">求人タイトル・職種</div>
+
+        <div class="form-group">
+          <label class="form-label">求人タイトル<span class="form-label__required">必須</span></label>
+          <input type="text" class="form-input" value="マーケティングディレクター（業務委託）" placeholder="例：プロダクトマネージャー（タイミーキャリアプラス）" />
+          <div class="form-hint">求職者が最初に目にする最重要項目。ポジション名 + 補足情報を記載してください。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">雇用形態<span class="form-label__required">必須</span></label>
+          <div class="chip-options">
+            <button class="chip-option">正社員</button>
+            <button class="chip-option active">業務委託</button>
+            <button class="chip-option">契約社員</button>
+            <button class="chip-option">インターン</button>
+            <button class="chip-option">アルバイト・パート</button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">職種カテゴリ<span class="form-label__required">必須</span></label>
+            <select class="form-select">
+              <option>営業</option>
+              <option>PdM / PM</option>
+              <option>カスタマーサクセス</option>
+              <option>エンジニア</option>
+              <option selected>マーケティング</option>
+              <option>経営・CxO</option>
+              <option>その他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">所属部門<span class="form-label__optional">任意</span></label>
+            <input type="text" class="form-input" value="タイミーキャリアプラス事業部" />
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ 給与・労働条件ビュー ============ -->
+    <div class="view" id="view-salary">
+      <h1 class="main__title">給与・労働条件</h1>
+      <p class="main__desc">給与レンジ、勤務地、勤務形態など、労働条件を入力してください。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">給与</div>
+
+        <div class="form-group">
+          <label class="form-label">年収レンジ<span class="form-label__required">必須</span></label>
+          <div class="salary-range">
+            <input type="text" class="form-input" value="600" />
+            <span class="salary-range__separator">〜</span>
+            <input type="text" class="form-input" value="1000" />
+            <span class="salary-range__unit">万円</span>
+          </div>
+          <div class="form-hint">求職者側では「¥600-1,000万」と表示されます</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">給与の補足説明<span class="form-label__optional">任意</span></label>
+          <textarea class="form-textarea" rows="3" placeholder="例：賞与は年2回、業績連動。ストックオプション制度あり。前職給与を考慮。">業務委託のため月額固定報酬。50万円〜80万円/月。実績に応じて改定。</textarea>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">勤務地・勤務形態</div>
+
+        <div class="form-group">
+          <label class="form-label">勤務地<span class="form-label__required">必須</span></label>
+          <input type="text" class="form-input" value="東京都豊島区東池袋1-9-6 ヒューリック東池袋ビル 6F" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">リモートワーク<span class="form-label__required">必須</span></label>
+            <select class="form-select">
+              <option>フルリモート可</option>
+              <option selected>ハイブリッド（週2-3日出社）</option>
+              <option>原則出社</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">試用期間<span class="form-label__optional">任意</span></label>
+            <input type="text" class="form-input" placeholder="例：3ヶ月" value="なし（業務委託）" />
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ 仕事内容ビュー ============ -->
+    <div class="view" id="view-content">
+      <h1 class="main__title">仕事内容</h1>
+      <p class="main__desc">具体的な仕事内容、ミッション、入社後の期待値を記述してください。マークダウン記法が使えます。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">仕事内容の詳細</div>
+        <div class="form-section__desc">候補者がポジションをイメージできるよう、具体的な業務内容を記述してください。</div>
+
+        <div class="markdown-editor">
+          <div class="markdown-toolbar">
+            <button class="md-btn"><strong>H2</strong></button>
+            <button class="md-btn"><strong>H3</strong></button>
+            <span class="md-btn-divider"></span>
+            <button class="md-btn"><strong>B</strong></button>
+            <button class="md-btn"><em>I</em></button>
+            <span class="md-btn-divider"></span>
+            <button class="md-btn">List</button>
+            <button class="md-btn">Quote</button>
+            <button class="md-btn">Link</button>
+          </div>
+          <textarea class="markdown-textarea">## このポジションのミッション
+
+タイミーキャリアプラス事業の認知拡大と、ターゲットユーザーへの確実なリーチを実現する。
+
+## 主な業務内容
+
+- マーケティング戦略の立案・実行
+- BtoCコミュニケーションの設計（LP / SNS / 広告）
+- 編集・コンテンツ制作チームのディレクション
+- 効果測定と改善サイクルの構築
+- 外部パートナー（広告代理店・制作会社）との連携
+
+## 入社後3ヶ月のゴール
+
+- 現状のマーケティング施策の棚卸し・効果分析
+- 新しい施策の優先順位付けと実行計画策定
+- チームメンバーとの関係構築</textarea>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">候補者へのメッセージ</div>
+        <div class="form-section__desc">採用担当者から候補者へのメッセージ。求職者側の求人詳細ページに表示されます。</div>
+
+        <div class="form-group">
+          <textarea class="form-textarea" rows="5" placeholder="例：BtoCマーケティングの経験を活かして、社会的意義のあるプロダクトに関わりたい方をお待ちしています。">タイミーキャリアプラスは、まだ立ち上げフェーズです。一緒に「事業を創る」感覚を持ちながら、マーケティングを通じてプロダクトの成長を加速していただける方をお待ちしています。</textarea>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ 求める人物像ビュー（差し戻された場合の対象） ============ -->
+    <div class="view" id="view-requirements">
+      <h1 class="main__title">求める人物像</h1>
+      <p class="main__desc">必須スキル・歓迎スキル・求めるカルチャーフィットを記入してください。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">スキル・経験</div>
+
+        <div class="form-group">
+          <label class="form-label">必須スキル・経験</label>
+          <div class="tag-input-wrap">
+            <span class="tag-pill">BtoCマーケティング経験 5年以上 <span class="tag-pill__remove">×</span></span>
+            <span class="tag-pill">デジタル広告運用経験 <span class="tag-pill__remove">×</span></span>
+            <span class="tag-pill">SNSマーケティング <span class="tag-pill__remove">×</span></span>
+            <input type="text" class="tag-input" placeholder="タグを追加して Enter..." />
+          </div>
+          <div class="form-hint">業務遂行に必要不可欠なスキル・経験を記述してください。年齢・性別等の属性は記載しないでください。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">歓迎スキル・経験<span class="form-label__optional">任意</span></label>
+          <div class="tag-input-wrap">
+            <span class="tag-pill preferred">スタートアップでの事業立ち上げ経験 <span class="tag-pill__remove">×</span></span>
+            <span class="tag-pill preferred">マーケティングチームのマネジメント経験 <span class="tag-pill__remove">×</span></span>
+            <input type="text" class="tag-input" placeholder="タグを追加して Enter..." />
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">求めるカルチャーフィット</div>
+        <div class="form-section__desc">スキルだけでは測れない、価値観・働き方のフィットについて記述してください。</div>
+
+        <div class="form-group">
+          <textarea class="form-textarea" rows="5" placeholder="例：データドリブンな意思決定を大切にしながらも、ユーザーの声に真摯に向き合える方。">不確実性の高い環境を楽しめる方。タイミーキャリアプラスは、まだ事業の方向性を模索する段階です。「何が正解か分からない」中で、自分なりの仮説を立てて検証していける方を求めています。</textarea>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ 選考プロセスビュー ============ -->
+    <div class="view" id="view-process">
+      <h1 class="main__title">選考プロセス</h1>
+      <p class="main__desc">候補者がイメージできるよう、選考のステップを記述してください。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">選考ステップ</div>
+        <div class="form-section__desc">通常の選考フローを記入してください。求職者側の求人ページに表示されます。</div>
+
+        <div class="process-steps">
+          <div class="process-step">
+            <div class="process-step__num">1</div>
+            <input type="text" class="process-step__input" value="カジュアル面談（30分・オンライン）" />
+            <button class="process-step__remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="process-step">
+            <div class="process-step__num">2</div>
+            <input type="text" class="process-step__input" value="一次面接（マーケティング部長）" />
+            <button class="process-step__remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="process-step">
+            <div class="process-step__num">3</div>
+            <input type="text" class="process-step__input" value="課題提出（1週間程度・有償）" />
+            <button class="process-step__remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="process-step">
+            <div class="process-step__num">4</div>
+            <input type="text" class="process-step__input" value="最終面接（CEO・COO）" />
+            <button class="process-step__remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="process-step">
+            <div class="process-step__num">5</div>
+            <input type="text" class="process-step__input" value="リファレンスチェック・契約締結" />
+            <button class="process-step__remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <button class="add-step-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            ステップを追加
+          </button>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">選考期間の目安</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">カジュアル面談から内定まで</label>
+            <input type="text" class="form-input" value="3-4週間" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">入社可能時期<span class="form-label__optional">任意</span></label>
+            <select class="form-select">
+              <option>応相談</option>
+              <option selected>1ヶ月以内</option>
+              <option>3ヶ月以内</option>
+              <option>半年以内</option>
+            </select>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ 採用担当者ビュー ============ -->
+    <div class="view" id="view-assignee">
+      <h1 class="main__title">採用担当者</h1>
+      <p class="main__desc">この求人の採用担当者を選択してください。複数選択可能。求人ページに表示され、カジュアル面談の通知も担当者に届きます。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">担当者選択</div>
+        <div class="form-section__desc">チームメンバーから、この求人の担当者を選んでください。</div>
+
+        <div class="assignee-options">
+          <div class="assignee-option active">
+            <div class="assignee-option__check"></div>
+            <div class="assignee-option__avatar" style="background: linear-gradient(135deg, var(--royal), var(--accent));">山</div>
+            <div>
+              <div class="assignee-option__name">山田 太郎（あなた）</div>
+              <div class="assignee-option__role">人事部 採用マネージャー · Admin</div>
+            </div>
+          </div>
+          <div class="assignee-option">
+            <div class="assignee-option__check"></div>
+            <div class="assignee-option__avatar" style="background: linear-gradient(135deg, #FBBF24, #D97706);">鈴</div>
+            <div>
+              <div class="assignee-option__name">鈴木 花子</div>
+              <div class="assignee-option__role">人事部 採用担当 · Member</div>
+            </div>
+          </div>
+          <div class="assignee-option">
+            <div class="assignee-option__check"></div>
+            <div class="assignee-option__avatar" style="background: linear-gradient(135deg, #34D399, var(--success));">中</div>
+            <div>
+              <div class="assignee-option__name">中村 一郎</div>
+              <div class="assignee-option__role">プロダクト部 マネージャー · Member</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ 公開設定ビュー ============ -->
+    <div class="view" id="view-settings">
+      <h1 class="main__title">公開設定</h1>
+      <p class="main__desc">求人の公開状態を選択してください。新規・編集後は運営審査を経て公開されます。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">公開状態</div>
+
+        <div class="visibility-options">
+          <div class="visibility-option active">
+            <div class="visibility-option__icon public">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="visibility-option__body">
+              <div class="visibility-option__title">公開申請する</div>
+              <div class="visibility-option__desc">「公開申請」ボタンを押すと、運営審査(2-3営業日)を経て、Opinio上で求職者に公開されます。</div>
+            </div>
+          </div>
+          <div class="visibility-option">
+            <div class="visibility-option__icon private">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </div>
+            <div class="visibility-option__body">
+              <div class="visibility-option__title">下書きとして保存</div>
+              <div class="visibility-option__desc">求人を下書きとして保存します。公開はされません。後で編集を続けることができます。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 公開申請ボタン -->
+      <div class="submit-area">
+        <div class="submit-area__title">準備ができたら、公開申請をしてください</div>
+        <div class="submit-area__desc">
+          公開申請後、Opinio運営が内容を確認します（通常2-3営業日）。<br/>
+          審査通過後、求職者に公開されます。
+        </div>
+        <button class="submit-btn-large">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          公開申請する
+        </button>
+        <div class="submit-area__terms">
+          公開申請することで、<a href="#" style="color:var(--royal);text-decoration:underline;">求人掲載ガイドライン</a>に同意したものとみなされます。
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // セクションサブナビの切替
+  document.querySelectorAll('.subnav__item').forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.dataset.view;
+      if (!target) return;
+      document.querySelectorAll('.subnav__item').forEach(i => i.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      item.classList.add('active');
+      document.getElementById('view-' + target).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  // 雇用形態チップ切替
+  document.querySelectorAll('.chip-options .chip-option').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.parentElement.querySelectorAll('.chip-option').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+
+  // 採用担当者の複数選択
+  document.querySelectorAll('.assignee-option').forEach(option => {
+    option.addEventListener('click', () => {
+      option.classList.toggle('active');
+    });
+  });
+
+  // 公開設定の選択
+  document.querySelectorAll('.visibility-option').forEach(option => {
+    option.addEventListener('click', () => {
+      option.parentElement.querySelectorAll('.visibility-option').forEach(o => o.classList.remove('active'));
+      option.classList.add('active');
+    });
+  });
+
+  // タグ削除
+  document.querySelectorAll('.tag-pill__remove').forEach(remove => {
+    remove.addEventListener('click', (e) => {
+      e.target.closest('.tag-pill').remove();
+    });
+  });
+
+  // 自動保存
+  const saveStatus = document.getElementById('save-status');
+  let saveTimer;
+  document.querySelectorAll('.form-input, .form-select, .form-textarea, .markdown-textarea, .process-step__input, .tag-input').forEach(field => {
+    field.addEventListener('input', () => {
+      saveStatus.classList.remove('saved');
+      saveStatus.classList.add('saving');
+      saveStatus.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 下書きに保存中...';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        saveStatus.classList.remove('saving');
+        saveStatus.classList.add('saved');
+        saveStatus.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg> 下書きを自動保存しました';
+      }, 700);
+    });
+  });
+
+  // 選考ステップ削除
+  document.querySelectorAll('.process-step__remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.target.closest('.process-step').remove();
+    });
+  });
+</script>
+
+</body>
+</html>

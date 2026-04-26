@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>マイページ — Opinio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --royal: #002366;
+    --royal-deep: #001A4D;
+    --royal-50: #EFF3FC;
+    --royal-100: #DCE5F7;
+    --accent: #3B5FD9;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --line: #E2E8F0;
+    --line-soft: #F1F5F9;
+    --bg: #FFFFFF;
+    --bg-tint: #F8FAFC;
+    --success: #059669;
+    --success-soft: #ECFDF5;
+    --warm: #F59E0B;
+    --warm-soft: #FEF3C7;
+    --purple: #7C3AED;
+    --purple-soft: #F3E8FF;
+    --pink: #DB2777;
+    --pink-soft: #FCE7F3;
+    --error: #DC2626;
+    --error-soft: #FEE2E2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-tint);
+    color: var(--ink);
+    font-family: "Noto Sans JP", -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* トップバー */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    gap: 40px;
+  }
+  .topbar__brand {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--royal);
+    letter-spacing: -0.02em;
+  }
+  .nav-links { display: flex; gap: 28px; flex: 1; }
+  .nav-links a { color: var(--ink-soft); font-size: 14px; font-weight: 500; }
+  .nav-links a:hover { color: var(--royal); }
+  .topbar__user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .topbar__avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--royal), var(--accent));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .topbar__name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  /* ================== メンター切替トグル (mock用) ================== */
+  .role-toggle {
+    background: var(--bg-tint);
+    padding: 10px 32px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 65px;
+    z-index: 50;
+  }
+  .role-toggle__label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .role-toggle__btn {
+    padding: 5px 12px;
+    background: #fff;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .role-toggle__btn.active {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .role-toggle__note {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--ink-mute);
+  }
+
+  /* ================== 初回オンボーディングバナー ================== */
+  .onboarding-banner {
+    background: linear-gradient(135deg, var(--royal-50) 0%, #fff 100%);
+    border-bottom: 1px solid var(--royal-100);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .onboarding-banner__icon {
+    width: 36px; height: 36px;
+    background: var(--royal);
+    color: #fff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .onboarding-banner__body { flex: 1; }
+  .onboarding-banner__title {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .onboarding-banner__desc {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .onboarding-banner__btn {
+    padding: 7px 14px;
+    background: var(--royal);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .onboarding-banner__close {
+    color: var(--ink-mute);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+  }
+  .onboarding-banner.hidden { display: none; }
+
+  /* ================== レイアウト ================== */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 106px);
+  }
+
+  /* サイドバー */
+  .sidebar {
+    background: #fff;
+    border-right: 1px solid var(--line);
+    padding: 24px 0;
+    position: sticky;
+    top: 106px;
+    align-self: start;
+    height: calc(100vh - 106px);
+    overflow-y: auto;
+  }
+  .sidebar__label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0 24px 10px;
+  }
+  .sidebar__nav {
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar__item {
+    padding: 10px 24px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    justify-content: space-between;
+  }
+  .sidebar__item:hover {
+    background: var(--bg-tint);
+    color: var(--ink);
+  }
+  .sidebar__item.active {
+    background: var(--royal-50);
+    color: var(--royal);
+    border-left-color: var(--royal);
+    font-weight: 600;
+  }
+  .sidebar__item-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sidebar__item svg {
+    color: var(--ink-mute);
+    flex-shrink: 0;
+  }
+  .sidebar__item.active svg {
+    color: var(--royal);
+  }
+  .sidebar__badge {
+    background: var(--royal);
+    color: #fff;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 100px;
+    min-width: 18px;
+    text-align: center;
+  }
+  .sidebar__section-label {
+    padding: 20px 24px 8px;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .sidebar__mentor-section {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  /* ================== メインエリア ================== */
+  .main {
+    padding: 36px 40px 60px;
+    max-width: 1000px;
+  }
+  .main__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 500;
+    font-size: 26px;
+    color: var(--ink);
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .main__desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 32px;
+    line-height: 1.8;
+  }
+
+  /* ================== ダッシュボード（概要カード） ================== */
+  .profile-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .profile-card__cover {
+    height: 100px;
+    background: linear-gradient(135deg, var(--royal), var(--accent), #818CF8);
+    position: relative;
+  }
+  .profile-card__body {
+    padding: 0 28px 24px;
+    margin-top: -40px;
+    position: relative;
+  }
+  .profile-card__avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--royal), var(--accent));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 600;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 12px rgba(15,23,42,0.08);
+    margin-bottom: 14px;
+  }
+  .profile-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .profile-card__name {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--ink);
+  }
+  .profile-card__name .mentor-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    background: linear-gradient(135deg, var(--royal), var(--accent));
+    color: #fff;
+    border-radius: 50%;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .profile-card__edit {
+    padding: 7px 14px;
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .profile-card__edit:hover {
+    border-color: var(--royal-100);
+    background: var(--royal-50);
+    color: var(--royal);
+  }
+  .profile-card__role {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .profile-card__completeness {
+    background: var(--bg-tint);
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .completeness__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .completeness__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .completeness__value {
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--royal);
+  }
+  .completeness__bar {
+    height: 6px;
+    background: #fff;
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .completeness__fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--royal), var(--accent));
+    border-radius: 100px;
+  }
+  .completeness__desc {
+    font-size: 11px;
+    color: var(--ink-mute);
+    line-height: 1.6;
+  }
+  .completeness__desc a {
+    color: var(--royal);
+    font-weight: 600;
+  }
+
+  /* ================== 活動サマリー ================== */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .stat-card:hover {
+    border-color: var(--royal-100);
+    box-shadow: 0 4px 14px rgba(15,23,42,0.06);
+    transform: translateY(-1px);
+  }
+  .stat-card__icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--royal-50);
+    color: var(--royal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  .stat-card__icon.amber { background: var(--warm-soft); color: #B45309; }
+  .stat-card__icon.pink { background: var(--pink-soft); color: var(--pink); }
+  .stat-card__icon.purple { background: var(--purple-soft); color: var(--purple); }
+  .stat-card__value {
+    font-family: "Inter", sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .stat-card__label {
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  /* ================== セクションブロック ================== */
+  .section-block {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .section-block__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .section-block__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .section-block__title-en {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .section-block__link {
+    font-size: 12px;
+    color: var(--royal);
+    font-weight: 600;
+  }
+  .section-block__link:hover { text-decoration: underline; }
+
+  /* ================== 申込リストアイテム ================== */
+  .request-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .request-item {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--bg-tint);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .request-item:hover {
+    border-color: var(--royal-100);
+    background: #fff;
+  }
+  .request-item__avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .request-item__avatar.company {
+    border-radius: 8px;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .request-item__body { min-width: 0; }
+  .request-item__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .request-item__meta {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .request-item__meta .date { color: var(--ink-mute); }
+  .status-pill {
+    padding: 3px 9px;
+    border-radius: 100px;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .status-pill.pending { background: var(--warm-soft); color: #B45309; }
+  .status-pill.reviewing { background: var(--royal-50); color: var(--royal); }
+  .status-pill.approved { background: var(--success-soft); color: var(--success); }
+  .status-pill.scheduled { background: var(--purple-soft); color: var(--purple); }
+  .status-pill.completed { background: var(--line-soft); color: var(--ink-soft); }
+  .status-pill.declined { background: var(--error-soft); color: var(--error); }
+
+  /* ================== ブックマーク / おすすめ ================== */
+  .bookmark-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .bookmark-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .bookmark-card:hover {
+    border-color: var(--royal-100);
+    box-shadow: 0 4px 12px rgba(15,23,42,0.05);
+  }
+  .bookmark-card__type {
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .bookmark-card__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.5;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .bookmark-card__meta {
+    font-size: 10px;
+    color: var(--ink-mute);
+    line-height: 1.5;
+  }
+
+  /* ================== 空状態 ================== */
+  .empty-state {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--ink-mute);
+    font-size: 13px;
+  }
+  .empty-state__icon {
+    width: 48px; height: 48px;
+    background: var(--bg-tint);
+    color: var(--ink-mute);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+  }
+  .empty-state__title {
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+  .empty-state__link {
+    color: var(--royal);
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .empty-state__link:hover { text-decoration: underline; }
+
+  /* ================== ビュー切替 ================== */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ================== メンター管理専用 ================== */
+  .received-request {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+  }
+  .received-request.pending {
+    border-left: 3px solid var(--warm);
+  }
+  .received-request:hover {
+    box-shadow: 0 4px 14px rgba(15,23,42,0.06);
+  }
+  .received-request__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .received-request__avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #22D3EE, #0891B2);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .received-request__name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .received-request__meta {
+    font-size: 11px;
+    color: var(--ink-mute);
+  }
+  .received-request__themes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .theme-tag {
+    padding: 3px 8px;
+    background: var(--royal-50);
+    color: var(--royal);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .received-request__preview {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    padding: 10px 12px;
+    background: var(--bg-tint);
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .received-request__actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .req-btn {
+    padding: 7px 14px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 7px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+  }
+  .req-btn--primary {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .req-btn--decline {
+    color: var(--error);
+    border-color: var(--error-soft);
+  }
+  .req-btn--decline:hover { background: var(--error-soft); }
+
+  /* レスポンシブ */
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+    }
+    .sidebar__nav { flex-direction: row; overflow-x: auto; }
+    .sidebar__item { border-left: none; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .sidebar__item.active { border-left: none; border-bottom-color: var(--royal); }
+    .sidebar__label, .sidebar__section-label { display: none; }
+    .sidebar__mentor-section { margin: 0; padding: 0; border: none; }
+    .main { padding: 24px 20px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .bookmark-grid { grid-template-columns: 1fr; }
+    .topbar { padding: 12px 20px; gap: 16px; }
+    .nav-links { display: none; }
+    .role-toggle { padding: 10px 20px; top: 60px; flex-wrap: wrap; }
+    .role-toggle__note { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- トップバー -->
+<header class="topbar">
+  <a href="#" class="topbar__brand">Opinio</a>
+  <nav class="nav-links">
+    <a href="#">求人を探す</a>
+    <a href="#">企業を知る</a>
+    <a href="#">先輩に相談</a>
+    <a href="#">記事</a>
+  </nav>
+  <div class="topbar__user">
+    <div class="topbar__avatar">田</div>
+    <span class="topbar__name">田中 翔太さん</span>
+  </div>
+</header>
+
+<!-- モック用：メンター有無切替 -->
+<div class="role-toggle">
+  <span class="role-toggle__label">MOCK:</span>
+  <button class="role-toggle__btn active" id="role-user">通常ユーザー</button>
+  <button class="role-toggle__btn" id="role-mentor">メンター登録済み</button>
+  <span class="role-toggle__note">※ モック用の切替。本番ではユーザーの役割に応じて動的に表示</span>
+</div>
+
+<!-- 初回オンボーディングバナー -->
+<div class="onboarding-banner" id="onboarding-banner">
+  <div class="onboarding-banner__icon">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+  </div>
+  <div class="onboarding-banner__body">
+    <div class="onboarding-banner__title">プロフィールを完成させましょう</div>
+    <div class="onboarding-banner__desc">キャリア情報を追加すると、企業やメンターがあなたのことを理解しやすくなります。</div>
+  </div>
+  <button class="onboarding-banner__btn">プロフィールを編集</button>
+  <div class="onboarding-banner__close" onclick="document.getElementById('onboarding-banner').classList.add('hidden')">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </div>
+</div>
+
+<!-- レイアウト -->
+<div class="layout">
+
+  <!-- サイドバー -->
+  <aside class="sidebar">
+    <div class="sidebar__label">マイアクティビティ</div>
+    <nav class="sidebar__nav">
+      <div class="sidebar__item active" data-view="dashboard">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          ダッシュボード
+        </div>
+      </div>
+      <div class="sidebar__item" data-view="casual">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>
+          カジュアル面談
+        </div>
+        <span class="sidebar__badge">2</span>
+      </div>
+      <div class="sidebar__item" data-view="mentor-reserve">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          メンター相談
+        </div>
+        <span class="sidebar__badge">1</span>
+      </div>
+      <div class="sidebar__item" data-view="bookmarks">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          ブックマーク
+        </div>
+      </div>
+    </nav>
+
+    <!-- メンター専用セクション（動的表示） -->
+    <div class="sidebar__mentor-section" id="mentor-section" style="display:none;">
+      <div class="sidebar__section-label">⭐ メンター管理</div>
+      <nav class="sidebar__nav">
+        <div class="sidebar__item" data-view="mentor-requests">
+          <div class="sidebar__item-inner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01 9 11.01"/></svg>
+            受けた相談
+          </div>
+          <span class="sidebar__badge">3</span>
+        </div>
+        <div class="sidebar__item" data-view="mentor-schedule">
+          <div class="sidebar__item-inner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            スケジュール
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <div class="sidebar__section-label">アカウント</div>
+    <nav class="sidebar__nav">
+      <div class="sidebar__item" data-view="profile-link">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+          プロフィールを編集
+        </div>
+      </div>
+      <div class="sidebar__item" data-view="settings">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          設定
+        </div>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- メイン -->
+  <main class="main">
+
+    <!-- ダッシュボード（トップ） -->
+    <div class="view active" id="view-dashboard">
+      <h1 class="main__title">おかえりなさい、田中翔太さん</h1>
+      <p class="main__desc">あなたのOpinio活動の全体像を確認できます。</p>
+
+      <!-- プロフィールカード -->
+      <div class="profile-card">
+        <div class="profile-card__cover"></div>
+        <div class="profile-card__body">
+          <div class="profile-card__avatar">田</div>
+          <div class="profile-card__header">
+            <div>
+              <div class="profile-card__name" id="profile-name-display">田中 翔太さん</div>
+              <div class="profile-card__role">株式会社タイミー · エンタープライズ営業（元PdM）</div>
+            </div>
+            <a href="#" class="profile-card__edit">プロフィールを編集</a>
+          </div>
+          <div class="profile-card__completeness">
+            <div class="completeness__head">
+              <span class="completeness__label">プロフィール完成度</span>
+              <span class="completeness__value">65%</span>
+            </div>
+            <div class="completeness__bar">
+              <div class="completeness__fill" style="width:65%;"></div>
+            </div>
+            <div class="completeness__desc">
+              基本情報と職歴を充実させると、企業やメンターがあなたをより理解できます。<a href="#">プロフィールを編集する →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 活動サマリー -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card__icon amber">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>
+          </div>
+          <div class="stat-card__value">2</div>
+          <div class="stat-card__label">カジュアル面談<br/>申込中</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="stat-card__value">1</div>
+          <div class="stat-card__label">メンター相談<br/>審査中</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon pink">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="stat-card__value">12</div>
+          <div class="stat-card__label">ブックマーク<br/>合計</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon purple">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="stat-card__value">8</div>
+          <div class="stat-card__label">取材された<br/>記事数</div>
+        </div>
+      </div>
+
+      <!-- 最近の申込 -->
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            最近の申込
+            <span class="section-block__title-en">Recent Applications</span>
+          </div>
+          <a href="#" class="section-block__link" onclick="switchView('casual'); return false;">すべて見る →</a>
+        </div>
+        <div class="request-list">
+          <div class="request-item">
+            <div class="request-item__avatar company" style="background: linear-gradient(135deg, #F97316, #EA580C);">T</div>
+            <div class="request-item__body">
+              <div class="request-item__title">株式会社タイミー · プロダクトマネージャー</div>
+              <div class="request-item__meta">カジュアル面談 · <span class="date">2026.04.18 申込</span></div>
+            </div>
+            <span class="status-pill pending">企業確認中</span>
+          </div>
+          <div class="request-item">
+            <div class="request-item__avatar" style="background: linear-gradient(135deg, #A78BFA, var(--purple));">渡
+              <span style="position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;background:linear-gradient(135deg,var(--royal),var(--accent));color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;">
+                <svg width="7" height="7" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg>
+              </span>
+            </div>
+            <div class="request-item__body">
+              <div class="request-item__title">渡辺 美穂さん · PdM→CPOの進化</div>
+              <div class="request-item__meta">メンター相談 · <span class="date">2026.04.16 申込</span></div>
+            </div>
+            <span class="status-pill reviewing">編集部確認中</span>
+          </div>
+          <div class="request-item">
+            <div class="request-item__avatar company" style="background: linear-gradient(135deg, #1E40AF, var(--royal));">L</div>
+            <div class="request-item__body">
+              <div class="request-item__title">株式会社LayerX · Bakuraku事業 PdM</div>
+              <div class="request-item__meta">カジュアル面談 · <span class="date">2026.04.12 申込</span></div>
+            </div>
+            <span class="status-pill scheduled">日程調整中</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ブックマーク・プレビュー -->
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            ブックマーク
+            <span class="section-block__title-en">Bookmarks</span>
+          </div>
+          <a href="#" class="section-block__link" onclick="switchView('bookmarks'); return false;">すべて見る →</a>
+        </div>
+        <div class="bookmark-grid">
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">記事</div>
+            <div class="bookmark-card__title">プロダクトを軸に営業まで広げる、職域を超える挑戦</div>
+            <div class="bookmark-card__meta">田中翔太さん · 2025.10.12</div>
+          </div>
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">企業</div>
+            <div class="bookmark-card__title">株式会社LayerX</div>
+            <div class="bookmark-card__meta">SaaS / 従業員450名 · 募集中32件</div>
+          </div>
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">メンター</div>
+            <div class="bookmark-card__title">鈴木 由紀さん · 外資コンサルPdM</div>
+            <div class="bookmark-card__meta">PdM・プロダクト思考のテーマ</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- カジュアル面談一覧 -->
+    <div class="view" id="view-casual">
+      <h1 class="main__title">カジュアル面談</h1>
+      <p class="main__desc">あなたが申し込んだカジュアル面談の一覧と、それぞれのステータスを確認できます。</p>
+
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            申込一覧
+            <span class="section-block__title-en">All Applications</span>
+          </div>
+          <span style="font-size:11px;color:var(--ink-mute);">全 4 件</span>
+        </div>
+        <div class="request-list">
+          <div class="request-item">
+            <div class="request-item__avatar company" style="background: linear-gradient(135deg, #F97316, #EA580C);">T</div>
+            <div class="request-item__body">
+              <div class="request-item__title">株式会社タイミー · プロダクトマネージャー</div>
+              <div class="request-item__meta">2026.04.18 申込 · <span class="date">通常 3営業日以内に連絡</span></div>
+            </div>
+            <span class="status-pill pending">企業確認中</span>
+          </div>
+          <div class="request-item">
+            <div class="request-item__avatar company" style="background: linear-gradient(135deg, #1E40AF, var(--royal));">L</div>
+            <div class="request-item__body">
+              <div class="request-item__title">株式会社LayerX · Bakuraku事業 PdM</div>
+              <div class="request-item__meta">2026.04.12 申込 · <span class="date">2026.04.28(火) 14:00〜</span></div>
+            </div>
+            <span class="status-pill scheduled">日程調整中</span>
+          </div>
+          <div class="request-item">
+            <div class="request-item__avatar company" style="background: linear-gradient(135deg, #00B4D8, #0077B6);">S</div>
+            <div class="request-item__body">
+              <div class="request-item__title">SmartHR株式会社 · プロダクト企画</div>
+              <div class="request-item__meta">2026.03.28 申込 · <span class="date">2026.04.10(水) 10:00実施済</span></div>
+            </div>
+            <span class="status-pill completed">面談完了</span>
+          </div>
+          <div class="request-item">
+            <div class="request-item__avatar company" style="background: linear-gradient(135deg, #1E3A8A, #1E40AF);">F</div>
+            <div class="request-item__body">
+              <div class="request-item__title">freee株式会社 · エンタープライズ営業</div>
+              <div class="request-item__meta">2026.03.15 申込 · <span class="date">お断りの連絡</span></div>
+            </div>
+            <span class="status-pill declined">見送り</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- メンター相談一覧 -->
+    <div class="view" id="view-mentor-reserve">
+      <h1 class="main__title">メンター相談</h1>
+      <p class="main__desc">あなたが申し込んだメンター相談の一覧と、それぞれのステータスを確認できます。</p>
+
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            相談予約一覧
+            <span class="section-block__title-en">Consultation Requests</span>
+          </div>
+          <span style="font-size:11px;color:var(--ink-mute);">全 3 件</span>
+        </div>
+        <div class="request-list">
+          <div class="request-item">
+            <div class="request-item__avatar" style="background: linear-gradient(135deg, #A78BFA, var(--purple));">渡</div>
+            <div class="request-item__body">
+              <div class="request-item__title">渡辺 美穂さん · AIスタートアップA社 CPO</div>
+              <div class="request-item__meta">2026.04.16 申込 · <span class="date">編集部が内容確認中（2〜5営業日）</span></div>
+            </div>
+            <span class="status-pill reviewing">編集部確認中</span>
+          </div>
+          <div class="request-item">
+            <div class="request-item__avatar" style="background: linear-gradient(135deg, #6366F1, #818CF8);">鈴</div>
+            <div class="request-item__body">
+              <div class="request-item__title">鈴木 由紀さん · 外資コンサル出身PdM</div>
+              <div class="request-item__meta">2026.03.22 申込 · <span class="date">2026.04.05(金) 19:00実施済</span></div>
+            </div>
+            <span class="status-pill completed">相談完了</span>
+          </div>
+          <div class="request-item">
+            <div class="request-item__avatar" style="background: linear-gradient(135deg, #0891B2, #0E7490);">林</div>
+            <div class="request-item__body">
+              <div class="request-item__title">林 健太さん · SmartHR プロダクト企画</div>
+              <div class="request-item__meta">2026.02.28 申込 · <span class="date">2026.03.15(土) 20:00実施済</span></div>
+            </div>
+            <span class="status-pill completed">相談完了</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ブックマーク -->
+    <div class="view" id="view-bookmarks">
+      <h1 class="main__title">ブックマーク</h1>
+      <p class="main__desc">あなたがブックマークした企業・求人・記事・メンターを一覧できます。</p>
+
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            記事
+            <span class="section-block__title-en">Articles</span>
+          </div>
+          <span style="font-size:11px;color:var(--ink-mute);">5 件</span>
+        </div>
+        <div class="bookmark-grid">
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">社員インタビュー</div>
+            <div class="bookmark-card__title">プロダクトを軸に営業まで広げる、職域を超える挑戦</div>
+            <div class="bookmark-card__meta">田中翔太さん · タイミー · 2025.10.12</div>
+          </div>
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">CEO・経営陣</div>
+            <div class="bookmark-card__title">「タイミーの次の10年」CEO小川嶺が描く、スポットワークの次にあるもの</div>
+            <div class="bookmark-card__meta">小川嶺さん · 2026.03.20</div>
+          </div>
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">取材レポート</div>
+            <div class="bookmark-card__title">タイミーのプロダクト組織はなぜ動きが速いのか？</div>
+            <div class="bookmark-card__meta">2026.02.05</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            企業
+            <span class="section-block__title-en">Companies</span>
+          </div>
+          <span style="font-size:11px;color:var(--ink-mute);">4 件</span>
+        </div>
+        <div class="bookmark-grid">
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">IT/SaaS</div>
+            <div class="bookmark-card__title">株式会社LayerX</div>
+            <div class="bookmark-card__meta">SaaS / 450名 · 募集中32件</div>
+          </div>
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">IT/SaaS</div>
+            <div class="bookmark-card__title">SmartHR株式会社</div>
+            <div class="bookmark-card__meta">HR SaaS / 900名 · 募集中48件</div>
+          </div>
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">IT/SaaS</div>
+            <div class="bookmark-card__title">株式会社マネーフォワード</div>
+            <div class="bookmark-card__meta">FinTech / 2,100名 · 募集中73件</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            メンター
+            <span class="section-block__title-en">Mentors</span>
+          </div>
+          <span style="font-size:11px;color:var(--ink-mute);">3 件</span>
+        </div>
+        <div class="bookmark-grid">
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">メンター</div>
+            <div class="bookmark-card__title">鈴木 由紀さん</div>
+            <div class="bookmark-card__meta">外資コンサル → 事業会社PdM</div>
+          </div>
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">メンター</div>
+            <div class="bookmark-card__title">渡辺 美穂さん</div>
+            <div class="bookmark-card__meta">PdM → CPO / タイミー OBOG</div>
+          </div>
+          <div class="bookmark-card">
+            <div class="bookmark-card__type">メンター</div>
+            <div class="bookmark-card__title">山本 健一さん</div>
+            <div class="bookmark-card__meta">SIer → 事業会社エンジニア</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- メンター管理（相談を受ける側）※メンター登録時のみ表示 -->
+    <div class="view" id="view-mentor-requests">
+      <h1 class="main__title">
+        受けた相談
+        <span style="font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:var(--warm);background:var(--warm-soft);padding:4px 10px;border-radius:100px;letter-spacing:0.1em;margin-left:8px;vertical-align:middle;">⭐ MENTOR</span>
+      </h1>
+      <p class="main__desc">あなたがメンターとして受けた相談リクエストを確認・承認できます。</p>
+
+      <!-- 対応待ち -->
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            対応待ち
+            <span class="section-block__title-en">Pending Approval</span>
+          </div>
+          <span style="font-size:11px;color:var(--warm);font-weight:700;">3 件</span>
+        </div>
+
+        <div class="received-request pending">
+          <div class="received-request__head">
+            <div class="received-request__avatar">山</div>
+            <div style="flex:1;">
+              <div class="received-request__name">山田 美咲さん · 30代前半</div>
+              <div class="received-request__meta">株式会社マネーフォワード · プロダクトマネージャー</div>
+            </div>
+            <span class="status-pill pending">未対応</span>
+          </div>
+          <div class="received-request__themes">
+            <span class="theme-tag">✓ PdM → CPO への進化</span>
+            <span class="theme-tag">✓ プロダクト組織の作り方</span>
+          </div>
+          <div class="received-request__preview">
+            「現在、PdMからマネジメントへの役割シフトを進めています。渡辺さんが実際にどのような流れでCPOになられたのか...（続きを見る）」
+          </div>
+          <div class="received-request__actions">
+            <button class="req-btn req-btn--decline">見送る</button>
+            <button class="req-btn">詳細を見る</button>
+            <button class="req-btn req-btn--primary">承認する</button>
+          </div>
+        </div>
+
+        <div class="received-request pending">
+          <div class="received-request__head">
+            <div class="received-request__avatar" style="background: linear-gradient(135deg, #FBBF24, #D97706);">高</div>
+            <div style="flex:1;">
+              <div class="received-request__name">高橋 翔さん · 20代後半</div>
+              <div class="received-request__meta">株式会社タイミー · プロダクトマネージャー</div>
+            </div>
+            <span class="status-pill pending">未対応</span>
+          </div>
+          <div class="received-request__themes">
+            <span class="theme-tag">✓ タイミー出身者からの視点</span>
+            <span class="theme-tag">✓ スタートアップでの経営</span>
+          </div>
+          <div class="received-request__preview">
+            「タイミーで働いていますが、そろそろ自分で何か始めたいと考えています。渡辺さんがタイミーから次のキャリアを選んだ...」
+          </div>
+          <div class="received-request__actions">
+            <button class="req-btn req-btn--decline">見送る</button>
+            <button class="req-btn">詳細を見る</button>
+            <button class="req-btn req-btn--primary">承認する</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 対応済み -->
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            対応済み
+            <span class="section-block__title-en">Completed</span>
+          </div>
+          <span style="font-size:11px;color:var(--ink-mute);">12 件</span>
+        </div>
+        <div class="request-list">
+          <div class="request-item">
+            <div class="request-item__avatar" style="background: linear-gradient(135deg, var(--royal), var(--accent));">田</div>
+            <div class="request-item__body">
+              <div class="request-item__title">田中 翔太さん · タイミー 営業</div>
+              <div class="request-item__meta">2026.04.05 相談実施 · <span class="date">PdM→CPO, プロダクト組織</span></div>
+            </div>
+            <span class="status-pill completed">完了</span>
+          </div>
+          <div class="request-item">
+            <div class="request-item__avatar" style="background: linear-gradient(135deg, #34D399, var(--success));">佐</div>
+            <div class="request-item__body">
+              <div class="request-item__title">佐藤 優子さん · LayerX PdM</div>
+              <div class="request-item__meta">2026.03.22 相談実施 · <span class="date">AI/LLM プロダクト開発</span></div>
+            </div>
+            <span class="status-pill completed">完了</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- スケジュール -->
+    <div class="view" id="view-mentor-schedule">
+      <h1 class="main__title">
+        スケジュール
+        <span style="font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:var(--warm);background:var(--warm-soft);padding:4px 10px;border-radius:100px;letter-spacing:0.1em;margin-left:8px;vertical-align:middle;">⭐ MENTOR</span>
+      </h1>
+      <p class="main__desc">今後のメンター相談の予定を確認できます。</p>
+
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            これからの予定
+            <span class="section-block__title-en">Upcoming</span>
+          </div>
+        </div>
+        <div class="empty-state">
+          <div class="empty-state__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="empty-state__title">予定はありません</div>
+          <div>承認した相談は、日程調整後こちらに表示されます。</div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // サイドバーのナビ切替
+  function switchView(target) {
+    document.querySelectorAll('.sidebar__item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    const item = document.querySelector(`.sidebar__item[data-view="${target}"]`);
+    const view = document.getElementById(`view-${target}`);
+    if (item) item.classList.add('active');
+    if (view) view.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.querySelectorAll('.sidebar__item').forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.dataset.view;
+      if (target === 'profile-link') {
+        alert('プロフィール編集ページへ遷移（モック）');
+        return;
+      }
+      if (target === 'settings') {
+        alert('設定ページへ遷移（モック）');
+        return;
+      }
+      switchView(target);
+    });
+  });
+
+  // モック用：メンター登録の切替
+  const roleUser = document.getElementById('role-user');
+  const roleMentor = document.getElementById('role-mentor');
+  const mentorSection = document.getElementById('mentor-section');
+  const profileNameDisplay = document.getElementById('profile-name-display');
+
+  roleUser.addEventListener('click', () => {
+    roleUser.classList.add('active');
+    roleMentor.classList.remove('active');
+    mentorSection.style.display = 'none';
+    profileNameDisplay.innerHTML = '田中 翔太さん';
+  });
+
+  roleMentor.addEventListener('click', () => {
+    roleMentor.classList.add('active');
+    roleUser.classList.remove('active');
+    mentorSection.style.display = '';
+    profileNameDisplay.innerHTML = '田中 翔太さん <span class="mentor-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg></span>';
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Opinio — 先輩に相談する</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --royal: #002366;
+    --royal-deep: #001A4D;
+    --royal-50: #EFF3FC;
+    --royal-100: #DCE5F7;
+    --accent: #3B5FD9;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --line: #E2E8F0;
+    --line-soft: #F1F5F9;
+    --bg: #FFFFFF;
+    --bg-tint: #F8FAFC;
+    --success: #059669;
+    --success-soft: #ECFDF5;
+    --warm: #F59E0B;
+    --warm-soft: #FEF3C7;
+    --pink: #DB2777;
+    --pink-soft: #FCE7F3;
+    --purple: #7C3AED;
+    --purple-soft: #F3E8FF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-tint);
+    color: var(--ink);
+    font-family: "Noto Sans JP", -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* HEADER */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 48px;
+    display: flex; align-items: center; gap: 40px;
+  }
+  .brand { font-family: "Inter", sans-serif; font-weight: 700; font-size: 22px; color: var(--royal); letter-spacing: -0.02em; }
+  .nav-links { display: flex; gap: 32px; flex: 1; }
+  .nav-links a { color: var(--ink-soft); font-size: 14px; font-weight: 500; position: relative; }
+  .nav-links a:hover { color: var(--royal); }
+  .nav-links a.active { color: var(--royal); font-weight: 600; }
+  .nav-links a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -20px; height: 2px; background: var(--royal); }
+  .nav-actions { display: flex; gap: 12px; align-items: center; }
+  .link-btn { color: var(--ink-soft); font-size: 14px; font-weight: 500; padding: 8px 16px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; font-family: inherit; font-size: 14px; font-weight: 600; border-radius: 8px; transition: all 0.2s; cursor: pointer; border: none; }
+  .btn--primary { background: var(--royal); color: #fff; box-shadow: 0 4px 14px rgba(0, 35, 102, 0.25); }
+
+  /* PAGE TOP */
+  .page-top {
+    padding: 56px 48px 48px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .page-top__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .page-top__center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .page-top__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 500;
+    font-size: 34px;
+    color: var(--ink);
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  .smart-search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-tint);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 18px;
+    width: 100%;
+    transition: all 0.2s;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+  }
+  .smart-search:focus-within {
+    border-color: var(--royal);
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0, 35, 102, 0.08);
+  }
+  .smart-search svg { color: var(--ink-mute); flex-shrink: 0; }
+  .smart-search__typed {
+    flex: 1;
+    font-size: 15px;
+    color: var(--ink);
+    min-height: 22px;
+    line-height: 1.4;
+    outline: none;
+    border: none;
+    background: transparent;
+  }
+  .smart-search__btn {
+    padding: 8px 18px;
+    background: var(--royal);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .smart-search__btn:hover { background: var(--royal-deep); }
+
+  /* FILTER BAR */
+  .filter-bar {
+    position: sticky;
+    top: 66px;
+    z-index: 50;
+    background: #fff;
+    padding: 14px 48px;
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
+  }
+  .filter-bar__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .dropdown-filter { position: relative; }
+  .dropdown-filter__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .dropdown-filter__btn:hover { border-color: var(--royal-100); }
+  .dropdown-filter__btn.has-value {
+    border-color: var(--royal);
+    background: var(--royal-50);
+    color: var(--royal);
+  }
+  .dropdown-filter__btn .count-badge {
+    background: var(--royal);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 100px;
+    min-width: 16px;
+    text-align: center;
+  }
+  .dropdown-filter__caret { transition: transform 0.2s; color: var(--ink-mute); }
+  .dropdown-filter.open .dropdown-filter__caret { transform: rotate(180deg); }
+  .dropdown-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12);
+    padding: 16px;
+    min-width: 280px;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+    z-index: 100;
+  }
+  .dropdown-filter.open .dropdown-panel { display: block; }
+  .dropdown-panel__title {
+    font-size: 11px;
+    color: var(--ink-mute);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .dropdown-panel__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .dropdown-panel__chips:last-of-type { margin-bottom: 0; }
+  .dp-group-label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .dp-group-label:first-of-type { margin-top: 0; }
+  .dp-chip {
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .dp-chip:hover { border-color: var(--royal-100); color: var(--royal); }
+  .dp-chip.active {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .dp-chip svg { width: 11px; height: 11px; }
+  .dp-chip__count { color: var(--ink-mute); font-size: 10px; margin-left: 2px; }
+  .dp-chip.active .dp-chip__count { color: rgba(255,255,255,0.7); }
+
+  .dropdown-panel__foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .dropdown-panel__clear {
+    font-size: 11px;
+    color: var(--ink-mute);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+  }
+  .dropdown-panel__apply {
+    padding: 6px 14px;
+    background: var(--royal);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* 在籍企業ドロップダウンの検索input */
+  .dropdown-search {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  .dropdown-search:focus { outline: none; border-color: var(--royal); }
+
+  /* 経験年数：レンジ */
+  .range-input-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .range-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .range-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--bg-tint);
+    text-align: center;
+  }
+  .range-row__sep { color: var(--ink-mute); font-size: 13px; }
+  .range-input-unit { color: var(--ink-soft); font-size: 12px; }
+
+  .filter-bar__reset {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--ink-mute);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+  }
+  .filter-bar__reset:hover { color: var(--royal); }
+
+  /* MAIN */
+  .main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 48px 80px;
+  }
+
+  /* 結果ツールバー */
+  .result-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .result-count { font-size: 14px; color: var(--ink-soft); }
+  .result-count strong {
+    font-family: "Inter", sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--royal);
+    margin-right: 4px;
+  }
+  .result-tools {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .sort-select {
+    padding: 8px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 13px;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .view-toggle {
+    display: flex;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .view-toggle button {
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-mute);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .view-toggle button.active {
+    background: var(--royal-50);
+    color: var(--royal);
+  }
+
+  /* ============ メンターカード（カード表示） ============ */
+  .mentor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .mentor-grid.list-view {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .mentor-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px;
+    transition: all 0.3s;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+  }
+  .mentor-card:hover {
+    border-color: var(--royal-100);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    transform: translateY(-2px);
+  }
+
+  /* ヘッダー：アバター + 名前 + ステータス */
+  .mentor-card__head {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+  .mentor-card__avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 22px;
+    flex-shrink: 0;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px var(--royal), 0 4px 12px rgba(15, 23, 42, 0.1);
+  }
+  .mentor-card__avatar.av-1 { background: linear-gradient(135deg, var(--royal), var(--accent)); }
+  .mentor-card__avatar.av-2 { background: linear-gradient(135deg, #F472B6, var(--pink)); }
+  .mentor-card__avatar.av-3 { background: linear-gradient(135deg, #34D399, var(--success)); }
+  .mentor-card__avatar.av-4 { background: linear-gradient(135deg, #FBBF24, #D97706); }
+  .mentor-card__avatar.av-5 { background: linear-gradient(135deg, #818CF8, #6366F1); }
+  .mentor-card__avatar.av-6 { background: linear-gradient(135deg, #A78BFA, var(--purple)); }
+  .mentor-card__avatar.av-7 { background: linear-gradient(135deg, #22D3EE, #0891B2); }
+  .mentor-card__avatar.av-8 { background: linear-gradient(135deg, #F87171, #DC2626); }
+  .mentor-card__avatar.av-9 { background: linear-gradient(135deg, #F97316, #EA580C); }
+
+  .mentor-card__title-area { flex: 1; min-width: 0; padding-top: 4px; }
+  .mentor-card__name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 3px;
+    line-height: 1.4;
+  }
+  .mentor-card__current {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .mentor-card__current strong { color: var(--royal); font-weight: 600; }
+
+  /* キャリアパス（簡略） */
+  .mentor-card__career {
+    font-size: 11px;
+    color: var(--ink-mute);
+    line-height: 1.7;
+    padding: 10px 12px;
+    background: var(--bg-tint);
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+  .mentor-card__career strong { color: var(--ink); font-weight: 600; }
+  .mentor-card__career .arrow {
+    color: var(--royal);
+    margin: 0 4px;
+    font-family: "Inter", sans-serif;
+  }
+
+  /* 在籍企業ロゴ列 */
+  .mentor-card__companies {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, var(--royal-50) 0%, #fff 100%);
+    border: 1px solid var(--royal-100);
+    border-radius: 8px;
+  }
+  .mentor-card__companies-label {
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--royal);
+    letter-spacing: 0.05em;
+    margin-right: 4px;
+    text-transform: uppercase;
+  }
+  .mentor-card__company-logo {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+    border: 1.5px solid #fff;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .mentor-card__company-logo:hover {
+    transform: translateY(-2px);
+  }
+  .mentor-card__company-logo.c-recruit { background: linear-gradient(135deg, #00B900, #008C00); }
+  .mentor-card__company-logo.c-timee { background: linear-gradient(135deg, #F97316, #EA580C); }
+  .mentor-card__company-logo.c-smarthr { background: linear-gradient(135deg, #00B4D8, #0077B6); }
+  .mentor-card__company-logo.c-money { background: linear-gradient(135deg, #DC2626, #991B1B); }
+  .mentor-card__company-logo.c-mercari { background: linear-gradient(135deg, #FF0211, #C40912); }
+  .mentor-card__company-logo.c-layerx { background: linear-gradient(135deg, #1E40AF, var(--royal)); }
+  .mentor-card__company-logo.c-ubie { background: linear-gradient(135deg, #DB2777, #9D174D); }
+  .mentor-card__company-logo.c-freee { background: linear-gradient(135deg, #1E3A8A, #1E40AF); }
+  .mentor-card__company-logo.c-sansan { background: linear-gradient(135deg, #14B8A6, #0F766E); }
+  .mentor-card__company-logo.c-salesforce { background: linear-gradient(135deg, #0891B2, #0E7490); }
+  .mentor-card__company-logo.c-hubspot { background: linear-gradient(135deg, #FF7A59, #E0561E); }
+  .mentor-card__company-logo.c-google { background: linear-gradient(135deg, #4285F4, #34A853); }
+  .mentor-card__company-more {
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-left: 2px;
+    font-weight: 600;
+  }
+
+  /* テーマタグ */
+  .mentor-card__themes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 14px;
+  }
+  .mentor-card__theme {
+    padding: 4px 10px;
+    background: #fff;
+    border: 1px solid var(--royal-100);
+    color: var(--royal);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* フッター：話を聞くボタン */
+  .mentor-card__foot {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .mentor-card__cta {
+    width: 100%;
+    padding: 10px;
+    background: var(--royal-50);
+    color: var(--royal);
+    border: 1px solid var(--royal-100);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .mentor-card__cta:hover {
+    background: var(--royal);
+    color: #fff;
+  }
+  .mentor-card__cta svg { width: 14px; height: 14px; }
+
+  /* リスト表示 */
+  .mentor-grid.list-view .mentor-card {
+    display: grid;
+    grid-template-columns: 56px 1fr auto auto;
+    gap: 18px;
+    align-items: center;
+    padding: 16px 22px;
+  }
+  .mentor-grid.list-view .mentor-card:hover { transform: none; }
+  .mentor-grid.list-view .mentor-card__head { margin-bottom: 0; gap: 0; }
+  .mentor-grid.list-view .mentor-card__avatar { margin: 0; }
+  .mentor-grid.list-view .mentor-card__title-area { padding-top: 0; }
+  .mentor-grid.list-view .mentor-card__name { margin-bottom: 4px; }
+  .mentor-grid.list-view .mentor-card__career { display: none; }
+  .mentor-grid.list-view .mentor-card__themes { display: none; }
+  .mentor-grid.list-view .mentor-card__companies {
+    margin-bottom: 0;
+    padding: 6px 10px;
+    background: transparent;
+    border: none;
+  }
+  .mentor-grid.list-view .mentor-card__foot {
+    margin-top: 0;
+    padding-top: 0;
+    border: none;
+  }
+  .mentor-grid.list-view .mentor-card__cta {
+    padding: 10px 18px;
+    width: auto;
+  }
+
+  /* ページネーション */
+  .pagination {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 40px;
+  }
+  .pagination button {
+    min-width: 38px;
+    height: 38px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .pagination button:hover { border-color: var(--royal); color: var(--royal); }
+  .pagination button.active {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+
+  /* レスポンシブ */
+  @media (max-width: 1200px) {
+    .mentor-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .header { padding: 12px 20px; gap: 12px; }
+    .nav-links { display: none; }
+    .page-top { padding: 32px 20px 24px; }
+    .page-top__title { font-size: 24px; }
+    .page-top__center { gap: 20px; }
+    .smart-search { padding: 12px 14px; }
+    .smart-search__typed { font-size: 13px; }
+    .filter-bar { padding: 12px 20px; top: 60px; }
+    .main { padding: 20px; }
+    .mentor-grid { grid-template-columns: 1fr; }
+    .mentor-grid.list-view .mentor-card { grid-template-columns: 1fr; gap: 8px; }
+  }
+
+  /* Breadcrumb */
+  .breadcrumb {
+    background: var(--bg-tint);
+    padding: 14px 48px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--ink-mute);
+  }
+  .breadcrumb__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .breadcrumb a:hover { color: var(--royal); }
+  .breadcrumb .sep { margin: 0 6px; color: var(--ink-mute); }
+  @media (max-width: 768px) {
+    .breadcrumb { padding: 12px 20px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <a href="#" class="brand">Opinio</a>
+  <nav class="nav-links">
+    <a href="#">求人を探す</a>
+    <a href="#">企業を知る</a>
+    <a href="#" class="active">先輩に相談</a>
+    <a href="#">記事</a>
+  </nav>
+  <div class="nav-actions">
+    <a href="#" class="link-btn">ログイン</a>
+    <a href="#" class="btn btn--primary">無料登録</a>
+  </div>
+</header>
+<!-- パンくず -->
+<nav class="breadcrumb">
+  <div class="breadcrumb__inner">
+    <a href="#">Opinio</a><span class="sep">/</span>先輩に相談
+  </div>
+</nav>
+
+
+<!-- PAGE TOP -->
+<section class="page-top">
+  <div class="page-top__inner">
+    <div class="page-top__center">
+      <h1 class="page-top__title">先輩に、相談する。</h1>
+      <div class="smart-search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        <div class="smart-search__typed" id="typed-text">PdMからCPOになった人に話を聞きたい</div>
+        <button class="smart-search__btn">検索</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FILTER BAR -->
+<section class="filter-bar">
+  <div class="filter-bar__inner">
+
+    <!-- 職種 -->
+    <div class="dropdown-filter open" data-filter="role">
+      <button class="dropdown-filter__btn has-value">
+        職種
+        <span class="count-badge">2</span>
+        <svg class="dropdown-filter__caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="dropdown-panel">
+        <div class="dropdown-panel__title">職種（経験あり）</div>
+        <div class="dropdown-panel__chips">
+          <button class="dp-chip active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            PdM / PM <span class="dp-chip__count">52</span>
+          </button>
+          <button class="dp-chip active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            営業（フィールド） <span class="dp-chip__count">68</span>
+          </button>
+          <button class="dp-chip">エンジニア <span class="dp-chip__count">94</span></button>
+          <button class="dp-chip">インサイドセールス <span class="dp-chip__count">38</span></button>
+          <button class="dp-chip">カスタマーサクセス <span class="dp-chip__count">47</span></button>
+          <button class="dp-chip">マーケティング <span class="dp-chip__count">41</span></button>
+          <button class="dp-chip">デザイナー <span class="dp-chip__count">22</span></button>
+          <button class="dp-chip">経営/CxO <span class="dp-chip__count">28</span></button>
+          <button class="dp-chip">事業開発 <span class="dp-chip__count">35</span></button>
+          <button class="dp-chip">コーポレート <span class="dp-chip__count">19</span></button>
+        </div>
+        <div class="dropdown-panel__foot">
+          <button class="dropdown-panel__clear">クリア</button>
+          <button class="dropdown-panel__apply">適用</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 在籍企業 -->
+    <div class="dropdown-filter" data-filter="company">
+      <button class="dropdown-filter__btn has-value">
+        在籍企業
+        <span class="count-badge">1</span>
+        <svg class="dropdown-filter__caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="dropdown-panel">
+        <div class="dropdown-panel__title">在籍経験のある企業</div>
+        <input type="text" class="dropdown-search" placeholder="企業名を検索..." />
+        <div class="dropdown-panel__chips">
+          <button class="dp-chip active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            タイミー <span class="dp-chip__count">28</span>
+          </button>
+          <button class="dp-chip">SmartHR <span class="dp-chip__count">42</span></button>
+          <button class="dp-chip">マネーフォワード <span class="dp-chip__count">36</span></button>
+          <button class="dp-chip">freee <span class="dp-chip__count">31</span></button>
+          <button class="dp-chip">Sansan <span class="dp-chip__count">25</span></button>
+          <button class="dp-chip">LayerX <span class="dp-chip__count">19</span></button>
+          <button class="dp-chip">メルカリ <span class="dp-chip__count">38</span></button>
+          <button class="dp-chip">リクルート <span class="dp-chip__count">87</span></button>
+          <button class="dp-chip">Salesforce <span class="dp-chip__count">52</span></button>
+          <button class="dp-chip">HubSpot <span class="dp-chip__count">14</span></button>
+          <button class="dp-chip">Ubie <span class="dp-chip__count">12</span></button>
+        </div>
+        <div class="dropdown-panel__foot">
+          <button class="dropdown-panel__clear">クリア</button>
+          <button class="dropdown-panel__apply">適用</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 業界 -->
+    <div class="dropdown-filter" data-filter="industry">
+      <button class="dropdown-filter__btn">
+        業界
+        <svg class="dropdown-filter__caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="dropdown-panel">
+        <div class="dropdown-panel__title">業界（経験あり）</div>
+        <div class="dropdown-panel__chips">
+          <button class="dp-chip">SaaS全般 <span class="dp-chip__count">187</span></button>
+          <button class="dp-chip">HR Tech <span class="dp-chip__count">52</span></button>
+          <button class="dp-chip">FinTech <span class="dp-chip__count">38</span></button>
+          <button class="dp-chip">HealthTech <span class="dp-chip__count">22</span></button>
+          <button class="dp-chip">AI / LLM <span class="dp-chip__count">31</span></button>
+          <button class="dp-chip">クラウドインフラ <span class="dp-chip__count">25</span></button>
+          <button class="dp-chip">セキュリティ <span class="dp-chip__count">14</span></button>
+          <button class="dp-chip">EdTech <span class="dp-chip__count">11</span></button>
+        </div>
+        <div class="dropdown-panel__foot">
+          <button class="dropdown-panel__clear">クリア</button>
+          <button class="dropdown-panel__apply">適用</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 経験年数 -->
+    <div class="dropdown-filter" data-filter="experience">
+      <button class="dropdown-filter__btn has-value">
+        経験年数
+        <span class="count-badge">1</span>
+        <svg class="dropdown-filter__caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="dropdown-panel">
+        <div class="dropdown-panel__title">経験年数（社会人）</div>
+        <div class="range-input-wrap">
+          <div class="range-row">
+            <input type="text" class="range-input" value="5" />
+            <span class="range-input-unit">年</span>
+            <span class="range-row__sep">〜</span>
+            <input type="text" class="range-input" value="" placeholder="上限なし" />
+            <span class="range-input-unit">年</span>
+          </div>
+          <div class="dropdown-panel__chips" style="margin-top: 6px;">
+            <button class="dp-chip">3年〜</button>
+            <button class="dp-chip active">5年〜</button>
+            <button class="dp-chip">7年〜</button>
+            <button class="dp-chip">10年〜</button>
+            <button class="dp-chip">15年〜</button>
+            <button class="dp-chip">20年〜</button>
+          </div>
+        </div>
+        <div class="dropdown-panel__foot">
+          <button class="dropdown-panel__clear">クリア</button>
+          <button class="dropdown-panel__apply">適用</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 相談テーマ（MECE整理版） -->
+    <div class="dropdown-filter" data-filter="theme">
+      <button class="dropdown-filter__btn">
+        相談テーマ
+        <svg class="dropdown-filter__caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="dropdown-panel">
+        <div class="dropdown-panel__title">相談したいテーマ</div>
+        <div class="dp-group-label">キャリア選択</div>
+        <div class="dropdown-panel__chips">
+          <button class="dp-chip">職種・職域の変更 <span class="dp-chip__count">98</span></button>
+          <button class="dp-chip">大手→スタートアップ転職 <span class="dp-chip__count">94</span></button>
+          <button class="dp-chip">外資→国内 転職 <span class="dp-chip__count">42</span></button>
+          <button class="dp-chip">独立・フリーランス <span class="dp-chip__count">22</span></button>
+          <button class="dp-chip">副業・パラレルキャリア <span class="dp-chip__count">31</span></button>
+        </div>
+        <div class="dp-group-label">マネジメント・経営</div>
+        <div class="dropdown-panel__chips">
+          <button class="dp-chip">マネジメント・組織作り <span class="dp-chip__count">76</span></button>
+          <button class="dp-chip">スタートアップ経営（CxO） <span class="dp-chip__count">38</span></button>
+          <button class="dp-chip">新規事業の立ち上げ <span class="dp-chip__count">28</span></button>
+        </div>
+        <div class="dp-group-label">働く場所</div>
+        <div class="dropdown-panel__chips">
+          <button class="dp-chip">海外・グローバル勤務 <span class="dp-chip__count">14</span></button>
+        </div>
+        <div class="dropdown-panel__foot">
+          <button class="dropdown-panel__clear">クリア</button>
+          <button class="dropdown-panel__apply">適用</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="filter-bar__reset">すべてリセット</button>
+
+  </div>
+</section>
+
+<!-- MAIN -->
+<main class="main">
+
+  <div class="result-bar">
+    <div class="result-count">
+      <strong>23</strong>名が該当
+    </div>
+    <div class="result-tools">
+      <select class="sort-select">
+        <option>新規登録順</option>
+        <option>経験年数順（多い）</option>
+        <option>経験年数順（少ない）</option>
+        <option>マッチ度順</option>
+      </select>
+      <div class="view-toggle">
+        <button class="active" id="view-card" title="カード表示">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </button>
+        <button id="view-list" title="リスト表示">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- メンターカードグリッド -->
+  <div class="mentor-grid" id="mentor-grid">
+
+    <!-- Card 1: 田中翔太さん -->
+    <article class="mentor-card">
+      <div class="mentor-card__head">
+        <div class="mentor-card__avatar av-1">田</div>
+        <div class="mentor-card__title-area">
+          <div class="mentor-card__name">田中 翔太さん</div>
+          <div class="mentor-card__current">
+            <strong>タイミー</strong> · エンタープライズ営業
+          </div>
+        </div>
+      </div>
+      <div class="mentor-card__career">
+        リクルート営業 <span class="arrow">→</span> タイミーPdM <span class="arrow">→</span> <strong>タイミー営業（現職）</strong>
+      </div>
+      <div class="mentor-card__companies">
+        <span class="mentor-card__companies-label">在籍</span>
+        <div class="mentor-card__company-logo c-recruit" title="リクルート">R</div>
+        <div class="mentor-card__company-logo c-timee" title="タイミー">T</div>
+      </div>
+      <div class="mentor-card__themes">
+        <span class="mentor-card__theme">職種・職域の変更</span>
+        <span class="mentor-card__theme">大手→スタートアップ転職</span>
+        <span class="mentor-card__theme">タイミー在籍経験</span>
+      </div>
+      <div class="mentor-card__foot">
+        <button class="mentor-card__cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          話を聞く（30分）
+        </button>
+      </div>
+    </article>
+
+    <!-- Card 2: 渡辺美穂さん -->
+    <article class="mentor-card">
+      <div class="mentor-card__head">
+        <div class="mentor-card__avatar av-6">渡</div>
+        <div class="mentor-card__title-area">
+          <div class="mentor-card__name">渡辺 美穂さん</div>
+          <div class="mentor-card__current">
+            <strong>AIスタートアップA社</strong> · CPO
+          </div>
+        </div>
+      </div>
+      <div class="mentor-card__career">
+        Web系SU PdM <span class="arrow">→</span> タイミーPdM <span class="arrow">→</span> <strong>AIスタートアップ CPO（現職）</strong>
+      </div>
+      <div class="mentor-card__companies">
+        <span class="mentor-card__companies-label">在籍</span>
+        <div class="mentor-card__company-logo c-timee" title="タイミー">T</div>
+      </div>
+      <div class="mentor-card__themes">
+        <span class="mentor-card__theme">スタートアップ経営（CxO）</span>
+        <span class="mentor-card__theme">マネジメント・組織作り</span>
+        <span class="mentor-card__theme">タイミー在籍経験</span>
+      </div>
+      <div class="mentor-card__foot">
+        <button class="mentor-card__cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          話を聞く（30分）
+        </button>
+      </div>
+    </article>
+
+    <!-- Card 3: 山本健一さん -->
+    <article class="mentor-card">
+      <div class="mentor-card__head">
+        <div class="mentor-card__avatar av-3">山</div>
+        <div class="mentor-card__title-area">
+          <div class="mentor-card__name">山本 健一さん</div>
+          <div class="mentor-card__current">
+            <strong>FinTechスタートアップ</strong> · CTO
+          </div>
+        </div>
+      </div>
+      <div class="mentor-card__career">
+        SIer <span class="arrow">→</span> タイミー4年 <span class="arrow">→</span> <strong>FinTech CTO（現職）</strong>
+      </div>
+      <div class="mentor-card__companies">
+        <span class="mentor-card__companies-label">在籍</span>
+        <div class="mentor-card__company-logo c-timee" title="タイミー">T</div>
+      </div>
+      <div class="mentor-card__themes">
+        <span class="mentor-card__theme">スタートアップ経営（CxO）</span>
+        <span class="mentor-card__theme">マネジメント・組織作り</span>
+        <span class="mentor-card__theme">大手→スタートアップ転職</span>
+        <span class="mentor-card__theme">タイミー在籍経験</span>
+      </div>
+      <div class="mentor-card__foot">
+        <button class="mentor-card__cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          話を聞く（30分）
+        </button>
+      </div>
+    </article>
+
+    <!-- Card 4: 中村由紀さん -->
+    <article class="mentor-card">
+      <div class="mentor-card__head">
+        <div class="mentor-card__avatar av-4">中</div>
+        <div class="mentor-card__title-area">
+          <div class="mentor-card__name">中村 由紀さん</div>
+          <div class="mentor-card__current">
+            <strong>タイミー</strong> · プロダクトマネージャー
+          </div>
+        </div>
+      </div>
+      <div class="mentor-card__career">
+        メルカリ PdM <span class="arrow">→</span> <strong>タイミー PdM（現職）</strong>
+      </div>
+      <div class="mentor-card__companies">
+        <span class="mentor-card__companies-label">在籍</span>
+        <div class="mentor-card__company-logo c-mercari" title="メルカリ">M</div>
+        <div class="mentor-card__company-logo c-timee" title="タイミー">T</div>
+      </div>
+      <div class="mentor-card__themes">
+        <span class="mentor-card__theme">メルカリ在籍経験</span>
+        <span class="mentor-card__theme">タイミー在籍経験</span>
+      </div>
+      <div class="mentor-card__foot">
+        <button class="mentor-card__cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          話を聞く（30分）
+        </button>
+      </div>
+    </article>
+
+    <!-- Card 5: 高橋由美子さん -->
+    <article class="mentor-card">
+      <div class="mentor-card__head">
+        <div class="mentor-card__avatar av-2">高</div>
+        <div class="mentor-card__title-area">
+          <div class="mentor-card__name">高橋 由美子さん</div>
+          <div class="mentor-card__current">
+            <strong>独立</strong> · マーケコンサル
+          </div>
+        </div>
+      </div>
+      <div class="mentor-card__career">
+        広告代理店 <span class="arrow">→</span> タイミーマーケ <span class="arrow">→</span> <strong>独立（現職）</strong>
+      </div>
+      <div class="mentor-card__companies">
+        <span class="mentor-card__companies-label">在籍</span>
+        <div class="mentor-card__company-logo c-timee" title="タイミー">T</div>
+      </div>
+      <div class="mentor-card__themes">
+        <span class="mentor-card__theme">独立・フリーランス</span>
+        <span class="mentor-card__theme">職種・職域の変更</span>
+        <span class="mentor-card__theme">タイミー在籍経験</span>
+      </div>
+      <div class="mentor-card__foot">
+        <button class="mentor-card__cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          話を聞く（30分）
+        </button>
+      </div>
+    </article>
+
+    <!-- Card 6: 小林拓也さん（=メンター登録あり版） -->
+    <article class="mentor-card">
+      <div class="mentor-card__head">
+        <div class="mentor-card__avatar av-5">林</div>
+        <div class="mentor-card__title-area">
+          <div class="mentor-card__name">林 健太さん</div>
+          <div class="mentor-card__current">
+            <strong>SmartHR</strong> · エンタープライズ営業
+          </div>
+        </div>
+      </div>
+      <div class="mentor-card__career">
+        メガベンチャー営業 <span class="arrow">→</span> Salesforce <span class="arrow">→</span> <strong>SmartHR営業（現職）</strong>
+      </div>
+      <div class="mentor-card__companies">
+        <span class="mentor-card__companies-label">在籍</span>
+        <div class="mentor-card__company-logo c-salesforce" title="Salesforce">S</div>
+        <div class="mentor-card__company-logo c-smarthr" title="SmartHR">S</div>
+      </div>
+      <div class="mentor-card__themes">
+        <span class="mentor-card__theme">外資→国内 転職</span>
+        <span class="mentor-card__theme">Salesforce在籍経験</span>
+        <span class="mentor-card__theme">SmartHR在籍経験</span>
+      </div>
+      <div class="mentor-card__foot">
+        <button class="mentor-card__cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          話を聞く（30分）
+        </button>
+      </div>
+    </article>
+
+    <!-- Card 7: 鈴木由紀さん -->
+    <article class="mentor-card">
+      <div class="mentor-card__head">
+        <div class="mentor-card__avatar av-7">鈴</div>
+        <div class="mentor-card__title-area">
+          <div class="mentor-card__name">鈴木 由紀さん</div>
+          <div class="mentor-card__current">
+            <strong>LayerX</strong> · プロダクトマネージャー
+          </div>
+        </div>
+      </div>
+      <div class="mentor-card__career">
+        外資コンサル <span class="arrow">→</span> freee PdM <span class="arrow">→</span> <strong>LayerX PdM（現職）</strong>
+      </div>
+      <div class="mentor-card__companies">
+        <span class="mentor-card__companies-label">在籍</span>
+        <div class="mentor-card__company-logo c-freee" title="freee">F</div>
+        <div class="mentor-card__company-logo c-layerx" title="LayerX">L</div>
+      </div>
+      <div class="mentor-card__themes">
+        <span class="mentor-card__theme">職種・職域の変更</span>
+        <span class="mentor-card__theme">freee在籍経験</span>
+        <span class="mentor-card__theme">LayerX在籍経験</span>
+      </div>
+      <div class="mentor-card__foot">
+        <button class="mentor-card__cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          話を聞く（30分）
+        </button>
+      </div>
+    </article>
+
+    <!-- Card 8: 石川翔さん -->
+    <article class="mentor-card">
+      <div class="mentor-card__head">
+        <div class="mentor-card__avatar av-8">石</div>
+        <div class="mentor-card__title-area">
+          <div class="mentor-card__name">石川 翔さん</div>
+          <div class="mentor-card__current">
+            <strong>AIスタートアップ</strong> · プロダクト責任者
+          </div>
+        </div>
+      </div>
+      <div class="mentor-card__career">
+        Google <span class="arrow">→</span> Sansan PdM <span class="arrow">→</span> <strong>AIスタートアップ（現職）</strong>
+      </div>
+      <div class="mentor-card__companies">
+        <span class="mentor-card__companies-label">在籍</span>
+        <div class="mentor-card__company-logo c-google" title="Google">G</div>
+        <div class="mentor-card__company-logo c-sansan" title="Sansan">S</div>
+      </div>
+      <div class="mentor-card__themes">
+        <span class="mentor-card__theme">外資→国内 転職</span>
+        <span class="mentor-card__theme">海外・グローバル勤務</span>
+        <span class="mentor-card__theme">Google在籍経験</span>
+        <span class="mentor-card__theme">Sansan在籍経験</span>
+      </div>
+      <div class="mentor-card__foot">
+        <button class="mentor-card__cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          話を聞く（30分）
+        </button>
+      </div>
+    </article>
+
+    <!-- Card 9: 谷口美穂さん -->
+    <article class="mentor-card">
+      <div class="mentor-card__head">
+        <div class="mentor-card__avatar av-9">谷</div>
+        <div class="mentor-card__title-area">
+          <div class="mentor-card__name">谷口 美穂さん</div>
+          <div class="mentor-card__current">
+            <strong>マネーフォワード</strong> · プロダクト責任者
+          </div>
+        </div>
+      </div>
+      <div class="mentor-card__career">
+        新卒 freee <span class="arrow">→</span> マネーフォワード <span class="arrow">→</span> <strong>同社プロダクト責任者（現職）</strong>
+      </div>
+      <div class="mentor-card__companies">
+        <span class="mentor-card__companies-label">在籍</span>
+        <div class="mentor-card__company-logo c-freee" title="freee">F</div>
+        <div class="mentor-card__company-logo c-money" title="マネーフォワード">M</div>
+      </div>
+      <div class="mentor-card__themes">
+        <span class="mentor-card__theme">マネジメント・組織作り</span>
+        <span class="mentor-card__theme">freee在籍経験</span>
+        <span class="mentor-card__theme">マネーフォワード在籍経験</span>
+      </div>
+      <div class="mentor-card__foot">
+        <button class="mentor-card__cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          話を聞く（30分）
+        </button>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- ページネーション -->
+  <nav class="pagination">
+    <button>← 前へ</button>
+    <button class="active">1</button>
+    <button>2</button>
+    <button>3</button>
+    <button>次へ →</button>
+  </nav>
+</main>
+
+<script>
+  // 検索バーのタイピングローテーション
+  const examples = [
+    'PdMからCPOになった人に話を聞きたい',
+    'タイミーを辞めた理由を聞きたい',
+    '副業の始め方について聞きたい',
+    '外資SaaSへの転職を考えている',
+    'リクルート出身者に営業の話を聞きたい',
+  ];
+  const typed = document.getElementById('typed-text');
+  let idx = 0, charIdx = 0, isDeleting = false;
+  function type() {
+    if (!typed) return;
+    const current = examples[idx];
+    if (!isDeleting) {
+      typed.textContent = current.slice(0, charIdx++);
+      if (charIdx > current.length) {
+        isDeleting = true;
+        setTimeout(type, 2500);
+        return;
+      }
+    } else {
+      typed.textContent = current.slice(0, charIdx--);
+      if (charIdx < 0) {
+        isDeleting = false;
+        idx = (idx + 1) % examples.length;
+        charIdx = 0;
+      }
+    }
+    setTimeout(type, isDeleting ? 30 : 70);
+  }
+  type();
+
+  // ドロップダウンフィルタ開閉
+  document.querySelectorAll('.dropdown-filter__btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const parent = btn.parentElement;
+      document.querySelectorAll('.dropdown-filter.open').forEach(d => {
+        if (d !== parent) d.classList.remove('open');
+      });
+      parent.classList.toggle('open');
+    });
+  });
+  document.querySelectorAll('.dropdown-panel').forEach(p => {
+    p.addEventListener('click', e => e.stopPropagation());
+  });
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.dropdown-filter.open').forEach(d => d.classList.remove('open'));
+  });
+  document.querySelectorAll('.dp-chip').forEach(c => {
+    c.addEventListener('click', () => c.classList.toggle('active'));
+  });
+
+  // 表示切替
+  document.getElementById('view-card').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('view-list').classList.remove('active');
+    document.getElementById('mentor-grid').classList.remove('list-view');
+  });
+  document.getElementById('view-list').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('view-card').classList.remove('active');
+    document.getElementById('mentor-grid').classList.add('list-view');
+  });
+</script>
+
+</body>
+</html>

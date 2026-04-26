@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>企業情報編集 — Opinio Business</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --royal: #002366;
+    --royal-deep: #001A4D;
+    --royal-50: #EFF3FC;
+    --royal-100: #DCE5F7;
+    --accent: #3B5FD9;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --line: #E2E8F0;
+    --line-soft: #F1F5F9;
+    --bg: #FFFFFF;
+    --bg-tint: #F8FAFC;
+    --success: #059669;
+    --success-soft: #ECFDF5;
+    --warm: #F59E0B;
+    --warm-soft: #FEF3C7;
+    --purple: #7C3AED;
+    --purple-soft: #F3E8FF;
+    --pink: #DB2777;
+    --pink-soft: #FCE7F3;
+    --error: #DC2626;
+    --error-soft: #FEE2E2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-tint);
+    color: var(--ink);
+    font-family: "Noto Sans JP", -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ============ トップバー ============ */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .topbar__brand { display: flex; align-items: center; gap: 8px; }
+  .topbar__brand-text {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--royal);
+    letter-spacing: -0.02em;
+  }
+  .topbar__biz-tag {
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 2px 7px;
+    background: var(--royal);
+    color: #fff;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .topbar__company {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 20px;
+    border-left: 1px solid var(--line);
+  }
+  .topbar__company-logo {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #F97316, #EA580C);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .topbar__company-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .topbar__center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .topbar__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .save-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--ink-mute);
+    padding: 4px 10px;
+    border-radius: 100px;
+    background: var(--bg-tint);
+    transition: all 0.3s;
+  }
+  .save-status.saving {
+    color: var(--warm);
+    background: var(--warm-soft);
+  }
+  .save-status.saved {
+    color: var(--success);
+    background: var(--success-soft);
+  }
+  .topbar__actions { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    transition: all 0.2s;
+  }
+  .btn:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+  .btn--primary {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .btn--primary:hover { background: var(--royal-deep); color: #fff; }
+  .btn--success {
+    background: var(--success);
+    color: #fff;
+    border-color: var(--success);
+  }
+  .btn--success:hover { background: #047857; color: #fff; border-color: #047857; }
+
+  .topbar__user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .topbar__avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--royal), var(--accent));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 12px;
+  }
+
+  /* ============ レイアウト ============ */
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 240px 1fr;
+    min-height: calc(100vh - 57px);
+  }
+
+  /* メインサイドバー */
+  .sidebar {
+    background: #fff;
+    border-right: 1px solid var(--line);
+    padding: 20px 0;
+    position: sticky;
+    top: 57px;
+    align-self: start;
+    height: calc(100vh - 57px);
+    overflow-y: auto;
+  }
+  .sidebar__label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0 20px 8px;
+  }
+  .sidebar__nav { display: flex; flex-direction: column; }
+  .sidebar__item {
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    justify-content: space-between;
+  }
+  .sidebar__item:hover { background: var(--bg-tint); color: var(--ink); }
+  .sidebar__item.active {
+    background: var(--royal-50);
+    color: var(--royal);
+    border-left-color: var(--royal);
+    font-weight: 600;
+  }
+  .sidebar__item-inner { display: flex; align-items: center; gap: 10px; }
+  .sidebar__item svg { color: var(--ink-mute); flex-shrink: 0; }
+  .sidebar__item.active svg { color: var(--royal); }
+  .sidebar__badge {
+    background: var(--error);
+    color: #fff;
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 100px;
+    min-width: 16px;
+    text-align: center;
+  }
+  .sidebar__section-label {
+    padding: 16px 20px 6px;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* セクションサブナビ */
+  .subnav {
+    background: var(--bg-tint);
+    border-right: 1px solid var(--line);
+    padding: 20px 0;
+    position: sticky;
+    top: 57px;
+    align-self: start;
+    height: calc(100vh - 57px);
+    overflow-y: auto;
+  }
+  .subnav__head {
+    padding: 0 20px 16px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 12px;
+  }
+  .subnav__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .subnav__hint {
+    font-size: 10px;
+    color: var(--ink-mute);
+    line-height: 1.6;
+  }
+  .subnav__nav { display: flex; flex-direction: column; }
+  .subnav__item {
+    padding: 8px 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 3px solid transparent;
+    justify-content: space-between;
+    transition: all 0.15s;
+  }
+  .subnav__item:hover { background: #fff; color: var(--ink); }
+  .subnav__item.active {
+    background: #fff;
+    color: var(--royal);
+    border-left-color: var(--royal);
+    font-weight: 700;
+  }
+  .subnav__item-status {
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--line-soft);
+  }
+  .subnav__item-status.draft {
+    color: var(--warm);
+    background: var(--warm-soft);
+  }
+
+  .subnav__publish-info {
+    margin: 16px 20px;
+    padding: 14px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .subnav__publish-info-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .subnav__publish-info-desc {
+    font-size: 10px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  .subnav__publish-info-time {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    color: var(--ink-mute);
+    margin-bottom: 8px;
+  }
+
+  /* ============ メインエリア ============ */
+  .main {
+    padding: 32px 40px 60px;
+    max-width: 900px;
+  }
+  .main__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 500;
+    font-size: 26px;
+    color: var(--ink);
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .main__desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 30px;
+    line-height: 1.9;
+  }
+
+  /* セクションブロック */
+  .form-section {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 26px 30px;
+    margin-bottom: 18px;
+  }
+  .form-section__title {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--ink);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .form-section__desc {
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin-bottom: 18px;
+    line-height: 1.7;
+  }
+
+  /* フォーム要素 */
+  .form-group { margin-bottom: 18px; }
+  .form-group:last-child { margin-bottom: 0; }
+  .form-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .form-label__required {
+    color: var(--error);
+    font-size: 11px;
+  }
+  .form-label__optional {
+    color: var(--ink-mute);
+    font-size: 10px;
+    font-weight: 400;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: #fff;
+    transition: all 0.15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--royal);
+    box-shadow: 0 0 0 3px var(--royal-50);
+  }
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.8;
+  }
+  .form-textarea--mission {
+    font-family: "Noto Serif JP", serif;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.7;
+    min-height: 80px;
+  }
+  .form-select {
+    appearance: none;
+    cursor: pointer;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  .form-hint {
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-top: 6px;
+    line-height: 1.7;
+  }
+
+  /* 2カラム */
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .form-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* マークダウンエディタ */
+  .markdown-editor {
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .markdown-editor:focus-within {
+    border-color: var(--royal);
+    box-shadow: 0 0 0 3px var(--royal-50);
+  }
+  .markdown-toolbar {
+    display: flex;
+    gap: 2px;
+    padding: 6px 8px;
+    background: var(--bg-tint);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .md-btn {
+    padding: 5px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .md-btn:hover {
+    background: #fff;
+    color: var(--royal);
+  }
+  .md-btn-divider {
+    width: 1px;
+    background: var(--line);
+    margin: 4px 4px;
+  }
+  .markdown-textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    background: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.8;
+    resize: vertical;
+    min-height: 240px;
+  }
+  .markdown-textarea:focus { outline: none; }
+  .markdown-help {
+    padding: 8px 16px;
+    background: var(--bg-tint);
+    border-top: 1px solid var(--line);
+    font-size: 10px;
+    color: var(--ink-mute);
+    line-height: 1.6;
+  }
+  .markdown-help code {
+    font-family: "Inter", sans-serif;
+    background: #fff;
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+    color: var(--royal);
+    font-weight: 600;
+  }
+
+  /* ロゴ + カバー */
+  .image-upload-row {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .logo-preview {
+    width: 90px; height: 90px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #F97316, #EA580C);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 38px;
+    box-shadow: 0 6px 16px rgba(249, 115, 22, 0.25);
+    flex-shrink: 0;
+  }
+  .image-upload-actions {
+    flex: 1;
+    padding-top: 4px;
+  }
+  .image-upload-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .image-upload-desc {
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-bottom: 12px;
+    line-height: 1.7;
+  }
+  .upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 6px;
+  }
+  .upload-btn:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+
+  /* ============ オフィス写真：カテゴリ別 ============ */
+  .photo-guideline {
+    background: linear-gradient(135deg, var(--royal-50) 0%, #fff 100%);
+    border: 1px solid var(--royal-100);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 22px;
+    display: flex;
+    gap: 12px;
+  }
+  .photo-guideline__icon {
+    width: 32px; height: 32px;
+    background: var(--royal);
+    color: #fff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .photo-guideline__body { flex: 1; }
+  .photo-guideline__title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--royal);
+    margin-bottom: 6px;
+  }
+  .photo-guideline__list {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.8;
+    list-style: none;
+    padding: 0;
+  }
+  .photo-guideline__list li {
+    padding-left: 14px;
+    position: relative;
+  }
+  .photo-guideline__list li::before {
+    content: "•";
+    position: absolute;
+    left: 4px;
+    color: var(--royal);
+    font-weight: 700;
+  }
+
+  .photo-category {
+    margin-bottom: 24px;
+  }
+  .photo-category__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .photo-category__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .photo-category__icon {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .photo-category__icon.work { background: var(--royal-50); color: var(--royal); }
+  .photo-category__icon.meeting { background: var(--purple-soft); color: var(--purple); }
+  .photo-category__icon.welfare { background: var(--success-soft); color: var(--success); }
+  .photo-category__icon.event { background: var(--warm-soft); color: #B45309; }
+  .photo-category__count {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-mute);
+  }
+  .photo-category__count strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .photo-card {
+    background: var(--bg-tint);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: grab;
+  }
+  .photo-card__image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 32px;
+    position: relative;
+  }
+  .photo-card__actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 4px;
+  }
+  .photo-action-btn {
+    width: 24px; height: 24px;
+    background: rgba(255,255,255,0.9);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-soft);
+  }
+  .photo-action-btn:hover { background: #fff; color: var(--royal); }
+  .photo-action-btn.delete:hover { color: var(--error); }
+  .photo-card__caption {
+    padding: 8px 10px;
+  }
+  .photo-card__caption-input {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink);
+    border-radius: 4px;
+  }
+  .photo-card__caption-input:hover { background: #fff; border-color: var(--line); }
+  .photo-card__caption-input:focus {
+    outline: none;
+    background: #fff;
+    border-color: var(--royal);
+  }
+  .photo-card__caption-input::placeholder { color: var(--ink-mute); font-style: italic; }
+
+  .photo-add-card {
+    background: #fff;
+    border: 1.5px dashed var(--line);
+    border-radius: 10px;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-mute);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 11px;
+    font-weight: 600;
+    gap: 6px;
+  }
+  .photo-add-card:hover {
+    border-color: var(--royal);
+    color: var(--royal);
+    background: var(--royal-50);
+  }
+  .photo-add-card.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* タグ入力 */
+  .tag-input-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+  }
+  .tag-input-wrap:focus-within {
+    border-color: var(--royal);
+    box-shadow: 0 0 0 3px var(--royal-50);
+  }
+  .tag-pill {
+    padding: 4px 10px;
+    background: var(--royal-50);
+    color: var(--royal);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .tag-pill__remove {
+    cursor: pointer;
+    color: var(--royal);
+    opacity: 0.7;
+  }
+  .tag-pill__remove:hover { opacity: 1; }
+  .tag-input {
+    flex: 1;
+    min-width: 100px;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--ink);
+    background: transparent;
+    padding: 4px;
+  }
+
+  /* ビュー切替 */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* 公開状態の表示 */
+  .publish-status-bar {
+    background: var(--warm-soft);
+    border: 1px solid #FDE68A;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .publish-status-bar.synced {
+    background: var(--success-soft);
+    border-color: #A7F3D0;
+  }
+  .publish-status-bar__icon {
+    width: 28px; height: 28px;
+    background: var(--warm);
+    color: #fff;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .publish-status-bar.synced .publish-status-bar__icon {
+    background: var(--success);
+  }
+  .publish-status-bar__body { flex: 1; }
+  .publish-status-bar__title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #B45309;
+    margin-bottom: 2px;
+  }
+  .publish-status-bar.synced .publish-status-bar__title {
+    color: var(--success);
+  }
+  .publish-status-bar__desc {
+    font-size: 11px;
+    color: #78350F;
+    line-height: 1.6;
+  }
+  .publish-status-bar.synced .publish-status-bar__desc {
+    color: #065F46;
+  }
+
+  /* レスポンシブ */
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 200px 220px 1fr; }
+  }
+  @media (max-width: 900px) {
+    .layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+    }
+    .sidebar, .subnav {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 0;
+    }
+    .sidebar__nav, .subnav__nav { flex-direction: row; overflow-x: auto; padding: 0 12px; }
+    .sidebar__item, .subnav__item { border-left: none; border-bottom: 2px solid transparent; white-space: nowrap; flex-shrink: 0; }
+    .sidebar__item.active, .subnav__item.active { border-left: none; border-bottom-color: var(--royal); }
+    .sidebar__label, .sidebar__section-label, .subnav__head, .subnav__publish-info { display: none; }
+    .main { padding: 24px 20px; }
+    .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    .photo-grid { grid-template-columns: repeat(2, 1fr); }
+    .image-upload-row { flex-direction: column; gap: 12px; }
+    .topbar { padding: 10px 16px; gap: 12px; flex-wrap: wrap; }
+    .topbar__company { padding-left: 0; border: none; }
+    .topbar__center { flex-basis: 100%; order: 3; }
+    .topbar__title { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- トップバー -->
+<header class="topbar">
+  <div class="topbar__brand">
+    <span class="topbar__brand-text">Opinio</span>
+    <span class="topbar__biz-tag">Business</span>
+  </div>
+  <div class="topbar__company">
+    <div class="topbar__company-logo">T</div>
+    <span class="topbar__company-name">株式会社タイミー</span>
+  </div>
+  <div class="topbar__center">
+    <span class="topbar__title">企業情報を編集</span>
+    <span class="save-status saved" id="save-status">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+      下書きを自動保存しました
+    </span>
+  </div>
+  <div class="topbar__actions">
+    <button class="btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      プレビュー
+    </button>
+    <button class="btn btn--success">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      変更を公開する
+    </button>
+  </div>
+  <div class="topbar__user">
+    <div class="topbar__avatar">山</div>
+  </div>
+</header>
+
+<!-- レイアウト -->
+<div class="layout">
+
+  <!-- 左：メインサイドバー -->
+  <aside class="sidebar">
+    <div class="sidebar__label">採用活動</div>
+    <nav class="sidebar__nav">
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          ダッシュボード
+        </div>
+      </div>
+      <div class="sidebar__item active">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+          企業情報
+        </div>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>
+          求人管理
+        </div>
+        <span class="sidebar__badge">3</span>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          カジュアル面談
+        </div>
+        <span class="sidebar__badge">4</span>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+          マッチ候補者
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar__section-label">管理</div>
+    <nav class="sidebar__nav">
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+          チーム
+        </div>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
+          アナリティクス
+        </div>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          設定
+        </div>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- 中央：セクションサブナビ -->
+  <aside class="subnav">
+    <div class="subnav__head">
+      <div class="subnav__title">企業情報</div>
+      <div class="subnav__hint">編集すると下書きに保存されます。「公開する」で求職者側に反映されます。</div>
+    </div>
+    <nav class="subnav__nav">
+      <div class="subnav__item active" data-view="basic">
+        基本情報
+        <span class="subnav__item-status draft">下書きあり</span>
+      </div>
+      <div class="subnav__item" data-view="about">About
+      </div>
+      <div class="subnav__item" data-view="data">数値データ
+      </div>
+      <div class="subnav__item" data-view="workstyle">働き方
+      </div>
+      <div class="subnav__item" data-view="photos">オフィス写真
+        <span class="subnav__item-status draft">下書きあり</span>
+      </div>
+      <div class="subnav__item" data-view="settings">公開設定
+      </div>
+    </nav>
+
+    <div class="subnav__publish-info">
+      <div class="subnav__publish-info-title">最終公開</div>
+      <div class="subnav__publish-info-desc">2026年4月12日 14:32 に公開</div>
+      <div class="subnav__publish-info-time">11日前</div>
+      <button class="btn" style="width:100%;justify-content:center;font-size:11px;padding:6px 10px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        公開ページを見る
+      </button>
+    </div>
+  </aside>
+
+  <!-- 右：メインエリア -->
+  <main class="main">
+
+    <!-- 公開状態 -->
+    <div class="publish-status-bar">
+      <div class="publish-status-bar__icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="publish-status-bar__body">
+        <div class="publish-status-bar__title">未公開の変更があります</div>
+        <div class="publish-status-bar__desc">基本情報・オフィス写真に下書き変更があります。「変更を公開する」ボタンで求職者に反映されます。</div>
+      </div>
+    </div>
+
+    <!-- ============ 基本情報ビュー ============ -->
+    <div class="view active" id="view-basic">
+      <h1 class="main__title">基本情報</h1>
+      <p class="main__desc">企業ロゴ、企業名、ミッション、業種など、求職者側のヒーローエリアに表示される情報を編集します。</p>
+
+      <!-- ロゴ -->
+      <section class="form-section">
+        <div class="form-section__title">企業ロゴ</div>
+        <div class="form-section__desc">求職者側の企業詳細ページ・一覧ページに表示されます。アップロードしない場合、企業名の頭文字で自動生成されます。</div>
+
+        <div class="image-upload-row">
+          <div class="logo-preview">T</div>
+          <div class="image-upload-actions">
+            <div class="image-upload-title">ロゴ画像</div>
+            <div class="image-upload-desc">JPG・PNG・SVG・5MB以内 · 推奨サイズ 512x512px</div>
+            <button class="upload-btn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              画像をアップロード
+            </button>
+            <button class="upload-btn">自動生成に戻す</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 基本情報 -->
+      <section class="form-section">
+        <div class="form-section__title">企業の基本情報</div>
+
+        <div class="form-group">
+          <label class="form-label">企業名<span class="form-label__required">必須</span></label>
+          <input type="text" class="form-input" value="株式会社タイミー" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ミッション<span class="form-label__required">必須</span></label>
+          <textarea class="form-textarea form-textarea--mission" rows="2">「はたらく」を通じて人生の可能性を広げるインフラをつくる</textarea>
+          <div class="form-hint">企業詳細ページのヒーローエリアに大きく表示される、企業の核となるメッセージです。短く、印象的に。</div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">業種<span class="form-label__required">必須</span></label>
+            <select class="form-select">
+              <option>IT / SaaS</option>
+              <option>コンサルティング</option>
+              <option>金融 / FinTech</option>
+              <option>製造業</option>
+              <option>その他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">事業ステージ</label>
+            <select class="form-select">
+              <option>シード</option>
+              <option>シリーズA</option>
+              <option>シリーズB-C</option>
+              <option>レイターステージ</option>
+              <option selected>上場(東証グロース)</option>
+              <option>上場(東証プライム)</option>
+              <option>上場(東証スタンダード)</option>
+              <option>その他</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">公式サイトURL</label>
+          <input type="url" class="form-input" value="https://timee.co.jp" />
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ Aboutビュー ============ -->
+    <div class="view" id="view-about">
+      <h1 class="main__title">About（企業説明）</h1>
+      <p class="main__desc">企業の事業・組織・価値観を、求職者に伝える長文セクションです。マークダウン記法で見出しや太字を使えます。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">企業説明</div>
+        <div class="form-section__desc">企業の事業内容、創業背景、組織カルチャー、これからの展望などを自由に記述してください。読み物として読まれます。</div>
+
+        <div class="markdown-editor">
+          <div class="markdown-toolbar">
+            <button class="md-btn"><strong>H1</strong></button>
+            <button class="md-btn"><strong>H2</strong></button>
+            <button class="md-btn"><strong>H3</strong></button>
+            <span class="md-btn-divider"></span>
+            <button class="md-btn"><strong>B</strong></button>
+            <button class="md-btn"><em>I</em></button>
+            <span class="md-btn-divider"></span>
+            <button class="md-btn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              List
+            </button>
+            <button class="md-btn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4"/><path d="M19 21H9a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2z"/></svg>
+              Quote
+            </button>
+            <button class="md-btn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              Link
+            </button>
+          </div>
+          <textarea class="markdown-textarea">## 私たちについて
+
+タイミーは、スキマ時間にすぐ働ける仕事と、人手が足りない事業者をマッチングするサービスです。「はたらく」を通じて、人生の可能性を広げることを目指しています。
+
+## 事業の特徴
+
+- **スポットワークの市場創出** — 日本においてスポットワーク市場を立ち上げてきた、業界のパイオニア
+- **両面のプロダクト** — ワーカー側・事業者側、両方のプロダクトを自社で開発
+- **データドリブンな組織** — マッチングアルゴリズムを継続的に改善
+
+## カルチャー
+
+タイミーの組織は、**役割を超える文化**を大切にしています。エンジニアが営業同行することもあれば、PdMが現場のリサーチに行くこともあります。
+
+> 「職域の壁を作らず、市場の本質に向き合う」</textarea>
+          <div class="markdown-help">
+            <code>##</code> 見出し2 · <code>###</code> 見出し3 · <code>**太字**</code> · <code>- リスト</code> · <code>&gt; 引用</code> · <code>[文字](URL)</code> リンク
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ 数値データビュー ============ -->
+    <div class="view" id="view-data">
+      <h1 class="main__title">数値データ</h1>
+      <p class="main__desc">求職者側の企業詳細ページの「数値データ」セクションに表示されます。空欄の項目は表示されません。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">基本情報</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">従業員数<span class="form-label__required">必須</span></label>
+            <input type="text" class="form-input" value="1,642" />
+            <div class="form-hint">数字のみを入力（カンマ含む）</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">設立年月</label>
+            <input type="text" class="form-input" value="2017年8月" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">平均年齢</label>
+            <input type="text" class="form-input" value="29歳" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">男女比</label>
+            <input type="text" class="form-input" value="男性 65% / 女性 35%" />
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">評価制度・福利厚生</div>
+
+        <div class="form-group">
+          <label class="form-label">評価制度</label>
+          <textarea class="form-textarea" rows="3">半期ごとの目標設定 + 360度評価。OKRをベースに個人と組織の目標を連動。</textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">福利厚生</label>
+          <div class="tag-input-wrap">
+            <span class="tag-pill">フレックスタイム制 <span class="tag-pill__remove">×</span></span>
+            <span class="tag-pill">リモートワーク可 <span class="tag-pill__remove">×</span></span>
+            <span class="tag-pill">書籍購入支援 <span class="tag-pill__remove">×</span></span>
+            <span class="tag-pill">社員食堂 <span class="tag-pill__remove">×</span></span>
+            <span class="tag-pill">産休・育休制度 <span class="tag-pill__remove">×</span></span>
+            <input type="text" class="tag-input" placeholder="タグを追加して Enter..." />
+          </div>
+          <div class="form-hint">求職者側ではタグ形式で表示されます</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ 働き方ビュー ============ -->
+    <div class="view" id="view-workstyle">
+      <h1 class="main__title">働き方</h1>
+      <p class="main__desc">オフィス所在地、リモートワーク状況、フレックスなど、働き方に関する情報を編集します。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">オフィス所在地</div>
+
+        <div class="form-group">
+          <label class="form-label">本社所在地<span class="form-label__required">必須</span></label>
+          <input type="text" class="form-input" value="東京都豊島区東池袋1-9-6 ヒューリック東池袋ビル 6F" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">最寄り駅</label>
+          <input type="text" class="form-input" value="JR池袋駅 東口より徒歩3分" />
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">働き方</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">リモートワーク状況</label>
+            <select class="form-select">
+              <option>フルリモート可</option>
+              <option selected>ハイブリッド（週2-3日出社）</option>
+              <option>原則出社</option>
+              <option>その他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">勤務時間制度</label>
+            <select class="form-select">
+              <option>固定時間制</option>
+              <option selected>フレックスタイム制</option>
+              <option>裁量労働制</option>
+              <option>その他</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">月間平均残業時間</label>
+            <input type="text" class="form-input" value="20時間" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">有給取得率</label>
+            <input type="text" class="form-input" value="78%" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">働き方の補足説明<span class="form-label__optional">任意</span></label>
+          <textarea class="form-textarea" rows="3">フレックスはコアタイム10:00-15:00。週2-3日のオフィス出社は、チームでの議論や対話を大切にするため。残業は事前申請制で、無理な残業は推奨していません。</textarea>
+          <div class="form-hint">数値だけでは伝わらない、働き方の文化や考え方を補足してください</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ オフィス写真ビュー ============ -->
+    <div class="view" id="view-photos">
+      <h1 class="main__title">オフィス写真</h1>
+      <p class="main__desc">オフィスの様子を写真で伝えます。カテゴリごとに最大5枚まで登録できます。</p>
+
+      <!-- 写真ガイドライン -->
+      <div class="photo-guideline">
+        <div class="photo-guideline__icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        </div>
+        <div class="photo-guideline__body">
+          <div class="photo-guideline__title">写真選びのポイント</div>
+          <ul class="photo-guideline__list">
+            <li>各カテゴリ、無理に枚数を埋める必要はありません</li>
+            <li>「この写真で何が伝わるか」を意識して選んでください</li>
+            <li>古くなった写真は定期的に見直しましょう</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- カテゴリ1：執務エリア -->
+      <div class="photo-category">
+        <div class="photo-category__head">
+          <div class="photo-category__title">
+            <div class="photo-category__icon work">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </div>
+            執務エリア
+          </div>
+          <div class="photo-category__count"><strong>3</strong> / 5枚</div>
+        </div>
+        <div class="photo-grid">
+          <div class="photo-card">
+            <div class="photo-card__image" style="background: linear-gradient(135deg, #3B82F6, #1E40AF);">
+              📷
+              <div class="photo-card__actions">
+                <button class="photo-action-btn" title="並び替え">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <button class="photo-action-btn delete" title="削除">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="photo-card__caption">
+              <input type="text" class="photo-card__caption-input" value="本社執務エリア（池袋）" />
+            </div>
+          </div>
+          <div class="photo-card">
+            <div class="photo-card__image" style="background: linear-gradient(135deg, #06B6D4, #0E7490);">
+              📷
+              <div class="photo-card__actions">
+                <button class="photo-action-btn" title="並び替え"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                <button class="photo-action-btn delete" title="削除"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+              </div>
+            </div>
+            <div class="photo-card__caption">
+              <input type="text" class="photo-card__caption-input" value="開発チームのエリア" />
+            </div>
+          </div>
+          <div class="photo-card">
+            <div class="photo-card__image" style="background: linear-gradient(135deg, #8B5CF6, #6D28D9);">
+              📷
+              <div class="photo-card__actions">
+                <button class="photo-action-btn" title="並び替え"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                <button class="photo-action-btn delete" title="削除"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+              </div>
+            </div>
+            <div class="photo-card__caption">
+              <input type="text" class="photo-card__caption-input" placeholder="キャプションを入力..." />
+            </div>
+          </div>
+          <div class="photo-add-card">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            写真を追加
+          </div>
+          <div class="photo-add-card">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            写真を追加
+          </div>
+        </div>
+      </div>
+
+      <!-- カテゴリ2：会議室 -->
+      <div class="photo-category">
+        <div class="photo-category__head">
+          <div class="photo-category__title">
+            <div class="photo-category__icon meeting">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            会議室・コラボエリア
+          </div>
+          <div class="photo-category__count"><strong>2</strong> / 5枚</div>
+        </div>
+        <div class="photo-grid">
+          <div class="photo-card">
+            <div class="photo-card__image" style="background: linear-gradient(135deg, #EC4899, #BE185D);">
+              📷
+              <div class="photo-card__actions">
+                <button class="photo-action-btn" title="並び替え"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                <button class="photo-action-btn delete" title="削除"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+              </div>
+            </div>
+            <div class="photo-card__caption">
+              <input type="text" class="photo-card__caption-input" value="大会議室「Hibi」" />
+            </div>
+          </div>
+          <div class="photo-card">
+            <div class="photo-card__image" style="background: linear-gradient(135deg, #F59E0B, #B45309);">
+              📷
+              <div class="photo-card__actions">
+                <button class="photo-action-btn" title="並び替え"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                <button class="photo-action-btn delete" title="削除"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+              </div>
+            </div>
+            <div class="photo-card__caption">
+              <input type="text" class="photo-card__caption-input" value="集中作業ブース" />
+            </div>
+          </div>
+          <div class="photo-add-card">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            写真を追加
+          </div>
+        </div>
+      </div>
+
+      <!-- カテゴリ3：福利厚生 -->
+      <div class="photo-category">
+        <div class="photo-category__head">
+          <div class="photo-category__title">
+            <div class="photo-category__icon welfare">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </div>
+            福利厚生・施設
+          </div>
+          <div class="photo-category__count"><strong>1</strong> / 5枚</div>
+        </div>
+        <div class="photo-grid">
+          <div class="photo-card">
+            <div class="photo-card__image" style="background: linear-gradient(135deg, #10B981, #047857);">
+              📷
+              <div class="photo-card__actions">
+                <button class="photo-action-btn" title="並び替え"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                <button class="photo-action-btn delete" title="削除"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+              </div>
+            </div>
+            <div class="photo-card__caption">
+              <input type="text" class="photo-card__caption-input" value="社員ラウンジ「Cafe T」" />
+            </div>
+          </div>
+          <div class="photo-add-card">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            写真を追加
+          </div>
+        </div>
+      </div>
+
+      <!-- カテゴリ4：イベント -->
+      <div class="photo-category">
+        <div class="photo-category__head">
+          <div class="photo-category__title">
+            <div class="photo-category__icon event">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            イベント・社内交流
+          </div>
+          <div class="photo-category__count"><strong>0</strong> / 5枚</div>
+        </div>
+        <div class="photo-grid">
+          <div class="photo-add-card">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            写真を追加
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 公開設定ビュー ============ -->
+    <div class="view" id="view-settings">
+      <h1 class="main__title">公開設定</h1>
+      <p class="main__desc">企業情報の公開状態と、求職者からの問い合わせを受けるかを設定します。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">公開状態</div>
+
+        <div class="form-group">
+          <label class="form-label">企業情報の公開</label>
+          <select class="form-select">
+            <option selected>公開する（Opinioで企業詳細ページを表示）</option>
+            <option>非公開（編集はできるが、求職者には表示されない）</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">カジュアル面談の受付</label>
+          <select class="form-select">
+            <option selected>受け付ける</option>
+            <option>一時停止する</option>
+          </select>
+          <div class="form-hint">「一時停止」中は、求職者側のページから「カジュアル面談を申し込む」ボタンが非表示になります。</div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">通知設定</div>
+
+        <div class="form-group">
+          <label class="form-label">新規カジュアル面談の通知先</label>
+          <input type="email" class="form-input" value="recruiting@timee.co.jp" />
+          <div class="form-hint">複数のメールアドレスを設定する場合はカンマ区切り</div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // セクションサブナビの切替
+  document.querySelectorAll('.subnav__item').forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.dataset.view;
+      if (!target) return;
+      document.querySelectorAll('.subnav__item').forEach(i => i.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      item.classList.add('active');
+      document.getElementById('view-' + target).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  // 自動保存のモック（フィールド変更時にステータスを更新）
+  const saveStatus = document.getElementById('save-status');
+  let saveTimer;
+  document.querySelectorAll('.form-input, .form-select, .form-textarea, .markdown-textarea, .photo-card__caption-input, .tag-input').forEach(field => {
+    field.addEventListener('input', () => {
+      saveStatus.classList.remove('saved');
+      saveStatus.classList.add('saving');
+      saveStatus.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 下書きに保存中...';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        saveStatus.classList.remove('saving');
+        saveStatus.classList.add('saved');
+        saveStatus.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg> 下書きを自動保存しました';
+      }, 700);
+    });
+  });
+
+  // タグ削除のモック
+  document.querySelectorAll('.tag-pill__remove').forEach(remove => {
+    remove.addEventListener('click', (e) => {
+      e.target.closest('.tag-pill').remove();
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>プロフィール編集 — Opinio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --royal: #002366;
+    --royal-deep: #001A4D;
+    --royal-50: #EFF3FC;
+    --royal-100: #DCE5F7;
+    --accent: #3B5FD9;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --line: #E2E8F0;
+    --line-soft: #F1F5F9;
+    --bg: #FFFFFF;
+    --bg-tint: #F8FAFC;
+    --success: #059669;
+    --success-soft: #ECFDF5;
+    --warm: #F59E0B;
+    --warm-soft: #FEF3C7;
+    --purple: #7C3AED;
+    --purple-soft: #F3E8FF;
+    --error: #DC2626;
+    --error-soft: #FEE2E2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-tint);
+    color: var(--ink);
+    font-family: "Noto Sans JP", -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* トップバー */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .topbar__brand {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--royal);
+    letter-spacing: -0.02em;
+  }
+  .topbar__center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .topbar__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .topbar__status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--success);
+    background: var(--success-soft);
+    padding: 4px 10px;
+    border-radius: 100px;
+    transition: opacity 0.3s;
+  }
+  .topbar__status.saving {
+    color: var(--ink-soft);
+    background: var(--bg-tint);
+  }
+  .topbar__actions { display: flex; gap: 10px; align-items: center; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    transition: all 0.2s;
+  }
+  .btn:hover { border-color: var(--royal-100); }
+  .btn--primary {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .btn--primary:hover { background: var(--royal-deep); border-color: var(--royal-deep); }
+
+  /* 初回案内バナー（ハイブリッド：基本情報だけ誘導） */
+  .onboarding-banner {
+    background: linear-gradient(135deg, var(--royal-50) 0%, #fff 100%);
+    border-bottom: 1px solid var(--royal-100);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .onboarding-banner__icon {
+    width: 36px; height: 36px;
+    background: var(--royal);
+    color: #fff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .onboarding-banner__body { flex: 1; }
+  .onboarding-banner__title {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .onboarding-banner__desc {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .onboarding-banner__close {
+    color: var(--ink-mute);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+  }
+  .onboarding-banner__close:hover {
+    background: rgba(0,0,0,0.05);
+    color: var(--ink);
+  }
+  .onboarding-banner.hidden { display: none; }
+
+  /* レイアウト */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 59px);
+  }
+
+  /* サイドバー */
+  .sidebar {
+    background: #fff;
+    border-right: 1px solid var(--line);
+    padding: 24px 0;
+    position: sticky;
+    top: 59px;
+    align-self: start;
+    height: calc(100vh - 59px);
+    overflow-y: auto;
+  }
+  .sidebar__label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0 24px 10px;
+  }
+  .sidebar__nav {
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar__item {
+    padding: 10px 24px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .sidebar__item:hover {
+    background: var(--bg-tint);
+    color: var(--ink);
+  }
+  .sidebar__item.active {
+    background: var(--royal-50);
+    color: var(--royal);
+    border-left-color: var(--royal);
+    font-weight: 600;
+  }
+  .sidebar__item svg {
+    color: var(--ink-mute);
+    flex-shrink: 0;
+  }
+  .sidebar__item.active svg {
+    color: var(--royal);
+  }
+  .sidebar__section-label {
+    padding: 20px 24px 8px;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .sidebar__progress {
+    margin: 30px 20px 16px;
+    padding: 14px 16px;
+    background: var(--royal-50);
+    border: 1px solid var(--royal-100);
+    border-radius: 10px;
+  }
+  .sidebar__progress-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--royal);
+    margin-bottom: 8px;
+  }
+  .sidebar__progress-bar {
+    height: 6px;
+    background: #fff;
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .sidebar__progress-fill {
+    height: 100%;
+    width: 65%;
+    background: linear-gradient(to right, var(--royal), var(--accent));
+    border-radius: 100px;
+  }
+  .sidebar__progress-text {
+    font-size: 10px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  /* メインエリア */
+  .main {
+    padding: 36px 48px 60px;
+    max-width: 760px;
+  }
+  .main__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 500;
+    font-size: 28px;
+    color: var(--ink);
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+  }
+  .main__desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 36px;
+    line-height: 1.9;
+  }
+
+  /* セクション */
+  .form-section {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+  }
+  .form-section__title {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .form-section__desc {
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin-bottom: 20px;
+    line-height: 1.7;
+  }
+
+  /* フォーム要素 */
+  .form-group {
+    margin-bottom: 20px;
+  }
+  .form-group:last-child { margin-bottom: 0; }
+  .form-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .form-label__required {
+    color: var(--error);
+    font-size: 11px;
+  }
+  .form-label__optional {
+    color: var(--ink-mute);
+    font-size: 10px;
+    font-weight: 400;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: #fff;
+    transition: all 0.15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--royal);
+    box-shadow: 0 0 0 3px var(--royal-50);
+  }
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.8;
+  }
+  .form-select {
+    appearance: none;
+    cursor: pointer;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  .form-hint {
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+
+  /* 2カラム */
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* アバター + カバー */
+  .avatar-field {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .avatar-preview {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .avatar-cover {
+    width: 200px;
+    height: 80px;
+    border-radius: 10px 10px 0 0;
+    background: linear-gradient(135deg, var(--royal), var(--accent), #818CF8);
+    position: relative;
+  }
+  .avatar-image {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--royal), var(--accent));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 600;
+    border: 4px solid #fff;
+    position: absolute;
+    bottom: -35px;
+    left: 16px;
+    box-shadow: 0 4px 12px rgba(15,23,42,0.1);
+  }
+  .avatar-actions {
+    flex: 1;
+    padding-top: 10px;
+  }
+  .avatar-actions__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .avatar-actions__desc {
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-bottom: 12px;
+    line-height: 1.7;
+  }
+  .avatar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 6px;
+  }
+  .avatar-btn:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+
+  /* ========== キャリア（職歴）UI ========== */
+  .career-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .career-item {
+    background: var(--bg-tint);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    position: relative;
+  }
+  .career-item.current {
+    border-left: 3px solid var(--success);
+  }
+  .career-item__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .career-item__info { flex: 1; min-width: 0; }
+  .career-item__period {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    color: var(--ink-mute);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .career-item__period .current-tag {
+    background: var(--success-soft);
+    color: var(--success);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    margin-left: 6px;
+    font-size: 9px;
+    letter-spacing: 0.05em;
+  }
+  .career-item__role {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .career-item__company {
+    font-size: 12px;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .career-item__company-tag {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: #fff;
+    border: 1px dashed var(--line);
+    color: var(--ink-mute);
+  }
+  .career-item__company-tag.master {
+    background: var(--royal-50);
+    border: 1px solid var(--royal-100);
+    color: var(--royal);
+  }
+  .career-item__company-tag.anon {
+    background: var(--warm-soft);
+    border: 1px solid #FDE68A;
+    color: #B45309;
+  }
+  .career-item__actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .icon-btn {
+    width: 28px; height: 28px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--ink-mute);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-btn:hover { background: #fff; color: var(--ink); }
+  .icon-btn.delete:hover { background: var(--error-soft); color: var(--error); }
+
+  .career-item__desc {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--line);
+  }
+
+  /* 職歴追加ボタン */
+  .add-career-btn {
+    width: 100%;
+    padding: 14px;
+    background: #fff;
+    color: var(--royal);
+    border: 1.5px dashed var(--royal-100);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .add-career-btn:hover {
+    background: var(--royal-50);
+    border-color: var(--royal);
+  }
+
+  /* 職歴追加モーダル */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+  }
+  .modal__head {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--ink);
+  }
+  .modal__close {
+    color: var(--ink-mute);
+    cursor: pointer;
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal__close:hover { background: var(--bg-tint); color: var(--ink); }
+  .modal__body { padding: 24px; }
+  .modal__foot {
+    padding: 16px 24px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    background: var(--bg-tint);
+  }
+
+  /* 会社名3パターン選択UI */
+  .company-type-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .company-type-option {
+    padding: 14px 16px;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .company-type-option:hover {
+    border-color: var(--royal-100);
+    background: var(--royal-50);
+  }
+  .company-type-option.active {
+    border-color: var(--royal);
+    background: var(--royal-50);
+  }
+  .company-type-option__radio {
+    width: 18px; height: 18px;
+    border: 2px solid var(--line);
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+    position: relative;
+  }
+  .company-type-option.active .company-type-option__radio {
+    border-color: var(--royal);
+  }
+  .company-type-option.active .company-type-option__radio::after {
+    content: "";
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 8px; height: 8px;
+    background: var(--royal);
+    border-radius: 50%;
+  }
+  .company-type-option__body { min-width: 0; flex: 1; }
+  .company-type-option__title {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+  .company-type-option__desc {
+    font-size: 11px;
+    color: var(--ink-mute);
+    line-height: 1.6;
+  }
+
+  /* 職種マスタ選択（階層サジェスト） */
+  .role-search {
+    position: relative;
+  }
+  .role-search__input {
+    padding-left: 36px;
+  }
+  .role-search__icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-mute);
+    z-index: 2;
+  }
+  .role-suggest {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .role-suggest-group {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .role-suggest-group:last-child { border-bottom: none; }
+  .role-suggest-group__label {
+    padding: 4px 14px;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .role-suggest-item {
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .role-suggest-item:hover {
+    background: var(--royal-50);
+    color: var(--royal);
+  }
+  .role-suggest-item.selected {
+    background: var(--royal-50);
+    color: var(--royal);
+    font-weight: 600;
+    position: relative;
+  }
+  .role-suggest-item.selected::after {
+    content: "✓";
+    position: absolute;
+    right: 14px;
+    color: var(--royal);
+  }
+  .role-suggest-foot {
+    padding: 10px 14px;
+    background: var(--bg-tint);
+    font-size: 11px;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.6;
+  }
+  .role-suggest-foot a {
+    color: var(--royal);
+    font-weight: 600;
+    text-decoration: underline;
+  }
+  .role-suggest-foot svg {
+    color: var(--royal);
+    flex-shrink: 0;
+  }
+
+  /* マスタ検索（サジェスト） */
+  .company-search {
+    position: relative;
+  }
+  .company-search__input {
+    padding-left: 36px;
+  }
+  .company-search__icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-mute);
+  }
+  .company-suggest {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .company-suggest-item {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .company-suggest-item:last-child { border-bottom: none; }
+  .company-suggest-item:hover {
+    background: var(--royal-50);
+  }
+  .company-suggest-item__logo {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .c-timee { background: linear-gradient(135deg, #F97316, #EA580C); }
+  .c-smarthr { background: linear-gradient(135deg, #00B4D8, #0077B6); }
+  .c-layerx { background: linear-gradient(135deg, #1E40AF, var(--royal)); }
+  .c-money { background: linear-gradient(135deg, #DC2626, #991B1B); }
+  .c-freee { background: linear-gradient(135deg, #1E3A8A, #1E40AF); }
+  .company-suggest-item__body { flex: 1; min-width: 0; }
+  .company-suggest-item__name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .company-suggest-item__meta {
+    font-size: 10px;
+    color: var(--ink-mute);
+    margin-top: 1px;
+  }
+
+  /* SNSリンク用 */
+  .sns-input {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 10px;
+    align-items: center;
+  }
+  .sns-icon {
+    width: 32px; height: 32px;
+    background: var(--bg-tint);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-soft);
+  }
+
+  /* 危険な操作 */
+  .danger-section {
+    background: var(--error-soft);
+    border: 1px solid #FECACA;
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-top: 32px;
+  }
+  .danger-section__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--error);
+    margin-bottom: 6px;
+  }
+  .danger-section__desc {
+    font-size: 12px;
+    color: #991B1B;
+    margin-bottom: 14px;
+    line-height: 1.7;
+  }
+  .btn--danger {
+    background: #fff;
+    color: var(--error);
+    border-color: var(--error);
+  }
+  .btn--danger:hover {
+    background: var(--error);
+    color: #fff;
+  }
+
+  /* メンター案内 */
+  .mentor-notice {
+    background: linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%);
+    color: #fff;
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: center;
+  }
+  .mentor-notice__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .mentor-notice__desc {
+    font-size: 12px;
+    opacity: 0.9;
+    line-height: 1.7;
+  }
+  .mentor-notice__btn {
+    padding: 10px 20px;
+    background: #fff;
+    color: var(--royal);
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .mentor-notice__btn:hover { transform: translateY(-1px); }
+
+  /* ビュー切替 */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* レスポンシブ */
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+    }
+    .sidebar__nav { flex-direction: row; overflow-x: auto; }
+    .sidebar__item { border-left: none; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .sidebar__item.active { border-left: none; border-bottom-color: var(--royal); }
+    .sidebar__label, .sidebar__section-label, .sidebar__progress { display: none; }
+    .main { padding: 24px 20px; }
+    .form-row { grid-template-columns: 1fr; }
+    .topbar { padding: 12px 20px; gap: 12px; }
+    .topbar__title { display: none; }
+    .avatar-field { flex-direction: column; gap: 12px; }
+    .avatar-cover { width: 100%; }
+    .mentor-notice { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- トップバー -->
+<header class="topbar">
+  <a href="#" class="topbar__brand">Opinio</a>
+  <div class="topbar__center">
+    <span class="topbar__title">プロフィール編集</span>
+    <span class="topbar__status" id="save-status">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+      自動保存されました
+    </span>
+  </div>
+  <div class="topbar__actions">
+    <button class="btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      プロフィールを見る
+    </button>
+  </div>
+</header>
+
+<!-- 初回ユーザー向け案内バナー -->
+<div class="onboarding-banner" id="onboarding-banner">
+  <div class="onboarding-banner__icon">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01 9 11.01"/></svg>
+  </div>
+  <div class="onboarding-banner__body">
+    <div class="onboarding-banner__title">Opinioへようこそ、田中翔太さん</div>
+    <div class="onboarding-banner__desc">まずは「基本情報」を入力しましょう。その後、キャリアやSNSは好きなタイミングで追加できます。</div>
+  </div>
+  <div class="onboarding-banner__close" onclick="document.getElementById('onboarding-banner').classList.add('hidden')">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </div>
+</div>
+
+<!-- レイアウト -->
+<div class="layout">
+
+  <!-- サイドバー -->
+  <aside class="sidebar">
+    <div class="sidebar__label">編集セクション</div>
+    <nav class="sidebar__nav">
+      <div class="sidebar__item active" data-view="basic">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+        基本情報
+      </div>
+      <div class="sidebar__item" data-view="career">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        キャリア（職歴）
+      </div>
+      <div class="sidebar__item" data-view="sns">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        SNSリンク
+      </div>
+    </nav>
+
+    <div class="sidebar__section-label">アカウント</div>
+    <nav class="sidebar__nav">
+      <div class="sidebar__item" data-view="account">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        アカウント設定
+      </div>
+    </nav>
+
+    <div class="sidebar__progress">
+      <div class="sidebar__progress-title">プロフィール完成度</div>
+      <div class="sidebar__progress-bar">
+        <div class="sidebar__progress-fill"></div>
+      </div>
+      <div class="sidebar__progress-text">65% · 基本情報と職歴を埋めるとさらに充実します</div>
+    </div>
+  </aside>
+
+  <!-- メイン -->
+  <main class="main">
+
+    <!-- 基本情報 -->
+    <div class="view active" id="view-basic">
+      <h1 class="main__title">基本情報</h1>
+      <p class="main__desc">
+        あなたのプロフィールの主要情報です。入力した内容は他のユーザーに表示されます。<br/>
+        ※ 変更はすべて自動的に保存されます。
+      </p>
+
+      <section class="form-section">
+        <div class="form-section__title">プロフィール画像・カバー</div>
+        <div class="form-section__desc">あなたのプロフィールページのヘッダーに表示されます。カバー画像は自動的に色が生成されます。</div>
+
+        <div class="avatar-field">
+          <div class="avatar-preview">
+            <div class="avatar-cover"></div>
+            <div class="avatar-image">田</div>
+          </div>
+          <div class="avatar-actions">
+            <div class="avatar-actions__title">プロフィール画像</div>
+            <div class="avatar-actions__desc">JPG・PNG・5MB以内。未設定の場合、名前の頭文字で自動生成されます。</div>
+            <button class="avatar-btn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              画像をアップロード
+            </button>
+            <button class="avatar-btn">自動生成に戻す</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">氏名・基本情報</div>
+
+        <div class="form-group">
+          <label class="form-label">氏名<span class="form-label__required">必須</span></label>
+          <input type="text" class="form-input" value="田中 翔太" />
+          <div class="form-hint">本名でもニックネームでもOK。姓と名の間にスペースを入れると見やすくなります。</div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">所在地</label>
+            <select class="form-select">
+              <option>東京都</option>
+              <option>神奈川県</option>
+              <option>大阪府</option>
+              <option>海外</option>
+              <option>非公開</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">年齢層</label>
+            <select class="form-select">
+              <option>20代前半</option>
+              <option>20代後半</option>
+              <option selected>30代前半</option>
+              <option>30代後半</option>
+              <option>40代</option>
+              <option>50代以上</option>
+              <option>非公開</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">About Me</div>
+        <div class="form-section__desc">自己紹介文。あなたの価値観や仕事への想いを自由に書いてください。</div>
+
+        <div class="form-group">
+          <textarea class="form-textarea" rows="5">リクルートで4年間営業を経験後、タイミーへ転職。最初の2年はPdMとして、その後はエンタープライズ営業に異動して現在3年目です。「市場をつくる」プロセスに関わりたいという思いで会社を選んできました。タイミーでは、スポットワーク市場が日本に根付いていく過程を、プロダクト・営業の両側から経験できています。</textarea>
+          <div class="form-hint">500文字程度までを目安に。箇条書きや絵文字も使えます。</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- キャリア -->
+    <div class="view" id="view-career">
+      <h1 class="main__title">キャリア（職歴）</h1>
+      <p class="main__desc">
+        あなたの職歴を追加してください。現職は複数登録できます（副業・パラレルキャリアに対応）。<br/>
+        登録された会社名は、リンク表示 / テキスト表示 / 匿名表示の3種類から選べます。
+      </p>
+
+      <section class="form-section">
+        <div class="form-section__title">職歴一覧</div>
+        <div class="form-section__desc">時系列で自動的に並び替えられます。各項目をクリックして編集できます。</div>
+
+        <div class="career-list">
+          <!-- 現職1 -->
+          <div class="career-item current">
+            <div class="career-item__head">
+              <div class="career-item__info">
+                <div class="career-item__period">2024.04 〜 現在<span class="current-tag">CURRENT</span></div>
+                <div class="career-item__role">エンタープライズ営業 <span style="font-size: 10px; font-weight: 500; color: var(--ink-mute); margin-left: 4px;">※ 職種カテゴリ: 営業 > エンタープライズ営業</span></div>
+                <div class="career-item__company">
+                  株式会社タイミー
+                  <span class="career-item__company-tag master">マスタ登録</span>
+                </div>
+              </div>
+              <div class="career-item__actions">
+                <button class="icon-btn" title="編集">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="icon-btn delete" title="削除">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="career-item__desc">プロダクトの立ち上げ期を経て、本格的な事業拡大フェーズで営業組織へ異動。エンタープライズ顧客向けの導入・展開を担当しています。</div>
+          </div>
+
+          <!-- 過去1 -->
+          <div class="career-item">
+            <div class="career-item__head">
+              <div class="career-item__info">
+                <div class="career-item__period">2022.04 〜 2024.03（2年）</div>
+                <div class="career-item__role">プロダクトマネージャー</div>
+                <div class="career-item__company">
+                  株式会社タイミー
+                  <span class="career-item__company-tag master">マスタ登録</span>
+                </div>
+              </div>
+              <div class="career-item__actions">
+                <button class="icon-btn" title="編集"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn delete" title="削除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+              </div>
+            </div>
+            <div class="career-item__desc">タイミーキャリアプラスのPdMとして、ワーカー向け新機能の企画・要求定義を担当。CEO直下で意思決定に関わり、PMF後の拡大期を支えました。</div>
+          </div>
+
+          <!-- 過去2 -->
+          <div class="career-item">
+            <div class="career-item__head">
+              <div class="career-item__info">
+                <div class="career-item__period">2018.04 〜 2022.03（4年）</div>
+                <div class="career-item__role">法人営業</div>
+                <div class="career-item__company">
+                  株式会社リクルート
+                  <span class="career-item__company-tag master">マスタ登録</span>
+                </div>
+              </div>
+              <div class="career-item__actions">
+                <button class="icon-btn" title="編集"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn delete" title="削除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+              </div>
+            </div>
+            <div class="career-item__desc">新卒入社。中堅・中小企業向けの広告営業を担当。3年目以降はマネジメントも経験。</div>
+          </div>
+        </div>
+
+        <button class="add-career-btn" onclick="document.getElementById('career-modal').classList.add('active')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          職歴を追加する
+        </button>
+      </section>
+
+      <!-- メンター案内 -->
+      <div class="mentor-notice">
+        <div>
+          <div class="mentor-notice__title">メンターとして、後輩の相談に乗りませんか？</div>
+          <div class="mentor-notice__desc">
+            Opinioメンターは、運営による厳正な審査を経て認定される制度です。<br/>
+            あなたの経験を、キャリアに悩む誰かに届けてみませんか。
+          </div>
+        </div>
+        <button class="mentor-notice__btn">メンター登録について</button>
+      </div>
+    </div>
+
+    <!-- SNS -->
+    <div class="view" id="view-sns">
+      <h1 class="main__title">SNSリンク</h1>
+      <p class="main__desc">
+        あなたのSNSアカウントをプロフィールに表示します。すべてオプションです。
+      </p>
+
+      <section class="form-section">
+        <div class="form-section__title">ソーシャルアカウント</div>
+        <div class="form-section__desc">プロフィールページの「PROFILE INFO」セクションに小さなアイコンで表示されます。</div>
+
+        <div class="form-group">
+          <label class="form-label">X（旧Twitter）<span class="form-label__optional">任意</span></label>
+          <div class="sns-input">
+            <div class="sns-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </div>
+            <input type="text" class="form-input" placeholder="https://x.com/yourname" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">LinkedIn<span class="form-label__optional">任意</span></label>
+          <div class="sns-input">
+            <div class="sns-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.95v5.66H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43c-1.14 0-2.06-.93-2.06-2.07 0-1.14.92-2.06 2.06-2.06s2.06.92 2.06 2.06c0 1.14-.92 2.07-2.06 2.07zm1.78 13.02H3.56V9h3.56v11.45z"/></svg>
+            </div>
+            <input type="text" class="form-input" placeholder="https://linkedin.com/in/yourname" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">note<span class="form-label__optional">任意</span></label>
+          <div class="sns-input">
+            <div class="sns-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            </div>
+            <input type="text" class="form-input" placeholder="https://note.com/yourname" />
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- アカウント設定 -->
+    <div class="view" id="view-account">
+      <h1 class="main__title">アカウント設定</h1>
+      <p class="main__desc">ログイン情報・通知・プライバシー設定を管理します。</p>
+
+      <section class="form-section">
+        <div class="form-section__title">ログイン情報</div>
+
+        <div class="form-group">
+          <label class="form-label">メールアドレス</label>
+          <input type="email" class="form-input" value="tanaka@example.com" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">パスワード</label>
+          <button class="btn">パスワードを変更</button>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">プロフィールの公開設定</div>
+        <div class="form-section__desc">プロフィールページを他のユーザーが閲覧できるかどうかを設定します。</div>
+
+        <div class="form-group">
+          <label class="form-label">公開範囲</label>
+          <select class="form-select">
+            <option>すべてのOpinioユーザーに公開</option>
+            <option>ログインユーザーのみ公開</option>
+            <option>非公開（自分だけ見れる）</option>
+          </select>
+        </div>
+      </section>
+
+      <div class="danger-section">
+        <div class="danger-section__title">⚠ アカウント削除</div>
+        <div class="danger-section__desc">
+          アカウントを削除すると、プロフィール・職歴・記事へのコメントなど、すべてのデータが完全に削除されます。取材済みの記事は掲載を続ける場合があります。この操作は取り消せません。
+        </div>
+        <button class="btn btn--danger">アカウントを削除する</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- 職歴追加モーダル -->
+<div class="modal-overlay" id="career-modal">
+  <div class="modal">
+    <div class="modal__head">
+      <div class="modal__title">職歴を追加</div>
+      <div class="modal__close" onclick="document.getElementById('career-modal').classList.remove('active')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+    <div class="modal__body">
+
+      <!-- 会社名の種類（3択） -->
+      <div class="form-group">
+        <label class="form-label">会社名をどうやって登録しますか？<span class="form-label__required">必須</span></label>
+        <div class="company-type-options">
+          <div class="company-type-option active" data-type="master">
+            <div class="company-type-option__radio"></div>
+            <div class="company-type-option__body">
+              <div class="company-type-option__title">Opinioに登録されている企業から選ぶ</div>
+              <div class="company-type-option__desc">マスタに登録された企業。プロフィール上で企業詳細へのリンクになります。</div>
+            </div>
+          </div>
+          <div class="company-type-option" data-type="custom">
+            <div class="company-type-option__radio"></div>
+            <div class="company-type-option__body">
+              <div class="company-type-option__title">登録されていない企業を自由入力</div>
+              <div class="company-type-option__desc">Opinioマスタにない企業を入力。テキスト表示、「未登録企業」タグ付き。</div>
+            </div>
+          </div>
+          <div class="company-type-option" data-type="anon">
+            <div class="company-type-option__radio"></div>
+            <div class="company-type-option__body">
+              <div class="company-type-option__title">会社名を公開しない（匿名表示）</div>
+              <div class="company-type-option__desc">表示名を自由に入力。例：「AIスタートアップA社」「大手SaaS企業」など。リンクなし。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 会社入力（マスタ検索） -->
+      <div class="form-group" id="input-master">
+        <label class="form-label">企業を検索<span class="form-label__required">必須</span></label>
+        <div class="company-search">
+          <span class="company-search__icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+          </span>
+          <input type="text" class="form-input company-search__input" placeholder="企業名を入力..." value="タイミー" />
+          <div class="company-suggest">
+            <div class="company-suggest-item">
+              <div class="company-suggest-item__logo c-timee">T</div>
+              <div class="company-suggest-item__body">
+                <div class="company-suggest-item__name">株式会社タイミー</div>
+                <div class="company-suggest-item__meta">IT/Web · 1,642名</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-hint">マスタにない企業は、上記の「登録されていない企業を自由入力」を選んでください。</div>
+      </div>
+
+      <!-- 会社入力（未登録テキスト） -->
+      <div class="form-group" id="input-custom" style="display: none;">
+        <label class="form-label">会社名<span class="form-label__required">必須</span></label>
+        <input type="text" class="form-input" placeholder="例：株式会社〇〇" />
+        <div class="form-hint">プロフィール上で「未登録企業」タグと共に表示されます。</div>
+      </div>
+
+      <!-- 会社入力（匿名表示名） -->
+      <div class="form-group" id="input-anon" style="display: none;">
+        <label class="form-label">表示する会社名<span class="form-label__required">必須</span></label>
+        <input type="text" class="form-input" placeholder="例：AIスタートアップA社" />
+        <div class="form-hint">実際の会社名ではなく、表示用の名前を入力してください。プロフィール上で「非公開」タグと共に表示されます。</div>
+      </div>
+
+      <!-- 職種（マスタ選択 + 自由入力の2段階） -->
+      <div class="form-group">
+        <label class="form-label">職種カテゴリ<span class="form-label__required">必須</span></label>
+        <div class="role-search">
+          <span class="role-search__icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+          </span>
+          <input type="text" class="form-input role-search__input" placeholder="職種名で検索... 例：営業、PdM" value="エンタープライズ営業" id="role-search-input" onclick="document.getElementById('role-suggest').style.display='block'" />
+          <div class="role-suggest" id="role-suggest" style="display:none;">
+            <div class="role-suggest-group">
+              <div class="role-suggest-group__label">営業</div>
+              <div class="role-suggest-item" onclick="selectRole('フィールドセールス')">フィールドセールス</div>
+              <div class="role-suggest-item selected" onclick="selectRole('エンタープライズ営業')">エンタープライズ営業</div>
+              <div class="role-suggest-item" onclick="selectRole('インサイドセールス')">インサイドセールス</div>
+              <div class="role-suggest-item" onclick="selectRole('SDR / BDR')">SDR / BDR</div>
+            </div>
+            <div class="role-suggest-group">
+              <div class="role-suggest-group__label">PdM / PM</div>
+              <div class="role-suggest-item" onclick="selectRole('プロダクトマネージャー')">プロダクトマネージャー</div>
+              <div class="role-suggest-item" onclick="selectRole('プロダクトオーナー')">プロダクトオーナー</div>
+              <div class="role-suggest-item" onclick="selectRole('PMM')">PMM（プロダクトマーケティングマネージャー）</div>
+            </div>
+            <div class="role-suggest-group">
+              <div class="role-suggest-group__label">カスタマーサクセス</div>
+              <div class="role-suggest-item" onclick="selectRole('カスタマーサクセス')">カスタマーサクセス</div>
+              <div class="role-suggest-item" onclick="selectRole('カスタマーサポート')">カスタマーサポート</div>
+            </div>
+            <div class="role-suggest-group">
+              <div class="role-suggest-group__label">エンジニア</div>
+              <div class="role-suggest-item" onclick="selectRole('バックエンドエンジニア')">バックエンドエンジニア</div>
+              <div class="role-suggest-item" onclick="selectRole('フロントエンドエンジニア')">フロントエンドエンジニア</div>
+              <div class="role-suggest-item" onclick="selectRole('フルスタックエンジニア')">フルスタックエンジニア</div>
+              <div class="role-suggest-item" onclick="selectRole('SRE / インフラエンジニア')">SRE / インフラエンジニア</div>
+            </div>
+            <div class="role-suggest-group">
+              <div class="role-suggest-group__label">マーケティング</div>
+              <div class="role-suggest-item" onclick="selectRole('デジタルマーケティング')">デジタルマーケティング</div>
+              <div class="role-suggest-item" onclick="selectRole('コンテンツマーケティング')">コンテンツマーケティング</div>
+              <div class="role-suggest-item" onclick="selectRole('イベントマーケティング')">イベントマーケティング</div>
+            </div>
+            <div class="role-suggest-group">
+              <div class="role-suggest-group__label">経営・CxO</div>
+              <div class="role-suggest-item" onclick="selectRole('CEO')">CEO</div>
+              <div class="role-suggest-item" onclick="selectRole('COO')">COO</div>
+              <div class="role-suggest-item" onclick="selectRole('CPO')">CPO</div>
+              <div class="role-suggest-item" onclick="selectRole('CTO')">CTO</div>
+              <div class="role-suggest-item" onclick="selectRole('CFO')">CFO</div>
+            </div>
+            <div class="role-suggest-group">
+              <div class="role-suggest-group__label">その他</div>
+              <div class="role-suggest-item" onclick="selectRole('デザイナー')">デザイナー</div>
+              <div class="role-suggest-item" onclick="selectRole('事業開発')">事業開発</div>
+              <div class="role-suggest-item" onclick="selectRole('HRBP')">HRBP</div>
+              <div class="role-suggest-item" onclick="selectRole('コーポレート（HR/経理/法務）')">コーポレート（HR/経理/法務）</div>
+              <div class="role-suggest-item" onclick="selectRole('データサイエンティスト')">データサイエンティスト</div>
+            </div>
+            <div class="role-suggest-foot">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span>マスタにない職種は<a href="#" onclick="event.preventDefault();alert('職種追加リクエスト送信モック');return false;">運営に追加依頼</a>できます</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-hint">Opinioの職種マスタから選択します。データ集計やレコメンドに使われます。</div>
+      </div>
+
+      <!-- 具体的な役職・肩書き -->
+      <div class="form-group">
+        <label class="form-label">具体的な役職・肩書き<span class="form-label__optional">任意</span></label>
+        <input type="text" class="form-input" placeholder="例：エンタープライズセールス マネージャー / プロダクトマネージャー（タイミーキャリアプラス）" />
+        <div class="form-hint">プロフィール上で表示される具体的な役職名。職種カテゴリより詳しく書けます。</div>
+      </div>
+
+      <!-- 期間 -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">入社年月<span class="form-label__required">必須</span></label>
+          <input type="month" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">退職年月</label>
+          <input type="month" class="form-input" />
+          <div class="form-hint">現在も在籍中の場合は空欄にしてください</div>
+        </div>
+      </div>
+
+      <!-- 現職フラグ -->
+      <div class="form-group">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink); cursor: pointer;">
+          <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--royal);" />
+          現在もこの会社で働いている（現職として登録）
+        </label>
+        <div class="form-hint">※ 副業・パラレルキャリアの場合、複数の現職を登録できます。</div>
+      </div>
+
+      <!-- 説明 -->
+      <div class="form-group">
+        <label class="form-label">この経験の説明<span class="form-label__optional">任意</span></label>
+        <textarea class="form-textarea" rows="4" placeholder="どんな仕事をしていたか、何を得たか、などを自由に記述してください。"></textarea>
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn" onclick="document.getElementById('career-modal').classList.remove('active')">キャンセル</button>
+      <button class="btn btn--primary">追加する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // サイドバーのナビ切替
+  document.querySelectorAll('.sidebar__item').forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.dataset.view;
+      document.querySelectorAll('.sidebar__item').forEach(i => i.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      item.classList.add('active');
+      document.getElementById('view-' + target).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  // 会社名の種類切替
+  document.querySelectorAll('.company-type-option').forEach(option => {
+    option.addEventListener('click', () => {
+      const type = option.dataset.type;
+      document.querySelectorAll('.company-type-option').forEach(o => o.classList.remove('active'));
+      option.classList.add('active');
+      document.getElementById('input-master').style.display = type === 'master' ? '' : 'none';
+      document.getElementById('input-custom').style.display = type === 'custom' ? '' : 'none';
+      document.getElementById('input-anon').style.display = type === 'anon' ? '' : 'none';
+    });
+  });
+
+  // 自動保存のモック（フィールド変更時にステータスを更新）
+  const saveStatus = document.getElementById('save-status');
+  let saveTimer;
+  document.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(field => {
+    field.addEventListener('input', () => {
+      saveStatus.classList.add('saving');
+      saveStatus.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 保存中...';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        saveStatus.classList.remove('saving');
+        saveStatus.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg> 自動保存されました';
+      }, 700);
+    });
+  });
+
+  // 職種選択
+  function selectRole(role) {
+    const input = document.getElementById('role-search-input');
+    if (input) {
+      input.value = role;
+    }
+    document.querySelectorAll('.role-suggest-item').forEach(i => i.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    document.getElementById('role-suggest').style.display = 'none';
+  }
+
+  // 職種サジェスト外クリックで閉じる
+  document.addEventListener('click', (e) => {
+    const roleSuggest = document.getElementById('role-suggest');
+    const roleInput = document.getElementById('role-search-input');
+    if (roleSuggest && roleInput && !roleInput.contains(e.target) && !roleSuggest.contains(e.target)) {
+      roleSuggest.style.display = 'none';
+    }
+  });
+
+  // モーダル外クリックで閉じる
+  document.getElementById('career-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'career-modal') {
+      e.target.classList.remove('active');
+    }
+  });
+</script>
+
+</body>
+</html>

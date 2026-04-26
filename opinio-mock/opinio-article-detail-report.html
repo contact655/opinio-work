@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>タイミーのプロダクト組織はなぜ動きが速いのか？2名のPdMが回す組織を解剖 — Opinio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --royal: #002366;
+    --royal-deep: #001A4D;
+    --royal-50: #EFF3FC;
+    --royal-100: #DCE5F7;
+    --accent: #3B5FD9;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --line: #E2E8F0;
+    --line-soft: #F1F5F9;
+    --bg: #FFFFFF;
+    --bg-tint: #F8FAFC;
+    --success: #059669;
+    --success-soft: #ECFDF5;
+    --warm: #F59E0B;
+    --warm-soft: #FEF3C7;
+    --pink: #DB2777;
+    --pink-soft: #FCE7F3;
+    --purple: #7C3AED;
+    --purple-soft: #F3E8FF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #fff;
+    color: var(--ink);
+    font-family: "Noto Sans JP", -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.9;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* HEADER */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 48px;
+    display: flex; align-items: center; gap: 40px;
+  }
+  .brand { font-family: "Inter", sans-serif; font-weight: 700; font-size: 22px; color: var(--royal); letter-spacing: -0.02em; }
+  .nav-links { display: flex; gap: 32px; flex: 1; }
+  .nav-links a { color: var(--ink-soft); font-size: 14px; font-weight: 500; position: relative; }
+  .nav-links a.active { color: var(--royal); font-weight: 600; }
+  .nav-links a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -20px; height: 2px; background: var(--royal); }
+  .nav-actions { display: flex; gap: 12px; align-items: center; }
+  .link-btn { color: var(--ink-soft); font-size: 14px; font-weight: 500; padding: 8px 16px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; font-family: inherit; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; border: none; }
+  .btn--primary { background: var(--royal); color: #fff; }
+
+  /* パンくず */
+  .breadcrumb {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 24px 0;
+    font-size: 12px;
+    color: var(--ink-mute);
+  }
+  .breadcrumb a:hover { color: var(--royal); }
+  .breadcrumb .sep { margin: 0 6px; }
+
+  /* ARTICLE */
+  article.article {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* 記事ヒーロー */
+  .article-hero {
+    margin-bottom: 40px;
+  }
+  .article-hero__cat {
+    margin-bottom: 14px;
+  }
+  .cat-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .cat-badge.employee { background: var(--success-soft); color: var(--success); }
+
+  .article-hero__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 700;
+    font-size: 34px;
+    color: var(--ink);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    letter-spacing: 0.02em;
+  }
+  .article-hero__subtitle {
+    font-family: "Noto Serif JP", serif;
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    margin-bottom: 24px;
+    font-weight: 400;
+  }
+  .article-hero__meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 12px;
+    color: var(--ink-mute);
+    flex-wrap: wrap;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 32px;
+  }
+  .article-hero__meta .company-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .company-mini__logo {
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .c-timee { background: linear-gradient(135deg, #F97316, #EA580C); }
+  .c-smarthr { background: linear-gradient(135deg, #00B4D8, #0077B6); }
+  .c-layerx { background: linear-gradient(135deg, #1E40AF, var(--royal)); }
+  .c-money { background: linear-gradient(135deg, #DC2626, #991B1B); }
+
+  /* アイキャッチ画像 */
+  .article-hero__image {
+    width: 100%;
+    height: 380px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--success) 0%, #047857 40%, #065F46 100%);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+  .article-hero__image::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                      radial-gradient(circle at 70% 70%, rgba(255,255,255,0.1) 0%, transparent 50%);
+  }
+  .article-hero__image-icon {
+    opacity: 0.25;
+    position: relative;
+  }
+  .article-hero__image-caption {
+    position: absolute;
+    bottom: 16px;
+    right: 20px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.85);
+    font-family: "Inter", sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  /* 取材対象者プロフィールカード */
+  .subject-card {
+    background: var(--bg-tint);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px 22px;
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 40px;
+  }
+  .subject-card__avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 22px;
+    background: linear-gradient(135deg, var(--royal), var(--accent));
+    flex-shrink: 0;
+    position: relative;
+  }
+  .subject-card__avatar.mentor {
+    box-shadow: 0 0 0 2.5px var(--royal), 0 0 0 4px var(--bg-tint);
+  }
+  .subject-card__mentor-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 22px; height: 22px;
+    background: linear-gradient(135deg, var(--royal), var(--accent));
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-tint);
+  }
+  .subject-card__body { min-width: 0; }
+  .subject-card__name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .subject-card__name a:hover { color: var(--royal); text-decoration: underline; }
+  .subject-card__status {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .subject-card__status strong { color: var(--royal); font-weight: 600; }
+  .subject-card__link {
+    color: var(--royal);
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .subject-card__link:hover { text-decoration: underline; }
+
+  /* 取材対象（企業）版のスタイル */
+  .subject-card--company .subject-card__company-logo {
+    width: 56px; height: 56px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #F97316, #EA580C);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+  }
+
+  /* 本文 */
+  .article-body {
+    font-size: 16px;
+    color: var(--ink);
+    line-height: 2;
+  }
+  .article-body p {
+    margin-bottom: 28px;
+  }
+  .article-body p strong {
+    color: var(--royal);
+    font-weight: 600;
+    background: linear-gradient(to top, var(--royal-50) 40%, transparent 40%);
+    padding: 0 2px;
+  }
+
+  /* 編集部前書きブロック */
+  .editor-intro {
+    padding: 24px 26px;
+    background: linear-gradient(135deg, var(--royal-50) 0%, #fff 100%);
+    border-left: 4px solid var(--royal);
+    border-radius: 0 12px 12px 0;
+    margin-bottom: 40px;
+    font-size: 15px;
+    line-height: 1.95;
+    color: var(--ink);
+  }
+  .editor-intro__label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    margin-bottom: 10px;
+  }
+  .editor-intro p {
+    margin-bottom: 16px;
+  }
+  .editor-intro p:last-child { margin-bottom: 0; }
+
+  /* Q&A セクション */
+  .qa-section {
+    margin-top: 48px;
+    padding-top: 40px;
+    border-top: 1px solid var(--line);
+  }
+  .qa-section__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--ink);
+    margin-bottom: 32px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .qa-section__title-en {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .qa {
+    margin-bottom: 40px;
+  }
+  .qa:last-child { margin-bottom: 0; }
+  .qa__q {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--line);
+  }
+  .qa__q-num {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--royal);
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+    padding-top: 6px;
+  }
+  .qa__q-text {
+    font-family: "Noto Serif JP", serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .qa__a {
+    font-size: 16px;
+    line-height: 2;
+    color: var(--ink);
+    padding-left: 36px;
+  }
+  .qa__a p {
+    margin-bottom: 16px;
+  }
+
+  /* 章（取材レポート用） */
+  .chapter {
+    margin-top: 48px;
+    padding-top: 40px;
+    border-top: 1px solid var(--line);
+  }
+  .chapter__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .chapter__num {
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--purple);
+    letter-spacing: 0.1em;
+    padding: 2px 10px;
+    border: 2px solid var(--purple);
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .chapter__list {
+    list-style: none;
+    padding: 16px 20px;
+    background: var(--bg-tint);
+    border-radius: 10px;
+    margin: 20px 0;
+  }
+  .chapter__list li {
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .chapter__list li:last-child { border-bottom: none; }
+  .chapter__list li strong {
+    color: var(--royal);
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    margin-right: 10px;
+  }
+
+  /* 取材協力者 */
+  .contributors {
+    margin-top: 56px;
+    padding: 28px 30px;
+    background: linear-gradient(135deg, var(--purple-soft) 0%, #fff 100%);
+    border: 1px solid #E9D5FF;
+    border-radius: 16px;
+  }
+  .contributors__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--ink);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .contributors__title-en {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--purple);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .contributors__desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+  .contributors-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .contributor {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .contributor:hover {
+    border-color: var(--purple);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+  }
+  .contributor__avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+  .contributor__name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .contributor__role {
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+
+  /* 引用 */
+  .quote {
+    padding: 20px 0;
+    margin: 20px 0;
+    border-left: 3px solid var(--royal);
+    padding-left: 20px;
+    font-family: "Noto Serif JP", serif;
+    font-size: 17px;
+    color: var(--ink);
+    font-style: italic;
+    line-height: 1.8;
+  }
+
+  /* 編集後記 */
+  .editor-outro {
+    margin-top: 48px;
+    padding: 24px 26px;
+    background: var(--bg-tint);
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.9;
+    color: var(--ink-soft);
+  }
+  .editor-outro__label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.15em;
+    margin-bottom: 10px;
+  }
+
+  /* メンター相談CTA（メンター登録時のみ） */
+  .mentor-cta {
+    margin-top: 56px;
+    background: linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%);
+    color: #fff;
+    padding: 36px 32px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 20px 48px rgba(0, 35, 102, 0.25);
+  }
+  .mentor-cta__label {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    opacity: 0.9;
+    margin-bottom: 10px;
+  }
+  .mentor-cta__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .mentor-cta__desc {
+    font-size: 13px;
+    line-height: 1.8;
+    opacity: 0.9;
+    margin-bottom: 24px;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .mentor-cta__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 32px;
+    background: #fff;
+    color: var(--royal);
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .mentor-cta__btn:hover { transform: translateY(-2px); }
+
+  /* 関連セクション（記事外）*/
+  .related {
+    background: var(--bg-tint);
+    padding: 60px 24px 80px;
+    border-top: 1px solid var(--line);
+    margin-top: 60px;
+  }
+  .related__inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* 関連ブロック */
+  .related-block {
+    margin-bottom: 48px;
+  }
+  .related-block:last-child { margin-bottom: 0; }
+  .related-block__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .related-block__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .related-block__title-en {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .related-block__link {
+    color: var(--royal);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .related-block__link:hover { text-decoration: underline; }
+
+  /* 記事カード横スクロール */
+  .related-block__body {
+    position: relative;
+  }
+  .related-row-wrap {
+    position: relative;
+    overflow: hidden;
+  }
+  .related-article-row {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    padding: 4px 0 12px;
+    scrollbar-width: none;
+  }
+  .related-article-row::-webkit-scrollbar { display: none; }
+  .related-article-row > .related-article {
+    flex: 0 0 calc((100% - 48px) / 4);
+    scroll-snap-align: start;
+    min-width: 0;
+  }
+
+  /* 左右ナビボタン */
+  .related-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px; height: 40px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--ink);
+    z-index: 10;
+    transition: all 0.2s;
+  }
+  .related-nav:hover {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+    box-shadow: 0 6px 18px rgba(0, 35, 102, 0.25);
+  }
+  .related-nav--prev { left: -18px; }
+  .related-nav--next { right: -18px; }
+  .related-nav:disabled {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .related-article {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+  }
+  .related-article:hover {
+    border-color: var(--royal-100);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    transform: translateY(-2px);
+  }
+  .related-article__img {
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+  .related-article__img-icon { opacity: 0.3; }
+  .related-article__body { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; }
+  .related-article__cat { margin-bottom: 8px; }
+  .cat-badge.ceo { background: var(--royal-50); color: var(--royal); }
+  .cat-badge.mentor { background: var(--warm-soft); color: #B45309; }
+  .cat-badge.report { background: var(--purple-soft); color: var(--purple); }
+  .related-article__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin-bottom: 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .related-article__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--ink-mute);
+    margin-top: auto;
+  }
+
+  /* 求人カード */
+  .related-jobs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .related-job {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .related-job:hover {
+    border-color: var(--royal-100);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  }
+  .related-job__head {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .related-job__logo {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #F97316, #EA580C);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .related-job__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+    line-height: 1.4;
+  }
+  .related-job__company {
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .related-job__salary {
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--royal);
+    margin-top: 8px;
+  }
+
+  /* 企業詳細カード */
+  .related-company {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 18px;
+    align-items: center;
+    padding: 22px 24px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .related-company:hover {
+    border-color: var(--royal-100);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  }
+  .related-company__logo {
+    width: 80px; height: 80px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #F97316, #EA580C);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 32px;
+    box-shadow: 0 6px 18px rgba(249, 115, 22, 0.25);
+  }
+  .related-company__body { min-width: 0; }
+  .related-company__name {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .related-company__mission {
+    font-family: "Noto Serif JP", serif;
+    font-size: 13px;
+    color: var(--royal);
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+  .related-company__meta {
+    display: flex;
+    gap: 14px;
+    font-size: 11px;
+    color: var(--ink-mute);
+  }
+  .related-company__meta strong {
+    color: var(--ink);
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+  }
+  .related-company__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    background: var(--royal);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* レスポンシブ */
+  @media (max-width: 1200px) {
+    .related-article-row > .related-article { flex: 0 0 calc((100% - 32px) / 3); } /* 3枚 */
+  }
+  @media (max-width: 768px) {
+    .header { padding: 12px 20px; gap: 12px; }
+    .nav-links { display: none; }
+    .mode-switcher { padding: 10px 20px; top: 60px; flex-wrap: wrap; }
+    .mode-switcher__note { display: none; }
+    .breadcrumb { padding: 20px 20px 0; }
+    article.article { padding: 24px 20px 60px; }
+    .article-hero__title { font-size: 24px; }
+    .article-hero__subtitle { font-size: 15px; }
+    .article-hero__image { height: 240px; }
+    .subject-card { grid-template-columns: 48px 1fr; }
+    .subject-card__avatar { width: 48px; height: 48px; font-size: 18px; }
+    .subject-card__link { grid-column: 1 / -1; }
+    .article-body { font-size: 15px; }
+    .qa__q-text { font-size: 16px; }
+    .qa__a { font-size: 15px; padding-left: 0; }
+    .mentor-cta { padding: 28px 22px; }
+    .mentor-cta__title { font-size: 20px; }
+    .related { padding: 40px 20px 60px; }
+    .related-article-row > .related-article { flex: 0 0 75%; } /* モバイルでは約1.3枚 */
+    .related-jobs-grid { grid-template-columns: 1fr; }
+    .related-company { grid-template-columns: 60px 1fr; }
+    .related-company__logo { width: 60px; height: 60px; font-size: 24px; }
+    .related-company__cta { grid-column: 1 / -1; justify-content: center; }
+    .related-nav { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <a href="#" class="brand">Opinio</a>
+  <nav class="nav-links">
+    <a href="#">求人を探す</a>
+    <a href="#">企業を知る</a>
+    <a href="#">先輩に相談</a>
+    <a href="#" class="active">記事</a>
+  </nav>
+  <div class="nav-actions">
+    <a href="#" class="link-btn">ログイン</a>
+    <a href="#" class="btn btn--primary">無料登録</a>
+  </div>
+</header>
+
+<!-- パンくず -->
+<div class="breadcrumb">
+  <a href="#">Opinio</a>
+  <span class="sep">/</span>
+  <a href="#">記事</a>
+  <span class="sep">/</span>
+  <a href="#">取材レポート</a>
+  <span class="sep">/</span>
+  タイミーのプロダクト組織解剖
+</div>
+
+<!-- ARTICLE -->
+<article class="article">
+
+  <!-- 記事ヒーロー -->
+  <header class="article-hero">
+    <div class="article-hero__cat">
+      <span class="cat-badge report">取材レポート</span>
+    </div>
+    <h1 class="article-hero__title">タイミーのプロダクト組織はなぜ動きが速いのか？2名のPdMが回す組織を解剖</h1>
+    <p class="article-hero__subtitle">わずか2名のPdMで、1,270万人のユーザーが使うプロダクトと年商数百億の事業を支える。Opinio編集部がタイミー社内を3日間密着取材し、その組織構造と意思決定プロセスを解剖した。</p>
+    <div class="article-hero__meta">
+      <span class="company-mini">
+        <span class="company-mini__logo c-timee">T</span>
+        株式会社タイミー
+      </span>
+      <span>·</span>
+      <span>2026.02.05 公開</span>
+      <span>·</span>
+      <span>Report by Opinio編集部</span>
+    </div>
+
+    <!-- アイキャッチ -->
+    <div class="article-hero__image" style="background: linear-gradient(135deg, var(--purple) 0%, #5B21B6 60%, #4C1D95 100%);">
+      <svg class="article-hero__image-icon" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      <span class="article-hero__image-caption">Photo by Opinio編集部 / 2026.01</span>
+    </div>
+  </header>
+
+  <!-- 取材対象（企業） -->
+  <div class="subject-card subject-card--company">
+    <div class="subject-card__company-logo">T</div>
+    <div class="subject-card__body">
+      <div class="subject-card__name"><a href="#">株式会社タイミー</a></div>
+      <div class="subject-card__status">
+        「はたらく」を通じて人生の可能性を広げるインフラをつくる · <strong>1,642名</strong> · 東証グロース
+      </div>
+    </div>
+    <a href="#" class="subject-card__link">
+      企業詳細を見る
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+  </div>
+
+  <!-- 編集部前書き -->
+  <div class="editor-intro">
+    <div class="editor-intro__label">EDITOR'S NOTE</div>
+    <p>「うちのPdM、2人しかいないんですよ」。タイミーの開発組織のマネージャーが、当然のような顔で口にしたその言葉から、今回の取材は始まった。</p>
+    <p>1,270万人のワーカーが稼働し、20万事業所以上が導入するプラットフォーム――その巨大なプロダクトを支えるPdMが、わずか2名。<strong>なぜこの人数で回せているのか</strong>。そして、彼らの意思決定はなぜこんなに速いのか。</p>
+    <p>Opinio編集部はタイミーのオフィスに3日間密着し、PdM、EM、デザイナー、営業、CSなど、<strong>延べ8名の社員にインタビュー</strong>を実施。彼らの組織構造・意思決定プロセス・カルチャーを編集部視点で解剖した。この記事は、その取材の記録である。</p>
+  </div>
+
+  <!-- 記事本文（章立て形式） -->
+  <div class="article-body">
+
+    <p>タイミー本社の、ガラス張りの会議室。長テーブルを挟んで、プロダクト責任者の<strong>K氏</strong>が資料を開いて見せてくれた。そこには、シンプルな組織図が書かれている。PdMの箱が、たった2つ。</p>
+
+    <p>「このサイズで、プロダクトロードマップを回してるんです」</p>
+
+    <div class="quote">「増やせば増やすほど、意思決定の速度が落ちる。今の2名体制が、タイミーにとってベストなんです」</div>
+
+    <p>K氏の声には、確信があった。だが、1,270万人のワーカーが使うアプリ、20万以上の事業所が導入する大規模プラットフォーム――これを2名のPdMで回すというのは、業界の常識から見れば異常事態に近い。実際、編集部も当初は「本当に？」と半信半疑で取材を申し込んだ。</p>
+    
+    <p>だが、3日間の密着取材の後に見えてきたのは、「PdMが少ないから動きが速い」のではなく、<strong>「動きを速くするためにPdMを2名に留めている」</strong>という逆説的な設計思想だった。</p>
+
+  </div>
+
+  <!-- 章1 -->
+  <section class="chapter">
+    <h2 class="chapter__title">
+      <span class="chapter__num">01</span>
+      PdMは"翻訳者"ではなく、"意思決定者"である
+    </h2>
+    <div class="article-body">
+      <p>多くの企業でPdMは、ビジネス側と開発側の「翻訳者」として機能する。顧客の課題を仕様に翻訳し、エンジニアの制約をビジネスサイドに翻訳する。関係者が多くなれば、当然PdMの数も増えていく。</p>
+      <p>だがタイミーのPdMは、<strong>翻訳者ではなく「意思決定者」</strong>だ。K氏はこう語る。</p>
+      <div class="quote">「1週間に1度、経営メンバーとプロダクトロードマップのすり合わせをしていて、そこで大きな方針は決まっている。あとは、日々の細かい判断を僕らが現場で即断する。誰かに確認する時間は、基本的にない」</div>
+      <p>つまりPdMは、経営に近い層で大枠を合意し、現場では<strong>自律的に細部を決定する</strong>。その前提があるから、2名でも機能している。翻訳ではなく意思決定をしているので、人数は少なくていい、というわけだ。</p>
+      <p>これを聞いて、取材班は気づいた。これは<strong>「組織設計の問題」</strong>ではなく、<strong>「PdMの役割定義の問題」</strong>なのだ。</p>
+    </div>
+  </section>
+
+  <!-- 章2 -->
+  <section class="chapter">
+    <h2 class="chapter__title">
+      <span class="chapter__num">02</span>
+      「職種の壁」がない組織文化
+    </h2>
+    <div class="article-body">
+      <p>PdMの少なさを支えるもう1つの要素が、タイミー特有の<strong>「職種間の壁の薄さ」</strong>である。</p>
+      <p>例えば、取材中にエンタープライズ営業の<strong>田中翔太さん</strong>（※別記事「<a href="#" style="color: var(--royal); text-decoration: underline;">プロダクトを軸に営業まで広げる、職域を超える挑戦</a>」参照）と話す機会があった。彼は元タイミーのPdMで、現在は営業へ職域を越えた異動をしている。</p>
+      <div class="quote">「営業をやっていると、『この仕様だと顧客がこう誤解する』というのがすぐ分かるんです。それをPdMに伝えて、翌週にはUIが変わっている。PdMが2人しかいないから、意思決定が早いんですよ」</div>
+      <p>つまり、<strong>顧客接点の情報が、営業 → PdM → 実装 へと最短距離で流れる</strong>仕組みができている。これを可能にしているのが、「職種の壁が低い」という文化。営業がプロダクトに意見することを、誰も不自然に思わない。</p>
+      <p>同じくPdMの<strong>中村由紀さん</strong>（※別記事「<a href="#" style="color: var(--royal); text-decoration: underline;">「やる」と決めたら翌週には動き出す、意思決定のスピード</a>」参照）は、こう語る。</p>
+      <div class="quote">「『この機能どうですか？』って、営業からもCSからも、SlackでDMが直接来ます。それに対して、迷わず『やる』『やらない』を返す。考える時間は30分でいい」</div>
+      <p>2人のPdMの下には、多数の<strong>『議論パートナー』</strong>がいる。その議論パートナーが営業、CS、マーケ、エンジニアなど、全職種に分散している。だからPdMを増やす必要がない。</p>
+    </div>
+  </section>
+
+  <!-- 章3 -->
+  <section class="chapter">
+    <h2 class="chapter__title">
+      <span class="chapter__num">03</span>
+      意思決定のスピードは、なぜ落ちないのか
+    </h2>
+    <div class="article-body">
+      <p>意思決定が遅くなる企業には共通点がある。「誰が決めるか」が曖昧で、関係者が増え、会議が増える。タイミーは、この真逆を徹底している。</p>
+      <p>取材班は、タイミーの1週間の会議体を調査させてもらった。</p>
+      <ul class="chapter__list">
+        <li><strong>月曜 10:00</strong> — プロダクトロードマップ会議（30分、経営陣 + PdM2名）</li>
+        <li><strong>水曜 15:00</strong> — 開発チームのスプリントレビュー（60分）</li>
+        <li><strong>金曜 11:00</strong> — 顧客フィードバック共有会（30分、全職種横断）</li>
+      </ul>
+      <p><strong>たった3つ</strong>。これ以外の意思決定は、全てSlack上で完結している。PdMはこの3つの定例に出席し、残りの時間は全て実装と即断に使う。</p>
+      <p>「会議を増やせば、確かに関係者の納得感は上がる。でも、スピードは死ぬ」とK氏は言う。<strong>タイミーは、納得感より速度を選んでいる</strong>。そしてその速度は、組織の信頼で担保されている。</p>
+    </div>
+  </section>
+
+  <!-- 章4 -->
+  <section class="chapter">
+    <h2 class="chapter__title">
+      <span class="chapter__num">04</span>
+      この組織は、どこへ向かっていくのか
+    </h2>
+    <div class="article-body">
+      <p>取材の最後、K氏にこれからの組織の方向性を聞いた。</p>
+      <div class="quote">「PdMを3名、4名と増やすタイミングは必ず来ます。でも、そのときも『役割を分業する』のではなく、『全員がより広い範囲を見る』方向に設計するつもりです」</div>
+      <p>つまり、<strong>PdMの「数」ではなく「質」を変える</strong>ということ。それぞれのPdMが、より大きな意思決定の単位を担う形にしていく。</p>
+      <p>このような組織設計ができるのは、タイミーに<strong>強力なカルチャー</strong>があるからだろう。「動きが速い」という評判は、特定の個人の能力ではなく、<strong>組織全体の設計思想</strong>から生まれている。</p>
+    </div>
+  </section>
+
+  <!-- 取材協力者 -->
+  <section class="contributors">
+    <h2 class="contributors__title">
+      取材協力
+      <span class="contributors__title-en">Contributors</span>
+    </h2>
+    <p class="contributors__desc">この記事の取材にあたって、以下の皆さまにインタビューを実施しました。プロフィール・個別の社員インタビュー記事へのリンクは各名前から。</p>
+    <div class="contributors-grid">
+      <a href="#" class="contributor">
+        <div class="contributor__avatar" style="background: linear-gradient(135deg, var(--royal), var(--accent));">田</div>
+        <div class="contributor__body">
+          <div class="contributor__name">田中 翔太さん</div>
+          <div class="contributor__role">エンタープライズ営業（元PdM）</div>
+        </div>
+      </a>
+      <a href="#" class="contributor">
+        <div class="contributor__avatar" style="background: linear-gradient(135deg, #FBBF24, #D97706);">中</div>
+        <div class="contributor__body">
+          <div class="contributor__name">中村 由紀さん</div>
+          <div class="contributor__role">プロダクトマネージャー</div>
+        </div>
+      </a>
+      <a href="#" class="contributor">
+        <div class="contributor__avatar" style="background: linear-gradient(135deg, #34D399, var(--success));">山</div>
+        <div class="contributor__body">
+          <div class="contributor__name">山本 健一さん</div>
+          <div class="contributor__role">元タイミー・現FinTech CTO</div>
+        </div>
+      </a>
+      <a href="#" class="contributor">
+        <div class="contributor__avatar" style="background: linear-gradient(135deg, #6366F1, #818CF8);">K</div>
+        <div class="contributor__body">
+          <div class="contributor__name">K氏</div>
+          <div class="contributor__role">プロダクト責任者</div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- 編集後記 -->
+  <div class="editor-outro">
+    <div class="editor-outro__label">EDITOR'S OUTRO</div>
+    <p>取材を終えて気づいたのは、「タイミーの組織は特別」という結論ではなかった。むしろ、<strong>彼らがやっていることは、他の企業にも再現可能</strong>だということだ。</p>
+    <p>PdMを「意思決定者」として定義し、職種の壁を低くし、会議を減らし、Slackで即断する。これらは誰でも取り組める。だが、これを<strong>全社で一貫させる意志</strong>を持ち続けるのは難しい。タイミーが特別なのは、その一貫性を守り続けている点だ。</p>
+    <p>急成長する企業は、往々にして会議や関係者が増え、動きが遅くなる。タイミーは、<strong>急成長しながら動きを速く保つ</strong>ための仕組みを、組織設計と文化の両面で築いている。その姿は、他の事業を考えるすべての経営者にとってのヒントになるはずだ。</p>
+    <p>――― Opinio編集部</p>
+  </div>
+
+</article>
+
+<!-- 関連セクション -->
+<section class="related">
+  <div class="related__inner">
+
+    <!-- タイミーの企業情報カード -->
+    <div class="related-block">
+      <div class="related-block__head">
+        <div class="related-block__title">
+          この企業について
+          <span class="related-block__title-en">About the Company</span>
+        </div>
+      </div>
+      <a href="#" class="related-company">
+        <div class="related-company__logo">T</div>
+        <div class="related-company__body">
+          <div class="related-company__name">株式会社タイミー</div>
+          <div class="related-company__mission">「はたらく」を通じて人生の可能性を広げるインフラをつくる</div>
+          <div class="related-company__meta">
+            <span>IT/Web・<strong>1,642</strong>名・東証グロース</span>
+            <span>·</span>
+            <span>募集中 <strong>65</strong>件</span>
+            <span>·</span>
+            <span>Opinio取材済 <strong>28</strong>本</span>
+          </div>
+        </div>
+        <span class="related-company__cta">
+          企業詳細を見る
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </span>
+      </a>
+    </div>
+
+    <!-- タイミーの他の記事 -->
+    <div class="related-block">
+      <div class="related-block__head">
+        <div class="related-block__title">
+          タイミーの他の記事
+          <span class="related-block__title-en">More from Timee</span>
+        </div>
+        <a href="#" class="related-block__link">すべて見る →</a>
+      </div>
+      <div class="related-block__body">
+        <div class="related-row-wrap">
+          <div class="related-article-row">
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, var(--royal), var(--accent));">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge ceo">CEO・経営陣</span></div>
+                <h3 class="related-article__title">「タイミーの次の10年」CEO小川嶺が描く、スポットワークの次にあるもの</h3>
+                <div class="related-article__meta">
+                  <span>2026.03.20</span>
+                </div>
+              </div>
+            </article>
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, #FBBF24, #D97706);">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge employee">社員インタビュー</span></div>
+                <h3 class="related-article__title">「やる」と決めたら翌週には動き出す、意思決定のスピード</h3>
+                <div class="related-article__meta">
+                  <span>中村由紀さん · 2026.03.28</span>
+                </div>
+              </div>
+            </article>
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, var(--purple), #5B21B6);">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge report">取材レポート</span></div>
+                <h3 class="related-article__title">タイミーのプロダクト組織はなぜ動きが速いのか？2名のPdMが回す組織を解剖</h3>
+                <div class="related-article__meta">
+                  <span>2026.02.05</span>
+                </div>
+              </div>
+            </article>
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, #F472B6, var(--pink));">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge mentor">メンターインタビュー</span></div>
+                <h3 class="related-article__title">キャリアに悩む後輩の話を聞いて、自分の「選んできた軸」が見えた</h3>
+                <div class="related-article__meta">
+                  <span>田中翔太さん · 2026.01.22</span>
+                </div>
+              </div>
+            </article>
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, #F97316, #EA580C);">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge report">取材レポート</span></div>
+                <h3 class="related-article__title">タイミーの営業組織はなぜ急成長したのか？3段階の変遷を取材</h3>
+                <div class="related-article__meta">
+                  <span>2025.12.18</span>
+                </div>
+              </div>
+            </article>
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, #34D399, var(--success));">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge employee">社員インタビュー</span></div>
+                <h3 class="related-article__title">SIerから事業会社エンジニアへ、タイミーで得た「プロダクトへの情熱」</h3>
+                <div class="related-article__meta">
+                  <span>山本健一さん · 2026.02.14</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+        <button class="related-nav related-nav--prev" aria-label="前へ">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="related-nav related-nav--next" aria-label="次へ">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 同じ職種の他の記事（PdM/営業） -->
+    <div class="related-block">
+      <div class="related-block__head">
+        <div class="related-block__title">
+          記事で紹介した社員のインタビュー
+          <span class="related-block__title-en">Featured Employees</span>
+        </div>
+        <a href="#" class="related-block__link">すべて見る →</a>
+      </div>
+      <div class="related-block__body">
+        <div class="related-row-wrap">
+          <div class="related-article-row">
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, var(--success), #047857);">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge employee">社員インタビュー</span></div>
+                <h3 class="related-article__title">プロダクトを軸に営業まで広げる、職域を超える挑戦</h3>
+                <div class="related-article__meta">
+                  <span>田中翔太さん · 2025.10.12</span>
+                </div>
+              </div>
+            </article>
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, #FBBF24, #D97706);">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge employee">社員インタビュー</span></div>
+                <h3 class="related-article__title">「やる」と決めたら翌週には動き出す、意思決定のスピード</h3>
+                <div class="related-article__meta">
+                  <span>中村由紀さん · 2026.03.28</span>
+                </div>
+              </div>
+            </article>
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, #34D399, var(--success));">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge employee">社員インタビュー</span></div>
+                <h3 class="related-article__title">SIerから事業会社エンジニアへ、タイミーで得た「プロダクトへの情熱」</h3>
+                <div class="related-article__meta">
+                  <span>山本健一さん · 2026.02.14</span>
+                </div>
+              </div>
+            </article>
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, #FBBF24, #D97706);">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge mentor">メンターインタビュー</span></div>
+                <h3 class="related-article__title">キャリアに悩む後輩の話を聞いて、自分の「選んできた軸」が見えた</h3>
+                <div class="related-article__meta">
+                  <span>田中翔太さん · 2026.01.22</span>
+                </div>
+              </div>
+            </article>
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, #F472B6, var(--pink));">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge employee">社員インタビュー</span></div>
+                <h3 class="related-article__title">メルカリ→タイミーで見えた、急成長企業の仕事の違い</h3>
+                <div class="related-article__meta">
+                  <span>中村由紀さん · 2026.03.10</span>
+                </div>
+              </div>
+            </article>
+            <article class="related-article">
+              <div class="related-article__img" style="background: linear-gradient(135deg, #22D3EE, #0891B2);">
+                <svg class="related-article__img-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg>
+              </div>
+              <div class="related-article__body">
+                <div class="related-article__cat"><span class="cat-badge mentor">メンターインタビュー</span></div>
+                <h3 class="related-article__title">週1時間でいい、誰かの意思決定を支えられる実感</h3>
+                <div class="related-article__meta">
+                  <span>山本健一さん · 2025.11.30</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+        <button class="related-nav related-nav--prev" aria-label="前へ">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="related-nav related-nav--next" aria-label="次へ">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- タイミーの募集中求人 -->
+    <div class="related-block">
+      <div class="related-block__head">
+        <div class="related-block__title">
+          タイミーの募集中の求人
+          <span class="related-block__title-en">Open Positions at Timee</span>
+        </div>
+        <a href="#" class="related-block__link">すべての求人を見る（65件）→</a>
+      </div>
+      <div class="related-jobs-grid">
+        <a href="#" class="related-job">
+          <div class="related-job__head">
+            <div class="related-job__logo">T</div>
+            <div>
+              <div class="related-job__title">プロダクトマネージャー（タイミーキャリアプラス）</div>
+              <div class="related-job__company">株式会社タイミー · 東京 · フルリモート可</div>
+            </div>
+          </div>
+          <div class="related-job__salary">¥700-1,100万</div>
+        </a>
+        <a href="#" class="related-job">
+          <div class="related-job__head">
+            <div class="related-job__logo">T</div>
+            <div>
+              <div class="related-job__title">エンタープライズ営業（タイミー本体）</div>
+              <div class="related-job__company">株式会社タイミー · 東京 · ハイブリッド</div>
+            </div>
+          </div>
+          <div class="related-job__salary">¥800-1,200万</div>
+        </a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+  // 関連記事の横スクロール制御
+  document.querySelectorAll('.related-block__body').forEach(section => {
+    const row = section.querySelector('.related-article-row');
+    const prev = section.querySelector('.related-nav--prev');
+    const next = section.querySelector('.related-nav--next');
+    if (!row || !prev || !next) return;
+
+    const getScrollAmount = () => row.clientWidth * 0.8;
+
+    prev.addEventListener('click', () => {
+      row.scrollBy({ left: -getScrollAmount(), behavior: 'smooth' });
+    });
+    next.addEventListener('click', () => {
+      row.scrollBy({ left: getScrollAmount(), behavior: 'smooth' });
+    });
+
+    const updateNavState = () => {
+      const atStart = row.scrollLeft <= 2;
+      const atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 2;
+      prev.disabled = atStart;
+      next.disabled = atEnd;
+    };
+    row.addEventListener('scroll', updateNavState);
+    window.addEventListener('resize', updateNavState);
+    updateNavState();
+  });
+</script>
+
+</body>
+</html>

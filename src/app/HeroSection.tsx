@@ -24,6 +24,13 @@ type CompanyLogo = {
   url: string | null;
 };
 
+type RecentCase = {
+  id: string;
+  worry_category: string;
+  worry_summary: string;
+  insight: string;
+};
+
 // ─── Logo helpers ─────────────────────────────────────
 
 const LOGO_COLORS = [
@@ -47,13 +54,14 @@ function SmallLogo({
   size?: number;
 }) {
   const [err, setErr] = useState(false);
-  let clearbit: string | null = null;
+  let clearbitLogo: string | null = null;
   if (companyUrl) {
     try {
-      clearbit = `https://www.google.com/s2/favicons?domain=${new URL(companyUrl).hostname}&sz=128`;
+      const domain = new URL(companyUrl).hostname;
+      clearbitLogo = `https://logo.clearbit.com/${domain}`;
     } catch {}
   }
-  const src = logoUrl || clearbit;
+  const src = logoUrl || clearbitLogo;
   const color = getLogoColor(name);
 
   if (err || !src) {
@@ -104,7 +112,7 @@ function MatchCard({ job }: { job: MatchJob }) {
           <h4 className="text-[13px] font-semibold text-gray-800 leading-tight line-clamp-1">
             {job.title}
           </h4>
-          <p className="text-[11px] text-gray-400 mt-0.5">{job.company_name}</p>
+          <p className="text-[11px] text-gray-600 mt-0.5">{job.company_name}</p>
         </div>
         {job.salary_min && job.salary_max && (
           <span className="text-[11px] text-gray-500 font-medium flex-shrink-0 pt-0.5">
@@ -131,7 +139,7 @@ function MatchCard({ job }: { job: MatchJob }) {
         className="text-[11px] leading-relaxed px-3 py-2 mb-2.5"
         style={{ background: "#E1F5EE", borderRadius: 7, color: "#0F6E56" }}
       >
-        {job.match_reason}
+        {job.match_reason.length > 38 ? job.match_reason.slice(0, 38) + "…" : job.match_reason}
       </p>
 
       {/* Tags */}
@@ -156,29 +164,17 @@ function MatchCard({ job }: { job: MatchJob }) {
 
 function TickerLogo({ company }: { company: CompanyLogo }) {
   const [err, setErr] = useState(false);
-  let clearbit: string | null = null;
+  let clearbitLogo: string | null = null;
   if (company.url) {
     try {
-      clearbit = `https://www.google.com/s2/favicons?domain=${new URL(company.url).hostname}&sz=128`;
+      clearbitLogo = `https://logo.clearbit.com/${new URL(company.url).hostname}`;
     } catch {}
   }
-  const src = company.logo_url || clearbit;
+  const src = company.logo_url || clearbitLogo;
 
+  // Hide entirely if no image or image failed to load
   if (err || !src) {
-    return (
-      <div
-        className="flex items-center justify-center text-white font-bold flex-shrink-0"
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          backgroundColor: getLogoColor(company.name),
-          fontSize: 16,
-        }}
-      >
-        {company.name[0]}
-      </div>
-    );
+    return null;
   }
   return (
     <img
@@ -197,10 +193,12 @@ export default function HeroSection({
   matchJobs,
   companyLogos,
   isLoggedIn,
+  recentCases = [],
 }: {
   matchJobs: MatchJob[];
   companyLogos: CompanyLogo[];
   isLoggedIn: boolean;
+  recentCases?: RecentCase[];
 }) {
   // Stats data
   const stats = [
@@ -217,12 +215,12 @@ export default function HeroSection({
       {/* ─── Hero ─── */}
       <section className="bg-white">
         <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-stretch min-h-[480px]">
+          <div className="flex items-start">
 
             {/* ── Left Column ── */}
-            <div className="flex-1 flex flex-col justify-center py-16 pr-12">
+            <div className="flex-1 flex flex-col py-8 pr-12">
               {/* Title — Mincho */}
-              <h1 className="mb-6">
+              <h1 className="mb-4">
                 <span
                   className="block text-[32px] md:text-[40px] leading-tight text-gray-800"
                   style={{ fontFamily: "'Noto Serif JP', 'Yu Mincho', serif", fontWeight: 400 }}
@@ -241,10 +239,10 @@ export default function HeroSection({
                 </span>
               </h1>
 
-              <p className="text-[14px] text-gray-400 leading-relaxed mb-6 max-w-md">
-                IT/SaaS業界のビジネス職に特化。
+              <p className="text-[14px] text-gray-600 leading-relaxed mb-4 max-w-md">
+                人と話すと、気づきが変わる。気づきが変わると、行動が変わる。
                 <br />
-                カルチャー・雰囲気で企業を選べる転職サービス。
+                行動が変わると、結果が変わる。
               </p>
 
               {/* 早期離職ゼロの理由 */}
@@ -252,63 +250,54 @@ export default function HeroSection({
                 background: "#E1F5EE",
                 borderRadius: 10,
                 padding: "12px 16px",
-                marginBottom: 24,
+                marginBottom: 16,
                 maxWidth: 400,
               }}>
                 <div style={{ fontSize: 10, color: "#0F6E56", fontWeight: 500, marginBottom: 4 }}>
                   早期離職ゼロの理由
                 </div>
-                <div style={{ fontSize: 12, color: "#085041", lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, color: "#085041", lineHeight: 1.5 }}>
                   カルチャー・働き方・マッチ理由を事前に知れるから、入社後のギャップが生まれません。創業以来、早期離職は0件です。
                 </div>
               </div>
 
-              {/* CTA — 対話起点 */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24, maxWidth: 400 }}>
-                <Link
-                  href="/career-consultation"
-                  className="text-[14px] font-medium text-white transition-colors text-center"
-                  style={{ display: "block", padding: "14px 20px", background: "#1D9E75", borderRadius: 10 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#0F6E56")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#1D9E75")}
-                >
-                  現役SaaS実務家に無料で相談する →
+              {/* メインCTA：1つだけ・大きく・迷わせない */}
+              <Link
+                href="/career-consultation"
+                className="text-white transition-colors text-center"
+                style={{
+                  display: "block",
+                  padding: "20px 40px",
+                  background: "#1D9E75",
+                  borderRadius: 14,
+                  maxWidth: 400,
+                  marginBottom: 14,
+                  fontSize: 17,
+                  fontWeight: 700,
+                  letterSpacing: "-0.2px",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#0F6E56")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "#1D9E75")}
+              >
+                現役SaaS実務家に無料で相談する →
+              </Link>
+
+              {/* サブリンク：テキストのみ・小さく */}
+              <div style={{ display: "flex", gap: 20, maxWidth: 380, justifyContent: "center", marginBottom: 16 }}>
+                <Link href="/consultation-cases" className="text-[12px] hover:text-primary transition-colors" style={{ color: "#9ca3af", textDecoration: "none" }}>
+                  相談事例を見る
                 </Link>
-                <Link
-                  href="/companies"
-                  className="text-[13px] transition-colors text-center"
-                  style={{
-                    display: "block",
-                    padding: "13px 20px",
-                    border: "0.5px solid #d1d5db",
-                    borderRadius: 10,
-                    color: "#6b7280",
-                    background: "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#1D9E75";
-                    e.currentTarget.style.color = "#1D9E75";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "#d1d5db";
-                    e.currentTarget.style.color = "#6b7280";
-                  }}
-                >
-                  まず企業を見てみる
+                <span style={{ color: "#d1d5db" }}>·</span>
+                <Link href="/companies" className="text-[12px] hover:text-primary transition-colors" style={{ color: "#9ca3af", textDecoration: "none" }}>
+                  企業を探す
                 </Link>
-                <div style={{ textAlign: "center", paddingTop: 4 }}>
-                  <Link
-                    href="/for-companies"
-                    className="text-[12px] transition-colors"
-                    style={{ color: "#9ca3af", textDecoration: "none" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "#1D9E75")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "#9ca3af")}
-                  >
-                    採用担当者の方はこちら →
-                  </Link>
-                </div>
+                <span style={{ color: "#d1d5db" }}>·</span>
+                <Link href="/auth/signup" className="text-[12px] hover:text-primary transition-colors" style={{ color: "#9ca3af", textDecoration: "none" }}>
+                  無料登録
+                </Link>
               </div>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 24 }}>
+
+              <div style={{ fontSize: 11, color: "#9ca3af", maxWidth: 380, marginBottom: 24 }}>
                 完全無料 · 営業なし · 30分で気づきが変わる
               </div>
 
@@ -331,9 +320,9 @@ export default function HeroSection({
                       >
                         {s.value}
                       </span>
-                      <span className="text-[12px] text-gray-400">{s.unit}</span>
+                      <span className="text-[12px] text-gray-600">{s.unit}</span>
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{s.label}</p>
+                    <p className="text-[10px] text-gray-600 mt-0.5">{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -346,8 +335,8 @@ export default function HeroSection({
             />
 
             {/* ── Right Column: Match Cards ── */}
-            <div className="hidden md:flex flex-col justify-center w-[380px] flex-shrink-0 pl-10 py-12">
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-4">
+            <div className="hidden md:flex flex-col w-[380px] flex-shrink-0 pl-10 py-8">
+              <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-4">
                 あなたへのおすすめ求人
               </p>
               <div className="space-y-3">
@@ -381,6 +370,74 @@ export default function HeroSection({
                   return <MatchCard key={job.id} job={job} />;
                 })}
               </div>
+
+              {/* Recent consultation cases */}
+              {recentCases.length > 0 && (
+                <div style={{ marginTop: 32 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12, color: "#6b7280" }}>
+                    実際の相談事例
+                  </div>
+                  {recentCases.map((c) => (
+                    <div
+                      key={c.id}
+                      style={{
+                        background: "#fff",
+                        border: "0.5px solid #e5e7eb",
+                        borderRadius: 12,
+                        padding: "12px 14px",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div style={{ fontSize: 11, color: "#0F6E56", marginBottom: 4 }}>
+                        {c.worry_category}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "#6b7280",
+                          marginBottom: 6,
+                          lineHeight: 1.5,
+                          overflow: "hidden",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical" as const,
+                        }}
+                      >
+                        {c.worry_summary}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "#085041",
+                          background: "#E1F5EE",
+                          borderRadius: 6,
+                          padding: "5px 8px",
+                          lineHeight: 1.5,
+                          overflow: "hidden",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical" as const,
+                        }}
+                      >
+                        {c.insight}
+                      </div>
+                    </div>
+                  ))}
+                  <Link
+                    href="/consultation-cases"
+                    style={{
+                      display: "block",
+                      textAlign: "center",
+                      fontSize: 12,
+                      color: "#1D9E75",
+                      textDecoration: "none",
+                      padding: "8px 0",
+                    }}
+                  >
+                    すべての相談事例を見る →
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

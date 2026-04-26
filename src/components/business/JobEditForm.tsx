@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo } from "react";
+import { useAutoSave } from "@/hooks/useAutoSave";
 import Link from "next/link";
 import type { BizJob } from "@/lib/business/mockJobs";
 import { JobEditSubNav, type EditSection } from "./JobEditSubNav";
@@ -31,7 +32,6 @@ const SECTION_DEFS = [
   { id: "settings",     label: "公開設定",        showStatus: false },
 ];
 
-type SaveState = "idle" | "saving" | "saved";
 type FormMode = "new" | "edit";
 
 type FormState = {
@@ -195,20 +195,7 @@ type Props = {
 export function JobEditForm({ mode, initialJob = null }: Props) {
   const [form, setForm] = useState<FormState>(() => jobToForm(initialJob));
   const [activeSection, setActiveSection] = useState("basic");
-  const [saveState, setSaveState] = useState<SaveState>("idle");
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // 自動保存 700ms debounce
-  const triggerAutosave = useCallback(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    if (savedTimer.current) clearTimeout(savedTimer.current);
-    setSaveState("saving");
-    saveTimer.current = setTimeout(() => {
-      setSaveState("saved");
-      savedTimer.current = setTimeout(() => setSaveState("idle"), 2000);
-    }, 700);
-  }, []);
+  const { saveState, trigger: triggerAutosave } = useAutoSave();
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));

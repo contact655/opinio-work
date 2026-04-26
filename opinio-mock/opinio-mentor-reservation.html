@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>渡辺美穂さんに相談を予約する — Opinio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --royal: #002366;
+    --royal-deep: #001A4D;
+    --royal-50: #EFF3FC;
+    --royal-100: #DCE5F7;
+    --accent: #3B5FD9;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --line: #E2E8F0;
+    --line-soft: #F1F5F9;
+    --bg: #FFFFFF;
+    --bg-tint: #F8FAFC;
+    --success: #059669;
+    --success-soft: #ECFDF5;
+    --warm: #F59E0B;
+    --warm-soft: #FEF3C7;
+    --purple: #7C3AED;
+    --purple-soft: #F3E8FF;
+    --pink: #DB2777;
+    --pink-soft: #FCE7F3;
+    --error: #DC2626;
+    --error-soft: #FEE2E2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-tint);
+    color: var(--ink);
+    font-family: "Noto Sans JP", -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* HEADER */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 48px;
+    display: flex; align-items: center; gap: 40px;
+  }
+  .brand { font-family: "Inter", sans-serif; font-weight: 700; font-size: 22px; color: var(--royal); letter-spacing: -0.02em; }
+  .nav-links { display: flex; gap: 32px; flex: 1; }
+  .nav-links a { color: var(--ink-soft); font-size: 14px; font-weight: 500; position: relative; }
+  .nav-links a.active { color: var(--royal); font-weight: 600; }
+  .nav-links a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -18px; height: 2px; background: var(--royal); }
+  .nav-actions { display: flex; gap: 12px; align-items: center; }
+  .btn-link { color: var(--ink-soft); font-size: 14px; font-weight: 500; padding: 8px 16px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; font-family: inherit; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; border: none; }
+  .btn--primary { background: var(--royal); color: #fff; }
+
+  /* パンくず */
+  .breadcrumb {
+    background: var(--bg-tint);
+    padding: 14px 48px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--ink-mute);
+  }
+  .breadcrumb__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .breadcrumb a:hover { color: var(--royal); }
+  .breadcrumb .sep { margin: 0 6px; color: var(--ink-mute); }
+
+  /* メインラッパー */
+  .main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+  }
+
+  /* ページタイトル */
+  .page-head {
+    margin-bottom: 32px;
+  }
+  .page-head__label {
+    display: inline-block;
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--royal);
+    background: var(--royal-50);
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.15em;
+    margin-bottom: 14px;
+  }
+  .page-head__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 500;
+    font-size: 32px;
+    color: var(--ink);
+    line-height: 1.5;
+    letter-spacing: 0.02em;
+    margin-bottom: 10px;
+  }
+  .page-head__desc {
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.9;
+  }
+
+  /* メンターカード（誰に相談するか） */
+  .mentor-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 18px;
+    align-items: center;
+  }
+  .mentor-card__avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #A78BFA, var(--purple));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 22px;
+    position: relative;
+    box-shadow: 0 0 0 2.5px var(--royal), 0 0 0 4px #fff;
+  }
+  .mentor-card__badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 22px; height: 22px;
+    background: linear-gradient(135deg, var(--royal), var(--accent));
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+  }
+  .mentor-card__body { min-width: 0; }
+  .mentor-card__label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+  }
+  .mentor-card__name {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .mentor-card__role {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .mentor-card__change {
+    color: var(--royal);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .mentor-card__change:hover { text-decoration: underline; }
+
+  /* ステップ説明（予約の流れ） */
+  .flow-steps {
+    background: linear-gradient(135deg, var(--royal-50) 0%, #fff 100%);
+    border: 1px solid var(--royal-100);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 40px;
+  }
+  .flow-steps__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--royal);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .flow-steps__desc {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .flow-list {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    margin-top: 8px;
+  }
+  .flow-item {
+    flex: 1;
+    min-width: 110px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+  }
+  .flow-item:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 14px;
+    left: calc(50% + 18px);
+    right: calc(-50% + 18px);
+    height: 2px;
+    background: var(--royal-100);
+  }
+  .flow-item__num {
+    width: 28px; height: 28px;
+    background: #fff;
+    border: 2px solid var(--royal-100);
+    color: var(--royal);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    z-index: 1;
+    margin-bottom: 6px;
+  }
+  .flow-item:first-child .flow-item__num {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .flow-item__text {
+    font-size: 10px;
+    color: var(--ink-soft);
+    font-weight: 600;
+    line-height: 1.4;
+    padding: 0 4px;
+  }
+
+  /* フォームセクション */
+  .form-section {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+  }
+  .form-section__num {
+    display: inline-block;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--royal);
+    background: var(--royal-50);
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .form-section__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .form-section__desc {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+
+  /* フォーム要素 */
+  .form-group { margin-bottom: 20px; }
+  .form-group:last-child { margin-bottom: 0; }
+  .form-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .form-label__required {
+    color: var(--error);
+    font-size: 11px;
+  }
+  .form-label__optional {
+    color: var(--ink-mute);
+    font-size: 10px;
+    font-weight: 400;
+  }
+  .form-input, .form-textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: #fff;
+    transition: all 0.15s;
+  }
+  .form-input:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--royal);
+    box-shadow: 0 0 0 3px var(--royal-50);
+  }
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.8;
+  }
+  .form-hint {
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-top: 6px;
+    line-height: 1.7;
+  }
+
+  /* 相談テーマ選択（チップ式） */
+  .theme-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .theme-chip {
+    padding: 8px 14px;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .theme-chip:hover {
+    border-color: var(--royal-100);
+    background: var(--royal-50);
+    color: var(--royal);
+  }
+  .theme-chip.active {
+    border-color: var(--royal);
+    background: var(--royal);
+    color: #fff;
+  }
+  .theme-chip.active::before {
+    content: "✓";
+    font-weight: 700;
+  }
+
+  /* 希望時間帯（チェックボックスタグ） */
+  .time-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .time-option {
+    padding: 12px 10px;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .time-option:hover {
+    border-color: var(--royal-100);
+    background: var(--royal-50);
+  }
+  .time-option.active {
+    border-color: var(--royal);
+    background: var(--royal-50);
+    color: var(--royal);
+  }
+  .time-option__label {
+    font-size: 11px;
+    color: var(--ink-mute);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .time-option.active .time-option__label {
+    color: var(--royal);
+  }
+
+  /* 注意事項ブロック */
+  .notice-block {
+    background: var(--warm-soft);
+    border: 1px solid #FDE68A;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 20px;
+  }
+  .notice-block__title {
+    font-weight: 700;
+    font-size: 13px;
+    color: #B45309;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .notice-block__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .notice-block__item {
+    font-size: 12px;
+    color: #78350F;
+    line-height: 1.8;
+    padding-left: 16px;
+    position: relative;
+  }
+  .notice-block__item::before {
+    content: "·";
+    position: absolute;
+    left: 4px;
+    font-weight: 700;
+  }
+
+  /* 無料バッジ */
+  .free-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--success-soft);
+    color: var(--success);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  /* 送信ブロック */
+  .submit-block {
+    background: linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%);
+    color: #fff;
+    border-radius: 14px;
+    padding: 28px 32px;
+    text-align: center;
+    margin-top: 32px;
+  }
+  .submit-block__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    line-height: 1.6;
+  }
+  .submit-block__desc {
+    font-size: 12px;
+    opacity: 0.9;
+    line-height: 1.8;
+    margin-bottom: 20px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .submit-btn {
+    padding: 14px 32px;
+    background: #fff;
+    color: var(--royal);
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .submit-btn:hover { transform: translateY(-2px); }
+  .submit-block__terms {
+    font-size: 10px;
+    opacity: 0.8;
+    margin-top: 14px;
+    line-height: 1.7;
+  }
+  .submit-block__terms a { color: #fff; text-decoration: underline; }
+
+  /* レスポンシブ */
+  @media (max-width: 768px) {
+    .header { padding: 12px 20px; gap: 12px; }
+    .nav-links { display: none; }
+    .breadcrumb { padding: 12px 20px; font-size: 11px; }
+    .main { padding: 32px 20px 60px; }
+    .page-head__title { font-size: 24px; }
+    .mentor-card { grid-template-columns: 48px 1fr; gap: 12px; padding: 16px 18px; }
+    .mentor-card__avatar { width: 48px; height: 48px; font-size: 18px; }
+    .mentor-card__change { grid-column: 1 / -1; text-align: right; padding-top: 4px; border-top: 1px dashed var(--line); }
+    .form-section { padding: 22px 20px; }
+    .time-grid { grid-template-columns: repeat(2, 1fr); }
+    .flow-list { gap: 4px; }
+    .flow-item:not(:last-child)::after { display: none; }
+    .submit-block { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <a href="#" class="brand">Opinio</a>
+  <nav class="nav-links">
+    <a href="#">求人を探す</a>
+    <a href="#">企業を知る</a>
+    <a href="#" class="active">先輩に相談</a>
+    <a href="#">記事</a>
+  </nav>
+  <div class="nav-actions">
+    <a href="#" class="btn-link">マイページ</a>
+  </div>
+</header>
+
+<!-- パンくず -->
+<nav class="breadcrumb">
+  <div class="breadcrumb__inner">
+    <a href="#">Opinio</a><span class="sep">/</span><a href="#">先輩に相談</a><span class="sep">/</span><a href="#">渡辺美穂さん</a><span class="sep">/</span>相談を予約する
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- ページタイトル -->
+  <div class="page-head">
+    <span class="page-head__label">TALK WITH MENTOR</span>
+    <h1 class="page-head__title">渡辺美穂さんに、相談を予約する。</h1>
+    <p class="page-head__desc">
+      30分の対話を予約します。このフォームの内容は<strong>Opinio編集部がまず確認</strong>し、マッチング精度を見てメンターに共有します。<br/>
+      質の高い対話を保つため、相談内容を事前に丁寧にご記入ください。
+    </p>
+  </div>
+
+  <!-- 誰に相談するか -->
+  <div class="mentor-card">
+    <div class="mentor-card__avatar">渡
+      <div class="mentor-card__badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg>
+      </div>
+    </div>
+    <div class="mentor-card__body">
+      <div class="mentor-card__label">MENTOR</div>
+      <div class="mentor-card__name">渡辺 美穂さん</div>
+      <div class="mentor-card__role">AIスタートアップA社 CPO · 元タイミー PdM</div>
+    </div>
+    <a href="#" class="mentor-card__change">別のメンターを選ぶ →</a>
+  </div>
+
+  <!-- 予約の流れ -->
+  <div class="flow-steps">
+    <div class="flow-steps__title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      予約の流れ
+    </div>
+    <p class="flow-steps__desc">
+      Opinioの相談は、メンターの質を守るため <strong>編集部がまず確認</strong> するプロセスを挟んでいます。<br/>
+      予約成立まで通常 <strong>2〜5営業日</strong> かかります。
+    </p>
+    <div class="flow-list">
+      <div class="flow-item">
+        <div class="flow-item__num">1</div>
+        <div class="flow-item__text">申請<br/>（あなた）</div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-item__num">2</div>
+        <div class="flow-item__text">編集部が<br/>内容を確認</div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-item__num">3</div>
+        <div class="flow-item__text">メンター<br/>承認</div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-item__num">4</div>
+        <div class="flow-item__text">日程調整<br/>（メール）</div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-item__num">5</div>
+        <div class="flow-item__text">対話<br/>（30分）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. 相談テーマ -->
+  <section class="form-section">
+    <span class="form-section__num">STEP 01</span>
+    <h2 class="form-section__title">相談したいテーマを選ぶ</h2>
+    <p class="form-section__desc">
+      渡辺さんが対応可能なテーマから、あなたが相談したいものを選んでください（複数選択可）。<br/>
+      マッチングの精度を上げるため、最低1つは選択してください。
+    </p>
+
+    <div class="form-group">
+      <label class="form-label">相談テーマ<span class="form-label__required">必須</span></label>
+      <div class="theme-chips">
+        <div class="theme-chip active">PdM → CPO への進化</div>
+        <div class="theme-chip">プロダクト組織の作り方</div>
+        <div class="theme-chip">スタートアップでの経営</div>
+        <div class="theme-chip">タイミー出身者からの視点</div>
+        <div class="theme-chip active">AI/LLM プロダクト開発</div>
+        <div class="theme-chip">PdM・プロダクト思考</div>
+      </div>
+      <div class="form-hint">※ メンターごとに提示されるテーマが変わります。ここは渡辺さんの相談可能テーマです。</div>
+    </div>
+  </section>
+
+  <!-- 2. 相談内容の詳細 -->
+  <section class="form-section">
+    <span class="form-section__num">STEP 02</span>
+    <h2 class="form-section__title">相談内容の詳細を記入する</h2>
+    <p class="form-section__desc">
+      30分を有意義に使うため、事前に「現状」「聞きたいこと」を整理してご記入ください。<br/>
+      ここに書いた内容は、編集部とメンターに共有されます。
+    </p>
+
+    <div class="form-group">
+      <label class="form-label">いまの状況<span class="form-label__required">必須</span></label>
+      <textarea class="form-textarea" rows="4" placeholder="例：現在、SaaS系スタートアップでPdMを2年経験しています。来年度からマネジメントも担うことになり、一方でCPOを目指すべきかを悩んでいます。"></textarea>
+      <div class="form-hint">現在のお立場・職種・経験年数・抱えている課題などを具体的に。</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">聞きたいこと<span class="form-label__required">必須</span></label>
+      <textarea class="form-textarea" rows="5" placeholder="例：&#13;1. PdMからマネージャーへの役割シフトで、最初に気をつけたことは何か&#13;2. CPOを目指すとしたら、今のうちに身につけておくべきスキルは&#13;3. 渡辺さんがタイミーから次のキャリアを選んだときの判断基準"></textarea>
+      <div class="form-hint">質問を箇条書きで整理すると、対話がスムーズに進みます。</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">相談の背景・伝えておきたいこと<span class="form-label__optional">任意</span></label>
+      <textarea class="form-textarea" rows="3" placeholder="例：渡辺さんの「話すことで自分の視点も整理される」という記事を読んで、お話を聞きたいと思いました。"></textarea>
+      <div class="form-hint">きっかけ・背景・期待していることなど、自由にお書きください。</div>
+    </div>
+  </section>
+
+  <!-- 3. 希望日時 -->
+  <section class="form-section">
+    <span class="form-section__num">STEP 03</span>
+    <h2 class="form-section__title">希望する曜日・時間帯</h2>
+    <p class="form-section__desc">
+      メンター承認後、実際の日程はメールでのやり取りで調整します。<br/>
+      あなたが一般的に都合の良い曜日・時間帯を選んでおいてください（複数選択可）。
+    </p>
+
+    <div class="form-group">
+      <label class="form-label">希望曜日<span class="form-label__optional">任意</span></label>
+      <div class="time-grid" style="grid-template-columns: repeat(7, 1fr);">
+        <div class="time-option">月</div>
+        <div class="time-option">火</div>
+        <div class="time-option active">水</div>
+        <div class="time-option">木</div>
+        <div class="time-option active">金</div>
+        <div class="time-option">土</div>
+        <div class="time-option">日</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">希望時間帯<span class="form-label__optional">任意</span></label>
+      <div class="time-grid">
+        <div class="time-option">
+          <div class="time-option__label">MORNING</div>
+          朝 9-12時
+        </div>
+        <div class="time-option active">
+          <div class="time-option__label">LUNCH</div>
+          昼 12-14時
+        </div>
+        <div class="time-option">
+          <div class="time-option__label">AFTERNOON</div>
+          午後 14-18時
+        </div>
+        <div class="time-option">
+          <div class="time-option__label">EVENING</div>
+          夕方 18-20時
+        </div>
+        <div class="time-option active">
+          <div class="time-option__label">NIGHT</div>
+          夜 20-22時
+        </div>
+        <div class="time-option">
+          <div class="time-option__label">LATE</div>
+          深夜 22時以降
+        </div>
+      </div>
+      <div class="form-hint">メンターと調整する際の目安です。実際の日程は個別にやり取りします。</div>
+    </div>
+  </section>
+
+  <!-- 4. 連絡先 -->
+  <section class="form-section">
+    <span class="form-section__num">STEP 04</span>
+    <h2 class="form-section__title">連絡先の確認</h2>
+    <p class="form-section__desc">
+      日程調整や事前情報の共有に使用します。登録時のメールアドレスが初期値で入っています。
+    </p>
+
+    <div class="form-group">
+      <label class="form-label">メールアドレス<span class="form-label__required">必須</span></label>
+      <input type="email" class="form-input" value="tanaka@example.com" />
+      <div class="form-hint">変更したい場合は上書きしてください。プロフィールのメールは変わりません。</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Zoom / Google Meet の希望<span class="form-label__optional">任意</span></label>
+      <select class="form-input" style="appearance:none; background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2214%22 height=%2214%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394A3B8%22 stroke-width=%223%22%3E%3Cpolyline points=%226 9 12 15 18 9%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; cursor: pointer;">
+        <option>どちらでも構わない</option>
+        <option>Zoom</option>
+        <option>Google Meet</option>
+        <option>その他</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- 注意事項 -->
+  <div class="notice-block">
+    <div class="notice-block__title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      申し込み前にご確認ください
+    </div>
+    <ul class="notice-block__list">
+      <li class="notice-block__item">編集部による精査で、マッチングが不適切と判断された場合、お繋ぎできないことがあります。</li>
+      <li class="notice-block__item">メンターのご事情により、承認されない場合があります。その際は別のメンターをご紹介します。</li>
+      <li class="notice-block__item">申請から対話実施まで通常2〜5営業日かかります。</li>
+      <li class="notice-block__item">予約成立後のキャンセルは、対話48時間前までにご連絡ください。</li>
+      <li class="notice-block__item">対話内容は編集部とも共有し、Opinioのサービス改善に匿名で活用させていただく場合があります。</li>
+    </ul>
+  </div>
+
+  <!-- 送信ブロック -->
+  <div class="submit-block">
+    <div class="free-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+      MVP期間中は無料でご利用いただけます
+    </div>
+    <div class="submit-block__title">
+      あなたのキャリアの話、<br/>
+      渡辺さんと一緒に整理してみませんか？
+    </div>
+    <p class="submit-block__desc">
+      このフォームを送信すると、Opinio編集部が内容を確認し、適切と判断した場合にメンターへ転送します。<br/>
+      編集部からの連絡は通常2営業日以内にお送りします。
+    </p>
+    <button class="submit-btn" onclick="event.preventDefault(); alert('モックなので実際の送信は行われません');">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      予約をリクエストする
+    </button>
+    <div class="submit-block__terms">
+      送信することで、<a href="#">利用規約</a>および<a href="#">プライバシーポリシー</a>に同意したものとみなされます。<br/>
+      料金体系は将来変更される可能性があります。
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // テーマチップの選択切替
+  document.querySelectorAll('.theme-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('active');
+    });
+  });
+
+  // 時間帯の選択切替
+  document.querySelectorAll('.time-option').forEach(option => {
+    option.addEventListener('click', () => {
+      option.classList.toggle('active');
+    });
+  });
+</script>
+
+</body>
+</html>

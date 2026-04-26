@@ -1,828 +1,696 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import Header from "@/components/Header";
-import { ImageUpload } from "@/components/ui/ImageUpload";
+import { useState, useMemo } from "react";
+import { BusinessLayout } from "@/components/business/BusinessLayout";
+import { CompanyEditSubNav, type CompanySubNavSection } from "@/components/business/CompanyEditSubNav";
+import { CompanyPublishStatusBar } from "@/components/business/CompanyPublishStatusBar";
+import { MarkdownEditor } from "@/components/business/MarkdownEditor";
+import { RequirementsTagInput } from "@/components/business/RequirementsTagInput";
+import { useAutoSave } from "@/hooks/useAutoSave";
+import { mockTenantContext } from "@/lib/business/mockTenantContext";
+import {
+  MOCK_COMPANY,
+  COMPANY_SECTIONS,
+  INDUSTRY_OPTIONS,
+  PHASE_OPTIONS,
+  REMOTE_OPTIONS,
+  WORK_SCHEDULE_OPTIONS,
+  type BizCompany,
+  type CompanySectionId,
+} from "@/lib/business/mockCompany";
 
-const SECTIONS = [
-  { id: "basic", label: "基本情報" },
-  { id: "mission", label: "ミッション・紹介文" },
-  { id: "members", label: "メンバー紹介" },
-  { id: "culture", label: "カルチャー・働き方" },
-  { id: "workstyle", label: "働き方・環境" },
-  { id: "hiring", label: "採用情報" },
-  { id: "selection", label: "選考情報" },
-  { id: "compensation", label: "評価・報酬" },
-  { id: "growth", label: "成長・キャリア" },
-  { id: "organization", label: "組織・カルチャー" },
-  { id: "benefits", label: "福利厚生" },
-];
+// ─── 定数 ───────────────────────────────────────────────────────────────────
 
-const CULTURE_CHIPS: Record<string, string[]> = {
-  work_style: [
-    "フルリモート",
-    "リモート中心",
-    "ハイブリッド",
-    "出社中心",
-    "フレックスタイム",
-  ],
-  culture: [
-    "フラットな組織",
-    "裁量が大きい",
-    "チームワーク重視",
-    "成果主義",
-    "挑戦を歓迎",
-    "ワークライフバランス",
-    "スピード重視",
-    "英語環境",
-    "IPO準備中",
-    "CEO直下",
-    "女性活躍推進",
-    "服装自由",
-    "ペット可",
-  ],
-  benefits: [
-    "ストックオプション",
-    "書籍購入補助",
-    "資格取得支援",
-    "副業OK",
-    "育休・産休実績あり",
-    "社内勉強会",
-    "1on1面談",
-  ],
-};
+// ─── サブコンポーネント ──────────────────────────────────────────────────────
 
-type Member = {
-  id?: string;
-  name: string;
-  role: string;
-  background: string;
-  photo_url: string;
-};
+function FormLabel({
+  children,
+  required,
+  optional,
+}: {
+  children: React.ReactNode;
+  required?: boolean;
+  optional?: boolean;
+}) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 6,
+      fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8,
+    }}>
+      {children}
+      {required && <span style={{ color: "var(--error)", fontSize: 11 }}>必須</span>}
+      {optional && <span style={{ color: "var(--ink-mute)", fontSize: 10, fontWeight: 400 }}>任意</span>}
+    </div>
+  );
+}
+
+function FormGroup({ children }: { children: React.ReactNode }) {
+  return <div style={{ marginBottom: 18 }}>{children}</div>;
+}
+
+function FormHint({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6, lineHeight: 1.7 }}>
+      {children}
+    </div>
+  );
+}
+
+function SectionCard({
+  title,
+  desc,
+  children,
+}: {
+  title: string;
+  desc?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{
+      background: "#fff",
+      border: "1px solid var(--line)",
+      borderRadius: 14,
+      padding: "26px 30px",
+      marginBottom: 18,
+    }}>
+      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: desc ? 6 : 18 }}>
+        {title}
+      </div>
+      {desc && (
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 18, lineHeight: 1.7 }}>
+          {desc}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function FormInput({
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      style={{
+        width: "100%",
+        padding: "10px 12px",
+        border: "1.5px solid var(--line)",
+        borderRadius: 8,
+        fontFamily: "inherit",
+        fontSize: 13,
+        color: "var(--ink)",
+        background: "#fff",
+        outline: "none",
+        transition: "all 0.15s",
+      }}
+      onFocus={(e) => {
+        (e.target as HTMLInputElement).style.borderColor = "var(--royal)";
+        (e.target as HTMLInputElement).style.boxShadow = "0 0 0 3px var(--royal-50)";
+      }}
+      onBlur={(e) => {
+        (e.target as HTMLInputElement).style.borderColor = "var(--line)";
+        (e.target as HTMLInputElement).style.boxShadow = "none";
+      }}
+    />
+  );
+}
+
+function FormSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      style={{
+        width: "100%",
+        padding: "10px 32px 10px 12px",
+        border: "1.5px solid var(--line)",
+        borderRadius: 8,
+        fontFamily: "inherit",
+        fontSize: 13,
+        color: "var(--ink)",
+        background: "#fff",
+        outline: "none",
+        appearance: "none",
+        backgroundImage: "url(\"data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "right 10px center",
+        cursor: "pointer",
+        transition: "border-color 0.15s",
+      }}
+      onFocus={(e) => {
+        (e.target as HTMLSelectElement).style.borderColor = "var(--royal)";
+        (e.target as HTMLSelectElement).style.boxShadow = "0 0 0 3px var(--royal-50)";
+      }}
+      onBlur={(e) => {
+        (e.target as HTMLSelectElement).style.borderColor = "var(--line)";
+        (e.target as HTMLSelectElement).style.boxShadow = "none";
+      }}
+    >
+      {options.map((o) => (
+        <option key={o} value={o}>{o}</option>
+      ))}
+    </select>
+  );
+}
+
+function FormTextarea({
+  value,
+  onChange,
+  placeholder,
+  rows = 4,
+  serif,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  rows?: number;
+  serif?: boolean;
+}) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={rows}
+      style={{
+        width: "100%",
+        padding: "10px 12px",
+        border: "1.5px solid var(--line)",
+        borderRadius: 8,
+        fontFamily: serif ? "'Noto Serif JP', serif" : "inherit",
+        fontSize: serif ? 16 : 13,
+        fontWeight: serif ? 500 : 400,
+        color: "var(--ink)",
+        background: "#fff",
+        outline: "none",
+        resize: "vertical",
+        lineHeight: 1.8,
+        transition: "all 0.15s",
+      }}
+      onFocus={(e) => {
+        (e.target as HTMLTextAreaElement).style.borderColor = "var(--royal)";
+        (e.target as HTMLTextAreaElement).style.boxShadow = "0 0 0 3px var(--royal-50)";
+      }}
+      onBlur={(e) => {
+        (e.target as HTMLTextAreaElement).style.borderColor = "var(--line)";
+        (e.target as HTMLTextAreaElement).style.boxShadow = "none";
+      }}
+    />
+  );
+}
+
+// ─── メインコンポーネント ────────────────────────────────────────────────────
 
 export default function CompanyEditPage() {
-  const [company, setCompany] = useState<any>(null);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [cultureTags, setCultureTags] = useState<
-    { tag_category: string; tag_value: string }[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState("");
-  const [error, setError] = useState("");
-  const [activeSection, setActiveSection] = useState("basic");
-  const [flowInput, setFlowInput] = useState("");
+  const ctx = mockTenantContext;
 
-  const loadCompany = useCallback(async () => {
-    try {
-      const res = await fetch("/api/company/me");
-      const result = await res.json();
+  // フォームステート（MOCK_COMPANY を初期値に）
+  const [form, setForm] = useState<BizCompany>({ ...MOCK_COMPANY });
+  const [activeSection, setActiveSection] = useState<CompanySectionId>("basic");
 
-      if (!res.ok) {
-        console.error("[company/edit] load error:", result);
-        setError(result.error || "データの取得に失敗しました");
-        setLoading(false);
-        return;
-      }
+  // 自動保存
+  const { saveState, trigger: triggerAutosave } = useAutoSave();
 
-      const data = result.company;
-      if (data) {
-        setCompany(data);
-        setMembers(
-          data.ow_company_members?.map((m: any) => ({
-            id: m.id,
-            name: m.name || "",
-            role: m.role || "",
-            background: m.background || "",
-            photo_url: m.photo_url || "",
-          })) || []
-        );
-        setCultureTags(
-          data.ow_company_culture_tags?.map((t: any) => ({
-            tag_category: t.tag_category,
-            tag_value: t.tag_value,
-          })) || []
-        );
-      }
-    } catch (err) {
-      console.error("[company/edit] fetch error:", err);
-      setError("通信エラーが発生しました");
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadCompany();
-  }, [loadCompany]);
-
-  function updateCompany(key: string, value: string) {
-    setCompany((prev: any) => (prev ? { ...prev, [key]: value } : prev));
+  function update<K extends keyof BizCompany>(key: K, value: BizCompany[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    triggerAutosave();
   }
 
-  function toggleTag(category: string, value: string) {
-    setCultureTags((prev) => {
-      const exists = prev.some(
-        (t) => t.tag_category === category && t.tag_value === value
-      );
-      if (exists) {
-        return prev.filter(
-          (t) => !(t.tag_category === category && t.tag_value === value)
-        );
-      }
-      return [...prev, { tag_category: category, tag_value: value }];
-    });
-  }
+  // 完成度計算（5項目）
+  const completionPercent = useMemo(() => {
+    const checks = [
+      !!form.name,
+      !!form.mission,
+      !!form.descriptionMarkdown,
+      !!form.location,
+      form.benefitsTags.length > 0,
+    ];
+    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  }, [form]);
 
-  function addMember() {
-    setMembers((prev) => [
-      ...prev,
-      { name: "", role: "", background: "", photo_url: "" },
-    ]);
-  }
+  // サブナビ用セクション（下書きフラグ付き）
+  const subNavSections: CompanySubNavSection[] = COMPANY_SECTIONS.map((s) => ({
+    ...s,
+    hasDraft: form.hasDraftChanges && s.showStatus,
+  }));
 
-  function updateMember(index: number, key: keyof Member, value: string) {
-    setMembers((prev) =>
-      prev.map((m, i) => (i === index ? { ...m, [key]: value } : m))
-    );
-  }
+  // save-status 表示
+  const saveStatusStyle: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: 6,
+    fontSize: 11, padding: "4px 10px", borderRadius: 100,
+    transition: "all 0.3s", flexShrink: 0,
+    ...(saveState === "saving"
+      ? { color: "var(--warm)", background: "var(--warm-soft)" }
+      : saveState === "saved"
+        ? { color: "var(--success)", background: "var(--success-soft)" }
+        : { color: "var(--ink-mute)", background: "var(--bg-tint)" }),
+  };
+  const saveStatusText =
+    saveState === "saving" ? "下書きに保存中..."
+    : saveState === "saved"  ? "下書きを自動保存しました"
+    : "編集中";
 
-  function removeMember(index: number) {
-    setMembers((prev) => prev.filter((_, i) => i !== index));
-  }
+  // ─── セクションレンダラー ────────────────────────────────────────────────
 
-  async function handleSave() {
-    if (!company) return;
-    setSaving(true);
+  function renderSection() {
+    switch (activeSection) {
 
-    try {
-      const res = await fetch("/api/company/me", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: company.id,
-          name: company.name,
-          name_en: company.name_en,
-          founded_at: company.founded_at,
-          employee_count: company.employee_count,
-          location: company.location,
-          industry: company.industry,
-          phase: company.phase,
-          url: company.url,
-          mission: company.mission,
-          description: company.description,
-          logo_url: company.logo_url,
-          members,
-          cultureTags,
-          // 採用情報
-          annual_hire_count: company.annual_hire_count,
-          mid_career_ratio: company.mid_career_ratio,
-          avg_tenure: company.avg_tenure,
-          // 選考情報
-          avg_selection_weeks: company.avg_selection_weeks,
-          selection_count: company.selection_count,
-          selection_flow: company.selection_flow,
-          // 評価・報酬
-          has_stock_option: company.has_stock_option,
-          has_incentive: company.has_incentive,
-          incentive_detail: company.incentive_detail,
-          bonus_times: company.bonus_times,
-          salary_raise_frequency: company.salary_raise_frequency,
-          evaluation_system: company.evaluation_system,
-          // 組織・カルチャー
-          female_manager_ratio: company.female_manager_ratio,
-          maternity_leave_female: company.maternity_leave_female,
-          maternity_leave_male: company.maternity_leave_male,
-          top_down_ratio: company.top_down_ratio,
-          official_language: company.official_language,
-          // v2: 基本情報
-          engineer_ratio: company.engineer_ratio,
-          funding_stage: company.funding_stage,
-          arr_scale: company.arr_scale,
-          ceo_name: company.ceo_name,
-          office_count: company.office_count,
-          // v2: 働き方
-          flex_time: company.flex_time,
-          core_time: company.core_time,
-          office_days_per_week: company.office_days_per_week,
-          annual_holiday_days: company.annual_holiday_days,
-          side_job_ok: company.side_job_ok,
-          // v2: 報酬・評価
-          salary_review_times: company.salary_review_times,
-          evaluation_cycle: company.evaluation_cycle,
-          // v2: 成長・キャリア
-          has_book_allowance: company.has_book_allowance,
-          has_internal_transfer: company.has_internal_transfer,
-          avg_tenure_years: company.avg_tenure_years,
-          turnover_rate: company.turnover_rate,
-          // v2: 組織・多様性
-          female_ratio: company.female_ratio,
-          management_style: company.management_style,
-          one_on_one_freq: company.one_on_one_freq,
-          // v2: 福利厚生
-          childcare_leave_rate: company.childcare_leave_rate,
-          has_housing_allowance: company.has_housing_allowance,
-          has_meal_allowance: company.has_meal_allowance,
-          has_learning_support: company.has_learning_support,
-          has_health_support: company.has_health_support,
-        }),
-      });
+      // ── 基本情報 ──────────────────────────────────────────────────────────
+      case "basic":
+        return (
+          <>
+            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+              基本情報
+            </h1>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
+              企業ロゴ、企業名、ミッション、業種など、求職者側のヒーローエリアに表示される情報を編集します。
+            </p>
+            <CompanyPublishStatusBar
+              hasDraftChanges={form.hasDraftChanges}
+              draftSections="基本情報"
+            />
 
-      const result = await res.json();
-
-      if (!res.ok) {
-        console.error("[company/edit] save error:", result);
-        setToast("保存に失敗しました");
-      } else {
-        setToast("保存しました");
-      }
-    } catch (err) {
-      console.error("[company/edit] save fetch error:", err);
-      setToast("通信エラーが発生しました");
-    }
-
-    setSaving(false);
-    setTimeout(() => setToast(""), 3000);
-  }
-
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
-          <p className="text-gray-600">読み込み中...</p>
-        </main>
-      </>
-    );
-  }
-
-  if (error) {
-    return (
-      <>
-        <Header />
-        <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-500 mb-4">{error}</p>
-            <a
-              href="/biz/auth/signup"
-              className="text-primary hover:underline"
+            {/* ロゴ */}
+            <SectionCard
+              title="企業ロゴ"
+              desc="求職者側の企業詳細ページ・一覧ページに表示されます。アップロードしない場合、企業名の頭文字で自動生成されます。"
             >
-              企業登録はこちら
-            </a>
-          </div>
-        </main>
-      </>
-    );
-  }
+              <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+                <div style={{
+                  width: 90, height: 90, borderRadius: 16,
+                  background: form.logoGradient, color: "#fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 38,
+                  boxShadow: "0 6px 16px rgba(0,0,0,0.12)", flexShrink: 0,
+                }}>
+                  {form.logoLetter}
+                </div>
+                <div style={{ flex: 1, paddingTop: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>ロゴ画像</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
+                    JPG・PNG・SVG・5MB以内 · 推奨サイズ 512×512px
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button type="button" onClick={() => alert("画像アップロード（S4b実装予定）")} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", background: "#fff", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 6, fontFamily: "inherit", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      画像をアップロード
+                    </button>
+                    <button type="button" onClick={() => alert("自動生成に戻す")} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", background: "#fff", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 6, fontFamily: "inherit", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                      自動生成に戻す
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
 
-  if (!company) {
-    return (
-      <>
-        <Header />
-        <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-gray-500 mb-4">企業情報が見つかりません</p>
-            <a
-              href="/biz/auth/signup"
-              className="text-primary hover:underline"
+            {/* 基本情報 */}
+            <SectionCard title="企業の基本情報">
+              <FormGroup>
+                <FormLabel required>企業名</FormLabel>
+                <FormInput value={form.name} onChange={(v) => update("name", v)} />
+              </FormGroup>
+              <FormGroup>
+                <FormLabel required>ミッション</FormLabel>
+                <FormTextarea serif value={form.mission} onChange={(v) => update("mission", v)} rows={2} placeholder="企業のミッションやビジョン" />
+                <FormHint>企業詳細ページのヒーローエリアに大きく表示される、企業の核となるメッセージです。短く、印象的に。</FormHint>
+              </FormGroup>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <FormGroup>
+                  <FormLabel required>業種</FormLabel>
+                  <FormSelect value={form.industry} onChange={(v) => update("industry", v)} options={INDUSTRY_OPTIONS} />
+                </FormGroup>
+                <FormGroup>
+                  <FormLabel>事業ステージ</FormLabel>
+                  <FormSelect value={form.phase} onChange={(v) => update("phase", v)} options={PHASE_OPTIONS} />
+                </FormGroup>
+              </div>
+              <FormGroup>
+                <FormLabel>公式サイトURL</FormLabel>
+                <FormInput type="url" value={form.url} onChange={(v) => update("url", v)} placeholder="https://example.co.jp" />
+              </FormGroup>
+            </SectionCard>
+          </>
+        );
+
+      // ── About ─────────────────────────────────────────────────────────────
+      case "about":
+        return (
+          <>
+            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+              About（企業説明）
+            </h1>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
+              企業の事業・組織・価値観を、求職者に伝える長文セクションです。マークダウン記法で見出しや太字を使えます。
+            </p>
+            <SectionCard
+              title="企業説明"
+              desc="企業の事業内容、創業背景、組織カルチャー、これからの展望などを自由に記述してください。読み物として読まれます。"
             >
-              企業登録はこちら
-            </a>
-          </div>
-        </main>
-      </>
-    );
+              <MarkdownEditor
+                value={form.descriptionMarkdown}
+                onChange={(v) => update("descriptionMarkdown", v)}
+                placeholder="## 私たちについて&#10;&#10;事業の特徴や組織カルチャーを記述してください..."
+                minHeight={300}
+              />
+            </SectionCard>
+          </>
+        );
+
+      // ── 数値データ ─────────────────────────────────────────────────────────
+      case "data":
+        return (
+          <>
+            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+              数値データ
+            </h1>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
+              求職者側の企業詳細ページの「数値データ」セクションに表示されます。空欄の項目は表示されません。
+            </p>
+            <SectionCard title="基本情報">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <FormGroup>
+                  <FormLabel required>従業員数</FormLabel>
+                  <FormInput value={form.employeeCount} onChange={(v) => update("employeeCount", v)} placeholder="例: 1,642" />
+                  <FormHint>数字のみを入力（カンマ含む）</FormHint>
+                </FormGroup>
+                <FormGroup>
+                  <FormLabel>設立年月</FormLabel>
+                  <FormInput value={form.foundedAt} onChange={(v) => update("foundedAt", v)} placeholder="例: 2017年8月" />
+                </FormGroup>
+                <FormGroup>
+                  <FormLabel>平均年齢</FormLabel>
+                  <FormInput value={form.avgAge} onChange={(v) => update("avgAge", v)} placeholder="例: 29歳" />
+                </FormGroup>
+                <FormGroup>
+                  <FormLabel>男女比</FormLabel>
+                  <FormInput value={form.genderRatio} onChange={(v) => update("genderRatio", v)} placeholder="例: 男性 65% / 女性 35%" />
+                </FormGroup>
+              </div>
+            </SectionCard>
+            <SectionCard title="評価制度・福利厚生">
+              <FormGroup>
+                <FormLabel>評価制度</FormLabel>
+                <FormTextarea value={form.evaluationSystem} onChange={(v) => update("evaluationSystem", v)} rows={3} placeholder="評価制度の説明..." />
+              </FormGroup>
+              <FormGroup>
+                <FormLabel>福利厚生</FormLabel>
+                <RequirementsTagInput
+                  tags={form.benefitsTags}
+                  onTagsChange={(tags) => update("benefitsTags", tags)}
+                  placeholder="タグを追加して Enter..."
+                  color="royal"
+                />
+                <FormHint>求職者側ではタグ形式で表示されます</FormHint>
+              </FormGroup>
+            </SectionCard>
+          </>
+        );
+
+      // ── 働き方 ─────────────────────────────────────────────────────────────
+      case "workstyle":
+        return (
+          <>
+            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+              働き方
+            </h1>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
+              オフィス所在地、リモートワーク状況、フレックスなど、働き方に関する情報を編集します。
+            </p>
+            <SectionCard title="オフィス所在地">
+              <FormGroup>
+                <FormLabel required>本社所在地</FormLabel>
+                <FormInput value={form.location} onChange={(v) => update("location", v)} placeholder="東京都渋谷区..." />
+              </FormGroup>
+              <FormGroup>
+                <FormLabel>最寄り駅</FormLabel>
+                <FormInput value={form.nearestStation} onChange={(v) => update("nearestStation", v)} placeholder="例: JR渋谷駅 東口より徒歩5分" />
+              </FormGroup>
+            </SectionCard>
+            <SectionCard title="働き方">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <FormGroup>
+                  <FormLabel>リモートワーク状況</FormLabel>
+                  <FormSelect value={form.remoteWorkStatus} onChange={(v) => update("remoteWorkStatus", v)} options={REMOTE_OPTIONS} />
+                </FormGroup>
+                <FormGroup>
+                  <FormLabel>勤務時間制度</FormLabel>
+                  <FormSelect value={form.workScheduleType} onChange={(v) => update("workScheduleType", v)} options={WORK_SCHEDULE_OPTIONS} />
+                </FormGroup>
+                <FormGroup>
+                  <FormLabel>月間平均残業時間</FormLabel>
+                  <FormInput value={form.avgOvertimeHours} onChange={(v) => update("avgOvertimeHours", v)} placeholder="例: 20時間" />
+                </FormGroup>
+                <FormGroup>
+                  <FormLabel>有給取得率</FormLabel>
+                  <FormInput value={form.paidLeaveRate} onChange={(v) => update("paidLeaveRate", v)} placeholder="例: 78%" />
+                </FormGroup>
+              </div>
+              <FormGroup>
+                <FormLabel optional>働き方の補足説明</FormLabel>
+                <FormTextarea value={form.workstyleNote} onChange={(v) => update("workstyleNote", v)} rows={3} placeholder="数値だけでは伝わらない、働き方の文化や考え方を補足してください" />
+                <FormHint>数値だけでは伝わらない、働き方の文化や考え方を補足してください</FormHint>
+              </FormGroup>
+            </SectionCard>
+          </>
+        );
+
+      // ── オフィス写真（S4b プレースホルダー）───────────────────────────────
+      case "photos":
+        return (
+          <>
+            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+              オフィス写真
+            </h1>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
+              オフィスの様子を写真で伝えます。カテゴリごとに最大5枚まで登録できます。
+            </p>
+            <div style={{
+              background: "#fff",
+              border: "1.5px dashed var(--line)",
+              borderRadius: 14,
+              padding: "60px 40px",
+              textAlign: "center",
+              color: "var(--ink-mute)",
+            }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>🏗</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 8 }}>
+                オフィス写真セクションは S4b で実装予定
+              </div>
+              <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+                執務エリア / 会議室・コラボエリア / 福利厚生・施設 / イベント・社内交流<br />
+                各カテゴリ最大5枚、キャプション付きで管理できます。
+              </div>
+            </div>
+          </>
+        );
+
+      // ── 公開設定 ──────────────────────────────────────────────────────────
+      case "settings":
+        return (
+          <>
+            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+              公開設定
+            </h1>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
+              企業情報の公開状態と、求職者からの問い合わせを受けるかを設定します。
+            </p>
+            <SectionCard title="公開状態">
+              <FormGroup>
+                <FormLabel>企業情報の公開</FormLabel>
+                <FormSelect
+                  value={form.isPublished ? "public" : "private"}
+                  onChange={(v) => update("isPublished", v === "public")}
+                  options={["public", "private"]}
+                />
+                <FormHint>
+                  {form.isPublished
+                    ? "現在、求職者側に企業詳細ページが表示されています。"
+                    : "現在、非公開です。求職者には表示されません。"}
+                </FormHint>
+              </FormGroup>
+              <FormGroup>
+                <FormLabel>カジュアル面談の受付</FormLabel>
+                <FormSelect
+                  value={form.acceptingCasualMeetings ? "accepting" : "paused"}
+                  onChange={(v) => update("acceptingCasualMeetings", v === "accepting")}
+                  options={["accepting", "paused"]}
+                />
+                <FormHint>「一時停止」中は、求職者側のページから「カジュアル面談を申し込む」ボタンが非表示になります。</FormHint>
+              </FormGroup>
+            </SectionCard>
+            <SectionCard title="通知設定">
+              <FormGroup>
+                <FormLabel>新規カジュアル面談の通知先</FormLabel>
+                <FormInput
+                  type="email"
+                  value={form.notificationEmails}
+                  onChange={(v) => update("notificationEmails", v)}
+                  placeholder="recruiting@example.co.jp"
+                />
+                <FormHint>複数のメールアドレスを設定する場合はカンマ区切り</FormHint>
+              </FormGroup>
+            </SectionCard>
+          </>
+        );
+
+      default:
+        return null;
+    }
   }
 
-  const completeness = [
-    company.name,
-    company.description,
-    company.mission,
-    company.industry,
-    company.location,
-    members.length > 0,
-    cultureTags.length > 0,
-  ].filter(Boolean).length;
-  const completenessPercent = Math.round((completeness / 7) * 100);
+  // ─── レンダリング ────────────────────────────────────────────────────────
 
   return (
-    <>
-      <Header />
-      <main className="pt-16 min-h-screen bg-background">
-        {/* Toast */}
-        {toast && (
-          <div className={`fixed top-20 right-4 z-50 px-4 py-2 rounded-lg text-sm shadow-lg ${
-            toast.includes("失敗") || toast.includes("エラー")
-              ? "bg-red-500 text-white"
-              : "bg-primary text-white"
-          }`}>
-            {toast}
-          </div>
-        )}
+    <BusinessLayout
+      userName={ctx.userName}
+      tenantName={ctx.tenantName}
+      tenantLogoGradient={ctx.logoGradient}
+      tenantLogoLetter={ctx.logoLetter}
+      planType={ctx.planType}
+      variant="fullBleed"
+    >
+      {/* 全高コンテナ */}
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "calc(100vh - 57px)",
+      }}>
 
-        <div className="max-w-7xl mx-auto px-4 py-8 flex gap-6">
-          {/* Left Sidebar - Section Nav */}
-          <aside className="hidden lg:block w-[220px] flex-shrink-0">
-            <div className="sticky top-24 space-y-4">
-              <div>
-                <p className="text-xs text-gray-600 mb-2">完成度</p>
-                <div className="h-2 bg-gray-200 rounded-full">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all"
-                    style={{ width: `${completenessPercent}%` }}
-                  />
-                </div>
-                <p className="text-xs text-primary mt-1">
-                  {completenessPercent}%
-                </p>
-              </div>
-              <nav className="space-y-1">
-                {SECTIONS.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setActiveSection(s.id)}
-                    className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                      activeSection === s.id
-                        ? "bg-primary-light text-primary font-medium"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </nav>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="w-full py-2.5 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-dark disabled:opacity-50"
-              >
-                {saving ? "保存中..." : "変更を保存"}
-              </button>
-            </div>
-          </aside>
-
-          {/* Center - Edit Form */}
-          <div className="flex-1 space-y-6 min-w-0">
-            {/* Basic Info */}
-            {(activeSection === "basic" || !activeSection) && (
-              <section className="bg-white rounded-card p-6 border border-card-border">
-                <h2 className="text-lg font-bold mb-4">基本情報</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium mb-1">会社名</label>
-                    <input type="text" value={company.name || ""} onChange={(e) => updateCompany("name", e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">設立年</label>
-                    <input type="text" value={company.founded_at || ""} onChange={(e) => updateCompany("founded_at", e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">従業員数</label>
-                    <input type="text" value={company.employee_count || ""} onChange={(e) => updateCompany("employee_count", e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">所在地</label>
-                    <input type="text" value={company.location || ""} onChange={(e) => updateCompany("location", e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">業界</label>
-                    <input type="text" value={company.industry || ""} onChange={(e) => updateCompany("industry", e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">フェーズ</label>
-                    <input type="text" value={company.phase || ""} onChange={(e) => updateCompany("phase", e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">URL</label>
-                    <input type="url" value={company.url || ""} onChange={(e) => updateCompany("url", e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">代表者名</label>
-                    <input type="text" value={company.ceo_name || ""} onChange={(e) => updateCompany("ceo_name", e.target.value)} placeholder="例: 田中太郎" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">エンジニア比率</label>
-                    <input type="text" value={company.engineer_ratio || ""} onChange={(e) => updateCompany("engineer_ratio", e.target.value)} placeholder="例: 約60%" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">調達ステージ</label>
-                    <input type="text" value={company.funding_stage || ""} onChange={(e) => updateCompany("funding_stage", e.target.value)} placeholder="例: シリーズB" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">ARR規模</label>
-                    <input type="text" value={company.arr_scale || ""} onChange={(e) => updateCompany("arr_scale", e.target.value)} placeholder="例: 10億円〜" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">拠点数</label>
-                    <input type="text" value={company.office_count || ""} onChange={(e) => updateCompany("office_count", e.target.value)} placeholder="例: 3拠点" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* Mission */}
-            {activeSection === "mission" && (
-              <section className="bg-white rounded-card p-6 border border-card-border">
-                <h2 className="text-lg font-bold mb-4">ミッション・紹介文</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">キャッチコピー・ミッション</label>
-                    <input type="text" value={company.mission || ""} onChange={(e) => updateCompany("mission", e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="企業のミッションやビジョン" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <label className="text-sm font-medium">企業紹介文</label>
-                      <span className="text-xs text-gray-600">{(company.description || "").length} 文字</span>
-                    </div>
-                    <textarea value={company.description || ""} onChange={(e) => updateCompany("description", e.target.value)} rows={8} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" placeholder="企業の特徴、事業内容、働く環境などを詳しく記載してください" />
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* Members */}
-            {activeSection === "members" && (
-              <section className="bg-white rounded-card p-6 border border-card-border">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold">メンバー紹介</h2>
-                  <button onClick={addMember} className="text-sm text-primary hover:underline">
-                    + メンバーを追加
-                  </button>
-                </div>
-                {members.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 text-sm mb-3">メンバーが登録されていません</p>
-                    <button onClick={addMember} className="px-4 py-2 bg-primary text-white text-sm rounded-full hover:bg-primary-dark">メンバーを追加</button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {members.map((m, i) => (
-                      <div key={i} className="p-4 border border-gray-100 rounded-lg">
-                        <div className="flex justify-between mb-3">
-                          <span className="text-sm font-medium text-gray-500">メンバー {i + 1}</span>
-                          <button onClick={() => removeMember(i)} className="text-xs text-red-500 hover:underline">削除</button>
-                        </div>
-                        <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-                          <ImageUpload
-                            currentUrl={m.photo_url || null}
-                            folder="members/photos"
-                            onUpload={(url) => updateMember(i, "photo_url", url)}
-                            shape="circle"
-                            size={80}
-                            label="顔写真"
-                          />
-                          <div className="flex-1 grid grid-cols-2 gap-3">
-                            <input type="text" value={m.name} onChange={(e) => updateMember(i, "name", e.target.value)} placeholder="名前" className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                            <input type="text" value={m.role} onChange={(e) => updateMember(i, "role", e.target.value)} placeholder="役職" className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                            <input type="text" value={m.background} onChange={(e) => updateMember(i, "background", e.target.value)} placeholder="前職・経歴" className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* Culture */}
-            {activeSection === "culture" && (
-              <section className="bg-white rounded-card p-6 border border-card-border">
-                <h2 className="text-lg font-bold mb-4">カルチャー・働き方</h2>
-                {Object.entries(CULTURE_CHIPS).map(([category, chips]) => (
-                  <div key={category} className="mb-5">
-                    <h3 className="text-sm font-semibold text-gray-500 mb-2">
-                      {category === "work_style" ? "働き方" : category === "culture" ? "組織文化" : "福利厚生"}
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {chips.map((chip) => (
-                        <button
-                          key={chip}
-                          onClick={() => toggleTag(category, chip)}
-                          className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
-                            cultureTags.some((t) => t.tag_category === category && t.tag_value === chip)
-                              ? "bg-primary text-white border-primary"
-                              : "bg-white text-gray-600 border-gray-300 hover:border-primary"
-                          }`}
-                        >
-                          {chip}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </section>
-            )}
-
-            {/* 働き方・環境 */}
-            {activeSection === "workstyle" && (
-              <section className="bg-white rounded-card p-6 border border-card-border">
-                <h2 className="text-lg font-bold mb-4">働き方・環境</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">フレックスタイム</label>
-                    <select value={company.flex_time === true ? "true" : company.flex_time === false ? "false" : ""} onChange={(e) => setCompany((prev: any) => ({ ...prev, flex_time: e.target.value === "" ? null : e.target.value === "true" }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">未設定</option>
-                      <option value="true">あり</option>
-                      <option value="false">なし</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">コアタイム</label>
-                    <input type="text" value={company.core_time || ""} onChange={(e) => updateCompany("core_time", e.target.value)} placeholder="例: 10:00-15:00" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">週出社頻度</label>
-                    <input type="text" value={company.office_days_per_week || ""} onChange={(e) => updateCompany("office_days_per_week", e.target.value)} placeholder="例: 週2-3日" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">年間休日数</label>
-                    <input type="number" value={company.annual_holiday_days ?? ""} onChange={(e) => updateCompany("annual_holiday_days", e.target.value)} placeholder="例: 125" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">副業</label>
-                    <select value={company.side_job_ok === true ? "true" : company.side_job_ok === false ? "false" : ""} onChange={(e) => setCompany((prev: any) => ({ ...prev, side_job_ok: e.target.value === "" ? null : e.target.value === "true" }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">未設定</option>
-                      <option value="true">OK</option>
-                      <option value="false">不可</option>
-                    </select>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* 採用情報 */}
-            {activeSection === "hiring" && (
-              <section className="bg-white rounded-card p-6 border border-card-border">
-                <h2 className="text-lg font-bold mb-4">採用情報</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-sm font-medium mb-1">年間採用人数</label>
-                    <input type="text" value={company.annual_hire_count || ""} onChange={(e) => updateCompany("annual_hire_count", e.target.value)} placeholder="例: 約50名" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-sm font-medium mb-1">中途比率 (%)</label>
-                    <input type="number" min="0" max="100" value={company.mid_career_ratio ?? ""} onChange={(e) => updateCompany("mid_career_ratio", e.target.value)} placeholder="例: 70" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-sm font-medium mb-1">平均勤続年数</label>
-                    <input type="text" value={company.avg_tenure || ""} onChange={(e) => updateCompany("avg_tenure", e.target.value)} placeholder="例: 3.8年" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* 選考情報 */}
-            {activeSection === "selection" && (
-              <section className="bg-white rounded-card p-6 border border-card-border">
-                <h2 className="text-lg font-bold mb-4">選考情報</h2>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">平均選考期間（週）</label>
-                    <input type="number" value={company.avg_selection_weeks ?? ""} onChange={(e) => updateCompany("avg_selection_weeks", e.target.value)} placeholder="例: 3" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">選考回数</label>
-                    <input type="number" value={company.selection_count ?? ""} onChange={(e) => updateCompany("selection_count", e.target.value)} placeholder="例: 3" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">選考フロー</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {(company.selection_flow || []).map((step: string, i: number) => (
-                      <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "13px", background: "#E1F5EE", color: "#0F6E56", padding: "4px 12px", borderRadius: "999px" }}>
-                        {step}
-                        <button onClick={() => {
-                          const newFlow = [...(company.selection_flow || [])];
-                          newFlow.splice(i, 1);
-                          setCompany((prev: any) => ({ ...prev, selection_flow: newFlow }));
-                        }} style={{ marginLeft: "4px", fontSize: "14px", color: "#0F6E56", cursor: "pointer", background: "none", border: "none" }}>x</button>
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <input type="text" value={flowInput} onChange={(e) => setFlowInput(e.target.value)} onKeyDown={(e) => {
-                      if (e.key === "Enter" && flowInput.trim()) {
-                        e.preventDefault();
-                        setCompany((prev: any) => ({ ...prev, selection_flow: [...(prev.selection_flow || []), flowInput.trim()] }));
-                        setFlowInput("");
-                      }
-                    }} placeholder="例: 書類選考（Enterで追加）" className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                    <button onClick={() => {
-                      if (flowInput.trim()) {
-                        setCompany((prev: any) => ({ ...prev, selection_flow: [...(prev.selection_flow || []), flowInput.trim()] }));
-                        setFlowInput("");
-                      }
-                    }} className="px-4 py-2.5 bg-primary text-white text-sm rounded-lg hover:bg-primary-dark">追加</button>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* 評価・報酬 */}
-            {activeSection === "compensation" && (
-              <section className="bg-white rounded-card p-6 border border-card-border">
-                <h2 className="text-lg font-bold mb-4">評価・報酬</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">ストックオプション</label>
-                    <select value={company.has_stock_option ? "true" : "false"} onChange={(e) => setCompany((prev: any) => ({ ...prev, has_stock_option: e.target.value === "true" }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="false">なし</option>
-                      <option value="true">あり</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">インセンティブ</label>
-                    <select value={company.has_incentive ? "true" : "false"} onChange={(e) => setCompany((prev: any) => ({ ...prev, has_incentive: e.target.value === "true" }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="false">なし</option>
-                      <option value="true">あり</option>
-                    </select>
-                  </div>
-                  {company.has_incentive && (
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium mb-1">インセンティブ詳細</label>
-                      <input type="text" value={company.incentive_detail || ""} onChange={(e) => updateCompany("incentive_detail", e.target.value)} placeholder="例: 目標達成率連動" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                    </div>
-                  )}
-                  <div>
-                    <label className="block text-sm font-medium mb-1">賞与回数（年）</label>
-                    <input type="number" value={company.bonus_times ?? ""} onChange={(e) => updateCompany("bonus_times", e.target.value)} placeholder="例: 2" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">昇給頻度</label>
-                    <input type="text" value={company.salary_raise_frequency || ""} onChange={(e) => updateCompany("salary_raise_frequency", e.target.value)} placeholder="例: 年1回" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">昇給回数（年）</label>
-                    <input type="number" value={company.salary_review_times ?? ""} onChange={(e) => updateCompany("salary_review_times", e.target.value)} placeholder="例: 2" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">評価サイクル</label>
-                    <input type="text" value={company.evaluation_cycle || ""} onChange={(e) => updateCompany("evaluation_cycle", e.target.value)} placeholder="例: 半期ごと" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium mb-1">評価制度</label>
-                    <textarea value={company.evaluation_system || ""} onChange={(e) => updateCompany("evaluation_system", e.target.value)} rows={3} placeholder="評価制度の説明..." className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* 成長・キャリア */}
-            {activeSection === "growth" && (
-              <section className="bg-white rounded-card p-6 border border-card-border">
-                <h2 className="text-lg font-bold mb-4">成長・キャリア</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">書籍購入補助</label>
-                    <select value={company.has_book_allowance === true ? "true" : company.has_book_allowance === false ? "false" : ""} onChange={(e) => setCompany((prev: any) => ({ ...prev, has_book_allowance: e.target.value === "" ? null : e.target.value === "true" }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">未設定</option>
-                      <option value="true">あり</option>
-                      <option value="false">なし</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">社内公募制度</label>
-                    <select value={company.has_internal_transfer === true ? "true" : company.has_internal_transfer === false ? "false" : ""} onChange={(e) => setCompany((prev: any) => ({ ...prev, has_internal_transfer: e.target.value === "" ? null : e.target.value === "true" }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">未設定</option>
-                      <option value="true">あり</option>
-                      <option value="false">なし</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">平均勤続年数</label>
-                    <input type="text" value={company.avg_tenure_years || ""} onChange={(e) => updateCompany("avg_tenure_years", e.target.value)} placeholder="例: 3.5年" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">離職率</label>
-                    <input type="text" value={company.turnover_rate || ""} onChange={(e) => updateCompany("turnover_rate", e.target.value)} placeholder="例: 8%" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* 組織・カルチャー */}
-            {activeSection === "organization" && (
-              <section className="bg-white rounded-card p-6 border border-card-border">
-                <h2 className="text-lg font-bold mb-4">組織・カルチャー</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">女性管理職比率 (%)</label>
-                    <input type="number" min="0" max="100" value={company.female_manager_ratio ?? ""} onChange={(e) => updateCompany("female_manager_ratio", e.target.value)} placeholder="例: 28" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">育休取得率・女性 (%)</label>
-                    <input type="number" min="0" max="100" value={company.maternity_leave_female ?? ""} onChange={(e) => updateCompany("maternity_leave_female", e.target.value)} placeholder="例: 100" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">育休取得率・男性 (%)</label>
-                    <input type="number" min="0" max="100" value={company.maternity_leave_male ?? ""} onChange={(e) => updateCompany("maternity_leave_male", e.target.value)} placeholder="例: 62" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">社内公用語</label>
-                    <input type="text" value={company.official_language || ""} onChange={(e) => updateCompany("official_language", e.target.value)} placeholder="例: 日本語" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">女性比率</label>
-                    <input type="text" value={company.female_ratio || ""} onChange={(e) => updateCompany("female_ratio", e.target.value)} placeholder="例: 35%" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">マネジメントスタイル</label>
-                    <input type="text" value={company.management_style || ""} onChange={(e) => updateCompany("management_style", e.target.value)} placeholder="例: 1on1重視・コーチング型" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">1on1頻度</label>
-                    <input type="text" value={company.one_on_one_freq || ""} onChange={(e) => updateCompany("one_on_one_freq", e.target.value)} placeholder="例: 週1回" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium mb-2">意思決定スタイル（トップダウン度: {company.top_down_ratio ?? 50}%）</label>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-500">ボトムアップ</span>
-                      <input type="range" min="0" max="100" value={company.top_down_ratio ?? 50} onChange={(e) => setCompany((prev: any) => ({ ...prev, top_down_ratio: parseInt(e.target.value) }))} className="flex-1" style={{ accentColor: "#1D9E75" }} />
-                      <span className="text-xs text-gray-500">トップダウン</span>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-            {/* 福利厚生 */}
-            {activeSection === "benefits" && (
-              <section className="bg-white rounded-card p-6 border border-card-border">
-                <h2 className="text-lg font-bold mb-4">福利厚生</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">育休取得率</label>
-                    <input type="text" value={company.childcare_leave_rate || ""} onChange={(e) => updateCompany("childcare_leave_rate", e.target.value)} placeholder="例: 85%" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">住宅手当</label>
-                    <select value={company.has_housing_allowance === true ? "true" : company.has_housing_allowance === false ? "false" : ""} onChange={(e) => setCompany((prev: any) => ({ ...prev, has_housing_allowance: e.target.value === "" ? null : e.target.value === "true" }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">未設定</option>
-                      <option value="true">あり</option>
-                      <option value="false">なし</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">食事補助</label>
-                    <select value={company.has_meal_allowance === true ? "true" : company.has_meal_allowance === false ? "false" : ""} onChange={(e) => setCompany((prev: any) => ({ ...prev, has_meal_allowance: e.target.value === "" ? null : e.target.value === "true" }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">未設定</option>
-                      <option value="true">あり</option>
-                      <option value="false">なし</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">学習支援</label>
-                    <select value={company.has_learning_support === true ? "true" : company.has_learning_support === false ? "false" : ""} onChange={(e) => setCompany((prev: any) => ({ ...prev, has_learning_support: e.target.value === "" ? null : e.target.value === "true" }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">未設定</option>
-                      <option value="true">あり</option>
-                      <option value="false">なし</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">健康サポート</label>
-                    <select value={company.has_health_support === true ? "true" : company.has_health_support === false ? "false" : ""} onChange={(e) => setCompany((prev: any) => ({ ...prev, has_health_support: e.target.value === "" ? null : e.target.value === "true" }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">未設定</option>
-                      <option value="true">あり</option>
-                      <option value="false">なし</option>
-                    </select>
-                  </div>
-                </div>
-              </section>
-            )}
+        {/* ── サブトップバー（52px）─────────────────────────────────────────── */}
+        <div style={{
+          height: 52,
+          borderBottom: "1px solid var(--line)",
+          background: "rgba(255,255,255,0.96)",
+          backdropFilter: "blur(12px)",
+          display: "flex",
+          alignItems: "center",
+          padding: "0 24px",
+          gap: 16,
+          flexShrink: 0,
+          zIndex: 10,
+        }}>
+          {/* タイトル + 保存状態 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+              企業情報を編集
+            </span>
+            <span style={saveStatusStyle}>
+              {saveState === "saving" ? (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ) : saveState === "saved" ? (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+              ) : null}
+              {saveStatusText}
+            </span>
           </div>
 
-          {/* Right Sidebar - Preview */}
-          <aside className="hidden xl:block w-[300px] flex-shrink-0">
-            <div className="sticky top-24">
-              <p className="text-xs text-gray-600 mb-2">プレビュー</p>
-              <div className="bg-white rounded-card border border-card-border overflow-hidden">
-                <div className="h-24 bg-gradient-to-r from-primary to-teal-500 flex items-center justify-center">
-                  <span className="text-white text-2xl font-bold">{company.name?.[0] || "?"}</span>
-                </div>
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 -mt-6 border-2 border-white">
-                      {company.name?.[0] || "?"}
-                    </div>
-                    <h3 className="text-sm font-bold">{company.name || "会社名"}</h3>
-                  </div>
-                  <p className="text-xs text-gray-500 line-clamp-2 mb-2">{company.description || "企業紹介文がここに表示されます"}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {cultureTags.slice(0, 3).map((t, i) => (
-                      <span key={i} className="px-2 py-0.5 bg-primary-light text-primary text-[10px] rounded-full">{t.tag_value}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </aside>
+          {/* アクションボタン */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={() => alert("プレビュー（実装予定）")}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 16px",
+                fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+                borderRadius: 8, cursor: "pointer",
+                border: "1px solid var(--line)", background: "#fff", color: "var(--ink)",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--royal-100)";
+                (e.currentTarget as HTMLButtonElement).style.background = "var(--royal-50)";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--line)";
+                (e.currentTarget as HTMLButtonElement).style.background = "#fff";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--ink)";
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              プレビュー
+            </button>
+            <button
+              type="button"
+              onClick={() => alert("変更を公開する（実装予定）")}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 16px",
+                fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+                borderRadius: 8, cursor: "pointer",
+                background: "var(--success)", color: "#fff",
+                border: "1px solid var(--success)",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "#047857";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "#047857";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "var(--success)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--success)";
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+              変更を公開する
+            </button>
+          </div>
         </div>
 
-        {/* Mobile Save Button */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-card-border p-4">
-          <button onClick={handleSave} disabled={saving} className="w-full py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-dark disabled:opacity-50">
-            {saving ? "保存中..." : "変更を保存"}
-          </button>
+        {/* ── 2カラム本体（SubNav + メイン）──────────────────────────────────── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "240px 1fr",
+          flex: 1,
+          overflow: "hidden",
+        }}>
+          {/* サブナビ */}
+          <CompanyEditSubNav
+            sections={subNavSections}
+            activeSection={activeSection}
+            onSectionClick={(id) => setActiveSection(id as CompanySectionId)}
+            completionPercent={completionPercent}
+            lastPublishedAt={form.lastPublishedAt}
+            lastPublishedAgo={form.lastPublishedAgo}
+            onViewPublicPage={() => alert("公開ページを見る（実装予定）")}
+          />
+
+          {/* メインスクロールエリア */}
+          <main style={{
+            overflowY: "auto",
+            padding: "32px 40px 60px",
+            maxWidth: 900,
+          }}>
+            {renderSection()}
+          </main>
         </div>
-      </main>
-    </>
+      </div>
+    </BusinessLayout>
   );
 }

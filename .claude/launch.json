@@ -7,6 +7,13 @@
       "runtimeArgs": ["-c", "PATH=/opt/homebrew/bin:$PATH npm run dev"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "opinio-corp",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "cd /Users/hisato/opinio-corp && PATH=/opt/homebrew/bin:$PATH ./node_modules/.bin/next dev -p 3001"],
+      "port": 3001,
+      "autoPort": true
     }
   ]
 }

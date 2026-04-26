@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opinio - IT/SaaSの次の仕事に、出会う。</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --primary: #1a9b5c;
+    --primary-dark: #158048;
+    --primary-light: #e8f5ee;
+    --text-primary: #1a1a1a;
+    --text-secondary: #555555;
+    --text-muted: #888888;
+    --border: #e5e5e5;
+    --border-light: #f0f0f0;
+    --bg-primary: #ffffff;
+    --bg-secondary: #fafafa;
+    --bg-hero: #f6f9f7;
+  }
+  body {
+    font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+  /* ───── Header ───── */
+  .header {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 72px;
+  }
+  .logo {
+    font-family: "DM Sans", sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .nav {
+    display: flex;
+    gap: 32px;
+    margin-left: 48px;
+    flex: 1;
+  }
+  .nav a {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .nav a:hover { color: var(--primary); }
+  .nav a.active { color: var(--text-primary); }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .header-right a { font-size: 14px; color: var(--text-secondary); }
+  .btn-primary {
+    background: var(--primary);
+    color: #fff !important;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.2s;
+    display: inline-block;
+  }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .hamburger {
+    display: none;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+  }
+  .hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--text-primary);
+    position: relative;
+  }
+  .hamburger span::before,
+  .hamburger span::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 22px;
+    height: 2px;
+    background: var(--text-primary);
+  }
+  .hamburger span::before { top: -7px; }
+  .hamburger span::after { top: 7px; }
+
+  /* ───── Hero ───── */
+  .hero {
+    background: var(--bg-hero);
+    padding: 80px 0 64px;
+    text-align: center;
+  }
+  .hero-tag {
+    display: inline-block;
+    background: #fff;
+    color: var(--primary);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    border: 1px solid var(--primary-light);
+  }
+  .hero h1 {
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+  .hero-sub {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-bottom: 36px;
+    line-height: 1.7;
+  }
+  .search-box {
+    max-width: 780px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--border);
+  }
+  .search-field {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .search-field:hover { background: var(--bg-secondary); }
+  .search-field-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+    text-align: left;
+  }
+  .search-field-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+    text-align: left;
+  }
+  .search-divider {
+    width: 1px;
+    height: 32px;
+    background: var(--border);
+  }
+  .search-btn {
+    background: var(--primary);
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .search-btn:hover { background: var(--primary-dark); }
+  .hero-tags {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+  .hero-tag-chip {
+    background: #fff;
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 18px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .hero-tag-chip:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  /* ───── Section Common ───── */
+  section { padding: 64px 0; }
+  .section-header { margin-bottom: 28px; }
+  .section-title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  .section-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  /* ───── Job Cards ───── */
+  .job-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .job-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    transition: all 0.2s;
+    cursor: pointer;
+    display: block;
+  }
+  .job-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+  }
+  .job-card-top {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    align-items: flex-start;
+  }
+  .company-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    font-family: "DM Sans";
+  }
+  .job-card-title-block { flex: 1; min-width: 0; }
+  .company-name {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .job-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .job-tags {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .job-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .tag-sales { background: #e8f5ee; color: #0f6e56; }
+  .tag-cs { background: #e6f1fb; color: #0c447c; }
+  .tag-eng { background: #eeedfe; color: #3c3489; }
+  .tag-pdm { background: #faeeda; color: #633806; }
+  .tag-marketing { background: #fbeaf0; color: #72243e; }
+  .job-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+  }
+  .job-meta strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .job-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid var(--border-light);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .mentor-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--primary);
+    font-weight: 500;
+  }
+  .mentor-badge::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+
+  /* ───── Mentor Banner ───── */
+  .mentor-banner-wrap { padding-top: 0; }
+  .mentor-banner {
+    background: #f0f7f5;
+    border: 1px solid #cfe4da;
+    border-radius: 16px;
+    padding: 32px 40px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .mentor-banner-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 28px;
+  }
+  .mentor-banner-content { flex: 1; min-width: 0; }
+  .mentor-banner-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .mentor-banner-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+  .mentor-banner-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .banner-badge {
+    background: #fff;
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .mentor-banner-btn {
+    background: var(--primary);
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 28px;
+    font-size: 14px;
+    font-weight: 500;
+    flex-shrink: 0;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .mentor-banner-btn:hover { background: var(--primary-dark); }
+
+  /* ───── Category Cards ───── */
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+  .category-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 16px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .category-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+  }
+  .category-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    font-family: "DM Sans";
+  }
+  .icon-sales { background: #e8f5ee; color: #0f6e56; }
+  .icon-cs { background: #e6f1fb; color: #0c447c; }
+  .icon-eng { background: #eeedfe; color: #3c3489; }
+  .icon-pdm { background: #faeeda; color: #633806; }
+  .icon-marketing { background: #fbeaf0; color: #72243e; }
+  .category-name {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .category-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+  .category-count {
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 500;
+  }
+
+  /* ───── Company Cards ───── */
+  .company-section { background: #fff; }
+  .company-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .company-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 16px 14px;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .company-card:hover {
+    background: #fff;
+    border-color: var(--primary);
+  }
+  .company-card-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-family: "DM Sans";
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .company-card-name {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .company-card-industry {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .company-card-jobs {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+  }
+  .company-card-updated {
+    font-size: 10px;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .company-card-updated::before {
+    content: "";
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+  .company-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* ───── Story Cards ───── */
+  .story-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .story-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .story-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+  }
+  .story-image {
+    height: 140px;
+    display: flex;
+    align-items: flex-end;
+    padding: 16px;
+  }
+  .story-image.market { background: #e6f1fb; }
+  .story-image.career { background: #fbeaf0; }
+  .story-image.trend { background: #eaf3de; }
+  .story-category {
+    display: inline-block;
+    background: #fff;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .story-content { padding: 18px; }
+  .story-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .story-excerpt {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+  .story-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .section-cta {
+    text-align: center;
+    margin-top: 32px;
+  }
+  .section-cta a {
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  /* ───── Final CTA ───── */
+  .cta-section {
+    background: #1a3a2a;
+    color: #fff;
+    text-align: center;
+    padding: 80px 0;
+  }
+  .cta-title {
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+  .cta-sub {
+    font-size: 14px;
+    color: #b0c4b0;
+    margin-bottom: 32px;
+    line-height: 1.8;
+  }
+  .cta-btn {
+    background: var(--primary);
+    color: #fff;
+    padding: 18px 40px;
+    border-radius: 36px;
+    font-size: 16px;
+    font-weight: 500;
+    display: inline-block;
+    transition: all 0.2s;
+  }
+  .cta-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+  }
+  .cta-note {
+    margin-top: 20px;
+    font-size: 12px;
+    color: #b0c4b0;
+  }
+
+  /* ───── Footer ───── */
+  .footer {
+    background: #111;
+    color: #ccc;
+    padding: 56px 0 24px;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 40px;
+  }
+  .footer-logo {
+    font-family: "DM Sans";
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .footer-tagline { font-size: 12px; color: #888; }
+  .footer-col h4 {
+    font-size: 13px;
+    color: #fff;
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .footer-col ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .footer-col a {
+    font-size: 12px;
+    color: #888;
+    transition: color 0.15s;
+  }
+  .footer-col a:hover { color: #fff; }
+  .footer-bottom {
+    padding-top: 24px;
+    border-top: 1px solid #333;
+    font-size: 11px;
+    color: #666;
+  }
+
+  /* ───── Responsive (Mobile) ───── */
+  @media (max-width: 768px) {
+    .container { padding: 0 16px; }
+    section { padding: 40px 0; }
+    .section-header { margin-bottom: 20px; }
+    .section-title { font-size: 20px; }
+    .section-sub { font-size: 12px; }
+
+    /* Header */
+    .nav { display: none; }
+    .header-right a:first-child { display: none; }
+    .header-right .btn-primary {
+      padding: 8px 14px;
+      font-size: 12px;
+    }
+    .hamburger { display: flex; }
+
+    /* Hero */
+    .hero { padding: 48px 0 40px; }
+    .hero h1 { font-size: 28px; line-height: 1.4; }
+    .hero-sub { font-size: 13px; margin-bottom: 24px; }
+
+    /* Search Box - Compact single tap-to-open */
+    .search-box {
+      flex-direction: column;
+      padding: 10px;
+      gap: 0;
+      align-items: stretch;
+    }
+    .search-divider { display: none; }
+    .search-field {
+      width: 100%;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .search-field:last-of-type { border-bottom: none; }
+    .search-field-label {
+      font-size: 12px;
+      margin-bottom: 0;
+    }
+    .search-field-value {
+      font-size: 13px;
+    }
+    .search-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 14px;
+      font-size: 15px;
+    }
+
+    .hero-tags {
+      gap: 6px;
+      margin-top: 20px;
+    }
+    .hero-tag-chip {
+      font-size: 11px;
+      padding: 5px 11px;
+    }
+
+    /* Job Grid - Horizontal scroll on mobile */
+    .job-grid {
+      display: flex;
+      grid-template-columns: unset;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding: 4px 16px 8px;
+      margin: 0 -16px;
+      scrollbar-width: none;
+    }
+    .job-grid::-webkit-scrollbar { display: none; }
+    .job-card {
+      flex: 0 0 280px;
+      scroll-snap-align: start;
+      padding: 16px;
+    }
+    .job-title { font-size: 14px; }
+    .company-logo { width: 36px; height: 36px; font-size: 13px; }
+
+    /* Mentor Banner - Stacked, more compact */
+    .mentor-banner {
+      flex-direction: column;
+      padding: 24px 20px;
+      gap: 16px;
+      text-align: left;
+      align-items: stretch;
+    }
+    .mentor-banner-icon {
+      width: 48px;
+      height: 48px;
+      font-size: 22px;
+    }
+    .mentor-banner-title { font-size: 17px; line-height: 1.45; }
+    .mentor-banner-sub { font-size: 12px; line-height: 1.6; }
+    .banner-badge { font-size: 10px; padding: 3px 8px; }
+    .mentor-banner-btn {
+      width: 100%;
+      text-align: center;
+      padding: 14px;
+      font-size: 14px;
+    }
+
+    /* Category - 2 columns, compact */
+    .category-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .category-card { padding: 14px 12px; }
+    .category-icon {
+      width: 32px;
+      height: 32px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .category-name { font-size: 13px; }
+    .category-desc { font-size: 10px; margin-bottom: 6px; }
+    .category-count { font-size: 10px; }
+
+    /* Company - 3 columns, compact */
+    .company-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .company-card { padding: 12px 10px; }
+    .company-card-logo {
+      width: 28px;
+      height: 28px;
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+    .company-card-name { font-size: 11px; }
+    .company-card-industry { font-size: 9px; margin-bottom: 4px; }
+    .company-card-jobs { font-size: 10px; }
+    .company-card-updated { font-size: 9px; }
+    .company-note { font-size: 10px; }
+
+    /* Story - Horizontal scroll */
+    .story-grid {
+      display: flex;
+      grid-template-columns: unset;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding: 4px 16px 8px;
+      margin: 0 -16px;
+      scrollbar-width: none;
+    }
+    .story-grid::-webkit-scrollbar { display: none; }
+    .story-card {
+      flex: 0 0 260px;
+      scroll-snap-align: start;
+    }
+    .story-image { height: 110px; padding: 12px; }
+    .story-content { padding: 14px; }
+    .story-title { font-size: 13px; }
+    .story-excerpt { font-size: 11px; }
+
+    /* Final CTA */
+    .cta-section { padding: 56px 0; }
+    .cta-title { font-size: 24px; line-height: 1.5; }
+    .cta-sub { font-size: 12px; }
+    .cta-btn {
+      padding: 16px 32px;
+      font-size: 14px;
+      display: block;
+      margin: 0 16px;
+    }
+
+    /* Footer */
+    .footer-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .footer-grid > div:first-child {
+      grid-column: 1 / -1;
+    }
+    .footer-col h4 { font-size: 12px; }
+    .footer-col a { font-size: 11px; }
+  }
+
+  @media (max-width: 380px) {
+    .hero h1 { font-size: 24px; }
+    .category-grid { gap: 8px; }
+    .company-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="container header-inner">
+    <div style="display: flex; align-items: center;">
+      <a href="/" class="logo">Opinio</a>
+      <nav class="nav">
+        <a href="/jobs" class="active">求人を探す</a>
+        <a href="/companies">企業を探す</a>
+        <a href="/scouts">スカウト</a>
+        <a href="/articles">転職ストーリー</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <a href="/login">ログイン</a>
+      <a href="/signup" class="btn-primary">無料登録</a>
+      <button class="hamburger" aria-label="menu"><span></span></button>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <span class="hero-tag">IT/SaaS特化 × キャリア相談</span>
+    <h1>IT/SaaSの次の仕事に、<br>出会う。</h1>
+    <p class="hero-sub">取材済みのIT/SaaS企業25社から、あなたに合う仕事を見つけよう。</p>
+
+    <div class="search-box">
+      <div class="search-field">
+        <div class="search-field-label">職種</div>
+        <div class="search-field-value">すべての職種 ▾</div>
+      </div>
+      <div class="search-divider"></div>
+      <div class="search-field">
+        <div class="search-field-label">勤務地</div>
+        <div class="search-field-value">エリアを選ぶ ▾</div>
+      </div>
+      <div class="search-divider"></div>
+      <div class="search-field">
+        <div class="search-field-label">年収</div>
+        <div class="search-field-value">指定なし ▾</div>
+      </div>
+      <button class="search-btn">求人を探す</button>
+    </div>
+
+    <div class="hero-tags">
+      <span class="hero-tag-chip">フィールドセールス</span>
+      <span class="hero-tag-chip">カスタマーサクセス</span>
+      <span class="hero-tag-chip">エンジニア</span>
+      <span class="hero-tag-chip">PdM</span>
+      <span class="hero-tag-chip">マーケ</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">注目の求人</h2>
+      <p class="section-sub">今週掲載された厳選のIT/SaaS求人</p>
+    </div>
+
+    <div class="job-grid">
+      <a href="/jobs/1" class="job-card">
+        <div class="job-card-top">
+          <div class="company-logo">U</div>
+          <div class="job-card-title-block">
+            <div class="company-name">Ubie株式会社</div>
+            <div class="job-title">フィールドセールス</div>
+          </div>
+        </div>
+        <div class="job-tags">
+          <span class="job-tag tag-sales">営業</span>
+        </div>
+        <div class="job-meta">
+          年収: <strong>600〜1,000万円</strong><br>
+          勤務地: <strong>東京 / リモート可</strong>
+        </div>
+        <div class="job-footer">
+          <span class="mentor-badge">メンター相談可</span>
+          <span>2日前更新</span>
+        </div>
+      </a>
+
+      <a href="/jobs/2" class="job-card">
+        <div class="job-card-top">
+          <div class="company-logo">S</div>
+          <div class="job-card-title-block">
+            <div class="company-name">株式会社SmartHR</div>
+            <div class="job-title">カスタマーサクセス</div>
+          </div>
+        </div>
+        <div class="job-tags">
+          <span class="job-tag tag-cs">CS/サクセス</span>
+        </div>
+        <div class="job-meta">
+          年収: <strong>550〜900万円</strong><br>
+          勤務地: <strong>東京 / フレックス</strong>
+        </div>
+        <div class="job-footer">
+          <span class="mentor-badge">メンター相談可</span>
+          <span>5日前更新</span>
+        </div>
+      </a>
+
+      <a href="/jobs/3" class="job-card">
+        <div class="job-card-top">
+          <div class="company-logo">L</div>
+          <div class="job-card-title-block">
+            <div class="company-name">LayerX</div>
+            <div class="job-title">プロダクトマネージャー</div>
+          </div>
+        </div>
+        <div class="job-tags">
+          <span class="job-tag tag-pdm">PdM</span>
+        </div>
+        <div class="job-meta">
+          年収: <strong>700〜1,200万円</strong><br>
+          勤務地: <strong>東京 / リモート可</strong>
+        </div>
+        <div class="job-footer">
+          <span class="mentor-badge">メンター相談可</span>
+          <span>1日前更新</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="section-cta">
+      <a href="/jobs">すべての求人を見る →</a>
+    </div>
+  </div>
+</section>
+
+<section class="mentor-banner-wrap">
+  <div class="container">
+    <div class="mentor-banner">
+      <div class="mentor-banner-icon">💬</div>
+      <div class="mentor-banner-content">
+        <div class="mentor-banner-title">求人票だけでは、分からないことが多い。</div>
+        <div class="mentor-banner-sub">
+          IT/SaaS企業で働く先輩32人が、あなたの疑問に無料で答えます。
+        </div>
+        <div class="mentor-banner-badges">
+          <span class="banner-badge">完全無料</span>
+          <span class="banner-badge">オンライン30分</span>
+          <span class="banner-badge">選考には無関係</span>
+        </div>
+      </div>
+      <a href="/mentors" class="mentor-banner-btn">メンターに話を聞く →</a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">職種から探す</h2>
+      <p class="section-sub">あなたの経験を活かせる求人カテゴリ</p>
+    </div>
+
+    <div class="category-grid">
+      <a href="/jobs?category=sales" class="category-card">
+        <div class="category-icon icon-sales">営</div>
+        <div class="category-name">営業</div>
+        <div class="category-desc">FS / IS</div>
+        <div class="category-count">42件 →</div>
+      </a>
+      <a href="/jobs?category=cs" class="category-card">
+        <div class="category-icon icon-cs">CS</div>
+        <div class="category-name">CS</div>
+        <div class="category-desc">CSM / サポート</div>
+        <div class="category-count">28件 →</div>
+      </a>
+      <a href="/jobs?category=eng" class="category-card">
+        <div class="category-icon icon-eng">E</div>
+        <div class="category-name">エンジニア</div>
+        <div class="category-desc">BE / FE / SRE</div>
+        <div class="category-count">56件 →</div>
+      </a>
+      <a href="/jobs?category=pdm" class="category-card">
+        <div class="category-icon icon-pdm">P</div>
+        <div class="category-name">プロダクト</div>
+        <div class="category-desc">PdM / デザイナー</div>
+        <div class="category-count">18件 →</div>
+      </a>
+      <a href="/jobs?category=marketing" class="category-card">
+        <div class="category-icon icon-marketing">M</div>
+        <div class="category-name">マーケ</div>
+        <div class="category-desc">デジマ / BtoB</div>
+        <div class="category-count">15件 →</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="company-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">掲載企業</h2>
+      <p class="section-sub">IT/SaaS業界の25社+が、人事から定期的に情報を更新</p>
+    </div>
+
+    <div class="company-grid">
+      <a href="/companies/ubie" class="company-card">
+        <div class="company-card-logo">U</div>
+        <div class="company-card-name">Ubie</div>
+        <div class="company-card-industry">HealthTech</div>
+        <div class="company-card-jobs">5件の求人</div>
+        <div class="company-card-updated">昨日更新</div>
+      </a>
+      <a href="/companies/smarthr" class="company-card">
+        <div class="company-card-logo">S</div>
+        <div class="company-card-name">SmartHR</div>
+        <div class="company-card-industry">HR SaaS</div>
+        <div class="company-card-jobs">8件の求人</div>
+        <div class="company-card-updated">3日前更新</div>
+      </a>
+      <a href="/companies/layerx" class="company-card">
+        <div class="company-card-logo">L</div>
+        <div class="company-card-name">LayerX</div>
+        <div class="company-card-industry">FinTech</div>
+        <div class="company-card-jobs">12件の求人</div>
+        <div class="company-card-updated">1日前更新</div>
+      </a>
+      <a href="/companies/sansan" class="company-card">
+        <div class="company-card-logo">Sa</div>
+        <div class="company-card-name">Sansan</div>
+        <div class="company-card-industry">B2B SaaS</div>
+        <div class="company-card-jobs">6件の求人</div>
+        <div class="company-card-updated">今週更新</div>
+      </a>
+      <a href="/companies/moneyforward" class="company-card">
+        <div class="company-card-logo">MF</div>
+        <div class="company-card-name">MoneyForward</div>
+        <div class="company-card-industry">FinTech</div>
+        <div class="company-card-jobs">9件の求人</div>
+        <div class="company-card-updated">2日前更新</div>
+      </a>
+      <a href="/companies/freee" class="company-card">
+        <div class="company-card-logo">f</div>
+        <div class="company-card-name">freee</div>
+        <div class="company-card-industry">Business</div>
+        <div class="company-card-jobs">7件の求人</div>
+        <div class="company-card-updated">4日前更新</div>
+      </a>
+    </div>
+
+    <p class="company-note">※企業の人事担当者が、自社の最新状況を定期的に更新しています</p>
+
+    <div class="section-cta">
+      <a href="/companies">すべての掲載企業を見る →</a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">転職ストーリー</h2>
+      <p class="section-sub">IT/SaaS業界で働く人の、次の選択のヒント</p>
+    </div>
+
+    <div class="story-grid">
+      <a href="/articles/1" class="story-card">
+        <div class="story-image market">
+          <span class="story-category">市場価値</span>
+        </div>
+        <div class="story-content">
+          <h3 class="story-title">SIer営業からSaaS営業へ<br>年収UPの現実</h3>
+          <p class="story-excerpt">転職経験者3人のインタビュー。年収・業務・ギャップを率直に。</p>
+          <div class="story-meta">2026/04/12 ・ 8分</div>
+        </div>
+      </a>
+
+      <a href="/articles/2" class="story-card">
+        <div class="story-image career">
+          <span class="story-category">キャリア選択</span>
+        </div>
+        <div class="story-content">
+          <h3 class="story-title">エンジニアからPdMへ<br>転向した5人のその後</h3>
+          <p class="story-excerpt">年収は上がったのか、スキルはどう変わったのか。</p>
+          <div class="story-meta">2026/04/08 ・ 12分</div>
+        </div>
+      </a>
+
+      <a href="/articles/3" class="story-card">
+        <div class="story-image trend">
+          <span class="story-category">業界動向</span>
+        </div>
+        <div class="story-content">
+          <h3 class="story-title">2026年のSaaS採用トレンド<br>人事が明かす実態</h3>
+          <p class="story-excerpt">25社の人事に聞いた、いま求められる人材と年収相場。</p>
+          <div class="story-meta">2026/04/05 ・ 15分</div>
+        </div>
+      </a>
+    </div>
+
+    <div class="section-cta">
+      <a href="/articles">もっとストーリーを読む →</a>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="container">
+    <h2 class="cta-title">今はまだ考え中でも、<br>登録だけしておこう。</h2>
+    <p class="cta-sub">
+      プロフィールを登録するとIT/SaaS企業からスカウトが届きます。<br>
+      完全無料・営業電話なし・いつでも退会可能。
+    </p>
+    <a href="/signup" class="cta-btn">無料で会員登録する →</a>
+    <p class="cta-note">登録1分 ・ SNSログイン対応</p>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-logo">Opinio</div>
+        <p class="footer-tagline">IT/SaaSの次の仕事に、出会う。</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>求職者の方へ</h4>
+        <ul>
+          <li><a href="/jobs">求人を探す</a></li>
+          <li><a href="/companies">企業を探す</a></li>
+          <li><a href="/mentors">メンター一覧</a></li>
+          <li><a href="/articles">転職ストーリー</a></li>
+          <li><a href="/signup">会員登録</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>企業の方へ</h4>
+        <ul>
+          <li><a href="/business">掲載のご案内</a></li>
+          <li><a href="/business/pricing">料金プラン</a></li>
+          <li><a href="/business/login">企業ログイン</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>運営</h4>
+        <ul>
+          <li><a href="/about">Opinioについて</a></li>
+          <li><a href="/criteria">審査基準</a></li>
+          <li><a href="/privacy">プライバシー</a></li>
+          <li><a href="/terms">利用規約</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>フォロー</h4>
+        <ul>
+          <li><a href="https://x.com/opinio">X (Twitter)</a></li>
+          <li><a href="https://note.com/opinio">note</a></li>
+          <li><a href="https://linkedin.com/company/opinio">LinkedIn</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      © 2026 Opinio Inc. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

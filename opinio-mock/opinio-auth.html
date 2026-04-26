@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>無料登録 / ログイン — Opinio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --royal: #002366;
+    --royal-deep: #001A4D;
+    --royal-50: #EFF3FC;
+    --royal-100: #DCE5F7;
+    --accent: #3B5FD9;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --line: #E2E8F0;
+    --line-soft: #F1F5F9;
+    --bg: #FFFFFF;
+    --bg-tint: #F8FAFC;
+    --success: #059669;
+    --error: #DC2626;
+    --error-soft: #FEE2E2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-tint);
+    color: var(--ink);
+    font-family: "Noto Sans JP", -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* Layout */
+  .layout {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  /* 左サイド：ブランディング */
+  .brand-side {
+    background: linear-gradient(135deg, var(--royal) 0%, var(--accent) 60%, #5B21B6 100%);
+    color: #fff;
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .brand-side::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(255,255,255,0.08) 0%, transparent 40%);
+    pointer-events: none;
+  }
+  .brand-side__logo {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    position: relative;
+  }
+  .brand-side__main {
+    margin: auto 0;
+    position: relative;
+  }
+  .brand-side__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 500;
+    font-size: 38px;
+    line-height: 1.5;
+    letter-spacing: 0.03em;
+    margin-bottom: 20px;
+  }
+  .brand-side__subtitle {
+    font-size: 15px;
+    line-height: 1.9;
+    opacity: 0.9;
+    max-width: 440px;
+    margin-bottom: 40px;
+  }
+  
+  /* ブランド側特徴リスト */
+  .brand-features {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 440px;
+  }
+  .brand-feature {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .brand-feature__icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .brand-feature__body { flex: 1; }
+  .brand-feature__title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 3px;
+  }
+  .brand-feature__desc {
+    font-size: 12px;
+    opacity: 0.8;
+    line-height: 1.6;
+  }
+  
+  .brand-side__foot {
+    margin-top: auto;
+    font-size: 12px;
+    opacity: 0.6;
+    position: relative;
+  }
+
+  /* 右サイド：フォーム */
+  .form-side {
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #fff;
+  }
+  .form-wrap {
+    max-width: 420px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* モード切替タブ */
+  .mode-tabs {
+    display: flex;
+    background: var(--bg-tint);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 36px;
+    border: 1px solid var(--line);
+  }
+  .mode-tab {
+    flex: 1;
+    padding: 10px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .mode-tab.active {
+    background: #fff;
+    color: var(--royal);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  }
+  .mode-tab:hover:not(.active) { color: var(--ink); }
+
+  /* フォームヘッダー */
+  .form-head {
+    margin-bottom: 32px;
+  }
+  .form-head__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--ink);
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .form-head__subtitle {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.8;
+  }
+
+  /* フォーム */
+  .form-group {
+    margin-bottom: 20px;
+  }
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .form-label__required {
+    color: var(--error);
+    margin-left: 2px;
+  }
+  .form-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    background: #fff;
+    transition: all 0.2s;
+  }
+  .form-input:focus {
+    outline: none;
+    border-color: var(--royal);
+    box-shadow: 0 0 0 3px var(--royal-50);
+  }
+  .form-input::placeholder { color: var(--ink-mute); }
+  .form-hint {
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+  
+  .form-input-wrap {
+    position: relative;
+  }
+  .form-input-wrap .form-input {
+    padding-right: 44px;
+  }
+  .form-input-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-mute);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    border-radius: 6px;
+  }
+  .form-input-icon:hover {
+    background: var(--bg-tint);
+    color: var(--ink);
+  }
+
+  /* ボタン */
+  .form-submit {
+    width: 100%;
+    padding: 14px;
+    background: var(--royal);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 12px;
+    box-shadow: 0 4px 14px rgba(0, 35, 102, 0.2);
+  }
+  .form-submit:hover {
+    background: var(--royal-deep);
+    transform: translateY(-1px);
+  }
+
+  /* 利用規約・チェックボックス */
+  .form-terms {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+  .form-terms input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--royal);
+    flex-shrink: 0;
+    margin-top: 1px;
+    cursor: pointer;
+  }
+  .form-terms a { color: var(--royal); text-decoration: underline; font-weight: 500; }
+
+  /* フォーム切替リンク */
+  .form-switch {
+    text-align: center;
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .form-switch a {
+    color: var(--royal);
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .form-switch a:hover { text-decoration: underline; }
+
+  /* 区切り線（OR） */
+  .form-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0;
+    color: var(--ink-mute);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+  }
+  .form-divider::before, .form-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* OAuth ボタン */
+  .oauth-btn {
+    width: 100%;
+    padding: 12px;
+    background: #fff;
+    color: var(--ink);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+  }
+  .oauth-btn:hover {
+    background: var(--bg-tint);
+    border-color: var(--ink-mute);
+  }
+  .oauth-btn svg { flex-shrink: 0; }
+
+  /* パスワード忘れ */
+  .forgot-link {
+    text-align: right;
+    margin-top: -14px;
+    margin-bottom: 14px;
+  }
+  .forgot-link a {
+    font-size: 12px;
+    color: var(--royal);
+    font-weight: 500;
+  }
+  .forgot-link a:hover { text-decoration: underline; }
+
+  /* フォーム切替 */
+  .form-view { display: none; }
+  .form-view.active { display: block; }
+
+  /* レスポンシブ */
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .brand-side {
+      padding: 32px 24px;
+      min-height: 240px;
+    }
+    .brand-side__title { font-size: 24px; margin-bottom: 12px; }
+    .brand-side__subtitle { font-size: 13px; margin-bottom: 24px; }
+    .brand-features { gap: 10px; }
+    .brand-feature__icon { width: 30px; height: 30px; }
+    .brand-feature__title { font-size: 12px; }
+    .brand-feature__desc { font-size: 11px; }
+    .brand-side__foot { display: none; }
+    .form-side { padding: 32px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- 左：ブランディング -->
+  <div class="brand-side">
+    <a href="#" class="brand-side__logo">Opinio</a>
+
+    <div class="brand-side__main">
+      <h1 class="brand-side__title">対話の、<br/>産業を作る。</h1>
+      <p class="brand-side__subtitle">
+        IT/SaaS業界の先輩に話を聞き、自分のキャリアを<br/>
+        一緒に考える場所。Opinio編集部が直接取材した、<br/>
+        リアルな企業の声と出会えます。
+      </p>
+
+      <div class="brand-features">
+        <div class="brand-feature">
+          <div class="brand-feature__icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="brand-feature__body">
+            <div class="brand-feature__title">数年先を歩く先輩に話を聞ける</div>
+            <div class="brand-feature__desc">審査通過したメンターが、30分の対話を提供</div>
+          </div>
+        </div>
+        <div class="brand-feature">
+          <div class="brand-feature__icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>
+          </div>
+          <div class="brand-feature__body">
+            <div class="brand-feature__title">編集部が直接取材した企業情報</div>
+            <div class="brand-feature__desc">他では読めない、第三者視点の企業インタビュー</div>
+          </div>
+        </div>
+        <div class="brand-feature">
+          <div class="brand-feature__icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+          </div>
+          <div class="brand-feature__body">
+            <div class="brand-feature__title">自然言語で直感的に探せる</div>
+            <div class="brand-feature__desc">「PdMからCPOになった人」のように、文章で検索</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-side__foot">
+      © 2026 Opinio, Inc. · 「対話の産業を作る」
+    </div>
+  </div>
+
+  <!-- 右：フォーム -->
+  <div class="form-side">
+    <div class="form-wrap">
+
+      <!-- モード切替 -->
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="signup">新規登録</button>
+        <button class="mode-tab" data-mode="login">ログイン</button>
+      </div>
+
+      <!-- サインアップフォーム -->
+      <div class="form-view active" id="form-signup">
+        <div class="form-head">
+          <h2 class="form-head__title">はじめまして。</h2>
+          <p class="form-head__subtitle">
+            メールアドレスで無料で登録いただけます。<br/>
+            登録後、プロフィールの詳細を設定できます。
+          </p>
+        </div>
+
+        <!-- OAuth -->
+        <button class="oauth-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.37-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Googleで登録
+        </button>
+
+        <div class="form-divider">OR</div>
+
+        <form onsubmit="event.preventDefault(); alert('モックなので実際の登録は行われません');">
+          <div class="form-group">
+            <label class="form-label" for="signup-name">お名前<span class="form-label__required">*</span></label>
+            <input type="text" class="form-input" id="signup-name" placeholder="山田 太郎" required />
+            <div class="form-hint">本名でもニックネームでもOK。後から変更できます。</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="signup-email">メールアドレス<span class="form-label__required">*</span></label>
+            <input type="email" class="form-input" id="signup-email" placeholder="your@email.com" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="signup-password">パスワード<span class="form-label__required">*</span></label>
+            <div class="form-input-wrap">
+              <input type="password" class="form-input" id="signup-password" placeholder="8文字以上" required minlength="8" />
+              <span class="form-input-icon" onclick="togglePassword('signup-password')" title="表示/非表示">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+            </div>
+            <div class="form-hint">8文字以上。英数字を組み合わせてください。</div>
+          </div>
+
+          <div class="form-terms">
+            <input type="checkbox" id="signup-terms" required />
+            <label for="signup-terms">
+              <a href="#" target="_blank">利用規約</a>および<a href="#" target="_blank">プライバシーポリシー</a>に同意します
+            </label>
+          </div>
+
+          <button type="submit" class="form-submit">無料で登録する</button>
+        </form>
+
+        <div class="form-switch">
+          すでにアカウントをお持ちの方は<a href="#" onclick="switchMode('login'); return false;">ログイン</a>
+        </div>
+      </div>
+
+      <!-- ログインフォーム -->
+      <div class="form-view" id="form-login">
+        <div class="form-head">
+          <h2 class="form-head__title">おかえりなさい。</h2>
+          <p class="form-head__subtitle">
+            メールアドレスとパスワードでログインしてください。
+          </p>
+        </div>
+
+        <button class="oauth-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.37-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Googleでログイン
+        </button>
+
+        <div class="form-divider">OR</div>
+
+        <form onsubmit="event.preventDefault(); alert('モックなので実際のログインは行われません');">
+          <div class="form-group">
+            <label class="form-label" for="login-email">メールアドレス</label>
+            <input type="email" class="form-input" id="login-email" placeholder="your@email.com" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="login-password">パスワード</label>
+            <div class="form-input-wrap">
+              <input type="password" class="form-input" id="login-password" placeholder="パスワード" required />
+              <span class="form-input-icon" onclick="togglePassword('login-password')" title="表示/非表示">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="forgot-link">
+            <a href="#">パスワードをお忘れですか？</a>
+          </div>
+
+          <button type="submit" class="form-submit">ログイン</button>
+        </form>
+
+        <div class="form-switch">
+          アカウントをお持ちでない方は<a href="#" onclick="switchMode('signup'); return false;">新規登録</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // モード切替
+  function switchMode(mode) {
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.mode === mode);
+    });
+    document.querySelectorAll('.form-view').forEach(view => {
+      view.classList.toggle('active', view.id === `form-${mode}`);
+    });
+  }
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchMode(tab.dataset.mode));
+  });
+
+  // パスワード表示/非表示
+  function togglePassword(id) {
+    const input = document.getElementById(id);
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+</script>
+
+</body>
+</html>

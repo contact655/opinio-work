@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ダッシュボード — Opinio Business</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --royal: #002366;
+    --royal-deep: #001A4D;
+    --royal-50: #EFF3FC;
+    --royal-100: #DCE5F7;
+    --accent: #3B5FD9;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --line: #E2E8F0;
+    --line-soft: #F1F5F9;
+    --bg: #FFFFFF;
+    --bg-tint: #F8FAFC;
+    --success: #059669;
+    --success-soft: #ECFDF5;
+    --warm: #F59E0B;
+    --warm-soft: #FEF3C7;
+    --purple: #7C3AED;
+    --purple-soft: #F3E8FF;
+    --pink: #DB2777;
+    --pink-soft: #FCE7F3;
+    --error: #DC2626;
+    --error-soft: #FEE2E2;
+    --gold: #D97706;
+    --gold-soft: #FEF3C7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-tint);
+    color: var(--ink);
+    font-family: "Noto Sans JP", -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ============ トップバー ============ */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .topbar__brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .topbar__brand-text {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--royal);
+    letter-spacing: -0.02em;
+  }
+  .topbar__biz-tag {
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 2px 7px;
+    background: var(--royal);
+    color: #fff;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .topbar__company {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 20px;
+    border-left: 1px solid var(--line);
+  }
+  .topbar__company-logo {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #F97316, #EA580C);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .topbar__company-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .topbar__plan-pill {
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    margin-left: 6px;
+  }
+  .topbar__plan-pill.free {
+    background: var(--line-soft);
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+  }
+  .topbar__plan-pill.paid {
+    background: linear-gradient(135deg, var(--gold), #B45309);
+    color: #fff;
+  }
+  .topbar__spacer { flex: 1; }
+  .topbar__user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 6px 12px 6px 6px;
+    border-radius: 100px;
+  }
+  .topbar__user:hover {
+    background: var(--bg-tint);
+  }
+  .topbar__avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--royal), var(--accent));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .topbar__user-name {
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .topbar__user-name small {
+    display: block;
+    font-size: 10px;
+    color: var(--ink-mute);
+    font-weight: 400;
+  }
+
+  /* ============ モック用：プラン切替 ============ */
+  .plan-toggle {
+    background: var(--bg-tint);
+    padding: 8px 28px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 57px;
+    z-index: 50;
+  }
+  .plan-toggle__label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .plan-toggle__btn {
+    padding: 4px 12px;
+    background: #fff;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .plan-toggle__btn.active {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .plan-toggle__note {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--ink-mute);
+  }
+
+  /* ============ レイアウト ============ */
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 90px);
+  }
+
+  /* サイドバー */
+  .sidebar {
+    background: #fff;
+    border-right: 1px solid var(--line);
+    padding: 20px 0;
+    position: sticky;
+    top: 90px;
+    align-self: start;
+    height: calc(100vh - 90px);
+    overflow-y: auto;
+  }
+  .sidebar__label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0 20px 8px;
+  }
+  .sidebar__nav {
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar__item {
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    justify-content: space-between;
+  }
+  .sidebar__item:hover {
+    background: var(--bg-tint);
+    color: var(--ink);
+  }
+  .sidebar__item.active {
+    background: var(--royal-50);
+    color: var(--royal);
+    border-left-color: var(--royal);
+    font-weight: 600;
+  }
+  .sidebar__item.locked {
+    color: var(--ink-mute);
+  }
+  .sidebar__item-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sidebar__item svg {
+    color: var(--ink-mute);
+    flex-shrink: 0;
+  }
+  .sidebar__item.active svg {
+    color: var(--royal);
+  }
+  .sidebar__badge {
+    background: var(--error);
+    color: #fff;
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 100px;
+    min-width: 16px;
+    text-align: center;
+  }
+  .sidebar__lock {
+    color: var(--warm);
+    font-size: 10px;
+  }
+  .sidebar__section-label {
+    padding: 16px 20px 6px;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .sidebar__plan-widget {
+    margin: 20px 16px 12px;
+    padding: 14px;
+    border-radius: 10px;
+    text-align: center;
+  }
+  .sidebar__plan-widget.free {
+    background: linear-gradient(135deg, var(--gold-soft) 0%, #FEF3C7 100%);
+    border: 1px solid #FDE68A;
+  }
+  .sidebar__plan-widget.paid {
+    background: linear-gradient(135deg, var(--success-soft) 0%, #D1FAE5 100%);
+    border: 1px solid #A7F3D0;
+  }
+  .sidebar__plan-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .sidebar__plan-widget.paid .sidebar__plan-title {
+    color: var(--success);
+  }
+  .sidebar__plan-desc {
+    font-size: 10px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+  .sidebar__plan-btn {
+    padding: 6px 14px;
+    background: var(--royal);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  /* ============ メインエリア ============ */
+  .main {
+    padding: 28px 36px 60px;
+    max-width: 1200px;
+  }
+  .main__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 24px;
+  }
+  .main__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 500;
+    font-size: 24px;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+  .main__date {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    color: var(--ink-mute);
+    font-weight: 500;
+  }
+
+  /* ============ 企業概要カード ============ */
+  .company-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 20px;
+    align-items: center;
+  }
+  .company-card__logo {
+    width: 64px; height: 64px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #F97316, #EA580C);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    box-shadow: 0 4px 14px rgba(249, 115, 22, 0.25);
+  }
+  .company-card__body { min-width: 0; }
+  .company-card__name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .company-card__plan-badge {
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .company-card__plan-badge.free {
+    background: var(--line-soft);
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+  }
+  .company-card__plan-badge.paid {
+    background: linear-gradient(135deg, var(--gold), #B45309);
+    color: #fff;
+  }
+  .company-card__meta {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+  .company-card__meta strong { color: var(--ink); font-weight: 700; }
+  .company-card__actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    transition: all 0.2s;
+  }
+  .btn:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+  .btn--primary {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .btn--primary:hover { background: var(--royal-deep); color: #fff; }
+
+  /* ============ 有料プラン訴求バナー（無料時のみ） ============ */
+  .upgrade-banner {
+    background: linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%);
+    color: #fff;
+    border-radius: 14px;
+    padding: 22px 28px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 20px;
+    align-items: center;
+  }
+  .upgrade-banner__icon {
+    width: 48px; height: 48px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .upgrade-banner__body { min-width: 0; }
+  .upgrade-banner__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .upgrade-banner__desc {
+    font-size: 12px;
+    opacity: 0.9;
+    line-height: 1.7;
+  }
+  .upgrade-banner__btn {
+    padding: 10px 20px;
+    background: #fff;
+    color: var(--royal);
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* ============ 統計カード ============ */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .stat-card:hover {
+    border-color: var(--royal-100);
+    box-shadow: 0 4px 14px rgba(15,23,42,0.06);
+    transform: translateY(-1px);
+  }
+  .stat-card.urgent {
+    border-color: #FDE68A;
+    background: linear-gradient(to bottom, var(--warm-soft), #fff);
+  }
+  .stat-card__icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--royal-50);
+    color: var(--royal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  .stat-card.urgent .stat-card__icon { background: var(--warm); color: #fff; }
+  .stat-card__icon.amber { background: var(--warm-soft); color: #B45309; }
+  .stat-card__icon.purple { background: var(--purple-soft); color: var(--purple); }
+  .stat-card__icon.success { background: var(--success-soft); color: var(--success); }
+  .stat-card__value {
+    font-family: "Inter", sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-card__label {
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  .stat-card__trend {
+    font-size: 10px;
+    color: var(--success);
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  /* ============ 2カラムレイアウト ============ */
+  .grid-2col {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  /* ============ セクションブロック ============ */
+  .section-block {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 20px;
+  }
+  .section-block__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .section-block__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .section-block__title-en {
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .section-block__link {
+    font-size: 11px;
+    color: var(--royal);
+    font-weight: 600;
+  }
+  .section-block__link:hover { text-decoration: underline; }
+
+  /* ============ 未対応カジュアル面談 ============ */
+  .request-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .request-item {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--bg-tint);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .request-item:hover {
+    border-color: var(--royal-100);
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+  }
+  .request-item__avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .request-item__body { min-width: 0; }
+  .request-item__title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 1px;
+  }
+  .request-item__meta {
+    font-size: 10px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .request-item__date {
+    color: var(--ink-mute);
+  }
+  .status-pill {
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .status-pill.pending { background: var(--warm-soft); color: #B45309; }
+  .status-pill.scheduled { background: var(--purple-soft); color: var(--purple); }
+  .status-pill.completed { background: var(--line-soft); color: var(--ink-soft); }
+
+  /* ============ マッチ候補者 ============ */
+  .matches-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .match-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .match-card:hover {
+    border-color: var(--royal-100);
+    box-shadow: 0 4px 12px rgba(15,23,42,0.05);
+  }
+  .match-card__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .match-card__avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .match-card__name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .match-card__role {
+    font-size: 10px;
+    color: var(--ink-mute);
+  }
+  .match-card__career {
+    font-size: 10px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    padding-top: 8px;
+    border-top: 1px dashed var(--line);
+  }
+
+  /* ロック状態（無料プランのぼかし） */
+  .matches-locked {
+    position: relative;
+  }
+  .matches-locked .matches-grid {
+    filter: blur(5px);
+    pointer-events: none;
+    user-select: none;
+  }
+  .matches-lock-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(2px);
+    border-radius: 10px;
+  }
+  .matches-lock-icon {
+    width: 48px; height: 48px;
+    background: var(--gold);
+    color: #fff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    box-shadow: 0 8px 20px rgba(217, 119, 6, 0.25);
+  }
+  .matches-lock-title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .matches-lock-desc {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    margin-bottom: 14px;
+    max-width: 400px;
+  }
+
+  /* ============ 求人ステータス ============ */
+  .job-statuses {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .job-status-card {
+    padding: 14px 16px;
+    background: var(--bg-tint);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .job-status-card:hover {
+    border-color: var(--royal-100);
+    background: #fff;
+  }
+  .job-status-card__label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .job-status-card__value {
+    font-family: "Inter", sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .job-status-card__status {
+    font-size: 10px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .job-status-card.published .job-status-card__status { color: var(--success); }
+  .job-status-card.review .job-status-card__status { color: #B45309; }
+  .job-status-card.draft .job-status-card__status { color: var(--ink-mute); }
+
+  /* ============ アクティビティタイムライン ============ */
+  .activity-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .activity-item {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-item__dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+  }
+  .activity-item__dot.success { background: var(--success); }
+  .activity-item__dot.warm { background: var(--warm); }
+  .activity-item__dot.purple { background: var(--purple); }
+  .activity-item__dot.pink { background: var(--pink); }
+  .activity-item__body {
+    font-size: 12px;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .activity-item__body strong { font-weight: 700; }
+  .activity-item__time {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    color: var(--ink-mute);
+    white-space: nowrap;
+  }
+
+  /* ============ チーム ============ */
+  .team-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .team-item {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-tint);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .team-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .team-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .team-role {
+    font-size: 10px;
+    color: var(--ink-mute);
+  }
+  .team-permission {
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 100px;
+    letter-spacing: 0.05em;
+  }
+  .team-permission.admin {
+    background: var(--royal-50);
+    color: var(--royal);
+  }
+  .team-permission.member {
+    background: var(--line-soft);
+    color: var(--ink-soft);
+  }
+
+  /* ============ 採用担当者の公開設定 ============ */
+  .public-profile-widget {
+    background: linear-gradient(135deg, var(--royal-50) 0%, #fff 100%);
+    border: 1px solid var(--royal-100);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .public-profile-widget__label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--royal);
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+  }
+  .public-profile-widget__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .public-profile-widget__desc {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+  .public-profile-widget__preview {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .public-profile-widget__preview-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--royal), var(--accent));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .public-profile-widget__preview-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .public-profile-widget__preview-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .public-profile-widget__preview-role {
+    font-size: 10px;
+    color: var(--ink-mute);
+    line-height: 1.5;
+  }
+
+  /* ============ 編集部からの取材案内 ============ */
+  .editor-invitation {
+    background: linear-gradient(135deg, var(--purple) 0%, #5B21B6 100%);
+    color: #fff;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 18px;
+    align-items: center;
+  }
+  .editor-invitation__icon {
+    width: 44px; height: 44px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .editor-invitation__title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .editor-invitation__desc {
+    font-size: 11px;
+    opacity: 0.88;
+    line-height: 1.7;
+  }
+  .editor-invitation__btn {
+    padding: 9px 18px;
+    background: #fff;
+    color: var(--purple);
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* ============ プラン状態によって表示を変える ============ */
+  .free-only { display: block; }
+  .paid-only { display: none; }
+  body.plan-paid .free-only { display: none; }
+  body.plan-paid .paid-only { display: block; }
+
+  .sidebar__item-lock { display: flex; }
+  body.plan-paid .sidebar__item-lock { display: none; }
+
+  /* レスポンシブ */
+  @media (max-width: 1000px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 0;
+    }
+    .sidebar__nav { flex-direction: row; overflow-x: auto; }
+    .sidebar__item { border-left: none; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .sidebar__item.active { border-left: none; border-bottom-color: var(--royal); }
+    .sidebar__label, .sidebar__section-label, .sidebar__plan-widget { display: none; }
+    .main { padding: 24px 20px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid-2col { grid-template-columns: 1fr; }
+    .matches-grid { grid-template-columns: 1fr; }
+    .job-statuses { grid-template-columns: 1fr; }
+    .company-card { grid-template-columns: 48px 1fr; gap: 12px; }
+    .company-card__logo { width: 48px; height: 48px; font-size: 22px; }
+    .company-card__actions { grid-column: 1 / -1; }
+    .upgrade-banner, .editor-invitation { grid-template-columns: 1fr; }
+    .topbar { padding: 10px 16px; gap: 12px; flex-wrap: wrap; }
+    .topbar__company { padding-left: 0; border: none; }
+    .plan-toggle { padding: 8px 16px; top: 90px; flex-wrap: wrap; }
+    .plan-toggle__note { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- トップバー -->
+<header class="topbar">
+  <div class="topbar__brand">
+    <span class="topbar__brand-text">Opinio</span>
+    <span class="topbar__biz-tag">Business</span>
+  </div>
+  <div class="topbar__company">
+    <div class="topbar__company-logo">T</div>
+    <span class="topbar__company-name">株式会社タイミー</span>
+  </div>
+  <div class="topbar__spacer"></div>
+  <div class="topbar__user">
+    <div class="topbar__avatar">山</div>
+    <div class="topbar__user-name">
+      山田 太郎
+      <small>Admin</small>
+    </div>
+  </div>
+</header>
+
+<!-- モック用：プラン切替 -->
+<div class="plan-toggle">
+  <span class="plan-toggle__label">MOCK:</span>
+  <button class="plan-toggle__btn active" id="btn-free">無料プラン</button>
+  <button class="plan-toggle__btn" id="btn-paid">有料プラン</button>
+  <span class="plan-toggle__note">※ モック用の切替。本番ではプラン状態に応じて自動表示</span>
+</div>
+
+<!-- レイアウト -->
+<div class="layout">
+
+  <!-- サイドバー -->
+  <aside class="sidebar">
+    <div class="sidebar__label">採用活動</div>
+    <nav class="sidebar__nav">
+      <div class="sidebar__item active">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          ダッシュボード
+        </div>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+          企業情報
+        </div>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>
+          求人管理
+        </div>
+        <span class="sidebar__badge">3</span>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          カジュアル面談
+        </div>
+        <span class="sidebar__badge">4</span>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+          マッチ候補者
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar__section-label">管理</div>
+    <nav class="sidebar__nav">
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+          チーム
+        </div>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
+          アナリティクス
+        </div>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          設定
+        </div>
+      </div>
+    </nav>
+
+  </aside>
+
+  <!-- メイン -->
+  <main class="main">
+
+    <div class="main__header">
+      <h1 class="main__title">おかえりなさい、山田さん。</h1>
+      <span class="main__date">2026年4月23日（木）</span>
+    </div>
+
+    <!-- 企業概要カード -->
+    <div class="company-card">
+      <div class="company-card__logo">T</div>
+      <div class="company-card__body">
+        <div class="company-card__name">
+          株式会社タイミー
+        </div>
+        <div class="company-card__meta">
+          IT / SaaS · <strong>1,642名</strong> · 東証グロース · 担当者<strong>3名</strong>
+        </div>
+      </div>
+      <div class="company-card__actions">
+        <button class="btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          公開ページを見る
+        </button>
+        <button class="btn btn--primary">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          企業情報を編集
+        </button>
+      </div>
+    </div>
+
+    <!-- 有料プラン訴求バナー（無料プランのみ表示） -->
+    <div class="upgrade-banner free-only">
+      <div class="upgrade-banner__icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      </div>
+      <div class="upgrade-banner__body">
+        <div class="upgrade-banner__title">求人を公開して、採用を加速させませんか？</div>
+        <div class="upgrade-banner__desc">
+          有料プランで<strong>求人掲載・マッチ候補者の可視化・複数ユーザー管理</strong>が可能に。<strong>費用は採用決定時のみ</strong>、月額料金はありません。
+        </div>
+      </div>
+      <button class="upgrade-banner__btn">有料プランを見る</button>
+    </div>
+
+    <!-- 統計カード -->
+    <div class="stats-grid">
+      <div class="stat-card urgent">
+        <div class="stat-card__icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="stat-card__value">4</div>
+        <div class="stat-card__label">未対応のカジュアル面談</div>
+        <div class="stat-card__trend" style="color:#B45309;">⚠ 要対応</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__icon amber paid-only">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>
+        </div>
+        <div class="stat-card__icon amber free-only">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="stat-card__value free-only">—</div>
+        <div class="stat-card__value paid-only">3</div>
+        <div class="stat-card__label">公開中の求人</div>
+        <div class="stat-card__trend free-only" style="color:var(--ink-mute);">有料プランで解放</div>
+        <div class="stat-card__trend paid-only">↑ 先月比 +1</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__icon purple paid-only">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+        </div>
+        <div class="stat-card__icon purple free-only">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="stat-card__value free-only">—</div>
+        <div class="stat-card__value paid-only">28</div>
+        <div class="stat-card__label">マッチ候補者（今月）</div>
+        <div class="stat-card__trend free-only" style="color:var(--ink-mute);">有料プランで解放</div>
+        <div class="stat-card__trend paid-only">↑ 先月比 +12%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__icon success">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+        <div class="stat-card__value">12</div>
+        <div class="stat-card__label">面談完了（今月）</div>
+        <div class="stat-card__trend">↑ 先月比 +3件</div>
+      </div>
+    </div>
+
+    <!-- Opinio編集部からの取材案内 -->
+    <div class="editor-invitation">
+      <div class="editor-invitation__icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+      </div>
+      <div>
+        <div class="editor-invitation__title">Opinio編集部の取材を受けませんか？</div>
+        <div class="editor-invitation__desc">
+          御社のミッション・組織・プロダクトを、編集部が第三者視点で取材します。他の企業記事とは違う<strong>深い記事</strong>が、求職者との対話のきっかけになります。
+        </div>
+      </div>
+      <button class="editor-invitation__btn">取材について相談する</button>
+    </div>
+
+    <!-- 2カラム：未対応の面談 + 求人ステータス -->
+    <div class="grid-2col">
+
+      <!-- 未対応カジュアル面談 -->
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            未対応のカジュアル面談
+            <span class="section-block__title-en">Pending Applications</span>
+          </div>
+          <a href="#" class="section-block__link">すべて見る →</a>
+        </div>
+        <div class="request-list">
+          <div class="request-item">
+            <div class="request-item__avatar" style="background: linear-gradient(135deg, var(--royal), var(--accent));">田</div>
+            <div class="request-item__body">
+              <div class="request-item__title">田中 翔太さん · 30代前半</div>
+              <div class="request-item__meta">PdM（タイミーキャリアプラス）に興味 · <span class="request-item__date">3時間前</span></div>
+            </div>
+            <span class="status-pill pending">未対応</span>
+          </div>
+          <div class="request-item">
+            <div class="request-item__avatar" style="background: linear-gradient(135deg, #FBBF24, #D97706);">佐</div>
+            <div class="request-item__body">
+              <div class="request-item__title">佐藤 花子さん · 20代後半</div>
+              <div class="request-item__meta">エンタープライズ営業に興味 · <span class="request-item__date">昨日</span></div>
+            </div>
+            <span class="status-pill pending">未対応</span>
+          </div>
+          <div class="request-item">
+            <div class="request-item__avatar" style="background: linear-gradient(135deg, #34D399, var(--success));">鈴</div>
+            <div class="request-item__body">
+              <div class="request-item__title">鈴木 一郎さん · 30代後半</div>
+              <div class="request-item__meta">企業全般に興味（求人未指定）· <span class="request-item__date">2日前</span></div>
+            </div>
+            <span class="status-pill pending">未対応</span>
+          </div>
+          <div class="request-item">
+            <div class="request-item__avatar" style="background: linear-gradient(135deg, #A78BFA, var(--purple));">高</div>
+            <div class="request-item__body">
+              <div class="request-item__title">高橋 健太さん · 40代前半</div>
+              <div class="request-item__meta">エンジニアリングマネージャーに興味 · <span class="request-item__date">3日前</span></div>
+            </div>
+            <span class="status-pill pending">未対応</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 最近のアクティビティ -->
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            最近のアクティビティ
+            <span class="section-block__title-en">Activity</span>
+          </div>
+        </div>
+        <div class="activity-list">
+          <div class="activity-item">
+            <div class="activity-item__dot success">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="activity-item__body">
+              <strong>鈴木さん</strong>が山本さんのカジュアル面談を承認</div>
+            <div class="activity-item__time">2h前</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-item__dot warm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="activity-item__body">
+              新規カジュアル面談：<strong>田中翔太さん</strong>から</div>
+            <div class="activity-item__time">3h前</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-item__dot purple">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            </div>
+            <div class="activity-item__body">
+              編集部取材記事「プロダクト組織の解剖」が公開</div>
+            <div class="activity-item__time">昨日</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-item__dot pink">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <div class="activity-item__body">
+              <strong>山田さん</strong>が中村さんとカジュアル面談を実施</div>
+            <div class="activity-item__time">2日前</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-item__dot success">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </div>
+            <div class="activity-item__body">
+              求人「エンタープライズ営業」が公開承認されました</div>
+            <div class="activity-item__time">3日前</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- マッチ候補者 -->
+    <section class="section-block">
+      <div class="section-block__head">
+        <div class="section-block__title">
+          マッチ候補者（今月の新着）
+          <span class="section-block__title-en">Match Candidates</span>
+        </div>
+        <a href="#" class="section-block__link paid-only">すべて見る →</a>
+      </div>
+      
+      <!-- 無料プラン：ぼかし表示 -->
+      <div class="matches-locked free-only">
+        <div class="matches-grid">
+          <div class="match-card">
+            <div class="match-card__head">
+              <div class="match-card__avatar" style="background: linear-gradient(135deg, var(--royal), var(--accent));">？</div>
+              <div>
+                <div class="match-card__name">山田 花子さん</div>
+                <div class="match-card__role">現職：マネーフォワード PdM</div>
+              </div>
+            </div>
+            <div class="match-card__career">PdM経験3年 · 事業会社PdM志向 · タイミーキャリアプラスに興味</div>
+          </div>
+          <div class="match-card">
+            <div class="match-card__head">
+              <div class="match-card__avatar" style="background: linear-gradient(135deg, #FBBF24, #D97706);">？</div>
+              <div>
+                <div class="match-card__name">佐藤 太郎さん</div>
+                <div class="match-card__role">現職：Salesforce SE</div>
+              </div>
+            </div>
+            <div class="match-card__career">エンタープライズ営業経験5年 · SaaS業界志向</div>
+          </div>
+          <div class="match-card">
+            <div class="match-card__head">
+              <div class="match-card__avatar" style="background: linear-gradient(135deg, #34D399, var(--success));">？</div>
+              <div>
+                <div class="match-card__name">鈴木 花子さん</div>
+                <div class="match-card__role">現職：SmartHR マーケ</div>
+              </div>
+            </div>
+            <div class="match-card__career">BtoB SaaSマーケ経験4年 · グロースハック志向</div>
+          </div>
+        </div>
+        <div class="matches-lock-overlay">
+          <div class="matches-lock-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="matches-lock-title">マッチ候補者の可視化は有料プラン限定</div>
+          <div class="matches-lock-desc">
+            御社の求人条件にフィットしそうな<strong>28名の候補者</strong>がいます。<br/>有料プランで詳細を確認でき、直接コンタクトも可能になります。
+          </div>
+          <button class="btn btn--primary">有料プランを見る</button>
+        </div>
+      </div>
+
+      <!-- 有料プラン：通常表示 -->
+      <div class="paid-only">
+        <div class="matches-grid">
+          <div class="match-card">
+            <div class="match-card__head">
+              <div class="match-card__avatar" style="background: linear-gradient(135deg, var(--royal), var(--accent));">山</div>
+              <div>
+                <div class="match-card__name">山田 花子さん</div>
+                <div class="match-card__role">現職：マネーフォワード PdM</div>
+              </div>
+            </div>
+            <div class="match-card__career">PdM経験3年 · 事業会社PdM志向 · タイミーキャリアプラスに興味</div>
+          </div>
+          <div class="match-card">
+            <div class="match-card__head">
+              <div class="match-card__avatar" style="background: linear-gradient(135deg, #FBBF24, #D97706);">佐</div>
+              <div>
+                <div class="match-card__name">佐藤 太郎さん</div>
+                <div class="match-card__role">現職：Salesforce SE</div>
+              </div>
+            </div>
+            <div class="match-card__career">エンタープライズ営業経験5年 · SaaS業界志向</div>
+          </div>
+          <div class="match-card">
+            <div class="match-card__head">
+              <div class="match-card__avatar" style="background: linear-gradient(135deg, #34D399, var(--success));">鈴</div>
+              <div>
+                <div class="match-card__name">鈴木 花子さん</div>
+                <div class="match-card__role">現職:SmartHR マーケ</div>
+              </div>
+            </div>
+            <div class="match-card__career">BtoB SaaSマーケ経験4年 · グロースハック志向</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2カラム：求人ステータス + チーム -->
+    <div class="grid-2col">
+
+      <!-- 求人ステータス -->
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            求人ステータス
+            <span class="section-block__title-en">Job Status</span>
+          </div>
+          <a href="#" class="section-block__link">管理画面へ →</a>
+        </div>
+        <div class="job-statuses">
+          <div class="job-status-card published">
+            <div class="job-status-card__label">公開中</div>
+            <div class="job-status-card__value">3</div>
+            <div class="job-status-card__status">公開中</div>
+          </div>
+          <div class="job-status-card review">
+            <div class="job-status-card__label">運営審査中</div>
+            <div class="job-status-card__value">1</div>
+            <div class="job-status-card__status">2-3営業日で完了予定</div>
+          </div>
+          <div class="job-status-card draft">
+            <div class="job-status-card__label">下書き</div>
+            <div class="job-status-card__value">2</div>
+            <div class="job-status-card__status">準備中</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- チーム -->
+      <section class="section-block">
+        <div class="section-block__head">
+          <div class="section-block__title">
+            チームメンバー
+            <span class="section-block__title-en">Team</span>
+          </div>
+          <a href="#" class="section-block__link paid-only">メンバーを招待 →</a>
+        </div>
+        <div class="team-list">
+          <div class="team-item">
+            <div class="team-avatar" style="background: linear-gradient(135deg, var(--royal), var(--accent));">山</div>
+            <div>
+              <div class="team-name">山田 太郎さん（あなた）</div>
+              <div class="team-role">人事部 採用マネージャー</div>
+            </div>
+            <span class="team-permission admin">ADMIN</span>
+          </div>
+          <div class="team-item paid-only">
+            <div class="team-avatar" style="background: linear-gradient(135deg, #FBBF24, #D97706);">鈴</div>
+            <div>
+              <div class="team-name">鈴木 花子さん</div>
+              <div class="team-role">人事部 採用担当</div>
+            </div>
+            <span class="team-permission member">MEMBER</span>
+          </div>
+          <div class="team-item paid-only">
+            <div class="team-avatar" style="background: linear-gradient(135deg, #34D399, var(--success));">中</div>
+            <div>
+              <div class="team-name">中村 一郎さん</div>
+              <div class="team-role">プロダクト部 マネージャー</div>
+            </div>
+            <span class="team-permission member">MEMBER</span>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:10px 12px;background:var(--warm-soft);border:1px solid #FDE68A;border-radius:8px;font-size:11px;color:#78350F;line-height:1.6;" class="free-only">
+          🔒 <strong>複数メンバーの招待は有料プラン限定。</strong>無料プランは管理者1名のみ利用可能です。
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 採用担当者の公開設定 -->
+    <div class="public-profile-widget">
+      <div class="public-profile-widget__label">OPINIO 独自機能</div>
+      <div class="public-profile-widget__title">採用担当者としてのあなたのキャリアが、求職者に公開されています</div>
+      <div class="public-profile-widget__desc">
+        Opinioでは、採用担当者の職歴も公開することで、候補者との信頼関係を構築します。あなたのプロフィールは以下のように求職者に表示されます。
+      </div>
+      <div class="public-profile-widget__preview">
+        <div class="public-profile-widget__preview-avatar">山</div>
+        <div class="public-profile-widget__preview-body">
+          <div class="public-profile-widget__preview-name">山田 太郎さん · タイミー 採用マネージャー</div>
+          <div class="public-profile-widget__preview-role">元：株式会社リクルート 人事（2018-2022）/ 元：株式会社メルカリ 採用部（2022-2024）</div>
+        </div>
+      </div>
+      <button class="btn">プロフィールを編集</button>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // プラン切替（モック）
+  const btnFree = document.getElementById('btn-free');
+  const btnPaid = document.getElementById('btn-paid');
+  const topbarPlan = document.getElementById('topbar-plan');
+
+  btnFree.addEventListener('click', () => {
+    document.body.classList.remove('plan-paid');
+    btnFree.classList.add('active');
+    btnPaid.classList.remove('active');
+    topbarPlan.textContent = '無料プラン';
+    topbarPlan.classList.remove('paid');
+    topbarPlan.classList.add('free');
+  });
+
+  btnPaid.addEventListener('click', () => {
+    document.body.classList.add('plan-paid');
+    btnPaid.classList.add('active');
+    btnFree.classList.remove('active');
+    topbarPlan.textContent = '有料プラン';
+    topbarPlan.classList.remove('free');
+    topbarPlan.classList.add('paid');
+  });
+</script>
+
+</body>
+</html>

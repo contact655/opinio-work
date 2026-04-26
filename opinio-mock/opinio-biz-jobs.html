@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>求人管理 — Opinio Business</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --royal: #002366;
+    --royal-deep: #001A4D;
+    --royal-50: #EFF3FC;
+    --royal-100: #DCE5F7;
+    --accent: #3B5FD9;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --line: #E2E8F0;
+    --line-soft: #F1F5F9;
+    --bg: #FFFFFF;
+    --bg-tint: #F8FAFC;
+    --success: #059669;
+    --success-soft: #ECFDF5;
+    --warm: #F59E0B;
+    --warm-soft: #FEF3C7;
+    --purple: #7C3AED;
+    --purple-soft: #F3E8FF;
+    --pink: #DB2777;
+    --pink-soft: #FCE7F3;
+    --error: #DC2626;
+    --error-soft: #FEE2E2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-tint);
+    color: var(--ink);
+    font-family: "Noto Sans JP", -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ============ トップバー ============ */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .topbar__brand { display: flex; align-items: center; gap: 8px; }
+  .topbar__brand-text {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--royal);
+    letter-spacing: -0.02em;
+  }
+  .topbar__biz-tag {
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 2px 7px;
+    background: var(--royal);
+    color: #fff;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .topbar__company {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 20px;
+    border-left: 1px solid var(--line);
+  }
+  .topbar__company-logo {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #F97316, #EA580C);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .topbar__company-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .topbar__spacer { flex: 1; }
+  .topbar__user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 6px 12px 6px 6px;
+    border-radius: 100px;
+  }
+  .topbar__user:hover { background: var(--bg-tint); }
+  .topbar__avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--royal), var(--accent));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .topbar__user-name {
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .topbar__user-name small {
+    display: block;
+    font-size: 10px;
+    color: var(--ink-mute);
+    font-weight: 400;
+  }
+
+  /* ============ レイアウト ============ */
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 57px);
+  }
+
+  /* サイドバー */
+  .sidebar {
+    background: #fff;
+    border-right: 1px solid var(--line);
+    padding: 20px 0;
+    position: sticky;
+    top: 57px;
+    align-self: start;
+    height: calc(100vh - 57px);
+    overflow-y: auto;
+  }
+  .sidebar__label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0 20px 8px;
+  }
+  .sidebar__nav { display: flex; flex-direction: column; }
+  .sidebar__item {
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    justify-content: space-between;
+  }
+  .sidebar__item:hover { background: var(--bg-tint); color: var(--ink); }
+  .sidebar__item.active {
+    background: var(--royal-50);
+    color: var(--royal);
+    border-left-color: var(--royal);
+    font-weight: 600;
+  }
+  .sidebar__item-inner { display: flex; align-items: center; gap: 10px; }
+  .sidebar__item svg { color: var(--ink-mute); flex-shrink: 0; }
+  .sidebar__item.active svg { color: var(--royal); }
+  .sidebar__badge {
+    background: var(--error);
+    color: #fff;
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 100px;
+    min-width: 16px;
+    text-align: center;
+  }
+  .sidebar__section-label {
+    padding: 16px 20px 6px;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ============ メインエリア ============ */
+  .main {
+    padding: 28px 36px 60px;
+    max-width: 1200px;
+  }
+  .main__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  .main__title-block { flex: 1; }
+  .main__title {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 500;
+    font-size: 26px;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+    margin-bottom: 6px;
+  }
+  .main__desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.8;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    transition: all 0.2s;
+  }
+  .btn:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+  .btn--primary {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .btn--primary:hover { background: var(--royal-deep); color: #fff; }
+
+  /* ステータス概要カード */
+  .status-summary {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .summary-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .summary-card:hover { border-color: var(--royal-100); box-shadow: 0 2px 8px rgba(15,23,42,0.04); }
+  .summary-card.active {
+    border-color: var(--royal);
+    background: var(--royal-50);
+  }
+  .summary-card.urgent {
+    border-color: #FCA5A5;
+    background: var(--error-soft);
+  }
+  .summary-card__label {
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+  .summary-card.urgent .summary-card__label { color: var(--error); font-weight: 600; }
+  .summary-card__value {
+    font-family: "Inter", sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .summary-card.urgent .summary-card__value { color: var(--error); }
+
+  /* ステータスタブ */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .status-tabs {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .status-tab {
+    padding: 7px 13px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .status-tab:hover {
+    background: var(--royal-50);
+    color: var(--royal);
+    border-color: var(--royal-100);
+  }
+  .status-tab.active {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .status-tab__count {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    opacity: 0.8;
+  }
+  .filter-spacer { flex: 1; }
+  .search-box {
+    position: relative;
+  }
+  .search-box__input {
+    padding: 7px 12px 7px 32px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    background: #fff;
+    width: 240px;
+  }
+  .search-box__input:focus {
+    outline: none;
+    border-color: var(--royal);
+  }
+  .search-box__icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-mute);
+  }
+
+  /* 求人カード */
+  .job-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .job-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 22px;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .job-card:hover {
+    border-color: var(--royal-100);
+    box-shadow: 0 4px 14px rgba(15,23,42,0.06);
+  }
+  .job-card.rejected {
+    border-left: 4px solid var(--error);
+  }
+  .job-card.draft {
+    border-left: 4px solid var(--warm);
+  }
+  .job-card.review {
+    border-left: 4px solid var(--purple);
+  }
+  .job-card.published {
+    border-left: 4px solid var(--success);
+  }
+  .job-card__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .job-card__main { flex: 1; min-width: 0; }
+  .job-card__top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .status-pill {
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .status-pill.published { background: var(--success-soft); color: var(--success); }
+  .status-pill.review { background: var(--purple-soft); color: var(--purple); }
+  .status-pill.draft { background: var(--warm-soft); color: #B45309; }
+  .status-pill.rejected { background: var(--error-soft); color: var(--error); }
+  .status-pill.private { background: var(--line-soft); color: var(--ink-soft); }
+  .employment-tag {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--bg-tint);
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+  }
+  .job-card__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+    line-height: 1.5;
+  }
+  .job-card__category {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .job-card__category .role-cat {
+    color: var(--royal);
+    font-weight: 600;
+  }
+  .job-card__salary {
+    font-family: "Inter", sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--royal);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .job-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .meta-item svg { color: var(--ink-mute); }
+  .meta-item strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .meta-item.applications strong {
+    color: var(--royal);
+    font-family: "Inter", sans-serif;
+  }
+  .job-card__actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .job-action-btn {
+    padding: 6px 12px;
+    background: var(--bg-tint);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .job-action-btn:hover {
+    background: #fff;
+    border-color: var(--royal-100);
+    color: var(--royal);
+  }
+  .job-action-btn--primary {
+    background: var(--royal);
+    color: #fff;
+    border-color: var(--royal);
+  }
+  .job-action-btn--primary:hover {
+    background: var(--royal-deep);
+    color: #fff;
+  }
+  .icon-action-btn {
+    width: 28px; height: 28px;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--ink-mute);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-action-btn:hover {
+    background: #fff;
+    color: var(--ink);
+    border-color: var(--royal-100);
+  }
+  .icon-action-btn.delete:hover {
+    color: var(--error);
+    border-color: var(--error);
+    background: var(--error-soft);
+  }
+
+  /* 差し戻しメッセージ */
+  .rejection-notice {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: var(--error-soft);
+    border: 1px solid #FCA5A5;
+    border-radius: 8px;
+    display: flex;
+    gap: 10px;
+  }
+  .rejection-notice__icon {
+    width: 24px; height: 24px;
+    background: var(--error);
+    color: #fff;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .rejection-notice__body { flex: 1; }
+  .rejection-notice__label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--error);
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .rejection-notice__text {
+    font-size: 12px;
+    color: #7F1D1D;
+    line-height: 1.7;
+  }
+  .rejection-notice__date {
+    font-size: 10px;
+    color: #991B1B;
+    margin-top: 4px;
+  }
+
+  /* 空状態 */
+  .empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--ink-mute);
+  }
+  .empty-state__icon {
+    width: 64px; height: 64px;
+    background: var(--bg-tint);
+    color: var(--ink-mute);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 14px;
+  }
+  .empty-state__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .empty-state__desc {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+
+  /* レスポンシブ */
+  @media (max-width: 1100px) {
+    .status-summary { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 0;
+    }
+    .sidebar__nav { flex-direction: row; overflow-x: auto; }
+    .sidebar__item { border-left: none; border-bottom: 2px solid transparent; white-space: nowrap; flex-shrink: 0; }
+    .sidebar__item.active { border-left: none; border-bottom-color: var(--royal); }
+    .sidebar__label, .sidebar__section-label { display: none; }
+    .main { padding: 24px 20px; }
+    .status-summary { grid-template-columns: repeat(2, 1fr); }
+    .main__head { flex-direction: column; gap: 12px; }
+    .job-card__head { flex-direction: column; }
+    .job-card__salary { align-self: flex-start; font-size: 16px; }
+    .job-card__meta { flex-wrap: wrap; gap: 10px; }
+    .job-card__actions { width: 100%; flex-wrap: wrap; }
+    .topbar { padding: 10px 16px; gap: 12px; flex-wrap: wrap; }
+    .topbar__company { padding-left: 0; border: none; }
+    .search-box__input { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- トップバー -->
+<header class="topbar">
+  <div class="topbar__brand">
+    <span class="topbar__brand-text">Opinio</span>
+    <span class="topbar__biz-tag">Business</span>
+  </div>
+  <div class="topbar__company">
+    <div class="topbar__company-logo">T</div>
+    <span class="topbar__company-name">株式会社タイミー</span>
+  </div>
+  <div class="topbar__spacer"></div>
+  <div class="topbar__user">
+    <div class="topbar__avatar">山</div>
+    <div class="topbar__user-name">
+      山田 太郎
+      <small>Admin</small>
+    </div>
+  </div>
+</header>
+
+<!-- レイアウト -->
+<div class="layout">
+
+  <!-- サイドバー -->
+  <aside class="sidebar">
+    <div class="sidebar__label">採用活動</div>
+    <nav class="sidebar__nav">
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          ダッシュボード
+        </div>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+          企業情報
+        </div>
+      </div>
+      <div class="sidebar__item active">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>
+          求人管理
+        </div>
+        <span class="sidebar__badge">1</span>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          カジュアル面談
+        </div>
+        <span class="sidebar__badge">4</span>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+          マッチ候補者
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar__section-label">管理</div>
+    <nav class="sidebar__nav">
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+          チーム
+        </div>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
+          アナリティクス
+        </div>
+      </div>
+      <div class="sidebar__item">
+        <div class="sidebar__item-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          設定
+        </div>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- メイン -->
+  <main class="main">
+
+    <div class="main__head">
+      <div class="main__title-block">
+        <h1 class="main__title">求人管理</h1>
+        <p class="main__desc">求人の作成・編集・公開状態を管理します。新規求人は「公開申請」後にOpinio運営の審査(2-3営業日)を経て公開されます。</p>
+      </div>
+      <button class="btn btn--primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        新規求人を作成
+      </button>
+    </div>
+
+    <!-- ステータス概要 -->
+    <div class="status-summary">
+      <div class="summary-card">
+        <div class="summary-card__label">公開中</div>
+        <div class="summary-card__value">3</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card__label">審査中</div>
+        <div class="summary-card__value">1</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card__label">下書き</div>
+        <div class="summary-card__value">2</div>
+      </div>
+      <div class="summary-card urgent">
+        <div class="summary-card__label">⚠ 差し戻し</div>
+        <div class="summary-card__value">1</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card__label">非公開</div>
+        <div class="summary-card__value">5</div>
+      </div>
+    </div>
+
+    <!-- フィルタ -->
+    <div class="filter-bar">
+      <div class="status-tabs">
+        <button class="status-tab active">すべて <span class="status-tab__count">12</span></button>
+        <button class="status-tab">公開中 <span class="status-tab__count">3</span></button>
+        <button class="status-tab">審査中 <span class="status-tab__count">1</span></button>
+        <button class="status-tab">下書き <span class="status-tab__count">2</span></button>
+        <button class="status-tab" style="color:var(--error);border-color:#FCA5A5;">差し戻し <span class="status-tab__count">1</span></button>
+        <button class="status-tab">非公開 <span class="status-tab__count">5</span></button>
+      </div>
+      <div class="filter-spacer"></div>
+      <div class="search-box">
+        <span class="search-box__icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        </span>
+        <input type="text" class="search-box__input" placeholder="求人タイトル・職種で検索..." />
+      </div>
+    </div>
+
+    <!-- 求人リスト -->
+    <div class="job-list">
+
+      <!-- 差し戻し（最も目立つ位置） -->
+      <div class="job-card rejected">
+        <div class="job-card__head">
+          <div class="job-card__main">
+            <div class="job-card__top">
+              <span class="status-pill rejected">差し戻し</span>
+              <span class="employment-tag">業務委託</span>
+            </div>
+            <div class="job-card__title">マーケティングディレクター(業務委託)</div>
+            <div class="job-card__category">
+              <span class="role-cat">マーケティング</span> · タイミーキャリアプラス事業部
+            </div>
+          </div>
+          <div class="job-card__salary">¥600-1,000万</div>
+        </div>
+
+        <!-- 差し戻しメッセージ -->
+        <div class="rejection-notice">
+          <div class="rejection-notice__icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="rejection-notice__body">
+            <div class="rejection-notice__label">運営からのフィードバック</div>
+            <div class="rejection-notice__text">
+              「求める人物像」セクションで、業務に直接関係のない属性(年齢・性別など)に関する記述が含まれています。男女雇用機会均等法に基づき修正をお願いします。詳細は編集画面でご確認ください。
+            </div>
+            <div class="rejection-notice__date">2026年4月20日 16:42 · Opinio編集部</div>
+          </div>
+        </div>
+
+        <div class="job-card__meta">
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            最終編集 <strong>4/20 16:30</strong>
+          </span>
+          <div class="job-card__actions">
+            <button class="job-action-btn">複製</button>
+            <button class="icon-action-btn delete" title="削除">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+            <button class="job-action-btn job-action-btn--primary">修正して再申請</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 公開中 1 -->
+      <div class="job-card published">
+        <div class="job-card__head">
+          <div class="job-card__main">
+            <div class="job-card__top">
+              <span class="status-pill published">公開中</span>
+              <span class="employment-tag">正社員</span>
+            </div>
+            <div class="job-card__title">プロダクトマネージャー(タイミーキャリアプラス)</div>
+            <div class="job-card__category">
+              <span class="role-cat">PdM / PM</span> · タイミーキャリアプラス事業部
+            </div>
+          </div>
+          <div class="job-card__salary">¥700-1,100万</div>
+        </div>
+        <div class="job-card__meta">
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            公開 <strong>2026/3/15</strong>
+          </span>
+          <span class="meta-item applications">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <strong>12</strong> 件のカジュアル面談
+          </span>
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+            担当: <strong>山田 太郎</strong>
+          </span>
+          <div class="job-card__actions">
+            <button class="job-action-btn">公開ページを見る</button>
+            <button class="job-action-btn">複製</button>
+            <button class="icon-action-btn" title="非公開にする">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+            <button class="job-action-btn job-action-btn--primary">編集</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 公開中 2 -->
+      <div class="job-card published">
+        <div class="job-card__head">
+          <div class="job-card__main">
+            <div class="job-card__top">
+              <span class="status-pill published">公開中</span>
+              <span class="employment-tag">正社員</span>
+            </div>
+            <div class="job-card__title">エンタープライズ営業(マネージャー候補)</div>
+            <div class="job-card__category">
+              <span class="role-cat">営業</span> · エンタープライズセールス部
+            </div>
+          </div>
+          <div class="job-card__salary">¥800-1,400万</div>
+        </div>
+        <div class="job-card__meta">
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            公開 <strong>2026/2/28</strong>
+          </span>
+          <span class="meta-item applications">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <strong>8</strong> 件のカジュアル面談
+          </span>
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+            担当: <strong>鈴木 花子</strong>
+          </span>
+          <div class="job-card__actions">
+            <button class="job-action-btn">公開ページを見る</button>
+            <button class="job-action-btn">複製</button>
+            <button class="icon-action-btn" title="非公開にする">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+            <button class="job-action-btn job-action-btn--primary">編集</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 公開中 3 -->
+      <div class="job-card published">
+        <div class="job-card__head">
+          <div class="job-card__main">
+            <div class="job-card__top">
+              <span class="status-pill published">公開中</span>
+              <span class="employment-tag">正社員</span>
+            </div>
+            <div class="job-card__title">バックエンドエンジニア(リード候補)</div>
+            <div class="job-card__category">
+              <span class="role-cat">エンジニア</span> · プロダクト開発本部
+            </div>
+          </div>
+          <div class="job-card__salary">¥750-1,300万</div>
+        </div>
+        <div class="job-card__meta">
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            公開 <strong>2026/2/10</strong>
+          </span>
+          <span class="meta-item applications">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <strong>5</strong> 件のカジュアル面談
+          </span>
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+            担当: <strong>中村 一郎</strong>
+          </span>
+          <div class="job-card__actions">
+            <button class="job-action-btn">公開ページを見る</button>
+            <button class="job-action-btn">複製</button>
+            <button class="icon-action-btn" title="非公開にする">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+            <button class="job-action-btn job-action-btn--primary">編集</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 審査中 -->
+      <div class="job-card review">
+        <div class="job-card__head">
+          <div class="job-card__main">
+            <div class="job-card__top">
+              <span class="status-pill review">運営審査中</span>
+              <span class="employment-tag">正社員</span>
+            </div>
+            <div class="job-card__title">カスタマーサクセスマネージャー</div>
+            <div class="job-card__category">
+              <span class="role-cat">カスタマーサクセス</span> · CS本部
+            </div>
+          </div>
+          <div class="job-card__salary">¥650-950万</div>
+        </div>
+        <div class="job-card__meta">
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            申請 <strong>2026/4/22</strong> · 2-3営業日で完了予定
+          </span>
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+            担当: <strong>山田 太郎</strong>
+          </span>
+          <div class="job-card__actions">
+            <button class="job-action-btn">プレビュー</button>
+            <button class="job-action-btn">申請を取り下げる</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 下書き 1 -->
+      <div class="job-card draft">
+        <div class="job-card__head">
+          <div class="job-card__main">
+            <div class="job-card__top">
+              <span class="status-pill draft">下書き</span>
+              <span class="employment-tag">正社員</span>
+            </div>
+            <div class="job-card__title">フロントエンドエンジニア(未保存タイトル)</div>
+            <div class="job-card__category">
+              <span class="role-cat">エンジニア</span> · 未指定
+            </div>
+          </div>
+          <div class="job-card__salary" style="color:var(--ink-mute);font-size:13px;">未設定</div>
+        </div>
+        <div class="job-card__meta">
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            最終編集 <strong>4/22 11:18</strong>
+          </span>
+          <span class="meta-item" style="color:var(--warm);">
+            ⚠ 5/10項目が未入力
+          </span>
+          <div class="job-card__actions">
+            <button class="job-action-btn">複製</button>
+            <button class="icon-action-btn delete" title="削除">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+            <button class="job-action-btn job-action-btn--primary">編集を続ける</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 下書き 2 -->
+      <div class="job-card draft">
+        <div class="job-card__head">
+          <div class="job-card__main">
+            <div class="job-card__top">
+              <span class="status-pill draft">下書き</span>
+              <span class="employment-tag">業務委託</span>
+            </div>
+            <div class="job-card__title">PMM (プロダクトマーケティング)</div>
+            <div class="job-card__category">
+              <span class="role-cat">PdM / PM</span> · マーケティング部
+            </div>
+          </div>
+          <div class="job-card__salary">¥500-800万</div>
+        </div>
+        <div class="job-card__meta">
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            最終編集 <strong>4/18 09:42</strong>
+          </span>
+          <span class="meta-item" style="color:var(--success);">
+            ✓ 全項目入力済み
+          </span>
+          <div class="job-card__actions">
+            <button class="job-action-btn">複製</button>
+            <button class="icon-action-btn delete" title="削除">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+            <button class="job-action-btn job-action-btn--primary">編集 / 公開申請</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 非公開（縮小表示） -->
+      <div class="job-card" style="opacity: 0.7;">
+        <div class="job-card__head">
+          <div class="job-card__main">
+            <div class="job-card__top">
+              <span class="status-pill private">非公開</span>
+              <span class="employment-tag">正社員</span>
+            </div>
+            <div class="job-card__title">プロダクトデザイナー</div>
+            <div class="job-card__category">
+              <span class="role-cat">デザイナー</span> · プロダクト開発本部
+            </div>
+          </div>
+          <div class="job-card__salary">¥600-900万</div>
+        </div>
+        <div class="job-card__meta">
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            非公開化 <strong>2026/3/05</strong>
+          </span>
+          <span class="meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            過去 <strong>14</strong> 件のカジュアル面談
+          </span>
+          <div class="job-card__actions">
+            <button class="job-action-btn">複製</button>
+            <button class="icon-action-btn delete" title="削除">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+            <button class="job-action-btn job-action-btn--primary">公開を再開</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
