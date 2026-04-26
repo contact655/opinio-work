@@ -1,27 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { transformFormToDb } from "@/lib/business/company";
+import { transformFormToDb, getCompanyId } from "@/lib/business/company";
 import type { BizCompany } from "@/lib/business/mockCompany";
-
-async function getCompanyId(supabase: ReturnType<typeof createClient>, userId: string): Promise<string | null> {
-  // Primary: ow_user_roles.tenant_id（migration 035 でバックフィル済み）
-  const { data: roleRow } = await supabase
-    .from("ow_user_roles")
-    .select("tenant_id")
-    .eq("user_id", userId)
-    .eq("role", "company")
-    .not("tenant_id", "is", null)
-    .maybeSingle();
-  if (roleRow?.tenant_id) return roleRow.tenant_id;
-
-  // フォールバック: ow_companies.user_id（多行返却に対応するため .limit(1)）
-  const { data: companies } = await supabase
-    .from("ow_companies")
-    .select("id")
-    .eq("user_id", userId)
-    .limit(1);
-  return companies?.[0]?.id ?? null;
-}
 
 // PUT /api/biz/company — 全フィールド更新（自動保存トリガー）
 export async function PUT(req: Request) {

@@ -132,6 +132,29 @@ export function transformFormToDb(form: BizCompany): Record<string, unknown> {
   };
 }
 
+export async function getCompanyId(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<string | null> {
+  // Primary: ow_user_roles.tenant_id（migration 035 でバックフィル済み）
+  const { data: roleRow } = await supabase
+    .from("ow_user_roles")
+    .select("tenant_id")
+    .eq("user_id", userId)
+    .eq("role", "company")
+    .not("tenant_id", "is", null)
+    .maybeSingle();
+  if (roleRow?.tenant_id) return roleRow.tenant_id;
+
+  // フォールバック: ow_companies.user_id（多行返却に対応するため .limit(1)）
+  const { data: companies } = await supabase
+    .from("ow_companies")
+    .select("id")
+    .eq("user_id", userId)
+    .limit(1);
+  return companies?.[0]?.id ?? null;
+}
+
 export async function fetchCompanyForTenant(
   supabase: SupabaseClient,
   tenantId: string,
