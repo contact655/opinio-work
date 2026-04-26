@@ -107,10 +107,11 @@ export async function POST(req: Request) {
     }
   }
 
-  // 4. company ロールを付与（旧テーブル共存: TODO: ow_company_admins 移行後に削除）
+  // 4. company ロールを付与 + tenant_id を設定（dashboard の getTenantContext() が参照）
+  // TODO: ow_company_admins 移行完了後に ow_user_roles INSERT は削除予定
   const { error: roleError } = await admin
     .from("ow_user_roles")
-    .insert({ user_id: user.id, role: "company" });
+    .insert({ user_id: user.id, role: "company", tenant_id: company.id });
 
   if (roleError && roleError.code !== "23505") {
     console.error("[company/register] role INSERT failed:", roleError.message);

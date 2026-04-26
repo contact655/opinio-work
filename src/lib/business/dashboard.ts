@@ -98,20 +98,39 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       .not("tenant_id", "is", null)
       .maybeSingle();
 
-    if (!roleRow?.tenant_id) return null;
+    // フォールバック: ow_user_roles.tenant_id が未設定の場合（migration 028 適用前の登録ユーザー等）
+    // ow_companies.user_id = auth.uid() で直接検索する
+    let tenantId: string | null = roleRow?.tenant_id ?? null;
+    let companyRow: { name: string; logo_gradient: string | null; logo_letter: string | null; logo_url: string | null } | null = null;
 
-    const { data: companyRow } = await supabase
-      .from("ow_companies")
-      .select("name, logo_gradient, logo_letter, logo_url")
-      .eq("id", roleRow.tenant_id)
-      .maybeSingle();
+    if (tenantId) {
+      const { data } = await supabase
+        .from("ow_companies")
+        .select("name, logo_gradient, logo_letter, logo_url")
+        .eq("id", tenantId)
+        .maybeSingle();
+      companyRow = data;
+    } else {
+      // フォールバック: ow_companies.user_id で検索
+      const { data } = await supabase
+        .from("ow_companies")
+        .select("id, name, logo_gradient, logo_letter, logo_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        tenantId = (data as any).id;
+        companyRow = data;
+      }
+    }
+
+    if (!tenantId) return null;
 
     let planType: TenantContext["planType"] = null;
     try {
       const { data: planRow } = await supabase
         .from("ow_tenant_plans")
         .select("plan_type")
-        .eq("tenant_id", roleRow.tenant_id)
+        .eq("tenant_id", tenantId)
         .eq("status", "active")
         .order("started_at", { ascending: false })
         .limit(1)
@@ -127,7 +146,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       (user.email ? user.email.split("@")[0] : "ご担当者");
 
     return {
-      tenantId: roleRow.tenant_id,
+      tenantId: tenantId,
       tenantName: companyRow?.name || "—",
       planType,
       planLabel: planType ? PLAN_LABELS[planType] || "—" : "未設定",
@@ -211,11 +230,12 @@ export async function getJobStatusCounts(tenantId: string): Promise<JobStatusCou
       .select("status")
       .eq("company_id", tenantId);
     const rows = data || [];
+    // DB の実際のステータス値: published / pending_review / draft / rejected / private
     return {
-      active: rows.filter((r: any) => r.status === "active").length,
-      review: rows.filter((r: any) => r.status === "review").length,
+      active: rows.filter((r: any) => r.status === "published").length,
+      review: rows.filter((r: any) => r.status === "pending_review").length,
       draft: rows.filter((r: any) => r.status === "draft").length,
-      closed: rows.filter((r: any) => r.status === "closed").length,
+      closed: rows.filter((r: any) => ["rejected", "private"].includes(r.status)).length,
     };
   } catch {
     return { active: 0, review: 0, draft: 0, closed: 0 };
