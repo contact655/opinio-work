@@ -98,8 +98,19 @@ export const MOCK_COMPANY: BizCompany = {
   paidLeaveRate: "78%",
   workstyleNote: "フレックスはコアタイム10:00-15:00。週2-3日のオフィス出社は、チームでの議論や対話を大切にするため。残業は事前申請制で、無理な残業は推奨していません。",
 
-  // 写真（S4b で本格対応）
-  photos: [],
+  // 写真
+  photos: [
+    // 執務エリア × 3
+    { id: "photo-w1", category: "workspace", url: "", caption: "本社執務エリア（池袋）", gradient: "linear-gradient(135deg, #3B82F6, #1E40AF)" },
+    { id: "photo-w2", category: "workspace", url: "", caption: "開発チームのエリア", gradient: "linear-gradient(135deg, #06B6D4, #0E7490)" },
+    { id: "photo-w3", category: "workspace", url: "", caption: "", gradient: "linear-gradient(135deg, #8B5CF6, #6D28D9)" },
+    // 会議室 × 2
+    { id: "photo-m1", category: "meeting", url: "", caption: "大会議室「Hibi」", gradient: "linear-gradient(135deg, #EC4899, #BE185D)" },
+    { id: "photo-m2", category: "meeting", url: "", caption: "集中作業ブース", gradient: "linear-gradient(135deg, #F59E0B, #B45309)" },
+    // 福利厚生 × 1
+    { id: "photo-f1", category: "welfare", url: "", caption: "社員ラウンジ「Cafe T」", gradient: "linear-gradient(135deg, #10B981, #047857)" },
+    // イベント × 0 (空)
+  ] as OfficePhoto[],
 
   // 公開設定
   isPublished: true,

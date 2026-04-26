@@ -5,6 +5,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyEditSubNav, type CompanySubNavSection } from "@/components/business/CompanyEditSubNav";
 import { CompanyPublishStatusBar } from "@/components/business/CompanyPublishStatusBar";
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
+import { OfficePhotoSection } from "@/components/business/OfficePhotoSection";
 import { RequirementsTagInput } from "@/components/business/RequirementsTagInput";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { mockTenantContext } from "@/lib/business/mockTenantContext";
@@ -17,6 +18,7 @@ import {
   WORK_SCHEDULE_OPTIONS,
   type BizCompany,
   type CompanySectionId,
+  type OfficePhoto,
 } from "@/lib/business/mockCompany";
 
 // ─── 定数 ───────────────────────────────────────────────────────────────────
@@ -227,9 +229,15 @@ export default function CompanyEditPage() {
   // フォームステート（MOCK_COMPANY を初期値に）
   const [form, setForm] = useState<BizCompany>({ ...MOCK_COMPANY });
   const [activeSection, setActiveSection] = useState<CompanySectionId>("basic");
+  const [photos, setPhotos] = useState<OfficePhoto[]>(MOCK_COMPANY.photos);
 
   // 自動保存
   const { saveState, trigger: triggerAutosave } = useAutoSave();
+
+  function handlePhotosChange(next: OfficePhoto[]) {
+    setPhotos(next);
+    triggerAutosave();
+  }
 
   function update<K extends keyof BizCompany>(key: K, value: BizCompany[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -484,23 +492,10 @@ export default function CompanyEditPage() {
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
               オフィスの様子を写真で伝えます。カテゴリごとに最大5枚まで登録できます。
             </p>
-            <div style={{
-              background: "#fff",
-              border: "1.5px dashed var(--line)",
-              borderRadius: 14,
-              padding: "60px 40px",
-              textAlign: "center",
-              color: "var(--ink-mute)",
-            }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>🏗</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 8 }}>
-                オフィス写真セクションは S4b で実装予定
-              </div>
-              <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-                執務エリア / 会議室・コラボエリア / 福利厚生・施設 / イベント・社内交流<br />
-                各カテゴリ最大5枚、キャプション付きで管理できます。
-              </div>
-            </div>
+            <OfficePhotoSection
+              photos={photos}
+              onPhotosChange={handlePhotosChange}
+            />
           </>
         );
 
