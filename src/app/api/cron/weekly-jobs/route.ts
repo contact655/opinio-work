@@ -2,11 +2,6 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export const dynamic = "force-dynamic";
 
 const BASE_URL = "https://opinio-work-kappa.vercel.app";
@@ -21,6 +16,16 @@ export async function GET(request: Request) {
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    return NextResponse.json(
+      { success: false, error: "Supabase env vars not configured" },
+      { status: 503 }
+    );
+  }
+  const supabase = createClient(url, key);
 
   try {
     // 過去7日以内に追加された求人を取得
