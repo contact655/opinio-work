@@ -10,22 +10,22 @@ import { MeetingSearchBar } from "@/components/business/MeetingSearchBar";
 import { MeetingDetailPanel } from "@/components/business/MeetingDetailPanel";
 import { MeetingEmptyState } from "@/components/business/MeetingEmptyState";
 
-// 自分（アサイン用モック担当者）
-const SELF = {
-  id: "member-1",
-  name: "柴 尚人",
-  initial: "柴",
-  gradient: "linear-gradient(135deg, var(--royal), var(--accent))",
-};
-
 type MemoSaveState = "idle" | "saving" | "saved";
+
+type CurrentUser = {
+  owUserId: string;
+  name: string;
+  initial: string;
+  gradient: string;
+};
 
 type Props = {
   meetings: MeetingApplication[];
   tenantName?: string;
+  currentUser: CurrentUser;
 };
 
-export function MeetingsClient({ meetings: initialMeetings }: Props) {
+export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props) {
   // ── Core state ──────────────────────────────────────────────
   const [meetings, setMeetings] = useState<MeetingApplication[]>(initialMeetings);
   const [activeStatus, setActiveStatus] = useState<MeetingStatus>("pending");
@@ -68,7 +68,10 @@ export function MeetingsClient({ meetings: initialMeetings }: Props) {
 
   // ── Handlers ────────────────────────────────────────────────
 
-  const handleStatusChange = useCallback((meetingId: string, newStatus: MeetingStatus) => {
+  const handleStatusChange = useCallback(async (meetingId: string, newStatus: MeetingStatus) => {
+    const old = meetings.find((m) => m.id === meetingId);
+
+    // optimistic update
     setMeetings((prev) =>
       prev.map((m) => m.id === meetingId ? { ...m, status: newStatus } : m)
     );
@@ -81,23 +84,51 @@ export function MeetingsClient({ meetings: initialMeetings }: Props) {
       const next = remaining[idx] ?? remaining[idx - 1] ?? null;
       return next?.id ?? null;
     });
-  }, [filtered]);
 
-  const handleAssignToMe = useCallback((meetingId: string) => {
+    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
+
+    const res = await fetch(`/api/biz/meetings/${meetingId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "status", value: newStatus }),
+    });
+    if (!res.ok && old) {
+      // rollback
+      setMeetings((prev) =>
+        prev.map((m) => m.id === meetingId ? { ...m, status: old.status } : m)
+      );
+      console.error("[meetings] Failed to update status");
+      alert("ステータス更新に失敗しました。再度お試しください。");
+    }
+  }, [meetings, filtered]);
+
+  const handleAssignToMe = useCallback(async (meetingId: string) => {
+    // optimistic update with real currentUser
     setMeetings((prev) =>
       prev.map((m) =>
         m.id === meetingId
           ? {
               ...m,
-              assigneeId: SELF.id,
-              assigneeName: SELF.name,
-              assigneeInitial: SELF.initial,
-              assigneeGradient: SELF.gradient,
+              assigneeId: currentUser.owUserId,
+              assigneeName: currentUser.name,
+              assigneeInitial: currentUser.initial,
+              assigneeGradient: currentUser.gradient,
             }
           : m
       )
     );
-  }, []);
+
+    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
+
+    const res = await fetch(`/api/biz/meetings/${meetingId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "assign_to_me" }),
+    });
+    if (!res.ok) {
+      console.error("[meetings] Failed to assign meeting");
+    }
+  }, [currentUser]);
 
   const handleMemoChange = useCallback((meetingId: string, text: string) => {
     setMemoDrafts((prev) => ({ ...prev, [meetingId]: text }));
@@ -107,17 +138,46 @@ export function MeetingsClient({ meetings: initialMeetings }: Props) {
     if (memoTimers.current[meetingId]) {
       clearTimeout(memoTimers.current[meetingId]);
     }
-    memoTimers.current[meetingId] = setTimeout(() => {
+    memoTimers.current[meetingId] = setTimeout(async () => {
       setMeetings((prev) =>
         prev.map((m) => m.id === meetingId ? { ...m, companyMemo: text } : m)
       );
       setMemoSaveStates((prev) => ({ ...prev, [meetingId]: "saved" }));
+
+      if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE !== "true") {
+        try {
+          await fetch(`/api/biz/meetings/${meetingId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "memo", value: text }),
+          });
+        } catch (err) {
+          console.error("[meetings] Failed to save memo:", err);
+        }
+      }
+
       // 2秒後に saved 表示を消す
       setTimeout(() => {
         setMemoSaveStates((prev) => ({ ...prev, [meetingId]: "idle" }));
       }, 2000);
     }, 1500);
   }, []);
+
+  const handleSelectMeeting = useCallback((id: string) => {
+    setSelectedId(id);
+    const m = meetings.find((m) => m.id === id);
+    if (!m?.isUnread) return;
+    // optimistic: mark as read in UI immediately
+    setMeetings((prev) => prev.map((m) => m.id === id ? { ...m, isUnread: false } : m));
+    // fire-and-forget in production
+    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE !== "true") {
+      fetch(`/api/biz/meetings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "mark_read" }),
+      }).catch(console.error);
+    }
+  }, [meetings]);
 
   const handlePrev = useCallback(() => {
     if (selectedIndex > 0) setSelectedId(filtered[selectedIndex - 1].id);
@@ -208,7 +268,7 @@ export function MeetingsClient({ meetings: initialMeetings }: Props) {
               key={m.id}
               meeting={m}
               isSelected={m.id === selectedId}
-              onClick={() => setSelectedId(m.id)}
+              onClick={() => handleSelectMeeting(m.id)}
             />
           ))
         )}

@@ -14,6 +14,8 @@ export const mockTenantContext: TenantContext = {
   userName: "柴 尚人",
   logoGradient: "linear-gradient(135deg, var(--royal), var(--accent))",
   logoLetter: "O",
+  currentOwnId: "mock-user-id",
+  currentOwnerGradient: "linear-gradient(135deg, var(--royal), var(--accent))",
 };
 
 export const mockTodoCounts: TodoCounts = {

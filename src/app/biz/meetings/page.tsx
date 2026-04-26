@@ -45,7 +45,16 @@ export default async function BizMeetingsPage() {
       planType={ctx.planType}
       variant="fullBleed"
     >
-      <MeetingsClient meetings={meetings} tenantName={ctx.tenantName} />
+      <MeetingsClient
+        meetings={meetings}
+        tenantName={ctx.tenantName}
+        currentUser={{
+          owUserId: ctx.currentOwnId,
+          name: ctx.userName,
+          initial: ctx.userName.charAt(0),
+          gradient: ctx.currentOwnerGradient,
+        }}
+      />
     </BusinessLayout>
   );
 }

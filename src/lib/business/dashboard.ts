@@ -19,6 +19,8 @@ export type TenantContext = {
   userName: string;
   logoGradient: string | null;
   logoLetter: string | null;
+  currentOwnId: string;          // ow_users.id (UUID) — assignee resolution
+  currentOwnerGradient: string;  // avatar_color or royal fallback
 };
 
 export type JobStatusCounts = {
@@ -145,6 +147,19 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       (user.user_metadata as any)?.name ||
       (user.email ? user.email.split("@")[0] : "ご担当者");
 
+    // ow_users.id と avatar_color を取得（assignee 機能で使用）
+    const { data: owUser } = await supabase
+      .from("ow_users")
+      .select("id, avatar_color")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+
+    const currentOwnId = owUser?.id ?? "";
+    const currentOwnerGradient =
+      (owUser?.avatar_color && owUser.avatar_color.startsWith("linear-gradient"))
+        ? owUser.avatar_color
+        : "linear-gradient(135deg, var(--royal), var(--accent))";
+
     return {
       tenantId: tenantId,
       tenantName: companyRow?.name || "—",
@@ -153,6 +168,8 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       userName,
       logoGradient: (companyRow as any)?.logo_gradient ?? null,
       logoLetter: (companyRow as any)?.logo_letter ?? null,
+      currentOwnId,
+      currentOwnerGradient,
     };
   } catch {
     return null;

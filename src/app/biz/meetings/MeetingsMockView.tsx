@@ -47,7 +47,16 @@ export function MeetingsMockView() {
         </span>
       </div>
 
-      <MeetingsClient meetings={MOCK_MEETINGS} tenantName={ctx.tenantName} />
+      <MeetingsClient
+        meetings={MOCK_MEETINGS}
+        tenantName={ctx.tenantName}
+        currentUser={{
+          owUserId: ctx.currentOwnId,
+          name: ctx.userName,
+          initial: ctx.userName.charAt(0),
+          gradient: ctx.currentOwnerGradient,
+        }}
+      />
     </BusinessLayout>
   );
 }
