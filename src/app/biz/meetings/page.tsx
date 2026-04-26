@@ -3,6 +3,7 @@ import { MeetingsClient } from "./MeetingsClient";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import { fetchMeetingsForCompany } from "@/lib/business/meetings";
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +33,9 @@ export default async function BizMeetingsPage() {
   const ctx = await getTenantContext();
   if (!ctx) return <NoTenantPage />;
 
-  // TODO: fetch ow_casual_meetings from Supabase (S2c implementation)
-  // For now, show empty list until Supabase wiring is complete
+  const supabase = createClient();
+  const meetings = await fetchMeetingsForCompany(supabase, ctx.tenantId);
+
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -43,7 +45,7 @@ export default async function BizMeetingsPage() {
       planType={ctx.planType}
       variant="fullBleed"
     >
-      <MeetingsClient meetings={[]} tenantName={ctx.tenantName} />
+      <MeetingsClient meetings={meetings} tenantName={ctx.tenantName} />
     </BusinessLayout>
   );
 }
