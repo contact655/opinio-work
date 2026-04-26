@@ -5,12 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+type BusinessLayoutVariant = "default" | "fullBleed";
+
 type Props = {
   userName: string;
   tenantName?: string;
   tenantLogoGradient?: string | null;
   tenantLogoLetter?: string | null;
   planType?: string | null;
+  variant?: BusinessLayoutVariant;
   children: React.ReactNode;
 };
 
@@ -92,6 +95,7 @@ export function BusinessLayout({
   tenantLogoGradient,
   tenantLogoLetter,
   planType,
+  variant = "default",
   children,
 }: Props) {
   const pathname = usePathname();
@@ -360,7 +364,10 @@ export function BusinessLayout({
         </aside>
 
         {/* Main content */}
-        <main style={{ padding: "28px 36px 60px", maxWidth: 1200, minWidth: 0 }}>
+        <main style={variant === "fullBleed"
+          ? { padding: 0, minWidth: 0, overflow: "hidden" }
+          : { padding: "28px 36px 60px", maxWidth: 1200, minWidth: 0 }
+        }>
           {children}
         </main>
       </div>
