@@ -3,6 +3,7 @@ import { JobEditForm } from "@/components/business/JobEditForm";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { mockTenantContext } from "@/lib/business/mockTenantContext";
+import { fetchTeamMembers } from "@/lib/business/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,8 @@ export default async function JobNewPage() {
     );
   }
 
+  const teamMembers = await fetchTeamMembers(supabase, ctx.tenantId);
+
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -53,7 +56,11 @@ export default async function JobNewPage() {
       planType={ctx.planType}
       variant="fullBleed"
     >
-      <JobEditForm mode="new" />
+      <JobEditForm
+        mode="new"
+        companyId={ctx.tenantId}
+        teamMembers={teamMembers}
+      />
     </BusinessLayout>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { BizJob, JobStatus } from "@/lib/business/mockJobs";
 import { JOB_STATUS_TABS, countByStatus } from "@/lib/business/mockJobs";
@@ -12,9 +13,59 @@ type Props = {
   jobs: BizJob[];
 };
 
-export function JobsClient({ jobs }: Props) {
+export function JobsClient({ jobs: initialJobs }: Props) {
+  const router = useRouter();
+  const [jobs, setJobs] = useState<BizJob[]>(initialJobs);
   const [activeStatus, setActiveStatus] = useState<JobStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleStatusChange = useCallback(async (jobId: string, newStatus: JobStatus) => {
+    const old = jobs.find((j) => j.id === jobId);
+    // optimistic update
+    setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, status: newStatus } : j));
+
+    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
+
+    const res = await fetch(`/api/biz/jobs/${jobId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "status", value: newStatus }),
+    });
+    if (!res.ok && old) {
+      setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, status: old.status } : j));
+      alert("ステータス更新に失敗しました。再度お試しください。");
+    }
+  }, [jobs]);
+
+  const handleDelete = useCallback(async (jobId: string) => {
+    if (!confirm("この求人を削除しますか？この操作は取り消せません。")) return;
+    const snapshot = jobs;
+    // optimistic remove
+    setJobs((prev) => prev.filter((j) => j.id !== jobId));
+
+    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
+
+    const res = await fetch(`/api/biz/jobs/${jobId}`, { method: "DELETE" });
+    if (!res.ok) {
+      setJobs(snapshot);
+      alert("削除に失敗しました。再度お試しください。");
+    }
+  }, [jobs]);
+
+  const handleDuplicate = useCallback(async (jobId: string) => {
+    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") {
+      alert("複製機能はモックモードでは動作しません。");
+      return;
+    }
+    const res = await fetch("/api/biz/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourceId: jobId }),
+    });
+    if (!res.ok) { alert("複製に失敗しました。再度お試しください。"); return; }
+    const { id } = await res.json() as { id: string };
+    router.push(`/biz/jobs/${id}/edit`);
+  }, [router]);
 
   const counts = useMemo(() => countByStatus(jobs), [jobs]);
 
@@ -180,7 +231,13 @@ export function JobsClient({ jobs }: Props) {
           <JobsEmptyState hasFilters={hasFilters} />
         ) : (
           filtered.map((job) => (
-            <JobListCard key={job.id} job={job} />
+            <JobListCard
+              key={job.id}
+              job={job}
+              onStatusChange={handleStatusChange}
+              onDelete={handleDelete}
+              onDuplicate={handleDuplicate}
+            />
           ))
         )}
       </div>

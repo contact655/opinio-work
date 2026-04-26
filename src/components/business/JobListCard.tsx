@@ -1,4 +1,4 @@
-import type { BizJob } from "@/lib/business/mockJobs";
+import type { BizJob, JobStatus } from "@/lib/business/mockJobs";
 import { JobStatusBadge } from "./JobStatusBadge";
 
 const LEFT_BORDER: Record<BizJob["status"], string> = {
@@ -11,20 +11,25 @@ const LEFT_BORDER: Record<BizJob["status"], string> = {
 
 type Props = {
   job: BizJob;
+  onStatusChange?: (jobId: string, newStatus: JobStatus) => void;
+  onDelete?: (jobId: string) => void;
+  onDuplicate?: (jobId: string) => void;
 };
 
 function ActionBtn({
   label,
   primary,
   danger,
+  onClick,
 }: {
   label: string;
   primary?: boolean;
   danger?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
-      onClick={() => alert(`「${label}」は S3b / S4 で実装予定です。`)}
+      onClick={onClick ?? (() => alert(`「${label}」は今後実装予定です。`))}
       style={{
         padding: "6px 12px",
         background: primary ? "var(--royal)" : danger ? "transparent" : "var(--bg-tint)",
@@ -47,11 +52,11 @@ function ActionBtn({
   );
 }
 
-function IconBtn({ title, isDelete }: { title: string; isDelete?: boolean }) {
+function IconBtn({ title, isDelete, onClick }: { title: string; isDelete?: boolean; onClick?: () => void }) {
   return (
     <button
       title={title}
-      onClick={() => alert(`「${title}」は S3b / S4 で実装予定です。`)}
+      onClick={onClick ?? (() => alert(`「${title}」は今後実装予定です。`))}
       style={{
         width: 28, height: 28,
         background: "transparent",
@@ -80,22 +85,32 @@ function IconBtn({ title, isDelete }: { title: string; isDelete?: boolean }) {
   );
 }
 
-function renderActions(job: BizJob) {
+function renderActions(
+  job: BizJob,
+  onStatusChange?: (jobId: string, newStatus: JobStatus) => void,
+  onDelete?: (jobId: string) => void,
+  onDuplicate?: (jobId: string) => void,
+) {
+  const del = onDelete ? () => onDelete(job.id) : undefined;
+  const dup = onDuplicate ? () => onDuplicate(job.id) : undefined;
+
   switch (job.status) {
     case "rejected":
       return (
         <>
-          <ActionBtn label="複製" />
-          <IconBtn title="削除" isDelete />
-          <ActionBtn label="修正して再申請" primary />
+          <ActionBtn label="複製" onClick={dup} />
+          <IconBtn title="削除" isDelete onClick={del} />
+          <ActionBtn label="修正して再申請" primary
+            onClick={onStatusChange ? () => onStatusChange(job.id, "pending_review") : undefined} />
         </>
       );
     case "published":
       return (
         <>
           <ActionBtn label="公開ページを見る" />
-          <ActionBtn label="複製" />
-          <IconBtn title="非公開にする" />
+          <ActionBtn label="複製" onClick={dup} />
+          <IconBtn title="非公開にする"
+            onClick={onStatusChange ? () => onStatusChange(job.id, "private") : undefined} />
           <ActionBtn label="編集" primary />
         </>
       );
@@ -103,32 +118,35 @@ function renderActions(job: BizJob) {
       return (
         <>
           <ActionBtn label="プレビュー" />
-          <ActionBtn label="申請を取り下げる" />
+          <ActionBtn label="申請を取り下げる"
+            onClick={onStatusChange ? () => onStatusChange(job.id, "draft") : undefined} />
         </>
       );
     case "draft":
       if (job.completionPercent === 100) {
         return (
           <>
-            <ActionBtn label="複製" />
-            <IconBtn title="削除" isDelete />
-            <ActionBtn label="編集 / 公開申請" primary />
+            <ActionBtn label="複製" onClick={dup} />
+            <IconBtn title="削除" isDelete onClick={del} />
+            <ActionBtn label="編集 / 公開申請" primary
+              onClick={onStatusChange ? () => onStatusChange(job.id, "pending_review") : undefined} />
           </>
         );
       }
       return (
         <>
-          <ActionBtn label="複製" />
-          <IconBtn title="削除" isDelete />
+          <ActionBtn label="複製" onClick={dup} />
+          <IconBtn title="削除" isDelete onClick={del} />
           <ActionBtn label="編集を続ける" primary />
         </>
       );
     case "private":
       return (
         <>
-          <ActionBtn label="複製" />
-          <IconBtn title="削除" isDelete />
-          <ActionBtn label="公開を再開" primary />
+          <ActionBtn label="複製" onClick={dup} />
+          <IconBtn title="削除" isDelete onClick={del} />
+          <ActionBtn label="公開を再開" primary
+            onClick={onStatusChange ? () => onStatusChange(job.id, "pending_review") : undefined} />
         </>
       );
   }
@@ -180,7 +198,7 @@ function renderDateMeta(job: BizJob) {
   }
 }
 
-export function JobListCard({ job }: Props) {
+export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Props) {
   const isPrivate = job.status === "private";
 
   return (
@@ -337,7 +355,7 @@ export function JobListCard({ job }: Props) {
 
         {/* アクションボタン群 */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
-          {renderActions(job)}
+          {renderActions(job, onStatusChange, onDelete, onDuplicate)}
         </div>
       </div>
     </div>

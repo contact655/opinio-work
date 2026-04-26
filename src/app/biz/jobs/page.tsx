@@ -3,6 +3,7 @@ import { JobsClient } from "./JobsClient";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import { fetchJobsForCompany } from "@/lib/business/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,9 @@ export default async function BizJobsPage() {
   const ctx = await getTenantContext();
   if (!ctx) return <NoTenantPage />;
 
-  // TODO: fetch ow_jobs from Supabase (S3 Supabase wiring)
+  const supabase = createClient();
+  const jobs = await fetchJobsForCompany(supabase, ctx.tenantId);
+
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -40,7 +43,7 @@ export default async function BizJobsPage() {
       tenantLogoLetter={ctx.logoLetter}
       planType={ctx.planType}
     >
-      <JobsClient jobs={[]} />
+      <JobsClient jobs={jobs} />
     </BusinessLayout>
   );
 }

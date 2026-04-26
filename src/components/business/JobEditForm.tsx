@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAutoSave } from "@/hooks/useAutoSave";
+import type { TeamMember } from "@/lib/business/jobs";
 import Link from "next/link";
 import type { BizJob } from "@/lib/business/mockJobs";
 import { JobEditSubNav, type EditSection } from "./JobEditSubNav";
@@ -190,17 +192,95 @@ function Hint({ children }: { children: React.ReactNode }) {
 type Props = {
   mode: FormMode;
   initialJob?: BizJob | null;
+  initialAssigneeIds?: string[];
+  companyId?: string;
+  teamMembers?: TeamMember[];
 };
 
-export function JobEditForm({ mode, initialJob = null }: Props) {
-  const [form, setForm] = useState<FormState>(() => jobToForm(initialJob));
+export function JobEditForm({
+  mode,
+  initialJob = null,
+  initialAssigneeIds,
+  companyId,
+  teamMembers,
+}: Props) {
+  const router = useRouter();
+  const [form, setForm] = useState<FormState>(() => {
+    const base = jobToForm(initialJob);
+    if (initialAssigneeIds?.length) return { ...base, assigneeIds: initialAssigneeIds };
+    return base;
+  });
   const [activeSection, setActiveSection] = useState("basic");
+  const [isCreating, setIsCreating] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const { saveState, trigger: triggerAutosave } = useAutoSave();
+  const isFirstRender = useRef(true);
+  const effectiveTeam = teamMembers ?? MOCK_TEAM;
+  const jobId = initialJob?.id ?? null;
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     triggerAutosave();
   }
+
+  // Autosave: edit mode のみ form 変更後 700ms で PUT
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    if (!jobId || mode !== "edit" || process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
+    const timer = setTimeout(() => {
+      fetch(`/api/biz/jobs/${jobId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      }).catch(console.error);
+    }, 700);
+    return () => clearTimeout(timer);
+  // form のみ監視（jobId/mode は初期値から不変）
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form]);
+
+  const handleCreate = useCallback(async () => {
+    if (!form.title.trim()) { alert("求人タイトルを入力してください。"); return; }
+    setIsCreating(true);
+    try {
+      const res = await fetch("/api/biz/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, companyId }),
+      });
+      if (!res.ok) throw new Error("create failed");
+      const { id } = await res.json() as { id: string };
+      router.replace(`/biz/jobs/${id}/edit`);
+    } catch {
+      alert("求人の作成に失敗しました。再度お試しください。");
+    } finally {
+      setIsCreating(false);
+    }
+  }, [form, companyId, router]);
+
+  const handlePublish = useCallback(async () => {
+    if (!jobId) return;
+    setIsPublishing(true);
+    try {
+      const saveRes = await fetch(`/api/biz/jobs/${jobId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!saveRes.ok) throw new Error("save failed");
+      const submitRes = await fetch(`/api/biz/jobs/${jobId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "status", value: "pending_review" }),
+      });
+      if (!submitRes.ok) throw new Error("submit failed");
+      router.push("/biz/jobs");
+    } catch {
+      alert("公開申請に失敗しました。再度お試しください。");
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [form, jobId, router]);
 
   // セクション完成度チェック
   const sectionComplete = useMemo(() => ({
@@ -439,7 +519,7 @@ export function JobEditForm({ mode, initialJob = null }: Props) {
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>この求人の採用担当者を選択してください。複数選択可能。</p>
             <FormSection title="担当者選択" desc="チームメンバーから、この求人の担当者を選んでください。">
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {MOCK_TEAM.map((member) => {
+                {effectiveTeam.map((member) => {
                   const isActive = form.assigneeIds.includes(member.id);
                   return (
                     <button
@@ -556,7 +636,8 @@ export function JobEditForm({ mode, initialJob = null }: Props) {
               </div>
               <button
                 type="button"
-                onClick={() => alert("公開申請機能は S4（Supabase 接続後）で実装予定です。")}
+                onClick={mode === "new" ? handleCreate : handlePublish}
+                disabled={isCreating || isPublishing}
                 style={{
                   padding: "12px 32px",
                   background: "var(--royal)", color: "#fff",
@@ -632,7 +713,7 @@ export function JobEditForm({ mode, initialJob = null }: Props) {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button
             type="button"
-            onClick={() => alert("プレビュー機能は S4 で実装予定です。")}
+            onClick={() => alert("プレビュー機能は後日実装予定です。")}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "8px 16px", fontSize: 13, fontWeight: 600,
@@ -644,19 +725,41 @@ export function JobEditForm({ mode, initialJob = null }: Props) {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             プレビュー
           </button>
-          <button
-            type="button"
-            onClick={() => alert("公開申請機能は S4 で実装予定です。")}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "8px 16px", fontSize: 13, fontWeight: 600,
-              border: "1px solid var(--royal)", borderRadius: 8,
-              background: "var(--royal)", color: "#fff", cursor: "pointer",
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            公開申請する
-          </button>
+          {mode === "new" ? (
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={isCreating || !form.title.trim()}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", fontSize: 13, fontWeight: 600,
+                border: "1px solid var(--royal)", borderRadius: 8,
+                background: isCreating || !form.title.trim() ? "var(--ink-mute)" : "var(--royal)",
+                color: "#fff", cursor: isCreating || !form.title.trim() ? "not-allowed" : "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              {isCreating ? "作成中..." : "作成して続ける"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={isPublishing}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", fontSize: 13, fontWeight: 600,
+                border: "1px solid var(--royal)", borderRadius: 8,
+                background: isPublishing ? "var(--ink-mute)" : "var(--royal)",
+                color: "#fff", cursor: isPublishing ? "not-allowed" : "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              {isPublishing ? "送信中..." : "公開申請する"}
+            </button>
+          )}
         </div>
       </div>
 

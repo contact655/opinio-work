@@ -3,6 +3,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { JobEditForm } from "@/components/business/JobEditForm";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import { fetchJobById, fetchTeamMembers } from "@/lib/business/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,22 @@ export default async function JobEditPage({ params }: { params: { id: string } }
   const ctx = await getTenantContext();
   if (!ctx) return <NoTenantPage />;
 
-  // TODO: fetch job by params.id from ow_jobs (S4 Supabase wiring)
+  const supabase = createClient();
+  const [jobData, teamMembers] = await Promise.all([
+    fetchJobById(supabase, params.id),
+    fetchTeamMembers(supabase, ctx.tenantId),
+  ]);
+
+  if (!jobData) {
+    return (
+      <BusinessLayout userName={ctx.userName} variant="fullBleed">
+        <div style={{ textAlign: "center", padding: "80px 20px", color: "var(--ink-mute)" }}>
+          求人が見つかりませんでした
+        </div>
+      </BusinessLayout>
+    );
+  }
+
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -41,7 +57,13 @@ export default async function JobEditPage({ params }: { params: { id: string } }
       planType={ctx.planType}
       variant="fullBleed"
     >
-      <JobEditForm mode="edit" />
+      <JobEditForm
+        mode="edit"
+        initialJob={jobData.job}
+        initialAssigneeIds={jobData.assigneeIds}
+        companyId={ctx.tenantId}
+        teamMembers={teamMembers}
+      />
     </BusinessLayout>
   );
 }
