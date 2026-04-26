@@ -12,6 +12,7 @@ export type DbCompany = {
   url: string | null;
   logo_gradient: string | null;
   logo_letter: string | null;
+  logo_url: string | null;
   about_markdown: string | null;
   employee_count: string | null;
   established_at: string | null;
@@ -36,7 +37,7 @@ export type DbCompany = {
 
 const SELECT_COLUMNS = [
   "id", "user_id", "name", "mission", "industry", "phase", "business_stage", "url",
-  "logo_gradient", "logo_letter", "about_markdown", "employee_count", "established_at",
+  "logo_gradient", "logo_letter", "logo_url", "about_markdown", "employee_count", "established_at",
   "avg_age", "gender_ratio", "evaluation_system", "benefits", "location", "nearest_station",
   "remote_work_status", "work_time_system", "avg_overtime_hours", "paid_leave_rate",
   "workstyle_description", "is_published", "accepting_casual_meetings", "notification_emails",
@@ -71,6 +72,7 @@ export function transformDbToForm(row: DbCompany): BizCompany {
     url: row.url ?? "",
     logoGradient: row.logo_gradient ?? "linear-gradient(135deg, var(--royal), var(--accent))",
     logoLetter: row.logo_letter ?? (row.name ? row.name[0] : "?"),
+    logoUrl: row.logo_url ?? "",
     descriptionMarkdown: row.about_markdown ?? "",
     employeeCount: row.employee_count ?? "",
     foundedAt: row.established_at ?? "",
@@ -109,6 +111,7 @@ export function transformFormToDb(form: BizCompany): Record<string, unknown> {
     url: form.url || null,
     logo_gradient: form.logoGradient || null,
     logo_letter: form.logoLetter || null,
+    logo_url: form.logoUrl || null,
     about_markdown: form.descriptionMarkdown || null,
     employee_count: form.employeeCount || null,
     established_at: form.foundedAt || null,

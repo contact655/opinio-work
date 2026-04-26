@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { fetchCompanyForTenant } from "@/lib/business/company";
+import { fetchOfficePhotosForCompany } from "@/lib/business/photos";
 import { createClient } from "@/lib/supabase/server";
 import { CompanyEditClient } from "./CompanyEditClient";
 
@@ -15,12 +16,16 @@ export default async function BizCompanyPage() {
   if (!ctx) redirect("/biz/auth");
 
   const supabase = createClient();
-  const company = await fetchCompanyForTenant(supabase, ctx.tenantId);
+  const [company, initialPhotos] = await Promise.all([
+    fetchCompanyForTenant(supabase, ctx.tenantId),
+    fetchOfficePhotosForCompany(supabase, ctx.tenantId),
+  ]);
   if (!company) redirect("/biz/auth");
 
   return (
     <CompanyEditClient
       initialCompany={company}
+      initialPhotos={initialPhotos}
       companyId={ctx.tenantId}
       userName={ctx.userName}
       tenantName={ctx.tenantName}

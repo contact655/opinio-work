@@ -16,8 +16,9 @@ import {
   WORK_SCHEDULE_OPTIONS,
   type BizCompany,
   type CompanySectionId,
-  type OfficePhoto,
 } from "@/lib/business/mockCompany";
+import { createClient } from "@/lib/supabase/client";
+import { buildLogoStoragePath, type OfficePhoto } from "@/lib/business/photos";
 
 // ── SaveState ──────────────────────────────────────────────────────────────
 
@@ -27,6 +28,7 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 
 type Props = {
   initialCompany: BizCompany;
+  initialPhotos: OfficePhoto[];
   companyId: string;
   userName: string;
   tenantName: string;
@@ -237,6 +239,7 @@ function FormTextarea({
 
 export function CompanyEditClient({
   initialCompany,
+  initialPhotos,
   companyId,
   userName,
   tenantName,
@@ -248,10 +251,11 @@ export function CompanyEditClient({
 
   const [form, setForm] = useState<BizCompany>({ ...initialCompany });
   const [activeSection, setActiveSection] = useState<CompanySectionId>("basic");
-  const [photos, setPhotos] = useState<OfficePhoto[]>(initialCompany.photos);
+  const [photos, setPhotos] = useState<OfficePhoto[]>(initialPhotos);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [isPublishing, setIsPublishing] = useState(false);
   const hasInteracted = useRef(false);
+  const logoFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // ── 自動保存（700ms debounce）──────────────────────────────────────────────
   useEffect(() => {
@@ -279,7 +283,40 @@ export function CompanyEditClient({
 
   function handlePhotosChange(next: OfficePhoto[]) {
     setPhotos(next);
-    // TODO: next session — save to ow_company_photos + Supabase Storage
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/svg+xml", "image/webp"].includes(file.type)) {
+      alert("JPG・PNG・SVG・WebP のみ対応しています");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("5MB 以内のファイルを選択してください");
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      const path = buildLogoStoragePath(companyId, file.name);
+      const { error: uploadError } = await supabase.storage
+        .from("ow-uploads")
+        .upload(path, file, { cacheControl: "3600", upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("ow-uploads")
+        .getPublicUrl(path);
+
+      hasInteracted.current = true;
+      setForm((prev) => ({ ...prev, logoUrl: publicUrl }));
+    } catch (err) {
+      console.error("[CompanyEditClient] logo upload failed:", err);
+      alert("ロゴのアップロードに失敗しました。もう一度お試しください。");
+    }
   }
 
   function update<K extends keyof BizCompany>(key: K, value: BizCompany[K]) {
@@ -377,26 +414,47 @@ export function CompanyEditClient({
               desc="求職者側の企業詳細ページ・一覧ページに表示されます。アップロードしない場合、企業名の頭文字で自動生成されます。"
             >
               <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-                <div style={{
-                  width: 90, height: 90, borderRadius: 16,
-                  background: form.logoGradient, color: "#fff",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 38,
-                  boxShadow: "0 6px 16px rgba(0,0,0,0.12)", flexShrink: 0,
-                }}>
-                  {form.logoLetter}
-                </div>
+                {form.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={form.logoUrl}
+                    alt="企業ロゴ"
+                    style={{
+                      width: 90, height: 90, borderRadius: 16,
+                      objectFit: "cover",
+                      boxShadow: "0 6px 16px rgba(0,0,0,0.12)", flexShrink: 0,
+                      border: "1px solid var(--line)",
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    width: 90, height: 90, borderRadius: 16,
+                    background: form.logoGradient, color: "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 38,
+                    boxShadow: "0 6px 16px rgba(0,0,0,0.12)", flexShrink: 0,
+                  }}>
+                    {form.logoLetter}
+                  </div>
+                )}
                 <div style={{ flex: 1, paddingTop: 4 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>ロゴ画像</div>
                   <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
                     JPG・PNG・SVG・5MB以内 · 推奨サイズ 512×512px
                   </div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button type="button" onClick={() => alert("画像アップロード（次セッションで Supabase Storage に接続予定）")} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", background: "#fff", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 6, fontFamily: "inherit", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                    <input
+                      ref={logoFileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/svg+xml,image/webp"
+                      style={{ display: "none" }}
+                      onChange={handleLogoUpload}
+                    />
+                    <button type="button" onClick={() => logoFileInputRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", background: "#fff", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 6, fontFamily: "inherit", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                       画像をアップロード
                     </button>
-                    <button type="button" onClick={() => alert("自動生成に戻す")} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", background: "#fff", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 6, fontFamily: "inherit", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                    <button type="button" onClick={() => { hasInteracted.current = true; setForm((prev) => ({ ...prev, logoUrl: "" })); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", background: "#fff", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 6, fontFamily: "inherit", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
                       自動生成に戻す
                     </button>
                   </div>
@@ -561,6 +619,7 @@ export function CompanyEditClient({
               オフィスの様子を写真で伝えます。カテゴリごとに最大5枚まで登録できます。
             </p>
             <OfficePhotoSection
+              companyId={companyId}
               photos={photos}
               onPhotosChange={handlePhotosChange}
             />

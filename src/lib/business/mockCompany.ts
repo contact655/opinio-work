@@ -19,6 +19,7 @@ export type BizCompany = {
   url: string;
   logoGradient: string;
   logoLetter: string;
+  logoUrl: string;
 
   // ── About（企業説明） ──────────────────────────────────────
   descriptionMarkdown: string;
@@ -63,6 +64,7 @@ export const MOCK_COMPANY: BizCompany = {
   url: "https://timee.co.jp",
   logoGradient: "linear-gradient(135deg, #F97316, #EA580C)",
   logoLetter: "T",
+  logoUrl: "",
 
   // About
   descriptionMarkdown: `## 私たちについて

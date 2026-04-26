@@ -1,19 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { OfficePhoto, PhotoCategory } from "@/lib/business/mockCompany";
+import { createClient } from "@/lib/supabase/client";
+import {
+  MAX_PHOTOS_PER_CATEGORY,
+  buildStoragePath,
+  type OfficePhoto,
+  type PhotoCategory,
+} from "@/lib/business/photos";
 
 // ─── 定数 ───────────────────────────────────────────────────────────────────
-
-const MAX_PHOTOS_PER_CATEGORY = 5;
-
-// Unsplash Source プレースホルダー用のキーワードリスト
-const UNSPLASH_KEYWORDS: Record<PhotoCategory, string[]> = {
-  workspace: ["office,desk", "office,modern", "workspace,laptop", "coworking"],
-  meeting:   ["meeting,room", "conference,room", "office,meeting", "boardroom"],
-  welfare:   ["office,lounge", "cafe,interior", "office,kitchen", "relax,space"],
-  event:     ["office,party", "team,work", "office,celebration", "company,event"],
-};
 
 const CATEGORY_DEFS: {
   id: PhotoCategory;
@@ -78,22 +74,10 @@ const CATEGORY_DEFS: {
 // ─── 型 ─────────────────────────────────────────────────────────────────────
 
 type Props = {
+  companyId: string;
   photos: OfficePhoto[];
   onPhotosChange: (photos: OfficePhoto[]) => void;
 };
-
-// ─── ユーティリティ ──────────────────────────────────────────────────────────
-
-function generateId() {
-  return `photo-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function getUnsplashUrl(category: PhotoCategory): string {
-  const keywords = UNSPLASH_KEYWORDS[category];
-  const kw = keywords[Math.floor(Math.random() * keywords.length)];
-  // Unsplash Source API — ランダム画像（800×600）
-  return `https://source.unsplash.com/800x600/?${kw}&sig=${Math.random().toString(36).slice(2)}`;
-}
 
 // ─── 写真カード ──────────────────────────────────────────────────────────────
 
@@ -134,9 +118,9 @@ function PhotoCard({
       {/* 画像エリア（4:3） */}
       <div style={{
         width: "100%",
-        paddingBottom: "75%",  // 4:3
+        paddingBottom: "75%",
         position: "relative",
-        background: photo.url ? undefined : photo.gradient,
+        background: "#f1f5f9",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}>
@@ -264,36 +248,38 @@ function PhotoCard({
 
 function PhotoAddCard({
   disabled,
+  uploading,
   onAdd,
 }: {
   disabled: boolean;
+  uploading: boolean;
   onAdd: () => void;
 }) {
   return (
     <button
       type="button"
-      onClick={disabled ? undefined : onAdd}
+      onClick={disabled || uploading ? undefined : onAdd}
       style={{
         background: disabled ? "var(--bg-tint)" : "#fff",
         border: "1.5px dashed var(--line)",
         borderRadius: 10,
-        paddingBottom: "75%",  // 4:3 — height via padding trick
+        paddingBottom: "75%",
         position: "relative",
         width: "100%",
-        cursor: disabled ? "not-allowed" : "pointer",
+        cursor: disabled || uploading ? "not-allowed" : "pointer",
         opacity: disabled ? 0.4 : 1,
         transition: "all 0.2s",
         display: "block",
       }}
       onMouseEnter={(e) => {
-        if (!disabled) {
+        if (!disabled && !uploading) {
           (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--royal)";
           (e.currentTarget as HTMLButtonElement).style.background = "var(--royal-50)";
           (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)";
         }
       }}
       onMouseLeave={(e) => {
-        if (!disabled) {
+        if (!disabled && !uploading) {
           (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--line)";
           (e.currentTarget as HTMLButtonElement).style.background = "#fff";
           (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-mute)";
@@ -308,11 +294,26 @@ function PhotoAddCard({
         color: "var(--ink-mute)",
         fontSize: 11, fontWeight: 600,
       }}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        写真を追加
+        {uploading ? (
+          <>
+            <div style={{
+              width: 18, height: 18,
+              border: "2px solid var(--line)",
+              borderTop: "2px solid var(--royal)",
+              borderRadius: "50%",
+              animation: "spin 0.7s linear infinite",
+            }} />
+            アップロード中…
+          </>
+        ) : (
+          <>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            写真を追加
+          </>
+        )}
       </div>
     </button>
   );
@@ -320,10 +321,11 @@ function PhotoAddCard({
 
 // ─── カテゴリセクション ──────────────────────────────────────────────────────
 
-function PhotoCategory({
+function PhotoCategorySection({
   def,
   photos,
   draggingId,
+  uploadingCategory,
   onAdd,
   onDelete,
   onCaptionChange,
@@ -334,6 +336,7 @@ function PhotoCategory({
   def: typeof CATEGORY_DEFS[number];
   photos: OfficePhoto[];
   draggingId: string | null;
+  uploadingCategory: PhotoCategory | null;
   onAdd: () => void;
   onDelete: (id: string) => void;
   onCaptionChange: (id: string, caption: string) => void;
@@ -343,6 +346,7 @@ function PhotoCategory({
 }) {
   const remaining = MAX_PHOTOS_PER_CATEGORY - photos.length;
   const addSlots = Math.min(remaining, remaining > 0 ? 1 : 0);
+  const isUploading = uploadingCategory === def.id;
 
   return (
     <div style={{ marginBottom: 28 }}>
@@ -374,11 +378,12 @@ function PhotoCategory({
       </div>
 
       {/* 写真グリッド（3列） */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
-        gap: 12,
-      }}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 12,
+        }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={onDragEnd}
       >
@@ -398,6 +403,7 @@ function PhotoCategory({
           <PhotoAddCard
             key="add"
             disabled={photos.length >= MAX_PHOTOS_PER_CATEGORY}
+            uploading={isUploading}
             onAdd={onAdd}
           />
         )}
@@ -408,33 +414,123 @@ function PhotoCategory({
 
 // ─── メインコンポーネント ────────────────────────────────────────────────────
 
-export function OfficePhotoSection({ photos, onPhotosChange }: Props) {
+export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [uploadingCategory, setUploadingCategory] = useState<PhotoCategory | null>(null);
   const dragOverIdRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingCategoryRef = useRef<PhotoCategory | null>(null);
+  const isUploadingRef = useRef(false);
+  const captionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function byCategory(cat: PhotoCategory) {
     return photos.filter((p) => p.category === cat);
   }
 
   function handleAdd(category: PhotoCategory) {
-    const catPhotos = byCategory(category);
-    if (catPhotos.length >= MAX_PHOTOS_PER_CATEGORY) return;
-    const newPhoto: OfficePhoto = {
-      id: generateId(),
-      category,
-      url: getUnsplashUrl(category),
-      caption: "",
-      gradient: "",
-    };
-    onPhotosChange([...photos, newPhoto]);
+    if (isUploadingRef.current) return;
+    pendingCategoryRef.current = category;
+    fileInputRef.current?.click();
   }
 
-  function handleDelete(id: string) {
-    onPhotosChange(photos.filter((p) => p.id !== id));
+  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !pendingCategoryRef.current) return;
+
+    const category = pendingCategoryRef.current;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      alert("JPG・PNG・WebP のみ対応しています");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("5MB 以内のファイルを選択してください");
+      return;
+    }
+
+    if (isUploadingRef.current) return;
+    isUploadingRef.current = true;
+    setUploadingCategory(category);
+
+    try {
+      const supabase = createClient();
+      const path = buildStoragePath(companyId, file.name);
+
+      const { error: uploadError } = await supabase.storage
+        .from("ow-uploads")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("ow-uploads")
+        .getPublicUrl(path);
+
+      const catPhotos = byCategory(category);
+      const res = await fetch("/api/biz/company/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category,
+          image_url: publicUrl,
+          caption: "",
+          display_order: catPhotos.length,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Upload failed");
+      }
+
+      const { data } = await res.json();
+      const newPhoto: OfficePhoto = {
+        id: data.id,
+        url: data.image_url,
+        caption: data.caption ?? "",
+        category: data.category,
+      };
+      onPhotosChange([...photos, newPhoto]);
+    } catch (err) {
+      console.error("[OfficePhotoSection] upload failed:", err);
+      alert("アップロードに失敗しました。もう一度お試しください。");
+    } finally {
+      isUploadingRef.current = false;
+      setUploadingCategory(null);
+      pendingCategoryRef.current = null;
+    }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      const res = await fetch(`/api/biz/company/photos/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Delete failed");
+      }
+      onPhotosChange(photos.filter((p) => p.id !== id));
+    } catch (err) {
+      console.error("[OfficePhotoSection] delete failed:", err);
+      alert("削除に失敗しました。もう一度お試しください。");
+    }
   }
 
   function handleCaptionChange(id: string, caption: string) {
     onPhotosChange(photos.map((p) => (p.id === id ? { ...p, caption } : p)));
+
+    if (captionTimerRef.current) clearTimeout(captionTimerRef.current);
+    captionTimerRef.current = setTimeout(async () => {
+      try {
+        await fetch(`/api/biz/company/photos/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ caption }),
+        });
+      } catch (err) {
+        console.error("[OfficePhotoSection] caption PATCH failed:", err);
+      }
+    }, 700);
   }
 
   function handleDragStart(id: string) {
@@ -464,6 +560,15 @@ export function OfficePhotoSection({ photos, onPhotosChange }: Props) {
 
   return (
     <div>
+      {/* hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        style={{ display: "none" }}
+        onChange={handleFileSelected}
+      />
+
       {/* ガイドラインバナー */}
       <div style={{
         background: "linear-gradient(135deg, var(--royal-50) 0%, #fff 100%)",
@@ -504,11 +609,12 @@ export function OfficePhotoSection({ photos, onPhotosChange }: Props) {
 
       {/* カテゴリ別グリッド */}
       {CATEGORY_DEFS.map((def) => (
-        <PhotoCategory
+        <PhotoCategorySection
           key={def.id}
           def={def}
           photos={byCategory(def.id)}
           draggingId={draggingId}
+          uploadingCategory={uploadingCategory}
           onAdd={() => handleAdd(def.id)}
           onDelete={handleDelete}
           onCaptionChange={handleCaptionChange}
@@ -517,6 +623,10 @@ export function OfficePhotoSection({ photos, onPhotosChange }: Props) {
           onDragEnd={handleDragEnd}
         />
       ))}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }
