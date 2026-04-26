@@ -22,10 +22,12 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 Phase 4（Supabase 本番接続）が **完全完了（2026-04-27）**。次は以下の中から選択:
 
-### 🟢 推奨 1: photos の Supabase Storage 接続（1.5 時間）
-- /biz/company の最後の残課題（TODO コメントあり）
-- ow_company_photos テーブル CRUD + Supabase Storage 連携
-- caption/category カラムの追加 migration
+### 🟢 推奨 1: photos の Supabase Storage 接続（1.5〜2 時間）
+📄 詳細計画: `docs/plans/photos-storage-integration.md`
+- Session P-1: migration 038 + データ層（30 分）
+- Session P-2: API Route + Storage 連携（30〜40 分）
+- Session P-3: UI 接続 + 動作確認（30〜40 分）
+- /biz/company の最後の残課題、Phase 4 真の 100% 完了
 
 ### 🟢 推奨 2: Phase 5 Stage 2 — 認証フロー強化（2〜3 時間）
 - メール認証後の onboarding フロー実装
