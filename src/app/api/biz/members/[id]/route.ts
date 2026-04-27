@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { getOwUserId, getCompanyId } from "@/lib/business/company";
 
-type Action = "permission" | "deactivate" | "reactivate";
+type Action = "permission" | "deactivate" | "reactivate" | "update_profile";
 
 export async function PATCH(
   req: Request,
@@ -16,7 +16,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { action: Action; value?: string };
+  let body: { action: Action; value?: string; role_title?: string; department?: string };
   try {
     body = await req.json();
   } catch {
@@ -140,6 +140,43 @@ export async function PATCH(
 
     if (error) {
       console.error("[members PATCH reactivate]", error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
+
+  // ── action: update_profile ────────────────────────────────────────
+  else if (body.action === "update_profile") {
+    // actor が admin であることを確認（自分自身の編集も可）
+    const { data: actorAdmin } = await supabase
+      .from("ow_company_admins")
+      .select("permission")
+      .eq("user_id", actorOwUserId ?? "")
+      .eq("company_id", companyId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (actorAdmin?.permission !== "admin") {
+      return NextResponse.json({ error: "役職・部署の変更は管理者のみ可能です" }, { status: 403 });
+    }
+
+    // 空文字は null に正規化、最大 100 文字
+    const roleTitle = (body.role_title?.trim() || null);
+    const department = (body.department?.trim() || null);
+
+    if (roleTitle && roleTitle.length > 100) {
+      return NextResponse.json({ error: "役職は 100 文字以内で入力してください" }, { status: 400 });
+    }
+    if (department && department.length > 100) {
+      return NextResponse.json({ error: "部署は 100 文字以内で入力してください" }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from("ow_company_admins")
+      .update({ role_title: roleTitle, department })
+      .eq("id", adminRecordId);
+
+    if (error) {
+      console.error("[members PATCH update_profile]", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }

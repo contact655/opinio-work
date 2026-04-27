@@ -6,6 +6,7 @@ import type { MemberRecord } from "@/lib/business/members";
 
 type Tab = "active" | "inactive";
 type ActionType = "permission" | "deactivate" | "reactivate";
+type ProfileEditTarget = { id: string; role_title: string | null; department: string | null };
 
 type Props = {
   initialMembers: MemberRecord[];
@@ -32,10 +33,12 @@ function DropdownMenu({
   member,
   isSelf,
   onAction,
+  onEditProfile,
 }: {
   member: MemberRecord;
   isSelf: boolean;
   onAction: (id: string, action: ActionType, value?: "admin" | "member") => void;
+  onEditProfile: (target: ProfileEditTarget) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -88,6 +91,27 @@ function DropdownMenu({
         }}>
           {member.is_active ? (
             <>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onEditProfile({ id: member.id, role_title: member.role_title, department: member.department });
+                }}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: "10px 14px",
+                  textAlign: "left",
+                  background: "none",
+                  border: "none",
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  color: "var(--ink)",
+                  cursor: "pointer",
+                  borderBottom: "1px solid var(--line-soft)",
+                }}
+              >
+                役職・部署を編集
+              </button>
               <button
                 disabled={isSelf}
                 onClick={() => {
@@ -284,6 +308,164 @@ function ConfirmDialog({
             }}
           >
             {isSubmitting ? "処理中..." : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── EditProfileDialog ────────────────────────────────────────────────
+function EditProfileDialog({
+  target,
+  isSubmitting,
+  errorMessage,
+  onSubmit,
+  onCancel,
+}: {
+  target: ProfileEditTarget;
+  isSubmitting: boolean;
+  errorMessage: string | null;
+  onSubmit: (id: string, roleTitle: string, department: string) => void;
+  onCancel: () => void;
+}) {
+  const [roleTitle, setRoleTitle] = useState(target.role_title ?? "");
+  const [department, setDepartment] = useState(target.department ?? "");
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.4)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) onCancel(); }}
+    >
+      <div style={{
+        background: "#fff",
+        borderRadius: 14,
+        padding: "28px 28px 24px",
+        width: "100%",
+        maxWidth: 420,
+        boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
+      }}>
+        <h2 style={{
+          fontFamily: "'Noto Serif JP', serif",
+          fontSize: 18,
+          fontWeight: 600,
+          color: "var(--ink)",
+          marginBottom: 20,
+        }}>
+          役職・部署を編集
+        </h2>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+            役職
+          </label>
+          <input
+            type="text"
+            value={roleTitle}
+            onChange={(e) => setRoleTitle(e.target.value)}
+            placeholder="例：プロダクトマネージャー"
+            maxLength={100}
+            disabled={isSubmitting}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              border: "1px solid var(--line)",
+              borderRadius: 8,
+              fontFamily: "inherit",
+              fontSize: 13,
+              color: "var(--ink)",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+            onFocus={(e) => (e.target.style.borderColor = "var(--royal)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--line)")}
+          />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+            部署
+          </label>
+          <input
+            type="text"
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            placeholder="例：プロダクト開発部"
+            maxLength={100}
+            disabled={isSubmitting}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              border: "1px solid var(--line)",
+              borderRadius: 8,
+              fontFamily: "inherit",
+              fontSize: 13,
+              color: "var(--ink)",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+            onFocus={(e) => (e.target.style.borderColor = "var(--royal)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--line)")}
+          />
+        </div>
+
+        {errorMessage && (
+          <div style={{
+            padding: "10px 14px",
+            background: "var(--error-soft)",
+            border: "1px solid #FCA5A5",
+            borderRadius: 8,
+            fontSize: 13,
+            color: "var(--error)",
+            marginBottom: 16,
+          }}>
+            {errorMessage}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button
+            onClick={onCancel}
+            disabled={isSubmitting}
+            style={{
+              padding: "9px 18px",
+              border: "1px solid var(--line)",
+              borderRadius: 8,
+              background: "#fff",
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--ink-soft)",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+            }}
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={() => onSubmit(target.id, roleTitle, department)}
+            disabled={isSubmitting}
+            style={{
+              padding: "9px 18px",
+              border: "none",
+              borderRadius: 8,
+              background: "var(--royal)",
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#fff",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+              opacity: isSubmitting ? 0.6 : 1,
+            }}
+          >
+            {isSubmitting ? "保存中..." : "保存"}
           </button>
         </div>
       </div>
@@ -500,6 +682,11 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("active");
 
+  // edit profile dialog state
+  const [editProfileTarget, setEditProfileTarget] = useState<ProfileEditTarget | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
   // add member dialog state
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
@@ -522,6 +709,30 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
   const dialogMember = dialogMemberId
     ? initialMembers.find((m) => m.id === dialogMemberId) ?? null
     : null;
+
+  async function handleSaveProfile(id: string, roleTitle: string, department: string) {
+    setIsSavingProfile(true);
+    setProfileError(null);
+    try {
+      const res = await fetch(`/api/biz/members/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update_profile", role_title: roleTitle, department }),
+      });
+      const json = await res.json() as { error?: string };
+      if (!res.ok) {
+        setProfileError(json.error ?? "エラーが発生しました");
+        return;
+      }
+      setEditProfileTarget(null);
+      setToastMessage("変更しました");
+      router.refresh();
+    } catch {
+      setProfileError("通信エラーが発生しました");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
 
   async function handleAddMember(email: string, permission: "admin" | "member") {
     setIsAdding(true);
@@ -808,12 +1019,24 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
                     member={member}
                     isSelf={isSelf}
                     onAction={openDialog}
+                    onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }}
                   />
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* 役職・部署編集ダイアログ */}
+      {editProfileTarget && (
+        <EditProfileDialog
+          target={editProfileTarget}
+          isSubmitting={isSavingProfile}
+          errorMessage={profileError}
+          onSubmit={handleSaveProfile}
+          onCancel={() => { if (!isSavingProfile) setEditProfileTarget(null); }}
+        />
       )}
 
       {/* メンバー追加ダイアログ */}
