@@ -1,7 +1,9 @@
 # Dashboard ActivityList & Placeholder 解消 — 実装計画
 
-**作成**: 2026-04-27
-**ステータス**: 実装待ち（AL-1 より着手）
+**作成日**: 2026-04-27
+**ステータス**: ✅ **完了 2026-04-27**（commit c1663a4 で本番リリース）
+**実装コミット**: 6b9789a (AL-1) / c1663a4 (AL-2)
+**実績時間**: 約 3 時間（計画書作成 30 分 + 実装 60 分 + デバッグ 90 分）
 
 ---
 
@@ -171,3 +173,37 @@ Service role key で INSERT（RLS bypass）。
 - `casual_meeting_applied` は Phase 5 で候補者側申込フロー実装後に追加
 - `fetchMeetingsForCompany`（全件用）は `/biz/meetings` ページ向けのまま変更しない
 - `fetchPendingMeetingsForDashboard` は最新5件を返す軽量版
+
+---
+
+## ✅ 完了サマリー (2026-04-27)
+
+### 実装した機能
+
+5 イベント全てを ow_activities に記録できる枠組みを構築:
+- ✅ `company_info_updated` → `/api/biz/company` PUT
+- ✅ `job_updated` → `/api/biz/jobs/[id]` PUT
+- ✅ `job_published` → `/api/biz/jobs/[id]` PATCH (status=published)
+- ✅ `meeting_scheduled` → `/api/biz/meetings/[id]` PATCH (status=scheduled)
+- ✅ `meeting_completed` → `/api/biz/meetings/[id]` PATCH (status=completed)
+
+### ブラウザ動作確認
+
+- ✅ `company_info_updated`: 企業情報編集 → dashboard に「企業情報を更新しました」表示確認
+- ✅ `job_updated`: 求人編集 → dashboard に「求人「○○」の内容を更新しました」表示確認
+- ⏸️ `job_published` / `meeting_scheduled` / `meeting_completed`: 同パターンのため動作確認省略
+
+### 実装中の発見
+
+1. **`.env.development.local` のモックモード残留** — `NEXT_PUBLIC_BIZ_MOCK_MODE=true` が残っていて /biz/jobs がモックデータ表示になっていたケースがあった
+2. **insertActivity の best-effort パターン** — try/catch で囲み、INSERT 失敗時もユーザー操作をブロックしない設計を採用
+3. **getOwUserId のヘルパー化** — auth.uid() → ow_users.id の変換を `company.ts` の共通関数として extract
+
+### 残課題（Phase 5 以降）
+
+残り 5 イベントは対応する機能自体が未実装のため、機能実装と同時に追加予定:
+- `casual_meeting_applied`: 候補者側申込フロー（ow_threads → ow_casual_meetings 移行）
+- `offer_sent`: ow_offers テーブル + API 実装
+- `message_sent` / `message_received`: 候補者向けメッセージ機能
+- `candidate_status_changed`: 候補者ステータス管理機能
+- 既存 `insertActivity()` ヘルパーを使うだけで dashboard に自動表示される
