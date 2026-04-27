@@ -22,25 +22,27 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 Phase 4（Supabase 本番接続）が **完全完了（2026-04-27）**。次は以下の中から選択:
 
-### 🟢 推奨 1: photos の Supabase Storage 接続（1.5〜2 時間）
-📄 詳細計画: `docs/plans/photos-storage-integration.md`
-- Session P-1: migration 038 + データ層（30 分）
-- Session P-2: API Route + Storage 連携（30〜40 分）
-- Session P-3: UI 接続 + 動作確認（30〜40 分）
-- /biz/company の最後の残課題、Phase 4 真の 100% 完了
+### ✅ 完了: photos + logo の Supabase Storage 接続
+詳細計画 `docs/plans/photos-storage-integration.md` の通り実装、
+2026-04-27 に commit d7ce53a で本番リリース完了。
+
+### 🟢 推奨 1: dashboard placeholder 解消（1 時間）
+- /biz/dashboard の PendingMeetings, ActivityList, MatchCandidates, TeamMembers を実 DB 接続
+- 既存パターン（fetchXxxForCompany）を踏襲
+- 軽くて即効性のあるタスク
 
 ### 🟢 推奨 2: Phase 5 Stage 2 — 認証フロー強化（2〜3 時間）
 - メール認証後の onboarding フロー実装
 - パスワードリセット完全実装
 - OAuth プロバイダー追加（Google 等）の検討
 
-### 🟡 推奨 3: /biz/dashboard placeholder 解消（1 時間）
-- PendingMeetings, ActivityList, MatchCandidates, TeamMembers を実 DB 接続
-- 既存パターン（fetchXxxForCompany）を踏襲
-
-### 🟡 推奨 4: /biz/members チーム管理画面（2〜3 時間）
+### 🟢 推奨 3: /biz/members チーム管理画面（2〜3 時間）
 - migration 037 で整った RLS 基盤（auth_is_company_member/admin）を活用
 - ow_company_admins の admin/member 管理 UI
+- Phase 5 のチーム機能の入り口
+
+### 🟢 中期: 求職者側 royal blue 統一（Phase 6、数セッション）
+- /companies, /jobs, /mentors, /articles, /mypage 等のデザイン統一
 
 ---
 
@@ -450,7 +452,7 @@ src/app/companies/mockCompanies.ts(219,31): error TS2802
 |--------|------|------|
 | 企業側ログイン | `/biz/auth` | ✅ 実装済み |
 | ダッシュボード | `/biz/dashboard` | ✅ 実装済み（一部 placeholder 残） |
-| 企業情報編集 | `/biz/company` | ✅ **READ + WRITE 完了**（photos のみ Storage 連携が次フェーズ） |
+| 企業情報編集 | `/biz/company` | ✅ **READ + WRITE + Storage（photos + logo）完了** |
 | カジュアル面談管理 | `/biz/meetings` | 未着手 |
 | 求人管理 | `/biz/jobs` | 未着手 |
 | 分析 | `/biz/analytics` | 未着手 |
@@ -477,6 +479,20 @@ src/app/companies/mockCompanies.ts(219,31): error TS2802
 | 035 | ow_user_roles RLS 自己参照解消 + tenant_id backfill | `supabase/rollbacks/035_rollback.sql` |
 | 036 | auth_is_admin() に SET row_security = off（PG15+ 対応）| `supabase/rollbacks/036_rollback.sql` |
 | 037 | ow_company_admins RLS 自己参照解消（auth_is_company_member/admin）| `supabase/rollbacks/037_rollback.sql` |
+| 038 | ow_company_office_photos category fix (work→workspace) + WITH CHECK | `supabase/rollbacks/038_rollback.sql` |
+
+### Phase 4 で構築した Storage 連携
+
+- バケット: `ow-uploads`（Public bucket、既存稼働中を再利用）
+- パス規則:
+  - `companies/office-photos/{companyId}/{timestamp}.{ext}` (オフィス写真)
+  - `companies/logos/{companyId}/{timestamp}.{ext}` (企業ロゴ)
+  - `companies/headers/{id}-{timestamp}.{ext}` (既存、admin で使用中)
+  - `companies/recruiters/{id}-{timestamp}.{ext}` (既存)
+- アップロード: クライアント側で直接 `supabase.storage.from().upload()`
+- DB 操作: API Route 経由 (POST / PATCH / DELETE)
+- DELETE 時: DB delete → Storage remove（orphan 容認、best-effort）
+- ロゴは `<img src>` + gradient/letter fallback の二段階表示
 
 ### Phase 4 で得た重要技術知見
 
@@ -488,17 +504,34 @@ src/app/companies/mockCompanies.ts(219,31): error TS2802
    → autosave 系では `hasInteracted` ref パターンが安全（`isFirstRender` パターンは NG）
 4. **クライアント・サーバーの責務分離**
    → 型変換は API Route 側に集約、クライアントは原 form を送る（double-transform バグを防ぐ）
+5. **フォームへの新フィールド追加は 3 層（型 + transformer + JSX）の同期が必須**
+   → `BizCompany` 型・DB transformer・表示 JSX のすべてに対応がないと動作しない（logoUrl バグの教訓）
+6. **Next.js dev server の .next キャッシュ**
+   → ファイル編集中に MODULE_NOT_FOUND が出たら `rm -rf .next && npm run dev` で解決
 
 ---
 
 ## コミット履歴（直近）
 
 ```
+feat(biz/company): full Storage integration for photos + logo [d7ce53a]
+  - OfficePhotoSection: file picker + Storage upload + DB via API
+  - Logo: logoUrl field added, <img>/gradient fallback display
+  - page.tsx: fetchOfficePhotosForCompany in parallel
+  - BizCompany 型 / DbCompany 型 / transformer に logo_url 追加
+  - ブラウザ動作確認完了 (2026-04-27)
+
+feat(api): photos CRUD endpoints for /biz/company [fb29c4f]
+  - POST /api/biz/company/photos
+  - PATCH/DELETE /api/biz/company/photos/[id]
+  - src/lib/business/photos.ts 新規作成
+
+feat(rls): migration 038 - office photos category fix + WITH CHECK [be66ebe]
+  - work→workspace カテゴリ修正
+  - RLS WITH CHECK 追加
+
 fix(rls): resolve ow_company_admins infinite recursion (Bug 3) [a576684]
   - migration 037: auth_is_company_member/admin + WITH CHECK
-
-fix(biz/company): remove unused transformFormToDb import [4e2e9a0]
-  - Vercel build failure 修正（@typescript-eslint/no-unused-vars）
 
 feat(biz/company): Phase 4 S5 - production READ/WRITE via Supabase [e45d7c6]
   - src/lib/business/company.ts (新規)
@@ -506,7 +539,4 @@ feat(biz/company): Phase 4 S5 - production READ/WRITE via Supabase [e45d7c6]
   - src/app/biz/company/CompanyEditClient.tsx (新規)
   - src/app/biz/company/page.tsx (Server Component に書き換え)
   - migrations 035, 036 (RLS修正 + tenant_id backfill)
-
-feat: Phase 4 complete + Phase 5 preparation (2026-04-24)
-feat: Phase 4 complete - user-side product 100% done (2026-04-24)
 ```
