@@ -1,11 +1,12 @@
 # /biz/members チーム管理画面 — 実装計画
 
 **作成日**: 2026-04-27
-**ステータス**: v2 確定 / 実装待ち
+**ステータス**: v3: M-1〜M-3 + M-2.5 完了
 **推定実装時間**: M-1〜M-3 で約 3.2 時間（M-2.5 含めると 3.7 時間）、M-4（招待フロー完全版）は追加 2〜3 時間
 
 ## 変更履歴
 
+- 2026-04-27 夜: v3 更新 — M-1〜M-3 + M-2.5 完了を反映。計画との差異明記。観測事項追加。
 - 2026-04-27 17:05: v2 確定 — レビュー反映（自分自身判定の実装方針、再有効化を M-2 に追加、role_title 編集を M-2.5 に分離、UI パターン再確認の注記、M-3 を modal dialog で明記）
 - 2026-04-27 16:00: v1 初版作成
 
@@ -141,7 +142,7 @@ M-4 は Phase 5 のスコープ。
 
 ## Step 3: 段階分け
 
-### M-1: 一覧表示（READ）— 約 1 時間
+### ✅ M-1: 一覧表示（READ）— commit `abb4722`
 
 **実装内容:**
 - `src/lib/business/members.ts` 新規作成
@@ -166,7 +167,7 @@ M-4 は Phase 5 のスコープ。
 
 ---
 
-### M-2: 権限変更 + 無効化/再有効化（UPDATE + soft toggle）— 約 1.2 時間
+### ✅ M-2: 権限変更 + 無効化/再有効化（UPDATE + soft toggle）— commit `7e1b2dc`
 
 **実装内容:**
 - `src/app/api/biz/members/[id]/route.ts` 新規作成
@@ -179,6 +180,11 @@ M-4 は Phase 5 のスコープ。
   - 自分自身の permission 変更は admin → member への降格を禁止（UI + API 両方）
   - 最後の admin を無効化・降格禁止（API で COUNT チェック）
 
+**実装メモ（計画との差異）:**
+- 計画では `DELETE` メソッドで無効化する想定だったが、実装は `PATCH action="deactivate"` に統一した。
+  DELETE は意味論的に「物理削除」に近く誤操作リスクがあるため、action ベースの PATCH に統一する方が安全という判断。
+  変更ファイル一覧の `DELETE（無効化）` 記述は本来 `PATCH action="deactivate"` が正しい。
+
 **Acceptance Criteria:**
 - admin が他のメンバーの permission を変更できる
 - 自分自身を admin → member に降格しようとするとエラー表示
@@ -189,32 +195,49 @@ M-4 は Phase 5 のスコープ。
 
 ---
 
-### M-2.5: role_title / department 編集（UPDATE）— 約 30 分（オプション）
+### ✅ M-2.5: role_title / department 編集（UPDATE）— commit `15cb148`
 
 **実装内容:**
-- `src/app/api/biz/members/[id]/route.ts` に追加
-  - PATCH: `{ action: "role_title", value: string }`
-  - PATCH: `{ action: "department", value: string }`
-- UI: 各メンバー行の「編集」アイコン → モーダル or インライン編集
+- `src/app/api/biz/members/[id]/route.ts` に `update_profile` action を追加
+  - PATCH: `{ action: "update_profile", role_title?: string, department?: string }`
+  - admin のみ変更可能（自分自身の編集も可）
+  - 空文字は null に正規化（`body.role_title?.trim() || null`）
+  - 各フィールド最大 100 文字バリデーション
+- UI: 各メンバー行の「…」メニュー → 「役職・部署を編集」→ `EditProfileDialog`
+  - 現在値をプリフィル済みの 2 テキストフィールド
+  - Save / Cancel ボタン
+
+**実装メモ（計画 v2 との差異）:**
+- 計画 v2 では `{ action: "role_title", value: string }` と `{ action: "department", value: string }` の 2 アクション案だったが、
+  実装は `{ action: "update_profile", role_title, department }` の 1 アクションに統合した。
+  2 フィールドを別々に保存する UX より、まとめて編集→保存の方が自然なため。
 
 **Acceptance Criteria:**
 - admin が他のメンバーの役職・部署を変更できる
 - 自分自身の役職・部署も変更できる
-
-**MVP 必須ではない。** 時間に余裕があれば実装、なければスキップ。
+- 空文字で保存すると DB 上 null になる
+- 部分更新（role_title のみ変更）でもう一方のフィールドが上書きされない
 
 ---
 
-### M-3: 既存ユーザー追加（CREATE with existing ow_users）— 約 1 時間
+### ✅ M-3: 既存ユーザー追加（CREATE with existing ow_users）— commit `7338927`
 
 **実装内容:**
 - `src/app/api/biz/members/route.ts` 新規作成
   - POST: `{ email: string, permission: "admin" | "member" }` → ow_users を email で検索 → INSERT ow_company_admins
-  - エラーケース: ユーザー未登録 / すでにメンバー（UNIQUE 制約）
-- UI: 「+ メンバーを追加」ボタン → モーダルダイアログ
+  - 無効化済みレコードが存在する場合は UPDATE is_active=true + permission（再有効化）
+  - エラーケース: ユーザー未登録 / すでにアクティブなメンバー（409）
+- UI: 「+ メンバーを追加」ボタン → `AddMemberDialog`（モーダルダイアログ）
   - 入力フィールド: email (text), permission (radio: admin/member)
-  - パターン: /biz/jobs 新規作成と同じ shadcn なし inline styles
-  - 確認ダイアログ: あり（追加内容の確認）
+  - パターン: inline styles（shadcn なし）
+
+**実装メモ（計画との差異）:**
+- 計画では「確認ダイアログ: あり（追加内容の確認）」としていたが、実装では確認ダイアログは設けなかった。
+  email 入力 → 「追加する」ボタン 1 クリックで即追加する UX の方がシンプルで操作ストレスが少ないという判断。
+- エラーメッセージ文言（実際の実装値）:
+  - ユーザー未登録: `"このメールアドレスのユーザーはまだ Opinio に登録されていません"`
+  - すでにアクティブメンバー: `"このユーザーはすでにメンバーです"`
+  - 無効化済み → 再有効化: 成功扱い（201 を返す）
 
 **Acceptance Criteria:**
 - admin が email 入力でメンバーを追加できる
@@ -224,7 +247,10 @@ M-4 は Phase 5 のスコープ。
 
 ---
 
-### M-4: 招待フロー（未登録ユーザー対応）— 約 2〜3 時間
+### 🔲 M-4: 招待フロー（未登録ユーザー対応）— 次回着手予定
+
+**概要**: 未登録ユーザー（ow_users にまだいないユーザー）をメールで招待するフロー。
+Phase 5 Stage 2（認証フロー強化）と同時着手が自然。推定 2〜3 時間 + `/biz/auth/accept-invite` 受諾ページ新設で半日仕事になる可能性あり。
 
 **migration 040 が必要:**
 ```sql
@@ -256,24 +282,65 @@ ALTER TABLE ow_company_admins
 
 ---
 
-## 変更ファイル一覧（M-1〜M-3）
+## 変更ファイル一覧（M-1〜M-3 + M-2.5）
 
 | ファイル | 種別 | 内容 |
 |---|---|---|
 | `src/lib/business/members.ts` | 新規 | MemberRecord 型 + fetchMembersForCompany |
 | `src/app/biz/members/page.tsx` | 新規 | async Server Component |
-| `src/app/biz/members/MembersClient.tsx` | 新規 | `"use client"` メイン UI |
+| `src/app/biz/members/MembersClient.tsx` | 新規 | `"use client"` メイン UI（DropdownMenu, EditProfileDialog, AddMemberDialog, Toast 含む） |
 | `src/app/api/biz/members/route.ts` | 新規 | POST（メンバー追加） |
-| `src/app/api/biz/members/[id]/route.ts` | 新規 | PATCH（権限・役職変更）/ DELETE（無効化） |
+| `src/app/api/biz/members/[id]/route.ts` | 新規 | PATCH（permission / deactivate / reactivate / update_profile） |
 | `src/components/business/BusinessLayout.tsx` | 修正 | NAV_ITEMS に「チーム管理」追加 |
+
+---
+
+## 既知の観測事項
+
+### HMR キャッシュ汚染
+M-3 実装後に 500 エラー（`TypeError: __webpack_modules__[moduleId] is not a function`）が発生。
+新しい `route.ts` ファイルを追加した際に webpack がモジュール ID マッピングを誤ってキャッシュした可能性がある。
+`.next` ディレクトリを削除して dev server を再起動することで解消。
+
+**対策**: 新しい API Route ファイル（`route.ts`）を追加した後は、`.next` 削除 + 再起動を徹底する。
+
+---
+
+### `/opengraph-image` の @vercel/og エラー
+dev server ログに `@vercel/og` 関連エラーが散発的に出現。HMR ノイズの可能性があり、本番ビルドでの再現は未確認。
+本番デプロイ前に `next build` で再現確認が必要。
+
+---
+
+### 柴さんの ow_company_admins レコードが 10 件存在
+
+`hshiba@opinio.co.jp` に紐づく `ow_company_admins` レコードが 10 件確認されている（2026-04-27 夜調査）。
+
+```
+全10件が同一タイムスタンプ: created_at = 2026-04-26T08:57:02.696829+00:00
+各レコードの company_id はすべて異なる（10社分）
+role_title / department はすべて null
+permission はすべて admin
+is_active はすべて true
+```
+
+シードスクリプト（`scripts/seed-*.mjs` 等）による一括 INSERT の可能性が高い。
+ただし意図的な設計かどうかは未確認。実運用に影響があるなら対応を検討。
+
+---
+
+### `/biz/dashboard` 404 の謎
+昨日（2026-04-27）のセッション中に `/biz/dashboard` が 404 になり、無限 GET ループが発生した経緯がある。
+根本原因の特定には至っておらず、再現確認が必要。
 
 ---
 
 ## 総合所見
 
-**MVP スコープ**: M-1〜M-3（既存 ow_users ユーザーのみ対象）を今日のセッションで完成させる。
-migration は不要で、既存の `auth_is_company_admin()` RLS がそのまま使える。
+**MVP スコープ**: M-1〜M-3（既存 ow_users ユーザーのみ対象）を今日のセッションで完成させた。
+migration は不要で、既存の `auth_is_company_admin()` RLS がそのまま使えた。
 
-**最大リスク**: 最後の admin 消去バグ。これだけ API 側でカウントチェックを入れておかないと、誰もログインできなくなる事故が起きる。M-2 の実装で最優先で対処する。
+**最大リスクへの対処**: 最後の admin 消去バグは M-2 で `countActiveAdmins()` ヘルパーを実装し、
+ガード A〜D（自己降格 / 最後の admin 降格 / 自己無効化 / 最後の admin 無効化）をすべて API 側で対応済み。
 
 **M-4 はスコープ外**: 未登録ユーザーへの招待は service_role + token 管理が必要で、Phase 5 の認証フロー強化（Stage 2）と一緒にやるのが自然。今は「Opinio に登録済みのユーザーしか追加できません」として割り切る。
