@@ -291,6 +291,182 @@ function ConfirmDialog({
   );
 }
 
+// ── AddMemberDialog ─────────────────────────────────────────────────
+function AddMemberDialog({
+  isSubmitting,
+  errorMessage,
+  onSubmit,
+  onCancel,
+}: {
+  isSubmitting: boolean;
+  errorMessage: string | null;
+  onSubmit: (email: string, permission: "admin" | "member") => void;
+  onCancel: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [permission, setPermission] = useState<"admin" | "member">("member");
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.4)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) onCancel(); }}
+    >
+      <div style={{
+        background: "#fff",
+        borderRadius: 14,
+        padding: "28px 28px 24px",
+        width: "100%",
+        maxWidth: 440,
+        boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
+      }}>
+        <h2 style={{
+          fontFamily: "'Noto Serif JP', serif",
+          fontSize: 18,
+          fontWeight: 600,
+          color: "var(--ink)",
+          marginBottom: 6,
+        }}>
+          メンバーを追加
+        </h2>
+        <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+          Opinio に登録済みのメールアドレスを入力してください。
+        </p>
+
+        {/* email */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+            メールアドレス
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="example@company.com"
+            disabled={isSubmitting}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              border: "1px solid var(--line)",
+              borderRadius: 8,
+              fontFamily: "inherit",
+              fontSize: 13,
+              color: "var(--ink)",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+            onFocus={(e) => (e.target.style.borderColor = "var(--royal)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--line)")}
+          />
+        </div>
+
+        {/* permission */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 8 }}>
+            権限
+          </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {(["member", "admin"] as const).map((p) => {
+              const isSelected = permission === p;
+              const label = p === "admin" ? "管理者" : "メンバー";
+              const desc = p === "admin"
+                ? "メンバーの追加・削除や権限変更ができます"
+                : "チームメンバーとして表示されます";
+              return (
+                <label
+                  key={p}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    padding: "10px 12px",
+                    border: `1px solid ${isSelected ? "var(--royal)" : "var(--line)"}`,
+                    borderRadius: 8,
+                    cursor: "pointer",
+                    background: isSelected ? "var(--royal-50)" : "#fff",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="permission"
+                    value={p}
+                    checked={isSelected}
+                    onChange={() => setPermission(p)}
+                    style={{ marginTop: 2, accentColor: "var(--royal)" }}
+                  />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{label}</div>
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>{desc}</div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        {errorMessage && (
+          <div style={{
+            padding: "10px 14px",
+            background: "var(--error-soft)",
+            border: "1px solid #FCA5A5",
+            borderRadius: 8,
+            fontSize: 13,
+            color: "var(--error)",
+            marginBottom: 16,
+          }}>
+            {errorMessage}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button
+            onClick={onCancel}
+            disabled={isSubmitting}
+            style={{
+              padding: "9px 18px",
+              border: "1px solid var(--line)",
+              borderRadius: 8,
+              background: "#fff",
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--ink-soft)",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+            }}
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={() => onSubmit(email, permission)}
+            disabled={isSubmitting || !email.trim()}
+            style={{
+              padding: "9px 18px",
+              border: "none",
+              borderRadius: 8,
+              background: "var(--royal)",
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#fff",
+              cursor: isSubmitting || !email.trim() ? "not-allowed" : "pointer",
+              opacity: isSubmitting || !email.trim() ? 0.6 : 1,
+            }}
+          >
+            {isSubmitting ? "追加中..." : "追加する"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Toast ───────────────────────────────────────────────────────────
 function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   useEffect(() => {
@@ -324,6 +500,11 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("active");
 
+  // add member dialog state
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+
   // dialog state
   const [dialogMemberId, setDialogMemberId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<ActionType | null>(null);
@@ -341,6 +522,31 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
   const dialogMember = dialogMemberId
     ? initialMembers.find((m) => m.id === dialogMemberId) ?? null
     : null;
+
+  async function handleAddMember(email: string, permission: "admin" | "member") {
+    setIsAdding(true);
+    setAddError(null);
+    try {
+      const res = await fetch("/api/biz/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, permission }),
+      });
+      const json = await res.json() as { error?: string; member?: { name?: string } };
+      if (!res.ok) {
+        setAddError(json.error ?? "エラーが発生しました");
+        return;
+      }
+      const name = json.member?.name ?? email;
+      setShowAddDialog(false);
+      setToastMessage(`${name}さんをメンバーに追加しました`);
+      router.refresh();
+    } catch {
+      setAddError("通信エラーが発生しました");
+    } finally {
+      setIsAdding(false);
+    }
+  }
 
   function openDialog(id: string, action: ActionType, value?: "admin" | "member") {
     setDialogMemberId(id);
@@ -417,21 +623,20 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
             自社の採用担当メンバーを管理します。
           </p>
         </div>
-        {/* M-3 で有効化予定 */}
         <button
-          disabled
+          onClick={() => { setAddError(null); setShowAddDialog(true); }}
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: 6,
             padding: "10px 18px",
-            background: "var(--line-soft)",
-            color: "var(--ink-mute)",
-            border: "1px solid var(--line)",
+            background: "var(--royal)",
+            color: "#fff",
+            border: "1px solid var(--royal)",
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 600,
-            cursor: "not-allowed",
+            cursor: "pointer",
             flexShrink: 0,
             marginLeft: 24,
           }}
@@ -609,6 +814,16 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
             );
           })}
         </div>
+      )}
+
+      {/* メンバー追加ダイアログ */}
+      {showAddDialog && (
+        <AddMemberDialog
+          isSubmitting={isAdding}
+          errorMessage={addError}
+          onSubmit={handleAddMember}
+          onCancel={() => { if (!isAdding) setShowAddDialog(false); }}
+        />
       )}
 
       {/* 確認ダイアログ */}
