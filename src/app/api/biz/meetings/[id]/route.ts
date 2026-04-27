@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { getOwUserId } from "@/lib/business/company";
+import { insertActivity } from "@/lib/business/activities";
 
 type Action = "status" | "memo" | "assign_to_me" | "mark_read";
 
@@ -37,6 +39,27 @@ export async function PATCH(
     if (error) {
       console.error("[meetings PATCH status]", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Activity: meeting_scheduled / meeting_completed (best-effort)
+    if (body.value === "scheduled" || body.value === "completed") {
+      const [owUserId, mtgRow] = await Promise.all([
+        getOwUserId(supabase, user.id),
+        supabase.from("ow_casual_meetings").select("company_id").eq("id", meetingId).maybeSingle(),
+      ]);
+      if (mtgRow.data?.company_id) {
+        const isScheduled = body.value === "scheduled";
+        await insertActivity(supabase, {
+          company_id: mtgRow.data.company_id,
+          actor_user_id: owUserId,
+          type: isScheduled ? "meeting_scheduled" : "meeting_completed",
+          description: isScheduled
+            ? "カジュアル面談の日程が確定しました"
+            : "カジュアル面談が完了しました",
+          target_type: "casual_meeting",
+          target_id: meetingId,
+        });
+      }
     }
   }
 

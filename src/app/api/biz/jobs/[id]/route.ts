@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { getOwUserId } from "@/lib/business/company";
+import { insertActivity } from "@/lib/business/activities";
 
 const VALID_STATUSES = new Set(["draft", "pending_review", "published", "rejected", "private"]);
 
@@ -63,6 +65,22 @@ export async function PUT(
       .insert(assigneeIds.map((uid) => ({ job_id: jobId, user_id: uid })));
   }
 
+  // Activity: job_updated (best-effort)
+  const [owUserId, jobRow] = await Promise.all([
+    getOwUserId(supabase, user.id),
+    supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle(),
+  ]);
+  if (jobRow.data?.company_id) {
+    await insertActivity(supabase, {
+      company_id: jobRow.data.company_id,
+      actor_user_id: owUserId,
+      type: "job_updated",
+      description: `求人「${jobRow.data.title ?? "—"}」の内容を更新しました`,
+      target_type: "job",
+      target_id: jobId,
+    });
+  }
+
   return NextResponse.json({ ok: true });
 }
 
@@ -112,6 +130,24 @@ export async function PATCH(
   if (error) {
     console.error("[jobs PATCH status]", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Activity: job_published (best-effort, only on publish)
+  if (newStatus === "published") {
+    const [owUserId, jobRow] = await Promise.all([
+      getOwUserId(supabase, user.id),
+      supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle(),
+    ]);
+    if (jobRow.data?.company_id) {
+      await insertActivity(supabase, {
+        company_id: jobRow.data.company_id,
+        actor_user_id: owUserId,
+        type: "job_published",
+        description: `求人「${jobRow.data.title ?? "—"}」を公開しました`,
+        target_type: "job",
+        target_id: jobId,
+      });
+    }
   }
 
   return NextResponse.json({ ok: true });

@@ -135,6 +135,18 @@ export function transformFormToDb(form: BizCompany): Record<string, unknown> {
   };
 }
 
+export async function getOwUserId(
+  supabase: SupabaseClient,
+  authId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("ow_users")
+    .select("id")
+    .eq("auth_id", authId)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
 export async function getCompanyId(
   supabase: SupabaseClient,
   userId: string,

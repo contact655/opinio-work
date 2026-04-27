@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { transformFormToDb, getCompanyId } from "@/lib/business/company";
+import { transformFormToDb, getCompanyId, getOwUserId } from "@/lib/business/company";
+import { insertActivity } from "@/lib/business/activities";
 import type { BizCompany } from "@/lib/business/mockCompany";
 
 // PUT /api/biz/company — 全フィールド更新（自動保存トリガー）
@@ -31,6 +32,16 @@ export async function PUT(req: Request) {
     console.error("[company PUT]", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  const owUserId = await getOwUserId(supabase, user.id);
+  await insertActivity(supabase, {
+    company_id: companyId,
+    actor_user_id: owUserId,
+    type: "company_info_updated",
+    description: "企業情報を更新しました",
+    target_type: "company",
+    target_id: companyId,
+  });
 
   return NextResponse.json({ ok: true });
 }
