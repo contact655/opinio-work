@@ -545,8 +545,36 @@ INSERT パターン（best-effort）:
 
 ## 🔧 将来の改善課題
 
+### name 表示の二重経路問題（一部解決 2026-04-27）
+
+**現状（2026-04-27 16:20 時点）:**
+- データ修正で柴久人の表示は統一済み（ow_users.name = '柴久人' に UPDATE 実施）
+- ただし**根本的な設計問題は未解決**
+
+**問題の構造（2026-04-27 調査結果）:**
+- ヘッダー（`src/lib/business/dashboard.ts:146`）: `auth.users.raw_user_meta_data.name` を参照
+- TeamMembers（`src/lib/business/team.ts`）: `ow_users.name` を参照
+- 両者が常に一致する保証なし
+- migration 032 の backfill が `ON CONFLICT (auth_id) DO NOTHING` のため、既存ユーザーは自動同期されない
+
+**今後ユーザー追加時の懸念:**
+- 新規ユーザーが auth metadata の name を変更しても、ow_users.name に反映されない
+- 採用担当者が複数人いる企業で、一部メンバーだけ古い名前が表示される事故が起きうる
+
+**根本解決の方針案（後日実装、Phase 5 級）:**
+
+| 案 | 方法 | 難易度 | 影響範囲 |
+|---|---|---|---|
+| A | データ修正 (Quick Fix) ✅ 適用済み | ⭐ | 個別ユーザー対応 |
+| B | getTenantContext で ow_users.name 取得し、ヘッダーも統一 | ⭐⭐ | dashboard.ts:146 |
+| C | ow_users 更新 trigger で auth metadata と同期 | ⭐⭐⭐ | 新規 migration |
+| D | ow_users にプロフィール編集 UI を提供 | ⭐⭐⭐ | /biz/profile 新規 or /biz/auth 拡張、Phase 5 のスコープ |
+
+**推奨アプローチ（後日実装時）:**
+- Phase 5 で D を実装し、その際に B も同時に修正
+- C はトリガー設計が複雑なため避ける
+
 ### 軽い改善
-- **ow_users.name が auth email 由来になっている場合がある** → onboarding 時の入力フィールド追加で対応可能
 - **ActivityList: autosave 連発による重複行** → 5 分以内の同一 type + actor の更新は 1 件にまとめるか、「公開する」ボタン時のみ INSERT する設計へ変更
 
 ### Phase 5 で実装が必要な ActivityList 残り 5 イベント
