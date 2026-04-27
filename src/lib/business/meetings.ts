@@ -168,6 +168,69 @@ export function transformMeeting(
   };
 }
 
+// ─── Dashboard: simplified meeting type + fetcher ────────
+
+// Mirrors MeetingApplication from PendingMeetings.tsx (structural match)
+export type DashboardMeeting = {
+  id: string;
+  candidateName: string;
+  candidateInitial: string;
+  candidateGradient: string;
+  jobTitle: string | null;
+  appliedAt: string;
+  status: "pending" | "company_contacted" | "scheduled" | "declined";
+};
+
+const DASHBOARD_STATUSES = new Set(["pending", "company_contacted", "scheduled", "declined"]);
+
+export async function fetchPendingMeetingsForDashboard(
+  supabase: SupabaseClient,
+  tenantId: string,
+  limit = 5,
+): Promise<DashboardMeeting[]> {
+  try {
+    const { data, error } = await supabase
+      .from("ow_casual_meetings")
+      .select(`
+        id, status, created_at,
+        applicant:ow_users!user_id (id, name, avatar_color),
+        job:ow_jobs!job_id (title)
+      `)
+      .eq("company_id", tenantId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error("[meetings] dashboard fetch error:", error.message);
+      return [];
+    }
+
+    return (data ?? []).map((row) => {
+      const applicant = row.applicant as unknown as DbApplicant | null;
+      const job = row.job as unknown as { title: string } | null;
+      const gradient = applicant?.avatar_color?.startsWith("linear-gradient")
+        ? applicant.avatar_color
+        : generateGradient(row.id as string);
+      const rawStatus = row.status as string;
+      const status = DASHBOARD_STATUSES.has(rawStatus)
+        ? (rawStatus as DashboardMeeting["status"])
+        : "pending";
+      return {
+        id: row.id as string,
+        candidateName: applicant?.name ?? "—",
+        candidateInitial: applicant?.name?.charAt(0) ?? "?",
+        candidateGradient: gradient,
+        jobTitle: job?.title ?? null,
+        appliedAt: formatRelativeTime(row.created_at as string),
+        status,
+      };
+    });
+  } catch (err) {
+    console.error("[meetings] dashboard unexpected error:", err);
+    return [];
+  }
+}
+
 // ─── Main fetch ──────────────────────────────────────────
 
 export async function fetchMeetingsForCompany(

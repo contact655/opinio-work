@@ -19,6 +19,9 @@ import {
   getJobPerformance,
   getJobStatusCounts,
 } from "@/lib/business/dashboard";
+import { fetchActivitiesForDashboard } from "@/lib/business/activities";
+import { fetchTeamMembersForDashboard } from "@/lib/business/team";
+import { fetchPendingMeetingsForDashboard } from "@/lib/business/meetings";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -86,11 +89,15 @@ export default async function BizDashboardPage() {
     return <NoTenantPage />;
   }
 
-  const [todoCounts, monthlyStats, jobPerformance, jobStatusCounts] = await Promise.all([
+  const supabase = createClient();
+  const [todoCounts, monthlyStats, jobPerformance, jobStatusCounts, pendingMeetings, activities, teamMembers] = await Promise.all([
     getTodoCounts(ctx.tenantId),
     getMonthlyStats(ctx.tenantId),
     getJobPerformance(ctx.tenantId),
     getJobStatusCounts(ctx.tenantId),
+    fetchPendingMeetingsForDashboard(supabase, ctx.tenantId),
+    fetchActivitiesForDashboard(supabase, ctx.tenantId),
+    fetchTeamMembersForDashboard(supabase, ctx.tenantId),
   ]);
 
   const hour = new Date().getHours();
@@ -156,15 +163,14 @@ export default async function BizDashboardPage() {
       <EditorInvitation />
 
       {/* ── 2-col: PendingMeetings + ActivityList ── */}
-      {/* S1c: PendingMeetings・ActivityList は Supabase テーブル実装後に差し替え */}
       <div style={{
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
         gap: 16,
         marginTop: 4,
       }}>
-        <PendingMeetings meetings={[]} />
-        <ActivityList activities={[]} />
+        <PendingMeetings meetings={pendingMeetings} />
+        <ActivityList activities={activities} />
       </div>
 
       {/* ── Match candidates (Supabase なし → 空ロック状態) ── */}
@@ -173,7 +179,6 @@ export default async function BizDashboardPage() {
       </div>
 
       {/* ── 2-col: JobStatusCards + TeamMembers ── */}
-      {/* S1c: TeamMembers は ow_user_roles から実装予定 */}
       <div style={{
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
@@ -181,7 +186,7 @@ export default async function BizDashboardPage() {
         marginTop: 16,
       }}>
         <JobStatusCards counts={jobStatusCounts} />
-        <TeamMembers members={[]} planType={ctx.planType} />
+        <TeamMembers members={teamMembers} planType={ctx.planType} />
       </div>
 
       {/* ── Recruiter profile widget ── */}
