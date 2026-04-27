@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { MemberRecord } from "@/lib/business/members";
 
 type Tab = "active" | "inactive";
+type ActionType = "permission" | "deactivate" | "reactivate";
 
 type Props = {
   initialMembers: MemberRecord[];
@@ -25,12 +27,371 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" });
 }
 
+// ── DropdownMenu ────────────────────────────────────────────────────
+function DropdownMenu({
+  member,
+  isSelf,
+  onAction,
+}: {
+  member: MemberRecord;
+  isSelf: boolean;
+  onAction: (id: string, action: ActionType, value?: "admin" | "member") => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const newPerm = member.permission === "admin" ? "member" : "admin";
+  const newPermLabel = member.permission === "admin" ? "メンバー" : "管理者";
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: 28,
+          height: 28,
+          border: "1px solid var(--line)",
+          borderRadius: 6,
+          background: "#fff",
+          color: "var(--ink-mute)",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute",
+          right: 0,
+          top: 34,
+          background: "#fff",
+          border: "1px solid var(--line)",
+          borderRadius: 8,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+          minWidth: 180,
+          zIndex: 100,
+          overflow: "hidden",
+        }}>
+          {member.is_active ? (
+            <>
+              <button
+                disabled={isSelf}
+                onClick={() => {
+                  setOpen(false);
+                  onAction(member.id, "permission", newPerm);
+                }}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: "10px 14px",
+                  textAlign: "left",
+                  background: "none",
+                  border: "none",
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  color: isSelf ? "var(--ink-mute)" : "var(--ink)",
+                  cursor: isSelf ? "not-allowed" : "pointer",
+                  borderBottom: "1px solid var(--line-soft)",
+                }}
+              >
+                権限を「{newPermLabel}」に変更
+                {isSelf && <span style={{ fontSize: 10, marginLeft: 6, color: "var(--ink-mute)" }}>（自分は変更不可）</span>}
+              </button>
+              <button
+                disabled={isSelf}
+                onClick={() => {
+                  setOpen(false);
+                  onAction(member.id, "deactivate");
+                }}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: "10px 14px",
+                  textAlign: "left",
+                  background: "none",
+                  border: "none",
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  color: isSelf ? "var(--ink-mute)" : "var(--error)",
+                  cursor: isSelf ? "not-allowed" : "pointer",
+                }}
+              >
+                無効化
+                {isSelf && <span style={{ fontSize: 10, marginLeft: 6, color: "var(--ink-mute)" }}>（自分は無効化不可）</span>}
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => {
+                setOpen(false);
+                onAction(member.id, "reactivate");
+              }}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "10px 14px",
+                textAlign: "left",
+                background: "none",
+                border: "none",
+                fontFamily: "inherit",
+                fontSize: 13,
+                color: "var(--success)",
+                cursor: "pointer",
+              }}
+            >
+              再有効化
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ConfirmDialog ───────────────────────────────────────────────────
+function ConfirmDialog({
+  member,
+  actionType,
+  actionValue,
+  isSubmitting,
+  errorMessage,
+  onConfirm,
+  onCancel,
+}: {
+  member: MemberRecord;
+  actionType: ActionType;
+  actionValue: "admin" | "member" | null;
+  isSubmitting: boolean;
+  errorMessage: string | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  let title = "";
+  let body = "";
+  let confirmLabel = "";
+  let confirmColor = "var(--royal)";
+
+  if (actionType === "permission") {
+    const label = actionValue === "admin" ? "管理者" : "メンバー";
+    title = "権限を変更";
+    body = `${member.name}さんの権限を「${label}」に変更しますか？`;
+    confirmLabel = "変更する";
+  } else if (actionType === "deactivate") {
+    title = "メンバーを無効化";
+    body = `${member.name}さんを無効化しますか？「無効化済み」タブに移動し、ログインできなくなります。`;
+    confirmLabel = "無効化する";
+    confirmColor = "var(--error)";
+  } else {
+    title = "メンバーを再有効化";
+    body = `${member.name}さんを再有効化しますか？アクティブな一覧に戻ります。`;
+    confirmLabel = "再有効化する";
+    confirmColor = "var(--success)";
+  }
+
+  return (
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.4)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000,
+    }}
+      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div style={{
+        background: "#fff",
+        borderRadius: 14,
+        padding: "28px 28px 24px",
+        width: "100%",
+        maxWidth: 420,
+        boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
+      }}>
+        <h2 style={{
+          fontFamily: "'Noto Serif JP', serif",
+          fontSize: 18,
+          fontWeight: 600,
+          color: "var(--ink)",
+          marginBottom: 12,
+        }}>
+          {title}
+        </h2>
+        <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 20 }}>
+          {body}
+        </p>
+
+        {errorMessage && (
+          <div style={{
+            padding: "10px 14px",
+            background: "var(--error-soft)",
+            border: "1px solid #FCA5A5",
+            borderRadius: 8,
+            fontSize: 13,
+            color: "var(--error)",
+            marginBottom: 16,
+          }}>
+            {errorMessage}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button
+            onClick={onCancel}
+            disabled={isSubmitting}
+            style={{
+              padding: "9px 18px",
+              border: "1px solid var(--line)",
+              borderRadius: 8,
+              background: "#fff",
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--ink-soft)",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+            }}
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isSubmitting}
+            style={{
+              padding: "9px 18px",
+              border: "none",
+              borderRadius: 8,
+              background: confirmColor,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#fff",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+              opacity: isSubmitting ? 0.6 : 1,
+            }}
+          >
+            {isSubmitting ? "処理中..." : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Toast ───────────────────────────────────────────────────────────
+function Toast({ message, onDone }: { message: string; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 3000);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  return (
+    <div style={{
+      position: "fixed",
+      bottom: 32,
+      left: "50%",
+      transform: "translateX(-50%)",
+      background: "var(--ink)",
+      color: "#fff",
+      padding: "12px 22px",
+      borderRadius: 100,
+      fontSize: 13,
+      fontWeight: 600,
+      zIndex: 2000,
+      boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
+      whiteSpace: "nowrap",
+    }}>
+      {message}
+    </div>
+  );
+}
+
+// ── MembersClient ───────────────────────────────────────────────────
 export function MembersClient({ initialMembers, currentUserId }: Props) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("active");
+
+  // dialog state
+  const [dialogMemberId, setDialogMemberId] = useState<string | null>(null);
+  const [actionType, setActionType] = useState<ActionType | null>(null);
+  const [actionValue, setActionValue] = useState<"admin" | "member" | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // toast
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const activeMembers = initialMembers.filter((m) => m.is_active);
   const inactiveMembers = initialMembers.filter((m) => !m.is_active);
   const displayMembers = activeTab === "active" ? activeMembers : inactiveMembers;
+
+  const dialogMember = dialogMemberId
+    ? initialMembers.find((m) => m.id === dialogMemberId) ?? null
+    : null;
+
+  function openDialog(id: string, action: ActionType, value?: "admin" | "member") {
+    setDialogMemberId(id);
+    setActionType(action);
+    setActionValue(value ?? null);
+    setErrorMessage(null);
+  }
+
+  function closeDialog() {
+    if (isSubmitting) return;
+    setDialogMemberId(null);
+    setActionType(null);
+    setActionValue(null);
+    setErrorMessage(null);
+  }
+
+  async function handleConfirm() {
+    if (!dialogMemberId || !actionType) return;
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    const body: Record<string, string> = { action: actionType };
+    if (actionType === "permission" && actionValue) body.value = actionValue;
+
+    try {
+      const res = await fetch(`/api/biz/members/${dialogMemberId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const json = await res.json() as { error?: string };
+        setErrorMessage(json.error ?? "エラーが発生しました");
+        return;
+      }
+
+      const successMsg =
+        actionType === "permission" ? "権限を変更しました" :
+        actionType === "deactivate" ? "無効化しました" :
+        "再有効化しました";
+
+      closeDialog();
+      setToastMessage(successMsg);
+      router.refresh();
+    } catch {
+      setErrorMessage("通信エラーが発生しました");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div>
@@ -89,7 +450,6 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
         gap: 4,
         marginBottom: 16,
         borderBottom: "1px solid var(--line)",
-        paddingBottom: 0,
       }}>
         {(["active", "inactive"] as const).map((tab) => {
           const count = tab === "active" ? activeMembers.length : inactiveMembers.length;
@@ -168,7 +528,6 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
                   padding: "16px 20px",
                   borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
                   background: isSelf ? "var(--royal-50)" : "#fff",
-                  transition: "background 0.1s",
                 }}
               >
                 {/* アバター */}
@@ -227,7 +586,7 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
                   </div>
                 </div>
 
-                {/* 権限バッジ + 操作ボタン(M-2 で有効化) */}
+                {/* 権限バッジ + 操作メニュー */}
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{
                     fontSize: 11,
@@ -240,33 +599,34 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
                   }}>
                     {PERM_LABELS[member.permission]}
                   </span>
-                  {/* M-2 で有効化 */}
-                  <button
-                    disabled
-                    title="M-2 で実装予定"
-                    style={{
-                      width: 28,
-                      height: 28,
-                      border: "1px solid var(--line)",
-                      borderRadius: 6,
-                      background: "#fff",
-                      color: "var(--ink-mute)",
-                      cursor: "not-allowed",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      opacity: 0.4,
-                    }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                      <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
-                    </svg>
-                  </button>
+                  <DropdownMenu
+                    member={member}
+                    isSelf={isSelf}
+                    onAction={openDialog}
+                  />
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* 確認ダイアログ */}
+      {dialogMember && actionType && (
+        <ConfirmDialog
+          member={dialogMember}
+          actionType={actionType}
+          actionValue={actionValue}
+          isSubmitting={isSubmitting}
+          errorMessage={errorMessage}
+          onConfirm={handleConfirm}
+          onCancel={closeDialog}
+        />
+      )}
+
+      {/* Toast */}
+      {toastMessage && (
+        <Toast message={toastMessage} onDone={() => setToastMessage(null)} />
       )}
     </div>
   );
