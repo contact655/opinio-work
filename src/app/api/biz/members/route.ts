@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { getOwUserId, getCompanyId } from "@/lib/business/company";
+import { addExistingUserToCompany } from "./_lib";
 
 export async function POST(req: Request) {
   const supabase = createClient();
@@ -15,7 +16,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // バリデーション
   const email = (body.email ?? "").trim();
   if (!email.includes("@")) {
     return NextResponse.json({ error: "メールアドレスの形式が正しくありません" }, { status: 400 });
@@ -25,7 +25,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "権限が不正です" }, { status: 400 });
   }
 
-  // actor の ow_users.id と company_id を取得
   const [actorOwUserId, companyId] = await Promise.all([
     getOwUserId(supabase, user.id),
     getCompanyId(supabase, user.id),
@@ -35,7 +34,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Company not found" }, { status: 403 });
   }
 
-  // actor が admin かチェック
   const { data: actorAdmin } = await supabase
     .from("ow_company_admins")
     .select("permission")
@@ -48,7 +46,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "メンバー追加は管理者のみ可能です" }, { status: 403 });
   }
 
-  // ow_users で email 検索
   const { data: targetUser } = await supabase
     .from("ow_users")
     .select("id, name, email")
@@ -62,55 +59,11 @@ export async function POST(req: Request) {
     );
   }
 
-  // すでにメンバーかチェック
-  const { data: existing } = await supabase
-    .from("ow_company_admins")
-    .select("id, is_active")
-    .eq("user_id", targetUser.id)
-    .eq("company_id", companyId)
-    .maybeSingle();
+  const result = await addExistingUserToCompany({ supabase, targetUser, companyId, permission });
 
-  if (existing) {
-    if (existing.is_active) {
-      return NextResponse.json({ error: "このユーザーはすでにメンバーです" }, { status: 409 });
-    }
-
-    // 無効化済み → 再有効化 + permission 更新
-    const { error } = await supabase
-      .from("ow_company_admins")
-      .update({ is_active: true, permission })
-      .eq("id", existing.id);
-
-    if (error) {
-      console.error("[members POST reactivate]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      success: true,
-      member: { id: existing.id, name: targetUser.name, email: targetUser.email, permission },
-    }, { status: 201 });
+  if (!result.ok) {
+    return NextResponse.json({ error: result.message }, { status: result.status });
   }
 
-  // 新規 INSERT
-  const { data: newRow, error: insertErr } = await supabase
-    .from("ow_company_admins")
-    .insert({
-      user_id: targetUser.id,
-      company_id: companyId,
-      permission,
-      is_active: true,
-    })
-    .select("id")
-    .single();
-
-  if (insertErr || !newRow) {
-    console.error("[members POST insert]", insertErr?.message);
-    return NextResponse.json({ error: insertErr?.message ?? "Failed" }, { status: 500 });
-  }
-
-  return NextResponse.json({
-    success: true,
-    member: { id: newRow.id, name: targetUser.name, email: targetUser.email, permission },
-  }, { status: 201 });
+  return NextResponse.json({ success: true, member: result.member }, { status: 201 });
 }
