@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect";
 import { getCompanyContext } from "@/lib/business/company";
 
 /**
@@ -98,6 +100,11 @@ export async function getTenantContext(): Promise<TenantContext | null> {
     const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
     if (!ctx) return null;
 
+    // Multi-company: redirect to selection page when no cookie is set
+    if (!cookieCompanyId && ctx.allMemberships.length > 1) {
+      redirect("/biz/select-company");
+    }
+
     const { companyId: tenantId, owUserId } = ctx;
 
     // ow_companies と ow_users を並列取得
@@ -152,7 +159,8 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       currentOwnId: owUserId,
       currentOwnerGradient,
     };
-  } catch {
+  } catch (e) {
+    if (isRedirectError(e)) throw e;
     return null;
   }
 }
