@@ -109,8 +109,17 @@ export async function POST(req: Request) {
 
   console.log("[company/register] SUCCESS");
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     success: true,
+    redirectTo: "/biz/dashboard",
+    company_id: company.id,
     company: { id: company.id, name: company.name },
   });
+  res.cookies.set("biz_current_company_id", company.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+  });
+  return res;
 }
