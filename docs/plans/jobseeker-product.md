@@ -320,6 +320,21 @@ RLS により未認証ユーザーは `ow_company_admins` を読めない。
 - 既存データのマイグレーション（`PdM` → `PdM / PM` に対応する id 等）
 - 求人作成 UI を `ow_roles` マスタから動的生成するよう変更
 
+### 6-X. E2E 実機検証履歴（2026-04-29）
+
+P3 で導入した `scripts/get_session_cookie.mjs` + curl を使い、Claude Code 駆動で実機 E2E 検証を実施。
+
+**検証方法**: `node scripts/get_session_cookie.mjs hshiba@opinio.co.jp` で Cookie を取得 → curl で API 叩く → service_role client で DB 状態を直接確認。クリーンアップ込み。
+
+| Commit | ハッシュ | 検証内容 | 結果 | 備考 |
+|--------|---------|---------|------|------|
+| B (サービス化) | `54575d4` | `GET /api/roles` → `["candidate","company"]`、`ow_user_roles` に role='candidate' 存在確認 | ✅ | `ow_user_roles.user_id` = `auth_id`（`ow_users.id` ではない）。初回 DB クエリは ID 混同で空に見えたが正常 |
+| F (サービス化) | `c5af352` | `PUT /api/jobseeker/profile` → `about_me` 更新 → DB 反映確認 → cleanup (null に戻す) | ✅ | 許可フィールドのみ更新される whitelist 設計が正常動作 |
+| I | `9c99ad3` | `POST /api/bookmarks` → 1行追加、重複 POST → 1行のまま (UPSERT)、`DELETE` → 0行 | ✅ | べき等性・クリーンアップ全 PASS |
+| G | `d0bebfe` | `POST /api/casual-meetings` → `{id, status:"pending"}` 返却、DB 行確認（intent/contact_email 正常）、cleanup (DELETE) | ✅ | `accepting_casual_meetings=true` の企業 (SmartHR) で確認 |
+
+**検証対象外**（ブラウザ UI 操作、フォーム入力等）: 柴さん本人が任意のタイミングで実施可能。
+
 ### 6-8. `DashboardView` クロージャーバグ（発見 + 修正: サービス化セット F）
 
 **症状**: `MypageClient.tsx` の `DashboardView` サブコンポーネントが、親スコープの変数（`userCover`, `userAvatar`, `userInitial`, `userName`）を参照しようとして `ReferenceError`。
@@ -354,7 +369,7 @@ function DashboardView({
 
 | ページ | 課題 | 対処方針 |
 |--------|------|---------|
-| `/companies/[id]/casual-meeting` | 旧実装が mock データ + 独自 Header を使用（Phase 4c の実装） | (jobseeker) 配下に移動 + Supabase 接続 |
+| `/companies/[id]/casual-meeting` | 旧実装が mock データ + 独自 Header を使用（Phase 4c の実装） | ✅ **解消済み**（Commit G — (jobseeker) 配下に移動 + Supabase 接続、旧 mock page 削除） |
 | `/mentors/[id]/reserve` | 旧実装が mock データ + 独自 Header を使用（Phase 4d の実装） | (jobseeker) 配下に移動 + Supabase 接続 |
 | `/profile/edit` | 旧実装が mock データ + 独自 Header を使用（Phase 4a の実装） | ✅ **解消済み**（サービス化セット F — (jobseeker) 配下に移動 + Supabase 基本接続） |
 | `/mypage` | 旧実装が mock データ + 独自 Header を使用（Phase 4b の実装） | ✅ **解消済み**（サービス化セット F — (jobseeker) 配下に移動 + Supabase 基本接続） |
@@ -375,6 +390,9 @@ function DashboardView({
 | サービス化セット | F（サービス化） | `c5af352` | `/mypage` + `/profile/edit` を (jobseeker) 配下に移動 + Supabase 接続（§10-9 参照） |
 | サービス化セット | C（サービス化） | `e53daf0` | `/u/[id]` 公開プロフィール（Server Component、RLS 委譲、URL 変更は §10-8 参照） |
 | 機能拡充 | I | `9c99ad3` | ブックマーク機能本格実装（`ow_bookmarks` 接続、楽観的 UI、認証ガード、`target_type='company'` のみ、§10-10 参照） |
+| 機能拡充 | G | `d0bebfe` | カジュアル面談申込フロー（`POST /api/casual-meetings`、Server Component auth guard、accepting_casual_meetings チェック、mypage CasualView 実データ接続） |
+| ツール整備 | P3 | `2268515` | `scripts/get_session_cookie.mjs` 正式化（Magic Link 方式、email 引数汎用化）+ `scripts/README.md` |
+| E2E 検証 | Phase E2E | — | Commit B/F/I/G の実機 API 検証（§6-X 参照）。全 PASS、DB 汚染なし |
 
 ---
 
@@ -387,7 +405,7 @@ function DashboardView({
 | ✅ 完了 | `/auth` 求職者用認証フロー | サービス化セット B (`54575d4`) で実装済み | — | — |
 | ✅ 完了 | `/profile/edit` + `/mypage` Supabase 接続 | サービス化セット F (`c5af352`) で実装済み（基本フィールドのみ） | — | — |
 | ✅ 完了 | `/u/[id]` 公開プロフィール | サービス化セット C (`e53daf0`) で実装済み | — | — |
-| ⭐⭐⭐ | `/companies/[id]/casual-meeting` 申込フロー本格実装 | (jobseeker) 配下への移動 + Supabase 接続。企業詳細の CTA はすでに配置済み | 中 | /auth 完了（済）+ ow_casual_meetings 確認 |
+| ✅ 完了 | `/companies/[id]/casual-meeting` 申込フロー本格実装 | Commit G (`d0bebfe`) で実装済み。auth guard + accepting チェック + DB 永続化 | — | — |
 | ⭐⭐ | `ow_articles` 新規テーブル + `/articles` 系 | 記事は求職者の情報収集の要。4 タイプ × レイアウト分岐が複雑 | 大 | ow_articles 設計・マイグレーション |
 | ⭐⭐ | `/mentors` 系 Supabase 接続 | `mentors` テーブルは確認済み（`ow_` なし）。一覧・詳細・予約の 3 ページ | 大 | mentors テーブル確認（済）|
 | ✅ 完了 | `ow_bookmarks` 企業ブックマーク DB 接続 | Commit I (`9c99ad3`) で実装済み。`target_type='company'` のみ | — | — |
