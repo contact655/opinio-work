@@ -184,16 +184,17 @@ export function CompanySwitcher({ currentCompany, memberships }: Props) {
 
           {/* フッターアクション */}
           <div style={{ padding: "6px 0" }}>
-            <button
-              disabled
+            <a
+              href="/biz/companies/add"
+              onClick={() => setOpen(false)}
               style={{
-                width: "100%", textAlign: "left",
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "8px 14px",
-                background: "transparent", border: "none",
-                cursor: "not-allowed", opacity: 0.4,
-                fontSize: 13, color: "var(--ink-soft)",
+                fontSize: 13, color: "var(--ink-soft)", textDecoration: "none",
+                transition: "background 0.1s",
               }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
             >
               <span style={{ width: 16, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -201,7 +202,7 @@ export function CompanySwitcher({ currentCompany, memberships }: Props) {
                 </svg>
               </span>
               別の会社に参加
-            </button>
+            </a>
             <a
               href="/biz/company"
               onClick={() => setOpen(false)}
