@@ -18,7 +18,19 @@ import {
   type Bookmark,
   type ReceivedRequest,
   type PillVariant,
-} from "./mockMypageData";
+} from "@/app/mypage/mockMypageData";
+
+type OwUser = {
+  id: string;
+  name: string;
+  avatar_color: string | null;
+  cover_color: string | null;
+  about_me: string | null;
+  age_range: string | null;
+  location: string | null;
+  social_links: Record<string, string> | null;
+  is_mentor: boolean;
+} | null;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -234,9 +246,10 @@ function SidebarItem({
 // ─── VIEW: Dashboard ──────────────────────────────────────────────────────────
 
 function DashboardView({
-  isMentor, onNavigate,
+  isMentor, onNavigate, userName, userInitial, userAvatar, userCover,
 }: {
   isMentor: boolean; onNavigate: (v: ActiveView) => void;
+  userName: string; userInitial: string; userAvatar: string; userCover: string;
 }) {
   const pendingCasual = MOCK_CASUAL_MEETINGS.filter(
     (m) => m.status === "pending" || m.status === "scheduled"
@@ -300,18 +313,18 @@ function DashboardView({
       }}>
         <div style={{
           height: 100,
-          background: MOCK_USER.coverGradient,
+          background: userCover,
         }} />
         <div style={{ padding: "0 28px 24px", marginTop: -40, position: "relative" }}>
           <div style={{
             width: 80, height: 80, borderRadius: "50%",
-            background: MOCK_USER.avatarGradient,
+            background: userAvatar,
             color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 30, fontWeight: 600,
             border: "4px solid #fff", boxShadow: "0 4px 12px rgba(15,23,42,0.08)",
             marginBottom: 14,
           }}>
-            {MOCK_USER.initial}
+            {userInitial}
             {isMentor && (
               <div style={{
                 position: "absolute", bottom: 0, right: 0,
@@ -335,7 +348,7 @@ function DashboardView({
                 fontFamily: '"Noto Serif JP", serif',
                 fontWeight: 700, fontSize: 20, color: "var(--ink)",
               }}>
-                {MOCK_USER.name}
+                {userName}
                 {isMentor && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -873,9 +886,14 @@ const Icons = {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function MyPage() {
+export default function MypageClient({ owUser }: { owUser: OwUser }) {
+  const userName = owUser?.name ?? "ユーザー";
+  const userInitial = userName.charAt(0);
+  const userAvatar = owUser?.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)";
+  const userCover = owUser?.cover_color ?? "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
+
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
-  const [isMentor, setIsMentor] = useState(false);
+  const [isMentor, setIsMentor] = useState(owUser?.is_mentor ?? false);
   const [showBanner, setShowBanner] = useState(true);
   const [receivedRequests, setReceivedRequests] = useState(MOCK_RECEIVED_REQUESTS);
 
@@ -907,49 +925,6 @@ export default function MyPage() {
 
   return (
     <>
-      {/* Topbar */}
-      <header style={{
-        position: "sticky", top: 0, zIndex: 100,
-        background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)",
-        borderBottom: "1px solid var(--line)",
-        padding: "14px 32px",
-        display: "flex", alignItems: "center", gap: 40,
-      }}>
-        <Link href="/" style={{
-          fontFamily: "Inter, sans-serif", fontWeight: 700,
-          fontSize: 22, color: "var(--royal)", letterSpacing: "-0.02em",
-        }}>
-          Opinio
-        </Link>
-        <nav style={{ display: "flex", gap: 28, flex: 1 }}>
-          {[
-            { label: "求人を探す", href: "/jobs" },
-            { label: "企業を知る", href: "/companies" },
-            { label: "先輩に相談", href: "/mentors" },
-            { label: "記事", href: "/articles" },
-          ].map((l) => (
-            <Link key={l.label} href={l.href} style={{
-              color: "var(--ink-soft)", fontSize: 14, fontWeight: 500,
-            }}>
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: "50%",
-            background: MOCK_USER.avatarGradient, color: "#fff",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: 600, fontSize: 13,
-          }}>
-            {MOCK_USER.initial}
-          </div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
-            {MOCK_USER.name}さん
-          </span>
-        </div>
-      </header>
-
       {/* Mock role toggle */}
       <div style={{
         background: "var(--bg-tint)", padding: "10px 32px",
@@ -1093,7 +1068,16 @@ export default function MyPage() {
 
         {/* Main */}
         <main style={{ padding: "36px 40px 60px", maxWidth: 1000 }}>
-          {activeView === "dashboard" && <DashboardView isMentor={isMentor} onNavigate={navigate} />}
+          {activeView === "dashboard" && (
+            <DashboardView
+              isMentor={isMentor}
+              onNavigate={navigate}
+              userName={userName}
+              userInitial={userInitial}
+              userAvatar={userAvatar}
+              userCover={userCover}
+            />
+          )}
           {activeView === "casual" && <CasualView />}
           {activeView === "mentor-reserve" && <MentorReserveView />}
           {activeView === "bookmarks" && <BookmarksView />}

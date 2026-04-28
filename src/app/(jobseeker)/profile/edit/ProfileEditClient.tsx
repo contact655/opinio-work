@@ -17,7 +17,35 @@ import CareerModal from "./CareerModal";
 type SaveStatus = "idle" | "saving" | "saved";
 type ActiveView = "basic" | "career" | "sns" | "account";
 
+type OwUser = {
+  id: string;
+  name: string;
+  avatar_color: string | null;
+  cover_color: string | null;
+  about_me: string | null;
+  age_range: string | null;
+  location: string | null;
+  social_links: Record<string, string> | null;
+  visibility: string | null;
+} | null;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function buildInitialProfile(owUser: OwUser, authEmail: string): ProfileData {
+  if (!owUser) return { ...MOCK_PROFILE, email: authEmail };
+  return {
+    ...MOCK_PROFILE,
+    name: owUser.name ?? MOCK_PROFILE.name,
+    aboutMe: owUser.about_me ?? MOCK_PROFILE.aboutMe,
+    ageRange: owUser.age_range ?? MOCK_PROFILE.ageRange,
+    location: owUser.location ?? MOCK_PROFILE.location,
+    socialLinks: (owUser.social_links as ProfileData["socialLinks"]) ?? MOCK_PROFILE.socialLinks,
+    visibility: (owUser.visibility as ProfileData["visibility"]) ?? MOCK_PROFILE.visibility,
+    avatarColor: owUser.avatar_color ?? MOCK_PROFILE.avatarColor,
+    coverColor: owUser.cover_color ?? MOCK_PROFILE.coverColor,
+    email: authEmail,
+  };
+}
 
 function formatPeriod(exp: Experience): string {
   const start = exp.startedAt.replace("-", ".");
@@ -461,7 +489,6 @@ function CareerSection({
         </button>
       </FormSection>
 
-      {/* Mentor notice */}
       <div style={{
         background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
         color: "#fff", borderRadius: 14, padding: "24px 28px", marginTop: 24,
@@ -579,9 +606,10 @@ function SnsSection({
 // ─── Section: アカウント設定 ─────────────────────────────────────────────────
 
 function AccountSection({
-  profile, onChange,
+  profile, authEmail, onChange,
 }: {
   profile: ProfileData;
+  authEmail: string;
   onChange: (patch: Partial<ProfileData>) => void;
 }) {
   return (
@@ -598,9 +626,9 @@ function AccountSection({
         <FormGroup label="メールアドレス">
           <input
             type="email"
-            value={profile.email}
-            onChange={(e) => onChange({ email: e.target.value })}
-            style={inputStyle()}
+            value={authEmail}
+            readOnly
+            style={{ ...inputStyle(), background: "var(--bg-tint)", color: "var(--ink-soft)" }}
           />
         </FormGroup>
         <div style={{ marginBottom: 0 }}>
@@ -659,26 +687,53 @@ function AccountSection({
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Client Component ─────────────────────────────────────────────────────────
 
-export default function ProfileEditPage() {
-  const [profile, setProfile] = useState<ProfileData>(MOCK_PROFILE);
+export default function ProfileEditClient({
+  owUser,
+  authEmail,
+}: {
+  owUser: OwUser;
+  authEmail: string;
+}) {
+  const initialProfile = buildInitialProfile(owUser, authEmail);
+  const [profile, setProfile] = useState<ProfileData>(initialProfile);
   const [activeView, setActiveView] = useState<ActiveView>("basic");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [showBanner, setShowBanner] = useState(true);
+  const [showBanner, setShowBanner] = useState(!owUser?.name);
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Experience | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const profileRef = useRef<ProfileData>(initialProfile);
 
   const triggerSave = useCallback(() => {
     setSaveStatus("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => setSaveStatus("saved"), 700);
+    saveTimer.current = setTimeout(async () => {
+      const p = profileRef.current;
+      await fetch("/api/jobseeker/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: p.name,
+          about_me: p.aboutMe,
+          age_range: p.ageRange,
+          location: p.location,
+          social_links: p.socialLinks,
+          visibility: p.visibility,
+        }),
+      }).catch(() => {});
+      setSaveStatus("saved");
+    }, 700);
   }, []);
 
   const patchProfile = useCallback(
     (patch: Partial<ProfileData>) => {
-      setProfile((p) => ({ ...p, ...patch }));
+      setProfile((prev) => {
+        const next = { ...prev, ...patch };
+        profileRef.current = next;
+        return next;
+      });
       triggerSave();
     },
     [triggerSave]
@@ -765,45 +820,6 @@ export default function ProfileEditPage() {
 
   return (
     <>
-      {/* Topbar */}
-      <header style={{
-        position: "sticky", top: 0, zIndex: 100,
-        background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)",
-        borderBottom: "1px solid var(--line)",
-        padding: "14px 32px",
-        display: "flex", alignItems: "center", gap: 24,
-      }}>
-        <Link href="/" style={{
-          fontFamily: "Inter, sans-serif", fontWeight: 700,
-          fontSize: 22, color: "var(--royal)", letterSpacing: "-0.02em",
-        }}>
-          Opinio
-        </Link>
-        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
-            プロフィール編集
-          </span>
-          <SaveStatusPill status={saveStatus} />
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <Link
-            href="/profile"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "8px 16px", fontSize: 13, fontWeight: 600,
-              border: "1px solid var(--line)", borderRadius: 8,
-              background: "#fff", color: "var(--ink)",
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-            プロフィールを見る
-          </Link>
-        </div>
-      </header>
-
       {/* Onboarding banner */}
       {showBanner && (
         <div style={{
@@ -845,58 +861,76 @@ export default function ProfileEditPage() {
         </div>
       )}
 
-      {/* Layout */}
+      {/* Page title bar */}
       <div style={{
-        display: "grid",
-        gridTemplateColumns: "260px 1fr",
-        minHeight: `calc(100vh - ${showBanner ? 120 : 59}px)`,
+        padding: "20px 32px 0",
+        display: "flex", alignItems: "center", gap: 12,
       }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
+          プロフィール編集
+        </span>
+        <SaveStatusPill status={saveStatus} />
+        <div style={{ marginLeft: "auto" }}>
+          <Link
+            href="/mypage"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "8px 16px", fontSize: 13, fontWeight: 600,
+              border: "1px solid var(--line)", borderRadius: 8,
+              background: "#fff", color: "var(--ink)",
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            マイページへ
+          </Link>
+        </div>
+      </div>
+
+      {/* Layout */}
+      <div
+        className="profile-layout"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "220px 1fr",
+          minHeight: "calc(100vh - 200px)",
+          marginTop: 20,
+        }}
+      >
         {/* Sidebar */}
         <aside style={{
-          background: "#fff", borderRight: "1px solid var(--line)",
-          padding: "24px 0",
-          position: "sticky", top: showBanner ? 120 : 59,
-          alignSelf: "start",
-          height: `calc(100vh - ${showBanner ? 120 : 59}px)`,
-          overflowY: "auto",
+          borderRight: "1px solid var(--line)",
+          position: "sticky", top: 65, alignSelf: "start",
+          height: "calc(100vh - 65px)", overflowY: "auto",
         }}>
-          <div style={{
-            fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-            color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase",
-            padding: "0 24px 10px",
-          }}>
-            編集セクション
+          <div style={{ padding: "24px 20px 12px" }}>
+            <div style={{
+              width: 60, height: 60, borderRadius: "50%",
+              background: profile.avatarColor,
+              color: "#fff", display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: 22, fontWeight: 600, marginBottom: 12,
+            }}>
+              {profile.name.charAt(0)}
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 2 }}>
+              {profile.name}
+            </div>
           </div>
 
-          <nav style={{ display: "flex", flexDirection: "column" }}>
-            {navItems.slice(0, 3).map((item) => (
+          <div style={{ marginBottom: 8 }}>
+            {navItems.map((item) => (
               <SidebarItem
                 key={item.view}
                 icon={item.icon}
                 label={item.label}
                 active={activeView === item.view}
-                onClick={() => { setActiveView(item.view); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                onClick={() => setActiveView(item.view)}
               />
             ))}
-          </nav>
-
-          <div style={{
-            fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-            color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase",
-            padding: "20px 24px 8px",
-          }}>
-            アカウント
           </div>
-          <nav style={{ display: "flex", flexDirection: "column" }}>
-            <SidebarItem
-              icon={navItems[3].icon}
-              label={navItems[3].label}
-              active={activeView === "account"}
-              onClick={() => { setActiveView("account"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-            />
-          </nav>
 
-          {/* Progress card */}
           <div style={{
             margin: "30px 20px 16px",
             padding: "14px 16px",
@@ -943,7 +977,7 @@ export default function ProfileEditPage() {
             <SnsSection profile={profile} onChange={patchProfile} />
           )}
           {activeView === "account" && (
-            <AccountSection profile={profile} onChange={patchProfile} />
+            <AccountSection profile={profile} authEmail={authEmail} onChange={patchProfile} />
           )}
         </main>
       </div>
