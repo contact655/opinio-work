@@ -201,6 +201,89 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
   };
 }
 
+// ─── Company list row type (for /companies page) ─────────────────────────────
+
+export type CompanyListRow = {
+  id: string;
+  name: string;
+  tagline: string;
+  industry: string;
+  phase: string;
+  employee_count: number;
+  location: string;
+  logo_gradient: string | null;
+  logo_letter: string | null;
+  logo_url: string | null;
+  accepting_casual_meetings: boolean;
+  remote_work_status: string | null;
+  is_published: boolean;
+  updated_at: string;
+  job_count: number;
+};
+
+const COMPANY_LISTPAGE_COLS = [
+  "id", "name", "tagline", "industry", "phase", "employee_count",
+  "logo_gradient", "logo_letter", "logo_url",
+  "location", "accepting_casual_meetings", "remote_work_status",
+  "is_published", "updated_at",
+].join(", ");
+
+/**
+ * Companies list for the /companies jobseeker page.
+ * dev環境ではis_publishedフィルターを無効化（テストデータが少ないため全15件表示）。
+ * 本番環境では is_published=true の企業のみ表示。
+ */
+export async function getCompaniesForList(): Promise<CompanyListRow[]> {
+  const supabase = createClient();
+
+  let query = supabase
+    .from("ow_companies")
+    .select(COMPANY_LISTPAGE_COLS)
+    .order("updated_at", { ascending: false });
+
+  if (process.env.NODE_ENV !== "development") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    query = (query as any).eq("is_published", true);
+  }
+
+  const { data: companyRows, error } = await query;
+  if (error) {
+    console.error("[getCompaniesForList]", error.message);
+    return [];
+  }
+
+  // Fetch active job counts for all companies in one round trip
+  const { data: jobRows } = await supabase
+    .from("ow_jobs")
+    .select("company_id")
+    .eq("status", "active");
+
+  const jobCountMap = new Map<string, number>();
+  for (const j of jobRows ?? []) {
+    const cid = j.company_id as string;
+    jobCountMap.set(cid, (jobCountMap.get(cid) ?? 0) + 1);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (companyRows ?? []).map((row: Record<string, any>): CompanyListRow => ({
+    id: row.id as string,
+    name: (row.name as string) ?? "",
+    tagline: (row.tagline as string) ?? "",
+    industry: (row.industry as string) ?? "",
+    phase: (row.phase as string) ?? "",
+    employee_count: (row.employee_count as number) ?? 0,
+    location: (row.location as string) ?? "",
+    logo_gradient: (row.logo_gradient as string) ?? null,
+    logo_letter: (row.logo_letter as string) ?? null,
+    logo_url: (row.logo_url as string) ?? null,
+    accepting_casual_meetings: (row.accepting_casual_meetings as boolean) ?? false,
+    remote_work_status: (row.remote_work_status as string) ?? null,
+    is_published: (row.is_published as boolean) ?? false,
+    updated_at: (row.updated_at as string) ?? "",
+    job_count: jobCountMap.get(row.id as string) ?? 0,
+  }));
+}
+
 // ─── Company queries ──────────────────────────────────────────────────────────
 
 const COMPANY_LIST_COLS = [
