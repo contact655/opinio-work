@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/business/company";
+import { cookies } from "next/headers";
+import { getCompanyContext } from "@/lib/business/company";
 import { MAX_PHOTOS_PER_CATEGORY, type PhotoCategory } from "@/lib/business/photos";
 
 const VALID_CATEGORIES: PhotoCategory[] = ["workspace", "meeting", "welfare", "event"];
@@ -13,10 +14,12 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const companyId = await getCompanyId(supabase, user.id);
-    if (!companyId) {
-      return Response.json({ error: "Company not found" }, { status: 404 });
+    const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+    const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+    if (!ctx) {
+      return Response.json({ error: "Company context not found" }, { status: 404 });
     }
+    const { companyId } = ctx;
 
     const body = await request.json();
     const { category, image_url, caption, display_order } = body;

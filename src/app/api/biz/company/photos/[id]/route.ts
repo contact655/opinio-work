@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/business/company";
+import { cookies } from "next/headers";
+import { getCompanyContext } from "@/lib/business/company";
 
 export async function PATCH(
   request: Request,
@@ -13,10 +14,12 @@ export async function PATCH(
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const companyId = await getCompanyId(supabase, user.id);
-    if (!companyId) {
-      return Response.json({ error: "Company not found" }, { status: 404 });
+    const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+    const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+    if (!ctx) {
+      return Response.json({ error: "Company context not found" }, { status: 404 });
     }
+    const { companyId } = ctx;
 
     const body = await request.json();
     const updates: Record<string, unknown> = {};
@@ -57,10 +60,12 @@ export async function DELETE(
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const companyId = await getCompanyId(supabase, user.id);
-    if (!companyId) {
-      return Response.json({ error: "Company not found" }, { status: 404 });
+    const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+    const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+    if (!ctx) {
+      return Response.json({ error: "Company context not found" }, { status: 404 });
     }
+    const { companyId } = ctx;
 
     // 1. DB から該当行を取得して image_url を取り出す（Storage パス推定用）
     const { data: photo, error: fetchError } = await supabase

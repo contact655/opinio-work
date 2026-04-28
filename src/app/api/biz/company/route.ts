@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { transformFormToDb, getCompanyId, getOwUserId } from "@/lib/business/company";
+import { cookies } from "next/headers";
+import { transformFormToDb, getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
 import type { BizCompany } from "@/lib/business/mockCompany";
 
@@ -18,8 +19,10 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const companyId = await getCompanyId(supabase, user.id);
-  if (!companyId) return NextResponse.json({ error: "Company not found" }, { status: 404 });
+  const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+  const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+  if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
+  const { companyId, owUserId } = ctx;
 
   const record = transformFormToDb(body as BizCompany);
 
@@ -33,7 +36,6 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const owUserId = await getOwUserId(supabase, user.id);
   await insertActivity(supabase, {
     company_id: companyId,
     actor_user_id: owUserId,
@@ -60,8 +62,10 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const companyId = await getCompanyId(supabase, user.id);
-  if (!companyId) return NextResponse.json({ error: "Company not found" }, { status: 404 });
+  const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+  const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+  if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
+  const { companyId } = ctx;
 
   const now = new Date().toISOString();
   const { error } = await supabase
