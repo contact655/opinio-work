@@ -333,8 +333,35 @@ P3 で導入した `scripts/get_session_cookie.mjs` + curl を使い、Claude Co
 | I | `9c99ad3` | `POST /api/bookmarks` → 1行追加、重複 POST → 1行のまま (UPSERT)、`DELETE` → 0行 | ✅ | べき等性・クリーンアップ全 PASS |
 | G | `d0bebfe` | `POST /api/casual-meetings` → `{id, status:"pending"}` 返却、DB 行確認（intent/contact_email 正常）、cleanup (DELETE) | ✅ | `accepting_casual_meetings=true` の企業 (SmartHR) で確認 |
 | J | `95d8bf7` | `GET/POST/PUT/DELETE /api/jobseeker/experiences`。3パターン XOR（company_id/company_text/company_anonymized）、XOR 違反 → 400、slug→UUID ロール変換（エンジニア）、GET での UUID→slug 逆引き（"engineer" 返却）、cleanup | ✅ | RLS テストは他ユーザーの experiences 0件のためスキップ。started_at "YYYY-MM" → DB DATE "YYYY-MM-01" 変換 PASS |
+| L | `baad773` | 求人応募 API: 未認証 → 401、job_id 欠落 → 400、正常応募 → 201 + DB 行確認、重複応募 → 409、apply ページ認証リダイレクト確認 | ✅ | cleanup (DELETE) 済み。UNIQUE制約は未追加 (設計書 §6 M-5 に記録) |
+| K (検証) | — | `/jobs/[id]` DB 接続済み確認 (S-P-1〜8)。200/404、apply ボタン、カジュアル面談リンク、一覧→詳細遷移、既存ページ影響なし | ✅ | 新規コードなし。mockJobData は型のみ参照（実データなし）を確認 |
 
 **検証対象外**（ブラウザ UI 操作、フォーム入力等）: 柴さん本人が任意のタイミングで実施可能。
+
+### 6-X+1. /jobs/[id] の mockJobData 依存状況（Commit K 調査結果）
+
+**判明した実態（2026-04-29）**:
+- `src/app/(jobseeker)/jobs/[id]/page.tsx` は `getJobById()` (queries.ts) で ow_jobs に**接続済み**
+- `mockJobData` は `type Job` / `type PositionMember` の **型参照のみ**、実データはゼロ
+- Commit K = 「DB 接続化」ではなく「接続済みを確認」として close
+
+**残存する空フィールド（データ品質課題）**:
+
+| フィールド | mapJob での対応 | DB 実値 | 表示への影響 |
+|---|---|---|---|
+| `overview` | `description` カラム | `""` (空) | 概要セクションが空 |
+| `main_tasks` | 常に `[]` | 対応カラムなし | メイン業務リスト空 |
+| `required_skills` | `requirements` / `required_skills` | `null` | 必須スキル空 |
+| `preferred_skills` | `preferred_skills` | `null` | 歓迎スキル空 |
+| `benefits` | 常に `[]` | `benefits` は `null` | 待遇セクション空 |
+| `selection_flow` | `selection_process` | `[]` | 選考フロー空 |
+| `position_members` | 常に `[]` | DB にテーブルなし | 経験者セクション空 |
+
+コード側は空配列・null を考慮した実装済み。データ補充は M-5 で対応。
+
+**将来の改善候補（M-5）**:
+- `type Job` / `type PositionMember` を `src/types/job.ts` 等の独立ファイルに移動 → `mockJobData.ts` 完全削除可能にする
+- 空フィールドのセクションを非表示にする条件分岐（現状は空セクションが描画される）
 
 ### 6-8. `DashboardView` クロージャーバグ（発見 + 修正: サービス化セット F）
 
@@ -396,6 +423,8 @@ function DashboardView({
 | E2E 検証 | Phase E2E | — | Commit B/F/I/G の実機 API 検証（§6-X 参照）。全 PASS、DB 汚染なし |
 | 職歴 CRUD | J | `95d8bf7` | `GET/POST/PUT/DELETE /api/jobseeker/experiences`、slug↔UUID 変換、profile/edit CareerModal DB 接続、/u/[id] 職歴セクション実データ化 |
 | E2E 検証 | Phase E2E-J | — | Commit J の実機 API 検証（§6-X 参照）。全 PASS、DB 汚染なし |
+| 応募機能 | L | `baad773` | `POST /api/applications`、`/jobs/[id]/apply` ページ・フォーム、求人詳細「正式に応募する」ボタン、`/mypage/applications` テーブル/カラム名バグ修正 |
+| 検証 | K (検証) | — | `/jobs/[id]` DB 接続済みを S-P-1〜8 で実機確認。mockJobData 型参照のみを文書化（§6-X+1 参照） |
 
 ---
 
