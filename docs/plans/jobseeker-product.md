@@ -1,0 +1,358 @@
+# 求職者側プロダクト設計書
+
+**作成日**: 2026-04-28
+**更新日**: 2026-04-28（commit F 完了後に同期）
+**対象 commit**: A〜F（求職者側公開ページ群）
+**ステータス**: 🟡 5ページ実装完了、12ページ残存
+
+---
+
+## 1. 概要
+
+### 1-1. プロダクトの位置づけ
+
+Opinio Work の求職者向け公開ページ群（`opinio.work`）。
+
+IT/SaaS 業界に特化したキャリアプラットフォームの「ユーザー接点」側。  
+企業情報・求人・メンター・記事の閲覧から、カジュアル面談申込・メンター予約・プロフィール管理まで、キャリアを考え続ける個人が使うすべての画面を担う。
+
+biz 側（`business.opinio.co.jp`）と対になる「双子の地図」の片方:
+- **`biz-members-multitenant.md`**: 企業側（採用担当者向け、M-4 設計）
+- **`jobseeker-product.md`**: 求職者側（本ドキュメント、commits A〜F + 今後）
+
+### 1-2. ターゲットユーザー
+
+| 状態 | 説明 |
+|------|------|
+| 未認証 | 企業・求人・メンター・記事の閲覧のみ可能 |
+| 認証済み（求職者） | カジュアル面談申込、メンター予約、プロフィール管理、マイページ |
+| 認証済み（メンター） | 上記 + メンター管理セクション（`is_mentor=true` フラグで動的発動） |
+
+### 1-3. 全体スコープ
+
+仕様書（`/Users/hisato/Desktop/opinio-mock-package/OPINIO_IMPLEMENTATION_SPEC.md`）の **17 ページ**が対象。
+
+| 状態 | 件数 |
+|------|------|
+| ✅ 実装済み（commits A〜F） | 5 ページ |
+| 🔲 未実装 | 12 ページ |
+| **合計** | **17 ページ** |
+
+---
+
+## 2. 実装済みページ（commits A〜F）
+
+### 2-0. 共通基盤（commit A）
+
+**実装日**: 2026-04-28  
+**commit**: `058d457`
+
+| 項目 | 内容 |
+|------|------|
+| `(jobseeker)` route group | `src/app/(jobseeker)/layout.tsx` — URL に影響しない layout 分離 |
+| `JobseekerHeader` | sticky blur ヘッダー。nav: 企業を見る / 求人を探す / メンター / 記事 / ログイン / 無料登録 |
+| `JobseekerFooter` | 4 カラムフッター（求職者の方 / 企業の方 / 運営 + コピーライト） |
+| `CompanyLogo` | `logo_url` 優先 → フォールバックグラデーション（`logo_gradient` + `logo_letter`） |
+| migration 044 | 求職者側に必要な DB 変更（詳細は migration ファイル参照） |
+
+### 2-1. トップページ（commit B）
+
+**実装日**: 2026-04-28 / **commit**: `5a3d2f5`
+
+| 項目 | 内容 |
+|------|------|
+| パス | `/` |
+| ファイル | `src/app/(jobseeker)/page.tsx` |
+| 移動元 | `src/app/page.tsx`（925 行、約 90% 仕様書準拠） |
+| データソース | `getCompanies()`, `getJobs()`（Supabase） |
+| 主な機能 | Hero タイプライターアニメーション追加、企業・求人プレビュー |
+| スコープ外 | ArticlesPreview セクション（仕様書にないが暫定保持） |
+
+### 2-2. 企業一覧（commit C）
+
+**実装日**: 2026-04-28 / **commit**: `33c497a`
+
+| 項目 | 内容 |
+|------|------|
+| パス | `/companies` |
+| ファイル | `src/app/(jobseeker)/companies/page.tsx`（Server）+ `CompanyExplorer.tsx`（Client） |
+| データソース | `getCompanies()` → `ow_companies`（全件、dev は `is_published` フィルターなし） |
+| 主な機能 | キーワード検索（ローカル）、業界 / フェーズ / 働き方フィルター（URL クエリ）、12 件/ページ、新着順 / 社員数順 |
+| スコープ外 | ブックマーク機能本格実装（UI のみ、`useState` トグル） |
+
+### 2-3. 企業詳細（commit D）
+
+**実装日**: 2026-04-28 / **commit**: `0d9f65e`
+
+| 項目 | 内容 |
+|------|------|
+| パス | `/companies/[id]` |
+| ファイル | `src/app/(jobseeker)/companies/[id]/page.tsx`（Server）+ `CompanyDetailClient.tsx`（Client: ブックマークボタンのみ） |
+| データソース | `getCompanyById()` → `ow_companies` + `ow_jobs`（その企業の求人）、`getCompanyPhotos()` → `ow_company_office_photos`、`getCompanyRecruiters()` → `ow_company_admins` JOIN `ow_users` |
+| 主な機能 | Breadcrumb、Hero（ブックマーク UI）、sticky TabsBar（アンカーリンク）、写真ギャラリー（最大 6 枚）、OpinionSection（データなし時 null）、WorkStyleSection、JobsSection、RecruitersSection（0 人時非表示）、Sidebar（sticky CTA） |
+| スコープ外 | ブックマーク API 未接続（UI のみ）、Opinio 見解セクション（`fit_positives` / `fit_negatives` は表示ロジック実装済み、データ待ち） |
+
+**技術メモ**: `ow_company_admins` は RLS により未認証では SELECT 不可 → `getCompanyRecruiters()` は anon 時に `[]` を返し、RecruitersSection は graceful hide。
+
+### 2-4. 求人一覧（commit E）
+
+**実装日**: 2026-04-28 / **commit**: `c184faf`
+
+| 項目 | 内容 |
+|------|------|
+| パス | `/jobs` |
+| ファイル | `src/app/(jobseeker)/jobs/page.tsx`（Server）+ `JobsClient.tsx`（Client） |
+| データソース | `getJobs()` → `ow_jobs` JOIN `ow_companies` |
+| 主な機能 | キーワード検索（ローカル）、職種 / 働き方 / 年収 / 業界フィルター（URL クエリ）、9 件/ページ、新着順 / 年収順 |
+| 特記 | 職種オプションは `ow_jobs.job_category` から動的導出（mockJobData の固定値は不使用）、年収フィルターで `salary_max=0` の求人を除外（option A） |
+| スコープ外 | お気に入り機能 |
+
+### 2-5. 求人詳細（commit F）
+
+**実装日**: 2026-04-28 / **commit**: `65e1888`
+
+| 項目 | 内容 |
+|------|------|
+| パス | `/jobs/[id]` |
+| ファイル | `src/app/(jobseeker)/jobs/[id]/page.tsx`（移動元: `src/app/jobs/[id]/page.tsx`） |
+| データソース | `getJobById()` → `ow_jobs` + `ow_companies` |
+| 主な機能 | ポジション概要、要件、会社情報サイドバー、関連求人（現状 `[]`）、`generateMetadata` |
+| 修正内容 | Header/Footer 削除（layout が担う）、相対 import を絶対 import に変更 |
+| 削除ファイル | `src/app/jobs/[id]/JobDetailClient.tsx`（794 行、未参照の孤立ファイル） |
+
+---
+
+## 3. 残タスク（12 ページ）
+
+| # | カテゴリ | ページ | パス | データ要件 | 規模 |
+|---|---------|------|------|----------|------|
+| 1 | ユーザー | ユーザープロフィール（公開） | `/users/[id]` | `ow_users` 既存 | 中 |
+| 2 | メンター | メンター一覧 | `/mentors` | `mentors` テーブル（`ow_` なし） | 中 |
+| 3 | メンター | メンター予約 | `/mentors/[id]/reserve` | `mentors` + `ow_mentor_reservations` 新規 | 大 |
+| 4 | 記事 | 記事一覧 | `/articles` | `ow_articles` 新規 | 中 |
+| 5 | 記事 | 記事詳細（社員） | `/articles/[id]` | `ow_articles` type='employee' | 大 |
+| 6 | 記事 | 記事詳細（メンター） | `/articles/[id]` | `ow_articles` type='mentor' | 大 |
+| 7 | 記事 | 記事詳細（CEO） | `/articles/[id]` | `ow_articles` type='ceo' | 大 |
+| 8 | 記事 | 記事詳細（取材レポート） | `/articles/[id]` | `ow_articles` type='report' | 大 |
+| 9 | 認証 | サインアップ / ログイン | `/auth` | `ow_users` 既存、Supabase Auth | 中 |
+| 10 | ユーザー | プロフィール編集 | `/profile/edit` | `ow_users` 既存（認証ガード） | 大 |
+| 11 | アクション | カジュアル面談申込 | `/companies/[id]/casual-meeting` | `ow_casual_meetings` or 新規 | 中 |
+| 12 | ユーザー | マイページ | `/mypage` | `ow_users` + 複数テーブル | 大 |
+
+**注**: `/articles/[id]` は 4 タイプで URL 構造は同じだが、レイアウト・コンポーネントが異なるため規模大。記事タイプは `ow_articles.article_type` で分岐実装。
+
+---
+
+## 4. データモデル
+
+### 4-1. 既存テーブル（求職者側で利用中）
+
+| テーブル | 用途 | 主要カラム |
+|---------|------|----------|
+| `ow_companies` | 企業一覧・詳細 | `id`, `name`, `tagline`, `industry`, `phase`, `logo_gradient`, `logo_letter`, `logo_url`, `is_published`, `fit_positives`, `fit_negatives` |
+| `ow_jobs` | 求人一覧・詳細 | `id`, `company_id`, `title`, `job_category`, `employment_type`, `work_style`, `salary_min`, `salary_max`, `catch_copy`, `status`, `published_at` |
+| `ow_company_office_photos` | 企業写真ギャラリー | `id`, `company_id`, `photo_url`, `category`, `display_order` |
+| `ow_company_admins` | 採用担当者表示 | `id`, `user_id`, `company_id`, `department`, `role_title`, `permission`, `is_active` |
+| `ow_users` | ユーザー情報（求職者・メンター兼用） | `id`, `name`, `avatar_color`, `auth_id`, `is_mentor` |
+| `ow_roles` | 職種マスタ | `id`, `name`, `parent_id`（2 階層、8 カテゴリ） |
+| `mentors` | メンター情報（`ow_` なし、既存テーブル） | `id`, `name`, `avatar_initial`, `avatar_color`, `question_tags`, `is_available` |
+
+### 4-2. 新規必要なテーブル（今後の実装で追加）
+
+| テーブル | 用途 | 状況 |
+|---------|------|------|
+| `ow_articles` | 記事（4 タイプ: employee / mentor / ceo / report） | 未作成 |
+| `ow_mentor_reservations` | メンター予約申請 | 未作成 |
+| `ow_bookmarks` | ブックマーク（企業・求人・メンター） | 未作成 |
+| `ow_casual_meeting_requests` | カジュアル面談申込 | 未確認（`ow_casual_meetings` と重複の可能性あり） |
+
+### 4-3. ow_companies のカラム注意点
+
+```sql
+-- is_published は現状全件 false（dev 環境では無効化）
+-- fit_positives, fit_negatives は TEXT 型（JSON or 改行区切り要確認）
+-- logo_url は NULL の企業が多い → CompanyLogo の gradient/letter フォールバック必須
+```
+
+---
+
+## 5. 設計判断の記録
+
+### 5-1. (jobseeker) route group パターン
+
+Next.js App Router の route group を使用。`src/app/(jobseeker)/` 配下のファイルは、URL に `(jobseeker)` が含まれない（例: `src/app/(jobseeker)/companies/page.tsx` → `/companies`）。
+
+**メリット**: `(jobseeker)/layout.tsx` で JobseekerHeader/Footer を一括適用。biz 側 layout と完全分離。
+
+**旧ファイルとの conflict**: `src/app/companies/page.tsx`（旧）と `src/app/(jobseeker)/companies/page.tsx`（新）は URL が同じになり conflict するため、新ファイル作成後に旧ファイルを `git rm` するパターンが確立（commits C / D / E / F すべてで適用）。
+
+### 5-2. Server Component + Client Component 分割
+
+```
+page.tsx（Server Component）: データ取得（async/await）
+*Client.tsx（Client Component）: フィルター・ソート・ページネーション・アニメーション
+```
+
+- Server Component は `getXxx()` で初期データを取得し、props で Client Component に渡す
+- `useSearchParams()` を使う Client Component は `<Suspense>` でラップ必須（Next.js 14 要件）
+- `useParams()` のみ使う場合は Suspense 不要
+
+### 5-3. フィルタリング設計
+
+**クライアントサイドフィルタリング**（サーバーではなく）を採用。
+
+理由: 求人・企業数が現状少ない（25 件・13 社程度）ため、全件取得してクライアントでフィルタリングする方がシンプル。データが 1000 件超えたらサーバーサイドフィルタリングへの移行を検討。
+
+フィルター状態は URL クエリパラメータで管理（`?dept=エンジニア&work_style=フルリモート&page=2`）。  
+→ シェア可能な URL、ブラウザバック対応。
+
+### 5-4. dev 環境での is_published フィルター無効化
+
+```typescript
+// src/lib/supabase/queries.ts
+const isDev = process.env.NODE_ENV === "development";
+// isDev の場合は .eq("is_published", true) を適用しない
+```
+
+理由: 現状の DB は全企業 `is_published=false` のため、フィルターを掛けると一覧が空になる。dev では全件表示してテストを可能にする。
+
+### 5-5. 共通コンポーネント
+
+| コンポーネント | ファイル | 用途 |
+|-------------|---------|------|
+| `JobseekerHeader` | `src/app/(jobseeker)/layout.tsx` 内 | 求職者向けナビゲーション |
+| `JobseekerFooter` | `src/app/(jobseeker)/layout.tsx` 内 | フッター |
+| `CompanyLogo` | `src/app/(jobseeker)/layout.tsx` 内 or 共通 | logo_url → gradient/letter フォールバック |
+
+### 5-6. ページネーション
+
+9 件/ページ（企業一覧は 12 件/ページ）、URL クエリ `?page=N`。  
+`Math.ceil(filtered.length / PER_PAGE)` でページ数計算。`safePage = Math.min(page, totalPages)` でオーバーフロー対応。
+
+---
+
+## 6. 既知の課題と技術的負債
+
+### 6-1. mockJobData `JOB_DEPTS` と DB の不整合
+
+**発見**: commit E 実装中
+
+| | 値 |
+|---|---|
+| `mockJobData.ts` の `JOB_DEPTS` | `PdM / PM`, `エンジニア`, `営業`, `マーケティング`, `デザイナー`, `経営 / CxO`, `コーポレート` |
+| 実 DB `ow_jobs.job_category` | `PdM`, `エンジニア`, `カスタマーサクセス`, `営業`, `フィールドセールス` |
+
+**暫定対処**: `JobsClient.tsx` で `depts` を `allJobs.map(j => j.dept)` から動的導出（DB の実値を使用）。
+
+**根本解決**: `ow_roles` マスタを参照する形に統一する必要あり。`ow_jobs.job_category` を FK に変更するか、`ow_roles.name` の配列として管理し直す（M-5 候補）。
+
+### 6-2. `src/app/jobs/mockJobData.ts` への依存
+
+`src/app/(jobseeker)/jobs/[id]/page.tsx`（commit F で移動済み）が型定義（`Job`, `PositionMember`）を `@/app/jobs/mockJobData` で参照している。
+
+`mockJobData.ts` 自体は削除不可（型定義が含まれるため）。将来的には型定義を `src/types/job.ts` 等に分離するのが望ましい。
+
+### 6-3. `ow_companies` 全件 `is_published=false`
+
+現状の DB は全企業が `is_published=false`。dev では [5-4](#5-4-dev-環境での-is_published-フィルター無効化) の方針でフィルター無効化。
+
+本番運用前に「公開する企業」を明示的に切り替える運用ルールが必要。企業側 `/biz/company` の「公開する」ボタン（PATCH エンドポイント実装済み）を使って個別に切り替える。
+
+### 6-4. RLS による表示除外
+
+`ow_companies` の RLS で `status='active'` 以外は除外。HubSpot Japan (`status=pending`)、Third Box (`status=inactive`) は表示されない。設計通り（意図的）。
+
+### 6-5. `mentors` テーブル名（`ow_` プレフィックスなし）
+
+仕様書は `ow_mentors` を想定していたが、実際の DB テーブル名は `mentors`（`ow_` なし）。  
+`getMentors()` / `getMentorById()` を `queries.ts` に追加する際は `.from("mentors")` を使う。
+
+### 6-6. `ow_company_admins` が anon では SELECT 不可
+
+RLS により未認証ユーザーは `ow_company_admins` を読めない。  
+→ `getCompanyRecruiters()` は anon 時にエラーを catch して `[]` を返す（best-effort）。  
+→ 企業詳細ページの RecruitersSection は `recruiters.length > 0` の条件で graceful hide。
+
+将来的に採用担当者を公開情報として扱う場合は、RLS ポリシーの変更が必要。
+
+### 6-7. `(jobseeker)/page.tsx` の既存コンパイルエラー
+
+`src/app/(jobseeker)/page.tsx:635` にコンパイルエラーが存在（`Unexpected token 'section'`）。commit B 以前からの問題。  
+ページの動作には影響しない（HMR が部分的にスキップする）が、根本原因の調査が必要。
+
+---
+
+## 7. UX 統一の取り組み
+
+### 7-1. 一覧 → 詳細の Header/Footer 一貫性（commit F）
+
+**課題**: commit E で `/jobs`（求職者 layout）から求人カードをクリックすると `/jobs/[id]`（旧 default layout）に遷移し、ヘッダーがハンバーガーメニューに変わる UX 違和感が発生。
+
+**解決**: commit F で `src/app/jobs/[id]/page.tsx` を `src/app/(jobseeker)/jobs/[id]/page.tsx` に移動。  
+移動コスト: 相対 import 修正 1 箇所（`../mockJobData` → `@/app/jobs/mockJobData`）+ Header/Footer 削除 4 行のみ。  
+孤立ファイル `JobDetailClient.tsx`（794 行、`page.tsx` から未参照）も同時削除。
+
+### 7-2. 今後の UX 統一課題
+
+| ページ | 課題 | 対処方針 |
+|--------|------|---------|
+| `/companies/[id]/casual-meeting` | 旧実装が mock データ + 独自 Header を使用（Phase 4c の実装） | (jobseeker) 配下に移動 + Supabase 接続 |
+| `/mentors/[id]/reserve` | 旧実装が mock データ + 独自 Header を使用（Phase 4d の実装） | (jobseeker) 配下に移動 + Supabase 接続 |
+| `/profile/edit` | 旧実装が mock データ + 独自 Header を使用（Phase 4a の実装） | (jobseeker) 配下に移動 + Supabase 接続 |
+| `/mypage` | 旧実装が mock データ + 独自 Header を使用（Phase 4b の実装） | (jobseeker) 配下に移動 + Supabase 接続 |
+
+---
+
+## 8. Implementation History
+
+| Phase | Commit | ハッシュ | 内容 |
+|-------|--------|---------|------|
+| 共通基盤 | A | `058d457` | (jobseeker) route group + JobseekerHeader/Footer + CompanyLogo + migration 044 |
+| ページ移動 | B | `5a3d2f5` | `/`（トップページ）を (jobseeker) 配下に移動 + Hero タイプライターアニメーション追加 |
+| 企業一覧 | C | `33c497a` | `/companies` + キーワード/業界/フェーズ/働き方フィルター + 12 件/ページ |
+| 企業詳細 | D | `0d9f65e` | `/companies/[id]` + 写真ギャラリー（最大 6 枚）+ 採用担当者（anon は graceful hide） |
+| 求人一覧 | E | `c184faf` | `/jobs` + 動的 dept 導出（DB 実値）+ 年収フィルター（salary_max=0 除外） |
+| 求人詳細移動 | F | `65e1888` | `/jobs/[id]` を (jobseeker) 配下に移動。Header/Footer 統一。孤立 JobDetailClient 削除 |
+
+---
+
+## 9. 次のマイルストーン候補（M-5）
+
+優先度順。各タスク着手前に方針確定（設計議論）が必要。
+
+| 優先度 | タスク | 理由 | 規模 | 依存 |
+|--------|--------|------|------|------|
+| ⭐⭐⭐ | `/auth` 求職者用認証フロー | 認証なしではアクションページ（casual-meeting、reserve、mypage）が動かない。biz 側 `/biz/auth` パターンを踏襲できる | 中 | なし |
+| ⭐⭐⭐ | `/users/[id]` + `/profile/edit` + `/mypage` | 認証が整ったら次の最大規模タスク。求職者体験の核 | 大 | /auth 完了 |
+| ⭐⭐ | `ow_articles` 新規テーブル + `/articles` 系 | 記事は求職者の情報収集の要。4 タイプ × レイアウト分岐が複雑 | 大 | ow_articles 設計・マイグレーション |
+| ⭐⭐ | `/companies/[id]/casual-meeting` 申込フロー本格実装 | commit D の企業詳細で CTA は配置済み。フォームと DB 接続が必要 | 中 | /auth 完了 + ow_casual_meetings 確認 |
+| ⭐ | `ow_mentors` → `mentors` テーブル整備 + `/mentors` 系 | データ量・メンター管理フロー含む。Hisato が個別声がけして追加する運用 | 大 | mentors テーブル確認・整備 |
+| ⭐ | `ow_bookmarks` 新規テーブル + ブックマーク機能 | 企業・求人詳細で UI は実装済み（`useState` トグルのみ）。API と DB の実装が必要 | 中 | /auth 完了 |
+
+### M-5 着手前に確認すべき事項
+
+```sql
+-- ow_casual_meetings テーブルの現状確認（biz 側でも使用中）
+SELECT table_name FROM information_schema.tables
+WHERE table_name LIKE '%casual%' OR table_name LIKE '%meeting%';
+
+-- mentors テーブルの現状カラム確認
+SELECT column_name, data_type FROM information_schema.columns
+WHERE table_name = 'mentors' ORDER BY ordinal_position;
+```
+
+---
+
+## 10. Design Decisions Made During Implementation
+
+設計中に未確定だった項目、または実装時に変更した事項:
+
+| # | 項目 | 当初想定 | 確定値 | Commit |
+|---|------|---------|--------|--------|
+| 1 | 職種フィルターのオプション | `mockJobData.ts` の `JOB_DEPTS` 固定値 | DB `ow_jobs.job_category` から動的導出 | E |
+| 2 | 年収フィルターで salary_max=0 の扱い | 要検討（option A/B） | **option A: 除外**（salary フィルター適用時のみ除外） | E |
+| 3 | 採用担当者セクション（anon 時） | 表示試みてエラー | **graceful hide**（anon は `[]` → section 非表示） | D |
+| 4 | CompanyDetailClient.tsx の扱い | 旧 (jobseeker)/companies/[id]/ に同名ファイルが存在 | ブックマークボタンのみの新実装に置き換え | D |
+| 5 | jobs/[id] の Header | 旧 default layout のハンバーガーメニュー | **(jobseeker) layout に移動**（commit F で解消） | F |
+| 6 | 孤立 JobDetailClient.tsx（794 行） | 移動も削除も未決定 | **削除**（page.tsx から未参照、安全に削除可能） | F |
+| 7 | 業界フィルターのオプション | 固定値 | DB `ow_companies.industry` から動的導出 | C |
