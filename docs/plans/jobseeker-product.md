@@ -332,6 +332,7 @@ P3 で導入した `scripts/get_session_cookie.mjs` + curl を使い、Claude Co
 | F (サービス化) | `c5af352` | `PUT /api/jobseeker/profile` → `about_me` 更新 → DB 反映確認 → cleanup (null に戻す) | ✅ | 許可フィールドのみ更新される whitelist 設計が正常動作 |
 | I | `9c99ad3` | `POST /api/bookmarks` → 1行追加、重複 POST → 1行のまま (UPSERT)、`DELETE` → 0行 | ✅ | べき等性・クリーンアップ全 PASS |
 | G | `d0bebfe` | `POST /api/casual-meetings` → `{id, status:"pending"}` 返却、DB 行確認（intent/contact_email 正常）、cleanup (DELETE) | ✅ | `accepting_casual_meetings=true` の企業 (SmartHR) で確認 |
+| J | `95d8bf7` | `GET/POST/PUT/DELETE /api/jobseeker/experiences`。3パターン XOR（company_id/company_text/company_anonymized）、XOR 違反 → 400、slug→UUID ロール変換（エンジニア）、GET での UUID→slug 逆引き（"engineer" 返却）、cleanup | ✅ | RLS テストは他ユーザーの experiences 0件のためスキップ。started_at "YYYY-MM" → DB DATE "YYYY-MM-01" 変換 PASS |
 
 **検証対象外**（ブラウザ UI 操作、フォーム入力等）: 柴さん本人が任意のタイミングで実施可能。
 
@@ -393,6 +394,8 @@ function DashboardView({
 | 機能拡充 | G | `d0bebfe` | カジュアル面談申込フロー（`POST /api/casual-meetings`、Server Component auth guard、accepting_casual_meetings チェック、mypage CasualView 実データ接続） |
 | ツール整備 | P3 | `2268515` | `scripts/get_session_cookie.mjs` 正式化（Magic Link 方式、email 引数汎用化）+ `scripts/README.md` |
 | E2E 検証 | Phase E2E | — | Commit B/F/I/G の実機 API 検証（§6-X 参照）。全 PASS、DB 汚染なし |
+| 職歴 CRUD | J | `95d8bf7` | `GET/POST/PUT/DELETE /api/jobseeker/experiences`、slug↔UUID 変換、profile/edit CareerModal DB 接続、/u/[id] 職歴セクション実データ化 |
+| E2E 検証 | Phase E2E-J | — | Commit J の実機 API 検証（§6-X 参照）。全 PASS、DB 汚染なし |
 
 ---
 
