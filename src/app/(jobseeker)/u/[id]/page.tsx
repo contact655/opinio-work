@@ -2,6 +2,50 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
+// DB_NAME_TO_SLUG for role label resolution
+const DB_NAME_TO_SLUG: Record<string, string> = {
+  "営業": "sales", "PdM / PM": "pm", "カスタマーサクセス": "cs",
+  "エンジニア": "engineer", "マーケティング": "marketing", "経営・CxO": "exec", "その他": "other",
+  "フィールドセールス": "field_sales", "エンタープライズ営業": "enterprise_sales",
+  "インサイドセールス": "inside_sales", "SDR / BDR": "sdr_bdr",
+  "プロダクトマネージャー": "product_manager", "プロダクトオーナー": "product_owner", "PMM": "pmm",
+  "バックエンド": "backend", "フロントエンド": "frontend", "フルスタック": "fullstack",
+  "SRE / インフラ": "sre", "iOS / Android": "ios_android",
+  "CEO": "ceo", "COO": "coo", "CPO": "cpo", "CTO": "cto", "CFO": "cfo",
+  "デザイナー": "designer", "事業開発": "biz_dev", "HRBP": "hrbp",
+  "コーポレート": "corporate", "データサイエンティスト": "data_scientist",
+};
+
+function getRoleLabel(slugOrUuid: string): string {
+  // Inline label lookup (mirrors roleData.ts)
+  const LABELS: Record<string, string> = {
+    sales: "営業", pm: "PdM / PM", cs: "カスタマーサクセス",
+    engineer: "エンジニア", marketing: "マーケティング", exec: "経営・CxO", other: "その他",
+    field_sales: "フィールドセールス", enterprise_sales: "エンタープライズ営業",
+    inside_sales: "インサイドセールス", sdr_bdr: "SDR / BDR",
+    product_manager: "プロダクトマネージャー", product_owner: "プロダクトオーナー",
+    pmm: "PMM（プロダクトマーケティングマネージャー）",
+    backend: "バックエンドエンジニア", frontend: "フロントエンドエンジニア",
+    fullstack: "フルスタックエンジニア", sre: "SRE / インフラエンジニア",
+    ios_android: "iOS / Androidエンジニア",
+    ceo: "CEO", coo: "COO", cpo: "CPO", cto: "CTO", cfo: "CFO",
+    designer: "デザイナー", biz_dev: "事業開発", hrbp: "HRBP",
+    corporate: "コーポレート（HR/経理/法務）", data_scientist: "データサイエンティスト",
+    customer_success: "カスタマーサクセス", customer_support: "カスタマーサポート",
+    digital_mkt: "デジタルマーケティング", content_mkt: "コンテンツマーケティング",
+    event_mkt: "イベントマーケティング",
+  };
+  return LABELS[slugOrUuid] ?? slugOrUuid;
+}
+
+function formatCareerPeriod(startedAt: string, endedAt: string | null, isCurrent: boolean): string {
+  const start = startedAt.slice(0, 7).replace("-", ".");
+  if (isCurrent) return `${start} 〜 現在`;
+  if (!endedAt) return `${start} 〜`;
+  const end = endedAt.slice(0, 7).replace("-", ".");
+  return `${start} 〜 ${end}`;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type SocialLinks = {
@@ -86,6 +130,77 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const activeSocials = (["twitter", "linkedin", "note"] as const).filter(
     (k) => socialLinks[k]
   );
+
+  // Fetch experiences (RLS allows public/login_only visibility)
+  const [{ data: expRows }, { data: allRoles }] = await Promise.all([
+    supabase
+      .from("ow_experiences")
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description")
+      .eq("user_id", owUser.id)
+      .order("is_current", { ascending: false })
+      .order("started_at", { ascending: false }),
+    supabase.from("ow_roles").select("id, name"),
+  ]);
+
+  const uuidToSlug = new Map<string, string>();
+  for (const role of allRoles ?? []) {
+    const slug = DB_NAME_TO_SLUG[role.name as string];
+    if (slug) uuidToSlug.set(role.id as string, slug);
+  }
+
+  // Resolve company names for master entries in experiences
+  const expCompanyIds = (expRows ?? [])
+    .filter((r) => r.company_id)
+    .map((r) => r.company_id as string);
+  const expCompanyMap = new Map<string, string>();
+  if (expCompanyIds.length > 0) {
+    const { data: expCompanies } = await supabase
+      .from("ow_companies")
+      .select("id, name")
+      .in("id", expCompanyIds);
+    for (const c of expCompanies ?? []) {
+      expCompanyMap.set(c.id as string, c.name as string);
+    }
+  }
+
+  type ExpEntry = {
+    id: string;
+    companyName: string;
+    companyType: "master" | "custom" | "anon";
+    roleSlug: string;
+    roleTitle: string | null;
+    startedAt: string;
+    endedAt: string | null;
+    isCurrent: boolean;
+    description: string | null;
+  };
+
+  const experiences: ExpEntry[] = (expRows ?? []).map((r) => {
+    let companyName: string;
+    let companyType: "master" | "custom" | "anon";
+    if (r.company_id) {
+      companyType = "master";
+      companyName = expCompanyMap.get(r.company_id as string) ?? "不明な企業";
+    } else if (r.company_text) {
+      companyType = "custom";
+      companyName = r.company_text as string;
+    } else {
+      companyType = "anon";
+      companyName = (r.company_anonymized as string) ?? "非公開企業";
+    }
+    const roleUuid = r.role_category_id as string;
+    return {
+      id: r.id as string,
+      companyName,
+      companyType,
+      roleSlug: uuidToSlug.get(roleUuid) ?? roleUuid,
+      roleTitle: r.role_title as string | null,
+      startedAt: r.started_at as string,
+      endedAt: r.ended_at as string | null,
+      isCurrent: r.is_current as boolean,
+      description: r.description as string | null,
+    };
+  });
 
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 0 80px" }}>
@@ -197,7 +312,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         </section>
       )}
 
-      {/* Career — TODO: connect ow_experiences when profile/edit career section is wired up */}
+      {/* Career */}
       <section style={{
         background: "#fff", border: "1px solid var(--line)",
         borderRadius: 14, padding: "24px 28px", marginBottom: 20,
@@ -213,20 +328,74 @@ export default async function UserProfilePage({ params }: { params: { id: string
             CAREER
           </span>
         </div>
-        <div style={{ padding: "20px 0", textAlign: "center", color: "var(--ink-mute)", fontSize: 13 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: "50%",
-            background: "var(--bg-tint)", border: "1px solid var(--line)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 12px", color: "var(--ink-mute)",
-          }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" />
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-            </svg>
+        {experiences.length === 0 ? (
+          <div style={{ padding: "20px 0", textAlign: "center", color: "var(--ink-mute)", fontSize: 13 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: "50%",
+              background: "var(--bg-tint)", border: "1px solid var(--line)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 12px", color: "var(--ink-mute)",
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" />
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              </svg>
+            </div>
+            職歴は非公開または未登録です
           </div>
-          職歴は非公開または未登録です
-        </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {experiences.map((exp) => (
+              <div key={exp.id} style={{
+                background: "var(--bg-tint)",
+                border: exp.isCurrent ? "1px solid var(--success)" : "1px solid var(--line)",
+                borderLeft: exp.isCurrent ? "3px solid var(--success)" : "1px solid var(--line)",
+                borderRadius: 10, padding: "14px 16px",
+              }}>
+                <div style={{
+                  fontFamily: "Inter, sans-serif", fontSize: 11,
+                  color: "var(--ink-mute)", fontWeight: 500, marginBottom: 4,
+                }}>
+                  {formatCareerPeriod(exp.startedAt, exp.endedAt, exp.isCurrent)}
+                  {exp.isCurrent && (
+                    <span style={{
+                      background: "var(--success-soft)", color: "var(--success)",
+                      padding: "1px 6px", borderRadius: 4, fontWeight: 700,
+                      marginLeft: 6, fontSize: 9, letterSpacing: "0.05em",
+                    }}>
+                      CURRENT
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: 3 }}>
+                  {exp.roleTitle || getRoleLabel(exp.roleSlug)}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 6 }}>
+                  {exp.companyType === "anon" ? (
+                    <span style={{ fontStyle: "italic" }}>{exp.companyName}</span>
+                  ) : (
+                    exp.companyName
+                  )}
+                  {exp.companyType === "master" && (
+                    <span style={{
+                      fontSize: 9, padding: "1px 6px", borderRadius: 3,
+                      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                      color: "var(--royal)",
+                    }}>マスタ登録</span>
+                  )}
+                </div>
+                {exp.description && (
+                  <div style={{
+                    fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
+                    marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--line)",
+                  }}>
+                    {exp.description}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Social Links */}

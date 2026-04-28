@@ -31,8 +31,8 @@ type OwUser = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function buildInitialProfile(owUser: OwUser, authEmail: string): ProfileData {
-  if (!owUser) return { ...MOCK_PROFILE, email: authEmail };
+function buildInitialProfile(owUser: OwUser, authEmail: string, initialExperiences: Experience[]): ProfileData {
+  if (!owUser) return { ...MOCK_PROFILE, email: authEmail, experiences: initialExperiences };
   return {
     ...MOCK_PROFILE,
     name: owUser.name ?? MOCK_PROFILE.name,
@@ -44,6 +44,7 @@ function buildInitialProfile(owUser: OwUser, authEmail: string): ProfileData {
     avatarColor: owUser.avatar_color ?? MOCK_PROFILE.avatarColor,
     coverColor: owUser.cover_color ?? MOCK_PROFILE.coverColor,
     email: authEmail,
+    experiences: initialExperiences,
   };
 }
 
@@ -692,11 +693,13 @@ function AccountSection({
 export default function ProfileEditClient({
   owUser,
   authEmail,
+  initialExperiences = [],
 }: {
   owUser: OwUser;
   authEmail: string;
+  initialExperiences?: Experience[];
 }) {
-  const initialProfile = buildInitialProfile(owUser, authEmail);
+  const initialProfile = buildInitialProfile(owUser, authEmail, initialExperiences);
   const [profile, setProfile] = useState<ProfileData>(initialProfile);
   const [activeView, setActiveView] = useState<ActiveView>("basic");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -749,23 +752,63 @@ export default function ProfileEditClient({
     setModalOpen(true);
   };
 
-  const handleDeleteCareer = (id: string) => {
+  const handleDeleteCareer = async (id: string) => {
+    if (!window.confirm("この職歴を削除しますか？")) return;
     setProfile((p) => ({
       ...p,
       experiences: p.experiences.filter((e) => e.id !== id),
     }));
-    triggerSave();
+    await fetch(`/api/jobseeker/experiences/${id}`, { method: "DELETE" }).catch(() => {});
   };
 
-  const handleSaveCareer = (exp: Experience) => {
-    setProfile((p) => {
-      const exists = p.experiences.find((e) => e.id === exp.id);
-      const experiences = exists
-        ? p.experiences.map((e) => (e.id === exp.id ? exp : e))
-        : [...p.experiences, exp];
-      return { ...p, experiences };
-    });
-    triggerSave();
+  const handleSaveCareer = async (exp: Experience) => {
+    // Build XOR company fields: CareerModal's master companyId may be a slug (not UUID)
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
+    let companyPayload: Record<string, string | undefined>;
+    if (exp.companyType === "master" && exp.companyId && uuidRe.test(exp.companyId)) {
+      companyPayload = { company_id: exp.companyId };
+    } else if (exp.companyType === "anon") {
+      companyPayload = { company_anonymized: exp.companyAnonymized || exp.displayCompanyName };
+    } else {
+      // custom OR master with slug → store as company_text
+      companyPayload = { company_text: exp.companyText || exp.displayCompanyName };
+    }
+
+    const body = {
+      ...companyPayload,
+      role_category_id: exp.roleCategoryId,
+      role_title: exp.roleTitle,
+      started_at: exp.startedAt,
+      ended_at: exp.endedAt,
+      is_current: exp.isCurrent,
+      description: exp.description,
+    };
+
+    const isNew = exp.id.startsWith("exp-");
+    if (isNew) {
+      const res = await fetch("/api/jobseeker/experiences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }).catch(() => null);
+      const json = res?.ok ? await res.json() : null;
+      const realId: string = json?.id ?? exp.id;
+      setProfile((p) => ({
+        ...p,
+        experiences: [...p.experiences, { ...exp, id: realId }],
+      }));
+    } else {
+      await fetch(`/api/jobseeker/experiences/${exp.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }).catch(() => {});
+      setProfile((p) => ({
+        ...p,
+        experiences: p.experiences.map((e) => (e.id === exp.id ? exp : e)),
+      }));
+    }
+
     setModalOpen(false);
   };
 
