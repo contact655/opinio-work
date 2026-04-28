@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Header from "@/components/Header";
 import Link from "next/link";
 
 type Application = {
@@ -124,19 +123,14 @@ export default function ApplicationsPage() {
 
   if (loading) {
     return (
-      <>
-        <Header />
-        <main className="pt-16 min-h-screen bg-background flex items-center justify-center">
-          <p className="text-gray-600">読み込み中...</p>
-        </main>
-      </>
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-gray-600">読み込み中...</p>
+      </main>
     );
   }
 
   return (
-    <>
-      <Header />
-      <main className="pt-16 min-h-screen bg-background">
+    <main className="min-h-screen bg-background">
         <div className="max-w-6xl mx-auto px-4 py-8 flex gap-6">
           {/* Left Sidebar */}
           <aside className="hidden lg:block w-[200px] flex-shrink-0">
@@ -332,6 +326,5 @@ export default function ApplicationsPage() {
           </div>
         </div>
       </main>
-    </>
   );
 }

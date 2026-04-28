@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 
 export default function CompanyMembershipNewPage() {
   const router = useRouter();
@@ -109,9 +107,7 @@ export default function CompanyMembershipNewPage() {
   };
 
   return (
-    <>
-      <Header />
-      <main className="pt-16 min-h-screen bg-white">
+    <main className="min-h-screen bg-white">
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "48px 24px" }}>
           <div style={{ marginBottom: 32 }}>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111827", marginBottom: 8 }}>
@@ -386,7 +382,5 @@ export default function CompanyMembershipNewPage() {
           </div>
         </div>
       </main>
-      <Footer />
-    </>
   );
 }

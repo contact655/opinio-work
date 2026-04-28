@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 
 function WorkHistoryForm() {
   const router = useRouter();
@@ -114,9 +112,7 @@ function WorkHistoryForm() {
   };
 
   return (
-    <>
-      <Header />
-      <main className="pt-16 min-h-screen bg-white">
+    <main className="min-h-screen bg-white">
         <div className="max-w-lg mx-auto px-6 py-12">
           <h1 className="text-xl font-medium text-gray-900 mb-2">職歴を登録する</h1>
           <p className="text-sm text-gray-400 mb-8">
@@ -312,8 +308,6 @@ function WorkHistoryForm() {
           </div>
         </div>
       </main>
-      <Footer />
-    </>
   );
 }
 
