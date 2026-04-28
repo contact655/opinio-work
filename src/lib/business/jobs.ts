@@ -236,36 +236,24 @@ export async function fetchTeamMembers(
   supabase: SupabaseClient,
   tenantId: string
 ): Promise<TeamMember[]> {
-  const { data: roles, error } = await supabase
-    .from("ow_user_roles")
-    .select("user_id, role")
-    .eq("tenant_id", tenantId)
+  const { data: memberships, error } = await supabase
+    .from("ow_company_admins")
+    .select("permission, ow_users!inner(id, name, avatar_color, avatar_initial)")
+    .eq("company_id", tenantId)
     .eq("is_active", true);
 
-  if (error || !roles?.length) return [];
+  if (error || !memberships?.length) return [];
 
-  const userIds = roles.map((r) => r.user_id);
-  const { data: users } = await supabase
-    .from("ow_users")
-    .select("id, name, avatar_color, avatar_initial")
-    .in("id", userIds);
-
-  const userMap = Object.fromEntries((users ?? []).map((u) => [u.id, u]));
-
-  return roles
-    .map((r) => {
-      const u = userMap[r.user_id];
+  return memberships
+    .map((m) => {
+      const u = m.ow_users as unknown as { id: string; name: string | null; avatar_color: string | null; avatar_initial: string | null } | null;
       if (!u) return null;
       return {
-        id: u.id as string,
-        name: (u.name as string | null) ?? "ユーザー",
-        gradient:
-          (u.avatar_color as string | null) ??
-          "linear-gradient(135deg, var(--royal), var(--accent))",
-        initial:
-          (u.avatar_initial as string | null) ??
-          ((u.name as string | null)?.[0] ?? "U"),
-        role: r.role === "admin" ? "Admin · 採用管理者" : "採用担当",
+        id: u.id,
+        name: u.name ?? "ユーザー",
+        gradient: u.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))",
+        initial: u.avatar_initial ?? (u.name?.[0] ?? "U"),
+        role: m.permission === "admin" ? "Admin · 採用管理者" : "採用担当",
       };
     })
     .filter((m): m is TeamMember => m !== null);

@@ -1,34 +1,26 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
+import { getUserRolesWithData, addUserRole } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
 // GET: ユーザーのロール一覧を取得
 export async function GET() {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const result = await getUserRolesWithData(supabase);
 
-  if (!user) {
+  if (!result) {
     return NextResponse.json({ roles: [], profile: null, companies: [] }, { status: 401 });
   }
 
-  const admin = createAdminClient();
-
-  const [rolesResult, profileResult, companiesResult] = await Promise.all([
-    admin.from("ow_user_roles").select("role").eq("user_id", user.id),
-    admin.from("ow_profiles").select("id, name").eq("user_id", user.id).maybeSingle(),
-    admin.from("ow_companies").select("id, name, status").eq("user_id", user.id),
-  ]);
-
   return NextResponse.json({
-    roles: (rolesResult.data || []).map((r: any) => r.role),
-    profile: profileResult.data,
-    companies: companiesResult.data || [],
+    roles: result.roles,
+    profile: result.profile,
+    companies: result.companies,
   });
 }
 
-// POST: ロールを追加
+// POST: ロールを追加 (company ロールは ow_company_admins で管理するため不可)
 export async function POST(req: Request) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -38,20 +30,16 @@ export async function POST(req: Request) {
   }
 
   const { role } = await req.json();
-  if (!["candidate", "company"].includes(role)) {
-    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  if (role === "company") {
+    return NextResponse.json(
+      { error: "company role is managed via ow_company_admins" },
+      { status: 400 }
+    );
   }
 
-  const admin = createAdminClient();
-
-  const { error } = await admin
-    .from("ow_user_roles")
-    .insert({ user_id: user.id, role });
-
-  // 重複エラー (23505) は正常扱い
-  if (error && error.code !== "23505") {
-    console.error("[roles POST] insert error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  const ok = await addUserRole(supabase, role);
+  if (!ok) {
+    return NextResponse.json({ error: "Invalid role or insert failed" }, { status: 400 });
   }
 
   return NextResponse.json({ success: true });
