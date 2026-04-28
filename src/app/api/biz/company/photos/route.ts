@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    return Response.json({ data });
+    return Response.json({ data }, { status: 201 });
   } catch (e) {
     return Response.json({ error: "Server error", detail: String(e) }, { status: 500 });
   }
