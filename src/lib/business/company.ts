@@ -135,39 +135,101 @@ export function transformFormToDb(form: BizCompany): Record<string, unknown> {
   };
 }
 
+// ── Multi-tenant context ─────────────────────────────────────────────────────
+
+export type CompanyMembership = {
+  companyId: string;
+  isDefault: boolean;
+  joinedAt: string | null;    // ISO timestamp (may be null on legacy rows)
+  permission: "admin" | "member";
+};
+
+export type CompanyContext = {
+  companyId: string;              // resolved current company
+  owUserId: string;               // ow_users.id (NOT auth.users.id)
+  allMemberships: CompanyMembership[];
+};
+
+/**
+ * Resolve the current company context for an authenticated user.
+ *
+ * Resolution order:
+ *   1. Cookie biz_current_company_id → verify membership → use if valid
+ *   2. is_default=true membership
+ *   3. Oldest joined_at membership (fallback)
+ *
+ * Returns null when the user has no active company memberships.
+ */
+export async function getCompanyContext(
+  supabase: SupabaseClient,
+  authUserId: string,
+  cookieCompanyId?: string,
+): Promise<CompanyContext | null> {
+  // 1. auth_id → ow_users.id
+  const { data: owUser } = await supabase
+    .from("ow_users")
+    .select("id")
+    .eq("auth_id", authUserId)
+    .maybeSingle();
+  if (!owUser) return null;
+
+  // 2. 全アクティブ所属を取得
+  const { data: rows } = await supabase
+    .from("ow_company_admins")
+    .select("company_id, is_default, joined_at, permission")
+    .eq("user_id", owUser.id)
+    .eq("is_active", true)
+    .order("joined_at", { ascending: true, nullsFirst: false });
+
+  if (!rows || rows.length === 0) return null;
+
+  const allMemberships: CompanyMembership[] = rows.map((r) => ({
+    companyId: r.company_id,
+    isDefault: r.is_default ?? false,
+    joinedAt: r.joined_at ?? null,
+    permission: r.permission as "admin" | "member",
+  }));
+
+  // 3. 解決: Cookie → is_default → oldest joined_at
+  let resolved: CompanyMembership | undefined;
+
+  if (cookieCompanyId) {
+    resolved = allMemberships.find((m) => m.companyId === cookieCompanyId);
+  }
+  if (!resolved) {
+    resolved = allMemberships.find((m) => m.isDefault);
+  }
+  if (!resolved) {
+    resolved = allMemberships[0]; // already sorted ASC by joined_at
+  }
+
+  return {
+    companyId: resolved.companyId,
+    owUserId: owUser.id,
+    allMemberships,
+  };
+}
+
+/**
+ * @deprecated Use getCompanyContext instead. Will be removed after commit 2.6c migration is complete.
+ */
 export async function getOwUserId(
   supabase: SupabaseClient,
   authId: string,
 ): Promise<string | null> {
-  const { data } = await supabase
-    .from("ow_users")
-    .select("id")
-    .eq("auth_id", authId)
-    .maybeSingle();
-  return data?.id ?? null;
+  const ctx = await getCompanyContext(supabase, authId);
+  return ctx?.owUserId ?? null;
 }
 
+/**
+ * @deprecated Use getCompanyContext instead. Will be removed after commit 2.6c migration is complete.
+ */
 export async function getCompanyId(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<string | null> {
-  // Primary: ow_user_roles.tenant_id（migration 035 でバックフィル済み）
-  const { data: roleRow } = await supabase
-    .from("ow_user_roles")
-    .select("tenant_id")
-    .eq("user_id", userId)
-    .eq("role", "company")
-    .not("tenant_id", "is", null)
-    .maybeSingle();
-  if (roleRow?.tenant_id) return roleRow.tenant_id;
-
-  // フォールバック: ow_companies.user_id（多行返却に対応するため .limit(1)）
-  const { data: companies } = await supabase
-    .from("ow_companies")
-    .select("id")
-    .eq("user_id", userId)
-    .limit(1);
-  return companies?.[0]?.id ?? null;
+  const ctx = await getCompanyContext(supabase, userId);
+  return ctx?.companyId ?? null;
 }
 
 export async function fetchCompanyForTenant(

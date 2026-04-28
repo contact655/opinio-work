@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { getOwUserId, getCompanyId } from "@/lib/business/company";
+import { cookies } from "next/headers";
+import { getCompanyContext } from "@/lib/business/company";
 import { addExistingUserToCompany } from "./_lib";
 
 export async function POST(req: Request) {
@@ -25,24 +26,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "権限が不正です" }, { status: 400 });
   }
 
-  const [actorOwUserId, companyId] = await Promise.all([
-    getOwUserId(supabase, user.id),
-    getCompanyId(supabase, user.id),
-  ]);
-
-  if (!companyId) {
-    return NextResponse.json({ error: "Company not found" }, { status: 403 });
+  const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+  const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+  if (!ctx) {
+    return NextResponse.json({ error: "Company context not found" }, { status: 403 });
   }
+  const { owUserId: actorOwUserId, companyId, allMemberships } = ctx;
 
-  const { data: actorAdmin } = await supabase
-    .from("ow_company_admins")
-    .select("permission")
-    .eq("user_id", actorOwUserId ?? "")
-    .eq("company_id", companyId)
-    .eq("is_active", true)
-    .maybeSingle();
-
-  if (actorAdmin?.permission !== "admin") {
+  // actorAdmin 確認: allMemberships から直接取得 (追加 DB クエリなし)
+  const actorMembership = allMemberships.find((m) => m.companyId === companyId);
+  if (actorMembership?.permission !== "admin") {
     return NextResponse.json({ error: "メンバー追加は管理者のみ可能です" }, { status: 403 });
   }
 
