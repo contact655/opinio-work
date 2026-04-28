@@ -7,7 +7,6 @@ import {
   MOCK_CASUAL_MEETINGS,
   MOCK_MENTOR_RESERVATIONS,
   MOCK_BOOKMARKS_ARTICLES,
-  MOCK_BOOKMARKS_COMPANIES,
   MOCK_BOOKMARKS_MENTORS,
   MOCK_RECEIVED_REQUESTS,
   PILL_STYLES,
@@ -246,10 +245,11 @@ function SidebarItem({
 // ─── VIEW: Dashboard ──────────────────────────────────────────────────────────
 
 function DashboardView({
-  isMentor, onNavigate, userName, userInitial, userAvatar, userCover,
+  isMentor, onNavigate, userName, userInitial, userAvatar, userCover, companyBookmarks,
 }: {
   isMentor: boolean; onNavigate: (v: ActiveView) => void;
   userName: string; userInitial: string; userAvatar: string; userCover: string;
+  companyBookmarks: Bookmark[];
 }) {
   const pendingCasual = MOCK_CASUAL_MEETINGS.filter(
     (m) => m.status === "pending" || m.status === "scheduled"
@@ -259,7 +259,7 @@ function DashboardView({
   ).length;
   const totalBookmarks =
     MOCK_BOOKMARKS_ARTICLES.length +
-    MOCK_BOOKMARKS_COMPANIES.length +
+    companyBookmarks.length +
     MOCK_BOOKMARKS_MENTORS.length;
 
   const recentActivity: {
@@ -505,27 +505,19 @@ function DashboardView({
           </button>
         }
       >
+        {companyBookmarks.length === 0 ? (
+          <div style={{ padding: "20px 0", textAlign: "center", color: "var(--ink-mute)", fontSize: 13 }}>
+            ブックマークした企業がここに表示されます
+          </div>
+        ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
-          {[
-            {
-              type: "記事", title: "プロダクトを軸に営業まで広げる、職域を超える挑戦",
-              meta: "田中翔太さん · タイミー · 2025.10.12",
-            },
-            {
-              type: "企業", title: "株式会社LayerX",
-              meta: "SaaS / 450名 · 募集中32件",
-            },
-            {
-              type: "メンター", title: "鈴木 由紀さん · 外資コンサルPdM",
-              meta: "PdM・プロダクト思考のテーマ",
-            },
-          ].map((bk, i) => (
+          {companyBookmarks.slice(0, 3).map((bk) => (
+            <Link key={bk.id} href={bk.href} style={{ textDecoration: "none" }}>
             <div
-              key={i}
               style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 10, padding: "14px 16px", cursor: "pointer",
-                transition: "all 0.2s",
+                transition: "all 0.2s", height: "100%",
               }}
               className="bookmark-card-hover"
             >
@@ -534,7 +526,7 @@ function DashboardView({
                 color: "var(--ink-mute)", letterSpacing: "0.1em",
                 textTransform: "uppercase", marginBottom: 6,
               }}>
-                {bk.type}
+                {bk.badge_label}
               </div>
               <div style={{
                 fontSize: 12, fontWeight: 600, color: "var(--ink)",
@@ -546,8 +538,10 @@ function DashboardView({
               </div>
               <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.5 }}>{bk.meta}</div>
             </div>
+            </Link>
           ))}
         </div>
+        )}
       </SectionBlock>
     </div>
   );
@@ -681,10 +675,11 @@ function BookmarkGrid({ items }: { items: Bookmark[] }) {
   );
 }
 
-function BookmarksView() {
+function BookmarksView({ companyBookmarks }: { companyBookmarks: Bookmark[] }) {
+  // target_type='company' uses real DB data; articles/mentors remain mock pending table availability
   const sections = [
     { title: "記事", titleEn: "Articles", items: MOCK_BOOKMARKS_ARTICLES },
-    { title: "企業", titleEn: "Companies", items: MOCK_BOOKMARKS_COMPANIES },
+    { title: "企業", titleEn: "Companies", items: companyBookmarks },
     { title: "メンター", titleEn: "Mentors", items: MOCK_BOOKMARKS_MENTORS },
   ];
   return (
@@ -886,7 +881,7 @@ const Icons = {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function MypageClient({ owUser }: { owUser: OwUser }) {
+export default function MypageClient({ owUser, companyBookmarks }: { owUser: OwUser; companyBookmarks: Bookmark[] }) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
   const userAvatar = owUser?.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)";
@@ -1076,11 +1071,12 @@ export default function MypageClient({ owUser }: { owUser: OwUser }) {
               userInitial={userInitial}
               userAvatar={userAvatar}
               userCover={userCover}
+              companyBookmarks={companyBookmarks}
             />
           )}
           {activeView === "casual" && <CasualView />}
           {activeView === "mentor-reserve" && <MentorReserveView />}
-          {activeView === "bookmarks" && <BookmarksView />}
+          {activeView === "bookmarks" && <BookmarksView companyBookmarks={companyBookmarks} />}
           {activeView === "mentor-requests" && (
             <MentorRequestsView
               requests={receivedRequests}

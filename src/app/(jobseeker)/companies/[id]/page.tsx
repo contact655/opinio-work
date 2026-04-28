@@ -11,6 +11,7 @@ import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import BookmarkButton from "./CompanyDetailClient";
+import { createClient } from "@/lib/supabase/server";
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
@@ -65,9 +66,13 @@ function Breadcrumb({ company }: { company: Company }) {
 function Hero({
   company,
   detail,
+  initialBookmarked,
+  isAuthenticated,
 }: {
   company: Company;
   detail: CompanyDetail;
+  initialBookmarked: boolean;
+  isAuthenticated: boolean;
 }) {
   const initial = company.name.charAt(0).toUpperCase();
   const freshLabel = formatUpdated(company.updated_days_ago);
@@ -235,7 +240,12 @@ function Hero({
 
           {/* Right: bookmark */}
           <div style={{ display: "flex", gap: 8, flexShrink: 0, alignSelf: "flex-start" }}>
-            <BookmarkButton companyName={company.name} />
+            <BookmarkButton
+              companyName={company.name}
+              companyId={company.id}
+              initialBookmarked={initialBookmarked}
+              isAuthenticated={isAuthenticated}
+            />
           </div>
         </div>
 
@@ -1668,20 +1678,44 @@ export default async function CompanyDetailPage({
 }: {
   params: { id: string };
 }) {
-  const [companyResult, photos, recruiters] = await Promise.all([
+  const supabase = createClient();
+
+  const [companyResult, photos, recruiters, authResult] = await Promise.all([
     getCompanyById(params.id),
     getCompanyPhotos(params.id),
     getCompanyRecruiters(params.id),
+    supabase.auth.getUser(),
   ]);
 
   if (!companyResult) return notFound();
 
   const { company, detail } = companyResult;
 
+  // Resolve ow_users.id and check existing bookmark
+  let initialBookmarked = false;
+  const isAuthenticated = !!authResult.data.user;
+  if (isAuthenticated) {
+    const { data: owUser } = await supabase
+      .from("ow_users")
+      .select("id")
+      .eq("auth_id", authResult.data.user!.id)
+      .maybeSingle();
+    if (owUser) {
+      const { data: bmark } = await supabase
+        .from("ow_bookmarks")
+        .select("id")
+        .eq("user_id", owUser.id)
+        .eq("target_type", "company")
+        .eq("target_id", params.id)
+        .maybeSingle();
+      initialBookmarked = !!bmark;
+    }
+  }
+
   return (
     <>
       <Breadcrumb company={company} />
-      <Hero company={company} detail={detail} />
+      <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} isAuthenticated={isAuthenticated} />
       <TabsBar company={company} />
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
