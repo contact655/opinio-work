@@ -410,3 +410,93 @@ export async function getJobById(
     company: mapCompany(compData),
   };
 }
+
+// ─── Company photos ───────────────────────────────────────────────────────────
+
+export type CompanyPhoto = {
+  id: string;
+  photo_url: string;
+  category: string | null;
+  display_order: number;
+};
+
+export async function getCompanyPhotos(companyId: string): Promise<CompanyPhoto[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("ow_company_photos")
+    .select("id, photo_url, category, display_order")
+    .eq("company_id", companyId)
+    .order("display_order", { ascending: true })
+    .limit(6);
+  if (error) {
+    console.error("[getCompanyPhotos]", error.message);
+    return [];
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []).map((row: Record<string, any>): CompanyPhoto => ({
+    id: row.id as string,
+    photo_url: row.photo_url as string,
+    category: (row.category as string) ?? null,
+    display_order: (row.display_order as number) ?? 0,
+  }));
+}
+
+// ─── Company recruiters ───────────────────────────────────────────────────────
+
+export type CompanyRecruiter = {
+  id: string;
+  name: string;
+  avatar_initial: string;
+  avatar_color: string | null;
+  department: string | null;
+  role_title: string | null;
+};
+
+export async function getCompanyRecruiters(companyId: string): Promise<CompanyRecruiter[]> {
+  const supabase = createClient();
+
+  const { data: adminRows, error } = await supabase
+    .from("ow_company_admins")
+    .select("id, user_id, department, role_title, permission")
+    .eq("company_id", companyId)
+    .eq("is_active", true);
+
+  if (error || !adminRows?.length) {
+    if (error) console.error("[getCompanyRecruiters]", error.message);
+    return [];
+  }
+
+  // admin first, then member
+  adminRows.sort((a, b) => {
+    if (a.permission === "admin" && b.permission !== "admin") return -1;
+    if (a.permission !== "admin" && b.permission === "admin") return 1;
+    return 0;
+  });
+
+  const userIds = adminRows.map((r) => r.user_id as string).filter(Boolean);
+  if (userIds.length === 0) return [];
+
+  const { data: userRows } = await supabase
+    .from("ow_users")
+    .select("id, name, avatar_color")
+    .in("id", userIds);
+
+  const userMap = new Map(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (userRows ?? []).map((u: Record<string, any>) => [u.id as string, u])
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return adminRows.map((row: Record<string, any>): CompanyRecruiter => {
+    const user = userMap.get(row.user_id as string);
+    const name = (user?.name as string) ?? "担当者";
+    return {
+      id: row.id as string,
+      name,
+      avatar_initial: name.charAt(0),
+      avatar_color: (user?.avatar_color as string) ?? null,
+      department: (row.department as string) ?? null,
+      role_title: (row.role_title as string) ?? null,
+    };
+  });
+}
