@@ -1,6 +1,6 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { fetchMembersForCompany } from "@/lib/business/members";
+import { fetchMembersForCompany, fetchPendingInvitesForCompany } from "@/lib/business/members";
 import { getOwUserId } from "@/lib/business/company";
 import { createClient } from "@/lib/supabase/server";
 import { MembersClient } from "./MembersClient";
@@ -31,8 +31,9 @@ export default async function MembersPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [members, currentUserId] = await Promise.all([
+  const [members, pendingInvites, currentUserId] = await Promise.all([
     fetchMembersForCompany(supabase, ctx.tenantId),
+    fetchPendingInvitesForCompany(supabase, ctx.tenantId),
     user ? getOwUserId(supabase, user.id) : Promise.resolve(null),
   ]);
 
@@ -48,6 +49,7 @@ export default async function MembersPage() {
     >
       <MembersClient
         initialMembers={members}
+        initialPendingInvites={pendingInvites}
         currentUserId={currentUserId ?? ""}
       />
     </BusinessLayout>

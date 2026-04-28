@@ -178,3 +178,52 @@ export async function PATCH(
 
   return NextResponse.json({ success: true });
 }
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: { id: string } }
+) {
+  const adminRecordId = params.id;
+  const supabase = createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+  const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+  if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 403 });
+
+  const { companyId, allMemberships } = ctx;
+
+  const actorMembership = allMemberships.find((m) => m.companyId === companyId);
+  if (actorMembership?.permission !== "admin") {
+    return NextResponse.json({ error: "招待のキャンセルは管理者のみ可能です" }, { status: 403 });
+  }
+
+  const { data: target } = await supabase
+    .from("ow_company_admins")
+    .select("id, company_id, user_id")
+    .eq("id", adminRecordId)
+    .maybeSingle();
+
+  if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (target.company_id !== companyId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (target.user_id !== null) {
+    return NextResponse.json(
+      { error: "受諾済みの招待はキャンセルできません", code: "ALREADY_ACCEPTED" },
+      { status: 409 }
+    );
+  }
+
+  const { error } = await supabase
+    .from("ow_company_admins")
+    .delete()
+    .eq("id", adminRecordId);
+
+  if (error) {
+    console.error("[members DELETE]", error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

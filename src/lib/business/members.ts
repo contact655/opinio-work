@@ -14,6 +14,15 @@ export type MemberRecord = {
   created_at: string;
 };
 
+export type PendingInviteRecord = {
+  id: string;
+  invited_email: string;
+  invited_at: string;
+  expires_at: string;
+  permission: "admin" | "member";
+  invitation_token: string;
+};
+
 const FALLBACK_GRADIENT = "linear-gradient(135deg, var(--royal), var(--accent))";
 
 type DbRow = {
@@ -26,6 +35,42 @@ type DbRow = {
   user: { id: string; name: string; email: string; avatar_color: string | null } | null;
 };
 
+const EXPIRY_DAYS = 7;
+
+export async function fetchPendingInvitesForCompany(
+  supabase: SupabaseClient,
+  tenantId: string,
+): Promise<PendingInviteRecord[]> {
+  try {
+    const { data, error } = await supabase
+      .from("ow_company_admins")
+      .select("id, invited_email, invited_at, permission, invitation_token")
+      .eq("company_id", tenantId)
+      .eq("is_active", true)
+      .is("user_id", null)
+      .order("invited_at", { ascending: false });
+
+    if (error) {
+      console.error("[pending invites] fetch error:", error.message);
+      return [];
+    }
+
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      invited_email: row.invited_email ?? "",
+      invited_at: row.invited_at ?? "",
+      expires_at: new Date(
+        new Date(row.invited_at).getTime() + EXPIRY_DAYS * 24 * 60 * 60 * 1000
+      ).toISOString(),
+      permission: row.permission === "admin" ? "admin" : "member",
+      invitation_token: row.invitation_token ?? "",
+    }));
+  } catch (err) {
+    console.error("[pending invites] unexpected error:", err);
+    return [];
+  }
+}
+
 export async function fetchMembersForCompany(
   supabase: SupabaseClient,
   tenantId: string,
@@ -35,6 +80,7 @@ export async function fetchMembersForCompany(
       .from("ow_company_admins")
       .select("id, permission, role_title, department, is_active, created_at, user:ow_users!user_id (id, name, email, avatar_color)")
       .eq("company_id", tenantId)
+      .not("user_id", "is", null)
       .order("permission", { ascending: true })
       .order("created_at", { ascending: true });
 

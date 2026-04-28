@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { MemberRecord } from "@/lib/business/members";
+import type { MemberRecord, PendingInviteRecord } from "@/lib/business/members";
 
 type Tab = "active" | "inactive";
 type ActionType = "permission" | "deactivate" | "reactivate";
@@ -10,6 +10,7 @@ type ProfileEditTarget = { id: string; role_title: string | null; department: st
 
 type Props = {
   initialMembers: MemberRecord[];
+  initialPendingInvites: PendingInviteRecord[];
   currentUserId: string;
 };
 
@@ -677,8 +678,239 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   );
 }
 
+// ── PendingInvitesSection ────────────────────────────────────────────
+function daysUntilExpiry(expiresAt: string): number {
+  return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
+function PendingInvitesSection({
+  invites,
+  onCancelled,
+  onToast,
+}: {
+  invites: PendingInviteRecord[];
+  onCancelled: (id: string) => void;
+  onToast: (msg: string) => void;
+}) {
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  async function handleCopy(invite: PendingInviteRecord) {
+    const url = `${window.location.origin}/biz/auth/accept-invite?token=${invite.invitation_token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(invite.id);
+      setTimeout(() => setCopiedId((v) => (v === invite.id ? null : v)), 2000);
+      onToast("招待 URL をコピーしました");
+    } catch {
+      onToast("コピーに失敗しました");
+    }
+  }
+
+  async function handleCancel(invite: PendingInviteRecord) {
+    if (!window.confirm(`${invite.invited_email} への招待をキャンセルしますか？`)) return;
+    setCancellingId(invite.id);
+    try {
+      const res = await fetch(`/api/biz/members/${invite.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const json = await res.json() as { error?: string };
+        onToast(json.error ?? "キャンセルに失敗しました");
+        return;
+      }
+      onToast("招待をキャンセルしました");
+      onCancelled(invite.id);
+    } catch {
+      onToast("通信エラーが発生しました");
+    } finally {
+      setCancellingId(null);
+    }
+  }
+
+  const PERM_LABELS: Record<"admin" | "member", string> = { admin: "管理者", member: "メンバー" };
+
+  return (
+    <div style={{ marginTop: 28 }}>
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 12,
+      }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          招待中
+        </span>
+        <span style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 11,
+          fontWeight: 700,
+          padding: "1px 6px",
+          borderRadius: 100,
+          background: "var(--warm-soft)",
+          color: "var(--warm)",
+        }}>
+          {invites.length}
+        </span>
+      </div>
+
+      {invites.length === 0 ? (
+        <div style={{
+          padding: "20px 24px",
+          textAlign: "center",
+          color: "var(--ink-mute)",
+          fontSize: 13,
+          background: "#fff",
+          border: "1px solid var(--line)",
+          borderRadius: 12,
+        }}>
+          招待中のメンバーはいません
+        </div>
+      ) : (
+        <div style={{
+          background: "#fff",
+          border: "1px solid var(--line)",
+          borderRadius: 12,
+          overflow: "hidden",
+        }}>
+          {invites.map((invite, index) => {
+            const daysLeft = daysUntilExpiry(invite.expires_at);
+            const isExpired = daysLeft <= 0;
+            const isCancelling = cancellingId === invite.id;
+            const isCopied = copiedId === invite.id;
+            const isLast = index === invites.length - 1;
+
+            return (
+              <div
+                key={invite.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "14px 20px",
+                  borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
+                  background: isExpired ? "var(--bg-tint)" : "#fff",
+                  opacity: isCancelling ? 0.5 : 1,
+                }}
+              >
+                {/* Left: email + meta */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
+                      {invite.invited_email}
+                    </span>
+                    <span style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: "1px 7px",
+                      borderRadius: 100,
+                      background: "var(--warm-soft)",
+                      color: "var(--warm)",
+                    }}>
+                      招待中
+                    </span>
+                    <span style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      padding: "1px 7px",
+                      borderRadius: 100,
+                      background: "var(--line-soft)",
+                      color: "var(--ink-mute)",
+                    }}>
+                      {PERM_LABELS[invite.permission]}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "var(--ink-mute)" }}>
+                    <span>{new Date(invite.invited_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" })} に招待</span>
+                    {isExpired ? (
+                      <span style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "1px 7px",
+                        borderRadius: 100,
+                        background: "var(--error-soft)",
+                        color: "var(--error)",
+                      }}>
+                        期限切れ
+                      </span>
+                    ) : (
+                      <span style={{ color: daysLeft <= 2 ? "var(--error)" : "var(--ink-mute)" }}>
+                        あと {daysLeft} 日で期限切れ
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: actions */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {!isExpired && (
+                    <button
+                      onClick={() => handleCopy(invite)}
+                      title="招待 URL をコピー"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        padding: "6px 11px",
+                        background: isCopied ? "var(--success-soft)" : "var(--bg-tint)",
+                        border: `1px solid ${isCopied ? "var(--success)" : "var(--line)"}`,
+                        borderRadius: 7,
+                        fontFamily: "inherit",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: isCopied ? "var(--success)" : "var(--ink-soft)",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {isCopied ? (
+                        <>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <path d="M20 6L9 17l-5-5"/>
+                          </svg>
+                          コピー済み
+                        </>
+                      ) : (
+                        <>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                          </svg>
+                          URL コピー
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleCancel(invite)}
+                    disabled={isCancelling}
+                    style={{
+                      padding: "6px 11px",
+                      background: "none",
+                      border: "1px solid var(--line)",
+                      borderRadius: 7,
+                      fontFamily: "inherit",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "var(--error)",
+                      cursor: isCancelling ? "not-allowed" : "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {isCancelling ? "キャンセル中..." : "キャンセル"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── MembersClient ───────────────────────────────────────────────────
-export function MembersClient({ initialMembers, currentUserId }: Props) {
+export function MembersClient({ initialMembers, initialPendingInvites, currentUserId }: Props) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("active");
 
@@ -701,6 +933,8 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
 
   // toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const [pendingInvites, setPendingInvites] = useState(initialPendingInvites);
 
   const activeMembers = initialMembers.filter((m) => m.is_active);
   const inactiveMembers = initialMembers.filter((m) => !m.is_active);
@@ -1026,6 +1260,18 @@ export function MembersClient({ initialMembers, currentUserId }: Props) {
             );
           })}
         </div>
+      )}
+
+      {/* 招待中セクション（アクティブタブのみ） */}
+      {activeTab === "active" && (
+        <PendingInvitesSection
+          invites={pendingInvites}
+          onCancelled={(id) => {
+            setPendingInvites((prev) => prev.filter((i) => i.id !== id));
+            router.refresh();
+          }}
+          onToast={setToastMessage}
+        />
       )}
 
       {/* 役職・部署編集ダイアログ */}
