@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Header } from "@/components/common";
-import { Footer } from "@/components/common";
-import { type Job, type PositionMember } from "../mockJobData";
+import { type Job, type PositionMember } from "@/app/jobs/mockJobData";
 import { getJobById as fetchJobById } from "@/lib/supabase/queries";
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
@@ -81,8 +79,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
   return (
     <>
-      <Header />
-
       {/* Breadcrumb */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 md:px-12">
@@ -697,8 +693,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
           </div>
         </div>
       </div>
-
-      <Footer />
 
       <style>{`
         .similar-job-card:hover {
