@@ -1042,17 +1042,6 @@ export const MOCK_JOBS: Job[] = [
 
 // ─── Filter constants ──────────────────────────────────────────────────────────
 
-export const JOB_DEPTS = [
-  "PdM / PM",
-  "エンジニア",
-  "営業",
-  "カスタマーサクセス",
-  "マーケティング",
-  "デザイナー",
-  "経営 / CxO",
-  "コーポレート",
-];
-
 export const SALARY_PRESETS = [400, 500, 600, 700, 800, 1000, 1200, 1500];
 
 export const WORK_STYLES = ["フルリモート", "ハイブリッド", "フレックス", "副業OK", "週4日勤務"];

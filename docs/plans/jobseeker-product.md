@@ -246,7 +246,8 @@ const isDev = process.env.NODE_ENV === "development";
 
 **暫定対処**: `JobsClient.tsx` で `depts` を `allJobs.map(j => j.dept)` から動的導出（DB の実値を使用）。
 
-**根本解決**: `ow_roles` マスタを参照する形に統一する必要あり。`ow_jobs.job_category` を FK に変更するか、`ow_roles.name` の配列として管理し直す（M-5 候補）。
+> ✅ **更新 (2026-04-29, P2)**: P2 調査で `JOB_DEPTS` が完全な dead code（どこからも import なし）であることを確認。削除完了。  
+> Commit E の動的 dept 導出が唯一の正規パス。表記ゆれの根本問題は §6-9 に記録。
 
 ### 6-2. `src/app/jobs/mockJobData.ts` への依存
 
@@ -281,6 +282,36 @@ RLS により未認証ユーザーは `ow_company_admins` を読めない。
 
 `src/app/(jobseeker)/page.tsx:635` にコンパイルエラーが存在（`Unexpected token 'section'`）。commit B 以前からの問題。  
 ページの動作には影響しない（HMR が部分的にスキップする）が、根本原因の調査が必要。
+
+### 6-9. `ow_roles` マスタ vs `ow_jobs.job_category` の表記ゆれ（P2 調査で発見）
+
+**発見**: P2 タスク（JOB_DEPTS 整合性解消）の調査中
+
+| `ow_roles` 親カテゴリ | DB 実値（`ow_jobs.job_category`）| ステータス |
+|----------------------|--------------------------------|-----------|
+| 営業 | `営業` | ✅ 一致 |
+| PdM / PM | `PdM` | ⚠ 表記ゆれ（スラッシュなし） |
+| カスタマーサクセス | `カスタマーサクセス` | ✅ 一致 |
+| エンジニア | `エンジニア` | ✅ 一致 |
+| マーケティング | （求人なし） | — |
+| 経営・CxO | （求人なし） | — |
+| その他 | （求人なし） | — |
+| — | `フィールドセールス` | ⚠ 子カテゴリが直接格納（`ow_roles` では「営業」の子） |
+
+**根本問題**:
+- `ow_jobs.job_category` が `TEXT`（free text）、ENUM / FK 制約なし
+- 求人作成 UI（`JobEditForm.tsx`）は独自の `JOB_CATEGORIES` 定数でバリデーション、`ow_roles` テーブルとは非連動
+- 結果として `ow_roles` と乖離した値が DB に格納される可能性がある
+
+**現在の影響範囲**:
+- 求職者側フィルター（`JobsClient.tsx`）は動的導出なので実害なし
+- biz 側フィルター（`JobsClient.tsx:79`）も `jobCategory` 文字列で動作中
+- `lib/utils/jobCategoryStyle.ts` は部分一致判定のため表記ゆれに耐性あり
+
+**将来の解決方向**（M-5 候補、§9 参照）:
+- `ow_jobs.job_category` を `ow_roles.id` への FK に変更（migration）
+- 既存データのマイグレーション（`PdM` → `PdM / PM` に対応する id 等）
+- 求人作成 UI を `ow_roles` マスタから動的生成するよう変更
 
 ### 6-8. `DashboardView` クロージャーバグ（発見 + 修正: サービス化セット F）
 
@@ -352,6 +383,7 @@ function DashboardView({
 | ⭐⭐ | `ow_articles` 新規テーブル + `/articles` 系 | 記事は求職者の情報収集の要。4 タイプ × レイアウト分岐が複雑 | 大 | ow_articles 設計・マイグレーション |
 | ⭐⭐ | `/mentors` 系 Supabase 接続 | `mentors` テーブルは確認済み（`ow_` なし）。一覧・詳細・予約の 3 ページ | 大 | mentors テーブル確認（済）|
 | ⭐ | `ow_bookmarks` 新規テーブル + ブックマーク機能 | 企業・求人詳細で UI は実装済み（`useState` トグルのみ）。API と DB の実装が必要 | 中 | /auth 完了（済）|
+| — | `ow_jobs.job_category` FK 化 + UI 変更 | `TEXT` free text のため表記ゆれが発生（§6-9 参照）。`ow_roles.id` への FK 化 + 既存データ migration + 求人作成 UI の `ow_roles` 連動が必要 | 大 | — |
 
 ### M-5 着手前に確認すべき事項
 
