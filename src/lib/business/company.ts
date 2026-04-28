@@ -210,28 +210,6 @@ export async function getCompanyContext(
   };
 }
 
-/**
- * @deprecated Use getCompanyContext instead. Will be removed after commit 2.6c migration is complete.
- */
-export async function getOwUserId(
-  supabase: SupabaseClient,
-  authId: string,
-): Promise<string | null> {
-  const ctx = await getCompanyContext(supabase, authId);
-  return ctx?.owUserId ?? null;
-}
-
-/**
- * @deprecated Use getCompanyContext instead. Will be removed after commit 2.6c migration is complete.
- */
-export async function getCompanyId(
-  supabase: SupabaseClient,
-  userId: string,
-): Promise<string | null> {
-  const ctx = await getCompanyContext(supabase, userId);
-  return ctx?.companyId ?? null;
-}
-
 export async function fetchCompanyForTenant(
   supabase: SupabaseClient,
   tenantId: string,

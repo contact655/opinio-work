@@ -1,7 +1,6 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { fetchMembersForCompany, fetchPendingInvitesForCompany } from "@/lib/business/members";
-import { getOwUserId } from "@/lib/business/company";
 import { createClient } from "@/lib/supabase/server";
 import { MembersClient } from "./MembersClient";
 
@@ -29,12 +28,10 @@ export default async function MembersPage() {
   if (!ctx) return <NoTenantPage />;
 
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
-  const [members, pendingInvites, currentUserId] = await Promise.all([
+  const [members, pendingInvites] = await Promise.all([
     fetchMembersForCompany(supabase, ctx.tenantId),
     fetchPendingInvitesForCompany(supabase, ctx.tenantId),
-    user ? getOwUserId(supabase, user.id) : Promise.resolve(null),
   ]);
 
   return (
@@ -50,7 +47,7 @@ export default async function MembersPage() {
       <MembersClient
         initialMembers={members}
         initialPendingInvites={pendingInvites}
-        currentUserId={currentUserId ?? ""}
+        currentUserId={ctx.currentOwnId}
       />
     </BusinessLayout>
   );
