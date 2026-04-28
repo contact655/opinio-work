@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import MypageClient from "./MypageClient";
-import type { Bookmark } from "@/app/mypage/mockMypageData";
+import type {
+  Bookmark,
+  CasualMeeting,
+  CasualMeetingStatus,
+} from "@/app/mypage/mockMypageData";
 
 export const metadata = { title: "マイページ — Opinio" };
 
@@ -63,5 +67,60 @@ export default async function MypagePage() {
     }
   }
 
-  return <MypageClient owUser={owUser} companyBookmarks={companyBookmarks} />;
+  // Fetch casual meetings with company logo info
+  let casualMeetings: CasualMeeting[] = [];
+  if (owUser) {
+    const { data: meetings } = await supabase
+      .from("ow_casual_meetings")
+      .select("id, company_id, job_id, status, created_at")
+      .eq("user_id", owUser.id)
+      .order("created_at", { ascending: false });
+
+    if (meetings && meetings.length > 0) {
+      const companyIdSet = new Set(meetings.map((m) => m.company_id as string));
+      const companyIds = Array.from(companyIdSet);
+      const { data: companies } = await supabase
+        .from("ow_companies")
+        .select("id, name, logo_gradient, logo_letter")
+        .in("id", companyIds);
+
+      const jobIds = meetings
+        .filter((m) => m.job_id)
+        .map((m) => m.job_id as string);
+      const jobMap = new Map<string, string>();
+      if (jobIds.length > 0) {
+        const { data: jobs } = await supabase
+          .from("ow_jobs")
+          .select("id, title")
+          .in("id", jobIds);
+        for (const j of jobs ?? []) {
+          jobMap.set(j.id as string, j.title as string);
+        }
+      }
+
+      const companyMap = new Map((companies ?? []).map((c) => [c.id as string, c]));
+      const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
+
+      casualMeetings = meetings.map((m): CasualMeeting => {
+        const c = companyMap.get(m.company_id as string);
+        const appliedAt = new Date(m.created_at as string)
+          .toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
+          .replace(/\//g, ".");
+        return {
+          id: m.id as string,
+          company_id: m.company_id as string,
+          company_name: (c?.name as string) ?? "—",
+          company_initial: (c?.logo_letter as string) ?? (c?.name as string)?.charAt(0) ?? "?",
+          company_gradient: (c?.logo_gradient as string) ?? FALLBACK_GRADIENT,
+          job_title: m.job_id
+            ? (jobMap.get(m.job_id as string) ?? "カジュアル面談")
+            : "カジュアル面談",
+          applied_at: appliedAt,
+          status: (m.status as CasualMeetingStatus) ?? "pending",
+        };
+      });
+    }
+  }
+
+  return <MypageClient owUser={owUser} companyBookmarks={companyBookmarks} casualMeetings={casualMeetings} />;
 }

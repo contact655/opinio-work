@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import {
   MOCK_USER,
-  MOCK_CASUAL_MEETINGS,
   MOCK_MENTOR_RESERVATIONS,
   MOCK_BOOKMARKS_ARTICLES,
   MOCK_BOOKMARKS_MENTORS,
@@ -245,13 +244,14 @@ function SidebarItem({
 // ─── VIEW: Dashboard ──────────────────────────────────────────────────────────
 
 function DashboardView({
-  isMentor, onNavigate, userName, userInitial, userAvatar, userCover, companyBookmarks,
+  isMentor, onNavigate, userName, userInitial, userAvatar, userCover, companyBookmarks, casualMeetings,
 }: {
   isMentor: boolean; onNavigate: (v: ActiveView) => void;
   userName: string; userInitial: string; userAvatar: string; userCover: string;
   companyBookmarks: Bookmark[];
+  casualMeetings: CasualMeeting[];
 }) {
-  const pendingCasual = MOCK_CASUAL_MEETINGS.filter(
+  const pendingCasual = casualMeetings.filter(
     (m) => m.status === "pending" || m.status === "scheduled"
   ).length;
   const pendingMentor = MOCK_MENTOR_RESERVATIONS.filter(
@@ -549,7 +549,7 @@ function DashboardView({
 
 // ─── VIEW: Casual meetings ────────────────────────────────────────────────────
 
-function CasualView() {
+function CasualView({ casualMeetings }: { casualMeetings: CasualMeeting[] }) {
   const statusMeta: Record<string, string> = {
     pending: "通常 3営業日以内に連絡",
     company_contacted: "企業から連絡あり",
@@ -568,28 +568,34 @@ function CasualView() {
       </p>
       <SectionBlock
         title="申込一覧" titleEn="All Applications"
-        right={<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>全 {MOCK_CASUAL_MEETINGS.length} 件</span>}
+        right={<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>全 {casualMeetings.length} 件</span>}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {MOCK_CASUAL_MEETINGS.map((m: CasualMeeting) => (
-            <RequestItem
-              key={m.id}
-              avatar={<CompanyAvatar initial={m.company_initial} gradient={m.company_gradient} />}
-              title={`${m.company_name} · ${m.job_title}`}
-              meta={
-                <span>
-                  {m.applied_at} 申込
-                  {m.scheduled_at
-                    ? <span style={{ color: "var(--ink-mute)" }}> · {m.scheduled_at}</span>
-                    : statusMeta[m.status]
-                    ? <span style={{ color: "var(--ink-mute)" }}> · {statusMeta[m.status]}</span>
-                    : null}
-                </span>
-              }
-              statusKey={m.status}
-            />
-          ))}
-        </div>
+        {casualMeetings.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--ink-mute)", textAlign: "center", padding: "24px 0" }}>
+            申し込みはまだありません
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {casualMeetings.map((m: CasualMeeting) => (
+              <RequestItem
+                key={m.id}
+                avatar={<CompanyAvatar initial={m.company_initial} gradient={m.company_gradient} />}
+                title={`${m.company_name} · ${m.job_title}`}
+                meta={
+                  <span>
+                    {m.applied_at} 申込
+                    {m.scheduled_at
+                      ? <span style={{ color: "var(--ink-mute)" }}> · {m.scheduled_at}</span>
+                      : statusMeta[m.status]
+                      ? <span style={{ color: "var(--ink-mute)" }}> · {statusMeta[m.status]}</span>
+                      : null}
+                  </span>
+                }
+                statusKey={m.status}
+              />
+            ))}
+          </div>
+        )}
       </SectionBlock>
     </div>
   );
@@ -881,7 +887,15 @@ const Icons = {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function MypageClient({ owUser, companyBookmarks }: { owUser: OwUser; companyBookmarks: Bookmark[] }) {
+export default function MypageClient({
+  owUser,
+  companyBookmarks,
+  casualMeetings,
+}: {
+  owUser: OwUser;
+  companyBookmarks: Bookmark[];
+  casualMeetings: CasualMeeting[];
+}) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
   const userAvatar = owUser?.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)";
@@ -897,7 +911,7 @@ export default function MypageClient({ owUser, companyBookmarks }: { owUser: OwU
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const pendingCasualCount = MOCK_CASUAL_MEETINGS.filter(
+  const pendingCasualCount = casualMeetings.filter(
     (m) => m.status === "pending" || m.status === "scheduled"
   ).length;
   const pendingMentorCount = MOCK_MENTOR_RESERVATIONS.filter(
@@ -1072,9 +1086,10 @@ export default function MypageClient({ owUser, companyBookmarks }: { owUser: OwU
               userAvatar={userAvatar}
               userCover={userCover}
               companyBookmarks={companyBookmarks}
+              casualMeetings={casualMeetings}
             />
           )}
-          {activeView === "casual" && <CasualView />}
+          {activeView === "casual" && <CasualView casualMeetings={casualMeetings} />}
           {activeView === "mentor-reserve" && <MentorReserveView />}
           {activeView === "bookmarks" && <BookmarksView companyBookmarks={companyBookmarks} />}
           {activeView === "mentor-requests" && (
