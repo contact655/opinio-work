@@ -625,6 +625,18 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     カジュアル面談を申し込む
                   </Link>
                 </div>
+                <Link href={`/jobs/${job.id}/apply`} style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  width: "100%", padding: "11px 0",
+                  background: "linear-gradient(135deg, var(--royal), var(--accent))",
+                  color: "#fff", border: "none", borderRadius: 8,
+                  fontSize: 13, fontWeight: 700, textDecoration: "none", textAlign: "center",
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
+                  </svg>
+                  正式に応募する
+                </Link>
                 <button style={{
                   width: "100%", padding: "11px 0",
                   background: "var(--bg-tint)", color: "var(--ink-soft)",

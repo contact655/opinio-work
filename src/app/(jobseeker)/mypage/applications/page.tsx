@@ -7,7 +7,7 @@ import Link from "next/link";
 type Application = {
   id: string;
   status: string;
-  applied_at: string;
+  created_at: string;
   updated_at: string;
   ow_jobs: {
     id: string;
@@ -80,7 +80,7 @@ export default function ApplicationsPage() {
     }
 
     const { data } = await supabase
-      .from("ow_applications")
+      .from("ow_job_applications")
       .select(
         `*,
         ow_jobs(id, title, job_category, salary_min, salary_max, location,
@@ -89,8 +89,8 @@ export default function ApplicationsPage() {
           )
         )`
       )
-      .eq("candidate_id", user.id)
-      .order("applied_at", { ascending: false });
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
     setApplications((data as Application[]) || []);
     setLoading(false);
@@ -306,7 +306,7 @@ export default function ApplicationsPage() {
                           <div className="flex items-center justify-between text-xs text-gray-600">
                             <span>
                               応募日:{" "}
-                              {new Date(app.applied_at).toLocaleDateString(
+                              {new Date(app.created_at).toLocaleDateString(
                                 "ja-JP"
                               )}
                             </span>
