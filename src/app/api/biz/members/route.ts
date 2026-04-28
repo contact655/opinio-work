@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
   const { data: targetUser } = await supabase
     .from("ow_users")
-    .select("id, name, email")
+    .select("id, name, email, auth_id")
     .eq("email", email)
     .maybeSingle();
 
@@ -59,7 +59,11 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await addExistingUserToCompany({ supabase, targetUser, companyId, permission });
+  if (!targetUser.auth_id) {
+    return NextResponse.json({ error: "ユーザーの認証情報が見つかりません" }, { status: 500 });
+  }
+
+  const result = await addExistingUserToCompany({ supabase, targetUser: { ...targetUser, auth_id: targetUser.auth_id }, companyId, permission });
 
   if (!result.ok) {
     return NextResponse.json({ error: result.message }, { status: result.status });
