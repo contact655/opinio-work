@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Header } from "@/components/common";
-import { Footer } from "@/components/common";
-import {
-  MOCK_MENTORS,
-  filterMentors,
-  type Mentor,
-} from "./mockMentorData";
+import { getMentors, type MentorData } from "@/lib/supabase/queries";
 import MentorFilterBar from "./MentorFilterBar";
 
 export const metadata: Metadata = {
@@ -18,7 +12,7 @@ export const metadata: Metadata = {
 
 // ─── Mentor Card ──────────────────────────────────────────────────────────────
 
-function MentorCard({ mentor }: { mentor: Mentor }) {
+function MentorCard({ mentor }: { mentor: MentorData }) {
   return (
     <article style={{
       display: "flex", flexDirection: "column",
@@ -32,7 +26,6 @@ function MentorCard({ mentor }: { mentor: Mentor }) {
     >
       {/* Head: avatar + name/role */}
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 14 }}>
-        {/* Avatar with mentor ring */}
         <div style={{ position: "relative", flexShrink: 0 }}>
           <div style={{
             width: 52, height: 52, borderRadius: "50%",
@@ -43,7 +36,6 @@ function MentorCard({ mentor }: { mentor: Mentor }) {
           }}>
             {mentor.initial}
           </div>
-          {/* Mentor ring badge */}
           <div style={{
             position: "absolute", bottom: -2, right: -2,
             width: 18, height: 18, borderRadius: "50%",
@@ -62,76 +54,56 @@ function MentorCard({ mentor }: { mentor: Mentor }) {
             {mentor.name}さん
           </div>
           <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-            <strong style={{ color: "var(--ink)" }}>{mentor.current_company}</strong>
-            {" · "}
-            {mentor.current_role}
+            <strong style={{ color: "var(--ink)" }}>{mentor.current_company || "（非公開）"}</strong>
+            {mentor.current_role && ` · ${mentor.current_role}`}
           </div>
         </div>
       </div>
 
       {/* Career chain */}
-      <div style={{
-        display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4,
-        fontSize: 11.5, color: "var(--ink-mute)",
-        marginBottom: 12, lineHeight: 1.6,
-      }}>
-        {mentor.career_chain.map((step, i) => (
-          <span key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {i > 0 && (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            )}
-            <span style={{
-              color: step.is_current ? "var(--royal)" : "var(--ink-mute)",
-              fontWeight: step.is_current ? 700 : 400,
-            }}>
-              {step.label}
+      {mentor.career_chain.length > 0 && (
+        <div style={{
+          display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4,
+          fontSize: 11.5, color: "var(--ink-mute)",
+          marginBottom: 12, lineHeight: 1.6,
+        }}>
+          {mentor.career_chain.map((step, i) => (
+            <span key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              {i > 0 && (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              )}
+              <span style={{
+                color: step.is_current ? "var(--royal)" : "var(--ink-mute)",
+                fontWeight: step.is_current ? 700 : 400,
+              }}>
+                {step.label}
+              </span>
             </span>
-          </span>
-        ))}
-      </div>
-
-      {/* Company logos (career history) */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 6,
-        marginBottom: 14,
-        background: "var(--bg-tint)", borderRadius: 8,
-        padding: "8px 10px",
-      }}>
-        <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginRight: 2 }}>在籍</span>
-        {mentor.company_logos.map((logo, i) => (
-          <div key={i} title={logo.name} style={{
-            width: 28, height: 28, borderRadius: 6,
-            background: logo.gradient,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontSize: 11, fontWeight: 700,
-            border: "1.5px solid #fff",
-            boxShadow: "0 2px 6px rgba(15,23,42,0.1)",
-            cursor: "default",
-          }}>
-            {logo.initial}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Theme tags */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 16 }}>
-        {mentor.themes.map((theme) => (
-          <span key={theme} style={{
-            fontSize: 10.5, padding: "4px 10px", borderRadius: 100,
-            background: "#fff", border: "1px solid var(--royal-100)",
-            color: "var(--royal)", fontWeight: 600,
-          }}>
-            {theme}
-          </span>
-        ))}
-      </div>
+      {mentor.themes.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 16 }}>
+          {mentor.themes.slice(0, 3).map((theme) => (
+            <span key={theme} style={{
+              fontSize: 10.5, padding: "4px 10px", borderRadius: 100,
+              background: "#fff", border: "1px solid var(--royal-100)",
+              color: "var(--royal)", fontWeight: 600,
+            }}>
+              {theme}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* CTA */}
       <div style={{ marginTop: "auto", paddingTop: 14, borderTop: "1px solid var(--line-soft, #F1F5F9)" }}>
         <Link
-          href={`/mentors/${mentor.id}/reserve`}
+          href={`/mentors/${mentor.id}`}
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
             width: "100%", padding: "10px",
@@ -146,7 +118,7 @@ function MentorCard({ mentor }: { mentor: Mentor }) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          話を聞く（30分）
+          プロフィールを見る
         </Link>
       </div>
     </article>
@@ -157,20 +129,14 @@ function MentorCard({ mentor }: { mentor: Mentor }) {
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
-export default function MentorsPage({ searchParams }: { searchParams: SearchParams }) {
-  const params = {
-    dept:     typeof searchParams.dept     === "string" ? searchParams.dept     : undefined,
-    industry: typeof searchParams.industry === "string" ? searchParams.industry : undefined,
-    theme:    typeof searchParams.theme    === "string" ? searchParams.theme    : undefined,
-    sort:     typeof searchParams.sort     === "string" ? searchParams.sort     : undefined,
-  };
+export default async function MentorsPage({ searchParams }: { searchParams: SearchParams }) {
+  const dept  = typeof searchParams.dept  === "string" ? searchParams.dept  : undefined;
+  const theme = typeof searchParams.theme === "string" ? searchParams.theme : undefined;
 
-  const mentors = filterMentors(MOCK_MENTORS, params);
+  const allMentors = await getMentors({ dept, theme });
 
   return (
     <>
-      <Header />
-
       {/* Breadcrumb */}
       <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 md:px-12">
@@ -188,7 +154,7 @@ export default function MentorsPage({ searchParams }: { searchParams: SearchPara
           {/* Stats row */}
           <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
             {[
-              { value: MOCK_MENTORS.length, label: "名のメンター" },
+              { value: allMentors.length, label: "名のメンター" },
               { value: "12", label: "社の掲載企業" },
               { value: "30", label: "分の無料相談" },
             ].map(({ value, label }) => (
@@ -217,7 +183,7 @@ export default function MentorsPage({ searchParams }: { searchParams: SearchPara
 
           {/* Avatar preview row */}
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 0, marginBottom: 20 }}>
-            {MOCK_MENTORS.slice(0, 8).map((m, i) => (
+            {allMentors.slice(0, 8).map((m, i) => (
               <div key={m.id} style={{
                 width: 40, height: 40, borderRadius: "50%",
                 background: m.gradient,
@@ -231,7 +197,7 @@ export default function MentorsPage({ searchParams }: { searchParams: SearchPara
                 {m.initial}
               </div>
             ))}
-            {MOCK_MENTORS.length > 8 && (
+            {allMentors.length > 8 && (
               <div style={{
                 width: 40, height: 40, borderRadius: "50%",
                 background: "var(--bg-tint)", border: "2px solid var(--line)",
@@ -239,7 +205,7 @@ export default function MentorsPage({ searchParams }: { searchParams: SearchPara
                 fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
                 marginLeft: -10, position: "relative", zIndex: 1,
               }}>
-                +{MOCK_MENTORS.length - 8}
+                +{allMentors.length - 8}
               </div>
             )}
           </div>
@@ -254,10 +220,7 @@ export default function MentorsPage({ searchParams }: { searchParams: SearchPara
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
               <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
             </svg>
-            <span style={{
-              flex: 1, fontSize: 14, color: "var(--ink-mute)",
-              textAlign: "left" as const,
-            }}>
+            <span style={{ flex: 1, fontSize: 14, color: "var(--ink-mute)", textAlign: "left" as const }}>
               PdMからCPOになった人に話を聞きたい
             </span>
             <button style={{
@@ -277,13 +240,13 @@ export default function MentorsPage({ searchParams }: { searchParams: SearchPara
 
       {/* Filter bar */}
       <Suspense fallback={<div style={{ height: 52, background: "#fff", borderBottom: "1px solid var(--line)" }} />}>
-        <MentorFilterBar total={mentors.length} />
+        <MentorFilterBar total={allMentors.length} />
       </Suspense>
 
       {/* Grid */}
       <main style={{ background: "var(--bg-tint)" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
-          {mentors.length === 0 ? (
+          {allMentors.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 0", color: "var(--ink-mute)" }}>
               <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
               <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--ink-soft)" }}>
@@ -293,15 +256,13 @@ export default function MentorsPage({ searchParams }: { searchParams: SearchPara
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {mentors.map((mentor) => (
+              {allMentors.map((mentor) => (
                 <MentorCard key={mentor.id} mentor={mentor} />
               ))}
             </div>
           )}
         </div>
       </main>
-
-      <Footer />
 
       <style>{`
         .mentor-card:hover {

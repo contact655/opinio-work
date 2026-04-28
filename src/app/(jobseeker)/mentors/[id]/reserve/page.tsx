@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+// TODO(M-2): replace MOCK_MENTORS with getMentorById() Supabase call
 import { MOCK_MENTORS } from "../../mockMentorData";
-import { MOCK_PROFILE } from "../../../profile/edit/mockProfileData";
+import { MOCK_PROFILE } from "../../../../profile/edit/mockProfileData";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 

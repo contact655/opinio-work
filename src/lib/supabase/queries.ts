@@ -500,3 +500,114 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
     };
   });
 }
+
+// ─── Mentors ──────────────────────────────────────────────────────────────────
+// Note: table name is `mentors` (no ow_ prefix — intentional, see design doc §6-X+1)
+
+export type MentorData = {
+  id: string;
+  name: string;
+  initial: string;
+  gradient: string;
+  current_company: string;
+  current_role: string;
+  bio: string;
+  catchphrase: string;
+  career_chain: { label: string; is_current: boolean }[];
+  themes: string[];
+  dept: string;
+  concerns: string[];
+  calendly_url: string | null;
+  is_available: boolean;
+  success_count: number;
+  total_sessions: number;
+};
+
+const MENTOR_COLS = [
+  "id", "name", "avatar_initial", "avatar_color",
+  "current_company", "current_role", "previous_career", "current_career",
+  "roles", "question_tags", "bio", "catchphrase", "concerns",
+  "calendly_url", "is_available", "display_order", "success_count", "total_sessions",
+].join(", ");
+
+function hexToMentorGradient(hex: string | null): string {
+  if (!hex) return FALLBACK_GRADIENT;
+  return `linear-gradient(135deg, ${hex}99, ${hex})`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapMentor(row: Record<string, any>): MentorData {
+  const name = (row.name as string) ?? "";
+  const current = (row.current_career as string | null);
+  const previous = (row.previous_career as string | null);
+  const chain: { label: string; is_current: boolean }[] = [];
+  if (previous) chain.push({ label: previous, is_current: false });
+  if (current)  chain.push({ label: current,  is_current: true  });
+
+  return {
+    id: row.id as string,
+    name,
+    initial: (row.avatar_initial as string | null) ?? name.charAt(0),
+    gradient: hexToMentorGradient(row.avatar_color as string | null),
+    current_company: (row.current_company as string | null) ?? "",
+    current_role: (row.current_role as string | null) ?? "",
+    bio: (row.bio as string | null) ?? "",
+    catchphrase: (row.catchphrase as string | null) ?? "",
+    career_chain: chain,
+    themes: (row.question_tags as string[] | null) ?? [],
+    dept: ((row.roles as string[] | null)?.[0]) ?? "",
+    concerns: (row.concerns as string[] | null) ?? [],
+    calendly_url: (row.calendly_url as string | null) ?? null,
+    is_available: (row.is_available as boolean) ?? true,
+    success_count: (row.success_count as number) ?? 0,
+    total_sessions: (row.total_sessions as number) ?? 0,
+  };
+}
+
+export type MentorFilter = {
+  dept?: string;
+  theme?: string;
+};
+
+export async function getMentors(filter?: MentorFilter): Promise<MentorData[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("mentors")
+    .select(MENTOR_COLS)
+    .order("display_order", { ascending: true });
+
+  if (error) {
+    console.error("[getMentors]", error.message);
+    return [];
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let rows = (data ?? []).map((row: Record<string, any>) => mapMentor(row));
+
+  if (filter?.dept) {
+    const dept = filter.dept;
+    rows = rows.filter((m) => m.dept === dept);
+  }
+  if (filter?.theme) {
+    const theme = filter.theme;
+    rows = rows.filter((m) => m.themes.includes(theme));
+  }
+
+  return rows;
+}
+
+export async function getMentorById(id: string): Promise<MentorData | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("mentors")
+    .select(MENTOR_COLS)
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
+    if (error?.code !== "PGRST116") console.error("[getMentorById]", error?.message);
+    return null;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return mapMentor(data as Record<string, any>);
+}
