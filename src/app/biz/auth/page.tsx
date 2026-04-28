@@ -40,7 +40,8 @@ export default function BizAuthPage() {
 function BizAuthInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/biz/dashboard";
+  const rawNext = searchParams.get("next") ?? "";
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/biz/dashboard";
   const modeParam = searchParams.get("mode");
 
   const [mode, setMode] = useState<Mode>(modeParam === "login" ? "login" : "signup");

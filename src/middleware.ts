@@ -10,7 +10,7 @@ import { updateSession } from "@/lib/supabase/middleware";
  * 企業ロール (role='company') を持つかは middleware では判定せず、
  * 各ページで getTenantContext() === null のときに「企業アカウント追加導線」を表示する。
  */
-const BIZ_PUBLIC_PATHS = ["/biz/auth", "/biz/auth/signup"];
+const BIZ_PUBLIC_PATHS = ["/biz/auth", "/biz/auth/signup", "/biz/auth/accept-invite"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
