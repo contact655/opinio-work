@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { getOwUserId } from "@/lib/business/company";
+import { cookies } from "next/headers";
+import { getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
 
 type Action = "status" | "memo" | "assign_to_me" | "mark_read";
@@ -43,10 +44,12 @@ export async function PATCH(
 
     // Activity: meeting_scheduled / meeting_completed (best-effort)
     if (body.value === "scheduled" || body.value === "completed") {
-      const [owUserId, mtgRow] = await Promise.all([
-        getOwUserId(supabase, user.id),
+      const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+      const [ctx, mtgRow] = await Promise.all([
+        getCompanyContext(supabase, user.id, cookieCompanyId),
         supabase.from("ow_casual_meetings").select("company_id").eq("id", meetingId).maybeSingle(),
       ]);
+      const owUserId = ctx?.owUserId ?? null;
       if (mtgRow.data?.company_id) {
         const isScheduled = body.value === "scheduled";
         await insertActivity(supabase, {

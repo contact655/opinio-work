@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { getCompanyContext } from "@/lib/business/company";
 
 /**
  * Opinio Business — Dashboard data layer
@@ -92,41 +94,28 @@ export async function getTenantContext(): Promise<TenantContext | null> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    const { data: roleRow } = await supabase
-      .from("ow_user_roles")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .eq("role", "company")
-      .not("tenant_id", "is", null)
-      .maybeSingle();
+    const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+    const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+    if (!ctx) return null;
 
-    // フォールバック: ow_user_roles.tenant_id が未設定の場合（migration 028 適用前の登録ユーザー等）
-    // ow_companies.user_id = auth.uid() で直接検索する
-    let tenantId: string | null = roleRow?.tenant_id ?? null;
-    let companyRow: { name: string; logo_gradient: string | null; logo_letter: string | null; logo_url: string | null } | null = null;
+    const { companyId: tenantId, owUserId } = ctx;
 
-    if (tenantId) {
-      const { data } = await supabase
-        .from("ow_companies")
-        .select("name, logo_gradient, logo_letter, logo_url")
+    // ow_companies と ow_users を並列取得
+    const [companyRes, owUserRes] = await Promise.all([
+      supabase.from("ow_companies")
+        .select("name, logo_gradient, logo_letter")
         .eq("id", tenantId)
-        .maybeSingle();
-      companyRow = data;
-    } else {
-      // フォールバック: ow_companies.user_id で検索
-      const { data } = await supabase
-        .from("ow_companies")
-        .select("id, name, logo_gradient, logo_letter, logo_url")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (data) {
-        tenantId = (data as any).id;
-        companyRow = data;
-      }
-    }
+        .maybeSingle(),
+      supabase.from("ow_users")
+        .select("avatar_color")
+        .eq("id", owUserId)
+        .maybeSingle(),
+    ]);
 
-    if (!tenantId) return null;
+    const companyRow = companyRes.data;
+    if (!companyRow) return null;
 
+    // plan_type は best-effort（テーブル未存在時に備える）
     let planType: TenantContext["planType"] = null;
     try {
       const { data: planRow } = await supabase
@@ -142,33 +131,25 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       // ow_tenant_plans が無い場合に備える
     }
 
-    // 表示名: メアドの@より前 or fallback
     const userName =
       (user.user_metadata as any)?.name ||
       (user.email ? user.email.split("@")[0] : "ご担当者");
 
-    // ow_users.id と avatar_color を取得（assignee 機能で使用）
-    const { data: owUser } = await supabase
-      .from("ow_users")
-      .select("id, avatar_color")
-      .eq("auth_id", user.id)
-      .maybeSingle();
-
-    const currentOwnId = owUser?.id ?? "";
+    const owUser = owUserRes.data;
     const currentOwnerGradient =
       (owUser?.avatar_color && owUser.avatar_color.startsWith("linear-gradient"))
         ? owUser.avatar_color
         : "linear-gradient(135deg, var(--royal), var(--accent))";
 
     return {
-      tenantId: tenantId,
-      tenantName: companyRow?.name || "—",
+      tenantId,
+      tenantName: companyRow.name || "—",
       planType,
       planLabel: planType ? PLAN_LABELS[planType] || "—" : "未設定",
       userName,
-      logoGradient: (companyRow as any)?.logo_gradient ?? null,
-      logoLetter: (companyRow as any)?.logo_letter ?? null,
-      currentOwnId,
+      logoGradient: companyRow.logo_gradient ?? null,
+      logoLetter: companyRow.logo_letter ?? null,
+      currentOwnId: owUserId,
       currentOwnerGradient,
     };
   } catch {

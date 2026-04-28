@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { getOwUserId } from "@/lib/business/company";
+import { cookies } from "next/headers";
+import { getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
 
 const VALID_STATUSES = new Set(["draft", "pending_review", "published", "rejected", "private"]);
@@ -66,10 +67,12 @@ export async function PUT(
   }
 
   // Activity: job_updated (best-effort)
-  const [owUserId, jobRow] = await Promise.all([
-    getOwUserId(supabase, user.id),
+  const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+  const [ctx, jobRow] = await Promise.all([
+    getCompanyContext(supabase, user.id, cookieCompanyId),
     supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle(),
   ]);
+  const owUserId = ctx?.owUserId ?? null;
   if (jobRow.data?.company_id) {
     await insertActivity(supabase, {
       company_id: jobRow.data.company_id,
@@ -134,10 +137,12 @@ export async function PATCH(
 
   // Activity: job_published (best-effort, only on publish)
   if (newStatus === "published") {
-    const [owUserId, jobRow] = await Promise.all([
-      getOwUserId(supabase, user.id),
+    const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+    const [ctx, jobRow] = await Promise.all([
+      getCompanyContext(supabase, user.id, cookieCompanyId),
       supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle(),
     ]);
+    const owUserId = ctx?.owUserId ?? null;
     if (jobRow.data?.company_id) {
       await insertActivity(supabase, {
         company_id: jobRow.data.company_id,
