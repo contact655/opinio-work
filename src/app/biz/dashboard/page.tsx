@@ -117,6 +117,8 @@ export default async function BizDashboardPage() {
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
       planType={ctx.planType}
+      memberships={ctx.allCompanies}
+      currentTenantId={ctx.tenantId}
     >
       {/* ── Greeting header ── */}
       <div style={{

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   const isMember = ctx.allMemberships.some((m) => m.companyId === companyId);
   if (!isMember) return NextResponse.json({ error: "Not a member of this company" }, { status: 403 });
 
-  const res = NextResponse.json({ ok: true });
+  const res = NextResponse.json({ success: true, redirectTo: "/biz/dashboard" });
   res.cookies.set("biz_current_company_id", companyId, {
     httpOnly: true,
     sameSite: "lax",

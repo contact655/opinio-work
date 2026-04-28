@@ -42,6 +42,8 @@ export default async function BizJobsPage() {
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
       planType={ctx.planType}
+      memberships={ctx.allCompanies}
+      currentTenantId={ctx.tenantId}
     >
       <JobsClient jobs={jobs} />
     </BusinessLayout>

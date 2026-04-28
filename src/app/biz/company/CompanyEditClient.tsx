@@ -35,6 +35,7 @@ type Props = {
   tenantLogoGradient?: string | null;
   tenantLogoLetter?: string | null;
   planType: string | null;
+  memberships?: import("@/lib/business/dashboard").TenantCompany[];
 };
 
 // ── 小コンポーネント ────────────────────────────────────────────────────────
@@ -246,6 +247,7 @@ export function CompanyEditClient({
   tenantLogoGradient,
   tenantLogoLetter,
   planType,
+  memberships,
 }: Props) {
   const router = useRouter();
 
@@ -688,6 +690,8 @@ export function CompanyEditClient({
       tenantLogoLetter={tenantLogoLetter ?? undefined}
       planType={planType as any}
       variant="fullBleed"
+      memberships={memberships}
+      currentTenantId={companyId}
     >
       <div style={{
         display: "flex",

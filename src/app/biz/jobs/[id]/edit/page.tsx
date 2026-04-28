@@ -56,6 +56,8 @@ export default async function JobEditPage({ params }: { params: { id: string } }
       tenantLogoLetter={ctx.logoLetter}
       planType={ctx.planType}
       variant="fullBleed"
+      memberships={ctx.allCompanies}
+      currentTenantId={ctx.tenantId}
     >
       <JobEditForm
         mode="edit"

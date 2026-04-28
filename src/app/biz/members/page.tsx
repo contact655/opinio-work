@@ -43,6 +43,8 @@ export default async function MembersPage() {
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
       planType={ctx.planType}
+      memberships={ctx.allCompanies}
+      currentTenantId={ctx.tenantId}
     >
       <MembersClient
         initialMembers={members}

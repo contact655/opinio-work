@@ -55,6 +55,8 @@ export default async function JobNewPage() {
       tenantLogoLetter={ctx.logoLetter}
       planType={ctx.planType}
       variant="fullBleed"
+      memberships={ctx.allCompanies}
+      currentTenantId={ctx.tenantId}
     >
       <JobEditForm
         mode="new"

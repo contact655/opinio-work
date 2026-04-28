@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 type Item = {
   companyId: string;
@@ -13,8 +12,13 @@ type Item = {
 };
 
 export default function SelectCompanyClient({ items }: { items: Item[] }) {
-  const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
+
+  // デフォルト会社を先頭に固定
+  const sorted = [
+    ...items.filter((i) => i.isDefault),
+    ...items.filter((i) => !i.isDefault),
+  ];
 
   async function handleSelect(companyId: string) {
     setLoading(companyId);
@@ -24,8 +28,12 @@ export default function SelectCompanyClient({ items }: { items: Item[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ companyId }),
       });
-      if (!res.ok) throw new Error("switch failed");
-      router.push("/biz/dashboard");
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = data.redirectTo;
+      } else {
+        setLoading(null);
+      }
     } catch {
       setLoading(null);
     }
@@ -34,14 +42,14 @@ export default function SelectCompanyClient({ items }: { items: Item[] }) {
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-tint)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: 480, padding: "0 16px" }}>
-        <h1 style={{ fontFamily: "var(--font-serif)", fontSize: 24, fontWeight: 700, color: "var(--royal)", marginBottom: 8 }}>
+        <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 24, fontWeight: 700, color: "var(--royal)", marginBottom: 8 }}>
           企業アカウントを選択
         </h1>
         <p style={{ color: "var(--ink-soft)", fontSize: 14, marginBottom: 32 }}>
           複数の企業アカウントに所属しています。操作する企業を選択してください。
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {items.map((item) => (
+          {sorted.map((item) => (
             <button
               key={item.companyId}
               onClick={() => handleSelect(item.companyId)}
@@ -51,8 +59,8 @@ export default function SelectCompanyClient({ items }: { items: Item[] }) {
                 alignItems: "center",
                 gap: 16,
                 padding: "16px 20px",
-                background: "#fff",
-                border: "1.5px solid var(--line)",
+                background: item.isDefault ? "var(--royal-50)" : "#fff",
+                border: item.isDefault ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",
                 borderRadius: 12,
                 cursor: loading !== null ? "not-allowed" : "pointer",
                 opacity: loading !== null && loading !== item.companyId ? 0.5 : 1,
@@ -78,17 +86,28 @@ export default function SelectCompanyClient({ items }: { items: Item[] }) {
               </div>
               {/* Text */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, color: "var(--ink)", fontSize: 15, marginBottom: 2 }}>
+                <div style={{ fontWeight: 600, color: "var(--ink)", fontSize: 15, marginBottom: 4, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   {item.name}
+                  {item.isDefault && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 700,
+                      color: "var(--accent)",
+                      background: "var(--royal-100)",
+                      borderRadius: 4, padding: "1px 6px",
+                      fontFamily: "'Inter', sans-serif",
+                      letterSpacing: "0.04em",
+                    }}>
+                      DEFAULT
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
                   {item.permission === "admin" ? "管理者" : "メンバー"}
-                  {item.isDefault && " · デフォルト"}
                 </div>
               </div>
               {/* Spinner or arrow */}
               {loading === item.companyId ? (
-                <div style={{ width: 18, height: 18, border: "2px solid var(--royal)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.6s linear infinite", flexShrink: 0 }} />
+                <div style={{ width: 18, height: 18, border: "2px solid var(--royal)", borderTopColor: "transparent", borderRadius: "50%", animation: "sel-spin 0.6s linear infinite", flexShrink: 0 }} />
               ) : (
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0, color: "var(--ink-mute)" }}>
                   <path d="M7 4l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -98,7 +117,7 @@ export default function SelectCompanyClient({ items }: { items: Item[] }) {
           ))}
         </div>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`@keyframes sel-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { CompanySwitcher } from "./CompanySwitcher";
+import type { TenantCompany } from "@/lib/business/dashboard";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
 
@@ -15,6 +17,8 @@ type Props = {
   planType?: string | null;
   variant?: BusinessLayoutVariant;
   children: React.ReactNode;
+  memberships?: TenantCompany[];
+  currentTenantId?: string;
 };
 
 const NAV_ITEMS = [
@@ -109,6 +113,8 @@ export function BusinessLayout({
   planType,
   variant = "default",
   children,
+  memberships,
+  currentTenantId,
 }: Props) {
   const pathname = usePathname();
   const router = useRouter();
@@ -178,28 +184,38 @@ export function BusinessLayout({
           }}>Business</span>
         </Link>
 
-        {/* Company identifier */}
+        {/* Company identifier / switcher */}
         {tenantName && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 8,
-            paddingLeft: 20,
-            borderLeft: "1px solid var(--line)",
-          }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: 6,
-              background: logoGradient,
-              color: "#fff",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 13,
-              flexShrink: 0,
-            }}>
-              {logoLetter}
+          memberships && currentTenantId ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <CompanySwitcher
+                currentCompany={{ id: currentTenantId, name: tenantName, logoGradient: tenantLogoGradient, logoLetter: tenantLogoLetter }}
+                memberships={memberships}
+              />
+              <PlanPill planType={planType} />
             </div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
-              {tenantName}
-            </span>
-            <PlanPill planType={planType} />
-          </div>
+          ) : (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              paddingLeft: 20,
+              borderLeft: "1px solid var(--line)",
+            }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 6,
+                background: logoGradient,
+                color: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 13,
+                flexShrink: 0,
+              }}>
+                {logoLetter}
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+                {tenantName}
+              </span>
+              <PlanPill planType={planType} />
+            </div>
+          )
         )}
 
         <div style={{ flex: 1 }} />

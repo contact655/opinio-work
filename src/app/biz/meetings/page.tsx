@@ -44,6 +44,8 @@ export default async function BizMeetingsPage() {
       tenantLogoLetter={ctx.logoLetter}
       planType={ctx.planType}
       variant="fullBleed"
+      memberships={ctx.allCompanies}
+      currentTenantId={ctx.tenantId}
     >
       <MeetingsClient
         meetings={meetings}

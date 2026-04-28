@@ -15,6 +15,12 @@ export const INDUSTRY_AVG_CONVERSION_RATE = 4.1; // %
 
 // ─── Types ────────────────────────────────────────────
 
+export type TenantCompany = {
+  id: string;
+  name: string;
+  isDefault: boolean;
+};
+
 export type TenantContext = {
   tenantId: string;
   tenantName: string;
@@ -25,6 +31,7 @@ export type TenantContext = {
   logoLetter: string | null;
   currentOwnId: string;          // ow_users.id (UUID) — assignee resolution
   currentOwnerGradient: string;  // avatar_color or royal fallback
+  allCompanies: TenantCompany[]; // all active memberships (for CompanySwitcher)
 };
 
 export type JobStatusCounts = {
@@ -106,21 +113,29 @@ export async function getTenantContext(): Promise<TenantContext | null> {
     }
 
     const { companyId: tenantId, owUserId } = ctx;
+    const allMembershipIds = ctx.allMemberships.map((m) => m.companyId);
 
-    // ow_companies と ow_users を並列取得
-    const [companyRes, owUserRes] = await Promise.all([
+    // ow_companies（全所属）と ow_users を並列取得
+    const [companiesRes, owUserRes] = await Promise.all([
       supabase.from("ow_companies")
-        .select("name, logo_gradient, logo_letter")
-        .eq("id", tenantId)
-        .maybeSingle(),
+        .select("id, name, logo_gradient, logo_letter")
+        .in("id", allMembershipIds),
       supabase.from("ow_users")
         .select("avatar_color")
         .eq("id", owUserId)
         .maybeSingle(),
     ]);
 
-    const companyRow = companyRes.data;
+    const companies = companiesRes.data ?? [];
+    const companyRow = companies.find((c) => c.id === tenantId);
     if (!companyRow) return null;
+
+    // allCompanies: joined_at 順を保持（getCompanyContext の order そのまま）
+    const allCompanies: TenantCompany[] = ctx.allMemberships.map((m) => ({
+      id: m.companyId,
+      name: companies.find((c) => c.id === m.companyId)?.name ?? "(不明)",
+      isDefault: m.isDefault,
+    }));
 
     // plan_type は best-effort（テーブル未存在時に備える）
     let planType: TenantContext["planType"] = null;
@@ -158,6 +173,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       logoLetter: companyRow.logo_letter ?? null,
       currentOwnId: owUserId,
       currentOwnerGradient,
+      allCompanies,
     };
   } catch (e) {
     if (isRedirectError(e)) throw e;

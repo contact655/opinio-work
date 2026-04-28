@@ -32,6 +32,7 @@ export default async function BizCompanyPage() {
       tenantLogoGradient={ctx.logoGradient ?? undefined}
       tenantLogoLetter={ctx.logoLetter ?? undefined}
       planType={ctx.planType}
+      memberships={ctx.allCompanies}
     />
   );
 }
