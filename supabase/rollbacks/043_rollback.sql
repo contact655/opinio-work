@@ -1,0 +1,25 @@
+-- ============================================================
+-- 043 ROLLBACK
+-- ============================================================
+-- This migration deletes data that has no canonical source elsewhere.
+--
+-- For full rollback, ow_user_roles role='company' rows must be
+-- reconstructed from ow_company_admins. Note that original created_at
+-- and tenant_id (which would have been redundant with ow_company_admins.
+-- company_id) are best-effort:
+--
+-- INSERT INTO ow_user_roles (user_id, tenant_id, role, created_at)
+-- SELECT
+--   ou.auth_id,
+--   ca.company_id as tenant_id,
+--   'company',
+--   ca.joined_at
+-- FROM ow_company_admins ca
+-- JOIN ow_users ou ON ou.id = ca.user_id
+-- WHERE ca.is_active = true AND ca.user_id IS NOT NULL;
+--
+-- However, if you find yourself needing this rollback, the more
+-- likely cause is that some code path was missed in the migration —
+-- investigate that first before reconstructing data.
+
+SELECT 1;  -- placeholder, no actual rollback DDL
