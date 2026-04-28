@@ -32,11 +32,21 @@ const EyeOffIcon = () => (
 function AuthPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextUrl = searchParams.get("next") ?? "/";
+  // Open Redirect 対策: 内部パスのみ許可
+  const rawNext = searchParams.get("next") ?? "";
+  const nextUrl = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
 
   const [mode, setMode] = useState<"signup" | "login">(
     searchParams.get("mode") === "login" ? "login" : "signup"
   );
+
+  // 認証済みチェック: すでにログイン済みなら next へリダイレクト
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) router.replace(nextUrl || "/");
+    });
+  }, [nextUrl, router]);
 
   // フォーム状態
   const [name, setName] = useState("");
@@ -113,7 +123,13 @@ function AuthPageInner() {
 
     // メール確認不要の場合（Supabase の設定による）はそのままリダイレクト
     if (data.session) {
-      router.push(nextUrl === "/" ? "/companies" : nextUrl);
+      // role='candidate' を登録 (best-effort, 重複は 23505 で無視)
+      await fetch("/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "candidate" }),
+      }).catch(() => {/* best-effort */});
+      router.push(nextUrl || "/companies");
       return;
     }
 
