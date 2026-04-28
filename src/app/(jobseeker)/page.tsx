@@ -1,21 +1,10 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { Header } from "@/components/common";
-import { Footer } from "@/components/common";
-import { Avatar } from "@/components/common";
-import HomeFaq from "./HomeFaq";
-import { MOCK_ARTICLES, TYPE_BADGE, TYPE_EYECATCH_ICON } from "./articles/mockArticleData";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Opinio | 対話の、産業を作る。IT/SaaS業界のキャリアインフラ",
-  description:
-    "IT/SaaS業界に特化したキャリアプラットフォーム。企業の今を知り、先輩と話し、自分で決める。完全無料・営業電話なし。",
-  openGraph: {
-    title: "Opinio | 対話の、産業を作る。",
-    description: "IT/SaaS業界に特化。求人・企業情報・先輩相談が揃うキャリアインフラ。",
-    type: "website",
-  },
-};
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { Avatar } from "@/components/common";
+import HomeFaq from "@/app/HomeFaq";
+import { MOCK_ARTICLES, TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -125,6 +114,52 @@ function ArrowIcon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>;
 }
 
+// ─── Hero Typewriter ──────────────────────────────────────────────────────────
+
+const TYPEWRITER_WORDS = [
+  "SaaS営業への転職",
+  "フルリモート勤務",
+  "外資ITへのチャレンジ",
+  "カスタマーサクセスへの転向",
+  "スタートアップの選び方",
+];
+
+function HeroTypewriter() {
+  const [wordIndex, setWordIndex] = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const target = TYPEWRITER_WORDS[wordIndex];
+    let timeout: ReturnType<typeof setTimeout>;
+
+    if (!deleting && displayed.length < target.length) {
+      timeout = setTimeout(() => setDisplayed(target.slice(0, displayed.length + 1)), 60);
+    } else if (!deleting && displayed.length === target.length) {
+      timeout = setTimeout(() => setDeleting(true), 1800);
+    } else if (deleting && displayed.length > 0) {
+      timeout = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 35);
+    } else if (deleting && displayed.length === 0) {
+      setDeleting(false);
+      setWordIndex((i) => (i + 1) % TYPEWRITER_WORDS.length);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [displayed, deleting, wordIndex]);
+
+  return (
+    <span style={{ color: "var(--royal)" }}>
+      {displayed}
+      <span style={{
+        display: "inline-block", width: 2, height: "0.9em",
+        background: "var(--royal)", marginLeft: 2, verticalAlign: "middle",
+        animation: "blink 1s step-end infinite",
+      }} />
+      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
+    </span>
+  );
+}
+
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function Hero() {
@@ -159,15 +194,16 @@ function Hero() {
             IT・SaaS業界のキャリアインフラ
           </div>
 
-          {/* Title */}
+          {/* Title with typewriter */}
           <h1 style={{
-            fontSize: "clamp(40px,5.2vw,60px)",
-            fontWeight: 500, lineHeight: 1.35, letterSpacing: "0.01em",
-            color: "var(--ink)", marginBottom: 32,
+            fontSize: "clamp(32px,4.5vw,54px)",
+            fontWeight: 500, lineHeight: 1.4, letterSpacing: "0.01em",
+            color: "var(--ink)", marginBottom: 24,
             fontFamily: '"Noto Serif JP", serif',
           }}>
-            対話の、<br />
-            <span style={{ color: "var(--royal)" }}>産業を作る。</span>
+            <HeroTypewriter />
+            <br />
+            <span style={{ color: "var(--ink)" }}>について、先輩に話を聞く。</span>
           </h1>
 
           {/* Lead */}
@@ -614,8 +650,8 @@ function HowItWorks() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_40px_1fr_40px_1fr] items-center">
           {STEPS.map((s, i) => (
-            <>
-              <div key={`step-${i}`} style={{
+            <React.Fragment key={i}>
+              <div style={{
                 background: s.highlight ? "linear-gradient(135deg, var(--royal-50) 0%, #fff 100%)" : "#fff",
                 border: `1px solid ${s.highlight ? "var(--royal-100)" : "var(--line)"}`,
                 borderRadius: 16, padding: 28,
@@ -635,9 +671,9 @@ function HowItWorks() {
                 <div style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>{s.action}</div>
               </div>
               {i < 2 && (
-                <div key={`arrow-${i}`} className="hidden md:flex justify-center" style={{ fontSize: 24, color: "var(--line)", fontWeight: 300 }}>→</div>
+                <div className="hidden md:flex justify-center" style={{ fontSize: 24, color: "var(--line)", fontWeight: 300 }}>→</div>
               )}
-            </>
+            </React.Fragment>
           ))}
         </div>
       </div>
@@ -906,19 +942,15 @@ function ArticlesPreview() {
 export default function HomePage() {
   return (
     <>
-      <Header />
-      <main>
-        <Hero />
-        <LogoMarquee />
-        <InfraSection />
-        <HowItWorks />
-        <PainPoints />
-        <MentorsSection />
-        <ArticlesPreview />
-        <HomeFaq />
-        <FinalCta />
-      </main>
-      <Footer />
+      <Hero />
+      <LogoMarquee />
+      <InfraSection />
+      <HowItWorks />
+      <PainPoints />
+      <MentorsSection />
+      <ArticlesPreview />
+      <HomeFaq />
+      <FinalCta />
     </>
   );
 }
