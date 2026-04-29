@@ -379,6 +379,7 @@ P3 で導入した `scripts/get_session_cookie.mjs` + curl を使い、Claude Co
 | L | `baad773` | 求人応募 API: 未認証 → 401、job_id 欠落 → 400、正常応募 → 201 + DB 行確認、重複応募 → 409、apply ページ認証リダイレクト確認 | ✅ | cleanup (DELETE) 済み。UNIQUE制約は未追加 (設計書 §6 M-5 に記録) |
 | K (検証) | — | `/jobs/[id]` DB 接続済み確認 (S-P-1〜8)。200/404、apply ボタン、カジュアル面談リンク、一覧→詳細遷移、既存ページ影響なし | ✅ | 新規コードなし。mockJobData は型のみ参照（実データなし）を確認 |
 | M-1 + M-2 | `6e1fd79` + `2b84f6b` | メンター一覧/詳細/予約/履歴 DB 接続実機検証 (Phase S-Q, S-R)。未認証リダイレクト 307、認証済みページ 200、POST → 201 + DB 行確認（mentor_id, themes, status=pending_review 正常）、重複予約挙動確認、既存ページ影響なし、mock 参照ゼロ確認、E2E データクリーンアップ | ✅ | S-Q-1〜8 + S-R-1〜8 全 PASS。`mentors` テーブル / `ow_users` 未連携問題を発見 → migration 045 で解決 |
+| Commit D | `178433d` | 記事システム実機検証 (Phase E2E-D)。S-D-1: 10件 seed 確認（employee×2 / mentor×4 / ceo×2 / report×2、全 is_published=true）。S-D-2: /articles 200。S-D-3: 4タイプ詳細ページ全 200（layerx-suzuki/layerx-nakamura/smarthr-ceo/hubspot-report）。S-D-4: 存在しない slug → 404。S-D-5: type フィルター全 type 200、記事数が DB と整合（employee:2/mentor:4/ceo:2/report:2）。S-D-6: anon 読み取り可（content-range: 0-9/10）。S-D-7: 既存ページ影響なし (/, /companies, /jobs, /mentors → 200; /mypage, /biz/dashboard → 307) | ✅ | S-D-1〜7 全 PASS。新規コード追加なし |
 
 **検証対象外**（ブラウザ UI 操作、フォーム入力等）: 柴さん本人が任意のタイミングで実施可能。
 
