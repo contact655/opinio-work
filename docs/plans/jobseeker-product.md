@@ -373,6 +373,23 @@ RLS により未認証ユーザーは `ow_company_admins` を読めない。
 **残存課題（M-5 候補）**:
 - `ow_articles.company_slug` TEXT カラムが残存（旧 seed フィールド）。将来的に `company_id` FK のみに統一するか、`ow_companies.slug` カラムを追加して正式化するかを決定する必要あり（§9 参照）
 
+### 6-X+5. `avg_salary` / `funding_total` が biz 編集 UI にない（Commit AA で発見）
+
+**発見**: Commit AA 実装中（2026-04-30）
+
+**問題**:
+- `/biz/company` の編集フォームには `avg_salary`（平均年収）と `funding_total`（累計調達額）の入力欄が存在しない
+- Opinio 編集部が migration 006 のシードデータで初期値を設定しているが、企業担当者が自ら更新する手段がない
+- 現状は「Opinio 編集部管理フィールド」として運用（企業側からは読み取り専用）
+
+**実装済みの対処**:
+- `NumbersSection` では `avg_salary`・`funding_total` を他の 4 フィールドと同様に表示する（seed データあり企業ではデータが表示される）
+- 入力欄がないフィールドは「Opinio 編集部管理フィールド」としてドキュメント化
+
+**将来の解決方向（M-5 候補、§9 参照）**:
+- `/biz/company` 編集フォームに `avg_salary` / `funding_total` の入力欄を追加（Commit BB 候補）
+- `BizCompany` 型・`transformDbToForm` / `transformFormToDb` / JSX の 3 層同期が必要
+
 ### 6-X. E2E 実機検証履歴（2026-04-29）
 
 P3 で導入した `scripts/get_session_cookie.mjs` + curl を使い、Claude Code 駆動で実機 E2E 検証を実施。
@@ -505,6 +522,7 @@ function DashboardView({
 | biz 応募管理 | X | — | migration 049 (company admin SELECT/UPDATE RLS + status CHECK 制約) + `src/lib/business/applications.ts` + `src/app/biz/applications/` page + Client + `src/app/api/biz/applications/[id]/route.ts` PATCH。BusinessLayout サイドバーに「応募管理」リンク追加 |
 | biz カジュアル面談バグ修正 | Y | — | `"scheduling"` ステータス不整合修正。`mockMeetings.ts` 型削除、STATUS_TABS 5タブ化、MOCK_MEETINGS 3件を `"scheduled"` に変更。`MeetingsClient.tsx` handleScheduleAdjust 修正。PATCH route に `VALID_MEETING_STATUSES` バリデーション + `.maybeSingle()` 0行チェック追加。`MeetingStatusBadge.tsx` も同期 |
 | 企業詳細 関連記事 | Z | — | `ow_articles.company_id` NULL backfill（全 8 社 UUID 更新）+ `getArticlesByCompany()` 追加 + `/companies/[id]` 関連記事セクション（CompanyArticlesSection コンポーネント）実装。S-Z-1〜5 全 PASS |
+| 企業詳細 数値セクション | AA | — | `COMPANY_DETAIL_COLS` に 6 カラム追加（avg_salary/avg_age/paid_leave_rate/avg_overtime_hours/gender_ratio/funding_total）+ `CompanyNumbers` 型 + `buildCompanyNumbers()` + `NumbersSection` コンポーネント。項目枠は常に表示、未設定は薄字「未設定」。S-AA-1〜6 全 PASS |
 
 ---
 
@@ -530,6 +548,9 @@ function DashboardView({
 | — | `/companies/[id]` 現役社員 / OB 社員セクション | `ow_experiences` テーブルに行なし（全 0 件）のため未実装。テストデータ補充後に `getEmployeesByCompany()` + セクション追加で実現可能。UI 設計は確定済み（§6-X+2 参照） | 小 | `ow_experiences` データ補充 |
 | — | `/companies/[id]` 外部記事連携（Note / YouTube） | 企業詳細に外部 Note 記事・社員インタビュー動画へのリンクセクションを追加する場合は `ow_companies` に `external_links JSONB` カラム追加が必要 | 中 | 要設計議論 |
 | — | `ow_articles.company_slug` 残存整理 | `ow_articles` テーブルに `company_slug TEXT`（旧 seed フィールド、Commit Z で `company_id` UUID を補完済み）が残存。`ow_companies` に `slug TEXT UNIQUE` カラムを追加し、`company_slug` FK を正式化するか、`company_slug` カラムを削除して `company_id` のみに統一するか要検討 | 小 | 要設計議論 |
+| — | `avg_salary` / `funding_total` を `/biz/company` 編集フォームに追加（Commit BB 候補） | 現状は Opinio 編集部のみが migration で設定可能。企業担当者が自ら最新値に更新できるよう、`BizCompany` 型・transformer・JSX の 3 層に入力欄を追加する（§6-X+5 参照） | 小 | — |
+| — | `/companies/[id]` テキスト・タグ系セクション追加（Commit BB 候補） | `benefits`（福利厚生）・`evaluation_system`（評価制度）・`nearest_station`（最寄り駅）等の TEXT / TEXT[] カラムを活用したセクション。`NumbersSection` と同様に「항목枠常時表示 + 未設定は薄字」パターンで統一 | 中 | `ow_companies` 該当カラムへのデータ補充 |
+| — | `capital` カラムを `NumbersSection` に追加 | `ow_companies.capital TEXT`（資本金）が DB に存在するが `NumbersSection` の 6 項目に含まれていない。`avg_salary` 等と同様 Opinio 管理フィールドとして追加するか要検討 | 小 | — |
 
 ### M-5 着手前に確認すべき事項
 

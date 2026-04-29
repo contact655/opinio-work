@@ -12,7 +12,7 @@ import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
-import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
+import type { CompanyDetail, CompanyNumbers } from "@/app/companies/[id]/mockDetailData";
 import BookmarkButton from "./CompanyDetailClient";
 import { createClient } from "@/lib/supabase/server";
 
@@ -1647,6 +1647,139 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
   );
 }
 
+// ─── Numbers Section ──────────────────────────────────────────────────────────
+
+const NUMBER_ITEMS: {
+  label: string;
+  key: keyof CompanyNumbers;
+  format: (v: string | number) => string;
+}[] = [
+  { label: "平均年収", key: "avgSalary", format: (v) => String(v) },
+  { label: "平均年齢", key: "avgAge", format: (v) => `${v} 歳` },
+  { label: "有給取得率", key: "paidLeaveRate", format: (v) => `${v}%` },
+  { label: "月間残業時間", key: "avgOvertimeHours", format: (v) => String(v) },
+  { label: "男女比", key: "genderRatio", format: (v) => String(v) },
+  { label: "累計調達額", key: "fundingTotal", format: (v) => String(v) },
+];
+
+function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
+  return (
+    <section
+      style={{
+        background: "#fff",
+        borderRadius: 16,
+        border: "1px solid var(--line)",
+        padding: "28px 32px 32px",
+        marginBottom: 24,
+      }}
+    >
+      {/* Section title */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+        <svg
+          width="18" height="18" viewBox="0 0 24 24" fill="none"
+          stroke="var(--royal)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
+        >
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <path d="M8 21h8M12 17v4"/>
+          <path d="M7 8h2v5H7zM11 6h2v7h-2zM15 10h2v3h-2z"/>
+        </svg>
+        <span
+          style={{
+            fontFamily: "'Noto Serif JP', serif",
+            fontSize: 17,
+            fontWeight: 700,
+            color: "var(--ink)",
+            letterSpacing: "0.01em",
+          }}
+        >
+          数値で見る企業
+        </span>
+        <span
+          style={{
+            fontSize: 11,
+            color: "var(--ink-mute)",
+            marginLeft: 4,
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          企業アンケート回答
+        </span>
+      </div>
+
+      {/* 3-column grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 12,
+        }}
+        className="sm:grid-cols-3 grid-cols-2"
+      >
+        {NUMBER_ITEMS.map(({ label, key, format }) => {
+          const raw = numbers[key];
+          const hasValue = raw !== null && raw !== undefined && String(raw).trim() !== "";
+          const display = hasValue ? format(raw as string | number) : "未設定";
+
+          return (
+            <div
+              key={key}
+              style={{
+                background: hasValue ? "var(--bg-tint)" : "#fafafa",
+                border: `1px solid ${hasValue ? "var(--line)" : "#efefef"}`,
+                borderRadius: 10,
+                padding: "14px 16px 16px",
+                minHeight: 80,
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+              }}
+            >
+              {/* Label */}
+              <span
+                style={{
+                  fontSize: 11,
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 600,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: hasValue ? "var(--ink-soft)" : "var(--ink-mute)",
+                }}
+              >
+                {label}
+              </span>
+              {/* Value */}
+              <span
+                style={{
+                  fontSize: hasValue ? 18 : 14,
+                  fontWeight: hasValue ? 700 : 400,
+                  fontFamily: hasValue ? "Inter, 'Noto Sans JP', sans-serif" : "'Noto Sans JP', sans-serif",
+                  color: hasValue ? "var(--ink)" : "var(--ink-mute)",
+                  lineHeight: 1.25,
+                }}
+              >
+                {display}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Disclaimer */}
+      <p
+        style={{
+          marginTop: 14,
+          fontSize: 11,
+          color: "var(--ink-mute)",
+          lineHeight: 1.6,
+        }}
+      >
+        企業が自己申告した値です。実態は求人ページ・カジュアル面談でご確認ください。
+        「未設定」は企業が情報を公開していない項目です。
+      </p>
+    </section>
+  );
+}
+
 function Sidebar({
   company,
   detail,
@@ -1868,6 +2001,7 @@ export default async function CompanyDetailPage({
           <main>
             <AboutSection company={company} detail={detail} photos={photos} />
             <OpinionSection company={company} detail={detail} />
+            <NumbersSection numbers={detail.numbers} />
             <WorkStyleSection detail={detail} />
             <JobsSection company={company} detail={detail} />
             {recruiters.length > 0 && (

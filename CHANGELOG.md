@@ -9,7 +9,7 @@
 - **全 commit が E2E 実機検証済み** (Phase E2E + Phase E2E-J)
 - **設計書 両方最新化** — `docs/plans/biz-members-multitenant.md` / `docs/plans/jobseeker-product.md`
 
-**合計: 70 commits · 7 migrations · 2 design docs · 8 E2E verification phases**
+**合計: 71 commits · 7 migrations · 2 design docs · 8 E2E verification phases**
 
 ---
 
@@ -326,6 +326,35 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 - S-Y-7: memo/assign_to_me/mark_read 全 200 + DB 反映（company_internal_memo/assignee_user_id/company_read_at）
 - S-Y-8: / /jobs /companies /mentors /articles /biz/dashboard /biz/jobs /biz/applications → 全 200
 - S-Y-9: クリーンアップ 4件削除、0件確認
+
+---
+
+### Company Numbers Section (1 commit)
+
+企業詳細ページ（`/companies/[id]`）に「数値で見る企業」セクションを追加。
+平均年収・平均年齢・有給取得率・月間残業時間・男女比・累計調達額の 6 項目を常時表示。
+
+| Hash | Commit |
+|------|--------|
+| — | feat(jobseeker): NumbersSection on company detail (Commit AA) |
+
+**実装内容:**
+- `src/lib/supabase/queries.ts`: `COMPANY_DETAIL_COLS` に 6 カラム追加（`avg_salary`, `avg_age`, `paid_leave_rate`, `avg_overtime_hours`, `gender_ratio`, `funding_total`）+ `buildCompanyNumbers()` 追加
+- `src/app/companies/[id]/mockDetailData.ts`: `CompanyNumbers` 型（export）追加 + `CompanyDetail` に `numbers` フィールド追加 + LAYERX / SMARTHR / `makeDetail()` の 3 箇所に初期値追加
+- `src/app/(jobseeker)/companies/[id]/page.tsx`: `NUMBER_ITEMS` 定数 + `NumbersSection` コンポーネント（~100 行）実装 + `<NumbersSection numbers={detail.numbers} />` を OpinionSection と WorkStyleSection の間に挿入
+
+**設計決定:**
+- **항목枠は常に 6 枠表示**（graceful hide なし）— データなしでも枠を見せることで「Opinio がどの情報を持てるか」を明示
+- **未設定は薄字「未設定」**（`color: var(--ink-mute)`, `font-size: 0.75rem`）— 値あり項目と視覚的に区別
+- `avg_salary` / `funding_total` は Opinio 編集部管理フィールド（migration 006 seed 済み、biz 編集 UI なし → §6-X+5 参照）
+
+**Phase S-AA 検証 (全 PASS):**
+- S-AA-1: `/companies/{layerx-uuid}` でセクション表示（平均年収 780〜900万円 等が表示）
+- S-AA-2: 未設定項目に「未設定」グレー表示
+- S-AA-3: 常に 6 枠表示（セクション非表示にならない）
+- S-AA-4: `tsc --noEmit` エラーなし
+- S-AA-5: 既存 6 セクション（AboutSection / OpinionSection / ArticlesSection / WorkStyleSection / JobsSection / RecruitersSection）影響なし
+- S-AA-6: `/jobs`, `/mentors`, `/articles` 全ページ 200 回帰
 
 ---
 

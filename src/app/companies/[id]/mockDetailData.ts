@@ -51,6 +51,15 @@ export type ArticleItem = {
   thumb: 1 | 2 | 3;
 };
 
+export type CompanyNumbers = {
+  avgSalary: string | null;
+  avgAge: number | null;
+  paidLeaveRate: number | null;
+  avgOvertimeHours: string | null;
+  genderRatio: string | null;
+  fundingTotal: string | null;
+};
+
 export type CompanyDetail = {
   id: string;
   mission: string;
@@ -75,6 +84,8 @@ export type CompanyDetail = {
   mentor_avatars: string[];
   mentor_current: number;
   mentor_alumni: number;
+  // Numbers section (Commit AA)
+  numbers: CompanyNumbers;
 };
 
 // ─── Full data ─────────────────────────────────────────────────────────────
@@ -185,6 +196,14 @@ const LAYERX: CompanyDetail = {
   mentor_avatars: ["山", "佐", "田", "林"],
   mentor_current: 3,
   mentor_alumni: 2,
+  numbers: {
+    avgSalary: "600万〜950万",
+    avgAge: 29,
+    paidLeaveRate: 75,
+    avgOvertimeHours: "20時間",
+    genderRatio: null,
+    fundingTotal: "32億円",
+  },
 };
 
 const SMARTHR: CompanyDetail = {
@@ -294,6 +313,14 @@ const SMARTHR: CompanyDetail = {
   mentor_avatars: ["田", "山", "芹", "林"],
   mentor_current: 5,
   mentor_alumni: 3,
+  numbers: {
+    avgSalary: "500万〜800万",
+    avgAge: 30,
+    paidLeaveRate: 80,
+    avgOvertimeHours: null,
+    genderRatio: null,
+    fundingTotal: null,
+  },
 };
 
 // ─── Template generator (for the other 10 companies) ─────────────────────────
@@ -406,6 +433,14 @@ function makeDetail(c: Company, overrides: Partial<CompanyDetail> = {}): Company
     mentor_avatars: INITIALS.slice(0, Math.min(4, c.current_mentors + c.alumni_mentors)),
     mentor_current: c.current_mentors,
     mentor_alumni: c.alumni_mentors,
+    numbers: {
+      avgSalary: null,
+      avgAge: null,
+      paidLeaveRate: null,
+      avgOvertimeHours: null,
+      genderRatio: null,
+      fundingTotal: null,
+    },
   };
 
   return { ...base, ...overrides };

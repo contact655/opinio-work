@@ -11,6 +11,7 @@ import type { Company, WorkStyle } from "@/app/companies/mockCompanies";
 import type { Job } from "@/app/jobs/mockJobData";
 import type {
   CompanyDetail,
+  CompanyNumbers,
   JobCat,
   JobItem,
 } from "@/app/companies/[id]/mockDetailData";
@@ -205,6 +206,33 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     mentor_avatars: [],
     mentor_current: 0,
     mentor_alumni: 0,
+    // Numbers section (Commit AA)
+    numbers: buildCompanyNumbers(row),
+  };
+}
+
+function buildCompanyNumbers(row: Record<string, any>): CompanyNumbers {
+  const rawAge = row.avg_age;
+  const rawLeave = row.paid_leave_rate;
+  return {
+    avgSalary: typeof row.avg_salary === "string" && row.avg_salary.trim()
+      ? row.avg_salary.trim()
+      : null,
+    avgAge: typeof rawAge === "number" ? rawAge
+      : typeof rawAge === "string" && /^\d+$/.test(rawAge) ? parseInt(rawAge, 10)
+      : null,
+    paidLeaveRate: typeof rawLeave === "number" ? rawLeave
+      : typeof rawLeave === "string" && /^\d+$/.test(rawLeave) ? parseInt(rawLeave, 10)
+      : null,
+    avgOvertimeHours: typeof row.avg_overtime_hours === "string" && row.avg_overtime_hours.trim()
+      ? row.avg_overtime_hours.trim()
+      : null,
+    genderRatio: typeof row.gender_ratio === "string" && row.gender_ratio.trim()
+      ? row.gender_ratio.trim()
+      : null,
+    fundingTotal: typeof row.funding_total === "string" && row.funding_total.trim()
+      ? row.funding_total.trim()
+      : null,
   };
 }
 
@@ -303,6 +331,9 @@ const COMPANY_DETAIL_COLS = [
   ...COMPANY_LIST_COLS.split(", "),
   "mission", "description", "founded_year", "ceo_name",
   "location", "url", "fit_positives", "fit_negatives", "why_join",
+  // Numbers section (Commit AA)
+  "avg_salary", "avg_age", "paid_leave_rate",
+  "avg_overtime_hours", "gender_ratio", "funding_total",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {
