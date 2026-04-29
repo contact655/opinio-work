@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { getCompanyContext } from "@/lib/business/company";
 
 function buildJobRecord(body: Record<string, unknown>, companyId: string) {
   const salaryMin = body.salaryMin ? parseInt(String(body.salaryMin)) : null;
@@ -43,6 +45,8 @@ export async function POST(req: Request) {
   }
 
   // ── 複製モード ──────────────────────────────────────────
+  // sourceId がある場合: RLS が自社求人のみアクセスを保証するため
+  // getCompanyContext は不要（SELECT 自体が RLS で保護）
   if (body.sourceId) {
     const sourceId = body.sourceId as string;
     const { data: source } = await supabase
@@ -94,8 +98,18 @@ export async function POST(req: Request) {
   }
 
   // ── 新規作成モード ────────────────────────────────────────
+  // companyId を body から受け取るが、getCompanyContext で
+  // ログインユーザーが そのテナントの管理者であることを明示検証する。
   const companyId = body.companyId as string | undefined;
   if (!companyId) return NextResponse.json({ error: "companyId required" }, { status: 400 });
+
+  const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+  const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+  if (!ctx || ctx.companyId !== companyId) {
+    // ログインユーザーが指定 companyId の管理者でない
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const record = buildJobRecord(body, companyId);
   const { data: newJob, error: insertErr } = await supabase
     .from("ow_jobs")

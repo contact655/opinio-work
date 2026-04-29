@@ -9,7 +9,7 @@
 - **全 commit が E2E 実機検証済み** (Phase E2E + Phase E2E-J)
 - **設計書 両方最新化** — `docs/plans/biz-members-multitenant.md` / `docs/plans/jobseeker-product.md`
 
-**合計: 65 commits · 6 migrations · 2 design docs · 3 E2E verification phases**
+**合計: 66 commits · 6 migrations · 2 design docs · 4 E2E verification phases**
 
 ---
 
@@ -258,6 +258,43 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 
 ---
 
+### Biz Jobs CRUD Bug Fix (1 commit)
+
+biz 側求人管理の Critical Bug 修正。`fetchJobsForCompany` が migration 001/010 の旧カラムを参照していたため、
+編集フォームでの保存内容が一覧に反映されない状態だった。
+
+| Hash | Commit |
+|------|--------|
+| — | fix(biz): jobs page column reference + auth hardening (Commit W) |
+
+**Critical Bug 詳細:**
+- `description` (m001 TEXT) → `description_markdown` (m031 TEXT)
+- `requirements` (m010 TEXT) → `required_skills` (m031 TEXT[])
+- `selection_process` (m001 JSONB) → `selection_steps` (m031 TEXT[])
+- `completionPercent` の計算も旧カラムベースだったため 0% 固定になっていた
+
+**追加修正:**
+- `POST /api/biz/jobs`: `getCompanyContext` による明示的 companyId 検証追加（RLS + アプリ層の二重防御）
+- `BizJob` 型に `salaryNote?: string` フィールド追加（型の穴埋め）
+
+**Phase S-W 検証 (全 PASS):**
+- S-W-2: POST 新規作成 → `description_markdown`/`required_skills`/`selection_steps` DB 保存確認
+- S-W-3: PUT 編集後、一覧 SELECT が新カラム値を返すことを確認（Critical Bug 解消証明）
+- S-W-4: PATCH status=published → DB 反映確認
+- S-W-5: sourceId 複製 → title「のコピー」/status=draft/新カラム引き継ぎ確認
+- S-W-6: DELETE 2件 → DB 0件確認
+- S-W-7a: 未認証 → 401
+- S-W-7b: 他社 PUT → API ok:true / DB 変化なし（RLS ブロック確認）
+- S-W-7c: 他社 companyId POST → 403 Forbidden（getCompanyContext が明示 reject）
+- S-W-8: /jobs /companies /articles /mentors → 全 200
+- S-W-9: クリーンアップ 0件（柴さん既存求人 2件のみ）
+
+**補足 (Supabase RLS の UPDATE 挙動):**
+PUT の RLS ブロック時、Supabase は error を返さず 0 rows affected で silent success になる。
+`{"ok":true}` を返すが DB は変化しない。これは既知の Supabase 仕様（将来: `.select("id").single()` で 0行チェック推奨）。
+
+---
+
 ### Article System (2 commits + migration 046)
 
 記事一覧・詳細（4タイプ対応）を DB 接続。`ow_articles` テーブル新規作成 + 10件シード。Phase E2E-D で全 S-D-1〜7 PASS。
@@ -328,6 +365,7 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 | 7 | `/mypage/applications` 誤テーブル名 `ow_applications`、誤カラム `candidate_id` / `applied_at` | Commit L 調査 | `baad773` |
 | 8 | `ow_company_members` デッドコード（0行テーブルへの参照 + 1167行の未使用ページ）| Commit H 調査 | `2ed7f21` |
 | 9 | `mentors` と `ow_users` 未連携設計矛盾（`ow_mentor_reservations.mentor_user_id NOT NULL` が INSERT 不能）| Commit M-2 調査 | `2b84f6b` (migration 045) |
+| 10 | `fetchJobsForCompany` が migration 001/010 の旧カラム（`description`, `requirements`, `selection_process`）を参照。編集フォームは m031 の新カラム（`description_markdown`, `required_skills`, `selection_steps`）に保存するため、保存内容が一覧で消える Critical Bug | Commit W 調査 | — (Commit W で修正) |
 
 ---
 
@@ -343,6 +381,7 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 | メンターシステム（一覧・詳細・予約・マイページ履歴） | `6e1fd79` + `2b84f6b` (M-1, M-2) | Phase E2E-Q/R ✅ |
 | 記事システム（`ow_articles` + 4タイプ対応） | `178433d` (Commit D) | Phase E2E-D ✅ |
 | DB 命名規則統一（`mentors` → `ow_mentors`） | — (Commit V) | Phase S-V ✅ |
+| biz 求人 CRUD カラム不整合修正（Commit W） | — (Commit W) | Phase S-W ✅ |
 
 ### Remaining Tasks
 

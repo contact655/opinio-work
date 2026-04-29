@@ -8,6 +8,7 @@ export type BizJob = {
   department?: string;
   salaryMin?: number;
   salaryMax?: number;
+  salaryNote?: string;
   location?: string;
   remoteWorkStatus?: string;
   descriptionMarkdown?: string;

@@ -48,6 +48,7 @@ type DbJobFull = {
   ow_job_assignees: { user_id: string }[] | null;
 };
 
+// DbJob: migration 031 カラム名に統一 (旧: description/requirements/selection_process)
 type DbJob = {
   id: string;
   title: string | null;
@@ -57,10 +58,10 @@ type DbJob = {
   salary_max: number | null;
   location: string | null;
   remote_work_status: string | null;
-  description: string | null;
-  requirements: string | string[] | null;
-  preferred_skills: string | string[] | null;
-  selection_process: string | string[] | null;
+  description_markdown: string | null;  // m031 (旧: description)
+  required_skills: string[] | null;     // m031 TEXT[] (旧: requirements TEXT)
+  preferred_skills: string[] | null;    // m031 TEXT[]
+  selection_steps: string[] | null;     // m031 TEXT[] (旧: selection_process JSONB)
   status: string | null;
   published_at: string | null;
   updated_at: string | null;
@@ -100,12 +101,12 @@ function computeCompletionPercent(row: DbJob): number {
     row.job_category,
     row.employment_type,
     row.location,
-    row.description,
-    row.requirements,
-    row.preferred_skills,
+    row.description_markdown,          // m031
+    row.required_skills?.length ? row.required_skills[0] : null,   // m031
+    row.preferred_skills?.length ? row.preferred_skills[0] : null, // m031
     row.salary_min != null ? String(row.salary_min) : null,
     row.salary_max != null ? String(row.salary_max) : null,
-    row.selection_process,
+    row.selection_steps?.length ? row.selection_steps[0] : null,   // m031
   ];
   const filled = fields.filter(Boolean).length;
   return Math.round((filled / fields.length) * 100);
@@ -122,10 +123,10 @@ function transformJob(row: DbJob, meetingCount: number): BizJob {
     salaryMax: row.salary_max ?? undefined,
     location: row.location ?? undefined,
     remoteWorkStatus: row.remote_work_status ?? undefined,
-    descriptionMarkdown: row.description ?? undefined,
-    requiredSkills: toStringArray(row.requirements),
-    preferredSkills: toStringArray(row.preferred_skills),
-    selectionSteps: toStringArray(row.selection_process),
+    descriptionMarkdown: row.description_markdown ?? undefined,    // m031 修正
+    requiredSkills: row.required_skills ?? [],                     // m031 修正
+    preferredSkills: row.preferred_skills ?? [],                   // m031 修正
+    selectionSteps: row.selection_steps ?? [],                     // m031 修正
     assigneeNames: [],
     status,
     meetingCount,
@@ -148,7 +149,7 @@ export async function fetchJobsForCompany(
   const { data: rows, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description, requirements, preferred_skills, selection_process, status, published_at, updated_at"
+      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description_markdown, required_skills, preferred_skills, selection_steps, status, published_at, updated_at"
     )
     .eq("company_id", tenantId)
     .order("updated_at", { ascending: false });
