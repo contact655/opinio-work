@@ -14,6 +14,13 @@ import type {
   JobCat,
   JobItem,
 } from "@/app/companies/[id]/mockDetailData";
+import type {
+  Article,
+  ArticleSubject,
+  QA,
+  ThemeItem,
+  Chapter,
+} from "@/app/articles/mockArticleData";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -610,4 +617,134 @@ export async function getMentorById(id: string): Promise<MentorData | null> {
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return mapMentor(data as Record<string, any>);
+}
+
+// ─── Articles ─────────────────────────────────────────────────────────────────
+// Note: uses ow_articles table (migration 046)
+
+const ARTICLE_LIST_COLS = [
+  "slug", "type", "title", "subtitle", "eyecatch_gradient", "read_min",
+  "published_at", "company_slug", "company_name_text",
+  "company_initial_text", "company_gradient_text",
+  "subject_freeze", "subjects_freeze",
+].join(", ");
+
+const ARTICLE_DETAIL_COLS = [
+  ARTICLE_LIST_COLS,
+  "editor_note", "body_blocks", "quote", "qa_blocks",
+  "themes_blocks", "chapters", "editor_outro",
+  "related_job_ids", "related_article_slugs",
+].join(", ");
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDbArticle(row: Record<string, any>): Article {
+  const publishedAt = row.published_at as string | null;
+  const date = publishedAt ? publishedAt.slice(0, 10) : new Date().toISOString().slice(0, 10);
+
+  return {
+    slug: row.slug as string,
+    type: row.type as "employee" | "mentor" | "ceo" | "report",
+    title: row.title as string,
+    subtitle: (row.subtitle as string) ?? "",
+    date,
+    read_min: (row.read_min as number) ?? 5,
+    // company_id is used in URL fragments; we store the slug for display linking
+    company_id: (row.company_slug as string) ?? "",
+    company_name: (row.company_name_text as string) ?? "",
+    company_initial: (row.company_initial_text as string) ?? "",
+    company_gradient: (row.company_gradient_text as string) ?? FALLBACK_GRADIENT,
+    eyecatch_gradient: (row.eyecatch_gradient as string) ?? FALLBACK_GRADIENT,
+    subject: row.subject_freeze
+      ? (row.subject_freeze as ArticleSubject)
+      : undefined,
+    subjects: row.subjects_freeze
+      ? (row.subjects_freeze as ArticleSubject[])
+      : undefined,
+    editor_note: (row.editor_note as string | null) ?? undefined,
+    body: row.body_blocks ? (row.body_blocks as string[]) : undefined,
+    quote: (row.quote as string | null) ?? undefined,
+    qa: row.qa_blocks ? (row.qa_blocks as QA[]) : undefined,
+    themes: row.themes_blocks ? (row.themes_blocks as ThemeItem[]) : undefined,
+    chapters: row.chapters ? (row.chapters as Chapter[]) : undefined,
+    editor_outro: (row.editor_outro as string | null) ?? undefined,
+    related_job_ids: (row.related_job_ids as string[] | null) ?? [],
+    related_article_slugs: (row.related_article_slugs as string[] | null) ?? [],
+  };
+}
+
+export type ArticleFilter = { type?: string; sort?: string };
+
+export async function getArticles(filter?: ArticleFilter): Promise<Article[]> {
+  const supabase = createClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let query: any = supabase
+    .from("ow_articles")
+    .select(ARTICLE_LIST_COLS)
+    .order("published_at", { ascending: false });
+
+  if (process.env.NODE_ENV !== "development") {
+    query = query.eq("is_published", true);
+  }
+  if (filter?.type && filter.type !== "all") {
+    query = query.eq("type", filter.type);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("[getArticles]", error.message);
+    return [];
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let articles = (data ?? []).map((row: Record<string, any>) => mapDbArticle(row));
+
+  if (filter?.sort === "popular") {
+    articles = articles.sort((a: Article, b: Article) => b.read_min - a.read_min);
+  }
+
+  return articles;
+}
+
+export async function getArticleBySlug(slug: string): Promise<Article | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("ow_articles")
+    .select(ARTICLE_DETAIL_COLS)
+    .eq("slug", slug)
+    .single();
+
+  if (error || !data) {
+    if (error?.code !== "PGRST116") console.error("[getArticleBySlug]", error?.message);
+    return null;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return mapDbArticle(data as Record<string, any>);
+}
+
+export async function getArticlesBySlugs(slugs: string[]): Promise<Article[]> {
+  if (slugs.length === 0) return [];
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("ow_articles")
+    .select(ARTICLE_LIST_COLS)
+    .in("slug", slugs);
+
+  if (error) {
+    console.error("[getArticlesBySlugs]", error.message);
+    return [];
+  }
+
+  // Preserve original order from slugs array
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const articleMap = new Map<string, Article>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (data ?? []).map((row: Record<string, any>) => {
+      const a = mapDbArticle(row);
+      return [a.slug, a];
+    })
+  );
+  return slugs
+    .map((s) => articleMap.get(s))
+    .filter((a): a is Article => a !== undefined);
 }

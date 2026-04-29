@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Header } from "@/components/common";
-import { Footer } from "@/components/common";
 import {
-  MOCK_ARTICLES,
-  filterArticles,
   TYPE_BADGE,
   TYPE_EYECATCH_ICON,
   type Article,
-} from "./mockArticleData";
+} from "@/app/articles/mockArticleData";
+import { getArticles } from "@/lib/supabase/queries";
 import ArticleFilterBar from "./ArticleFilterBar";
 
 export const metadata: Metadata = {
@@ -153,26 +150,25 @@ function ArticleCard({ article }: { article: Article }) {
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
-export default function ArticlesPage({ searchParams }: { searchParams: SearchParams }) {
-  const params = {
-    type: typeof searchParams.type === "string" ? searchParams.type : undefined,
-    sort: typeof searchParams.sort === "string" ? searchParams.sort : undefined,
-  };
+export default async function ArticlesPage({ searchParams }: { searchParams: SearchParams }) {
+  const typeParam = typeof searchParams.type === "string" ? searchParams.type : undefined;
+  const sortParam = typeof searchParams.sort === "string" ? searchParams.sort : undefined;
 
-  const articles = filterArticles(MOCK_ARTICLES, params);
+  const [allArticles, filteredArticles] = await Promise.all([
+    getArticles(),
+    getArticles({ type: typeParam, sort: sortParam }),
+  ]);
 
   // Stats per type
   const counts = {
-    employee: MOCK_ARTICLES.filter((a) => a.type === "employee").length,
-    mentor:   MOCK_ARTICLES.filter((a) => a.type === "mentor").length,
-    ceo:      MOCK_ARTICLES.filter((a) => a.type === "ceo").length,
-    report:   MOCK_ARTICLES.filter((a) => a.type === "report").length,
+    employee: allArticles.filter((a) => a.type === "employee").length,
+    mentor:   allArticles.filter((a) => a.type === "mentor").length,
+    ceo:      allArticles.filter((a) => a.type === "ceo").length,
+    report:   allArticles.filter((a) => a.type === "report").length,
   };
 
   return (
     <>
-      <Header />
-
       {/* Breadcrumb */}
       <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 md:px-12">
@@ -246,13 +242,13 @@ export default function ArticlesPage({ searchParams }: { searchParams: SearchPar
 
       {/* Filter bar */}
       <Suspense fallback={<div style={{ height: 52, background: "#fff", borderBottom: "1px solid var(--line)" }} />}>
-        <ArticleFilterBar total={articles.length} />
+        <ArticleFilterBar total={filteredArticles.length} />
       </Suspense>
 
       {/* Grid */}
-      <main style={{ background: "var(--bg-tint)" }}>
+      <div style={{ background: "var(--bg-tint)" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
-          {articles.length === 0 ? (
+          {filteredArticles.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 0", color: "var(--ink-mute)" }}>
               <div style={{ fontSize: 40, marginBottom: 16 }}>📰</div>
               <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--ink-soft)" }}>
@@ -262,15 +258,13 @@ export default function ArticlesPage({ searchParams }: { searchParams: SearchPar
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {articles.map((article) => (
+              {filteredArticles.map((article) => (
                 <ArticleCard key={article.slug} article={article} />
               ))}
             </div>
           )}
         </div>
-      </main>
-
-      <Footer />
+      </div>
 
       <style>{`
         .article-card:hover {

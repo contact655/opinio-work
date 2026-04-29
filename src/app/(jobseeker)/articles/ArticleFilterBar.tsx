@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback } from "react";
-import { ARTICLE_TYPES, TYPE_BADGE } from "./mockArticleData";
+import { ARTICLE_TYPES, TYPE_BADGE } from "@/app/articles/mockArticleData";
 
 const LINE = "#E2E8F0";
 const INK_SOFT = "#475569";

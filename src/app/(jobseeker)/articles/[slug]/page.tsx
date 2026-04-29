@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Header } from "@/components/common";
-import { Footer } from "@/components/common";
 import {
-  MOCK_ARTICLES,
-  getArticleBySlug,
   TYPE_BADGE,
   TYPE_EYECATCH_ICON,
   type Article,
@@ -13,27 +9,25 @@ import {
   type QA,
   type ThemeItem,
   type Chapter,
-} from "../mockArticleData";
-import { getJobById } from "@/app/jobs/mockJobData";
-import { MOCK_COMPANIES } from "@/app/companies/mockCompanies";
+} from "@/app/articles/mockArticleData";
+import {
+  getArticleBySlug,
+  getArticlesBySlugs,
+} from "@/lib/supabase/queries";
 
 // ─── generateMetadata ─────────────────────────────────────────────────────────
 
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: { slug: string };
 }): Promise<Metadata> {
-  const article = getArticleBySlug(params.id);
+  const article = await getArticleBySlug(params.slug);
   if (!article) return { title: "記事 — Opinio" };
   return {
     title: `${article.title} — Opinio`,
     description: article.subtitle,
   };
-}
-
-export function generateStaticParams() {
-  return MOCK_ARTICLES.map((a) => ({ id: a.slug }));
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -424,13 +418,8 @@ function ContributorsSection({ subjects }: { subjects: ArticleSubject[] }) {
   );
 }
 
-function RelatedArticles({ slugs }: { slugs: string[] }) {
-  const related = slugs
-    .map((s) => getArticleBySlug(s))
-    .filter((a): a is Article => a !== undefined)
-    .slice(0, 4);
-
-  if (related.length === 0) return null;
+function RelatedArticles({ articles }: { articles: Article[] }) {
+  if (articles.length === 0) return null;
 
   return (
     <div style={{ marginBottom: 48 }}>
@@ -458,7 +447,7 @@ function RelatedArticles({ slugs }: { slugs: string[] }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
-        {related.map((a) => {
+        {articles.map((a) => {
           const badge = TYPE_BADGE[a.type];
           return (
             <Link key={a.slug} href={`/articles/${a.slug}`} style={{ textDecoration: "none" }}>
@@ -509,87 +498,19 @@ function RelatedArticles({ slugs }: { slugs: string[] }) {
   );
 }
 
-function RelatedJobs({ jobIds }: { jobIds: string[] }) {
-  const jobs = jobIds
-    .map((id) => getJobById(id))
-    .filter(Boolean)
-    .slice(0, 4) as ReturnType<typeof getJobById>[];
-
-  if (!jobs.length) return null;
-
-  return (
-    <div style={{ marginBottom: 48 }}>
-      <div style={{
-        display: "flex", alignItems: "baseline", justifyContent: "space-between",
-        marginBottom: 20, paddingBottom: 10,
-        borderBottom: `2px solid ${INK}`,
-      }}>
-        <h3 style={{
-          fontFamily: '"Noto Serif JP", serif',
-          fontWeight: 700, fontSize: 20, color: INK,
-          display: "flex", alignItems: "baseline", gap: 12, margin: 0,
-        }}>
-          関連求人
-          <span style={{
-            fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-            color: INK_MUTE, letterSpacing: "0.2em", textTransform: "uppercase",
-          }}>
-            RELATED JOBS
-          </span>
-        </h3>
-        <Link href="/jobs" style={{ color: ROYAL, fontSize: 12, fontWeight: 600 }}>
-          すべての求人 →
-        </Link>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-        {jobs.map((job) => job && (
-          <Link key={job.id} href={`/jobs/${job.id}`} style={{ textDecoration: "none" }}>
-            <div style={{
-              background: "#fff", border: `1px solid ${LINE}`,
-              borderRadius: 12, padding: 18, transition: "all 0.2s",
-            }}
-              className="related-job-hover"
-            >
-                      {(() => {
-                const company = MOCK_COMPANIES.find((c) => c.id === job!.company_id);
-                return (
-                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 8,
-                      background: company?.gradient ?? "#002366",
-                      color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 14, flexShrink: 0,
-                    }}>
-                      {(company?.name ?? "").charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: INK, marginBottom: 2, lineHeight: 1.4 }}>
-                        {job!.role}
-                      </div>
-                      <div style={{ fontSize: 11, color: INK_SOFT }}>{company?.name}</div>
-                    </div>
-                  </div>
-                );
-              })()}
-              <div style={{
-                fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 700, color: ROYAL,
-              }}>
-                {job!.salary_min}〜{job!.salary_max}万円
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ArticlePage({ params }: { params: { id: string } }) {
-  const article = getArticleBySlug(params.id);
+export default async function ArticlePage({ params }: { params: { slug: string } }) {
+  const [article, ] = await Promise.all([
+    getArticleBySlug(params.slug),
+  ]);
+
   if (!article) notFound();
+
+  // Fetch related articles server-side (slugs from DB)
+  const relatedArticles = await getArticlesBySlugs(
+    (article.related_article_slugs ?? []).slice(0, 4)
+  );
 
   const badge = TYPE_BADGE[article.type];
   const icon  = TYPE_EYECATCH_ICON[article.type];
@@ -597,8 +518,6 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
 
   return (
     <>
-      <Header />
-
       {/* Breadcrumb */}
       <div style={{ background: "var(--bg-tint)", borderBottom: `1px solid ${LINE}`, padding: "10px 0" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }} className="px-5 md:px-12">
@@ -665,11 +584,9 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
               }}>
                 {article.company_initial}
               </div>
-              <Link href={`/companies/${article.company_id}`} style={{
-                color: INK_SOFT, fontWeight: 600, textDecoration: "none",
-              }}>
+              <span style={{ color: INK_SOFT, fontWeight: 600 }}>
                 {article.company_name}
-              </Link>
+              </span>
             </div>
             <span style={{ color: INK_MUTE }}>
               {article.date.replace(/-/g, "/")}
@@ -688,7 +605,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
         {/* ── employee / mentor / ceo body ── */}
         {article.type !== "report" && (
           <>
-            {/* EDITOR&apos;S NOTE */}
+            {/* EDITOR'S NOTE */}
             {article.editor_note && (
               <div style={{
                 padding: "18px 22px", background: "var(--bg-tint)",
@@ -824,22 +741,15 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
         borderTop: `1px solid ${LINE}`,
       }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <RelatedArticles slugs={article.related_article_slugs} />
-          <RelatedJobs jobIds={article.related_job_ids} />
+          <RelatedArticles articles={relatedArticles} />
         </div>
       </div>
-
-      <Footer />
 
       <style>{`
         .related-article-hover:hover {
           border-color: var(--royal-100) !important;
           box-shadow: 0 8px 20px rgba(15,23,42,0.06) !important;
           transform: translateY(-2px) !important;
-        }
-        .related-job-hover:hover {
-          border-color: var(--royal-100) !important;
-          box-shadow: 0 8px 20px rgba(15,23,42,0.06) !important;
         }
       `}</style>
     </>
