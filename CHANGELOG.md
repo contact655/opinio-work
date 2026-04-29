@@ -220,13 +220,14 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 
 ---
 
-### Article System (1 commit + migration 046)
+### Article System (2 commits + migration 046)
 
-記事一覧・詳細（4タイプ対応）を DB 接続。`ow_articles` テーブル新規作成 + 10件シード。
+記事一覧・詳細（4タイプ対応）を DB 接続。`ow_articles` テーブル新規作成 + 10件シード。Phase E2E-D で全 S-D-1〜7 PASS。
 
 | Hash | Commit |
 |------|--------|
 | `178433d` | feat(articles): Commit D — articles system with DB integration |
+| `e731cc0` | docs(plans): Phase E2E-D verification (Commit D articles system) |
 
 **完成した機能:**
 - migration 046 — `ow_articles` テーブル（JSONB: qa_blocks / body_blocks / chapters / themes_blocks / subject_freeze）+ 10件シード + RLS + 3インデックス
@@ -246,10 +247,10 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 
 | 項目 | 数 |
 |------|---|
-| Commits (this session) | 63 |
+| Commits (this session) | 64 |
 | Migrations | 4 (042: multitenant schema, 043: ow_user_roles cleanup, 045: mentor_id追加, 046: ow_articles) |
 | Design Documents | 2 (biz-members-multitenant.md, jobseeker-product.md) |
-| E2E Test Phases | 2 (Phase E2E, Phase E2E-J) |
+| E2E Test Phases | 3 (Phase E2E, Phase E2E-J, Phase E2E-D) |
 | New Pages (求職者側) | 12 (/、/companies、/companies/[id]、/jobs、/jobs/[id]、/u/[id]、/auth、/jobs/[id]/apply、/mentors、/mentors/[id]、/articles、/articles/[slug]) |
 | Bugs Found & Fixed | 9 (see below) |
 | DB Tables Connected | 11 (see below) |
@@ -296,10 +297,18 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 
 詳細は [`docs/plans/jobseeker-product.md`](docs/plans/jobseeker-product.md) §9 を参照。
 
+### Completed M-5 Large Tasks (2026-04-30)
+
+| タスク | Commit | E2E |
+|--------|--------|-----|
+| `ow_experiences` CRUD + CareerModal DB 接続 | `95d8bf7` (Commit J) | Phase E2E-J ✅ |
+| メンターシステム（一覧・詳細・予約・マイページ履歴） | `6e1fd79` + `2b84f6b` (M-1, M-2) | Phase E2E-Q/R ✅ |
+| 記事システム（`ow_articles` + 4タイプ対応） | `178433d` (Commit D) | Phase E2E-D ✅ |
+
+### Remaining Tasks
+
 | 優先度 | タスク |
 |--------|--------|
-| ✅ 完了 | `ow_articles` 新規テーブル + 記事システム（/articles 系）— Commit D (`178433d`) で完了 |
-| ✅ 完了 | `/mentors` 系 Supabase 接続 — M-1 (`6e1fd79`) + M-2 (`2b84f6b`) で完了 |
 | — | `mentors` と `ow_users` の連携設計 + メンター本人の予約閲覧 + 承認フロー |
 | — | `mentors` テーブルを `ow_mentors` にリネームする migration（命名規約統一）|
 | ⭐ | `/mypage` サブページの Server Component 化 |
