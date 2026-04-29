@@ -375,6 +375,8 @@ P3 で導入した `scripts/get_session_cookie.mjs` + curl を使い、Claude Co
 | K (検証) | — | `/jobs/[id]` DB 接続済み確認 (S-P-1〜8)。200/404、apply ボタン、カジュアル面談リンク、一覧→詳細遷移、既存ページ影響なし | ✅ | 新規コードなし。mockJobData は型のみ参照（実データなし）を確認 |
 | M-1 + M-2 | `6e1fd79` + `2b84f6b` | メンター一覧/詳細/予約/履歴 DB 接続実機検証 (Phase S-Q, S-R)。未認証リダイレクト 307、認証済みページ 200、POST → 201 + DB 行確認（mentor_id, themes, status=pending_review 正常）、重複予約挙動確認、既存ページ影響なし、mock 参照ゼロ確認、E2E データクリーンアップ | ✅ | S-Q-1〜8 + S-R-1〜8 全 PASS。`mentors` テーブル / `ow_users` 未連携問題を発見 → migration 045 で解決 |
 | Commit V | — | `mentors` → `ow_mentors` リネーム検証 (Phase S-V)。S-V-1: ow_mentors 3件返却 / mentors PGRST205。S-V-2: /mentors → 200、/mentors/[id] → 200。S-V-3: POST /api/mentor-reservations → 401（auth guard 正常）。S-V-5: /companies /jobs /articles /mentors → 全 200。TypeScript noEmit PASS。grep .from("mentors") ゼロ確認 | ✅ | S-V-1〜5 全 PASS |
+| Commit W | `87e7100` | biz 求人 CRUD バグ修正検証 (Phase S-W)。S-W-1: fetchJobsForCompany のカラム不整合（m001 vs m031）を修正確認。S-W-3: POST (新規) → 201 + DB 行確認。S-W-4: PUT (更新) → 200。S-W-5: PATCH (published) → 200。S-W-6: 未認証 → 401。S-W-7: 他社 job_id → 403 (RLS)。S-W-8: 既存ページ影響なし。TypeScript noEmit PASS | ✅ | S-W-1〜8 全 PASS。他社判定テスト時に 柴さんが 10 社の admin であることを確認（真に外部の company_id 特定が必要だった） |
+| Commit X | — | biz 応募管理実機検証 (Phase S-X)。migration 049 適用確認。S-X-1: /biz/applications 200 + 3件表示。S-X-2: 未認証 → 307。S-X-3: PATCH status → 200 + DB 反映確認。S-X-4: 無効 status → 400 + エラーメッセージ。S-X-5: 他社 application PATCH → 404 (RLS 防御)。S-X-6: 全 3 件表示確認。S-X-7: /jobs /companies /articles /mentors /biz/dashboard → 全 200。S-X-8: cleanup 0件確認 | ✅ | S-X-1〜8 全 PASS |
 | Commit D | `178433d` | 記事システム実機検証 (Phase E2E-D)。S-D-1: 10件 seed 確認（employee×2 / mentor×4 / ceo×2 / report×2、全 is_published=true）。S-D-2: /articles 200。S-D-3: 4タイプ詳細ページ全 200（layerx-suzuki/layerx-nakamura/smarthr-ceo/hubspot-report）。S-D-4: 存在しない slug → 404。S-D-5: type フィルター全 type 200、記事数が DB と整合（employee:2/mentor:4/ceo:2/report:2）。S-D-6: anon 読み取り可（content-range: 0-9/10）。S-D-7: 既存ページ影響なし (/, /companies, /jobs, /mentors → 200; /mypage, /biz/dashboard → 307) | ✅ | S-D-1〜7 全 PASS。新規コード追加なし |
 
 **検証対象外**（ブラウザ UI 操作、フォーム入力等）: 柴さん本人が任意のタイミングで実施可能。
@@ -481,6 +483,8 @@ function DashboardView({
 | メンターシステム | M-2 | `2b84f6b` | `/mentors/[id]/reserve` 予約フォーム + `/mypage` 相談履歴 DB 接続（migration 045、`mentor_id` 追加）|
 | 記事システム | D | `178433d` | migration 046 (`ow_articles` 10 件シード) + `queries.ts` 3 関数 + `(jobseeker)/articles/` list/detail DB 接続（SSR）、旧 mock ファイル削除 |
 | DB 命名統一 | V | — | migration 048 (`mentors` → `ow_mentors` RENAME) + 全 8 TypeScript ファイルの `.from("mentors")` → `.from("ow_mentors")` 更新。S-V-1〜5 全 PASS |
+| biz 求人 CRUD バグ修正 | W | `87e7100` | `fetchJobsForCompany` の m001→m031 カラム不整合バグ修正（`description_markdown`/`required_skills`/`preferred_skills`/`selection_steps`）。POST route に `getCompanyContext` auth 追加。`salaryNote` 型追加 |
+| biz 応募管理 | X | — | migration 049 (company admin SELECT/UPDATE RLS + status CHECK 制約) + `src/lib/business/applications.ts` + `src/app/biz/applications/` page + Client + `src/app/api/biz/applications/[id]/route.ts` PATCH。BusinessLayout サイドバーに「応募管理」リンク追加 |
 
 ---
 
