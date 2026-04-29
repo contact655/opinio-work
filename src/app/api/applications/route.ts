@@ -57,6 +57,10 @@ export async function POST(req: Request) {
     .single();
 
   if (error) {
+    // 23505 = unique_violation: race condition が UNIQUE 制約を突き抜けた場合
+    if (error.code === "23505") {
+      return NextResponse.json({ error: "already_applied" }, { status: 409 });
+    }
     console.error("[POST /api/applications]", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

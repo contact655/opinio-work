@@ -220,6 +220,30 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 
 ---
 
+### Schema Hardening — UNIQUE Constraint (1 commit + migration 047)
+
+`ow_job_applications` の race condition リスクを DB 層で完全解消。Defense in depth 完成。
+
+| Hash | Commit |
+|------|--------|
+| *(pending)* | fix(jobseeker): UNIQUE constraint on ow_job_applications (Commit U) |
+
+**変更内容:**
+- migration 047 — `ALTER TABLE ow_job_applications ADD CONSTRAINT ow_job_applications_user_job_unique UNIQUE (user_id, job_id)`
+- `src/app/api/applications/route.ts` — INSERT error で `error.code === "23505"` を 409 で返す分岐追加
+
+**Defense in Depth 完成:**
+- アプリ層: `SELECT → INSERT` 重複チェック（UI 親和的な 409 + `already_applied`）
+- DB 層: UNIQUE 制約（race condition を Postgres がブロック、23505 → API が 409 に変換）
+
+**Phase S-T 検証 (全 PASS):**
+- S-T-2: 1回目 → 201、2回目 → 409（アプリ層）
+- S-T-3: service_role 直接 INSERT → 409 + `constraint "ow_job_applications_user_job_unique"` 確認（DB 層）
+- S-T-4: 既存ページ影響なし
+- S-T-5: クリーンアップ 0件確認
+
+---
+
 ### Article System (2 commits + migration 046)
 
 記事一覧・詳細（4タイプ対応）を DB 接続。`ow_articles` テーブル新規作成 + 10件シード。Phase E2E-D で全 S-D-1〜7 PASS。
@@ -247,8 +271,8 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 
 | 項目 | 数 |
 |------|---|
-| Commits (this session) | 64 |
-| Migrations | 4 (042: multitenant schema, 043: ow_user_roles cleanup, 045: mentor_id追加, 046: ow_articles) |
+| Commits (this session) | 65 |
+| Migrations | 5 (042: multitenant schema, 043: ow_user_roles cleanup, 045: mentor_id追加, 046: ow_articles, 047: ow_job_applications UNIQUE) |
 | Design Documents | 2 (biz-members-multitenant.md, jobseeker-product.md) |
 | E2E Test Phases | 3 (Phase E2E, Phase E2E-J, Phase E2E-D) |
 | New Pages (求職者側) | 12 (/、/companies、/companies/[id]、/jobs、/jobs/[id]、/u/[id]、/auth、/jobs/[id]/apply、/mentors、/mentors/[id]、/articles、/articles/[slug]) |
@@ -313,7 +337,7 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 | — | `mentors` テーブルを `ow_mentors` にリネームする migration（命名規約統一）|
 | ⭐ | `/mypage` サブページの Server Component 化 |
 | ⭐ | `ow_jobs.job_category` FK 化（表記ゆれ解消） |
-| ⭐ | `ow_job_applications` UNIQUE(user_id, job_id) 制約追加 |
+| ✅ 完了 | `ow_job_applications` UNIQUE(user_id, job_id) 制約追加 — Commit U (migration 047) で完了 |
 | — | 記事 / メンター / 求人ブックマーク (`target_type` 拡充) |
 | — | `type Job` / `type PositionMember` を独立ファイルに移動（mockJobData.ts 完全削除） |
 | — | 求人詳細の空フィールドにデータ補充（description, requirements 等） |
