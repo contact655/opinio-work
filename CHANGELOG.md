@@ -5,11 +5,11 @@
 このセッションで Opinio Work は以下の状態に到達:
 
 - **M-4 マルチテナント基盤完成** — 1ユーザー複数企業対応、招待フロー、CompanySwitcher
-- **求職者プロダクト主要機能実装** — 8ページ + 認証 + プロフィール + ブックマーク + カジュアル面談 + 応募
+- **求職者プロダクト主要機能実装** — 10ページ + 認証 + プロフィール + ブックマーク + カジュアル面談 + 応募 + メンターシステム
 - **全 commit が E2E 実機検証済み** (Phase E2E + Phase E2E-J)
 - **設計書 両方最新化** — `docs/plans/biz-members-multitenant.md` / `docs/plans/jobseeker-product.md`
 
-**合計: 56 commits · 2 migrations · 2 design docs · 2 E2E verification phases**
+**合計: 60 commits · 3 migrations · 2 design docs · 2 E2E verification phases**
 
 ---
 
@@ -196,21 +196,46 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 
 ---
 
+### Mentor System (3 commits + migration 045)
+
+メンター一覧・詳細・予約申込・マイページ相談履歴の DB 接続。
+`mentors` テーブルと `ow_users` が未連携という設計矛盾を発見し、migration 045 で吸収。
+
+| Hash | Commit |
+|------|--------|
+| `6e1fd79` | feat(jobseeker): M-1 — /mentors list + /mentors/[id] detail (DB 接続、(jobseeker) route group 移行) |
+| `2b84f6b` | feat(jobseeker): M-2 — /mentors/[id]/reserve form + /mypage mentor history (DB 接続、migration 045) |
+| `09fa14d` | docs(plans): mentor system completion (M-1/M-2 反映 + mentors 未連携記録) |
+
+**完成した機能:**
+- `/mentors` — 10名のメンター一覧 (is_available フィルター、DB 接続)
+- `/mentors/[id]` — 詳細ページ新規実装 (`catchphrase`, `bio`, `concerns[]` 活用)
+- `/mentors/[id]/reserve` — 予約申込フォーム (Server wrapper + Client Form、POST `/api/mentor-reservations`)
+- `/mypage` 相談履歴 — `ow_mentor_reservations` JOIN `mentors` で実データ表示
+
+**Discovered & Documented:**
+- `mentors` テーブルが `ow_` プレフィックスなし（命名規約逸脱）→ §6-X+3 に記録
+- `mentors` と `ow_users` が未連携 → migration 045 (`mentor_id` 追加 + `mentor_user_id` nullable 化) で対処
+- メンター本人の予約閲覧は未対応（M-5 候補 §6-X+2 に記録）
+
+---
+
 ## Statistics
 
 | 項目 | 数 |
 |------|---|
-| Commits (this session) | 57 |
-| Migrations | 2 (042: multitenant schema, 043: ow_user_roles cleanup) |
+| Commits (this session) | 60 |
+| Migrations | 3 (042: multitenant schema, 043: ow_user_roles cleanup, 045: mentor_id追加) |
 | Design Documents | 2 (biz-members-multitenant.md, jobseeker-product.md) |
 | E2E Test Phases | 2 (Phase E2E, Phase E2E-J) |
-| New Pages (求職者側) | 8 (/、/companies、/companies/[id]、/jobs、/jobs/[id]、/u/[id]、/auth、/jobs/[id]/apply) |
-| Bugs Found & Fixed | 8 (see below) |
-| DB Tables Connected | 9 (see below) |
+| New Pages (求職者側) | 10 (/、/companies、/companies/[id]、/jobs、/jobs/[id]、/u/[id]、/auth、/jobs/[id]/apply、/mentors、/mentors/[id]) |
+| Bugs Found & Fixed | 9 (see below) |
+| DB Tables Connected | 11 (see below) |
 
 **DB Tables Connected to Application**:
 `ow_users`, `ow_companies`, `ow_company_photos`, `ow_company_admins`,
-`ow_jobs`, `ow_bookmarks`, `ow_casual_meetings`, `ow_experiences`, `ow_job_applications`
+`ow_jobs`, `ow_bookmarks`, `ow_casual_meetings`, `ow_experiences`, `ow_job_applications`,
+`mentors`, `ow_mentor_reservations`
 
 ---
 
@@ -241,6 +266,7 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 | 6 | `DashboardView` closure 変数スコープ | サービス化 F | `c5af352` |
 | 7 | `/mypage/applications` 誤テーブル名 `ow_applications`、誤カラム `candidate_id` / `applied_at` | Commit L 調査 | `baad773` |
 | 8 | `ow_company_members` デッドコード（0行テーブルへの参照 + 1167行の未使用ページ）| Commit H 調査 | `2ed7f21` |
+| 9 | `mentors` と `ow_users` 未連携設計矛盾（`ow_mentor_reservations.mentor_user_id NOT NULL` が INSERT 不能）| Commit M-2 調査 | `2b84f6b` (migration 045) |
 
 ---
 
@@ -251,7 +277,9 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 | 優先度 | タスク |
 |--------|--------|
 | ⭐⭐ | `ow_articles` 新規テーブル + 記事システム（/articles 系 4 ページ）|
-| ⭐⭐ | `/mentors` 系 Supabase 接続（`mentors` テーブル確認済み）|
+| ✅ 完了 | `/mentors` 系 Supabase 接続 — M-1 (`6e1fd79`) + M-2 (`2b84f6b`) で完了 |
+| — | `mentors` と `ow_users` の連携設計 + メンター本人の予約閲覧 + 承認フロー |
+| — | `mentors` テーブルを `ow_mentors` にリネームする migration（命名規約統一）|
 | ⭐ | `/mypage` サブページの Server Component 化 |
 | ⭐ | `ow_jobs.job_category` FK 化（表記ゆれ解消） |
 | ⭐ | `ow_job_applications` UNIQUE(user_id, job_id) 制約追加 |
