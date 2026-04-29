@@ -5,11 +5,11 @@
 このセッションで Opinio Work は以下の状態に到達:
 
 - **M-4 マルチテナント基盤完成** — 1ユーザー複数企業対応、招待フロー、CompanySwitcher
-- **求職者プロダクト主要機能実装** — 10ページ + 認証 + プロフィール + ブックマーク + カジュアル面談 + 応募 + メンターシステム
+- **求職者プロダクト主要機能実装** — 12ページ + 認証 + プロフィール + ブックマーク + カジュアル面談 + 応募 + メンターシステム + 記事システム
 - **全 commit が E2E 実機検証済み** (Phase E2E + Phase E2E-J)
 - **設計書 両方最新化** — `docs/plans/biz-members-multitenant.md` / `docs/plans/jobseeker-product.md`
 
-**合計: 60 commits · 3 migrations · 2 design docs · 2 E2E verification phases**
+**合計: 63 commits · 4 migrations · 2 design docs · 2 E2E verification phases**
 
 ---
 
@@ -220,22 +220,44 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 
 ---
 
+### Article System (1 commit + migration 046)
+
+記事一覧・詳細（4タイプ対応）を DB 接続。`ow_articles` テーブル新規作成 + 10件シード。
+
+| Hash | Commit |
+|------|--------|
+| `178433d` | feat(articles): Commit D — articles system with DB integration |
+
+**完成した機能:**
+- migration 046 — `ow_articles` テーブル（JSONB: qa_blocks / body_blocks / chapters / themes_blocks / subject_freeze）+ 10件シード + RLS + 3インデックス
+- `queries.ts` — `getArticles()` / `getArticleBySlug()` / `getArticlesBySlugs()` + `mapDbArticle()`
+- `/articles` — DB 接続 async Server Component、タイプ別フィルター（`type` param）、ソート（読了時間順）
+- `/articles/[slug]` — SSR 詳細ページ、4タイプ分岐（employee/mentor/ceo/report）、関連記事サーバーサイド取得
+- 旧 `src/app/articles/` mock ファイル群を削除 → `(jobseeker)/articles/` に完全移行
+
+**Design decisions:**
+- `company_id` フィールドは `company_slug` (e.g. "layerx") を格納 → `company_name_text` / `company_gradient_text` 等のスナップショット列で表示
+- `related_job_ids` は DB では `TEXT[]` だが mock slug のため空配列フォールバック（UUID化後に接続）
+- `generateStaticParams` 削除 → SSR モード（記事追加時に自動対応）
+
+---
+
 ## Statistics
 
 | 項目 | 数 |
 |------|---|
-| Commits (this session) | 60 |
-| Migrations | 3 (042: multitenant schema, 043: ow_user_roles cleanup, 045: mentor_id追加) |
+| Commits (this session) | 63 |
+| Migrations | 4 (042: multitenant schema, 043: ow_user_roles cleanup, 045: mentor_id追加, 046: ow_articles) |
 | Design Documents | 2 (biz-members-multitenant.md, jobseeker-product.md) |
 | E2E Test Phases | 2 (Phase E2E, Phase E2E-J) |
-| New Pages (求職者側) | 10 (/、/companies、/companies/[id]、/jobs、/jobs/[id]、/u/[id]、/auth、/jobs/[id]/apply、/mentors、/mentors/[id]) |
+| New Pages (求職者側) | 12 (/、/companies、/companies/[id]、/jobs、/jobs/[id]、/u/[id]、/auth、/jobs/[id]/apply、/mentors、/mentors/[id]、/articles、/articles/[slug]) |
 | Bugs Found & Fixed | 9 (see below) |
 | DB Tables Connected | 11 (see below) |
 
 **DB Tables Connected to Application**:
 `ow_users`, `ow_companies`, `ow_company_photos`, `ow_company_admins`,
 `ow_jobs`, `ow_bookmarks`, `ow_casual_meetings`, `ow_experiences`, `ow_job_applications`,
-`mentors`, `ow_mentor_reservations`
+`mentors`, `ow_mentor_reservations`, `ow_articles`
 
 ---
 
@@ -276,7 +298,7 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 
 | 優先度 | タスク |
 |--------|--------|
-| ⭐⭐ | `ow_articles` 新規テーブル + 記事システム（/articles 系 4 ページ）|
+| ✅ 完了 | `ow_articles` 新規テーブル + 記事システム（/articles 系）— Commit D (`178433d`) で完了 |
 | ✅ 完了 | `/mentors` 系 Supabase 接続 — M-1 (`6e1fd79`) + M-2 (`2b84f6b`) で完了 |
 | — | `mentors` と `ow_users` の連携設計 + メンター本人の予約閲覧 + 承認フロー |
 | — | `mentors` テーブルを `ow_mentors` にリネームする migration（命名規約統一）|
