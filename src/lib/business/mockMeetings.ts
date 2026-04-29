@@ -1,10 +1,10 @@
-// TODO: scheduling status is mock-only.
-// Add Supabase migration when wiring to ow_casual_meetings status check constraint.
+// DB CHECK constraint (migration 031):
+// pending / company_contacted / scheduled / completed / declined
+// "scheduling" was removed — merged into "scheduled" (Commit Y).
 
 export type MeetingStatus =
   | "pending"
   | "company_contacted"
-  | "scheduling"
   | "scheduled"
   | "completed"
   | "declined";
@@ -219,7 +219,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
       { period: "2019.04 — 2021.05", role: "デジタルマーケター", company: "株式会社電通デジタル", isCurrent: false },
     ],
   },
-  // ── scheduling (日程調整中) ── 3件
+  // ── scheduled (面談予定) ── 3件
   {
     id: "meet-s1",
     applicantName: "中村 ゆか",
@@ -236,7 +236,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
     questions: "プロダクトのフェーズと課題\nチームカルチャー",
     preferredFormat: "Zoom",
     submittedAt: "6日前",
-    status: "scheduling",
+    status: "scheduled",
     isUnread: false,
     assigneeId: "member-1",
     assigneeName: "柴 尚人",
@@ -265,7 +265,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
     questions: "マイクロサービスの構成\nデプロイ頻度とCI/CD環境",
     preferredFormat: "Zoom",
     submittedAt: "7日前",
-    status: "scheduling",
+    status: "scheduled",
     isUnread: false,
     assigneeId: "member-1",
     assigneeName: "柴 尚人",
@@ -293,7 +293,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
     questions: "営業プロセスの特徴\n顧客ターゲットの詳細",
     preferredFormat: "Google Meet",
     submittedAt: "8日前",
-    status: "scheduling",
+    status: "scheduled",
     isUnread: false,
     assigneeId: "member-2",
     assigneeName: "山田 花子",
@@ -397,7 +397,6 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
 export const STATUS_TABS = [
   { status: "pending" as MeetingStatus, label: "新規受信", shortLabel: "新規" },
   { status: "company_contacted" as MeetingStatus, label: "確認中", shortLabel: "確認中" },
-  { status: "scheduling" as MeetingStatus, label: "日程調整中", shortLabel: "調整中" },
   { status: "scheduled" as MeetingStatus, label: "面談予定", shortLabel: "予定" },
   { status: "completed" as MeetingStatus, label: "完了", shortLabel: "完了" },
   { status: "declined" as MeetingStatus, label: "見送り", shortLabel: "見送り" },

@@ -208,7 +208,7 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
 
   const handleScheduleAdjust = useCallback(() => {
     if (!selectedId) return;
-    handleStatusChange(selectedId, "scheduling");
+    handleStatusChange(selectedId, "scheduled");
   }, [selectedId, handleStatusChange]);
 
   const handleProfileDetail = useCallback(() => {

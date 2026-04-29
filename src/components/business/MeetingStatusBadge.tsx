@@ -1,12 +1,11 @@
 import type { MeetingStatus } from "@/lib/business/mockMeetings";
 
 const STATUS_CONFIG: Record<MeetingStatus, { label: string; bg: string; color: string }> = {
-  pending:           { label: "新規受信",   bg: "var(--warm-soft)",   color: "#B45309" },
-  company_contacted: { label: "確認中",     bg: "var(--royal-50)",   color: "var(--royal)" },
-  scheduling:        { label: "日程調整中", bg: "var(--purple-soft)", color: "var(--purple)" },
-  scheduled:         { label: "面談予定",   bg: "var(--pink-soft)",  color: "var(--pink)" },
-  completed:         { label: "完了",       bg: "var(--line-soft)",  color: "var(--ink-soft)" },
-  declined:          { label: "見送り",     bg: "var(--error-soft)", color: "var(--error)" },
+  pending:           { label: "新規受信", bg: "var(--warm-soft)",   color: "#B45309" },
+  company_contacted: { label: "確認中",   bg: "var(--royal-50)",   color: "var(--royal)" },
+  scheduled:         { label: "面談予定", bg: "var(--purple-soft)", color: "var(--purple)" },
+  completed:         { label: "完了",     bg: "var(--line-soft)",  color: "var(--ink-soft)" },
+  declined:          { label: "見送り",   bg: "var(--error-soft)", color: "var(--error)" },
 };
 
 type Props = {

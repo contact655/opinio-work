@@ -377,6 +377,7 @@ P3 で導入した `scripts/get_session_cookie.mjs` + curl を使い、Claude Co
 | Commit V | — | `mentors` → `ow_mentors` リネーム検証 (Phase S-V)。S-V-1: ow_mentors 3件返却 / mentors PGRST205。S-V-2: /mentors → 200、/mentors/[id] → 200。S-V-3: POST /api/mentor-reservations → 401（auth guard 正常）。S-V-5: /companies /jobs /articles /mentors → 全 200。TypeScript noEmit PASS。grep .from("mentors") ゼロ確認 | ✅ | S-V-1〜5 全 PASS |
 | Commit W | `87e7100` | biz 求人 CRUD バグ修正検証 (Phase S-W)。S-W-1: fetchJobsForCompany のカラム不整合（m001 vs m031）を修正確認。S-W-3: POST (新規) → 201 + DB 行確認。S-W-4: PUT (更新) → 200。S-W-5: PATCH (published) → 200。S-W-6: 未認証 → 401。S-W-7: 他社 job_id → 403 (RLS)。S-W-8: 既存ページ影響なし。TypeScript noEmit PASS | ✅ | S-W-1〜8 全 PASS。他社判定テスト時に 柴さんが 10 社の admin であることを確認（真に外部の company_id 特定が必要だった） |
 | Commit X | — | biz 応募管理実機検証 (Phase S-X)。migration 049 適用確認。S-X-1: /biz/applications 200 + 3件表示。S-X-2: 未認証 → 307。S-X-3: PATCH status → 200 + DB 反映確認。S-X-4: 無効 status → 400 + エラーメッセージ。S-X-5: 他社 application PATCH → 404 (RLS 防御)。S-X-6: 全 3 件表示確認。S-X-7: /jobs /companies /articles /mentors /biz/dashboard → 全 200。S-X-8: cleanup 0件確認 | ✅ | S-X-1〜8 全 PASS |
+| Commit Y | — | biz カジュアル面談 "scheduling" バグ修正 (Phase S-Y)。S-Y-1: /biz/meetings 200 + 3件表示。S-Y-2: 未認証 → 307。S-Y-3: PATCH status → 200 + DB 反映。S-Y-4: 無効 status → 400（"scheduling" も 400 で弾く）。S-Y-5: 他社 meeting PATCH → 404。S-Y-7: memo/assign_to_me/mark_read 全 200 + DB 反映。S-Y-8: 全 8 ページ回帰 200。S-Y-9: cleanup 0件確認 | ✅ | S-Y-1〜9 全 PASS（S-Y-6 UI確認省略）|
 | Commit D | `178433d` | 記事システム実機検証 (Phase E2E-D)。S-D-1: 10件 seed 確認（employee×2 / mentor×4 / ceo×2 / report×2、全 is_published=true）。S-D-2: /articles 200。S-D-3: 4タイプ詳細ページ全 200（layerx-suzuki/layerx-nakamura/smarthr-ceo/hubspot-report）。S-D-4: 存在しない slug → 404。S-D-5: type フィルター全 type 200、記事数が DB と整合（employee:2/mentor:4/ceo:2/report:2）。S-D-6: anon 読み取り可（content-range: 0-9/10）。S-D-7: 既存ページ影響なし (/, /companies, /jobs, /mentors → 200; /mypage, /biz/dashboard → 307) | ✅ | S-D-1〜7 全 PASS。新規コード追加なし |
 
 **検証対象外**（ブラウザ UI 操作、フォーム入力等）: 柴さん本人が任意のタイミングで実施可能。
@@ -485,6 +486,7 @@ function DashboardView({
 | DB 命名統一 | V | — | migration 048 (`mentors` → `ow_mentors` RENAME) + 全 8 TypeScript ファイルの `.from("mentors")` → `.from("ow_mentors")` 更新。S-V-1〜5 全 PASS |
 | biz 求人 CRUD バグ修正 | W | `87e7100` | `fetchJobsForCompany` の m001→m031 カラム不整合バグ修正（`description_markdown`/`required_skills`/`preferred_skills`/`selection_steps`）。POST route に `getCompanyContext` auth 追加。`salaryNote` 型追加 |
 | biz 応募管理 | X | — | migration 049 (company admin SELECT/UPDATE RLS + status CHECK 制約) + `src/lib/business/applications.ts` + `src/app/biz/applications/` page + Client + `src/app/api/biz/applications/[id]/route.ts` PATCH。BusinessLayout サイドバーに「応募管理」リンク追加 |
+| biz カジュアル面談バグ修正 | Y | — | `"scheduling"` ステータス不整合修正。`mockMeetings.ts` 型削除、STATUS_TABS 5タブ化、MOCK_MEETINGS 3件を `"scheduled"` に変更。`MeetingsClient.tsx` handleScheduleAdjust 修正。PATCH route に `VALID_MEETING_STATUSES` バリデーション + `.maybeSingle()` 0行チェック追加。`MeetingStatusBadge.tsx` も同期 |
 
 ---
 
@@ -505,6 +507,7 @@ function DashboardView({
 | ✅ 完了 | `ow_bookmarks` 企業ブックマーク DB 接続 | Commit I (`9c99ad3`) で実装済み。`target_type='company'` のみ | — | — |
 | — | 記事 / メンター / 求人ブックマーク（`target_type='article' / 'mentor' / 'job'`） | Commit I は `company` のみ。記事・メンターはテーブル未作成。求人ブックマーク UI も未実装 | 中 | `ow_articles` / `ow_mentors` テーブル新規作成後 |
 | ✅ 完了 | `ow_job_applications` UNIQUE(user_id, job_id) 制約追加 | Commit U + migration 047 で完了。race condition を DB 層で完全防止。API 23505→409 対応済み | — | — |
+| ✅ 完了 | `/biz/meetings` カジュアル面談管理画面 | ページ・API・fetcher は実装済みだったが `"scheduling"` status 不整合バグあり。Commit Y で修正済み（mockMeetings.ts 型統一、バリデーション追加、0行チェック追加） | — | — |
 | — | `ow_jobs.job_category` FK 化 + UI 変更 | `TEXT` free text のため表記ゆれが発生（§6-9 参照）。`ow_roles.id` への FK 化 + 既存データ migration + 求人作成 UI の `ow_roles` 連動が必要 | 大 | — |
 
 ### M-5 着手前に確認すべき事項

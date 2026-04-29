@@ -6,6 +6,11 @@ import { insertActivity } from "@/lib/business/activities";
 
 type Action = "status" | "memo" | "assign_to_me" | "mark_read";
 
+// DB CHECK constraint (migration 031): only these 5 values are valid
+const VALID_MEETING_STATUSES = new Set([
+  "pending", "company_contacted", "scheduled", "completed", "declined",
+]);
+
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
@@ -33,13 +38,27 @@ export async function PATCH(
     if (!body.value) {
       return NextResponse.json({ error: "value required" }, { status: 400 });
     }
-    const { error } = await supabase
+    if (!VALID_MEETING_STATUSES.has(body.value)) {
+      return NextResponse.json(
+        { error: `status must be one of: ${Array.from(VALID_MEETING_STATUSES).join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    // UPDATE + 0-rows detection (Commit W/X lesson: RLS silent block)
+    const { data: updated, error } = await supabase
       .from("ow_casual_meetings")
       .update({ status: body.value, updated_at: now })
-      .eq("id", meetingId);
+      .eq("id", meetingId)
+      .select("id")
+      .maybeSingle();
     if (error) {
       console.error("[meetings PATCH status]", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (!updated) {
+      // 0 rows: RLS blocked the UPDATE or meetingId not found
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     // Activity: meeting_scheduled / meeting_completed (best-effort)
