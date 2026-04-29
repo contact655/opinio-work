@@ -579,7 +579,7 @@ export type MentorFilter = {
 export async function getMentors(filter?: MentorFilter): Promise<MentorData[]> {
   const supabase = createClient();
   const { data, error } = await supabase
-    .from("mentors")
+    .from("ow_mentors")
     .select(MENTOR_COLS)
     .order("display_order", { ascending: true });
 
@@ -606,7 +606,7 @@ export async function getMentors(filter?: MentorFilter): Promise<MentorData[]> {
 export async function getMentorById(id: string): Promise<MentorData | null> {
   const supabase = createClient();
   const { data, error } = await supabase
-    .from("mentors")
+    .from("ow_mentors")
     .select(MENTOR_COLS)
     .eq("id", id)
     .single();

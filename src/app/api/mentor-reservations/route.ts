@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
   // Verify mentor exists and is available
   const { data: mentor } = await supabase
-    .from("mentors")
+    .from("ow_mentors")
     .select("id, is_available")
     .eq("id", mentor_id)
     .maybeSingle();

@@ -32,7 +32,7 @@ export default function AdminNewConsultationCase() {
     async function fetchMentors() {
       const supabase = createClient();
       const { data } = await supabase
-        .from("mentors")
+        .from("ow_mentors")
         .select("id, name")
         .order("display_order");
       if (data) {

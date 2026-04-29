@@ -9,7 +9,7 @@
 - **全 commit が E2E 実機検証済み** (Phase E2E + Phase E2E-J)
 - **設計書 両方最新化** — `docs/plans/biz-members-multitenant.md` / `docs/plans/jobseeker-product.md`
 
-**合計: 63 commits · 4 migrations · 2 design docs · 2 E2E verification phases**
+**合計: 65 commits · 6 migrations · 2 design docs · 3 E2E verification phases**
 
 ---
 
@@ -220,27 +220,41 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 
 ---
 
-### Schema Hardening — UNIQUE Constraint (1 commit + migration 047)
+### Schema Hardening (2 commits + migrations 047/048)
 
 `ow_job_applications` の race condition リスクを DB 層で完全解消。Defense in depth 完成。
 
 | Hash | Commit |
 |------|--------|
 | `17765ee` | fix(jobseeker): UNIQUE constraint on ow_job_applications (Commit U) |
+| — | refactor(db): rename mentors → ow_mentors for naming consistency (Commit V) |
 
-**変更内容:**
+**Commit U — UNIQUE(user_id, job_id) on ow_job_applications:**
 - migration 047 — `ALTER TABLE ow_job_applications ADD CONSTRAINT ow_job_applications_user_job_unique UNIQUE (user_id, job_id)`
 - `src/app/api/applications/route.ts` — INSERT error で `error.code === "23505"` を 409 で返す分岐追加
-
-**Defense in Depth 完成:**
-- アプリ層: `SELECT → INSERT` 重複チェック（UI 親和的な 409 + `already_applied`）
-- DB 層: UNIQUE 制約（race condition を Postgres がブロック、23505 → API が 409 に変換）
+- Defense in Depth 完成: アプリ層チェック + DB UNIQUE 制約の二重防御
 
 **Phase S-T 検証 (全 PASS):**
 - S-T-2: 1回目 → 201、2回目 → 409（アプリ層）
 - S-T-3: service_role 直接 INSERT → 409 + `constraint "ow_job_applications_user_job_unique"` 確認（DB 層）
 - S-T-4: 既存ページ影響なし
 - S-T-5: クリーンアップ 0件確認
+
+**Commit V — `mentors` → `ow_mentors` RENAME:**
+- migration 048 — `ALTER TABLE mentors RENAME TO ow_mentors` + CONSTRAINT rename
+- 全 8 TypeScript ファイルの `.from("mentors")` → `.from("ow_mentors")` 更新
+  - `src/lib/supabase/queries.ts` (getMentors, getMentorById)
+  - `src/app/(jobseeker)/mypage/page.tsx`
+  - `src/app/api/mentor-reservations/route.ts`
+  - `src/app/career-consultation/page.tsx` + `[id]/page.tsx`
+  - `src/app/admin/mentors/page.tsx` + `consultation-cases/new/page.tsx`
+  - `src/app/api/consultation/book/route.ts`
+
+**Phase S-V 検証 (全 PASS):**
+- S-V-1: `ow_mentors` → 3件返却、`mentors` → PGRST205 (テーブル消滅確認)
+- S-V-2: `/mentors` → 200、`/mentors/[id]` → 200
+- S-V-3: `POST /api/mentor-reservations` → 401（auth guard 正常動作）
+- S-V-5: `/companies /jobs /articles /mentors` → 全 200（回帰なし）
 
 ---
 
@@ -328,13 +342,14 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 | `ow_experiences` CRUD + CareerModal DB 接続 | `95d8bf7` (Commit J) | Phase E2E-J ✅ |
 | メンターシステム（一覧・詳細・予約・マイページ履歴） | `6e1fd79` + `2b84f6b` (M-1, M-2) | Phase E2E-Q/R ✅ |
 | 記事システム（`ow_articles` + 4タイプ対応） | `178433d` (Commit D) | Phase E2E-D ✅ |
+| DB 命名規則統一（`mentors` → `ow_mentors`） | — (Commit V) | Phase S-V ✅ |
 
 ### Remaining Tasks
 
 | 優先度 | タスク |
 |--------|--------|
-| — | `mentors` と `ow_users` の連携設計 + メンター本人の予約閲覧 + 承認フロー |
-| — | `mentors` テーブルを `ow_mentors` にリネームする migration（命名規約統一）|
+| ✅ 完了 | `mentors` → `ow_mentors` リネーム (migration 048, Commit V) で命名規約統一完了 |
+| — | `ow_mentors` と `ow_users` の連携設計 + メンター本人の予約閲覧 + 承認フロー |
 | ⭐ | `/mypage` サブページの Server Component 化 |
 | ⭐ | `ow_jobs.job_category` FK 化（表記ゆれ解消） |
 | ✅ 完了 | `ow_job_applications` UNIQUE(user_id, job_id) 制約追加 — Commit U (migration 047) で完了 |

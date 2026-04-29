@@ -139,7 +139,7 @@ export default async function MypagePage() {
       const mentorMap = new Map<string, { name: string; avatar_initial: string | null; avatar_color: string | null; current_role: string | null }>();
       if (mentorIds.length > 0) {
         const { data: mentors } = await supabase
-          .from("mentors")
+          .from("ow_mentors")
           .select("id, name, avatar_initial, avatar_color, current_role")
           .in("id", mentorIds);
         for (const m of mentors ?? []) {

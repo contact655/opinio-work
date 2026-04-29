@@ -15,7 +15,7 @@ async function getMentors() {
   const supabase = createClient();
   try {
     const { data, error } = await supabase
-      .from("mentors")
+      .from("ow_mentors")
       .select("*")
       .eq("is_available", true)
       .order("display_order", { ascending: true });

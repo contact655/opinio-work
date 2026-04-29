@@ -46,7 +46,7 @@ export default async function MentorDetailPage({
 }) {
   const supabase = createClient();
   const { data: mentor } = await supabase
-    .from("mentors")
+    .from("ow_mentors")
     .select("*")
     .eq("id", params.id)
     .single();

@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     // メンター情報を取得
     const { data: mentor, error: mentorError } = await supabase
-      .from("mentors")
+      .from("ow_mentors")
       .select("id, name, email")
       .eq("id", mentorId)
       .single();

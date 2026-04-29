@@ -18,7 +18,7 @@ export default function AdminMentorsPage() {
 
   useEffect(() => {
     supabase
-      .from("mentors")
+      .from("ow_mentors")
       .select("id, name, current_company, current_role, avatar_url, display_order")
       .order("display_order")
       .then(({ data }) => {
@@ -38,7 +38,7 @@ export default function AdminMentorsPage() {
     const url = urlInputs[mentorId]?.trim() || null;
     setSaving(mentorId);
     const { error } = await supabase
-      .from("mentors")
+      .from("ow_mentors")
       .update({ avatar_url: url })
       .eq("id", mentorId);
     setSaving(null);
