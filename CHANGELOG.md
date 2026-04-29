@@ -226,7 +226,7 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 
 | Hash | Commit |
 |------|--------|
-| *(pending)* | fix(jobseeker): UNIQUE constraint on ow_job_applications (Commit U) |
+| `17765ee` | fix(jobseeker): UNIQUE constraint on ow_job_applications (Commit U) |
 
 **変更内容:**
 - migration 047 — `ALTER TABLE ow_job_applications ADD CONSTRAINT ow_job_applications_user_job_unique UNIQUE (user_id, job_id)`
