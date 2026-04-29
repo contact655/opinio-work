@@ -77,6 +77,7 @@ export type CasualMeeting = {
 
 export type MentorReservation = {
   id: string;
+  mentor_id: string;
   mentor_name: string;
   mentor_initial: string;
   mentor_gradient: string;
@@ -174,6 +175,7 @@ export const MOCK_CASUAL_MEETINGS: CasualMeeting[] = [
 export const MOCK_MENTOR_RESERVATIONS: MentorReservation[] = [
   {
     id: "mr-1",
+    mentor_id: "",
     mentor_name: "渡辺 美穂",
     mentor_initial: "渡",
     mentor_gradient: "linear-gradient(135deg, #A78BFA, #7C3AED)",
@@ -184,6 +186,7 @@ export const MOCK_MENTOR_RESERVATIONS: MentorReservation[] = [
   },
   {
     id: "mr-2",
+    mentor_id: "",
     mentor_name: "鈴木 由紀",
     mentor_initial: "鈴",
     mentor_gradient: "linear-gradient(135deg, #6366F1, #818CF8)",
@@ -195,6 +198,7 @@ export const MOCK_MENTOR_RESERVATIONS: MentorReservation[] = [
   },
   {
     id: "mr-3",
+    mentor_id: "",
     mentor_name: "林 健太",
     mentor_initial: "林",
     mentor_gradient: "linear-gradient(135deg, #0891B2, #0E7490)",
