@@ -722,6 +722,29 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   return mapDbArticle(data as Record<string, any>);
 }
 
+export async function getArticlesByCompany(companyId: string): Promise<Article[]> {
+  const supabase = createClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let query: any = supabase
+    .from("ow_articles")
+    .select(ARTICLE_LIST_COLS)
+    .eq("company_id", companyId)
+    .order("published_at", { ascending: false });
+
+  if (process.env.NODE_ENV !== "development") {
+    query = query.eq("is_published", true);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("[getArticlesByCompany]", error.message);
+    return [];
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []).map((row: Record<string, any>) => mapDbArticle(row));
+}
+
 export async function getArticlesBySlugs(slugs: string[]): Promise<Article[]> {
   if (slugs.length === 0) return [];
   const supabase = createClient();

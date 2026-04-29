@@ -5,8 +5,11 @@ import {
   getCompanyById,
   getCompanyPhotos,
   getCompanyRecruiters,
+  getArticlesByCompany,
 } from "@/lib/supabase/queries";
 import type { CompanyPhoto, CompanyRecruiter } from "@/lib/supabase/queries";
+import type { Article } from "@/app/articles/mockArticleData";
+import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
@@ -1506,6 +1509,144 @@ function RecruitersSection({
   );
 }
 
+// ─── Company Articles Section ─────────────────────────────────────────────────
+
+function CompanyArticlesSection({ articles }: { articles: Article[] }) {
+  const displayed = articles.slice(0, 3);
+
+  return (
+    <section
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 16,
+        padding: "28px 32px",
+        marginBottom: 20,
+      }}
+    >
+      <div style={{ marginBottom: 20 }}>
+        <SecTitle
+          iconColor="default"
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+          }
+        >
+          Opinio 取材記事
+        </SecTitle>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: 16,
+        }}
+      >
+        {displayed.map((article) => {
+          const badge = TYPE_BADGE[article.type];
+          const icon  = TYPE_EYECATCH_ICON[article.type];
+          return (
+            <Link
+              key={article.slug}
+              href={`/articles/${article.slug}`}
+              style={{ textDecoration: "none" }}
+            >
+              <div
+                style={{
+                  border: "1px solid var(--line)",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  background: "#fff",
+                  transition: "border-color 0.15s, box-shadow 0.15s",
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+                className="article-card"
+              >
+                {/* Eyecatch */}
+                <div
+                  style={{
+                    height: 100,
+                    background: article.eyecatch_gradient,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    position: "relative",
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ fontSize: 36, opacity: 0.3 }}>{icon}</span>
+                  <div
+                    style={{
+                      position: "absolute", top: 8, left: 10,
+                      display: "inline-flex", alignItems: "center",
+                      padding: "3px 8px", borderRadius: 100,
+                      background: badge.bg, color: badge.color,
+                      fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em",
+                    }}
+                  >
+                    {badge.label}
+                  </div>
+                  <div
+                    style={{
+                      position: "absolute", bottom: 7, right: 10,
+                      fontSize: 9, color: "rgba(255,255,255,0.8)",
+                      fontFamily: "Inter, sans-serif", fontWeight: 500,
+                    }}
+                  >
+                    {article.read_min} min read
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div style={{ padding: "12px 14px", flex: 1 }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontFamily: '"Noto Serif JP", serif',
+                      fontSize: 12, fontWeight: 700, lineHeight: 1.6,
+                      color: "var(--ink)",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    } as React.CSSProperties}
+                  >
+                    {article.title}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {articles.length > 0 && (
+        <div style={{ marginTop: 16, textAlign: "right" }}>
+          <Link
+            href="/articles"
+            style={{
+              fontSize: 12, color: "var(--accent)", textDecoration: "none",
+              fontFamily: "Inter, sans-serif", fontWeight: 600,
+              display: "inline-flex", alignItems: "center", gap: 4,
+            }}
+          >
+            記事一覧を見る
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </Link>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function Sidebar({
   company,
   detail,
@@ -1680,10 +1821,11 @@ export default async function CompanyDetailPage({
 }) {
   const supabase = createClient();
 
-  const [companyResult, photos, recruiters, authResult] = await Promise.all([
+  const [companyResult, photos, recruiters, companyArticles, authResult] = await Promise.all([
     getCompanyById(params.id),
     getCompanyPhotos(params.id),
     getCompanyRecruiters(params.id),
+    getArticlesByCompany(params.id),
     supabase.auth.getUser(),
   ]);
 
@@ -1730,6 +1872,9 @@ export default async function CompanyDetailPage({
             <JobsSection company={company} detail={detail} />
             {recruiters.length > 0 && (
               <RecruitersSection recruiters={recruiters} />
+            )}
+            {companyArticles.length > 0 && (
+              <CompanyArticlesSection articles={companyArticles} />
             )}
           </main>
 
