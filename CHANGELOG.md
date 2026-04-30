@@ -16,7 +16,8 @@
 | `f58d3e4` | feat(companies/detail): AA — NumbersSection (6 columns) |
 | `9bda883` | feat(companies/detail): BB — BenefitsSection + EvaluationText + WorkStyle text fields |
 | `385bd50` | feat(companies/detail): CC — CurrentEmployeesSection + AlumniSection |
-| — | feat(notify): DD — email notifications for meetings + mentor (T3/T4/T5) |
+| `2a7a82c` | feat(notify): DD — email notifications for meetings + mentor (T3/T4/T5) |
+| — | feat(notify): EE — T1+T2 application notifications + dead code cleanup |
 
 ---
 

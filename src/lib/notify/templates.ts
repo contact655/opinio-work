@@ -138,3 +138,79 @@ export function mentorReservationUserTemplate(params: {
     `),
   };
 }
+
+// ── T1: 求人応募申込 ──────────────────────────────────────────────────────────
+
+// T1 admin 宛
+export function applicationAdminTemplate(params: {
+  companyName: string;
+  jobTitle: string;
+  applicantName: string;
+  applicantEmail: string;
+  message: string | null;
+}) {
+  return {
+    to: ADMIN_EMAIL,
+    subject: `【新着応募】${params.companyName} の ${params.jobTitle} に応募がありました`,
+    html: htmlWrap(`
+      <h2>新着求人応募</h2>
+      <p><strong>${params.companyName}</strong>「${params.jobTitle}」への応募がありました。</p>
+      <p><strong>応募者:</strong> ${params.applicantName}（${params.applicantEmail}）</p>
+      <p><strong>志望動機:</strong> ${params.message || "（未記入）"}</p>
+      <p><a href="https://opinio.work/biz/applications">/biz/applications で確認する →</a></p>
+    `),
+  };
+}
+
+// T1 応募者宛
+export function applicationUserTemplate(params: {
+  to: string;
+  companyName: string;
+  jobTitle: string;
+}) {
+  return {
+    to: params.to,
+    subject: `【opinio.work】${params.companyName} の ${params.jobTitle} への応募を受け付けました`,
+    html: htmlWrap(`
+      <h2>応募を受け付けました</h2>
+      <p><strong>${params.companyName}</strong>「${params.jobTitle}」へのご応募ありがとうございます。</p>
+      <p>採用担当者があなたの応募を確認次第、ご連絡いたします。</p>
+      <p><a href="https://opinio.work/mypage/applications">マイページで選考状況を確認する →</a></p>
+    `),
+  };
+}
+
+// ── T2: 応募ステータス変更（応募者宛のみ）────────────────────────────────────
+
+export function applicationStatusTemplate(params: {
+  to: string;
+  name: string;
+  companyName: string;
+  jobTitle: string;
+  status: "reviewing" | "interview" | "accepted" | "rejected";
+}) {
+  const subjects: Record<string, string> = {
+    reviewing: `【opinio.work】${params.companyName} があなたの応募を確認しています`,
+    interview: `【opinio.work】${params.companyName} が面接を希望しています`,
+    accepted:  `【opinio.work】${params.companyName} から採用の連絡が届きました`,
+    rejected:  `【opinio.work】${params.companyName} からのご連絡`,
+  };
+  const messages: Record<string, string> = {
+    reviewing: `${params.companyName} の採用担当者があなたの応募書類を確認中です。引き続きお待ちください。`,
+    interview: `${params.companyName} から面接のご希望がありました。マイページから詳細をご確認ください。`,
+    accepted:  `おめでとうございます！${params.companyName} から採用のご連絡がありました。マイページから詳細をご確認ください。`,
+    rejected:  `${params.companyName} からご連絡があります。マイページから詳細をご確認ください。`,
+  };
+
+  return {
+    to: params.to,
+    subject: subjects[params.status],
+    html: htmlWrap(`
+      <h2>${subjects[params.status].replace("【opinio.work】", "")}</h2>
+      <p>${params.name} さん、</p>
+      <p>${messages[params.status]}</p>
+      <p style="font-size: 13px; color: #888;">応募求人: ${params.companyName} / ${params.jobTitle}</p>
+      <p><a href="https://opinio.work/mypage/applications">選考状況を確認する →</a></p>
+    `),
+  };
+}

@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { VALID_APPLICATION_STATUSES } from "@/lib/business/applications";
+import { notify } from "@/lib/notify/email";
+import { applicationStatusTemplate } from "@/lib/notify/templates";
 
 export async function PATCH(
   req: Request,
@@ -75,6 +77,32 @@ export async function PATCH(
   if (!updated) {
     // RLS blocked the UPDATE silently
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // ── Notify (best-effort, T2) ──────────────────────────────────────────────
+  const NOTIFY_STATUSES = new Set(["reviewing", "interview", "accepted", "rejected"]);
+  if (NOTIFY_STATUSES.has(newStatus)) {
+    const { data: appForNotify } = await supabase
+      .from("ow_job_applications")
+      .select("email, name, ow_jobs!inner(title, ow_companies!inner(name))")
+      .eq("id", appId)
+      .maybeSingle();
+
+    if (appForNotify?.email) {
+      const job = appForNotify.ow_jobs as unknown as {
+        title: string;
+        ow_companies: { name: string };
+      } | null;
+      await notify(
+        applicationStatusTemplate({
+          to: appForNotify.email,
+          name: appForNotify.name ?? "",
+          companyName: job?.ow_companies?.name ?? "",
+          jobTitle: job?.title ?? "",
+          status: newStatus as "reviewing" | "interview" | "accepted" | "rejected",
+        })
+      );
+    }
   }
 
   return NextResponse.json({ ok: true, id: updated.id });

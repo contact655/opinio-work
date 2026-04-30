@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { notify } from "@/lib/notify/email";
+import {
+  applicationAdminTemplate,
+  applicationUserTemplate,
+} from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +68,36 @@ export async function POST(req: Request) {
     }
     console.error("[POST /api/applications]", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // ── Notify (best-effort, T1) ──────────────────────────────────────────────
+  const { data: jobForNotify } = await supabase
+    .from("ow_jobs")
+    .select("title, ow_companies!inner(name)")
+    .eq("id", job_id as string)
+    .maybeSingle();
+
+  if (jobForNotify) {
+    const companyName =
+      (jobForNotify.ow_companies as unknown as { name: string } | null)?.name ?? "";
+    await notify(
+      applicationAdminTemplate({
+        companyName,
+        jobTitle: jobForNotify.title,
+        applicantName: name,
+        applicantEmail: email,
+        message: (message as string | undefined) ?? null,
+      })
+    );
+    if (email) {
+      await notify(
+        applicationUserTemplate({
+          to: email,
+          companyName,
+          jobTitle: jobForNotify.title,
+        })
+      );
+    }
   }
 
   return NextResponse.json({ id: inserted.id, status: inserted.status }, { status: 201 });
