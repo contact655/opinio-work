@@ -523,7 +523,8 @@ function DashboardView({
 | biz カジュアル面談バグ修正 | Y | — | `"scheduling"` ステータス不整合修正。`mockMeetings.ts` 型削除、STATUS_TABS 5タブ化、MOCK_MEETINGS 3件を `"scheduled"` に変更。`MeetingsClient.tsx` handleScheduleAdjust 修正。PATCH route に `VALID_MEETING_STATUSES` バリデーション + `.maybeSingle()` 0行チェック追加。`MeetingStatusBadge.tsx` も同期 |
 | 企業詳細 関連記事 | Z | — | `ow_articles.company_id` NULL backfill（全 8 社 UUID 更新）+ `getArticlesByCompany()` 追加 + `/companies/[id]` 関連記事セクション（CompanyArticlesSection コンポーネント）実装。S-Z-1〜5 全 PASS |
 | 企業詳細 数値セクション | AA | `f58d3e4` | `COMPANY_DETAIL_COLS` に 6 カラム追加（avg_salary/avg_age/paid_leave_rate/avg_overtime_hours/gender_ratio/funding_total）+ `CompanyNumbers` 型 + `buildCompanyNumbers()` + `NumbersSection` コンポーネント。項目枠は常に表示、未設定は薄字「未設定」。S-AA-1〜6 全 PASS |
-| 企業詳細 テキスト・タグ系セクション | BB | — | `COMPANY_DETAIL_COLS` に 5 カラム追加（nearest_station/work_time_system/workstyle_description/benefits/evaluation_system）+ `CompanyDetail` 型拡張 + sidebar 最寄り駅行追加 + WorkStyleSection 拡張（勤務時間制度 pill + 働き方補足テキスト）+ `BenefitsSection` 新規（benefits tags + evaluation_system with read-more）+ `EvaluationText.tsx`「use client」コンポーネント。항목枠常時表示。benefits 空は「まだ登録されていません」。S-BB-1〜8 全 PASS |
+| 企業詳細 テキスト・タグ系セクション | BB | `9bda883` | `COMPANY_DETAIL_COLS` に 5 カラム追加（nearest_station/work_time_system/workstyle_description/benefits/evaluation_system）+ `CompanyDetail` 型拡張 + sidebar 最寄り駅行追加 + WorkStyleSection 拡張（勤務時間制度 pill + 働き方補足テキスト）+ `BenefitsSection` 新規（benefits tags + evaluation_system with read-more）+ `EvaluationText.tsx`「use client」コンポーネント。항목枠常時表示。benefits 空は「まだ登録されていません」。S-BB-1〜8 全 PASS |
+| 企業詳細 現役社員・OB社員 | CC | — | `getCompanyEmployees(companyId)` 追加（ow_experiences JOIN ow_users、visibility RLS 自動制御）+ `CurrentEmployeesSection` + `AlumniSection` + `EmployeeCard`（CSS hover、メンターバッジ、/u/[id] リンク）。항목枠常時表示。0件は空状態テキスト。S-CC-1〜8 全 PASS |
 
 ---
 
@@ -551,6 +552,7 @@ function DashboardView({
 | — | `ow_articles.company_slug` 残存整理 | `ow_articles` テーブルに `company_slug TEXT`（旧 seed フィールド、Commit Z で `company_id` UUID を補完済み）が残存。`ow_companies` に `slug TEXT UNIQUE` カラムを追加し、`company_slug` FK を正式化するか、`company_slug` カラムを削除して `company_id` のみに統一するか要検討 | 小 | 要設計議論 |
 | — | `avg_salary` / `funding_total` を `/biz/company` 編集フォームに追加 | 現状は Opinio 編集部のみが migration で設定可能。企業担当者が自ら最新値に更新できるよう、`BizCompany` 型・transformer・JSX の 3 層に入力欄を追加する（§6-X+5 参照） | 小 | — |
 | ✅ 完了 | `/companies/[id]` テキスト・タグ系セクション追加（Commit BB） | Commit BB で実装済み。nearest_station（sidebar）+ work_time_system pill + workstyle_description + BenefitsSection（benefits tags / evaluation_system）。biz edit の全 5 フィールドと完全対応 | — | — |
+| ✅ 完了 | `/companies/[id]` 現役社員/OB 社員セクション | Commit CC で実装済み。`ow_experiences` テーブル JOIN `ow_users`。visibility RLS 自動制御。`getCompanyEmployees(companyId)` + `CurrentEmployeesSection` + `AlumniSection` + `EmployeeCard`。メンターバッジ。/u/[id] リンク | — | — |
 | — | `capital` カラムを `NumbersSection` に追加 | `ow_companies.capital TEXT`（資本金）が DB に存在するが `NumbersSection` の 6 項目に含まれていない。`avg_salary` 等と同様 Opinio 管理フィールドとして追加するか要検討 | 小 | — |
 
 ### M-5 着手前に確認すべき事項

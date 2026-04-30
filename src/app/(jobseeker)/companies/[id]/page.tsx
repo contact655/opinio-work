@@ -6,8 +6,9 @@ import {
   getCompanyPhotos,
   getCompanyRecruiters,
   getArticlesByCompany,
+  getCompanyEmployees,
 } from "@/lib/supabase/queries";
-import type { CompanyPhoto, CompanyRecruiter } from "@/lib/supabase/queries";
+import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import type { Company } from "@/app/companies/mockCompanies";
@@ -1308,6 +1309,239 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
   );
 }
 
+// ─── Employee Sections ────────────────────────────────────────────────────────
+
+function EmployeeCard({
+  employee,
+  showEndedAt,
+}: {
+  employee: CompanyEmployee;
+  showEndedAt?: boolean;
+}) {
+  return (
+    <a
+      href={`/u/${employee.userId}`}
+      className="employee-card-link"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 14px",
+        background: "var(--bg-tint)",
+        border: "1px solid var(--line)",
+        borderRadius: 12,
+        textDecoration: "none",
+      }}
+    >
+      {/* Avatar */}
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: "50%",
+          background: employee.avatarGradient,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: '"Noto Serif JP", serif',
+          fontWeight: 700,
+          fontSize: 15,
+          color: "#fff",
+        }}
+      >
+        {employee.avatarInitial}
+      </div>
+
+      {/* Info */}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--ink)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {employee.name}
+          </span>
+          {employee.isMentor && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: "var(--purple)",
+                background: "var(--purple-soft)",
+                border: "1px solid #DDD6FE",
+                borderRadius: 100,
+                padding: "2px 8px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              メンター
+            </span>
+          )}
+        </div>
+        {employee.roleTitle && (
+          <p
+            style={{
+              margin: 0,
+              fontSize: 12,
+              color: "var(--ink-soft)",
+              marginTop: 2,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {employee.roleTitle}
+          </p>
+        )}
+        {showEndedAt && employee.endedAt && (
+          <p
+            style={{
+              margin: 0,
+              fontSize: 11,
+              color: "var(--ink-mute)",
+              marginTop: 2,
+            }}
+          >
+            退職: {employee.endedAt}
+          </p>
+        )}
+      </div>
+    </a>
+  );
+}
+
+const EMPLOYEE_GRID_STYLE: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gap: 12,
+};
+
+function CurrentEmployeesSection({
+  employees,
+}: {
+  employees: CompanyEmployee[];
+}) {
+  return (
+    <section
+      id="current-employees"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 16,
+        padding: "28px 32px",
+        marginBottom: 20,
+      }}
+    >
+      <div style={{ marginBottom: 20 }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          }
+        >
+          現役社員
+          <span
+            style={{
+              fontFamily: "Inter, sans-serif",
+              fontSize: 13,
+              fontWeight: 400,
+              color: "var(--ink-mute)",
+              marginLeft: 8,
+            }}
+          >
+            ({employees.length}名)
+          </span>
+        </SecTitle>
+      </div>
+
+      {employees.length > 0 ? (
+        <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)]">
+          {employees.map((emp) => (
+            <EmployeeCard key={emp.userId} employee={emp} />
+          ))}
+        </div>
+      ) : (
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--ink-mute)",
+            lineHeight: 1.8,
+            margin: 0,
+          }}
+        >
+          公開準備中 — Opinio で取材した社員プロフィールが順次公開されます
+        </p>
+      )}
+    </section>
+  );
+}
+
+function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
+  return (
+    <section
+      id="alumni"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 16,
+        padding: "28px 32px",
+        marginBottom: 20,
+      }}
+    >
+      <div style={{ marginBottom: 20 }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          }
+        >
+          OB・OG社員
+          <span
+            style={{
+              fontFamily: "Inter, sans-serif",
+              fontSize: 13,
+              fontWeight: 400,
+              color: "var(--ink-mute)",
+              marginLeft: 8,
+            }}
+          >
+            ({alumni.length}名)
+          </span>
+        </SecTitle>
+      </div>
+
+      {alumni.length > 0 ? (
+        <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)]">
+          {alumni.map((emp) => (
+            <EmployeeCard key={emp.userId} employee={emp} showEndedAt />
+          ))}
+        </div>
+      ) : (
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--ink-mute)",
+            lineHeight: 1.8,
+            margin: 0,
+          }}
+        >
+          OB・OG情報は順次更新されます
+        </p>
+      )}
+    </section>
+  );
+}
+
 function JobsSection({
   company,
   detail,
@@ -2105,11 +2339,12 @@ export default async function CompanyDetailPage({
 }) {
   const supabase = createClient();
 
-  const [companyResult, photos, recruiters, companyArticles, authResult] = await Promise.all([
+  const [companyResult, photos, recruiters, companyArticles, employees, authResult] = await Promise.all([
     getCompanyById(params.id),
     getCompanyPhotos(params.id),
     getCompanyRecruiters(params.id),
     getArticlesByCompany(params.id),
+    getCompanyEmployees(params.id),
     supabase.auth.getUser(),
   ]);
 
@@ -2155,6 +2390,8 @@ export default async function CompanyDetailPage({
             <NumbersSection numbers={detail.numbers} />
             <WorkStyleSection detail={detail} />
             <BenefitsSection detail={detail} />
+            <CurrentEmployeesSection employees={employees.current} />
+            <AlumniSection alumni={employees.alumni} />
             <JobsSection company={company} detail={detail} />
             {recruiters.length > 0 && (
               <RecruitersSection recruiters={recruiters} />
@@ -2172,6 +2409,10 @@ export default async function CompanyDetailPage({
         .job-item-link:hover {
           border-color: var(--royal) !important;
           background: var(--royal-50) !important;
+        }
+        .employee-card-link:hover {
+          border-color: var(--royal-100) !important;
+          background: #fff !important;
         }
       `}</style>
     </>

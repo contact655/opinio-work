@@ -550,6 +550,76 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
   });
 }
 
+// ─── Company employees (ow_experiences → ow_users) ───────────────────────────
+
+export type CompanyEmployee = {
+  userId: string;
+  name: string;
+  avatarInitial: string;
+  avatarGradient: string;
+  roleTitle: string | null;
+  isMentor: boolean;
+  endedAt: string | null; // "YYYY-MM" 形式、OB のみ使用
+};
+
+export async function getCompanyEmployees(companyId: string): Promise<{
+  current: CompanyEmployee[];
+  alumni: CompanyEmployee[];
+}> {
+  const supabase = createClient();
+  const EMPTY = { current: [], alumni: [] };
+
+  // 現役社員 (is_current = true)
+  const { data: currentRows, error: e1 } = await supabase
+    .from("ow_experiences")
+    .select("role_title, ow_users!inner(id, name, avatar_color, is_mentor)")
+    .eq("company_id", companyId)
+    .eq("is_current", true);
+
+  if (e1) {
+    console.error("[getCompanyEmployees current]", e1.message);
+    return EMPTY;
+  }
+
+  // OB 社員 (is_current = false, ended_at あり)
+  const { data: alumniRows, error: e2 } = await supabase
+    .from("ow_experiences")
+    .select("role_title, ended_at, ow_users!inner(id, name, avatar_color, is_mentor)")
+    .eq("company_id", companyId)
+    .eq("is_current", false)
+    .not("ended_at", "is", null)
+    .order("ended_at", { ascending: false });
+
+  if (e2) {
+    console.error("[getCompanyEmployees alumni]", e2.message);
+    return EMPTY;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function mapEmp(row: Record<string, any>, endedAt?: string | null): CompanyEmployee {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const u = row.ow_users as Record<string, any>;
+    const name = (u?.name as string) ?? "—";
+    const hex = u?.avatar_color as string | null;
+    return {
+      userId: u?.id as string,
+      name,
+      avatarInitial: name.charAt(0),
+      avatarGradient: hex
+        ? `linear-gradient(135deg, ${hex}99, ${hex})`
+        : "linear-gradient(135deg, #002366, #3B5FD9)",
+      roleTitle: (row.role_title as string | null) ?? null,
+      isMentor: (u?.is_mentor as boolean) ?? false,
+      endedAt: endedAt ? (endedAt as string).slice(0, 7) : null,
+    };
+  }
+
+  return {
+    current: (currentRows ?? []).map((r) => mapEmp(r)),
+    alumni: (alumniRows ?? []).map((r) => mapEmp(r, r.ended_at)),
+  };
+}
+
 // ─── Mentors ──────────────────────────────────────────────────────────────────
 // Note: table name is `mentors` (no ow_ prefix — intentional, see design doc §6-X+1)
 

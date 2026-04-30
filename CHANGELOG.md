@@ -9,7 +9,7 @@
 - **全 commit が E2E 実機検証済み** (Phase E2E + Phase E2E-J)
 - **設計書 両方最新化** — `docs/plans/biz-members-multitenant.md` / `docs/plans/jobseeker-product.md`
 
-**合計: 72 commits · 7 migrations · 2 design docs · 8 E2E verification phases**
+**合計: 73 commits · 7 migrations · 2 design docs · 8 E2E verification phases**
 
 ---
 
@@ -326,6 +326,46 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 - S-Y-7: memo/assign_to_me/mark_read 全 200 + DB 反映（company_internal_memo/assignee_user_id/company_read_at）
 - S-Y-8: / /jobs /companies /mentors /articles /biz/dashboard /biz/jobs /biz/applications → 全 200
 - S-Y-9: クリーンアップ 4件削除、0件確認
+
+---
+
+### Company Employee Sections (1 commit)
+
+企業詳細ページ（`/companies/[id]`）に「現役社員」「OB・OG社員」セクション追加。
+`ow_experiences` テーブルと `ow_users` を JOIN し、visibility RLS で自動制御。
+DB データゼロでも항목枠常時表示（AA/BB ポリシー継続）。
+
+| Hash | Commit |
+|------|--------|
+| — | feat(jobseeker): current employees + alumni sections (Commit CC) |
+
+**実装内容:**
+- `src/lib/supabase/queries.ts`: `CompanyEmployee` 型 + `getCompanyEmployees(companyId)` 追加
+  - 現役社員: `ow_experiences` WHERE `is_current=true` JOIN `ow_users!inner`
+  - OB社員: WHERE `is_current=false` AND `ended_at IS NOT NULL` ORDER BY `ended_at DESC`
+  - anon = visibility='public' のみ（RLS 自動フィルター）
+  - `avatar_color` hex → `linear-gradient(135deg, ...)` 変換
+- `src/app/(jobseeker)/companies/[id]/page.tsx`:
+  - `EmployeeCard` コンポーネント（avatar circle / name / roleTitle / mentor badge / endedAt / CSS hover）
+  - `CurrentEmployeesSection`（0件: "公開準備中 — Opinio で取材した社員プロフィールが順次公開されます"）
+  - `AlumniSection`（0件: "OB・OG情報は順次更新されます"）
+  - `Promise.all` に `getCompanyEmployees()` 追加
+  - BenefitsSection と JobsSection の間に挿入
+
+**設計決定:**
+- Event handler（`onMouseEnter`/`onMouseLeave`）は Server Component では使用不可 → `className="employee-card-link"` + `<style>` CSS hover に変更（実装中に発見）
+- CompanyDetail 型への追加なし — photos/recruiters/articles と同じ別フェッチパターン
+- `role_category_id NOT NULL` 制約あり → テスト INSERT に `role_category_id` 必須と判明
+
+**Phase S-CC 検証 (全 PASS):**
+- S-CC-1: 全 15 社（0件状態）で両セクション・空状態テキスト表示
+- S-CC-2: Ubie に現役社員 INSERT → 「柴久人 / CEO / Co-founder」カード表示
+- S-CC-3: SmartHR に OB 社員 INSERT → 「柴久人 / シニアエンジニア / 退職: 2019-12」表示
+- S-CC-4: visibility='private' → RLS で非表示、空状態「公開準備中」に戻る
+- S-CC-5: is_mentor=true → 「メンター」バッジ（purple-soft）表示
+- S-CC-6: 全テストデータ削除（ow_experiences 0件、is_mentor=false 復元）
+- S-CC-7: 既存 8 セクション全保持（企業/Opinio/数値/働き方/福利厚生/現役/OB/求人）
+- S-CC-8: / /companies /jobs /mentors /articles → 全 200
 
 ---
 
