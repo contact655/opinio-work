@@ -14,6 +14,7 @@ import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail, CompanyNumbers } from "@/app/companies/[id]/mockDetailData";
 import BookmarkButton from "./CompanyDetailClient";
+import EvaluationText from "./EvaluationText";
 import { createClient } from "@/lib/supabase/server";
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
@@ -988,6 +989,89 @@ function OpinionSection({
   );
 }
 
+// ─── Benefits Section ─────────────────────────────────────────────────────────
+
+function BenefitsSection({ detail }: { detail: CompanyDetail }) {
+  const SUBHEADER_STYLE: React.CSSProperties = {
+    fontFamily: "Inter, sans-serif",
+    fontSize: 11,
+    fontWeight: 700,
+    color: "var(--ink-mute)",
+    marginBottom: 12,
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+  };
+  const UNSET_STYLE: React.CSSProperties = {
+    fontSize: 13,
+    color: "var(--ink-mute)",
+    margin: 0,
+  };
+
+  return (
+    <section
+      id="benefits"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 16,
+        padding: "28px 32px",
+        marginBottom: 20,
+      }}
+    >
+      <div style={{ marginBottom: 24 }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          }
+        >
+          福利厚生・評価制度
+        </SecTitle>
+      </div>
+
+      {/* ── 福利厚生 ── */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={SUBHEADER_STYLE}>Benefits</div>
+        {detail.benefits && detail.benefits.length > 0 ? (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {detail.benefits.map((b) => (
+              <span
+                key={b}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "6px 14px",
+                  background: "var(--royal-50)",
+                  border: "1px solid var(--royal-100)",
+                  borderRadius: 100,
+                  fontSize: 13,
+                  color: "var(--royal)",
+                  fontWeight: 500,
+                }}
+              >
+                {b}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p style={UNSET_STYLE}>(まだ登録されていません)</p>
+        )}
+      </div>
+
+      {/* ── 評価制度 ── */}
+      <div>
+        <div style={SUBHEADER_STYLE}>Evaluation</div>
+        {detail.evaluationSystem ? (
+          <EvaluationText text={detail.evaluationSystem} />
+        ) : (
+          <p style={UNSET_STYLE}>未設定</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
   return (
     <section
@@ -1129,8 +1213,71 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
                 )}
               </div>
             ))}
+
+            {/* work_time_system — 常時表示、null は「未設定」(Commit BB) */}
+            <div>
+              {detail.workTimeSystem ? (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "8px 14px",
+                    background: "var(--success-soft,#ECFDF5)",
+                    border: "1px solid #A7F3D0",
+                    borderRadius: 100,
+                    fontSize: 13,
+                    color: "var(--success)",
+                    fontWeight: 600,
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  {detail.workTimeSystem}
+                </span>
+              ) : (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    padding: "8px 14px",
+                    background: "var(--bg-tint)",
+                    border: "1px solid var(--line)",
+                    borderRadius: 100,
+                    fontSize: 12,
+                    color: "var(--ink-mute)",
+                  }}
+                >
+                  勤務時間制度: 未設定
+                </span>
+              )}
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* workstyle_description — 常時表示、null は「未設定」(Commit BB) */}
+      <div style={{ marginTop: 20 }}>
+        <div
+          style={{
+            fontFamily: "Inter, sans-serif",
+            fontSize: 11,
+            fontWeight: 700,
+            color: "var(--ink-mute)",
+            marginBottom: 10,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+          }}
+        >
+          Working Style Note
+        </div>
+        {detail.workstyleDescription ? (
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, margin: 0 }}>
+            {detail.workstyleDescription}
+          </p>
+        ) : (
+          <p style={{ fontSize: 13, color: "var(--ink-mute)", margin: 0 }}>未設定</p>
+        )}
       </div>
 
       <div
@@ -1902,13 +2049,15 @@ function Sidebar({
               { key: "業界", value: company.industry },
               { key: "事業ステージ", value: company.phase },
               { key: "所在地", value: detail.hq },
+              // nearest_station: 常時表示、null は "未設定" (isUnset フラグ)
+              { key: "最寄り駅", value: detail.nearestStation ?? "未設定", isUnset: !detail.nearestStation },
               { key: "設立", value: detail.established },
               { key: "代表者", value: detail.ceo },
               ...(detail.url ? [{ key: "公式サイト", value: detail.url, isLink: true }] : []),
-            ] as { key: string; value: string; isLink?: boolean }[]
+            ] as { key: string; value: string; isLink?: boolean; isUnset?: boolean }[]
           )
-            .filter((item) => item.value && item.value !== "—")
-            .map(({ key, value, isLink }) => (
+            .filter((item) => item.isUnset || (item.value && item.value !== "—"))
+            .map(({ key, value, isLink, isUnset }) => (
               <div
                 key={key}
                 style={{
@@ -1934,6 +2083,8 @@ function Sidebar({
                   >
                     {value} →
                   </a>
+                ) : isUnset ? (
+                  <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>{value}</span>
                 ) : (
                   <span style={{ color: "var(--ink)", fontWeight: 500 }}>{value}</span>
                 )}
@@ -2003,6 +2154,7 @@ export default async function CompanyDetailPage({
             <OpinionSection company={company} detail={detail} />
             <NumbersSection numbers={detail.numbers} />
             <WorkStyleSection detail={detail} />
+            <BenefitsSection detail={detail} />
             <JobsSection company={company} detail={detail} />
             {recruiters.length > 0 && (
               <RecruitersSection recruiters={recruiters} />

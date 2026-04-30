@@ -86,6 +86,12 @@ export type CompanyDetail = {
   mentor_alumni: number;
   // Numbers section (Commit AA)
   numbers: CompanyNumbers;
+  // Benefits section (Commit BB)
+  nearestStation: string | null;
+  workTimeSystem: string | null;
+  workstyleDescription: string | null;
+  benefits: string[] | null;
+  evaluationSystem: string | null;
 };
 
 // ─── Full data ─────────────────────────────────────────────────────────────
@@ -204,6 +210,12 @@ const LAYERX: CompanyDetail = {
     genderRatio: null,
     fundingTotal: "32億円",
   },
+  // Benefits section (Commit BB) — mock は全 null（DB に seed データなし）
+  nearestStation: null,
+  workTimeSystem: null,
+  workstyleDescription: null,
+  benefits: null,
+  evaluationSystem: null,
 };
 
 const SMARTHR: CompanyDetail = {
@@ -321,6 +333,12 @@ const SMARTHR: CompanyDetail = {
     genderRatio: null,
     fundingTotal: null,
   },
+  // Benefits section (Commit BB) — mock は全 null
+  nearestStation: null,
+  workTimeSystem: null,
+  workstyleDescription: null,
+  benefits: null,
+  evaluationSystem: null,
 };
 
 // ─── Template generator (for the other 10 companies) ─────────────────────────
@@ -441,6 +459,12 @@ function makeDetail(c: Company, overrides: Partial<CompanyDetail> = {}): Company
       genderRatio: null,
       fundingTotal: null,
     },
+    // Benefits section (Commit BB)
+    nearestStation: null,
+    workTimeSystem: null,
+    workstyleDescription: null,
+    benefits: null,
+    evaluationSystem: null,
   };
 
   return { ...base, ...overrides };

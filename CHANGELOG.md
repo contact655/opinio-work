@@ -9,7 +9,7 @@
 - **全 commit が E2E 実機検証済み** (Phase E2E + Phase E2E-J)
 - **設計書 両方最新化** — `docs/plans/biz-members-multitenant.md` / `docs/plans/jobseeker-product.md`
 
-**合計: 71 commits · 7 migrations · 2 design docs · 8 E2E verification phases**
+**合計: 72 commits · 7 migrations · 2 design docs · 8 E2E verification phases**
 
 ---
 
@@ -326,6 +326,45 @@ dead code 削除 + `ow_bookmarks` 企業ブックマーク本格実装。
 - S-Y-7: memo/assign_to_me/mark_read 全 200 + DB 反映（company_internal_memo/assignee_user_id/company_read_at）
 - S-Y-8: / /jobs /companies /mentors /articles /biz/dashboard /biz/jobs /biz/applications → 全 200
 - S-Y-9: クリーンアップ 4件削除、0件確認
+
+---
+
+### Company Benefits Section (1 commit + 1 new client component)
+
+企業詳細ページ（`/companies/[id]`）に 5 つのテキスト・タグ系フィールドを追加。
+Commit AA「항목枠常時表示」ポリシーを継続適用。全 5 フィールドが `/biz/company` 編集 UI と対応。
+
+| Hash | Commit |
+|------|--------|
+| — | feat(jobseeker): BenefitsSection + WorkStyleSection extensions (Commit BB) |
+
+**実装内容:**
+- `src/lib/supabase/queries.ts`: `COMPANY_DETAIL_COLS` に 5 カラム追加（`nearest_station`, `work_time_system`, `workstyle_description`, `benefits`, `evaluation_system`）+ `buildCompanyDetail()` に 5 フィールドマッピング追加
+- `src/app/companies/[id]/mockDetailData.ts`: `CompanyDetail` 型に 5 フィールド追加 + LAYERX / SMARTHR / `makeDetail()` の 3 箇所に null 初期値追加
+- `src/app/(jobseeker)/companies/[id]/EvaluationText.tsx`: 新規「use client」コンポーネント（THRESHOLD=180 chars で line-clamp-3 + 「続きを読む」展開）
+- `src/app/(jobseeker)/companies/[id]/page.tsx`:
+  - sidebar Company Info に「最寄り駅」行追加（`isUnset` フラグで灰色「未設定」表示）
+  - `WorkStyleSection` に `work_time_system` pill 追加（null は灰枠「勤務時間制度: 未設定」）
+  - `WorkStyleSection` に `workstyle_description` テキストブロック追加（null は「未設定」）
+  - `BenefitsSection` 新規コンポーネント（`benefits` タグ pill + `evaluationSystem` text）
+  - `BenefitsSection` を WorkStyleSection と JobsSection の間に挿入
+
+**設計決定:**
+- **항목枠常時表示** (Commit AA と同ポリシー) — データ入力を促す設計
+- `benefits` 空: pill なし、「(まだ登録されていません)」テキスト — 空 pill 表示は避ける
+- `evaluation_system` 長文: `EvaluationText` で line-clamp-3 + 展開ボタン（>180 chars の場合）
+- `nearest_station`: sidebar の `所在地` 直下に追加。`isUnset` フラグで既存 filter を回避
+
+**Phase S-BB 検証 (全 PASS):**
+- S-BB-1: 複数社ページ 200 レスポンス（全フィールド null 状態）
+- S-BB-2: sidebar「最寄り駅」行が常時表示、null → 灰色「未設定」
+- S-BB-3: WorkStyleSection に「勤務時間制度: 未設定」pill + Working Style Note ブロック
+- S-BB-4: BenefitsSection「福利厚生・評価制度」見出し + 「まだ登録されていません」表示
+- S-BB-5: Ubie 社にテストデータ投入 → 全項目入力済み表示（JR渋谷駅 / フレックスタイム制 / タグ一覧 / 評価制度テキスト）
+- S-BB-5b: 長文テキスト（196 chars > 180）→ 「続きを読む」ボタン表示
+- S-BB-6: テストデータ全 NULL 復元確認
+- S-BB-7: 既存 6 セクション（企業について / Opinio 観点 / 数値で見る企業 / 働き方 / 求人 / 採用担当者）影響なし
+- S-BB-8: / /companies /jobs /mentors /articles → 全 200 回帰
 
 ---
 
