@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import {
   MOCK_USER,
-  MOCK_MENTOR_RESERVATIONS,
   MOCK_BOOKMARKS_ARTICLES,
   MOCK_BOOKMARKS_MENTORS,
   MOCK_RECEIVED_REQUESTS,

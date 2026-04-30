@@ -76,11 +76,6 @@ function toJobStatus(s: string | null): JobStatus {
   return "draft";
 }
 
-function toStringArray(v: string | string[] | null): string[] {
-  if (!v) return [];
-  if (Array.isArray(v)) return v;
-  return v.split("\n").filter(Boolean);
-}
 
 function formatRelativeDate(iso: string | null): string {
   if (!iso) return "—";
