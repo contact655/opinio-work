@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-04-30 — Email Notifications (Commits AA/BB/CC/DD)
+
+企業詳細ページ大幅拡充 + メール通知基盤整備。
+
+- **Commit AA**: `/companies/[id]` 数値セクション（avg_salary/avg_age/paid_leave_rate/avg_overtime_hours/gender_ratio/funding_total）
+- **Commit BB**: `/companies/[id]` テキスト・タグ系セクション（nearest_station/work_time_system/workstyle_description/benefits/evaluation_system）
+- **Commit CC**: `/companies/[id]` 現役社員・OB 社員セクション（ow_experiences JOIN ow_users、メンターバッジ、/u/[id] リンク）
+- **Commit DD**: メール通知基盤（`src/lib/notify/`）+ T3/T4/T5 通知実装。RESEND_API_KEY 未設定時は console.log mock
+
+**合計: 76 commits · design docs 最新化**
+
+| Hash | Commit |
+|------|--------|
+| `f58d3e4` | feat(companies/detail): AA — NumbersSection (6 columns) |
+| `9bda883` | feat(companies/detail): BB — BenefitsSection + EvaluationText + WorkStyle text fields |
+| `385bd50` | feat(companies/detail): CC — CurrentEmployeesSection + AlumniSection |
+| — | feat(notify): DD — email notifications for meetings + mentor (T3/T4/T5) |
+
+---
+
 ## 2026-04-28 / 2026-04-29 — Marathon Session
 
 このセッションで Opinio Work は以下の状態に到達:

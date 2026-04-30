@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
+import { notify } from "@/lib/notify/email";
+import { meetingStatusTemplate } from "@/lib/notify/templates";
 
 type Action = "status" | "memo" | "assign_to_me" | "mark_read";
 
@@ -81,6 +83,28 @@ export async function PATCH(
           target_type: "casual_meeting",
           target_id: meetingId,
         });
+      }
+    }
+
+    // Notify user (best-effort, T4): company_contacted / scheduled / declined
+    const NOTIFY_STATUSES = new Set(["company_contacted", "scheduled", "declined"]);
+    if (NOTIFY_STATUSES.has(body.value)) {
+      const { data: mtgNotify } = await supabase
+        .from("ow_casual_meetings")
+        .select("contact_email, ow_companies!inner(name)")
+        .eq("id", meetingId)
+        .maybeSingle();
+
+      if (mtgNotify?.contact_email) {
+        const companyName =
+          (mtgNotify.ow_companies as unknown as { name: string } | null)?.name ?? "";
+        await notify(
+          meetingStatusTemplate({
+            to: mtgNotify.contact_email,
+            companyName,
+            status: body.value as "company_contacted" | "scheduled" | "declined",
+          })
+        );
       }
     }
   }

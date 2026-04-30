@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { notify } from "@/lib/notify/email";
+import {
+  casualMeetingAdminTemplate,
+  casualMeetingUserTemplate,
+} from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +86,31 @@ export async function POST(req: Request) {
   if (error) {
     console.error("[POST /api/casual-meetings]", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // ── Notify (best-effort, T3) ──────────────────────────────────────────────
+  const { data: companyForNotify } = await supabase
+    .from("ow_companies")
+    .select("name")
+    .eq("id", company_id as string)
+    .maybeSingle();
+
+  if (companyForNotify) {
+    await notify(
+      casualMeetingAdminTemplate({
+        companyName: companyForNotify.name,
+        contactEmail: contact_email as string,
+        intent: (intent as string | null) ?? null,
+        interestReason: (interest_reason as string | null) ?? null,
+        questions: (questions as string | null) ?? null,
+      })
+    );
+    await notify(
+      casualMeetingUserTemplate({
+        to: contact_email as string,
+        companyName: companyForNotify.name,
+      })
+    );
   }
 
   return NextResponse.json({ id: meeting.id, status: meeting.status });

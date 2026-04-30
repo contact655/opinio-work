@@ -1,8 +1,8 @@
 # 求職者側プロダクト設計書
 
 **作成日**: 2026-04-28
-**更新日**: 2026-04-29（Commit V: mentors → ow_mentors リネーム後に同期）
-**対象 commit**: A〜F + サービス化セット B/F/C + D + V（求職者側公開ページ群 + 認証・プロフィール + 記事システム + DB 命名規則統一）
+**更新日**: 2026-04-30（Commit DD: メール通知機能 T3/T4/T5 追加）
+**対象 commit**: A〜F + サービス化セット B/F/C + D + V + AA/BB/CC/DD（求職者側公開ページ群 + 認証・プロフィール + 記事システム + DB 命名規則統一 + 企業詳細拡充 + メール通知）
 **ステータス**: 🟡 12ページ実装完了、5ページ残存
 
 ---
@@ -524,7 +524,8 @@ function DashboardView({
 | 企業詳細 関連記事 | Z | — | `ow_articles.company_id` NULL backfill（全 8 社 UUID 更新）+ `getArticlesByCompany()` 追加 + `/companies/[id]` 関連記事セクション（CompanyArticlesSection コンポーネント）実装。S-Z-1〜5 全 PASS |
 | 企業詳細 数値セクション | AA | `f58d3e4` | `COMPANY_DETAIL_COLS` に 6 カラム追加（avg_salary/avg_age/paid_leave_rate/avg_overtime_hours/gender_ratio/funding_total）+ `CompanyNumbers` 型 + `buildCompanyNumbers()` + `NumbersSection` コンポーネント。項目枠は常に表示、未設定は薄字「未設定」。S-AA-1〜6 全 PASS |
 | 企業詳細 テキスト・タグ系セクション | BB | `9bda883` | `COMPANY_DETAIL_COLS` に 5 カラム追加（nearest_station/work_time_system/workstyle_description/benefits/evaluation_system）+ `CompanyDetail` 型拡張 + sidebar 最寄り駅行追加 + WorkStyleSection 拡張（勤務時間制度 pill + 働き方補足テキスト）+ `BenefitsSection` 新規（benefits tags + evaluation_system with read-more）+ `EvaluationText.tsx`「use client」コンポーネント。항목枠常時表示。benefits 空は「まだ登録されていません」。S-BB-1〜8 全 PASS |
-| 企業詳細 現役社員・OB社員 | CC | — | `getCompanyEmployees(companyId)` 追加（ow_experiences JOIN ow_users、visibility RLS 自動制御）+ `CurrentEmployeesSection` + `AlumniSection` + `EmployeeCard`（CSS hover、メンターバッジ、/u/[id] リンク）。항목枠常時表示。0件は空状態テキスト。S-CC-1〜8 全 PASS |
+| 企業詳細 現役社員・OB社員 | CC | `385bd50` | `getCompanyEmployees(companyId)` 追加（ow_experiences JOIN ow_users、visibility RLS 自動制御）+ `CurrentEmployeesSection` + `AlumniSection` + `EmployeeCard`（CSS hover、メンターバッジ、/u/[id] リンク）。항목枠常時表示。0件は空状態テキスト。S-CC-1〜8 全 PASS |
+| メール通知 | DD | — | `src/lib/notify/email.ts`（Resend wrapper + mock fallback）+ `src/lib/notify/templates.ts`（T3/T4/T5 テンプレート）+ API 3本修正。T3: カジュアル面談申込 → admin+user。T4: 面談 status 変更（company_contacted/scheduled/declined）→ user。T5: メンター予約申込 → admin+user。RESEND_API_KEY 未設定時は console.log mock。S-DD-1〜6 全 PASS |
 
 ---
 
@@ -553,6 +554,10 @@ function DashboardView({
 | — | `avg_salary` / `funding_total` を `/biz/company` 編集フォームに追加 | 現状は Opinio 編集部のみが migration で設定可能。企業担当者が自ら最新値に更新できるよう、`BizCompany` 型・transformer・JSX の 3 層に入力欄を追加する（§6-X+5 参照） | 小 | — |
 | ✅ 完了 | `/companies/[id]` テキスト・タグ系セクション追加（Commit BB） | Commit BB で実装済み。nearest_station（sidebar）+ work_time_system pill + workstyle_description + BenefitsSection（benefits tags / evaluation_system）。biz edit の全 5 フィールドと完全対応 | — | — |
 | ✅ 完了 | `/companies/[id]` 現役社員/OB 社員セクション | Commit CC で実装済み。`ow_experiences` テーブル JOIN `ow_users`。visibility RLS 自動制御。`getCompanyEmployees(companyId)` + `CurrentEmployeesSection` + `AlumniSection` + `EmployeeCard`。メンターバッジ。/u/[id] リンク | — | — |
+| ✅ 完了 | メール通知 T3/T4/T5 実装 | Commit DD で実装済み。`src/lib/notify/` ライブラリ（email.ts + templates.ts）+ 3 API ルート修正。RESEND_API_KEY 未設定時は console.log mock。本番は Vercel に `RESEND_API_KEY` + `RESEND_FROM_EMAIL` を設定するだけで有効化 | — | — |
+| — | メール通知 T1（求人応募）/ T2（応募 status 変更）実装 | T1: `POST /api/applications` に notify 追加（旧 `apply/notify` との統合要検討）。T2: `PATCH /api/biz/applications/[id]` に notify 追加（interview/offer/rejected 時に応募者へ通知） | 小 | Phase 5 Stage 3 後が自然 |
+| — | In-app 通知（`ow_notifications` テーブル） | DB 通知テーブルは現在なし。メール通知の補完としてマイページに通知ベルアイコン + 未読バッジを追加する場合は migration + API 設計が必要 | 大 | 要設計議論 |
+| — | Resend ドメイン認証（opinio.work） | `noreply@opinio.work` 送信には Resend ダッシュボードでドメイン認証が必要。本番運用前に柴さんが設定。それまでは `onboarding@resend.dev` fallback | 小 | 柴さん側作業 |
 | — | `capital` カラムを `NumbersSection` に追加 | `ow_companies.capital TEXT`（資本金）が DB に存在するが `NumbersSection` の 6 項目に含まれていない。`avg_salary` 等と同様 Opinio 管理フィールドとして追加するか要検討 | 小 | — |
 
 ### M-5 着手前に確認すべき事項

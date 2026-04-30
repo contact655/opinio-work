@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { notify } from "@/lib/notify/email";
+import {
+  mentorReservationAdminTemplate,
+  mentorReservationUserTemplate,
+} from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +95,31 @@ export async function POST(req: Request) {
   if (error) {
     console.error("[POST /api/mentor-reservations]", error.message);
     return NextResponse.json({ error: "Failed to submit reservation" }, { status: 500 });
+  }
+
+  // ── Notify (best-effort, T5) ──────────────────────────────────────────────
+  const { data: mentorForNotify } = await supabase
+    .from("ow_mentors")
+    .select("name")
+    .eq("id", mentor_id as string)
+    .maybeSingle();
+
+  if (mentorForNotify) {
+    await notify(
+      mentorReservationAdminTemplate({
+        mentorName: mentorForNotify.name,
+        contactEmail: (contact_email as string).trim(),
+        themes: Array.isArray(themes) ? (themes as string[]) : [],
+        currentSituation: (current_situation as string).trim(),
+        questions: (questions as string).trim(),
+      })
+    );
+    await notify(
+      mentorReservationUserTemplate({
+        to: (contact_email as string).trim(),
+        mentorName: mentorForNotify.name,
+      })
+    );
   }
 
   return NextResponse.json({ id: data.id }, { status: 201 });
