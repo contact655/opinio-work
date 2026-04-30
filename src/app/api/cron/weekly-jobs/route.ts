@@ -89,9 +89,9 @@ export async function GET(request: Request) {
 
       try {
         await getResend().emails.send({
-          from: "opinio.work <noreply@opinio.work>",
+          from: "opinio.jp <noreply@opinio.jp>",
           to: email,
-          subject: `【opinio.work】今週の新着求人 ${totalCount}件をお届けします`,
+          subject: `【opinio.jp】今週の新着求人 ${totalCount}件をお届けします`,
           html,
         });
         sent++;
@@ -174,7 +174,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
 
       <div style="border-top:1px solid #e5e7eb;padding-top:20px;margin-top:24px">
         <p style="font-size:11px;color:#9ca3af;line-height:1.6">
-          opinio.work &middot; Truth to Careers<br>
+          opinio.jp &middot; Truth to Careers<br>
           配信停止は<a href="${BASE_URL}/dashboard" style="color:#9ca3af">マイページ</a>から設定できます
         </p>
       </div>

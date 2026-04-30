@@ -114,7 +114,7 @@ export function AddByUrlClient() {
           type="text"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://opinio.work/biz/auth/accept-invite?token=..."
+          placeholder="https://opinio.jp/biz/auth/accept-invite?token=..."
           spellCheck={false}
           autoComplete="off"
           style={{

@@ -169,7 +169,7 @@ function generateWeeklyEmail(topJobs: any[]): string {
         </a>
       </div>
       <p style="font-size:11px;color:#9ca3af;margin-top:20px">
-        opinio.work &middot; Truth to Careers<br>
+        opinio.jp &middot; Truth to Careers<br>
         配信停止は<a href="https://opinio-work-kappa.vercel.app/dashboard" style="color:#9ca3af">こちら</a>
       </p>
     </body>

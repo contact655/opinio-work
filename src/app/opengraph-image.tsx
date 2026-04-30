@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "opinio.work — キャリアに、第三者の目を。";
+export const alt = "opinio.jp — キャリアに、第三者の目を。";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -28,7 +28,7 @@ export default async function Image() {
             marginBottom: 24,
           }}
         >
-          opinio.work
+          opinio.jp
         </div>
         <div
           style={{

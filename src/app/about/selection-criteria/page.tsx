@@ -3,13 +3,13 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 
 export const metadata = {
-  title: "掲載企業の審査基準 | opinio.work",
+  title: "掲載企業の審査基準 | opinio.jp",
   description:
-    "opinio.workは編集部による独自の審査を経た企業のみを掲載しています。審査プロセス・3軸の評価基準・取材体制をご紹介します。",
+    "opinio.jpは編集部による独自の審査を経た企業のみを掲載しています。審査プロセス・3軸の評価基準・取材体制をご紹介します。",
   openGraph: {
-    title: "掲載企業の審査基準 | opinio.work",
+    title: "掲載企業の審査基準 | opinio.jp",
     description: "Opinio編集部の独自審査と取材体制について。",
-    url: "https://opinio.work/about/selection-criteria",
+    url: "https://opinio.jp/about/selection-criteria",
   },
 };
 
@@ -75,7 +75,7 @@ export default function SelectionCriteriaPage() {
               掲載企業の審査基準
             </h1>
             <p style={{ fontSize: 15, color: "#475569", lineHeight: 1.8, margin: 0 }}>
-              opinio.workはエージェント仲介ではなく、編集部による独自の審査を経た企業のみを掲載しています。
+              opinio.jpはエージェント仲介ではなく、編集部による独自の審査を経た企業のみを掲載しています。
               「ユーザーに自信を持って紹介できる企業か」を編集会議で判断し、基準を満たす企業のみ求人を公開します。
             </p>
           </header>

@@ -7,8 +7,8 @@ function htmlWrap(content: string): string {
       ${content}
       <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;"/>
       <p style="color: #888; font-size: 12px;">
-        opinio.work — 採用と転職のためのプラットフォーム<br/>
-        <a href="https://opinio.work">https://opinio.work</a>
+        opinio.jp — 採用と転職のためのプラットフォーム<br/>
+        <a href="https://opinio.jp">https://opinio.jp</a>
       </p>
     </div>
   `;
@@ -41,7 +41,7 @@ export function casualMeetingAdminTemplate(params: {
       <p><strong>転職意向:</strong> ${params.intent ? (intentLabel[params.intent] ?? params.intent) : "未回答"}</p>
       <p><strong>志望理由:</strong> ${params.interestReason || "（未記入）"}</p>
       <p><strong>質問内容:</strong> ${params.questions || "（未記入）"}</p>
-      <p><a href="https://opinio.work/biz/meetings">/biz/meetings で確認する →</a></p>
+      <p><a href="https://opinio.jp/biz/meetings">/biz/meetings で確認する →</a></p>
     `),
   };
 }
@@ -53,13 +53,13 @@ export function casualMeetingUserTemplate(params: {
 }) {
   return {
     to: params.to,
-    subject: `【opinio.work】${params.companyName} へのカジュアル面談申し込みを受け付けました`,
+    subject: `【opinio.jp】${params.companyName} へのカジュアル面談申し込みを受け付けました`,
     html: htmlWrap(`
       <h2>カジュアル面談申し込みを受け付けました</h2>
       <p><strong>${params.companyName}</strong> へのカジュアル面談申し込みありがとうございます。</p>
       <p>3 営業日以内に Opinio 編集部からご連絡いたします。</p>
       <p>しばらくお待ちください。</p>
-      <p><a href="https://opinio.work/mypage">マイページで状況を確認する →</a></p>
+      <p><a href="https://opinio.jp/mypage">マイページで状況を確認する →</a></p>
     `),
   };
 }
@@ -72,9 +72,9 @@ export function meetingStatusTemplate(params: {
   status: "company_contacted" | "scheduled" | "declined";
 }) {
   const subjects: Record<string, string> = {
-    company_contacted: `【opinio.work】${params.companyName} から返信が届きました`,
-    scheduled: `【opinio.work】${params.companyName} とのカジュアル面談の日程が決まりました`,
-    declined: `【opinio.work】${params.companyName} からカジュアル面談に関するご連絡`,
+    company_contacted: `【opinio.jp】${params.companyName} から返信が届きました`,
+    scheduled: `【opinio.jp】${params.companyName} とのカジュアル面談の日程が決まりました`,
+    declined: `【opinio.jp】${params.companyName} からカジュアル面談に関するご連絡`,
   };
   const messages: Record<string, string> = {
     company_contacted: `${params.companyName} から返信が届きました。マイページから内容をご確認ください。`,
@@ -89,9 +89,9 @@ export function meetingStatusTemplate(params: {
     to: params.to,
     subject,
     html: htmlWrap(`
-      <h2>${subject.replace("【opinio.work】", "")}</h2>
+      <h2>${subject.replace("【opinio.jp】", "")}</h2>
       <p>${message}</p>
-      <p><a href="https://opinio.work/mypage">マイページで確認する →</a></p>
+      <p><a href="https://opinio.jp/mypage">マイページで確認する →</a></p>
     `),
   };
 }
@@ -128,13 +128,13 @@ export function mentorReservationUserTemplate(params: {
 }) {
   return {
     to: params.to,
-    subject: `【opinio.work】${params.mentorName} さんへの相談申し込みを受け付けました`,
+    subject: `【opinio.jp】${params.mentorName} さんへの相談申し込みを受け付けました`,
     html: htmlWrap(`
       <h2>メンター相談申し込みを受け付けました</h2>
       <p><strong>${params.mentorName}</strong> さんへの相談申し込みありがとうございます。</p>
       <p>編集部が内容を確認し、メンターへ転送いたします。</p>
       <p>メンターから直接ご連絡があるまで、しばらくお待ちください。</p>
-      <p><a href="https://opinio.work/mypage">マイページで状況を確認する →</a></p>
+      <p><a href="https://opinio.jp/mypage">マイページで状況を確認する →</a></p>
     `),
   };
 }
@@ -157,7 +157,7 @@ export function applicationAdminTemplate(params: {
       <p><strong>${params.companyName}</strong>「${params.jobTitle}」への応募がありました。</p>
       <p><strong>応募者:</strong> ${params.applicantName}（${params.applicantEmail}）</p>
       <p><strong>志望動機:</strong> ${params.message || "（未記入）"}</p>
-      <p><a href="https://opinio.work/biz/applications">/biz/applications で確認する →</a></p>
+      <p><a href="https://opinio.jp/biz/applications">/biz/applications で確認する →</a></p>
     `),
   };
 }
@@ -170,12 +170,12 @@ export function applicationUserTemplate(params: {
 }) {
   return {
     to: params.to,
-    subject: `【opinio.work】${params.companyName} の ${params.jobTitle} への応募を受け付けました`,
+    subject: `【opinio.jp】${params.companyName} の ${params.jobTitle} への応募を受け付けました`,
     html: htmlWrap(`
       <h2>応募を受け付けました</h2>
       <p><strong>${params.companyName}</strong>「${params.jobTitle}」へのご応募ありがとうございます。</p>
       <p>採用担当者があなたの応募を確認次第、ご連絡いたします。</p>
-      <p><a href="https://opinio.work/mypage/applications">マイページで選考状況を確認する →</a></p>
+      <p><a href="https://opinio.jp/mypage/applications">マイページで選考状況を確認する →</a></p>
     `),
   };
 }
@@ -190,10 +190,10 @@ export function applicationStatusTemplate(params: {
   status: "reviewing" | "interview" | "accepted" | "rejected";
 }) {
   const subjects: Record<string, string> = {
-    reviewing: `【opinio.work】${params.companyName} があなたの応募を確認しています`,
-    interview: `【opinio.work】${params.companyName} が面接を希望しています`,
-    accepted:  `【opinio.work】${params.companyName} から採用の連絡が届きました`,
-    rejected:  `【opinio.work】${params.companyName} からのご連絡`,
+    reviewing: `【opinio.jp】${params.companyName} があなたの応募を確認しています`,
+    interview: `【opinio.jp】${params.companyName} が面接を希望しています`,
+    accepted:  `【opinio.jp】${params.companyName} から採用の連絡が届きました`,
+    rejected:  `【opinio.jp】${params.companyName} からのご連絡`,
   };
   const messages: Record<string, string> = {
     reviewing: `${params.companyName} の採用担当者があなたの応募書類を確認中です。引き続きお待ちください。`,
@@ -206,11 +206,11 @@ export function applicationStatusTemplate(params: {
     to: params.to,
     subject: subjects[params.status],
     html: htmlWrap(`
-      <h2>${subjects[params.status].replace("【opinio.work】", "")}</h2>
+      <h2>${subjects[params.status].replace("【opinio.jp】", "")}</h2>
       <p>${params.name} さん、</p>
       <p>${messages[params.status]}</p>
       <p style="font-size: 13px; color: #888;">応募求人: ${params.companyName} / ${params.jobTitle}</p>
-      <p><a href="https://opinio.work/mypage/applications">選考状況を確認する →</a></p>
+      <p><a href="https://opinio.jp/mypage/applications">選考状況を確認する →</a></p>
     `),
   };
 }

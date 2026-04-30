@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
     // ① Admin notification
     await resend.emails.send({
-      from: `opinio.work <${fromEmail}>`,
+      from: `opinio.jp <${fromEmail}>`,
       to: adminEmail,
       subject: `【新着】${mentorName}への相談申し込みがありました`,
       html: `
@@ -37,16 +37,16 @@ export async function POST(req: Request) {
 
     // ② User confirmation
     await resend.emails.send({
-      from: `opinio.work <${fromEmail}>`,
+      from: `opinio.jp <${fromEmail}>`,
       to: userEmail,
-      subject: "【opinio.work】相談申し込みを受け付けました",
+      subject: "【opinio.jp】相談申し込みを受け付けました",
       html: `
         <h2>${userName}さん、申し込みありがとうございます。</h2>
         <p>${mentorName}さんへの相談申し込みを受け付けました。</p>
         <p>内容を確認の上、<strong>3営業日以内</strong>にこのメールアドレスにご連絡します。</p>
         <p>しばらくお待ちください。</p>
         <hr/>
-        <p style="color:#999;font-size:12px;">opinio.work — Truth to Careers</p>
+        <p style="color:#999;font-size:12px;">opinio.jp — Truth to Careers</p>
       `,
     });
 

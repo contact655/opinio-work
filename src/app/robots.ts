@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/admin/", "/api/", "/profile/setup"],
     },
-    sitemap: "https://opinio.work/sitemap.xml",
+    sitemap: "https://opinio.jp/sitemap.xml",
   };
 }

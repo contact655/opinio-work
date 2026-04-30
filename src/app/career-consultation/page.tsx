@@ -6,7 +6,7 @@ import CareerConsultationClient from "./CareerConsultationClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "キャリア相談 | opinio.work",
+  title: "キャリア相談 | opinio.jp",
   description:
     "現役SaaS実務家10名に無料で転職相談。営業・CS・マーケの現役プロが転職のリアルを正直に話します。",
 };

@@ -3,12 +3,12 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 
 export const metadata = {
-  title: "転職しない人のために | opinio.work",
+  title: "転職しない人のために | opinio.jp",
   description: "転職を急がない方へ。社内キャリアの作り方、市場価値を上げる学び方、半年後にもう一度相談する選択肢。",
   openGraph: {
-    title: "転職しない人のために | opinio.work",
+    title: "転職しない人のために | opinio.jp",
     description: "転職を急がない方への、Opinioからの提案です。",
-    url: "https://opinio.work/not-job-changing",
+    url: "https://opinio.jp/not-job-changing",
   },
 };
 

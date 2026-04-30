@@ -24,7 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // ow_articles may not exist yet
   }
 
-  const baseUrl = "https://opinio.work";
+  const baseUrl = "https://opinio.jp";
 
   return [
     {

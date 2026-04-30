@@ -1,4 +1,4 @@
--- opinio.work テーブル作成（ow_ プレフィックスで既存ATSテーブルと区別）
+-- opinio.jp テーブル作成（ow_ プレフィックスで既存ATSテーブルと区別）
 
 -- 求職者プロフィール
 CREATE TABLE IF NOT EXISTS ow_profiles (

@@ -3,13 +3,13 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Opinioが対象とする業界 | opinio.work",
+  title: "Opinioが対象とする業界 | opinio.jp",
   description:
-    "opinio.workがカバーするIT/SaaS業界の定義と、対象外の業界について明示します。",
+    "opinio.jpがカバーするIT/SaaS業界の定義と、対象外の業界について明示します。",
   openGraph: {
-    title: "Opinioが対象とする業界 | opinio.work",
+    title: "Opinioが対象とする業界 | opinio.jp",
     description: "対象業界の定義と対象外領域について。",
-    url: "https://opinio.work/about/scope",
+    url: "https://opinio.jp/about/scope",
   },
 };
 

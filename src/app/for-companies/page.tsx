@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "採用担当者の方へ | opinio.work",
+  title: "採用担当者の方へ | opinio.jp",
   description:
     "IT/SaaS特化の採用支援。ミスマッチのない採用を実現します。",
 };
@@ -143,7 +143,7 @@ export default function ForCompaniesPage() {
             <h2
               style={{ fontSize: 22, fontWeight: 500, marginBottom: 8, textAlign: "center" }}
             >
-              なぜopinio.workで採用するのか
+              なぜopinio.jpで採用するのか
             </h2>
             <p
               style={{

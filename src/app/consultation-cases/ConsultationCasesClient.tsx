@@ -222,7 +222,7 @@ export default function ConsultationCasesClient({
             人たち。
           </h1>
           <p className="text-[14px] text-gray-600 leading-relaxed max-w-md mx-auto">
-            実際にopinio.workのキャリア相談を利用した方の
+            実際にopinio.jpのキャリア相談を利用した方の
             <br className="hidden sm:block" />
             相談内容と気づきをご紹介します。
           </p>

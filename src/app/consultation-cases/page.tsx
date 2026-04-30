@@ -6,7 +6,7 @@ import ConsultationCasesClient from "./ConsultationCasesClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "相談事例 | opinio.work",
+  title: "相談事例 | opinio.jp",
   description:
     "実際のキャリア相談事例を紹介。SIerからSaaS転職、年収交渉、キャリアチェンジなど、リアルな相談と気づきをご覧ください。",
 };
