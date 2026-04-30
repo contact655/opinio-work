@@ -9,6 +9,10 @@ import { updateSession } from "@/lib/supabase/middleware";
  *
  * 企業ロール (role='company') を持つかは middleware では判定せず、
  * 各ページで getTenantContext() === null のときに「企業アカウント追加導線」を表示する。
+ *
+ * /admin/ 配下のアクセス制御（二重防御 — layout.tsx の auth_is_admin() と重複）
+ *   - 未ログイン: /biz/auth にリダイレクト
+ *   - ロール確認は layout.tsx で行う（middleware は auth check のみ）
  */
 const BIZ_PUBLIC_PATHS = ["/biz/auth", "/biz/auth/signup", "/biz/auth/accept-invite"];
 
@@ -23,8 +27,12 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // /biz/ 配下かつ public ページでない場合に認証チェック
-  if (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) {
+  // /biz/ または /admin/ 配下かつ public ページでない場合に認証チェック
+  const needsAuth =
+    (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) ||
+    pathname.startsWith("/admin");
+
+  if (needsAuth) {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

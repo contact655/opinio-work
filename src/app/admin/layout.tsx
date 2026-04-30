@@ -1,21 +1,39 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
 const NAV_ITEMS = [
-  { label: "ダッシュボード", href: "/admin", icon: "📊" },
-  { label: "候補者管理", href: "/admin/candidates", icon: "👤" },
-  { label: "企業審査", href: "/admin/companies", icon: "🏢" },
-  { label: "求人審査", href: "/admin/jobs", icon: "📋" },
+  { label: "ダッシュボード",   href: "/admin",              icon: "📊" },
+  { label: "候補者管理",       href: "/admin/candidates",   icon: "👤" },
+  { label: "企業審査",         href: "/admin/companies",    icon: "🏢" },
+  { label: "求人審査",         href: "/admin/jobs",         icon: "📋" },
+  { label: "メンター管理",     href: "/admin/mentors",      icon: "🎓" },
+  { label: "記事管理",         href: "/admin/articles",     icon: "📝" },
+  { label: "相談予約管理",     href: "/admin/reservations", icon: "💬" },
 ];
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // ── Auth guard ────────────────────────────────────────────────────────────
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/biz/auth?next=/admin");
+  }
+
+  // auth_is_admin() RPC — ow_user_roles に role='admin' の行があるか確認
+  const { data: isAdmin } = await supabase.rpc("auth_is_admin");
+  if (!isAdmin) {
+    redirect("/");
+  }
+
   return (
     <div className="min-h-screen flex">
       {/* Sidebar */}
-      <aside className="w-[240px] bg-[#1a1a1a] text-white flex-shrink-0 fixed top-0 left-0 bottom-0 z-40">
+      <aside className="w-[240px] bg-[#1a1a1a] text-white flex-shrink-0 fixed top-0 left-0 bottom-0 z-40 overflow-y-auto">
         <div className="p-5 border-b border-white/10">
           <Link href="/admin" className="text-lg font-bold">
             opinio<span className="text-primary">.work</span>
@@ -35,6 +53,7 @@ export default function AdminLayout({
           ))}
         </nav>
         <div className="absolute bottom-4 left-4 right-4">
+          <p className="text-[10px] text-gray-600 text-center mb-2">{user.email}</p>
           <Link
             href="/"
             className="block text-center text-xs text-gray-500 hover:text-gray-300 transition-colors"
