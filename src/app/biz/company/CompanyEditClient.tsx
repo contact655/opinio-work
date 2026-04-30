@@ -543,6 +543,16 @@ export function CompanyEditClient({
                   <FormLabel>男女比</FormLabel>
                   <FormInput value={form.genderRatio} onChange={(v) => update("genderRatio", v)} placeholder="例: 男性 65% / 女性 35%" />
                 </FormGroup>
+                <FormGroup>
+                  <FormLabel>平均年収</FormLabel>
+                  <FormInput value={form.avgSalary} onChange={(v) => update("avgSalary", v)} placeholder="例: 600万〜950万" />
+                  <FormHint>空欄の場合は求職者側に表示されません</FormHint>
+                </FormGroup>
+                <FormGroup>
+                  <FormLabel>累計調達額</FormLabel>
+                  <FormInput value={form.fundingTotal} onChange={(v) => update("fundingTotal", v)} placeholder="例: 32億円" />
+                  <FormHint>空欄の場合は求職者側に表示されません</FormHint>
+                </FormGroup>
               </div>
             </SectionCard>
             <SectionCard title="評価制度・福利厚生">

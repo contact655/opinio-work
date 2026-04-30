@@ -28,6 +28,8 @@ export type BizCompany = {
   employeeCount: string;
   foundedAt: string;
   avgAge: string;
+  avgSalary: string;
+  fundingTotal: string;
   genderRatio: string;
   evaluationSystem: string;
   benefitsTags: string[];
@@ -87,6 +89,8 @@ export const MOCK_COMPANY: BizCompany = {
   employeeCount: "1,642",
   foundedAt: "2017年8月",
   avgAge: "29歳",
+  avgSalary: "",
+  fundingTotal: "",
   genderRatio: "男性 65% / 女性 35%",
   evaluationSystem: "半期ごとの目標設定 + 360度評価。OKRをベースに個人と組織の目標を連動。",
   benefitsTags: ["フレックスタイム制", "リモートワーク可", "書籍購入支援", "社員食堂", "産休・育休制度"],

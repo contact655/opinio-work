@@ -10,8 +10,9 @@
 - **Commit DD**: メール通知基盤（`src/lib/notify/`）+ T3/T4/T5 通知実装。RESEND_API_KEY 未設定時は console.log mock
 - **Commit EE**: T1（求人応募）+ T2（応募ステータス変更）通知実装。デッドコード（ApplyForm.tsx / /api/apply/）削除
 - **Commit FF**: Admin Console 認証ガード（auth_is_admin() RPC）+ ダッシュボード旧テーブル参照修正 + メンター管理拡充 + 記事管理・相談予約管理 新規追加
+- **Commit GG**: `/biz/company` 編集フォームに `avg_salary`（平均年収）+ `funding_total`（累計調達額）入力欄追加。Commit AA の「Opinio 編集部管理フィールド」問題解消
 
-**合計: 76 commits · design docs 最新化**
+**合計: 79 commits · design docs 最新化**
 
 | Hash | Commit |
 |------|--------|
@@ -20,7 +21,8 @@
 | `385bd50` | feat(companies/detail): CC — CurrentEmployeesSection + AlumniSection |
 | `2a7a82c` | feat(notify): DD — email notifications for meetings + mentor (T3/T4/T5) |
 | `b9f465b` | feat(notify): EE — T1+T2 application notifications + dead code cleanup |
-| — | feat(admin): FF — authentication guard + dashboard fixes + 2 new pages |
+| `012b66e` | feat(admin): FF — authentication guard + dashboard fixes + 2 new pages |
+| — | feat(biz): GG — avg_salary + funding_total in company edit form |
 
 ---
 

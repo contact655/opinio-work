@@ -1,8 +1,8 @@
 # 求職者側プロダクト設計書
 
 **作成日**: 2026-04-28
-**更新日**: 2026-04-30（Commit FF: Admin Console 認証ガード + 記事管理・相談予約管理 新規追加）
-**対象 commit**: A〜F + サービス化セット B/F/C + D + V + AA/BB/CC/DD/EE/FF（求職者側公開ページ群 + 認証・プロフィール + 記事システム + DB 命名規則統一 + 企業詳細拡充 + メール通知全 5 トリガー + Admin Console 強化）
+**更新日**: 2026-04-30（Commit GG: avg_salary + funding_total を biz edit に追加）
+**対象 commit**: A〜F + サービス化セット B/F/C + D + V + AA/BB/CC/DD/EE/FF/GG（求職者側公開ページ群 + 認証・プロフィール + 記事システム + DB 命名規則統一 + 企業詳細拡充 + メール通知全 5 トリガー + Admin Console 強化 + biz edit 数値フィールド追加）
 **ステータス**: 🟡 12ページ実装完了、5ページ残存
 
 ---
@@ -527,7 +527,8 @@ function DashboardView({
 | 企業詳細 現役社員・OB社員 | CC | `385bd50` | `getCompanyEmployees(companyId)` 追加（ow_experiences JOIN ow_users、visibility RLS 自動制御）+ `CurrentEmployeesSection` + `AlumniSection` + `EmployeeCard`（CSS hover、メンターバッジ、/u/[id] リンク）。항목枠常時表示。0件は空状態テキスト。S-CC-1〜8 全 PASS |
 | メール通知 T3/T4/T5 | DD | `2a7a82c` | `src/lib/notify/email.ts`（Resend wrapper + mock fallback）+ `src/lib/notify/templates.ts`（T3/T4/T5 テンプレート）+ API 3本修正。T3: カジュアル面談申込 → admin+user。T4: 面談 status 変更（company_contacted/scheduled/declined）→ user。T5: メンター予約申込 → admin+user。RESEND_API_KEY 未設定時は console.log mock。S-DD-1〜6 全 PASS |
 | メール通知 T1/T2 + dead code 削除 | EE | `b9f465b` | templates.ts に 4 関数追加（applicationAdminTemplate/applicationUserTemplate/applicationStatusTemplate）。T1: POST /api/applications → admin+user。T2: PATCH /api/biz/applications/[id]（reviewing/interview/accepted/rejected）→ user。dead code 削除: `ApplyForm.tsx`（0インポート）+ `/api/apply/notify/`（旧式）+ `/api/apply/`（旧式）。S-EE-1〜4 全 PASS |
-| Admin Console 認証ガード + 2 新規ページ | FF | — | `layout.tsx` に `auth_is_admin()` RPC guard + redirect。`middleware.ts` に `/admin` パス追加。`page.tsx`（dashboard）+ `candidates/page.tsx` を `ow_users` で修正。`mentors/page.tsx` に `is_available` トグル + `display_order` 入力追加。新規: `articles/page.tsx`（ow_articles 一覧 + is_published トグル）+ `reservations/page.tsx`（ow_mentor_reservations 一覧 + 転送/却下アクション + 詳細展開）。S-FF-1〜8 全 PASS |
+| Admin Console 認証ガード + 2 新規ページ | FF | `012b66e` | `layout.tsx` に `auth_is_admin()` RPC guard + redirect。`middleware.ts` に `/admin` パス追加。`page.tsx`（dashboard）+ `candidates/page.tsx` を `ow_users` で修正。`mentors/page.tsx` に `is_available` トグル + `display_order` 入力追加。新規: `articles/page.tsx`（ow_articles 一覧 + is_published トグル）+ `reservations/page.tsx`（ow_mentor_reservations 一覧 + 転送/却下アクション + 詳細展開）。S-FF-1〜8 全 PASS |
+| biz edit 数値フィールド追加（avg_salary / funding_total） | GG | — | BizCompany 型・DbCompany 型・SELECT_COLUMNS・`transformDbToForm`・`transformFormToDb`・`CompanyEditClient.tsx` に `avgSalary`（平均年収）+ `fundingTotal`（累計調達額）を追加。空文字 → null 変換（`form.avgSalary \|\| null`）パターン適用。3 ファイル変更: `mockCompany.ts` / `company.ts` / `CompanyEditClient.tsx`。S-GG-1〜8 全 PASS |
 
 ---
 
@@ -559,6 +560,7 @@ function DashboardView({
 | ✅ 完了 | メール通知 T3/T4/T5 実装 | Commit DD で実装済み。`src/lib/notify/` ライブラリ（email.ts + templates.ts）+ 3 API ルート修正。RESEND_API_KEY 未設定時は console.log mock。本番は Vercel に `RESEND_API_KEY` + `RESEND_FROM_EMAIL` を設定するだけで有効化 | — | — |
 | ✅ 完了 | メール通知 T1/T2 実装 + dead code 削除 | Commit EE で実装済み。T1: 求人応募申込 → admin+user。T2: 応募 status 変更（reviewing/interview/accepted/rejected）→ user。`ApplyForm.tsx`・`/api/apply/notify/`・`/api/apply/` の旧式 dead code を完全削除 | — | — |
 | ✅ 完了 | Admin Console 認証ガード + 拡充 | Commit FF で実装済み。`auth_is_admin()` RPC guard（二重防御: middleware + layout）。dashboard/candidates を `ow_users` 接続。mentors に is_available トグル + display_order。新規: 記事管理（ow_articles + is_published）・相談予約管理（ow_mentor_reservations + 転送/却下）を追加 | — | — |
+| ✅ 完了 | `avg_salary` / `funding_total` を biz edit に追加 | Commit GG で実装済み。Commit AA の「Opinio 編集部管理フィールド」問題を解消。BizCompany 型・DbCompany 型・SELECT_COLUMNS・transformDbToForm・transformFormToDb・CompanyEditClient.tsx の 3 層（型 + transformer + JSX）に追加。空文字 → null 変換パターン適用。S-GG-1〜8 全 PASS | — | — |
 | — | In-app 通知（`ow_notifications` テーブル） | DB 通知テーブルは現在なし。メール通知の補完としてマイページに通知ベルアイコン + 未読バッジを追加する場合は migration + API 設計が必要 | 大 | 要設計議論 |
 | — | Resend ドメイン認証（opinio.work） | `noreply@opinio.work` 送信には Resend ダッシュボードでドメイン認証が必要。本番運用前に柴さんが設定。それまでは `onboarding@resend.dev` fallback | 小 | 柴さん側作業 |
 | — | `capital` カラムを `NumbersSection` に追加 | `ow_companies.capital TEXT`（資本金）が DB に存在するが `NumbersSection` の 6 項目に含まれていない。`avg_salary` 等と同様 Opinio 管理フィールドとして追加するか要検討 | 小 | — |
