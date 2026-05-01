@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import { LayoutGrid, List } from "lucide-react";
 import { CompanyLogo } from "@/components/jobseeker/CompanyLogo";
 import type { CompanyListRow } from "@/lib/supabase/queries";
 
@@ -257,6 +258,9 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
   // Local search query (not in URL — instant, no round trip needed)
   const [q, setQ] = useState("");
 
+  // Layout toggle (grid = 3 列, list = 1 列)
+  const [layout, setLayout] = useState<"grid" | "list">("grid");
+
   function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
@@ -402,15 +406,49 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             ))}
           </select>
 
-          {/* Sort — pushed to the right */}
-          <select
-            value={sort}
-            onChange={(e) => setParam("sort", e.target.value === "newest" ? "" : e.target.value)}
-            style={{ ...filterSelectStyle(false), marginLeft: "auto" }}
-          >
-            <option value="newest">更新日順</option>
-            <option value="alpha">名前順</option>
-          </select>
+          {/* Sort + Layout toggle — pushed to the right */}
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            <select
+              value={sort}
+              onChange={(e) => setParam("sort", e.target.value === "newest" ? "" : e.target.value)}
+              style={filterSelectStyle(false)}
+            >
+              <option value="newest">更新日順</option>
+              <option value="alpha">名前順</option>
+            </select>
+
+            {/* Layout toggle buttons */}
+            <button
+              onClick={() => setLayout("grid")}
+              aria-label="3 列で表示"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 38, height: 38,
+                border: `1px solid ${layout === "grid" ? "var(--royal)" : "var(--line)"}`,
+                borderRadius: 8,
+                background: layout === "grid" ? "var(--royal-50)" : "#fff",
+                color: layout === "grid" ? "var(--royal)" : "var(--ink-mute)",
+                cursor: "pointer",
+              }}
+            >
+              <LayoutGrid size={16} strokeWidth={2} />
+            </button>
+            <button
+              onClick={() => setLayout("list")}
+              aria-label="1 列で表示"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 38, height: 38,
+                border: `1px solid ${layout === "list" ? "var(--royal)" : "var(--line)"}`,
+                borderRadius: 8,
+                background: layout === "list" ? "var(--royal-50)" : "#fff",
+                color: layout === "list" ? "var(--royal)" : "var(--ink-mute)",
+                cursor: "pointer",
+              }}
+            >
+              <List size={16} strokeWidth={2} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -451,7 +489,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             <div style={{ fontSize: 13, marginTop: 8 }}>検索条件を変えてお試しください</div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className={`grid gap-5 grid-cols-1${layout === "grid" ? " sm:grid-cols-2 lg:grid-cols-3" : ""}`}>
             {paged.map((c) => (
               <CompanyCard key={c.id} company={c} />
             ))}
