@@ -17,6 +17,10 @@ import type { CompanyDetail, CompanyNumbers } from "@/app/companies/[id]/mockDet
 import BookmarkButton from "./CompanyDetailClient";
 import EvaluationText from "./EvaluationText";
 import { createClient } from "@/lib/supabase/server";
+import PostCard from "@/components/jobseeker/PostCard";
+import type { Database } from "@/lib/supabase/types";
+
+type ExternalLink = Database["public"]["Tables"]["ow_company_external_links"]["Row"];
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
@@ -1421,6 +1425,98 @@ const EMPLOYEE_GRID_STYLE: React.CSSProperties = {
   gap: 12,
 };
 
+// ─── CompanyPostsSection ─────────────────────────────────────────────────────
+
+function CompanyPostsSection({
+  companyId,
+  posts,
+  postsCount,
+}: {
+  companyId: string;
+  posts: ExternalLink[];
+  postsCount: number;
+}) {
+  return (
+    <section
+      id="posts"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 16,
+        padding: "28px 32px",
+        marginBottom: 20,
+      }}
+    >
+      {/* セクションタイトル */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 20,
+        }}
+      >
+        <h2
+          style={{
+            margin: 0,
+            fontFamily: "'Noto Serif JP', serif",
+            fontSize: 20,
+            fontWeight: 600,
+            color: "var(--ink)",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          この企業の発信
+        </h2>
+        {postsCount > 5 && (
+          <Link
+            href={`/companies/${companyId}/posts`}
+            style={{
+              fontSize: 13,
+              color: "var(--royal)",
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
+          >
+            すべて見る ({postsCount} 件) →
+          </Link>
+        )}
+      </div>
+
+      {/* PostCard 一覧 */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {posts.map((post) => (
+          <PostCard key={post.id} post={post} />
+        ))}
+      </div>
+
+      {/* もっと見るボタン (5 件超かつ小画面向け、リンクはセクションタイトルと同じ先) */}
+      {postsCount > 5 && (
+        <Link
+          href={`/companies/${companyId}/posts`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: 16,
+            padding: "10px",
+            border: "1px solid var(--line)",
+            borderRadius: 8,
+            color: "var(--royal)",
+            fontSize: 13,
+            fontWeight: 500,
+            textDecoration: "none",
+            transition: "background 0.15s",
+          }}
+          className="company-posts-more-link"
+        >
+          発信をすべて見る ({postsCount} 件) →
+        </Link>
+      )}
+    </section>
+  );
+}
+
 function CurrentEmployeesSection({
   employees,
 }: {
@@ -2339,14 +2435,32 @@ export default async function CompanyDetailPage({
 }) {
   const supabase = createClient();
 
-  const [companyResult, photos, recruiters, companyArticles, employees, authResult] = await Promise.all([
+  const [companyResult, photos, recruiters, companyArticles, employees, authResult, postsResult, postsCountResult] = await Promise.all([
     getCompanyById(params.id),
     getCompanyPhotos(params.id),
     getCompanyRecruiters(params.id),
     getArticlesByCompany(params.id),
     getCompanyEmployees(params.id),
     supabase.auth.getUser(),
+    // 企業発信リンク (公開中、最新 5 件)
+    supabase
+      .from("ow_company_external_links")
+      .select("*")
+      .eq("company_id", params.id)
+      .eq("is_published", true)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(5),
+    // 全件数 (もっと見るボタン用)
+    supabase
+      .from("ow_company_external_links")
+      .select("*", { count: "exact", head: true })
+      .eq("company_id", params.id)
+      .eq("is_published", true),
   ]);
+
+  const posts: ExternalLink[] = postsResult.data ?? [];
+  const postsCount: number = postsCountResult.count ?? 0;
 
   if (!companyResult) return notFound();
 
@@ -2390,6 +2504,13 @@ export default async function CompanyDetailPage({
             <NumbersSection numbers={detail.numbers} />
             <WorkStyleSection detail={detail} />
             <BenefitsSection detail={detail} />
+            {posts.length > 0 && (
+              <CompanyPostsSection
+                companyId={params.id}
+                posts={posts}
+                postsCount={postsCount}
+              />
+            )}
             <CurrentEmployeesSection employees={employees.current} />
             <AlumniSection alumni={employees.alumni} />
             <JobsSection company={company} detail={detail} />
@@ -2413,6 +2534,12 @@ export default async function CompanyDetailPage({
         .employee-card-link:hover {
           border-color: var(--royal-100) !important;
           background: #fff !important;
+        }
+        .post-card-link:hover {
+          border-color: var(--royal) !important;
+        }
+        .company-posts-more-link:hover {
+          background: var(--royal-50) !important;
         }
       `}</style>
     </>
