@@ -1,15 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  FileText,
+  GraduationCap,
+  Pencil,
+  MessageSquare,
+} from "lucide-react";
 
 const NAV_ITEMS = [
-  { label: "ダッシュボード",   href: "/admin",              icon: "📊" },
-  { label: "候補者管理",       href: "/admin/candidates",   icon: "👤" },
-  { label: "企業審査",         href: "/admin/companies",    icon: "🏢" },
-  { label: "求人審査",         href: "/admin/jobs",         icon: "📋" },
-  { label: "メンター管理",     href: "/admin/mentors",      icon: "🎓" },
-  { label: "記事管理",         href: "/admin/articles",     icon: "📝" },
-  { label: "相談予約管理",     href: "/admin/reservations", icon: "💬" },
+  { label: "ダッシュボード",   href: "/admin",              icon: <LayoutDashboard size={16} strokeWidth={2} /> },
+  { label: "候補者管理",       href: "/admin/candidates",   icon: <Users           size={16} strokeWidth={2} /> },
+  { label: "企業審査",         href: "/admin/companies",    icon: <Building2       size={16} strokeWidth={2} /> },
+  { label: "求人審査",         href: "/admin/jobs",         icon: <FileText        size={16} strokeWidth={2} /> },
+  { label: "メンター管理",     href: "/admin/mentors",      icon: <GraduationCap   size={16} strokeWidth={2} /> },
+  { label: "記事管理",         href: "/admin/articles",     icon: <Pencil          size={16} strokeWidth={2} /> },
+  { label: "相談予約管理",     href: "/admin/reservations", icon: <MessageSquare   size={16} strokeWidth={2} /> },
 ];
 
 export default async function AdminLayout({
@@ -47,7 +56,7 @@ export default async function AdminLayout({
               href={item.href}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
             >
-              <span className="text-base">{item.icon}</span>
+              {item.icon}
               {item.label}
             </Link>
           ))}

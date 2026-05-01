@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
+import { LayoutGrid, Building2, Briefcase, MessageSquare, ClipboardList, Users } from "lucide-react";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
 
@@ -25,62 +26,32 @@ const NAV_ITEMS = [
   {
     href: "/biz/dashboard",
     label: "ダッシュボード",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-      </svg>
-    ),
+    icon: <LayoutGrid size={16} strokeWidth={2.2} />,
   },
   {
     href: "/biz/company",
     label: "企業情報",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-        <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>
-      </svg>
-    ),
+    icon: <Building2 size={16} strokeWidth={2.2} />,
   },
   {
     href: "/biz/jobs",
     label: "求人管理",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-        <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
-      </svg>
-    ),
+    icon: <Briefcase size={16} strokeWidth={2.2} />,
   },
   {
     href: "/biz/meetings",
     label: "カジュアル面談",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-    ),
+    icon: <MessageSquare size={16} strokeWidth={2.2} />,
   },
   {
     href: "/biz/applications",
     label: "応募管理",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-        <path d="M9 12h6M9 16h4"/>
-      </svg>
-    ),
+    icon: <ClipboardList size={16} strokeWidth={2.2} />,
   },
   {
     href: "/biz/members",
     label: "チーム管理",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-    ),
+    icon: <Users size={16} strokeWidth={2.2} />,
   },
 ];
 

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { User, LayoutGrid, LogOut, Menu, X } from "lucide-react";
+
 // ─── Badge Component ────────────────────────────────
 
 export default function Header() {
@@ -262,9 +264,7 @@ export default function Header() {
           aria-label="プロフィールメニュー"
         >
           {/* User icon */}
-          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
+          <User size={18} strokeWidth={2} />
         </button>
 
         {/* ドロップダウン */}
@@ -283,9 +283,7 @@ export default function Header() {
                 style={{ color: "#374151", fontWeight: 500 }}
                 onClick={() => setProfileDropdownOpen(false)}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
+                <LayoutGrid size={16} strokeWidth={1.5} />
                 マイページ
               </Link>
               <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
@@ -294,9 +292,7 @@ export default function Header() {
                 className="flex items-center gap-2 w-full px-4 py-2.5 text-[14px] hover:bg-gray-50 transition-colors text-left"
                 style={{ color: "#374151", fontWeight: 500 }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-                </svg>
+                <LogOut size={16} strokeWidth={1.5} />
                 ログアウト
               </button>
             </div>
@@ -400,28 +396,11 @@ export default function Header() {
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="メニュー"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              {menuOpen ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              )}
-            </svg>
+            {menuOpen ? (
+              <X size={24} strokeWidth={2} />
+            ) : (
+              <Menu size={24} strokeWidth={2} />
+            )}
           </button>
         </div>
       </div>
