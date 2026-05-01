@@ -38,7 +38,7 @@ export function JobseekerHeader() {
       borderBottom: "1px solid var(--line)",
     }}>
       <div style={{
-        maxWidth: 1200,
+        maxWidth: "var(--max-w-page)",
         margin: "0 auto",
         padding: "0 48px",
         height: 60,

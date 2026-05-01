@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-
 // ─── Badge Component ────────────────────────────────
 
 export default function Header() {
@@ -84,13 +83,13 @@ export default function Header() {
 
   function navStyle(href: string): React.CSSProperties {
     return isActive(href)
-      ? { fontSize: 15, fontWeight: 600, color: "#059669", borderBottom: "2px solid #059669", paddingBottom: 2 }
+      ? { fontSize: 15, fontWeight: 600, color: "var(--royal)", borderBottom: "2px solid var(--royal)", paddingBottom: 2 }
       : { fontSize: 15, fontWeight: 600, color: "#0f172a" };
   }
 
   function mobileNavStyle(href: string): React.CSSProperties {
     return isActive(href)
-      ? { fontSize: 15, fontWeight: 600, color: "#059669" }
+      ? { fontSize: 15, fontWeight: 600, color: "var(--royal)" }
       : { fontSize: 15, fontWeight: 600, color: "#0f172a" };
   }
 
@@ -138,7 +137,7 @@ export default function Header() {
           href="/jobs"
           className="transition-colors"
           style={navStyle("/jobs")}
-          onMouseEnter={(e) => { if (!isActive("/jobs")) e.currentTarget.style.color = "#059669"; }}
+          onMouseEnter={(e) => { if (!isActive("/jobs")) e.currentTarget.style.color = "var(--royal)"; }}
           onMouseLeave={(e) => { if (!isActive("/jobs")) e.currentTarget.style.color = "#0f172a"; }}
         >
           求人を探す
@@ -156,7 +155,7 @@ export default function Header() {
           href="/companies"
           className="transition-colors"
           style={navStyle("/companies")}
-          onMouseEnter={(e) => { if (!isActive("/companies")) e.currentTarget.style.color = "#059669"; }}
+          onMouseEnter={(e) => { if (!isActive("/companies")) e.currentTarget.style.color = "var(--royal)"; }}
           onMouseLeave={(e) => { if (!isActive("/companies")) e.currentTarget.style.color = "#0f172a"; }}
         >
           企業を知る
@@ -165,7 +164,7 @@ export default function Header() {
           href="/career-consultation"
           className="transition-colors"
           style={navStyle("/career-consultation")}
-          onMouseEnter={(e) => { if (!isActive("/career-consultation")) e.currentTarget.style.color = "#059669"; }}
+          onMouseEnter={(e) => { if (!isActive("/career-consultation")) e.currentTarget.style.color = "var(--royal)"; }}
           onMouseLeave={(e) => { if (!isActive("/career-consultation")) e.currentTarget.style.color = "#0f172a"; }}
         >
           メンターに相談
@@ -180,7 +179,7 @@ export default function Header() {
     const close = mobile ? () => setMenuOpen(false) : undefined;
 
     const hoverHandlers = (href: string) => mobile ? {} : {
-      onMouseEnter: (e: React.MouseEvent<HTMLAnchorElement>) => { if (!isActive(href)) e.currentTarget.style.color = "#059669"; },
+      onMouseEnter: (e: React.MouseEvent<HTMLAnchorElement>) => { if (!isActive(href)) e.currentTarget.style.color = "var(--royal)"; },
       onMouseLeave: (e: React.MouseEvent<HTMLAnchorElement>) => { if (!isActive(href)) e.currentTarget.style.color = "#0f172a"; },
     };
 
@@ -239,9 +238,9 @@ export default function Header() {
           <Link
             href="/auth/signup"
             className="transition-colors"
-            style={{ fontSize: 14, fontWeight: 600, color: "#fff", background: "#059669", padding: "8px 20px", borderRadius: 8 }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#047857"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#059669"; }}
+            style={{ fontSize: 14, fontWeight: 600, color: "#fff", background: "var(--royal)", padding: "8px 20px", borderRadius: 8 }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--royal-deep)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--royal)"; }}
           >
             無料登録
           </Link>
@@ -257,8 +256,8 @@ export default function Header() {
           className="flex items-center justify-center transition-colors"
           style={{
             width: 36, height: 36, borderRadius: "50%",
-            background: "#E1F5EE", color: "#0F6E56",
-            border: profileDropdownOpen ? "2px solid #059669" : "2px solid transparent",
+            background: "var(--royal-50)", color: "var(--royal)",
+            border: profileDropdownOpen ? "2px solid var(--royal)" : "2px solid transparent",
           }}
           aria-label="プロフィールメニュー"
         >
@@ -322,7 +321,7 @@ export default function Header() {
           <Link
             href="/auth/signup"
             className="block text-center"
-            style={{ fontSize: 14, fontWeight: 600, color: "#fff", background: "#059669", padding: "8px 20px", borderRadius: 8 }}
+            style={{ fontSize: 14, fontWeight: 600, color: "#fff", background: "var(--royal)", padding: "8px 20px", borderRadius: 8 }}
             onClick={() => setMenuOpen(false)}
           >
             無料登録
@@ -385,7 +384,7 @@ export default function Header() {
                 <Link
                   href="/auth/signup"
                   className="transition-colors"
-                  style={{ fontSize: 14, fontWeight: 600, color: "#fff", background: "#059669", padding: "8px 20px", borderRadius: 8 }}
+                  style={{ fontSize: 14, fontWeight: 600, color: "#fff", background: "var(--royal)", padding: "8px 20px", borderRadius: 8 }}
                 >
                   無料登録
                 </Link>
