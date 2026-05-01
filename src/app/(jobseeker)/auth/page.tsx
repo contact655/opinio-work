@@ -174,18 +174,18 @@ function AuthPageInner() {
           <div style={styles.formWrap}>
             <div style={{ textAlign: "center", padding: "40px 0" }}>
               <div style={{
-                width: 56, height: 56, borderRadius: "50%", background: "#ECFDF5",
+                width: 56, height: 56, borderRadius: "50%", background: "var(--success-soft)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 margin: "0 auto 20px",
               }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
-              <h2 style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 22, fontWeight: 700, color: "#0F172A", marginBottom: 12 }}>
+              <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
                 確認メールを送りました
               </h2>
-              <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.9, marginBottom: 28 }}>
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
                 <strong>{email}</strong> に確認メールを送信しました。<br />
                 メール内のリンクをクリックして登録を完了してください。
               </p>
@@ -323,9 +323,9 @@ function AuthPageInner() {
                     type="checkbox"
                     checked={termsChecked}
                     onChange={e => setTermsChecked(e.target.checked)}
-                    style={{ width: 17, height: 17, accentColor: "#002366", cursor: "pointer", flexShrink: 0, marginTop: 1 }}
+                    style={{ width: 17, height: 17, accentColor: "var(--royal)", cursor: "pointer", flexShrink: 0, marginTop: 1 }}
                   />
-                  <span style={{ fontSize: 12, color: "#475569", lineHeight: 1.7 }}>
+                  <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
                     <a href="/terms" target="_blank" style={styles.termLink}>利用規約</a>および
                     <a href="/privacy" target="_blank" style={styles.termLink}>プライバシーポリシー</a>に同意します
                   </span>
@@ -408,7 +408,7 @@ function AuthPageInner() {
                     </button>
                   </div>
                   <div style={{ textAlign: "right", marginTop: 6 }}>
-                    <a href="/auth/reset-password" style={{ fontSize: 12, color: "#002366", fontWeight: 500 }}>
+                    <a href="/auth/reset-password" style={{ fontSize: 12, color: "var(--royal)", fontWeight: 500 }}>
                       パスワードをお忘れですか？
                     </a>
                   </div>
@@ -440,7 +440,7 @@ function AuthPageInner() {
 
 export default function AuthPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#F8FAFC" }} />}>
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--bg-tint)" }} />}>
       <AuthPageInner />
     </Suspense>
   );
@@ -546,7 +546,7 @@ const styles = {
   } as React.CSSProperties,
 
   brandTitle: {
-    fontFamily: "'Noto Serif JP', serif",
+    fontFamily: "var(--font-noto-serif)",
     fontWeight: 500,
     fontSize: 38,
     lineHeight: 1.5,
@@ -592,7 +592,7 @@ const styles = {
 
   modeTabs: {
     display: "flex",
-    background: "#F8FAFC",
+    background: "var(--bg-tint)",
     borderRadius: 10,
     padding: 4,
     marginBottom: 36,
@@ -608,24 +608,24 @@ const styles = {
     fontFamily: "inherit",
     fontSize: 13,
     fontWeight: 600,
-    color: "#475569",
+    color: "var(--ink-soft)",
     cursor: "pointer",
     transition: "all 0.2s",
   } as React.CSSProperties,
 
   modeTabActive: {
     background: "#fff",
-    color: "#002366",
+    color: "var(--royal)",
     boxShadow: "0 2px 6px rgba(15,23,42,0.08)",
   } as React.CSSProperties,
 
   errorBox: {
-    background: "#FEE2E2",
+    background: "var(--error-soft)",
     border: "1px solid #FECACA",
     borderRadius: 10,
     padding: "12px 16px",
     fontSize: 13,
-    color: "#DC2626",
+    color: "var(--error)",
     marginBottom: 20,
     lineHeight: 1.6,
   } as React.CSSProperties,
@@ -635,17 +635,17 @@ const styles = {
   } as React.CSSProperties,
 
   formTitle: {
-    fontFamily: "'Noto Serif JP', serif",
+    fontFamily: "var(--font-noto-serif)",
     fontWeight: 700,
     fontSize: 28,
-    color: "#0F172A",
+    color: "var(--ink)",
     marginBottom: 8,
     letterSpacing: "0.02em",
   } as React.CSSProperties,
 
   formSubtitle: {
     fontSize: 13,
-    color: "#475569",
+    color: "var(--ink-soft)",
     lineHeight: 1.8,
   } as React.CSSProperties,
 
@@ -653,7 +653,7 @@ const styles = {
     width: "100%",
     padding: "12px",
     background: "#fff",
-    color: "#0F172A",
+    color: "var(--ink)",
     border: "1.5px solid #E2E8F0",
     borderRadius: 10,
     fontFamily: "inherit",
@@ -672,7 +672,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     margin: "20px 0",
-    color: "#94A3B8",
+    color: "var(--ink-mute)",
     fontSize: 11,
     fontWeight: 600,
     letterSpacing: "0.1em",
@@ -688,12 +688,12 @@ const styles = {
     display: "block",
     fontSize: 13,
     fontWeight: 600,
-    color: "#0F172A",
+    color: "var(--ink)",
     marginBottom: 8,
   } as React.CSSProperties,
 
   required: {
-    color: "#DC2626",
+    color: "var(--error)",
     marginLeft: 2,
   } as React.CSSProperties,
 
@@ -704,7 +704,7 @@ const styles = {
     borderRadius: 10,
     fontFamily: "inherit",
     fontSize: 14,
-    color: "#0F172A",
+    color: "var(--ink)",
     background: "#fff",
     outline: "none",
     boxSizing: "border-box",
@@ -716,7 +716,7 @@ const styles = {
     right: 14,
     top: "50%",
     transform: "translateY(-50%)",
-    color: "#94A3B8",
+    color: "var(--ink-mute)",
     cursor: "pointer",
     background: "none",
     border: "none",
@@ -728,7 +728,7 @@ const styles = {
 
   hint: {
     fontSize: 11,
-    color: "#94A3B8",
+    color: "var(--ink-mute)",
     marginTop: 6,
     lineHeight: 1.6,
   } as React.CSSProperties,
@@ -742,7 +742,7 @@ const styles = {
   } as React.CSSProperties,
 
   termLink: {
-    color: "#002366",
+    color: "var(--royal)",
     textDecoration: "underline",
     fontWeight: 500,
   } as React.CSSProperties,
@@ -750,7 +750,7 @@ const styles = {
   submitBtn: {
     width: "100%",
     padding: "14px",
-    background: "#002366",
+    background: "var(--royal)",
     color: "#fff",
     border: "none",
     borderRadius: 10,
@@ -769,11 +769,11 @@ const styles = {
     paddingTop: 24,
     borderTop: "1px solid #E2E8F0",
     fontSize: 13,
-    color: "#475569",
+    color: "var(--ink-soft)",
   },
 
   switchLink: {
-    color: "#002366",
+    color: "var(--royal)",
     fontWeight: 600,
     marginLeft: 6,
     background: "none",

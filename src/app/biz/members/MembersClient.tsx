@@ -248,7 +248,7 @@ function ConfirmDialog({
         boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
       }}>
         <h2 style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontSize: 18,
           fontWeight: 600,
           color: "var(--ink)",
@@ -355,7 +355,7 @@ function EditProfileDialog({
         boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
       }}>
         <h2 style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontSize: 18,
           fontWeight: 600,
           color: "var(--ink)",
@@ -511,7 +511,7 @@ function AddMemberDialog({
         boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
       }}>
         <h2 style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontSize: 18,
           fontWeight: 600,
           color: "var(--ink)",
@@ -1055,7 +1055,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
       }}>
         <div>
           <h1 style={{
-            fontFamily: "'Noto Serif JP', serif",
+            fontFamily: "var(--font-noto-serif)",
             fontWeight: 500,
             fontSize: 26,
             color: "var(--ink)",

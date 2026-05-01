@@ -68,7 +68,7 @@ function ArticleCard({ article }: { article: Article }) {
         {/* Body */}
         <div style={{ padding: "16px 18px 20px", flex: 1, display: "flex", flexDirection: "column" }}>
           <h2 style={{
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
             fontSize: 14, fontWeight: 700, lineHeight: 1.6,
             color: "var(--ink)", marginBottom: 10,
             display: "-webkit-box",
@@ -171,7 +171,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
     <>
       {/* Breadcrumb */}
       <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>Opinio</Link>
             <span>/</span>
@@ -182,15 +182,15 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
 
       {/* Hero */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "48px 0 40px" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }} className="px-5">
+        <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto", textAlign: "center" }} className="px-5">
 
           {/* Category stats */}
           <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
             {[
-              { label: "社員インタビュー", count: counts.employee, color: "#059669", bg: "#ECFDF5" },
-              { label: "メンターの声",     count: counts.mentor,   color: "#B45309", bg: "#FEF3C7" },
-              { label: "CEO・経営陣",      count: counts.ceo,      color: "#002366", bg: "#EFF3FC" },
-              { label: "取材レポート",     count: counts.report,   color: "#7C3AED", bg: "#F3E8FF" },
+              { label: "社員インタビュー", count: counts.employee, color: "var(--success)", bg: "var(--success-soft)" },
+              { label: "メンターの声",     count: counts.mentor,   color: "#B45309", bg: "var(--warm-soft)" },
+              { label: "CEO・経営陣",      count: counts.ceo,      color: "var(--royal)", bg: "var(--royal-50)" },
+              { label: "取材レポート",     count: counts.report,   color: "var(--purple)", bg: "#F3E8FF" },
             ].map(({ label, count, color, bg }) => (
               <div key={label} style={{
                 display: "flex", alignItems: "center", gap: 6,
@@ -204,7 +204,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
           </div>
 
           <h1 style={{
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
             fontSize: "clamp(26px, 4vw, 36px)", fontWeight: 500,
             color: "var(--ink)", letterSpacing: "0.04em",
             marginBottom: 16, lineHeight: 1.4,
@@ -247,7 +247,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
 
       {/* Grid */}
       <div style={{ background: "var(--bg-tint)" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
           {filteredArticles.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 0", color: "var(--ink-mute)" }}>
               <div style={{ fontSize: 40, marginBottom: 16 }}>📰</div>

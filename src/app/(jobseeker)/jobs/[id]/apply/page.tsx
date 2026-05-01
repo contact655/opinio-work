@@ -40,7 +40,7 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
       <div style={{ background: "var(--bg-tint)", minHeight: "calc(100vh - 120px)" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 20px 80px" }} className="px-5 md:px-10">
           <h1 style={{
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
             fontSize: "clamp(18px,2vw,22px)", fontWeight: 700,
             color: "var(--ink)", marginBottom: 6, lineHeight: 1.4,
           }}>

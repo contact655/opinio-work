@@ -42,7 +42,7 @@ export default function SelectCompanyClient({ items }: { items: Item[] }) {
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-tint)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: 480, padding: "0 16px" }}>
-        <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 24, fontWeight: 700, color: "var(--royal)", marginBottom: 8 }}>
+        <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 700, color: "var(--royal)", marginBottom: 8 }}>
           企業アカウントを選択
         </h1>
         <p style={{ color: "var(--ink-soft)", fontSize: 14, marginBottom: 32 }}>

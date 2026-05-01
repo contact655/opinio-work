@@ -332,13 +332,13 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             Opinio / 企業を知る
           </div>
           <h1 style={{
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
             fontSize: "clamp(28px, 4vw, 40px)",
             fontWeight: 500, color: "var(--ink)", lineHeight: 1.3, marginBottom: 12,
           }}>
             企業を、知る。
           </h1>
-          <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.8, maxWidth: 560 }}>
+          <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.8, maxWidth: "var(--max-w-form)" }}>
             IT/SaaS業界の求人・組織文化・カジュアル面談情報を、まとめて確認。
           </p>
         </div>

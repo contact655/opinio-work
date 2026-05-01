@@ -179,7 +179,7 @@ function Hero() {
       padding: "80px 48px 100px",
       overflow: "hidden",
     }} className="px-5 pt-16 pb-20 md:px-12 md:pt-20 md:pb-24">
-      <div style={{ maxWidth: 1280, margin: "0 auto" }}
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
         className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16 items-center">
 
         {/* Left: message */}
@@ -199,7 +199,7 @@ function Hero() {
             fontSize: "clamp(32px,4.5vw,54px)",
             fontWeight: 500, lineHeight: 1.4, letterSpacing: "0.01em",
             color: "var(--ink)", marginBottom: 24,
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
           }}>
             <HeroTypewriter />
             <br />
@@ -207,7 +207,7 @@ function Hero() {
           </h1>
 
           {/* Lead */}
-          <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 40, maxWidth: 520 }}>
+          <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 40, maxWidth: "var(--max-w-form)" }}>
             企業の<strong style={{ color: "var(--royal)" }}>今</strong>を知り、先輩と<strong style={{ color: "var(--royal)" }}>話し</strong>、自分で決める。<br />
             IT/SaaS業界に特化した、対話から始まる新しいキャリアの作り方。
           </p>
@@ -405,7 +405,7 @@ function InfraBlock({
       {/* Text */}
       <div style={{ direction: "ltr" }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase" as const }}>{num}</span>
-        <h3 style={{ fontSize: "clamp(22px,2.5vw,30px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, margin: "12px 0 16px", fontFamily: '"Noto Serif JP", serif' }}>
+        <h3 style={{ fontSize: "clamp(22px,2.5vw,30px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, margin: "12px 0 16px", fontFamily: 'var(--font-noto-serif)' }}>
           {title}
         </h3>
         <p style={{ fontSize: 15, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 24 }}>{desc}</p>
@@ -469,7 +469,7 @@ function InfraSection() {
                     <div style={{
                       width: 40, height: 40, borderRadius: 10, flexShrink: 0,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      background: step.v === 1 ? "var(--royal-50)" : step.v === 2 ? "#F5F3FF" : "#ECFDF5",
+                      background: step.v === 1 ? "var(--royal-50)" : step.v === 2 ? "#F5F3FF" : "var(--success-soft)",
                       color: step.v === 1 ? "var(--royal)" : step.v === 2 ? "var(--purple)" : "var(--success)",
                     }}>
                       {step.v === 1 ? <ClockIcon /> : step.v === 2 ? <ChatIcon /> : <CheckMark />}
@@ -642,7 +642,7 @@ function HowItWorks() {
           <h2 style={{ fontSize: "clamp(26px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: 16 }}>
             Opinioの、使い方
           </h2>
-          <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: 560, margin: "0 auto" }}>
+          <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: "var(--max-w-form)", margin: "0 auto" }}>
             情報を集めて、先輩に相談して、自分で決める。<br />
             シンプルな3ステップで、納得のいくキャリア判断を。
           </p>
@@ -797,7 +797,7 @@ function FinalCta() {
     }} className="px-5 py-16 md:py-24 md:px-12">
       <h2 style={{
         fontSize: "clamp(28px,3.5vw,44px)", fontWeight: 700, color: "#fff",
-        marginBottom: 16, fontFamily: '"Noto Serif JP", serif', lineHeight: 1.35,
+        marginBottom: 16, fontFamily: 'var(--font-noto-serif)', lineHeight: 1.35,
       }}>
         キャリアに、第三者の目を。
       </h2>
@@ -832,11 +832,11 @@ function ArticlesPreview() {
   const latest = MOCK_ARTICLES.slice(0, 3);
   return (
     <section style={{ background: "var(--bg-tint)", borderTop: "1px solid var(--line)", padding: "72px 0" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 md:px-12">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 32, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h2 style={{
-              fontFamily: '"Noto Serif JP", serif',
+              fontFamily: 'var(--font-noto-serif)',
               fontSize: "clamp(22px, 3vw, 28px)", fontWeight: 500,
               color: "var(--ink)", letterSpacing: "0.04em", marginBottom: 6,
             }}>
@@ -889,7 +889,7 @@ function ArticlesPreview() {
                   </div>
                   <div style={{ padding: "14px 16px 18px", flex: 1, display: "flex", flexDirection: "column" }}>
                     <h3 style={{
-                      fontFamily: '"Noto Serif JP", serif',
+                      fontFamily: 'var(--font-noto-serif)',
                       fontSize: 13.5, fontWeight: 700, lineHeight: 1.6,
                       color: "var(--ink)", marginBottom: 10, flex: 1,
                       display: "-webkit-box",

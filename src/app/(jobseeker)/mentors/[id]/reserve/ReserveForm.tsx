@@ -63,7 +63,7 @@ function SuccessModal({ mentorName, onClose }: { mentorName: string; onClose: ()
           <CheckCircleIcon />
         </div>
         <div style={{
-          fontFamily: '"Noto Serif JP", serif', fontSize: 21, fontWeight: 600,
+          fontFamily: 'var(--font-noto-serif)', fontSize: 21, fontWeight: 600,
           color: "var(--ink)", marginBottom: 10, lineHeight: 1.5,
         }}>
           申込を受け付けました
@@ -269,7 +269,7 @@ export default function ReserveForm({
             TALK WITH MENTOR
           </span>
           <h1 style={{
-            fontFamily: '"Noto Serif JP", serif', fontWeight: 500,
+            fontFamily: 'var(--font-noto-serif)', fontWeight: 500,
             fontSize: 30, color: "var(--ink)", lineHeight: 1.5,
             letterSpacing: "0.02em", marginBottom: 10,
           }}>
@@ -394,7 +394,7 @@ export default function ReserveForm({
             STEP 01
           </span>
           <h2 style={{
-            fontFamily: '"Noto Serif JP", serif', fontSize: 18, fontWeight: 600,
+            fontFamily: 'var(--font-noto-serif)', fontSize: 18, fontWeight: 600,
             color: "var(--ink)", marginBottom: 6,
           }}>
             相談したいテーマを選ぶ
@@ -453,7 +453,7 @@ export default function ReserveForm({
             STEP 02
           </span>
           <h2 style={{
-            fontFamily: '"Noto Serif JP", serif', fontSize: 18, fontWeight: 600,
+            fontFamily: 'var(--font-noto-serif)', fontSize: 18, fontWeight: 600,
             color: "var(--ink)", marginBottom: 6,
           }}>
             相談内容の詳細を記入する
@@ -541,7 +541,7 @@ export default function ReserveForm({
             STEP 03
           </span>
           <h2 style={{
-            fontFamily: '"Noto Serif JP", serif', fontSize: 18, fontWeight: 600,
+            fontFamily: 'var(--font-noto-serif)', fontSize: 18, fontWeight: 600,
             color: "var(--ink)", marginBottom: 6,
           }}>
             希望する曜日・時間帯
@@ -619,7 +619,7 @@ export default function ReserveForm({
             STEP 04
           </span>
           <h2 style={{
-            fontFamily: '"Noto Serif JP", serif', fontSize: 18, fontWeight: 600,
+            fontFamily: 'var(--font-noto-serif)', fontSize: 18, fontWeight: 600,
             color: "var(--ink)", marginBottom: 6,
           }}>
             連絡先の確認
@@ -714,7 +714,7 @@ export default function ReserveForm({
           </div>
 
           <div style={{
-            fontFamily: '"Noto Serif JP", serif', fontSize: 18, fontWeight: 500,
+            fontFamily: 'var(--font-noto-serif)', fontSize: 18, fontWeight: 500,
             marginBottom: 8, lineHeight: 1.6,
           }}>
             あなたのキャリアの話、<br />

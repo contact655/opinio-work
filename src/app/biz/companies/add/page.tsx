@@ -71,7 +71,7 @@ export default async function AddCompanyPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "48px 24px" }}>
+      <div style={{ maxWidth: "var(--max-w-form)", margin: "0 auto", padding: "48px 24px" }}>
         {/* 戻るリンク */}
         <a
           href="/biz/dashboard"
@@ -89,7 +89,7 @@ export default async function AddCompanyPage() {
 
         {/* タイトル */}
         <h1 style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontSize: 24, fontWeight: 700,
           color: "var(--ink)", marginBottom: 8,
         }}>

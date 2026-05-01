@@ -81,7 +81,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
     <>
       {/* Breadcrumb */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>Opinio</Link>
             <span>/</span>
@@ -94,7 +94,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
       {/* Hero */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "28px 0" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
             <div style={{
               width: 64, height: 64, borderRadius: 14, flexShrink: 0,
@@ -117,7 +117,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               </div>
 
               <h1 style={{
-                fontFamily: '"Noto Serif JP", serif',
+                fontFamily: 'var(--font-noto-serif)',
                 fontSize: "clamp(18px,2vw,24px)", fontWeight: 700,
                 color: "var(--ink)", lineHeight: 1.4, marginBottom: 12,
                 letterSpacing: "0.01em",
@@ -154,7 +154,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
       {/* Body */}
       <div style={{ background: "var(--bg-tint)" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
           <div className="grid gap-7 [grid-template-columns:1fr] lg:[grid-template-columns:1fr_320px]">
 
             {/* ── Main column ── */}
@@ -201,7 +201,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Skills */}
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
-                <SecTitle color="#D97706" icon={
+                <SecTitle color="var(--gold)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
@@ -222,7 +222,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
                       {job.required_skills.map((s, i) => (
                         <li key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
                             <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
                           </svg>
                           {s}
@@ -256,7 +256,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Benefits */}
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
-                <SecTitle color="#059669" icon={
+                <SecTitle color="var(--success)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4M4 6v12c0 1.1.9 2 2 2h14v-4"/>
                     <circle cx="16" cy="14" r="2"/>
@@ -403,7 +403,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
-                          fontFamily: '"Noto Serif JP", serif',
+                          fontFamily: 'var(--font-noto-serif)',
                           fontSize: 13, fontWeight: 500, color: "var(--ink)",
                           lineHeight: 1.5, marginBottom: 4,
                         }}>
@@ -530,13 +530,13 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       {company.name}
                       <span style={{
                         fontSize: 10, padding: "2px 8px", borderRadius: 100,
-                        background: "#FEF3C7", color: "#B45309", fontWeight: 600,
+                        background: "var(--warm-soft)", color: "#B45309", fontWeight: 600,
                       }}>
                         {company.phase}
                       </span>
                     </div>
                     <div style={{
-                      fontFamily: '"Noto Serif JP", serif',
+                      fontFamily: 'var(--font-noto-serif)',
                       fontSize: 12.5, color: "var(--royal)", lineHeight: 1.5, marginBottom: 10,
                     }}>
                       {company.tagline}

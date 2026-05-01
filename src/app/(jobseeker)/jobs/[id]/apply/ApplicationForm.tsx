@@ -73,7 +73,7 @@ export default function ApplicationForm({
             <path d="M20 6L9 17l-5-5" />
           </svg>
         </div>
-        <div style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+        <div style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
           応募が完了しました
         </div>
         <div style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 32 }}>
@@ -117,7 +117,7 @@ export default function ApplicationForm({
           borderRadius: 16, padding: "32px 36px", marginBottom: 16,
         }}>
           <h2 style={{
-            fontFamily: '"Noto Serif JP", serif', fontSize: 20, fontWeight: 700,
+            fontFamily: 'var(--font-noto-serif)', fontSize: 20, fontWeight: 700,
             color: "var(--ink)", marginBottom: 6,
           }}>
             応募フォーム

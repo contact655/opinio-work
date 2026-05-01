@@ -39,7 +39,7 @@ export function PendingMeetings({ meetings }: Props) {
         marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--line)",
       }}>
         <div style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontSize: 15, fontWeight: 600, color: "var(--ink)",
           display: "flex", alignItems: "baseline", gap: 8,
         }}>

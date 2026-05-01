@@ -38,7 +38,7 @@ export default async function CasualMeetingPage({
             ✕
           </div>
           <h1 style={{
-            fontFamily: '"Noto Serif JP", serif', fontSize: 20,
+            fontFamily: 'var(--font-noto-serif)', fontSize: 20,
             fontWeight: 600, color: "var(--ink)", marginBottom: 12,
           }}>
             現在受付していません

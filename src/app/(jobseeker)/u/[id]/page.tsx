@@ -242,7 +242,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
             <div>
               <div style={{
-                fontFamily: '"Noto Serif JP", serif',
+                fontFamily: 'var(--font-noto-serif)',
                 fontSize: 26, fontWeight: 700, color: "var(--ink)",
                 marginBottom: 6, display: "flex", alignItems: "center", gap: 10,
               }}>
@@ -292,7 +292,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
             paddingBottom: 14, borderBottom: "1px solid var(--line)",
           }}>
-            <span style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
+            <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
               About Me
             </span>
           </div>
@@ -321,7 +321,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
           paddingBottom: 14, borderBottom: "1px solid var(--line)",
         }}>
-          <span style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
+          <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
             キャリア
           </span>
           <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
@@ -408,7 +408,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
             paddingBottom: 14, borderBottom: "1px solid var(--line)",
           }}>
-            <span style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
+            <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
               リンク
             </span>
           </div>

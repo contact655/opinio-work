@@ -32,11 +32,11 @@ export async function generateMetadata({
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const ROYAL = "#002366";
-const LINE  = "#E2E8F0";
-const INK   = "#0F172A";
-const INK_SOFT = "#475569";
-const INK_MUTE = "#94A3B8";
+const ROYAL = "var(--royal)";
+const LINE  = "var(--line)";
+const INK   = "var(--ink)";
+const INK_SOFT = "var(--ink-soft)";
+const INK_MUTE = "var(--ink-mute)";
 
 function SubjectCard({ subject }: { subject: ArticleSubject }) {
   return (
@@ -72,7 +72,7 @@ function SubjectCard({ subject }: { subject: ArticleSubject }) {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 4,
                 padding: "2px 9px", borderRadius: 100,
-                background: "#FEF3C7", color: "#B45309",
+                background: "var(--warm-soft)", color: "#B45309",
                 fontSize: 10, fontWeight: 700,
                 border: "1px solid #FDE68A", textDecoration: "none",
               }}
@@ -111,7 +111,7 @@ function QASection({ qa }: { qa: QA[] }) {
               Q.{String(idx + 1).padStart(2, "0")}
             </span>
             <p style={{
-              fontFamily: '"Noto Serif JP", serif',
+              fontFamily: 'var(--font-noto-serif)',
               fontSize: 17, fontWeight: 600, color: INK,
               lineHeight: 1.6, margin: 0,
             }}>
@@ -146,7 +146,7 @@ function ThemesSection({ themes }: { themes: ThemeItem[] }) {
     }}>
       <div style={{ marginBottom: 10, display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
         <h3 style={{
-          fontFamily: '"Noto Serif JP", serif',
+          fontFamily: 'var(--font-noto-serif)',
           fontWeight: 700, fontSize: 20, color: INK, margin: 0,
         }}>
           相談できるテーマ
@@ -170,7 +170,7 @@ function ThemesSection({ themes }: { themes: ThemeItem[] }) {
             alignItems: "flex-start",
           }}>
             <div style={{
-              width: 32, height: 32, background: "#FEF3C7", color: "#B45309",
+              width: 32, height: 32, background: "var(--warm-soft)", color: "#B45309",
               borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 16, flexShrink: 0,
             }}>
@@ -209,7 +209,7 @@ function MentorCTA({ subject }: { subject: ArticleSubject }) {
         TALK TO MENTOR
       </div>
       <h3 style={{
-        fontFamily: '"Noto Serif JP", serif',
+        fontFamily: 'var(--font-noto-serif)',
         fontSize: 22, fontWeight: 500, marginBottom: 12, lineHeight: 1.5,
       }}>
         {subject.name}さんに、話を聞く
@@ -257,7 +257,7 @@ function CompanyCTA({ article }: { article: Article }) {
         この企業について、もっと知る
       </div>
       <h3 style={{
-        fontFamily: '"Noto Serif JP", serif',
+        fontFamily: 'var(--font-noto-serif)',
         fontSize: 20, fontWeight: 500, marginBottom: 20, lineHeight: 1.5,
       }}>
         {article.company_name}で、働く。
@@ -298,14 +298,14 @@ function ChaptersSection({ chapters }: { chapters: Chapter[] }) {
           borderTop: `1px solid ${LINE}`,
         }}>
           <h3 style={{
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
             fontWeight: 700, fontSize: 22, lineHeight: 1.55,
             color: INK, marginBottom: 24,
             display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap",
           }}>
             <span style={{
               fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
-              color: "#7C3AED", letterSpacing: "0.1em",
+              color: "var(--purple)", letterSpacing: "0.1em",
               padding: "2px 10px",
               border: "2px solid #7C3AED",
               borderRadius: 6, flexShrink: 0,
@@ -364,14 +364,14 @@ function ContributorsSection({ subjects }: { subjects: ArticleSubject[] }) {
     }}>
       <div style={{ marginBottom: 10, display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
         <h3 style={{
-          fontFamily: '"Noto Serif JP", serif',
+          fontFamily: 'var(--font-noto-serif)',
           fontWeight: 700, fontSize: 18, color: INK, margin: 0,
         }}>
           取材協力
         </h3>
         <span style={{
           fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-          color: "#7C3AED", letterSpacing: "0.2em", textTransform: "uppercase",
+          color: "var(--purple)", letterSpacing: "0.2em", textTransform: "uppercase",
         }}>
           CONTRIBUTORS
         </span>
@@ -401,7 +401,7 @@ function ContributorsSection({ subjects }: { subjects: ArticleSubject[] }) {
                 {s.is_mentor && (
                   <span style={{
                     marginLeft: 6, fontSize: 9, padding: "1px 6px",
-                    background: "#FEF3C7", color: "#B45309",
+                    background: "var(--warm-soft)", color: "#B45309",
                     borderRadius: 100, border: "1px solid #FDE68A",
                     fontWeight: 700,
                   }}>
@@ -429,7 +429,7 @@ function RelatedArticles({ articles }: { articles: Article[] }) {
         borderBottom: `2px solid ${INK}`,
       }}>
         <h3 style={{
-          fontFamily: '"Noto Serif JP", serif',
+          fontFamily: 'var(--font-noto-serif)',
           fontWeight: 700, fontSize: 20, color: INK,
           display: "flex", alignItems: "baseline", gap: 12, margin: 0,
         }}>
@@ -475,7 +475,7 @@ function RelatedArticles({ articles }: { articles: Article[] }) {
                     {badge.label}
                   </div>
                   <p style={{
-                    fontFamily: '"Noto Serif JP", serif',
+                    fontFamily: 'var(--font-noto-serif)',
                     fontSize: 12, fontWeight: 600, lineHeight: 1.6,
                     color: INK, marginBottom: 8,
                     display: "-webkit-box",
@@ -520,7 +520,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
     <>
       {/* Breadcrumb */}
       <div style={{ background: "var(--bg-tint)", borderBottom: `1px solid ${LINE}`, padding: "10px 0" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: INK_MUTE, display: "flex", alignItems: "center", gap: 5 }}>
             <Link href="/" style={{ color: INK_MUTE }}>Opinio</Link>
             <span>/</span>
@@ -532,7 +532,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
       </div>
 
       {/* Article body */}
-      <article style={{ maxWidth: 720, margin: "0 auto", padding: "32px 24px 80px" }}>
+      <article style={{ maxWidth: "var(--max-w-text)", margin: "0 auto", padding: "32px 24px 80px" }}>
 
         {/* Hero */}
         <div style={{ marginBottom: 40 }}>
@@ -557,7 +557,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
           {/* Title */}
           <h1 style={{
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
             fontWeight: 700, fontSize: "clamp(24px, 3vw, 34px)",
             color: INK, lineHeight: 1.55, marginBottom: 16,
             letterSpacing: "0.02em",
@@ -566,7 +566,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
           </h1>
 
           <p style={{
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
             fontSize: 16, color: INK_SOFT,
             lineHeight: 1.7, marginBottom: 22,
           }}>
@@ -640,7 +640,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 padding: "20px 0 20px 20px",
                 margin: "24px 0",
                 borderLeft: `3px solid ${ROYAL}`,
-                fontFamily: '"Noto Serif JP", serif',
+                fontFamily: 'var(--font-noto-serif)',
                 fontSize: 17, color: INK,
                 fontStyle: "italic", lineHeight: 1.8,
               }}>

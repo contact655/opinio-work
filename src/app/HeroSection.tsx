@@ -223,14 +223,14 @@ export default function HeroSection({
               <h1 className="mb-4">
                 <span
                   className="block text-[32px] md:text-[40px] leading-tight text-gray-800"
-                  style={{ fontFamily: "'Noto Serif JP', 'Yu Mincho', serif", fontWeight: 400 }}
+                  style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 400 }}
                 >
                   あなたのキャリアに、
                 </span>
                 <span
                   className="block text-[32px] md:text-[40px] leading-tight"
                   style={{
-                    fontFamily: "'Noto Serif JP', 'Yu Mincho', serif",
+                    fontFamily: "var(--font-noto-serif)",
                     fontWeight: 500,
                     color: "#1D9E75",
                   }}

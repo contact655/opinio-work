@@ -491,7 +491,7 @@ export default function JobsClient({
         style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}
       >
         <div
-          style={{ maxWidth: 1280, margin: "0 auto" }}
+          style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
           className="px-5 py-6 md:px-12"
         >
           <div
@@ -512,7 +512,7 @@ export default function JobsClient({
             >
               <h1
                 style={{
-                  fontFamily: '"Noto Serif JP", serif',
+                  fontFamily: 'var(--font-noto-serif)',
                   fontSize: "clamp(22px,2.5vw,28px)",
                   fontWeight: 500,
                   color: "var(--ink)",
@@ -582,7 +582,7 @@ export default function JobsClient({
         }}
       >
         <div
-          style={{ maxWidth: 1280, margin: "0 auto" }}
+          style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
           className="px-5 md:px-12"
         >
           <div
@@ -781,7 +781,7 @@ export default function JobsClient({
       {/* Grid */}
       <main style={{ background: "var(--bg-tint)" }}>
         <div
-          style={{ maxWidth: 1280, margin: "0 auto" }}
+          style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
           className="px-5 py-8 md:px-12 md:py-10"
         >
           {paged.length === 0 ? (

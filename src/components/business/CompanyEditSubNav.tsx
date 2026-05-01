@@ -42,7 +42,7 @@ export function CompanyEditSubNav({
         borderBottom: "1px solid var(--line)",
       }}>
         <div style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontSize: 16,
           fontWeight: 600,
           color: "var(--ink)",

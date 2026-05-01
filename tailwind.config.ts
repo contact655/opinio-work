@@ -9,9 +9,9 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#1D9E75",
-        "primary-dark": "#178A65",
-        "primary-light": "#E8F5EF",
+        primary: "#002366",       // --royal (旧 #1D9E75 緑 → royal blue に統一)
+        "primary-dark": "#001A4D", // --royal-deep
+        "primary-light": "#EFF3FC", // --royal-50
         background: "#F5F4F0",
         foreground: "#1a1a1a",
         "card-border": "rgba(0,0,0,0.08)",

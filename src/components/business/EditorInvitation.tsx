@@ -20,7 +20,7 @@ export function EditorInvitation() {
       </div>
       <div>
         <div style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontSize: 15, fontWeight: 700, color: "#fff",
           marginBottom: 4,
         }}>

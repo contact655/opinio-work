@@ -377,7 +377,7 @@ export default function CareerModal({ open, editTarget, onClose, onSave }: Props
       }}
     >
       <div style={{
-        background: "#fff", borderRadius: 16, maxWidth: 560, width: "100%",
+        background: "#fff", borderRadius: 16, maxWidth: "var(--max-w-form)", width: "100%",
         maxHeight: "90vh", overflowY: "auto",
         boxShadow: "0 20px 60px rgba(15,23,42,0.2)",
       }}>
@@ -387,7 +387,7 @@ export default function CareerModal({ open, editTarget, onClose, onSave }: Props
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <div style={{
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
             fontWeight: 600, fontSize: 18, color: "var(--ink)",
           }}>
             {editTarget ? "職歴を編集" : "職歴を追加"}

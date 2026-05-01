@@ -95,7 +95,7 @@ export function JobsClient({ jobs: initialJobs }: Props) {
       }}>
         <div>
           <h1 style={{
-            fontFamily: "'Noto Serif JP', serif",
+            fontFamily: "var(--font-noto-serif)",
             fontWeight: 500,
             fontSize: 26,
             color: "var(--ink)",

@@ -171,7 +171,7 @@ function BrandPanel() {
         <h1
           className="biz-brand-title"
           style={{
-            fontFamily: "'Noto Serif JP', serif",
+            fontFamily: "var(--font-noto-serif)",
             fontWeight: 500,
             fontSize: 46,
             lineHeight: 1.35,
@@ -479,7 +479,7 @@ function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
     <div>
       <div style={{ marginBottom: 24 }}>
         <h2 style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontWeight: 700,
           fontSize: 24,
           color: "var(--ink)",
@@ -786,7 +786,7 @@ function LoginForm({ onSwitchToSignup, next, router }: LoginFormProps) {
     <div>
       <div style={{ marginBottom: 24 }}>
         <h2 style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontWeight: 700,
           fontSize: 24,
           color: "var(--ink)",

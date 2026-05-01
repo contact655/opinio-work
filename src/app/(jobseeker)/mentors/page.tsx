@@ -139,7 +139,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
     <>
       {/* Breadcrumb */}
       <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>Opinio</Link>
             <span>/</span>
@@ -150,7 +150,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
 
       {/* Page top — centered hero */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "48px 0 40px" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }} className="px-5">
+        <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto", textAlign: "center" }} className="px-5">
           {/* Stats row */}
           <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
             {[
@@ -173,7 +173,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
           </div>
 
           <h1 style={{
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
             fontSize: "clamp(26px, 4vw, 36px)", fontWeight: 500,
             color: "var(--ink)", letterSpacing: "0.04em",
             marginBottom: 24, lineHeight: 1.4,
@@ -245,7 +245,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
 
       {/* Grid */}
       <main style={{ background: "var(--bg-tint)" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
           {allMentors.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 0", color: "var(--ink-mute)" }}>
               <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>

@@ -51,7 +51,7 @@ function Breadcrumb({ company }: { company: Company }) {
       }}
     >
       <div
-        style={{ maxWidth: 1400, margin: "0 auto" }}
+        style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
         className="px-5 py-3 md:px-12"
       >
         <Link href="/" style={{ color: "var(--ink-mute)" }}>
@@ -86,7 +86,7 @@ function Hero({
   return (
     <section style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
       <div
-        style={{ maxWidth: 1400, margin: "0 auto" }}
+        style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
         className="px-5 py-8 md:px-12"
       >
         <div
@@ -132,7 +132,7 @@ function Hero({
               </div>
               <h1
                 style={{
-                  fontFamily: '"Noto Serif JP", serif',
+                  fontFamily: 'var(--font-noto-serif)',
                   fontWeight: 700,
                   fontSize: "clamp(22px,2.5vw,30px)",
                   color: "var(--ink)",
@@ -391,7 +391,7 @@ function TabsBar({ company }: { company: Company }) {
       }}
     >
       <div
-        style={{ maxWidth: 1400, margin: "0 auto", overflowX: "auto" }}
+        style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto", overflowX: "auto" }}
         className="px-5 md:px-12"
       >
         <div style={{ display: "flex", gap: 4 }}>
@@ -451,7 +451,7 @@ function SecTitle({
         display: "flex",
         alignItems: "center",
         gap: 10,
-        fontFamily: '"Noto Serif JP", serif',
+        fontFamily: 'var(--font-noto-serif)',
         fontWeight: 500,
         fontSize: 20,
         color: "var(--ink)",
@@ -538,7 +538,7 @@ function PhotoGallery({
             <div
               style={{
                 color: "rgba(255,255,255,0.95)",
-                fontFamily: '"Noto Serif JP", serif',
+                fontFamily: 'var(--font-noto-serif)',
                 fontWeight: 500,
                 fontStyle: "italic",
                 fontSize: 20,
@@ -779,7 +779,7 @@ function AboutSection({
           </div>
           <div
             style={{
-              fontFamily: '"Noto Serif JP", serif',
+              fontFamily: 'var(--font-noto-serif)',
               fontSize: 22,
               fontWeight: 500,
               color: "var(--royal)",
@@ -1344,7 +1344,7 @@ function EmployeeCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: '"Noto Serif JP", serif',
+          fontFamily: 'var(--font-noto-serif)',
           fontWeight: 700,
           fontSize: 15,
           color: "#fff",
@@ -1989,7 +1989,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
                   <p
                     style={{
                       margin: 0,
-                      fontFamily: '"Noto Serif JP", serif',
+                      fontFamily: 'var(--font-noto-serif)',
                       fontSize: 12, fontWeight: 700, lineHeight: 1.6,
                       color: "var(--ink)",
                       display: "-webkit-box",
@@ -2066,7 +2066,7 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
         </svg>
         <span
           style={{
-            fontFamily: "'Noto Serif JP', serif",
+            fontFamily: "var(--font-noto-serif)",
             fontSize: 17,
             fontWeight: 700,
             color: "var(--ink)",
@@ -2203,7 +2203,7 @@ function Sidebar({
         </div>
         <div
           style={{
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
             fontSize: 18,
             fontWeight: 500,
             marginBottom: 14,
@@ -2381,7 +2381,7 @@ export default async function CompanyDetailPage({
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <div
-          style={{ maxWidth: 1400, margin: "0 auto" }}
+          style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
           className="px-5 md:px-12 py-7 grid gap-7 [grid-template-columns:1fr] lg:[grid-template-columns:1fr_320px]"
         >
           <main>

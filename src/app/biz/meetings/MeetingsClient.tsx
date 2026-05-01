@@ -237,7 +237,7 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
         flexShrink: 0,
       }}>
         <div style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontSize: 16, fontWeight: 600, color: "var(--ink)",
           display: "flex", alignItems: "center", gap: 8,
         }}>

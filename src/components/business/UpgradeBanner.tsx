@@ -24,7 +24,7 @@ export function UpgradeBanner({ planType }: Props) {
       </div>
       <div>
         <div style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontSize: 15, fontWeight: 700, color: "#fff",
           marginBottom: 4,
         }}>

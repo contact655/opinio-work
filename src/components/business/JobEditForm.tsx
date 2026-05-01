@@ -325,7 +325,7 @@ export function JobEditForm({
       case "basic":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>基本情報</h1>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>基本情報</h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>求人の基本情報を入力してください。求職者側の検索・一覧表示に使われる重要な項目です。</p>
             <FormSection title="求人タイトル・職種">
               <FormGroup>
@@ -373,7 +373,7 @@ export function JobEditForm({
       case "salary":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>給与・労働条件</h1>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>給与・労働条件</h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>給与レンジ、勤務地、勤務形態など、労働条件を入力してください。</p>
             <FormSection title="給与">
               <FormGroup>
@@ -413,7 +413,7 @@ export function JobEditForm({
       case "content":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>仕事内容</h1>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>仕事内容</h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>具体的な仕事内容、ミッション、入社後の期待値を記述してください。</p>
             <FormSection title="仕事内容の詳細" desc="候補者がポジションをイメージできるよう、具体的な業務内容を記述してください。">
               {/* Markdown editor toolbar + textarea */}
@@ -457,7 +457,7 @@ export function JobEditForm({
       case "requirements":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>求める人物像</h1>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>求める人物像</h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>必須スキル・歓迎スキル・求めるカルチャーフィットを記入してください。</p>
             <FormSection title="スキル・経験">
               <FormGroup>
@@ -489,7 +489,7 @@ export function JobEditForm({
       case "process":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>選考プロセス</h1>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>選考プロセス</h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>候補者がイメージできるよう、選考のステップを記述してください。</p>
             <FormSection title="選考ステップ" desc="通常の選考フローを記入してください。求職者側の求人ページに表示されます。">
               <ProcessStepsEditor
@@ -515,7 +515,7 @@ export function JobEditForm({
       case "assignee":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>採用担当者</h1>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>採用担当者</h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>この求人の採用担当者を選択してください。複数選択可能。</p>
             <FormSection title="担当者選択" desc="チームメンバーから、この求人の担当者を選んでください。">
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -586,7 +586,7 @@ export function JobEditForm({
       case "settings":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>公開設定</h1>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>公開設定</h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>求人の公開状態を選択してください。新規・編集後は運営審査を経て公開されます。</p>
             <FormSection title="公開状態">
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -628,7 +628,7 @@ export function JobEditForm({
               borderRadius: 14, padding: "24px 28px",
               marginTop: 24, textAlign: "center",
             }}>
-              <div style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 16, fontWeight: 600, color: "var(--royal)", marginBottom: 8 }}>
+              <div style={{ fontFamily: "var(--font-noto-serif)", fontSize: 16, fontWeight: 600, color: "var(--royal)", marginBottom: 8 }}>
                 準備ができたら、公開申請をしてください
               </div>
               <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 16 }}>

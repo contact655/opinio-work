@@ -148,7 +148,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontSize: 22, fontWeight: 700, color: "var(--royal)", margin: "0 0 4px",
         }}>
           応募管理

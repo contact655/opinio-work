@@ -338,7 +338,7 @@ function StatusIcon({ type }: { type: "error" | "warning" | "invite" | "ready" }
 // ── Styles ─────────────────────────────────────────────────────────
 
 const headingStyle: React.CSSProperties = {
-  fontFamily: "'Noto Serif JP', serif",
+  fontFamily: "var(--font-noto-serif)",
   fontWeight: 700,
   fontSize: 20,
   color: "var(--ink)",

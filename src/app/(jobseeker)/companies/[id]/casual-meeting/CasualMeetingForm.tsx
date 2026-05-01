@@ -39,7 +39,7 @@ function SuccessScreen({ companyName, contactEmail }: { companyName: string; con
           ✓
         </div>
         <h1 style={{
-          fontFamily: '"Noto Serif JP", serif', fontSize: 22,
+          fontFamily: 'var(--font-noto-serif)', fontSize: 22,
           fontWeight: 600, color: "var(--ink)", marginBottom: 12,
         }}>
           申し込みを受け付けました
@@ -156,7 +156,7 @@ export default function CasualMeetingForm({
     borderRadius: 14, padding: "24px 28px", marginBottom: 16,
   };
   const sectionTitleStyle: React.CSSProperties = {
-    fontFamily: '"Noto Serif JP", serif', fontSize: 15,
+    fontFamily: 'var(--font-noto-serif)', fontSize: 15,
     fontWeight: 600, color: "var(--ink)", marginBottom: 6,
   };
   const sectionDescStyle: React.CSSProperties = {
@@ -175,7 +175,7 @@ export default function CasualMeetingForm({
           ← {companyName}
         </Link>
         <h1 style={{
-          fontFamily: '"Noto Serif JP", serif', fontSize: 24,
+          fontFamily: 'var(--font-noto-serif)', fontSize: 24,
           fontWeight: 600, color: "var(--ink)", marginBottom: 6,
         }}>
           カジュアル面談を申し込む
@@ -405,7 +405,7 @@ export default function CasualMeetingForm({
             </svg>
             3営業日以内に企業から連絡が来ます
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 6, fontFamily: '"Noto Serif JP", serif' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 6, fontFamily: 'var(--font-noto-serif)' }}>
             まずは、気軽に話してみましょう。
           </div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", marginBottom: 20, lineHeight: 1.7 }}>

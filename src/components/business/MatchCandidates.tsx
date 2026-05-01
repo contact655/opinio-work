@@ -61,7 +61,7 @@ export function MatchCandidates({ candidates, planType }: Props) {
       padding: "22px 26px",
     }}>
       <div style={{
-        fontFamily: "'Noto Serif JP', serif",
+        fontFamily: "var(--font-noto-serif)",
         fontSize: 15, fontWeight: 600, color: "var(--ink)",
         display: "flex", alignItems: "baseline", gap: 8,
         marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--line)",
@@ -99,7 +99,7 @@ export function MatchCandidates({ candidates, planType }: Props) {
           }}>
             <div style={{ fontSize: 28 }}>🔒</div>
             <div style={{
-              fontFamily: "'Noto Serif JP', serif",
+              fontFamily: "var(--font-noto-serif)",
               fontSize: 14, fontWeight: 700, color: "var(--ink)",
             }}>有料プランで解放</div>
             <div style={{ fontSize: 12, color: "var(--ink-soft)", textAlign: "center", maxWidth: 220, lineHeight: 1.5 }}>

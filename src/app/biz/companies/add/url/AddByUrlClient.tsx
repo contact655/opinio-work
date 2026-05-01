@@ -65,7 +65,7 @@ export function AddByUrlClient() {
   }
 
   return (
-    <div style={{ maxWidth: 520, margin: "0 auto", padding: "48px 24px" }}>
+    <div style={{ maxWidth: "var(--max-w-form)", margin: "0 auto", padding: "48px 24px" }}>
       {/* 戻るリンク */}
       <a
         href="/biz/companies/add"
@@ -95,7 +95,7 @@ export function AddByUrlClient() {
       </div>
 
       <h1 style={{
-        fontFamily: "'Noto Serif JP', serif",
+        fontFamily: "var(--font-noto-serif)",
         fontSize: 22, fontWeight: 700,
         color: "var(--ink)", marginBottom: 8,
       }}>

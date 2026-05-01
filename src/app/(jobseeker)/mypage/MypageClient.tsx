@@ -82,7 +82,7 @@ function SectionBlock({
         borderBottom: "1px solid var(--line)",
       }}>
         <div style={{
-          fontFamily: '"Noto Serif JP", serif',
+          fontFamily: 'var(--font-noto-serif)',
           fontSize: 17, fontWeight: 600, color: "var(--ink)",
           display: "flex", alignItems: "baseline", gap: 10,
         }}>
@@ -297,7 +297,7 @@ function DashboardView({
   return (
     <div>
       <h1 style={{
-        fontFamily: '"Noto Serif JP", serif', fontWeight: 500,
+        fontFamily: 'var(--font-noto-serif)', fontWeight: 500,
         fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em",
       }}>
         おかえりなさい、田中翔太さん
@@ -345,7 +345,7 @@ function DashboardView({
           }}>
             <div>
               <div style={{
-                fontFamily: '"Noto Serif JP", serif',
+                fontFamily: 'var(--font-noto-serif)',
                 fontWeight: 700, fontSize: 20, color: "var(--ink)",
               }}>
                 {userName}
@@ -424,7 +424,7 @@ function DashboardView({
           },
           {
             icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
-            iconBg: "var(--pink-soft, #FCE7F3)", iconColor: "#DB2777",
+            iconBg: "var(--pink-soft, #FCE7F3)", iconColor: "var(--pink)",
             value: totalBookmarks, label: "ブックマーク\n合計",
             onClick: () => onNavigate("bookmarks"),
           },
@@ -560,7 +560,7 @@ function CasualView({ casualMeetings }: { casualMeetings: CasualMeeting[] }) {
 
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+      <h1 style={{ fontFamily: 'var(--font-noto-serif)', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
         カジュアル面談
       </h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
@@ -614,7 +614,7 @@ function MentorReserveView({ mentorReservations }: { mentorReservations: MentorR
 
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+      <h1 style={{ fontFamily: 'var(--font-noto-serif)', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
         メンター相談
       </h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
@@ -699,7 +699,7 @@ function BookmarksView({ companyBookmarks }: { companyBookmarks: Bookmark[] }) {
   ];
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+      <h1 style={{ fontFamily: 'var(--font-noto-serif)', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
         ブックマーク
       </h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
@@ -731,7 +731,7 @@ function MentorRequestsView({
 
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+      <h1 style={{ fontFamily: 'var(--font-noto-serif)', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
         受けた相談
         <span style={{
           fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 700,
@@ -856,7 +856,7 @@ function MentorRequestsView({
 function MentorScheduleView() {
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+      <h1 style={{ fontFamily: 'var(--font-noto-serif)', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
         スケジュール
         <span style={{
           fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 700,

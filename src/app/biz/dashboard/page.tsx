@@ -48,7 +48,7 @@ async function NoTenantPage() {
         border: "1px solid var(--line)",
         padding: 40,
         textAlign: "center",
-        maxWidth: 560, margin: "60px auto",
+        maxWidth: "var(--max-w-form)", margin: "60px auto",
       }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>🏢</div>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
@@ -126,7 +126,7 @@ export default async function BizDashboardPage() {
         marginBottom: 24,
       }}>
         <h1 style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontWeight: 500, fontSize: 24,
           color: "var(--ink)", letterSpacing: "0.02em",
           margin: 0,
@@ -207,7 +207,7 @@ export default async function BizDashboardPage() {
           marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--line)",
         }}>
           <div style={{
-            fontFamily: "'Noto Serif JP', serif",
+            fontFamily: "var(--font-noto-serif)",
             fontSize: 15, fontWeight: 600, color: "var(--ink)",
             display: "flex", alignItems: "baseline", gap: 8,
           }}>

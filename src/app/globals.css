@@ -2,64 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Design tokens
+   スタイリング方針: インライン style + CSS 変数を正式採用。
+   Tailwind はユーティリティ補助として使用。
+   ───────────────────────────────────────────────────────────────────────────── */
+
 :root {
+  /* === Brand Colors === */
+  --royal:      #002366;    /* メインカラー: ヘッダー・CTA・アクティブ */
+  --royal-deep: #001A4D;    /* ホバー・ダークバリアント */
+  --royal-50:   #EFF3FC;    /* 極薄背景 */
+  --royal-100:  #DCE5F7;    /* 薄背景・ホバー */
+  --accent:     #3B5FD9;    /* リンク・セカンダリアクション */
+
+  /* === Text === */
+  --ink:        #0F172A;    /* 本文 (最強) */
+  --ink-soft:   #475569;    /* サブテキスト */
+  --ink-mute:   #94A3B8;    /* ヒント・ラベル・補足 */
+
+  /* === Borders & Surfaces === */
+  --line:       #E2E8F0;    /* 標準ボーダー */
+  --line-soft:  #F1F5F9;    /* 薄いボーダー */
+  --bg-tint:    #F8FAFC;    /* ページ背景 (薄グレー) */
+
+  /* === Status === */
+  --success:      #059669;  /* 成功・published・accepted */
+  --success-soft: #ECFDF5;
+  --warm:         #F59E0B;  /* 注意・pending */
+  --warm-soft:    #FEF3C7;
+  --purple:       #7C3AED;  /* scheduling */
+  --purple-soft:  #F3E8FF;
+  --error:        #DC2626;  /* エラー・declined */
+  --error-soft:   #FEE2E2;
+  --pink:         #DB2777;  /* scheduled */
+  --pink-soft:    #FCE7F3;
+  --gold:         #D97706;
+  --gold-soft:    #FEF3C7;
+
+  /* === Legacy (ページ互換) === */
   --background: #F5F4F0;
   --foreground: #1a1a1a;
   --color-text-primary: #111111;
-  --color-text-secondary: #444444;
-  --color-text-tertiary: #777777;
-
-  /* LP Design tokens */
-  --green: #1D9E75;
-  --green-dark: #0F6E56;
-  --green-light: #E1F5EE;
-  --green-mid: #9FE1CB;
-  --amber: #BA7517;
-  --amber-light: #FAEEDA;
-  --amber-mid: #FAC775;
-  --warm-bg: #FDFAF6;
-  --text: #1a1a1a;
-  --text-sub: #6b6b6b;
-  --text-hint: #9e9e9e;
-  --border: rgba(0,0,0,0.08);
-  --border-md: rgba(0,0,0,0.12);
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
-
-  /* ── Biz / Global design tokens (opinio-biz-dashboard-v2 準拠) ── */
-  /* Phase 3: /biz/* で使用。Phase 6 で求職者側にも展開予定。      */
-  --royal: #002366;
-  --royal-deep: #001A4D;
-  --royal-50: #EFF3FC;
-  --royal-100: #DCE5F7;
-  --accent: #3B5FD9;
-  --ink: #0F172A;
-  --ink-soft: #475569;
-  --ink-mute: #94A3B8;
-  --line: #E2E8F0;
-  --line-soft: #F1F5F9;
-  --bg-tint: #F8FAFC;
-  --success: #059669;
-  --success-soft: #ECFDF5;
-  --warm: #F59E0B;
-  --warm-soft: #FEF3C7;
-  --purple: #7C3AED;
-  --purple-soft: #F3E8FF;
-  --gold: #D97706;
-  --gold-soft: #FEF3C7;
-  --error: #DC2626;
-  --error-soft: #FEE2E2;
-  --pink: #DB2777;
-  --pink-soft: #FCE7F3;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --color-text-primary: #f0f0f0;
-    --color-text-secondary: #c0c0c0;
-    --color-text-tertiary: #909090;
   }
 }
 
@@ -151,22 +140,4 @@ p, .description, .desc {
 }
 .animate-blink-dot {
   animation: blink-dot 2s ease-in-out infinite;
-}
-
-/* ─── Opinio color tokens (global) ─── */
-:root {
-  --royal:      #002366;
-  --royal-deep: #001A4D;
-  --royal-50:   #EFF3FC;
-  --royal-100:  #DCE5F7;
-  --accent:     #3B5FD9;
-  --ink:        #0F172A;
-  --ink-soft:   #475569;
-  --ink-mute:   #94A3B8;
-  --line:       #E2E8F0;
-  --line-soft:  #F1F5F9;
-  --bg-tint:    #F8FAFC;
-  --success:    #059669;
-  --warm:       #F59E0B;
-  --purple:     #7C3AED;
 }

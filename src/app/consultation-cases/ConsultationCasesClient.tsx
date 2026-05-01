@@ -213,7 +213,7 @@ export default function ConsultationCasesClient({
           <h1
             className="text-[28px] md:text-[34px] leading-tight mb-4"
             style={{
-              fontFamily: "'Noto Serif JP', 'Yu Mincho', serif",
+              fontFamily: "var(--font-noto-serif)",
               fontWeight: 400,
             }}
           >

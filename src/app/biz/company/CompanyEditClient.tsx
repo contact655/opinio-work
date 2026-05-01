@@ -214,7 +214,7 @@ function FormTextarea({
         padding: "10px 12px",
         border: "1.5px solid var(--line)",
         borderRadius: 8,
-        fontFamily: serif ? "'Noto Serif JP', serif" : "inherit",
+        fontFamily: serif ? "var(--font-noto-serif)" : "inherit",
         fontSize: serif ? 16 : 13,
         fontWeight: serif ? 500 : 400,
         color: "var(--ink)",
@@ -400,7 +400,7 @@ export function CompanyEditClient({
       case "basic":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               基本情報
             </h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
@@ -495,7 +495,7 @@ export function CompanyEditClient({
       case "about":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               About（企業説明）
             </h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
@@ -518,7 +518,7 @@ export function CompanyEditClient({
       case "data":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               数値データ
             </h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
@@ -577,7 +577,7 @@ export function CompanyEditClient({
       case "workstyle":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               働き方
             </h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
@@ -624,7 +624,7 @@ export function CompanyEditClient({
       case "photos":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               オフィス写真
             </h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
@@ -641,7 +641,7 @@ export function CompanyEditClient({
       case "settings":
         return (
           <>
-            <h1 style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               公開設定
             </h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>

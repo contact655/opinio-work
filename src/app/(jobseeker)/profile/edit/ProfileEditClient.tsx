@@ -314,7 +314,7 @@ function BasicSection({
   return (
     <div>
       <h1 style={{
-        fontFamily: '"Noto Serif JP", serif', fontWeight: 500,
+        fontFamily: 'var(--font-noto-serif)', fontWeight: 500,
         fontSize: 28, color: "var(--ink)", marginBottom: 10, letterSpacing: "0.02em",
       }}>基本情報</h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 36, lineHeight: 1.9 }}>
@@ -439,7 +439,7 @@ function CareerSection({
   return (
     <div>
       <h1 style={{
-        fontFamily: '"Noto Serif JP", serif', fontWeight: 500,
+        fontFamily: 'var(--font-noto-serif)', fontWeight: 500,
         fontSize: 28, color: "var(--ink)", marginBottom: 10, letterSpacing: "0.02em",
       }}>キャリア（職歴）</h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 36, lineHeight: 1.9 }}>
@@ -497,7 +497,7 @@ function CareerSection({
       }}>
         <div>
           <div style={{
-            fontFamily: '"Noto Serif JP", serif',
+            fontFamily: 'var(--font-noto-serif)',
             fontSize: 16, fontWeight: 500, marginBottom: 6,
           }}>
             メンターとして、後輩の相談に乗りませんか？
@@ -564,7 +564,7 @@ function SnsSection({
   return (
     <div>
       <h1 style={{
-        fontFamily: '"Noto Serif JP", serif', fontWeight: 500,
+        fontFamily: 'var(--font-noto-serif)', fontWeight: 500,
         fontSize: 28, color: "var(--ink)", marginBottom: 10, letterSpacing: "0.02em",
       }}>SNSリンク</h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 36, lineHeight: 1.9 }}>
@@ -616,7 +616,7 @@ function AccountSection({
   return (
     <div>
       <h1 style={{
-        fontFamily: '"Noto Serif JP", serif', fontWeight: 500,
+        fontFamily: 'var(--font-noto-serif)', fontWeight: 500,
         fontSize: 28, color: "var(--ink)", marginBottom: 10, letterSpacing: "0.02em",
       }}>アカウント設定</h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 36, lineHeight: 1.9 }}>

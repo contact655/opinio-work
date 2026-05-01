@@ -218,7 +218,7 @@ export function MeetingDetailPanel({
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontFamily: "'Noto Serif JP', serif",
+            fontFamily: "var(--font-noto-serif)",
             fontSize: 20, fontWeight: 600, color: "var(--ink)",
             marginBottom: 2,
             display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",

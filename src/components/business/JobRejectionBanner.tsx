@@ -43,7 +43,7 @@ export function JobRejectionBanner({ reason, date, reviewer }: Props) {
           運営から差し戻しがありました
         </div>
         <div style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontSize: 16, fontWeight: 600,
           color: "#7F1D1D",
           marginBottom: 10,

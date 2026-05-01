@@ -92,7 +92,7 @@ export function DashboardMockView() {
         marginBottom: 24,
       }}>
         <h1 style={{
-          fontFamily: "'Noto Serif JP', serif",
+          fontFamily: "var(--font-noto-serif)",
           fontWeight: 500, fontSize: 24,
           color: "var(--ink)", letterSpacing: "0.02em",
           margin: 0,
@@ -175,7 +175,7 @@ export function DashboardMockView() {
           marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--line)",
         }}>
           <div style={{
-            fontFamily: "'Noto Serif JP', serif",
+            fontFamily: "var(--font-noto-serif)",
             fontSize: 15, fontWeight: 600, color: "var(--ink)",
             display: "flex", alignItems: "baseline", gap: 8,
           }}>
