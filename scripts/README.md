@@ -1,6 +1,6 @@
 # Development Scripts
 
-Opinio Work の開発・テストに使うユーティリティスクリプト。
+Opinio の開発・テストに使うユーティリティスクリプト。
 
 ---
 

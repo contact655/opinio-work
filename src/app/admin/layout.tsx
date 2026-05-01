@@ -36,7 +36,7 @@ export default async function AdminLayout({
       <aside className="w-[240px] bg-[#1a1a1a] text-white flex-shrink-0 fixed top-0 left-0 bottom-0 z-40 overflow-y-auto">
         <div className="p-5 border-b border-white/10">
           <Link href="/admin" className="text-lg font-bold">
-            opinio<span className="text-primary">.work</span>
+            opinio<span className="text-primary">.jp</span>
           </Link>
           <p className="text-xs text-gray-400 mt-1">Admin Console</p>
         </div>

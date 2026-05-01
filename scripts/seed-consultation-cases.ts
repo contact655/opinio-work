@@ -31,7 +31,7 @@ async function main() {
       worry_category: 'キャリアチェンジ',
       worry_summary: 'SIerの営業を3年やったが、SaaSに転職したい。でもSaaS営業は未経験で不安。',
       insight: '「SIer営業で培った提案力は、SaaSのエンタープライズ営業でそのまま活きます。むしろSIer出身者を求めている企業は多い」というアドバイスに安心した。具体的にどの企業がSIer出身者を歓迎しているかも教えてもらえた。',
-      action_taken: 'opinio.workでSaaS企業3社に応募 → 2社から面接オファー',
+      action_taken: 'opinio.jpでSaaS企業3社に応募 → 2社から面接オファー',
       is_published: true,
       consent_given: true,
       display_order: 1,
