@@ -189,7 +189,7 @@ export default function ProfileSetupPage() {
     <>
       <Header />
       <main className="pt-16 min-h-screen bg-white">
-        <div style={{ maxWidth: 520, margin: "0 auto", padding: "48px 20px" }}>
+        <div style={{ maxWidth: "var(--max-w-form)", margin: "0 auto", padding: "48px 20px" }}>
           {/* Progress bar */}
           <div style={{ marginBottom: 40 }}>
             <div

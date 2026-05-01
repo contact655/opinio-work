@@ -142,7 +142,7 @@ export default function CompanyFilterBar({ total }: { total: number }) {
       borderBottom: `1px solid ${LINE}`,
     }}>
       <div
-        style={{ maxWidth: 1280, margin: "0 auto" }}
+        style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
         className="px-5 md:px-12"
       >
         <div style={{ padding: "12px 0", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

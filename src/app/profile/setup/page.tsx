@@ -49,7 +49,7 @@ export default function ProfileSetupPage() {
       <main className="pt-16 min-h-screen" style={{ background: "#f8f8f6" }}>
         <div
           style={{
-            maxWidth: 520,
+            maxWidth: "var(--max-w-form)",
             margin: "0 auto",
             padding: "40px 20px",
           }}

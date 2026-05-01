@@ -141,7 +141,7 @@ function ConsultationRequestForm() {
   }
 
   return (
-    <div style={{ maxWidth: 520, margin: "0 auto", padding: "48px 24px" }}>
+    <div style={{ maxWidth: "var(--max-w-form)", margin: "0 auto", padding: "48px 24px" }}>
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>相談を申し込む</div>

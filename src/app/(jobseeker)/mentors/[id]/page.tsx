@@ -60,7 +60,7 @@ export default async function MentorDetailPage({ params }: Props) {
     <>
       {/* Breadcrumb */}
       <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>Opinio</Link>
             <span>/</span>

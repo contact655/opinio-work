@@ -22,7 +22,7 @@ export default function ForCompaniesPage() {
             padding: "64px 24px",
           }}
         >
-          <div style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto", textAlign: "center" }}>
             <div
               style={{
                 display: "inline-flex",
@@ -60,7 +60,7 @@ export default function ForCompaniesPage() {
                 color: "#6b7280",
                 lineHeight: 1.8,
                 marginBottom: 32,
-                maxWidth: 520,
+                maxWidth: "var(--max-w-form)",
                 margin: "0 auto 32px",
               }}
             >
@@ -113,7 +113,7 @@ export default function ForCompaniesPage() {
         >
           <div
             style={{
-              maxWidth: 720,
+              maxWidth: "var(--max-w-text)",
               margin: "0 auto",
               display: "grid",
               gridTemplateColumns: "repeat(3, 1fr)",
@@ -139,7 +139,7 @@ export default function ForCompaniesPage() {
 
         {/* ── 特徴 ── */}
         <section style={{ padding: "48px 24px" }}>
-          <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto" }}>
             <h2
               style={{ fontSize: 22, fontWeight: 500, marginBottom: 8, textAlign: "center" }}
             >

@@ -97,6 +97,14 @@
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);   /* モーダル、ドロップダウン */
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);  /* ヒーロー要素 */
 
+  /* === Max Width Scale === */
+  --max-w-page:    1280px;   /* ページコンテンツ幅 (jobseeker 標準) */
+  --max-w-wide:    1400px;   /* ワイドページ (企業詳細等) */
+  --max-w-biz:     1200px;   /* BIZ 側コンテンツ幅 (置換は Phase γ) */
+  --max-w-text:     720px;   /* 記事・読み物 (可読性最適幅) */
+  --max-w-form:     560px;   /* フォーム標準幅 */
+  --max-w-form-sm:  480px;   /* 認証・小フォーム (置換は Phase γ) */
+
   /* === Legacy (ページ互換) === */
   --background: #F5F4F0;
   --foreground: #1a1a1a;
