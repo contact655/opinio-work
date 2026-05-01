@@ -4,9 +4,9 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback } from "react";
 import { ARTICLE_TYPES, TYPE_BADGE } from "@/app/articles/mockArticleData";
 
-const LINE = "#E2E8F0";
-const INK_SOFT = "#475569";
-const INK_MUTE = "#94A3B8";
+const LINE = "var(--line)";
+const INK_SOFT = "var(--ink-soft)";
+const INK_MUTE = "var(--ink-mute)";
 
 export default function ArticleFilterBar({ total }: { total: number }) {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
       backdropFilter: "blur(8px)",
       borderBottom: `1px solid ${LINE}`,
     }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 md:px-12">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
         <div style={{ padding: "10px 0", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
 
           {/* Type filter pills */}
@@ -44,9 +44,9 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
                   padding: "7px 14px", borderRadius: 100, fontSize: 12.5, fontWeight: 500,
-                  border: `1.5px solid ${active ? (badge?.color ?? "#002366") : LINE}`,
-                  background: active ? (badge?.bg ?? "#EFF3FC") : "#fff",
-                  color: active ? (badge?.color ?? "#002366") : INK_SOFT,
+                  border: `1.5px solid ${active ? (badge?.color ?? "var(--royal)") : LINE}`,
+                  background: active ? (badge?.bg ?? "var(--royal-50)") : "#fff",
+                  color: active ? (badge?.color ?? "var(--royal)") : INK_SOFT,
                   cursor: "pointer", whiteSpace: "nowrap",
                   transition: "all 0.15s",
                 }}
@@ -66,7 +66,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
 
           {/* Count */}
           <span style={{ fontSize: 13, color: INK_MUTE, whiteSpace: "nowrap" }}>
-            <strong style={{ color: "#002366", fontSize: 15, fontFamily: "Inter, sans-serif" }}>{total}</strong> 本
+            <strong style={{ color: "var(--royal)", fontSize: 15, fontFamily: "Inter, sans-serif" }}>{total}</strong> 本
           </span>
 
           {/* Sort */}

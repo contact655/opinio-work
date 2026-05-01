@@ -13,7 +13,7 @@ export function JobPerformanceList({ jobs }: { jobs: JobPerformance[] }) {
   return (
     <section>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>求人のパフォーマンス</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>求人のパフォーマンス</h2>
         <span style={{ fontSize: 11, color: "#9ca3af" }}>業界平均応募率: {INDUSTRY_AVG_CONVERSION_RATE}%</span>
       </div>
 
@@ -53,7 +53,7 @@ export function JobPerformanceList({ jobs }: { jobs: JobPerformance[] }) {
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                     <Link
                       href={`/biz/jobs/${j.job_id}`}
-                      style={{ fontSize: 14, fontWeight: 600, color: "#0f172a", textDecoration: "none" }}
+                      style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", textDecoration: "none" }}
                     >
                       {j.title || "—"}
                     </Link>
@@ -83,7 +83,7 @@ export function JobPerformanceList({ jobs }: { jobs: JobPerformance[] }) {
                   <Stat
                     label="応募率"
                     value={`${j.conversion_rate_pct}%`}
-                    valueColor={j.isUnderperforming ? "#dc2626" : "#0f172a"}
+                    valueColor={j.isUnderperforming ? "var(--error)" : "var(--ink)"}
                   />
                 </div>
               </div>
@@ -95,7 +95,7 @@ export function JobPerformanceList({ jobs }: { jobs: JobPerformance[] }) {
   );
 }
 
-function Stat({ label, value, valueColor = "#0f172a" }: { label: string; value: string | number; valueColor?: string }) {
+function Stat({ label, value, valueColor = "var(--ink)" }: { label: string; value: string | number; valueColor?: string }) {
   return (
     <div style={{ textAlign: "right", minWidth: 64 }}>
       <div style={{ fontSize: 16, fontWeight: 700, color: valueColor, lineHeight: 1.1 }}>{value}</div>

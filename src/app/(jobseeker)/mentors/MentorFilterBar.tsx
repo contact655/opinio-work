@@ -4,10 +4,10 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MENTOR_DEPTS, MENTOR_INDUSTRIES, MENTOR_THEMES } from "./mockMentorData";
 
-const ROYAL = "#002366";
-const LINE = "#E2E8F0";
-const INK_SOFT = "#475569";
-const INK_MUTE = "#94A3B8";
+const ROYAL = "var(--royal)";
+const LINE = "var(--line)";
+const INK_SOFT = "var(--ink-soft)";
+const INK_MUTE = "var(--ink-mute)";
 
 // ─── Dropdown ─────────────────────────────────────────────────────────────────
 
@@ -128,7 +128,7 @@ export default function MentorFilterBar({ total }: { total: number }) {
       backdropFilter: "blur(8px)",
       borderBottom: `1px solid ${LINE}`,
     }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-5 md:px-12">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
         <div style={{ padding: "11px 0", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
 
           <Dropdown

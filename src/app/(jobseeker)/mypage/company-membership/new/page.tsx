@@ -108,7 +108,7 @@ export default function CompanyMembershipNewPage() {
 
   return (
     <main className="min-h-screen bg-white">
-        <div style={{ maxWidth: 520, margin: "0 auto", padding: "48px 24px" }}>
+        <div style={{ maxWidth: "var(--max-w-form)", margin: "0 auto", padding: "48px 24px" }}>
           <div style={{ marginBottom: 32 }}>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111827", marginBottom: 8 }}>
               企業での経験を登録する
@@ -220,9 +220,9 @@ export default function CompanyMembershipNewPage() {
                       borderRadius: 12,
                       fontSize: 14,
                       fontWeight: status === opt.value ? 600 : 500,
-                      background: status === opt.value ? "#059669" : "#fff",
+                      background: status === opt.value ? "var(--success)" : "#fff",
                       color: status === opt.value ? "#fff" : "#6b7280",
-                      border: `1.5px solid ${status === opt.value ? "#059669" : "#d1d5db"}`,
+                      border: `1.5px solid ${status === opt.value ? "var(--success)" : "#d1d5db"}`,
                       cursor: "pointer",
                       transition: "all 0.15s",
                     }}
@@ -356,7 +356,7 @@ export default function CompanyMembershipNewPage() {
 
             {/* エラー */}
             {error && (
-              <p style={{ fontSize: 13, color: "#dc2626" }}>{error}</p>
+              <p style={{ fontSize: 13, color: "var(--error)" }}>{error}</p>
             )}
 
             {/* 送信ボタン */}

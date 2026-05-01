@@ -158,7 +158,7 @@ export default function AdminMentorsPage() {
                   style={{
                     padding: "2px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
                     border: "none", cursor: "pointer",
-                    background: mentor.is_available ? "#dcfce7" : "#fee2e2",
+                    background: mentor.is_available ? "#dcfce7" : "var(--error-soft)",
                     color: mentor.is_available ? "#166534" : "#991b1b",
                   }}
                 >

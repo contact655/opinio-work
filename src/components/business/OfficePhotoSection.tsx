@@ -120,7 +120,7 @@ function PhotoCard({
         width: "100%",
         paddingBottom: "75%",
         position: "relative",
-        background: "#f1f5f9",
+        background: "var(--line-soft)",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}>

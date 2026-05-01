@@ -22,13 +22,13 @@ interface StatusPillProps {
 
 const STYLES: Record<StatusVariant, { bg: string; color: string; label: string }> = {
   pending:    { bg: "#FEFCE8", color: "#B45309", label: "新規受信" },
-  confirming: { bg: "#EFF3FC", color: "#002366", label: "確認中" },
-  scheduling: { bg: "#F5F3FF", color: "#7C3AED", label: "日程調整中" },
-  scheduled:  { bg: "#FDF2F8", color: "#DB2777", label: "予定確定" },
-  completed:  { bg: "#F1F5F9", color: "#475569", label: "完了" },
-  declined:   { bg: "#FEE2E2", color: "#DC2626", label: "辞退" },
-  published:  { bg: "#ECFDF5", color: "#059669", label: "公開中" },
-  draft:      { bg: "#F8FAFC", color: "#94A3B8", label: "下書き" },
+  confirming: { bg: "var(--royal-50)", color: "var(--royal)", label: "確認中" },
+  scheduling: { bg: "#F5F3FF", color: "var(--purple)", label: "日程調整中" },
+  scheduled:  { bg: "#FDF2F8", color: "var(--pink)", label: "予定確定" },
+  completed:  { bg: "var(--line-soft)", color: "var(--ink-soft)", label: "完了" },
+  declined:   { bg: "var(--error-soft)", color: "var(--error)", label: "辞退" },
+  published:  { bg: "var(--success-soft)", color: "var(--success)", label: "公開中" },
+  draft:      { bg: "var(--bg-tint)", color: "var(--ink-mute)", label: "下書き" },
   reviewing:  { bg: "#FEFCE8", color: "#B45309", label: "審査中" },
 };
 
