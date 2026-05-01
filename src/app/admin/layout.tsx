@@ -9,6 +9,7 @@ import {
   GraduationCap,
   Pencil,
   MessageSquare,
+  Newspaper,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { label: "求人審査",         href: "/admin/jobs",         icon: <FileText        size={16} strokeWidth={2} /> },
   { label: "メンター管理",     href: "/admin/mentors",      icon: <GraduationCap   size={16} strokeWidth={2} /> },
   { label: "記事管理",         href: "/admin/articles",     icon: <Pencil          size={16} strokeWidth={2} /> },
+  { label: "発信管理",         href: "/admin/posts",        icon: <Newspaper       size={16} strokeWidth={2} /> },
   { label: "相談予約管理",     href: "/admin/reservations", icon: <MessageSquare   size={16} strokeWidth={2} /> },
 ];
 
