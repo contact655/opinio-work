@@ -23,6 +23,11 @@ const config: Config = {
           "Hiragino Sans",
           "sans-serif",
         ],
+        serif: [
+          "var(--font-noto-serif)",
+          "Noto Serif JP",
+          "serif",
+        ],
       },
       borderRadius: {
         card: "16px",

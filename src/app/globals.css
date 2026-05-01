@@ -40,6 +40,63 @@
   --gold:         #D97706;
   --gold-soft:    #FEF3C7;
 
+  /* === Spacing Scale (8px grid) === */
+  --space-1:   4px;   /* atomic — アイコンとテキスト間など極小間隔 */
+  --space-2:   8px;   /* tight — 要素内の隙間、タグ間 */
+  --space-3:  12px;   /* compact — インライン要素間 */
+  --space-4:  16px;   /* default — 標準的なパディング・マージン */
+  --space-6:  24px;   /* loose — カード内セクション間 */
+  --space-8:  32px;   /* generous — カード間・グリッドギャップ */
+  --space-12: 48px;   /* section padding — セクション内上下余白 */
+  --space-16: 64px;   /* between sections — BIZ ダッシュボード密度 */
+  --space-24: 96px;   /* between sections — 求職者向け、Stripe 密度 */
+  --space-32: 128px;  /* hero padding — ヒーローセクション上下 */
+
+  /* === Typography Scale === */
+
+  /* Display: ヒーロー級。求職者向けトップ・企業詳細最上部のみ使用 */
+  --text-display: 64px;
+  --text-super:   48px;
+
+  /* Headings */
+  --text-h1: 36px;        /* セクション大見出し */
+  --text-h2: 28px;        /* セクション中見出し */
+  --text-h3: 22px;        /* サブ見出し */
+  --text-h4: 18px;        /* 小見出し、カードタイトル */
+
+  /* Body */
+  --text-body-lg: 18px;   /* 求職者向け本文（読み物向け、Stripe-like） */
+  --text-body:    16px;   /* 標準本文 */
+  --text-body-sm: 14px;   /* メタ情報、注記 */
+  --text-caption: 12px;   /* キャプション、ラベル、バッジ文字 */
+
+  /* Numerals (Inter 推奨 — ダッシュボード KPI 等) */
+  --text-stat-lg: 40px;   /* 大きい数値表示 */
+  --text-stat:    28px;   /* 標準数値表示 */
+
+  /* Line Heights */
+  --leading-tight:   1.15;  /* display, h1, h2 — 大見出し */
+  --leading-snug:    1.35;  /* h3, h4 — 中見出し */
+  --leading-normal:  1.5;   /* body 標準 */
+  --leading-relaxed: 1.7;   /* body-lg — 読み物本文 */
+
+  /* Letter Spacing */
+  --tracking-tight:  -0.02em;  /* display, h1 — 大文字詰め */
+  --tracking-normal:  0;       /* body 標準 */
+  --tracking-wide:    0.02em;  /* caption, all-caps ラベル */
+
+  /* === Border Radius === */
+  --radius-sm:  6px;    /* タグ、ピル、StatusPill */
+  --radius-md: 10px;    /* ボタン、入力欄、小カード */
+  --radius-lg: 16px;    /* カード（標準）— tailwind rounded-card と同値 */
+  --radius-xl: 24px;    /* 大カード、画像、ヒーロー要素 */
+
+  /* === Shadows (--ink ベースで青みがかった上品な影) === */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);    /* hover 時の浮上感 */
+  --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.06);    /* カード基本 */
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);   /* モーダル、ドロップダウン */
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);  /* ヒーロー要素 */
+
   /* === Legacy (ページ互換) === */
   --background: #F5F4F0;
   --foreground: #1a1a1a;
