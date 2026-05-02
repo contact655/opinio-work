@@ -71,9 +71,7 @@ export type CompanyDetail = {
   capital: string;
   hq: string;
   url: string;
-  opinion_date: string;
-  opinion_fit: string[];
-  opinion_care: string[];
+  company_features: string[];
   freshness: FreshnessItem[];
   work_location: { label: string; note: string }[];
   work_style: { label: string; note: string }[];
@@ -108,16 +106,10 @@ const LAYERX: CompanyDetail = {
   capital: "59.3億円",
   hq: "東京都中央区銀座6丁目",
   url: "layerx.jp",
-  opinion_date: "4月、編集部取材ベース",
-  opinion_fit: [
+  company_features: [
     "バクラクシリーズの高成長を肌で感じながら、プロダクト開発・セールス・マーケに関われる",
     "CEOが現場に近く、意思決定の透明性が高いカルチャー。全社会議で全方針を開示",
     "フルリモート・副業OKで生産性を最大化できる環境",
-  ],
-  opinion_care: [
-    "シリーズCフェーズで急成長中のため、制度・プロセスが整備途中の部分がある",
-    "自律的に動くことが求められ、指示待ちスタイルの方には合わない可能性",
-    "FinTechと法人SaaSの2軸が複雑で、全体像把握に一定の学習コストがかかる",
   ],
   freshness: [
     { date: "4/18", type: "interview", label: "銀座オフィス訪問・福島CEO インタビュー" },
@@ -230,16 +222,10 @@ const SMARTHR: CompanyDetail = {
   capital: "非公開（Series E）",
   hq: "東京都港区六本木3丁目",
   url: "smarthr.jp",
-  opinion_date: "4月、編集部取材ベース",
-  opinion_fit: [
+  company_features: [
     "HR Techのデファクトスタンダード企業で、業界に与えるインパクトを実感できる",
     "フルリモート・副業OKで、時短勤務にも対応した柔軟な働き方制度",
     "Series Eからの上場準備フェーズで、組織づくりの最前線を経験できる",
-  ],
-  opinion_care: [
-    "1,000名近い組織規模になり、スタートアップ初期の一体感よりも専門性分業が進んでいる",
-    "プロダクトラインが多岐にわたり、自分の携わるプロダクトへの集中が必要",
-    "HR領域の法改正・規制変更への対応が多く、専門知識の習得が求められる",
   ],
   freshness: [
     { date: "4/16", type: "interview", label: "六本木オフィス訪問・プロダクト責任者インタビュー" },
@@ -361,16 +347,10 @@ function makeDetail(c: Company, overrides: Partial<CompanyDetail> = {}): Company
     capital: "非公開",
     hq: "東京都",
     url: `${c.id}.com`,
-    opinion_date: "4月、編集部取材ベース",
-    opinion_fit: [
+      company_features: [
       `${c.industry}領域でのキャリア構築に最適な環境`,
       `${c.phase}フェーズの急成長を最前線で体験できる`,
       c.work_styles.slice(0, 2).join("・") + "など柔軟な働き方が可能",
-    ],
-    opinion_care: [
-      "急成長中のため、制度・プロセスの整備が追いついていない部分がある",
-      "自律的に動くことが求められ、指示待ちスタイルの方には合わない可能性",
-      "変化のスピードが速く、適応力と自己学習が必要",
     ],
     freshness: [
       { date: "4/15", type: "interview", label: "編集部取材・HR責任者インタビュー" },
@@ -488,15 +468,10 @@ const HUBSPOT: CompanyDetail = makeDetail(companyById("hubspot-japan"), {
   capital: "非公開（親会社 NYSE上場）",
   hq: "東京都千代田区大手町",
   url: "hubspot.jp",
-  opinion_fit: [
+  company_features: [
     "グローバル規模のプロダクトを日本市場に届ける、インパクトある仕事",
     "外資でありながら、少数精鋭の日本チームで大きな裁量を持てる",
     "HubSpotアカデミーなど充実したラーニング制度で、マーケ・営業スキルが磨ける",
-  ],
-  opinion_care: [
-    "グローバル本社の方針変更が日本チームに影響することがある",
-    "英語でのコミュニケーションが日常的に必要",
-    "日本法人は比較的小規模のため、専門職の希少性が高い",
   ],
   related: ["salesforce-japan", "datadog-japan", "notion-japan"],
 });
@@ -509,15 +484,10 @@ const SALESFORCE: CompanyDetail = makeDetail(companyById("salesforce-japan"), {
   capital: "非公開（親会社 NYSE上場）",
   hq: "東京都千代田区丸の内",
   url: "salesforce.com/jp",
-  opinion_fit: [
+  company_features: [
     "世界トップクラスのエンタープライズ営業スキルが身につく",
     "3,000名超の日本組織で、多様なキャリアパスが用意されている",
     "グローバルキャリアへの強力な跳躍台になるブランド力",
-  ],
-  opinion_care: [
-    "大企業特有の組織の複雑さがあり、意思決定に時間がかかることがある",
-    "成果主義が強く、ノルマ達成のプレッシャーが大きい職種もある",
-    "グローバルのロードマップ優先で、日本独自の施策が通りにくい場面もある",
   ],
   related: ["hubspot-japan", "datadog-japan", "notion-japan"],
 });
@@ -530,15 +500,10 @@ const UBIE: CompanyDetail = makeDetail(companyById("ubie"), {
   capital: "非公開（Series D）",
   hq: "東京都中央区日本橋",
   url: "ubie.co.jp",
-  opinion_fit: [
+  company_features: [
     "医療×AIという社会的インパクトの高い領域で、やりがいを持って働ける",
     "週4日勤務・副業OKなど、業界でも珍しい働き方を実現できる",
     "両共同代表がエンジニア出身で、技術に対するリスペクトが組織全体に浸透",
-  ],
-  opinion_care: [
-    "医療業界特有の規制・コンプライアンスへの理解が必要",
-    "Healthtech領域は競合も多く、差別化戦略の重要性が高い",
-    "Series Dフェーズで組織が急拡大中のため、制度変化が多い",
   ],
   related: ["layerx", "pksha-technology", "smarthr"],
 });
@@ -551,15 +516,10 @@ const FREEE: CompanyDetail = makeDetail(companyById("freee"), {
   capital: "非公開（東証グロース上場）",
   hq: "東京都品川区大崎",
   url: "freee.co.jp",
-  opinion_fit: [
+  company_features: [
     "中小企業支援という社会的意義の高い事業で、わかりやすいインパクトを実感できる",
     "上場企業でありながら年率30%超の成長が続く、両立型の環境",
     "フルリモート・副業OKで、プロフェッショナルとしての自律性が高い",
-  ],
-  opinion_care: [
-    "会計・法務の専門知識が求められるプロダクト領域であり、勉強量が多い",
-    "競合（マネーフォワード、弥生等）との差別化が継続的に求められる",
-    "上場企業としての規律と、スタートアップ的なスピードのバランスを取る必要がある",
   ],
   related: ["layerx", "money-forward", "sansan"],
 });
@@ -572,15 +532,10 @@ const SANSAN: CompanyDetail = makeDetail(companyById("sansan"), {
   capital: "非公開（東証プライム上場）",
   hq: "東京都渋谷区神宮前5丁目",
   url: "sansan.com",
-  opinion_fit: [
+  company_features: [
     "東証プライム上場の安定基盤と、新規プロダクト展開の成長機会が両立する",
     "名刺管理という確立したシェアを持つ会社で、次の柱を作る経験が積める",
     "副業OK・フレックスで、プロフェッショナルとしての働き方が実現できる",
-  ],
-  opinion_care: [
-    "プロダクトラインが多く、担当プロダクト以外の全体像の把握に時間がかかる",
-    "上場企業として一定の規律があり、意思決定フローが整備されている",
-    "名刺管理という認知から脱却し、データビジネス企業として再定義中の過渡期",
   ],
   related: ["freee", "money-forward", "kubell"],
 });
@@ -593,15 +548,10 @@ const MONEY_FORWARD: CompanyDetail = makeDetail(companyById("money-forward"), {
   capital: "非公開（東証プライム上場）",
   hq: "東京都港区芝浦3丁目",
   url: "moneyforward.com",
-  opinion_fit: [
+  company_features: [
     "個人向け・法人向け両面でのFinTech事業をBothSideで経験できる",
     "東証プライム上場で安定した経営基盤と、次世代金融インフラ構築の挑戦が共存",
     "ハイブリッド勤務・副業OKで、働き方の自由度が高い",
-  ],
-  opinion_care: [
-    "2,000名超の大組織のため、意思決定フローが複雑化している部分がある",
-    "金融規制への対応が厳しく、新機能リリースに時間がかかる面がある",
-    "競合（freee、Sansanなど）との差別化戦略が継続的に求められる",
   ],
   related: ["freee", "sansan", "layerx"],
 });
@@ -614,15 +564,10 @@ const PKSHA: CompanyDetail = makeDetail(companyById("pksha-technology"), {
   capital: "非公開（東証グロース上場）",
   hq: "東京都文京区本郷2丁目",
   url: "pkshatech.com",
-  opinion_fit: [
+  company_features: [
     "研究から事業化まで一気通貫でAIを活用する、唯一無二の環境",
     "大手企業との共同研究・実装プロジェクトで、即インパクトを出せる",
     "ハイブリッド勤務・裁量労働で、研究者・エンジニアが集中できる環境",
-  ],
-  opinion_care: [
-    "現在一部ポジションの採用を停止中（詳細は公式サイト参照）",
-    "AIアルゴリズムという技術難易度が高く、深いML/NLP知識が前提となる職種が多い",
-    "東証グロースの中でも研究色が強いため、事業KPIよりも技術的探求を重視する文化",
   ],
   related: ["ubie", "layerx", "money-forward"],
 });
@@ -635,15 +580,10 @@ const DATADOG: CompanyDetail = makeDetail(companyById("datadog-japan"), {
   capital: "非公開（親会社 NASDAQ上場）",
   hq: "東京都千代田区丸の内",
   url: "datadoghq.com",
-  opinion_fit: [
+  company_features: [
     "グローバルで急成長中のクラウドインフラ企業で、日本市場の立ち上げを経験できる",
     "観測性プラットフォームのトップシェア製品を扱うことで、技術的競争力が高まる",
     "フルリモート・副業OKで、高い自律性が認められている",
-  ],
-  opinion_care: [
-    "グローバル本社（米国）との英語コミュニケーションが日常的に必要",
-    "日本法人は200名規模と相対的に小さく、ポジションの幅が限られる場合がある",
-    "エンタープライズ向けの複雑な製品知識の習得に時間がかかる",
   ],
   related: ["hubspot-japan", "salesforce-japan", "notion-japan"],
 });
@@ -656,15 +596,10 @@ const KUBELL: CompanyDetail = makeDetail(companyById("kubell"), {
   capital: "非公開（東証グロース上場）",
   hq: "東京都品川区西五反田7丁目",
   url: "kubell.com",
-  opinion_fit: [
+  company_features: [
     "40万社超の導入企業を持つ安定したプロダクトと、新事業創出の機会が共存",
     "フルリモート・フレックスで生産性重視の働き方が実現できる",
     "中小企業向け特化のため、ユーザーの課題解像度が上がりやすい",
-  ],
-  opinion_care: [
-    "SlackやTeamsなど強力な競合が存在し、継続的な差別化が求められる",
-    "上場企業としての規律とスタートアップ的なスピードのバランスが難しい局面もある",
-    "社名変更（Chatwork → kubell）に伴う認知変化への対応が進行中",
   ],
   related: ["sansan", "smarthr", "notion-japan"],
 });
@@ -677,15 +612,10 @@ const NOTION: CompanyDetail = makeDetail(companyById("notion-japan"), {
   capital: "非公開（Series C）",
   hq: "東京都渋谷区",
   url: "notion.so/ja-jp",
-  opinion_fit: [
+  company_features: [
     "グローバルで高い認知度を持つプロダクトで、日本市場の立ち上げを担える",
     "少数精鋭の日本チームで、大きな裁量を持って働ける",
     "フルリモート・副業OKで、生産性重視のカルチャー",
-  ],
-  opinion_care: [
-    "英語でのグローバルコミュニケーションが必要",
-    "日本法人は小規模（100名以下）で、ポジション数が限られる",
-    "親会社の方針変更が日本チームの事業に影響することがある",
   ],
   related: ["hubspot-japan", "datadog-japan", "kubell"],
 });

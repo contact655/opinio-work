@@ -202,9 +202,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     capital: "非公開",
     hq: (row.location as string) ?? "東京都",
     url: (row.url as string) ?? "",
-    opinion_date: "編集部情報",
-    opinion_fit: Array.isArray(row.fit_positives) ? row.fit_positives as string[] : [],
-    opinion_care: Array.isArray(row.fit_negatives) ? row.fit_negatives as string[] : [],
+    company_features: Array.isArray(row.company_features) ? row.company_features as string[] : [],
     freshness: [],
     work_location: [
       {
@@ -357,7 +355,7 @@ const COMPANY_LIST_COLS = [
 const COMPANY_DETAIL_COLS = [
   ...COMPANY_LIST_COLS.split(", "),
   "mission", "description", "founded_year", "ceo_name",
-  "location", "url", "fit_positives", "fit_negatives", "why_join",
+  "location", "url", "company_features", "why_join",
   // Numbers section (Commit AA)
   "avg_salary", "avg_age", "paid_leave_rate",
   "avg_overtime_hours", "gender_ratio", "funding_total",

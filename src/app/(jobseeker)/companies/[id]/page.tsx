@@ -382,7 +382,7 @@ function TabsBar({ company }: { company: Company }) {
       href: "#jobs",
     },
     { label: "働き方", href: "#work-style" },
-    { label: "Opinioの見解", href: "#opinion" },
+    { label: "特徴", href: "#opinion" },
   ];
 
   return (
@@ -811,7 +811,7 @@ function AboutSection({
 
 // ─── OpinioOpinionCard ── γ-6 修正⑤: 編集部の見立てカード（ヒーロー直下） ────
 
-/** opinion_fit[0] から最大 150 字の要約テキストを抽出する */
+/** company_features[0] から最大 150 字の要約テキストを抽出する */
 function getSummaryText(opinionFit: string[] | null | undefined): string | null {
   if (!opinionFit || opinionFit.length === 0) return null;
   const first = opinionFit[0];
@@ -820,8 +820,8 @@ function getSummaryText(opinionFit: string[] | null | undefined): string | null 
 }
 
 function OpinioOpinionCard({ detail }: { detail: CompanyDetail }) {
-  const summary = getSummaryText(detail.opinion_fit);
-  // 未登録企業（opinion_fit 空）はカード自体を非表示
+  const summary = getSummaryText(detail.company_features);
+  // 未登録企業（company_features 空）はカード自体を非表示
   if (!summary) return null;
 
   return (
@@ -856,7 +856,7 @@ function OpinioOpinionCard({ detail }: { detail: CompanyDetail }) {
             <path d="M12 20h9" />
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
           </svg>
-          Opinio 編集部の見立て
+          編集部取材
         </span>
       </div>
 
@@ -898,14 +898,14 @@ function OpinioOpinionCard({ detail }: { detail: CompanyDetail }) {
   );
 }
 
-function OpinionSection({
+function CompanyFeaturesSection({
   company,
   detail,
 }: {
   company: Company;
   detail: CompanyDetail;
 }) {
-  if (!detail.opinion_fit.length && !detail.opinion_care.length) return null;
+  if (!detail.company_features.length) return null;
 
   return (
     <section
@@ -936,111 +936,41 @@ function OpinionSection({
             </svg>
           }
         >
-          Opinioの見解
+          特徴
         </SecTitle>
-        <div
+        <span
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
             fontSize: 11,
             color: "var(--ink-mute)",
+            fontWeight: 600,
           }}
         >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5}>
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-          {detail.opinion_date}
-        </div>
+          編集部取材
+        </span>
       </div>
 
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}
-        className="[grid-template-columns:1fr] sm:[grid-template-columns:1fr_1fr]"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 12,
+        }}
       >
-        {detail.opinion_fit.length > 0 && (
+        {detail.company_features.map((item, i) => (
           <div
+            key={i}
             style={{
-              padding: 20,
-              borderRadius: 12,
-              background: "var(--success-soft,#ECFDF5)",
-              border: "1px solid #A7F3D0",
+              background: "var(--line-soft)",
+              borderRadius: 8,
+              padding: 14,
+              fontSize: 13,
+              lineHeight: 1.65,
+              color: "var(--ink)",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 13,
-                fontWeight: 700,
-                color: "var(--success)",
-                marginBottom: 14,
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
-              フィットしやすい点
-            </div>
-            <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-              {detail.opinion_fit.map((item, i) => (
-                <li
-                  key={i}
-                  style={{ display: "flex", gap: 8, fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={3} style={{ flexShrink: 0, marginTop: 3 }}>
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M9 12l2 2 4-4" />
-                  </svg>
-                  {item}
-                </li>
-              ))}
-            </ul>
+            {item}
           </div>
-        )}
-        {detail.opinion_care.length > 0 && (
-          <div
-            style={{
-              padding: 20,
-              borderRadius: 12,
-              background: "var(--warm-soft,#FEF3C7)",
-              border: "1px solid #FDE68A",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#B45309",
-                marginBottom: 14,
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M12 9v4M12 17h.01" />
-                <circle cx="12" cy="12" r="10" />
-              </svg>
-              注意したい点
-            </div>
-            <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-              {detail.opinion_care.map((item, i) => (
-                <li
-                  key={i}
-                  style={{ display: "flex", gap: 8, fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth={3} style={{ flexShrink: 0, marginTop: 3 }}>
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4M12 16h.01" />
-                  </svg>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        ))}
       </div>
 
       <div
@@ -3023,7 +2953,7 @@ export default async function CompanyDetailPage({
             {/* γ-6 修正⑤: 編集部の見立てカード（TabsBar 直下、AboutSection 直前） */}
             <OpinioOpinionCard detail={detail} />
             <AboutSection company={company} detail={detail} photos={photos} />
-            <OpinionSection company={company} detail={detail} />
+            <CompanyFeaturesSection company={company} detail={detail} />
             <NumbersSection numbers={detail.numbers} />
             <WorkStyleSection detail={detail} />
             <BenefitsSection detail={detail} />
