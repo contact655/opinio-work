@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { LayoutGrid, List } from "lucide-react";
 import { CompanyLogo } from "@/components/jobseeker/CompanyLogo";
 import type { CompanyListRow } from "@/lib/supabase/queries";
+import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -251,6 +252,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
   // URL-driven filter state
   const industry = searchParams.get("industry") ?? "";
   const remote = searchParams.get("remote") ?? "";
+  const prefecture = searchParams.get("prefecture") ?? "";
   const hiring = searchParams.get("hiring") === "1";
   const sort = searchParams.get("sort") ?? "newest";
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
@@ -275,6 +277,16 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
     else params.set("page", String(p));
     router.replace(`/companies?${params.toString()}`);
   }
+
+  // 実データに含まれる都道府県のみ (北から南順)
+  const availablePrefectures = useMemo(() => {
+    const prefSet = new Set<string>();
+    companies.forEach((c) => {
+      const p = extractPrefecture(c.location);
+      if (p) prefSet.add(p);
+    });
+    return PREFECTURES.filter((p) => prefSet.has(p));
+  }, [companies]);
 
   // Filter + sort pipeline (runs entirely client-side)
   const filtered = useMemo(() => {
@@ -304,6 +316,11 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
       );
     }
 
+    // Prefecture: exact match on extracted prefecture
+    if (prefecture) {
+      list = list.filter((c) => extractPrefecture(c.location) === prefecture);
+    }
+
     // Hiring (casual meetings only)
     if (hiring) {
       list = list.filter((c) => c.accepting_casual_meetings);
@@ -316,13 +333,13 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
     // "newest" is already sorted by updated_at DESC from DB
 
     return list;
-  }, [companies, q, industry, remote, hiring, sort]);
+  }, [companies, q, industry, remote, prefecture, hiring, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage = Math.min(page, totalPages);
   const paged = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
-  const hasFilters = !!(industry || remote || hiring || q.trim());
+  const hasFilters = !!(industry || remote || prefecture || hiring || q.trim());
 
   return (
     <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
@@ -392,6 +409,19 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           >
             {INDUSTRY_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+
+          {/* 都道府県 dropdown */}
+          <select
+            value={prefecture}
+            onChange={(e) => setParam("prefecture", e.target.value)}
+            style={filterSelectStyle(!!prefecture)}
+            aria-label="都道府県で絞り込み"
+          >
+            <option value="">すべての都道府県</option>
+            {availablePrefectures.map((p) => (
+              <option key={p} value={p}>{p}</option>
             ))}
           </select>
 

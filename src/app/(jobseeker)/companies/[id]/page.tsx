@@ -2388,6 +2388,7 @@ function Sidebar({
             [
               { key: "業界", value: company.industry },
               { key: "事業ステージ", value: company.phase },
+              { key: "従業員数", value: company.employee_count ? `${company.employee_count.toLocaleString()}名` : "" },
               { key: "所在地", value: detail.hq },
               // nearest_station: 常時表示、null は "未設定" (isUnset フラグ)
               { key: "最寄り駅", value: detail.nearestStation ?? "未設定", isUnset: !detail.nearestStation },

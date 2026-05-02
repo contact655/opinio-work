@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Job } from "@/app/jobs/mockJobData";
 import { SALARY_PRESETS } from "@/app/jobs/mockJobData";
 import type { Company } from "@/app/companies/mockCompanies";
+import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -394,6 +395,7 @@ export default function JobsClient({
   const work_style = searchParams.get("work_style") ?? "";
   const salary = searchParams.get("salary") ?? "";
   const industry = searchParams.get("industry") ?? "";
+  const prefecture = searchParams.get("prefecture") ?? "";
   const sort = searchParams.get("sort") ?? "updated";
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
 
@@ -426,6 +428,16 @@ export default function JobsClient({
     params.set("page", String(p));
     router.replace(`/jobs?${params.toString()}`);
   }
+
+  // 実データに含まれる都道府県のみ (北から南順)
+  const availablePrefectures = useMemo(() => {
+    const prefSet = new Set<string>();
+    allJobs.forEach((j) => {
+      const p = extractPrefecture(j.location);
+      if (p) prefSet.add(p);
+    });
+    return PREFECTURES.filter((p) => prefSet.has(p));
+  }, [allJobs]);
 
   const filtered = useMemo(() => {
     let list = [...allJobs];
@@ -469,6 +481,11 @@ export default function JobsClient({
       list = list.filter((j) => companyIds.includes(j.company_id));
     }
 
+    // 都道府県フィルタ (job.location から抽出した都道府県と完全一致)
+    if (prefecture) {
+      list = list.filter((j) => extractPrefecture(j.location) === prefecture);
+    }
+
     if (sort === "salary") {
       list = [...list].sort((a, b) => b.salary_max - a.salary_max);
     } else {
@@ -476,14 +493,14 @@ export default function JobsClient({
     }
 
     return list;
-  }, [allJobs, q, category, dept, work_style, salary, industry, sort, companies, companyMap]);
+  }, [allJobs, q, category, dept, work_style, salary, industry, prefecture, sort, companies, companyMap]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage = Math.min(page, totalPages);
   const paged = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
   const newThisWeek = allJobs.filter((j) => j.updated_days_ago <= 7).length;
-  const hasFilter = !!(category || dept || work_style || salary || industry);
+  const hasFilter = !!(category || dept || work_style || salary || industry || prefecture);
 
   return (
     <>
@@ -748,6 +765,31 @@ export default function JobsClient({
               {industries.map((ind) => (
                 <option key={ind} value={ind}>
                   {ind}
+                </option>
+              ))}
+            </select>
+
+            {/* 都道府県 filter */}
+            <select
+              value={prefecture}
+              onChange={(e) => setParam("prefecture", e.target.value)}
+              style={{
+                padding: "7px 10px",
+                border: `1px solid ${prefecture ? "var(--royal)" : "var(--line)"}`,
+                borderRadius: 8,
+                background: prefecture ? "var(--royal-50)" : "#fff",
+                color: prefecture ? "var(--royal)" : "var(--ink-soft)",
+                fontSize: 13,
+                cursor: "pointer",
+                outline: "none",
+                fontWeight: prefecture ? 600 : 400,
+              }}
+              aria-label="都道府県で絞り込み"
+            >
+              <option value="">すべての都道府県</option>
+              {availablePrefectures.map((p) => (
+                <option key={p} value={p}>
+                  {p}
                 </option>
               ))}
             </select>
