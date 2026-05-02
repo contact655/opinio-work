@@ -1340,8 +1340,8 @@ function EmployeeCard({
       {/* Avatar */}
       <div
         style={{
-          width: 40,
-          height: 40,
+          width: 72,
+          height: 72,
           borderRadius: "50%",
           background: employee.avatarGradient,
           flexShrink: 0,
@@ -1350,7 +1350,7 @@ function EmployeeCard({
           justifyContent: "center",
           fontFamily: 'var(--font-noto-serif)',
           fontWeight: 700,
-          fontSize: 15,
+          fontSize: 28,
           color: "#fff",
         }}
       >
@@ -1937,8 +1937,8 @@ function RecruitersSection({
           >
             <div
               style={{
-                width: 44,
-                height: 44,
+                width: 72,
+                height: 72,
                 borderRadius: "50%",
                 flexShrink: 0,
                 background: r.avatar_color ?? AV_GRADIENTS[i % AV_GRADIENTS.length],
@@ -1948,7 +1948,7 @@ function RecruitersSection({
                 justifyContent: "center",
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 700,
-                fontSize: 16,
+                fontSize: 28,
               }}
             >
               {r.avatar_initial}
