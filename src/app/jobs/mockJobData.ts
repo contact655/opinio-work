@@ -30,6 +30,7 @@ export type Job = {
   company_id: string;
   role: string;
   dept: string;
+  role_category_id?: string; // ow_roles 親カテゴリ UUID (/jobs?category= フィルタ用)
   employment_type: string;
   location: string;
   work_style: string;

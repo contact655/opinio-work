@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getJobs } from "@/lib/supabase/queries";
+import { getJobs, getParentRoles } from "@/lib/supabase/queries";
 import JobsClient from "./JobsClient";
 
 export const metadata: Metadata = {
@@ -10,7 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default async function JobsPage() {
-  const { jobs, companies } = await getJobs();
+  const [{ jobs, companies }, parentRoles] = await Promise.all([
+    getJobs(),
+    getParentRoles(),
+  ]);
 
   return (
     <Suspense
@@ -27,7 +30,7 @@ export default async function JobsPage() {
         </div>
       }
     >
-      <JobsClient jobs={jobs} companies={companies} />
+      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} />
     </Suspense>
   );
 }

@@ -1775,7 +1775,9 @@ function JobsSection({
             </div>
             {cat.total > 4 && (
               <Link
-                href={`/jobs?company=${company.id}`}
+                href={cat.catId
+                  ? `/jobs?company=${company.id}&category=${cat.catId}`
+                  : `/jobs?company=${company.id}`}
                 style={{ fontSize: 12, color: "var(--royal)", fontWeight: 500, textDecoration: "none" }}
               >
                 すべて見る →

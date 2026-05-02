@@ -380,14 +380,17 @@ function Pagination({
 export default function JobsClient({
   jobs: allJobs,
   companies,
+  parentRoles,
 }: {
   jobs: Job[];
   companies: Company[];
+  parentRoles: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const dept = searchParams.get("dept") ?? "";
+  const category = searchParams.get("category") ?? "";
+  const dept = searchParams.get("dept") ?? "";       // 後方互換 (新規 URL では未使用)
   const work_style = searchParams.get("work_style") ?? "";
   const salary = searchParams.get("salary") ?? "";
   const industry = searchParams.get("industry") ?? "";
@@ -401,12 +404,6 @@ export default function JobsClient({
   const companyMap = useMemo(
     () => new Map(companies.map((c) => [c.id, c])),
     [companies]
-  );
-
-  // Derive unique dept values from actual jobs
-  const depts = useMemo(
-    () => Array.from(new Set(allJobs.map((j) => j.dept).filter(Boolean))).sort(),
-    [allJobs]
   );
 
   // Derive unique industry values from loaded companies
@@ -443,7 +440,11 @@ export default function JobsClient({
       );
     }
 
-    if (dept) list = list.filter((j) => j.dept === dept);
+    // ow_roles 親カテゴリフィルタ (role_category_id が親 UUID に直接紐づく前提)
+    if (category) list = list.filter((j) => j.role_category_id === category);
+
+    // 旧 dept フィルタ (後方互換、URLに ?dept= が残っている場合)
+    if (!category && dept) list = list.filter((j) => j.dept === dept);
 
     if (work_style) {
       list = list.filter(
@@ -475,14 +476,14 @@ export default function JobsClient({
     }
 
     return list;
-  }, [allJobs, q, dept, work_style, salary, industry, sort, companies, companyMap]);
+  }, [allJobs, q, category, dept, work_style, salary, industry, sort, companies, companyMap]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage = Math.min(page, totalPages);
   const paged = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
   const newThisWeek = allJobs.filter((j) => j.updated_days_ago <= 7).length;
-  const hasFilter = !!(dept || work_style || salary || industry);
+  const hasFilter = !!(category || dept || work_style || salary || industry);
 
   return (
     <>
@@ -570,6 +571,67 @@ export default function JobsClient({
         </div>
       </div>
 
+      {/* Category pills */}
+      <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
+        <div
+          style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
+          className="px-5 md:px-12"
+        >
+          <div
+            style={{
+              padding: "10px 0",
+              display: "flex",
+              gap: 8,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            {/* すべて */}
+            <button
+              onClick={() => setParam("category", "")}
+              style={{
+                padding: "6px 16px",
+                borderRadius: 999,
+                border: `1.5px solid ${!category ? "var(--royal)" : "var(--line)"}`,
+                background: !category ? "var(--royal)" : "#fff",
+                color: !category ? "#fff" : "var(--ink-soft)",
+                fontSize: 13,
+                fontWeight: !category ? 600 : 400,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "background 0.12s, border-color 0.12s, color 0.12s",
+              }}
+            >
+              すべて
+            </button>
+
+            {parentRoles.map((role) => {
+              const active = category === role.id;
+              return (
+                <button
+                  key={role.id}
+                  onClick={() => setParam("category", role.id)}
+                  style={{
+                    padding: "6px 16px",
+                    borderRadius: 999,
+                    border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
+                    background: active ? "var(--royal)" : "#fff",
+                    color: active ? "#fff" : "var(--ink-soft)",
+                    fontSize: 13,
+                    fontWeight: active ? 600 : 400,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    transition: "background 0.12s, border-color 0.12s, color 0.12s",
+                  }}
+                >
+                  {role.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Filter bar */}
       <div
         style={{
@@ -619,30 +681,6 @@ export default function JobsClient({
                 flexShrink: 0,
               }}
             />
-
-            {/* Dept filter */}
-            <select
-              value={dept}
-              onChange={(e) => setParam("dept", e.target.value)}
-              style={{
-                padding: "7px 10px",
-                border: `1px solid ${dept ? "var(--royal)" : "var(--line)"}`,
-                borderRadius: 8,
-                background: dept ? "var(--royal-50)" : "#fff",
-                color: dept ? "var(--royal)" : "var(--ink-soft)",
-                fontSize: 13,
-                cursor: "pointer",
-                outline: "none",
-                fontWeight: dept ? 600 : 400,
-              }}
-            >
-              <option value="">すべての職種</option>
-              {depts.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
 
             {/* Work style filter */}
             <select

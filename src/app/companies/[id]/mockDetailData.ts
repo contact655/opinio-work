@@ -18,6 +18,7 @@ export type JobItem = {
 
 export type JobCat = {
   cat: string;
+  catId?: string;       // ow_roles 親カテゴリ UUID (/jobs?category= 用)
   total: number;
   items: JobItem[];
 };

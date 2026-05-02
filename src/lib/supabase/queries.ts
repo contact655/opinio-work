@@ -115,6 +115,7 @@ function mapJob(row: Record<string, any>): Job {
     company_id: row.company_id as string,
     role: (row.title as string) ?? "",
     dept: (row.job_category as string) ?? "",
+    role_category_id: (row.role_category_id as string) ?? undefined,
     employment_type: (row.employment_type as string) ?? "正社員",
     location: (row.location as string) ?? "",
     work_style: (row.work_style as string) ?? (row.remote_work_status as string) ?? "",
@@ -149,25 +150,29 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
         // ow_roles を id でマップ化
         const rolesMap = new Map(roles.map((r) => [r.id as string, r]));
 
-        // role_category_id → 親カテゴリ名を解決
-        function getParentCatName(roleId: string | null | undefined): string {
-          if (!roleId) return "その他";
+        // role_category_id → 親カテゴリ {name, id} を解決
+        function getParentCatInfo(roleId: string | null | undefined): { name: string; id?: string } {
+          if (!roleId) return { name: "その他" };
           const role = rolesMap.get(roleId);
-          if (!role) return "その他";
-          if (!role.parent_id) return role.name as string;          // 自身が親
-          return (rolesMap.get(role.parent_id as string)?.name as string) ?? (role.name as string);
+          if (!role) return { name: "その他" };
+          if (!role.parent_id) return { name: role.name as string, id: role.id as string };  // 自身が親
+          const parent = rolesMap.get(role.parent_id as string);
+          return parent
+            ? { name: parent.name as string, id: parent.id as string }
+            : { name: role.name as string, id: role.id as string };
         }
 
-        // 親カテゴリごとにグループ化
-        const grouped = new Map<string, typeof jobs>();
+        // 親カテゴリごとにグループ化 (catId も記録)
+        const grouped = new Map<string, { items: typeof jobs; catId: string | undefined }>();
         for (const j of jobs) {
-          const cat = getParentCatName(j.role_category_id as string | null);
-          if (!grouped.has(cat)) grouped.set(cat, []);
-          grouped.get(cat)!.push(j);
+          const { name: cat, id: catId } = getParentCatInfo(j.role_category_id as string | null);
+          if (!grouped.has(cat)) grouped.set(cat, { items: [], catId });
+          grouped.get(cat)!.items.push(j);
         }
 
-        return Array.from(grouped.entries()).map(([cat, items]) => ({
+        return Array.from(grouped.entries()).map(([cat, { items, catId }]) => ({
           cat,
+          catId,
           total: items.length,
           items: items.map((j) => {
             const sMin = j.salary_min as number;
@@ -408,10 +413,23 @@ export async function getCompanyById(
   return { company, detail };
 }
 
+// ─── Role queries ─────────────────────────────────────────────────────────────
+
+/** 求職者向け /jobs カテゴリピル用: ow_roles の親カテゴリ (parent_id IS NULL) を取得 */
+export async function getParentRoles(): Promise<{ id: string; name: string }[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("ow_roles")
+    .select("id, name, display_order")
+    .is("parent_id", null)
+    .order("display_order", { ascending: true, nullsFirst: false });
+  return (data ?? []).map((r) => ({ id: r.id as string, name: r.name as string }));
+}
+
 // ─── Job queries ──────────────────────────────────────────────────────────────
 
 const JOB_LIST_COLS = [
-  "id", "company_id", "title", "job_category", "employment_type",
+  "id", "company_id", "title", "job_category", "role_category_id", "employment_type",
   "location", "work_style", "salary_min", "salary_max",
   "catch_copy", "one_liner", "published_at", "updated_at", "remote_work_status",
 ].join(", ");
