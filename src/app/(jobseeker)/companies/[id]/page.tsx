@@ -19,6 +19,8 @@ import EvaluationText from "./EvaluationText";
 import { createClient } from "@/lib/supabase/server";
 import PostCard from "@/components/jobseeker/PostCard";
 import type { Database } from "@/lib/supabase/types";
+import { resolveAvatarColor } from "@/lib/jobCategoryColors";
+import { JOB_GROUPING_THRESHOLD } from "@/lib/constants";
 
 type ExternalLink = Database["public"]["Tables"]["ow_company_external_links"]["Row"];
 
@@ -807,6 +809,95 @@ function AboutSection({
   );
 }
 
+// ─── OpinioOpinionCard ── γ-6 修正⑤: 編集部の見立てカード（ヒーロー直下） ────
+
+/** opinion_fit[0] から最大 150 字の要約テキストを抽出する */
+function getSummaryText(opinionFit: string[] | null | undefined): string | null {
+  if (!opinionFit || opinionFit.length === 0) return null;
+  const first = opinionFit[0];
+  if (!first) return null;
+  return first.length > 150 ? first.slice(0, 150) + "…" : first;
+}
+
+function OpinioOpinionCard({ detail }: { detail: CompanyDetail }) {
+  const summary = getSummaryText(detail.opinion_fit);
+  // 未登録企業（opinion_fit 空）はカード自体を非表示
+  if (!summary) return null;
+
+  return (
+    <div
+      className="px-4 py-3 sm:px-[26px] sm:py-[22px]"
+      style={{
+        background: "#042C53",
+        borderRadius: 16,
+        marginBottom: 20,
+      }}
+    >
+      {/* バッジ */}
+      <div style={{ marginBottom: 14 }}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 10,
+            fontWeight: 700,
+            fontFamily: "Inter, sans-serif",
+            letterSpacing: "0.1em",
+            color: "#B5D4F4",
+            background: "rgba(181,212,244,0.12)",
+            border: "1px solid rgba(181,212,244,0.25)",
+            borderRadius: 100,
+            padding: "3px 10px",
+          }}
+        >
+          {/* 編集ペンアイコン */}
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+          </svg>
+          Opinio 編集部の見立て
+        </span>
+      </div>
+
+      {/* 引用テキスト（イタリック体・白文字） */}
+      <p
+        style={{
+          margin: "0 0 18px",
+          fontSize: 14,
+          fontStyle: "italic",
+          color: "rgba(255,255,255,0.92)",
+          lineHeight: 1.8,
+          fontFamily: "var(--font-noto-serif)",
+        }}
+      >
+        「{summary}」
+      </p>
+
+      {/* 「全文を読む →」ボタン (γ-7: タップ領域 minHeight 44px) */}
+      <a
+        href="#opinion"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          minHeight: 44,
+          padding: "8px 16px",
+          background: "rgba(255,255,255,0.08)",
+          color: "#B5D4F4",
+          border: "1px solid rgba(181,212,244,0.28)",
+          borderRadius: 8,
+          fontSize: 12,
+          fontWeight: 600,
+          textDecoration: "none",
+        }}
+      >
+        全文を読む →
+      </a>
+    </div>
+  );
+}
+
 function OpinionSection({
   company,
   detail,
@@ -1322,6 +1413,9 @@ function EmployeeCard({
   employee: CompanyEmployee;
   showEndedAt?: boolean;
 }) {
+  // γ-3 修正②: 職種カテゴリ（親カテゴリ優先）でアバター色を統一
+  const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
+
   return (
     <a
       href={`/u/${employee.userId}`}
@@ -1337,21 +1431,21 @@ function EmployeeCard({
         textDecoration: "none",
       }}
     >
-      {/* Avatar */}
+      {/* Avatar — γ-3: 職種カテゴリ色 + rounded-md (6px) */}
       <div
         style={{
           width: 48,
           height: 48,
-          borderRadius: 8,
-          background: employee.avatarGradient,
+          borderRadius: 6,
+          background: avatarColor.bg,
           flexShrink: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: 'var(--font-noto-serif)',
+          fontFamily: "var(--font-noto-serif)",
           fontWeight: 700,
           fontSize: 19,
-          color: "#fff",
+          color: avatarColor.text,
         }}
       >
         {employee.avatarInitial}
@@ -1729,6 +1823,113 @@ function CurrentEmployeesSection({
   );
 }
 
+// ─── AlumniCard ── γ-5 修正④: OBOG 専用ダーク背景カード ────────────────────
+
+function AlumniCard({ employee }: { employee: CompanyEmployee }) {
+  // "2022-11" → "2022.11" フォーマット変換
+  const formattedEndedAt = employee.endedAt
+    ? employee.endedAt.replace(/-/g, ".")
+    : null;
+
+  return (
+    <a
+      href={`/u/${employee.userId}`}
+      className="employee-card-link"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 14px",
+        background: "#042C53",
+        border: "1px solid rgba(181,212,244,0.18)",
+        borderRadius: 12,
+        textDecoration: "none",
+      }}
+    >
+      {/* アバター: 固定「卒」・薄ブルー背景 (γ-7: モバイル 40px / sm+ 48px) */}
+      <div
+        className="w-10 h-10 sm:w-12 sm:h-12"
+        style={{
+          borderRadius: 6,
+          background: "#B5D4F4",
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "var(--font-noto-serif)",
+          fontWeight: 700,
+          fontSize: 19,
+          color: "#042C53",
+        }}
+      >
+        卒
+      </div>
+
+      {/* 情報エリア */}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        {/* 名前 + ALUMNI バッジ */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#fff",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {employee.name}
+          </span>
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              fontFamily: "Inter, sans-serif",
+              letterSpacing: "0.1em",
+              color: "#B5D4F4",
+              background: "rgba(181,212,244,0.14)",
+              border: "1px solid rgba(181,212,244,0.28)",
+              borderRadius: 100,
+              padding: "1px 7px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            ALUMNI
+          </span>
+        </div>
+
+        {/* 役職 */}
+        {employee.roleTitle && (
+          <p
+            style={{
+              margin: "3px 0 0",
+              fontSize: 12,
+              color: "#B5D4F4",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {employee.roleTitle}
+          </p>
+        )}
+
+        {/* 退職時期 */}
+        {formattedEndedAt && (
+          <p
+            style={{
+              margin: "3px 0 0",
+              fontSize: 11,
+              color: "rgba(181,212,244,0.55)",
+            }}
+          >
+            退職: {formattedEndedAt}
+          </p>
+        )}
+      </div>
+    </a>
+  );
+}
+
 function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
   return (
     <section
@@ -1768,7 +1969,8 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
       {alumni.length > 0 ? (
         <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)]">
           {alumni.map((emp) => (
-            <EmployeeCard key={emp.userId} employee={emp} showEndedAt />
+            // γ-5: EmployeeCard → AlumniCard に差し替え
+            <AlumniCard key={emp.userId} employee={emp} />
           ))}
         </div>
       ) : (
@@ -1794,6 +1996,7 @@ function JobsSection({
   company: Company;
   detail: CompanyDetail;
 }) {
+  // ── 0 件 ────────────────────────────────────────────────────────────────────
   if (detail.jobs.length === 0) {
     return (
       <section
@@ -1816,20 +2019,114 @@ function JobsSection({
         >
           募集中の求人
         </SecTitle>
-        <p
-          style={{
-            marginTop: 20,
-            fontSize: 14,
-            color: "var(--ink-mute)",
-            textAlign: "center",
-            padding: "32px 0",
-          }}
-        >
+        <p style={{ marginTop: 20, fontSize: 14, color: "var(--ink-mute)", textAlign: "center", padding: "32px 0" }}>
           現在、公開中の求人はありません。
         </p>
       </section>
     );
   }
+
+  // γ-4 修正③: 求人合計件数で表示モードを切り替え
+  const totalJobs = detail.jobs.reduce((sum, cat) => sum + cat.total, 0);
+
+  // 求人カード内の職種カラーバッジ (γ-4 修正②連携)
+  function JobCatBadge({ catName, catId }: { catName: string; catId?: string }) {
+    const color = resolveAvatarColor(catId ?? null, null);
+    return (
+      <span
+        style={{
+          display: "inline-block",
+          fontSize: 10,
+          padding: "2px 8px",
+          borderRadius: 4,
+          background: color.bg,
+          color: color.text,
+          fontWeight: 600,
+        }}
+      >
+        {catName}
+      </span>
+    );
+  }
+
+  // 求人カード共通コンポーネント
+  function JobCard({
+    job,
+    catName,
+    catId,
+    index,
+  }: {
+    job: { id?: string; title: string; salary: string; is_new?: boolean };
+    catName: string;
+    catId?: string;
+    index: number;
+  }) {
+    return (
+      <Link
+        key={job.id ?? index}
+        href={job.id ? `/jobs/${job.id}` : `/jobs?company=${company.id}`}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto auto",
+          gap: 16,
+          padding: "14px 18px",
+          border: "1px solid var(--line)",
+          borderRadius: 10,
+          cursor: "pointer",
+          background: "#fff",
+          textDecoration: "none",
+          alignItems: "center",
+        }}
+        className="job-item-link"
+      >
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 5 }}>
+            {job.title}
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            {job.is_new && (
+              <span
+                style={{
+                  fontSize: 10,
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  background: "var(--success-soft,#ECFDF5)",
+                  color: "var(--success)",
+                  fontWeight: 700,
+                  border: "1px solid #A7F3D0",
+                }}
+              >
+                新着
+              </span>
+            )}
+            <JobCatBadge catName={catName} catId={catId} />
+          </div>
+        </div>
+        <div
+          style={{
+            fontFamily: "Inter, sans-serif",
+            fontSize: 14,
+            fontWeight: 700,
+            color: "var(--royal)",
+            flexShrink: 0,
+            textAlign: "right",
+          }}
+        >
+          {job.salary}
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </Link>
+    );
+  }
+
+  const sectionIcon = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 10h18" />
+    </svg>
+  );
 
   return (
     <section
@@ -1842,6 +2139,7 @@ function JobsSection({
         marginBottom: 20,
       }}
     >
+      {/* セクションヘッダー */}
       <div
         style={{
           display: "flex",
@@ -1852,174 +2150,108 @@ function JobsSection({
           gap: 8,
         }}
       >
-        <SecTitle
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <rect x="3" y="4" width="18" height="16" rx="2" />
-              <path d="M3 10h18" />
-            </svg>
-          }
-        >
+        <SecTitle icon={sectionIcon}>
           募集中の求人
-          <span
-            style={{
-              fontSize: 12,
-              color: "var(--royal)",
-              fontWeight: 600,
-              fontFamily: "Inter, sans-serif",
-            }}
-          >
+          <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>
             · {company.job_count}件
           </span>
         </SecTitle>
-        <Link
-          href={`/jobs?company=${company.id}`}
-          style={{ color: "var(--royal)", fontSize: 13, fontWeight: 500 }}
-        >
+        <a href="#jobs" style={{ color: "var(--royal)", fontSize: 13, fontWeight: 500 }}>
           すべて見る →
-        </Link>
+        </a>
       </div>
 
-      {detail.jobs.map((cat) => (
-        <div key={cat.cat} style={{ marginBottom: 28 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 12,
-              padding: "10px 16px",
-              background: "var(--royal-50)",
-              borderRadius: 8,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 14,
-                fontWeight: 700,
-                color: "var(--royal)",
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <polyline points="16 18 22 12 16 6" />
-                <polyline points="8 6 2 12 8 18" />
-              </svg>
-              {cat.cat}
-              <span
+      {totalJobs < JOB_GROUPING_THRESHOLD ? (
+        // ── 1〜3 件: カテゴリヘッダーなし、直接リスト (γ-4 修正③) ──────────
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {detail.jobs.flatMap((cat, ci) =>
+            cat.items.map((job, ji) => (
+              <JobCard
+                key={job.id ?? `${ci}-${ji}`}
+                job={job}
+                catName={cat.cat}
+                catId={cat.catId}
+                index={ji}
+              />
+            ))
+          )}
+        </div>
+      ) : (
+        // ── 4 件以上: カテゴリグルーピング表示 (既存構造を維持) ────────────
+        <>
+          {detail.jobs.map((cat) => (
+            <div key={cat.cat} style={{ marginBottom: 28 }}>
+              {/* カテゴリヘッダー (既存スタイル維持) */}
+              <div
                 style={{
-                  fontFamily: "Inter, sans-serif",
-                  fontSize: 11,
-                  color: "var(--royal)",
-                  background: "#fff",
-                  padding: "2px 10px",
-                  borderRadius: 100,
-                  fontWeight: 700,
-                }}
-              >
-                {cat.total}件
-              </span>
-            </div>
-            {cat.total > 4 && (
-              <Link
-                href={cat.catId
-                  ? `/jobs?company=${company.id}&category=${cat.catId}`
-                  : `/jobs?company=${company.id}`}
-                style={{ fontSize: 12, color: "var(--royal)", fontWeight: 500, textDecoration: "none" }}
-              >
-                すべて見る →
-              </Link>
-            )}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {cat.items.slice(0, 4).map((job, i) => (
-              <Link
-                key={job.id ?? i}
-                href={job.id ? `/jobs/${job.id}` : `/jobs?company=${company.id}`}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr auto auto",
-                  gap: 16,
-                  padding: "14px 18px",
-                  border: "1px solid var(--line)",
-                  borderRadius: 10,
-                  cursor: "pointer",
-                  background: "#fff",
-                  textDecoration: "none",
+                  display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
+                  marginBottom: 12,
+                  padding: "10px 16px",
+                  background: "var(--royal-50)",
+                  borderRadius: 8,
                 }}
-                className="job-item-link"
               >
-                <div>
-                  <div
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: "var(--royal)" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <polyline points="16 18 22 12 16 6" />
+                    <polyline points="8 6 2 12 8 18" />
+                  </svg>
+                  {cat.cat}
+                  <span
                     style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "var(--ink)",
-                      marginBottom: 4,
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 11,
+                      color: "var(--royal)",
+                      background: "#fff",
+                      padding: "2px 10px",
+                      borderRadius: 100,
+                      fontWeight: 700,
                     }}
                   >
-                    {job.title}
-                  </div>
-                  {job.is_new && (
-                    <span
-                      style={{
-                        fontSize: 10,
-                        padding: "2px 8px",
-                        borderRadius: 4,
-                        background: "var(--success-soft,#ECFDF5)",
-                        color: "var(--success)",
-                        fontWeight: 700,
-                        border: "1px solid #A7F3D0",
-                      }}
-                    >
-                      新着
-                    </span>
-                  )}
+                    {cat.total}件
+                  </span>
                 </div>
-                <div
-                  style={{
-                    fontFamily: "Inter, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "var(--royal)",
-                    flexShrink: 0,
-                    textAlign: "right",
-                  }}
-                >
-                  {job.salary}
-                </div>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round">
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </Link>
-            ))}
-          </div>
-        </div>
-      ))}
+                {cat.total > 4 && (
+                  <Link
+                    href={cat.catId ? `/jobs?company=${company.id}&category=${cat.catId}` : `/jobs?company=${company.id}`}
+                    style={{ fontSize: 12, color: "var(--royal)", fontWeight: 500, textDecoration: "none" }}
+                  >
+                    すべて見る →
+                  </Link>
+                )}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {cat.items.slice(0, 4).map((job, i) => (
+                  <JobCard key={job.id ?? i} job={job} catName={cat.cat} catId={cat.catId} index={i} />
+                ))}
+              </div>
+            </div>
+          ))}
 
-      <div style={{ textAlign: "center", marginTop: 20 }}>
-        <Link
-          href={`/jobs?company=${company.id}`}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "10px 24px",
-            background: "#fff",
-            color: "var(--royal)",
-            border: "1.5px solid var(--royal)",
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 600,
-            textDecoration: "none",
-          }}
-        >
-          {company.job_count}件すべての求人を見る →
-        </Link>
-      </div>
+          <div style={{ textAlign: "center", marginTop: 20 }}>
+            <a
+              href="#jobs"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "10px 24px",
+                background: "#fff",
+                color: "var(--royal)",
+                border: "1.5px solid var(--royal)",
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              {company.job_count}件すべての求人を見る →
+            </a>
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -2416,6 +2648,69 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
   );
 }
 
+// ─── MobileBottomCTA ── γ-7: モバイル固定底部バー (< 768px) ──────────────────
+function MobileBottomCTA({ company }: { company: Company }) {
+  const hasMeeting = company.accepting_casual_meetings;
+  const hasJobs = company.job_count > 0;
+  if (!hasMeeting && !hasJobs) return null;
+
+  return (
+    <div
+      className="md:hidden"
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 40,
+        background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
+        padding: "12px 16px",
+        paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
+        boxShadow: "0 -4px 12px rgba(0,0,0,0.06)",
+      }}
+    >
+      {hasMeeting && (
+        <Link
+          href={`/companies/${company.id}/casual-meeting`}
+          style={{
+            display: "block",
+            padding: "12px 0",
+            background: "#fff",
+            color: "var(--royal)",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 700,
+            textAlign: "center",
+            textDecoration: "none",
+            marginBottom: hasJobs ? 8 : 0,
+          }}
+        >
+          話を聞く（カジュアル面談）
+        </Link>
+      )}
+      {hasJobs && (
+        <a
+          href="#jobs"
+          style={{
+            display: "block",
+            padding: "10px 0",
+            background: "rgba(255,255,255,0.08)",
+            color: "#fff",
+            border: "1px solid rgba(255,255,255,0.28)",
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            textAlign: "center",
+            textDecoration: "none",
+          }}
+        >
+          求人を見て応募する
+        </a>
+      )}
+    </div>
+  );
+}
+
 function Sidebar({
   company,
   detail,
@@ -2429,87 +2724,152 @@ function Sidebar({
         position: "sticky",
         top: 132,
         alignSelf: "start",
-        display: "flex",
         flexDirection: "column",
         gap: 16,
       }}
       className="hidden lg:flex"
     >
-      {/* CTA card */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
-          color: "#fff",
-          padding: 22,
-          borderRadius: 16,
-          boxShadow: "0 12px 32px rgba(0,35,102,0.2)",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            opacity: 0.8,
-            marginBottom: 4,
-            letterSpacing: "0.08em",
-          }}
-        >
-          {company.name}へ、一歩
-        </div>
-        <div
-          style={{
-            fontFamily: 'var(--font-noto-serif)',
-            fontSize: 18,
-            fontWeight: 500,
-            marginBottom: 14,
-            lineHeight: 1.5,
-          }}
-        >
-          {company.job_count > 0
-            ? `${company.job_count}件の求人を、`
-            : "企業情報を、"}
-          <br />
-          見てみませんか？
-        </div>
-        <Link
-          href={`/jobs?company=${company.id}`}
-          style={{
-            display: "block",
-            width: "100%",
-            padding: 12,
-            background: "#fff",
-            color: "var(--royal)",
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 700,
-            textAlign: "center",
-            textDecoration: "none",
-          }}
-        >
-          求人を見る →
-        </Link>
-        {company.accepting_casual_meetings && (
-          <Link
-            href={`/companies/${company.id}/casual-meeting`}
+      {/* CTA card ── γ-2: 修正① CTA 優先順位逆転 */}
+      {(() => {
+        const hasMeeting = company.accepting_casual_meetings;
+        const hasJobs = company.job_count > 0;
+        return (
+          <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginTop: 10,
-              padding: 10,
-              background: "rgba(255,255,255,0.1)",
+              background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
               color: "#fff",
-              border: "1px solid rgba(255,255,255,0.25)",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              textDecoration: "none",
+              padding: 22,
+              borderRadius: 16,
+              boxShadow: "0 12px 32px rgba(0,35,102,0.2)",
             }}
           >
-            面談を申し込む
-          </Link>
-        )}
-      </div>
+            {/* Eyebrow */}
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                opacity: 0.72,
+                marginBottom: 6,
+                letterSpacing: "0.08em",
+              }}
+            >
+              {company.name}
+            </div>
+
+            {/* Heading */}
+            <div
+              style={{
+                fontFamily: "var(--font-noto-serif)",
+                fontSize: 17,
+                fontWeight: 500,
+                marginBottom: 16,
+                lineHeight: 1.55,
+              }}
+            >
+              {hasMeeting
+                ? "まず、話を聞いてみませんか？"
+                : hasJobs
+                  ? `${company.job_count}件の求人を、見てみませんか？`
+                  : "現在、受付中の求人・面談はありません"}
+            </div>
+
+            {/* ── case 1 & 2: accepting_casual_meetings = true ── */}
+            {hasMeeting && (
+              <>
+                {/* 1st (Primary): 話を聞く（カジュアル面談） */}
+                <Link
+                  href={`/companies/${company.id}/casual-meeting`}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: "13px 0",
+                    background: "#fff",
+                    color: "var(--royal)",
+                    borderRadius: 8,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    textAlign: "center",
+                    textDecoration: "none",
+                  }}
+                >
+                  話を聞く（カジュアル面談）
+                </Link>
+                {/* 補足テキスト: Primary ボタン直下、Primary 表示時のみ */}
+                <p
+                  style={{
+                    fontSize: 11,
+                    textAlign: "center",
+                    margin: "8px 0",
+                    opacity: 0.68,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  人事担当者が直接対応します
+                </p>
+                {/* 2nd (Secondary): 求人を見て応募する — job_count > 0 の時のみ */}
+                {hasJobs && (
+                  <a
+                    href="#jobs"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginTop: 4,
+                      padding: "9px 0",
+                      background: "rgba(255,255,255,0.08)",
+                      color: "#fff",
+                      border: "1px solid rgba(255,255,255,0.28)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      textDecoration: "none",
+                    }}
+                  >
+                    求人を見て応募する
+                  </a>
+                )}
+              </>
+            )}
+
+            {/* ── case 3: accepting_casual_meetings = false, job_count > 0 ── */}
+            {!hasMeeting && hasJobs && (
+              <a
+                href="#jobs"
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: "11px 0",
+                  background: "rgba(255,255,255,0.12)",
+                  color: "#fff",
+                  border: "1px solid rgba(255,255,255,0.28)",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textAlign: "center",
+                  textDecoration: "none",
+                }}
+              >
+                求人を見て応募する
+              </a>
+            )}
+
+            {/* ── case 4: accepting_casual_meetings = false, job_count = 0 ── */}
+            {!hasMeeting && !hasJobs && (
+              <p
+                style={{
+                  fontSize: 12,
+                  textAlign: "center",
+                  opacity: 0.68,
+                  lineHeight: 1.7,
+                  margin: 0,
+                }}
+              >
+                現在募集中の情報がありません
+              </p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Company Info */}
       <div
@@ -2658,7 +3018,10 @@ export default async function CompanyDetailPage({
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
           className="px-5 md:px-12 py-7 grid gap-7 [grid-template-columns:1fr] lg:[grid-template-columns:1fr_320px]"
         >
-          <main>
+          {/* γ-7: モバイルで fixed bottom bar 分の余白を確保 */}
+          <main className="pb-28 md:pb-0">
+            {/* γ-6 修正⑤: 編集部の見立てカード（TabsBar 直下、AboutSection 直前） */}
+            <OpinioOpinionCard detail={detail} />
             <AboutSection company={company} detail={detail} photos={photos} />
             <OpinionSection company={company} detail={detail} />
             <NumbersSection numbers={detail.numbers} />
@@ -2685,6 +3048,9 @@ export default async function CompanyDetailPage({
           <Sidebar company={company} detail={detail} />
         </div>
       </div>
+
+      {/* γ-7: モバイル固定底部バー (< 768px) */}
+      <MobileBottomCTA company={company} />
 
       <style>{`
         .job-item-link:hover {
