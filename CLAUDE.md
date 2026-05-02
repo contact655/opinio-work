@@ -6,15 +6,10 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 **求職者側プロダクト（Phase 2 + Phase 4）が 2026-04-24 に 100% 完成。**
 
 - **リポジトリ**: `/Users/hisato/opinio-work/`
-- **ワークツリー**: `/Users/hisato/opinio-work/.claude/worktrees/silly-kowalevski-e4eca2/`
-- **プレビューサーバー**: `localhost:3000`（`npm run dev` from worktree）
+- **プレビューサーバー**: `localhost:3000`（`npm run dev` from `/Users/hisato/opinio-work/`）
 - **launch.json**: `/Users/hisato/opinio-work/.claude/launch.json`
 - **モックHTML + 仕様書**: `/Users/hisato/opinio-mock/`
 - **仕様書**: `/Users/hisato/opinio-mock/OPINIO_IMPLEMENTATION_SPEC.md`
-
-> **重要**: dev サーバーは **ワークツリー** から起動している。
-> ファイルは必ず worktree パスに書くこと。
-> `/Users/hisato/opinio-work/src/...` に書いても反映されない。
 
 ---
 
@@ -469,10 +464,16 @@ ow_jobs.updated_at      → Job.updated_days_ago
 
 ## 技術的注意事項
 
-### ワークツリー使用
-- Claude は必ず **ワークツリー** のパスにファイルを書く:
-  `/Users/hisato/opinio-work/.claude/worktrees/silly-kowalevski-e4eca2/src/...`
-- dev サーバーもワークツリーから起動している（launch.json の `npm run dev`）
+### 作業ディレクトリ
+- ファイルは `/Users/hisato/opinio-work/src/...` に直接書く（worktree 不要）
+- dev サーバーは `/Users/hisato/opinio-work/` で `npm run dev`（launch.json の `dev`）
+
+### Git 運用方針（2026-05-03 確定）
+- main ブランチに直接コミットする（worktree 作成禁止）
+- worktree が既に存在する場合は、`git worktree remove` で削除してから作業を開始する
+- 削除手順は引き継ぎ書 v6 §5 および本ドキュメントの「Git 運用方針」を参照
+- `git rebase` / `git reset --hard` / `git commit --amend`（既存コミット対象）は使わない
+- push は柴さんの「OK push して」を待つ
 
 ### "use client" + Suspense パターン
 - `useSearchParams()` を使う場合は Suspense でラップ必須（Next.js 14 要件）
