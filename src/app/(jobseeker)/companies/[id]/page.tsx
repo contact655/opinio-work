@@ -1081,7 +1081,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
             ))}
           </div>
         ) : (
-          <p style={UNSET_STYLE}>(まだ登録されていません)</p>
+          <p style={UNSET_STYLE}>—</p>
         )}
       </div>
 
@@ -1091,7 +1091,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
         {detail.evaluationSystem ? (
           <EvaluationText text={detail.evaluationSystem} />
         ) : (
-          <p style={UNSET_STYLE}>未設定</p>
+          <p style={UNSET_STYLE}>—</p>
         )}
       </div>
     </section>
@@ -1274,7 +1274,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
                     color: "var(--ink-mute)",
                   }}
                 >
-                  勤務時間制度: 未設定
+                  勤務時間制度: —
                 </span>
               )}
             </div>
@@ -1302,7 +1302,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
             {detail.workstyleDescription}
           </p>
         ) : (
-          <p style={{ fontSize: 13, color: "var(--ink-mute)", margin: 0 }}>未設定</p>
+          <p style={{ fontSize: 13, color: "var(--ink-mute)", margin: 0 }}>—</p>
         )}
       </div>
 
@@ -2516,7 +2516,7 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
         {NUMBER_ITEMS.map(({ label, key, format }) => {
           const raw = numbers[key];
           const hasValue = raw !== null && raw !== undefined && String(raw).trim() !== "";
-          const display = hasValue ? format(raw as string | number) : "未設定";
+          const display = hasValue ? format(raw as string | number) : "—";
 
           return (
             <div
@@ -2572,7 +2572,7 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
         }}
       >
         企業が自己申告した値です。実態は求人ページ・カジュアル面談でご確認ください。
-        「未設定」は企業が情報を公開していない項目です。
+        「—」は企業が情報を公開していない項目です。
       </p>
     </section>
   );
@@ -2830,7 +2830,7 @@ function Sidebar({
               { key: "従業員数", value: company.employee_count ? `${company.employee_count.toLocaleString()}名` : "" },
               { key: "所在地", value: detail.hq },
               // nearest_station: 常時表示、null は "未設定" (isUnset フラグ)
-              { key: "最寄り駅", value: detail.nearestStation ?? "未設定", isUnset: !detail.nearestStation },
+              { key: "最寄り駅", value: detail.nearestStation ?? "—", isUnset: !detail.nearestStation },
               { key: "設立", value: detail.established },
               { key: "代表者", value: detail.ceo },
               ...(detail.url ? [{ key: "公式サイト", value: detail.url, isLink: true }] : []),
