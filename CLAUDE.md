@@ -22,6 +22,10 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 Phase 4（Supabase 本番接続）が **完全完了（2026-04-27）**。次は以下の中から選択:
 
+### ✅ 完了: Phase ε — Supabase MCP 接続 read-only（2026-05-02）
+`.mcp.json` を追加。次回セッション起動時に OAuth 認証フローが走り、
+`supabase` MCP サーバー経由で DB 調査が可能になる（書き込み禁止）。
+
 ### ✅ 完了: photos + logo の Supabase Storage 接続
 詳細計画 `docs/plans/photos-storage-integration.md` の通り実装、
 2026-04-27 に commit d7ce53a で本番リリース完了。
@@ -416,6 +420,50 @@ ow_jobs.updated_at      → Job.updated_days_ago
 
 > **注意**: Phase 4 で実装した `casual-meeting` ページの在籍企業制約は、
 > Phase 5 Stage 5 で `ow_users.experiences` が整備されるまで mock 継続。
+
+---
+
+## Phase ε: Supabase MCP 接続（read-only）— 完了 2026-05-02
+
+### 設定ファイル
+
+- **ファイル**: `/Users/hisato/opinio-work/.mcp.json`（プロジェクトルート、git 管理対象）
+- **設定内容**:
+  ```json
+  {
+    "mcpServers": {
+      "supabase": {
+        "type": "http",
+        "url": "https://mcp.supabase.com/mcp?project_ref=xtutnecqeamftygufxco&read_only=true"
+      }
+    }
+  }
+  ```
+- **認証**: OAuth ベース（dynamic client registration）— PAT / トークン不要
+- **初回**: Claude Code 再起動後、Supabase OAuth 認証フローが自動起動する
+
+### MCP 利用ルール（厳守）
+
+| 操作 | 方法 |
+|------|------|
+| SELECT / テーブル構造確認 / レコード数取得 | ✅ MCP 経由で OK（read_only=true） |
+| INSERT / UPDATE / DELETE / DDL | ❌ SQL ファイル作成 → 柴さん手動実行 |
+| `read_only=true` の解除 | ❌ 事前に柴さんと議論必須 |
+
+### よく使う確認クエリ例
+
+```
+"ow_companies テーブルの構造を見せて"
+"ow_users の総レコード数を教えて"
+"fit_positives が登録されている企業の数は？"
+"ow_jobs で status = 'active' の件数は？"
+```
+
+### Phase ε の効果
+
+- セッション冒頭の「テーブル構造調査」「サンプルデータ確認」「カラム名・型確認」が自動化
+- 「DB 全社が同じ状態（fit_positives = null）」のような発見が毎セッション楽にできる
+- Phase H v2 や次のサンプル投入時に「企業情報の事前調査」が自動化される
 
 ---
 
