@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/jobs", label: "求人を探す" },
   { href: "/mentors", label: "メンター" },
   { href: "/articles", label: "記事" },
+  { href: "/posts",    label: "発信" },
 ];
 
 export function JobseekerHeader() {
