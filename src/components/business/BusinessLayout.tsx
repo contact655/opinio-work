@@ -32,6 +32,9 @@ const NAV_ITEMS = [
     href: "/biz/company",
     label: "企業情報",
     icon: <Building2 size={16} strokeWidth={2.2} />,
+    children: [
+      { href: "/biz/company/employees/categories", label: "社員カテゴリ" },
+    ],
   },
   {
     href: "/biz/jobs",
@@ -306,40 +309,89 @@ export function BusinessLayout({
           <nav>
             {NAV_ITEMS.map((item) => {
               const active = isActive(item.href);
+              // 子リンクのどれかが active かどうか
+              const childActive = item.children?.some(
+                (c) => pathname === c.href || pathname.startsWith(c.href + "/")
+              ) ?? false;
+              // 子が active な時は親をサブデュード表示 (背景なし・テキストのみ royal)
+              const showFullActive = active && !childActive;
+
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "9px 20px",
-                    fontSize: 13, fontWeight: active ? 600 : 500,
-                    color: active ? "var(--royal)" : "var(--ink-soft)",
-                    textDecoration: "none",
-                    borderLeft: `3px solid ${active ? "var(--royal)" : "transparent"}`,
-                    background: active ? "var(--royal-50)" : "transparent",
-                    transition: "all 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) {
-                      (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)";
-                      (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) {
-                      (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
-                      (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-soft)";
-                    }
-                  }}
-                >
-                  <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ color: active ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0 }}>
-                      {item.icon}
+                <div key={item.href}>
+                  <Link
+                    href={item.href}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "9px 20px",
+                      fontSize: 13, fontWeight: active ? 600 : 500,
+                      color: active ? "var(--royal)" : "var(--ink-soft)",
+                      textDecoration: "none",
+                      borderLeft: `3px solid ${showFullActive ? "var(--royal)" : "transparent"}`,
+                      background: showFullActive ? "var(--royal-50)" : "transparent",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!showFullActive) {
+                        (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)";
+                        if (!childActive) (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!showFullActive) {
+                        (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
+                        if (!childActive) (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-soft)";
+                      }
+                    }}
+                  >
+                    <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ color: active ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0 }}>
+                        {item.icon}
+                      </span>
+                      {item.label}
                     </span>
-                    {item.label}
-                  </span>
-                </Link>
+                  </Link>
+
+                  {/* サブリンク: 親が active な時だけ展開 */}
+                  {active && item.children?.map((child) => {
+                    const childIsActive = pathname === child.href || pathname.startsWith(child.href + "/");
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        style={{
+                          display: "flex", alignItems: "center",
+                          padding: "6px 20px 6px 38px",
+                          fontSize: 12, fontWeight: childIsActive ? 600 : 500,
+                          color: childIsActive ? "var(--royal)" : "var(--ink-mute)",
+                          textDecoration: "none",
+                          borderLeft: `3px solid ${childIsActive ? "var(--royal)" : "transparent"}`,
+                          background: childIsActive ? "var(--royal-50)" : "transparent",
+                          transition: "all 0.15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!childIsActive) {
+                            (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)";
+                            (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-soft)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!childIsActive) {
+                            (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
+                            (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-mute)";
+                          }
+                        }}
+                      >
+                        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{
+                            width: 5, height: 5, borderRadius: "50%", flexShrink: 0,
+                            background: childIsActive ? "var(--royal)" : "var(--line)",
+                          }} />
+                          {child.label}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
               );
             })}
           </nav>

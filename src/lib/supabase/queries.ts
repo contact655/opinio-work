@@ -733,6 +733,36 @@ export async function getCompanyEmployeeCategories(
   });
 }
 
+// ─── Roles (BIZ category editor 用) ──────────────────────────────────────────
+
+/** Phase Q-BIZ: カテゴリ追加モーダル用 — 全 ow_roles を取得 (親・子含む) */
+export type RoleForEditor = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  displayOrder: number;
+};
+
+export async function getAllRolesForCategoryEditor(): Promise<RoleForEditor[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("ow_roles")
+    .select("id, name, parent_id, display_order")
+    .order("display_order", { ascending: true, nullsFirst: false });
+
+  if (error || !data) {
+    if (error) console.error("[getAllRolesForCategoryEditor]", error.message);
+    return [];
+  }
+
+  return data.map((r) => ({
+    id: r.id as string,
+    name: r.name as string,
+    parentId: (r.parent_id as string | null) ?? null,
+    displayOrder: (r.display_order as number) ?? 0,
+  }));
+}
+
 // ─── Mentors ──────────────────────────────────────────────────────────────────
 // Note: table name is `mentors` (no ow_ prefix — intentional, see design doc §6-X+1)
 
