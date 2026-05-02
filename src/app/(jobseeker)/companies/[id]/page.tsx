@@ -87,7 +87,7 @@ function Hero({
 }) {
   const initial = company.name.charAt(0).toUpperCase();
   const freshLabel = formatUpdated(company.updated_days_ago);
-  const isFresh = company.updated_days_ago <= 7;
+  const isFresh = company.updated_days_ago <= 30;
 
   return (
     <section style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
@@ -159,6 +159,43 @@ function Hero({
                 {company.tagline}
               </p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {/* バッジ1: 従業員 */}
+                <span
+                  style={{
+                    padding: "5px 11px",
+                    background: "var(--bg-tint)",
+                    color: "var(--ink-soft)",
+                    border: "1px solid var(--line)",
+                    borderRadius: 100,
+                    fontSize: 11,
+                    fontWeight: 500,
+                  }}
+                >
+                  {company.employee_count > 0
+                    ? `従業員 ${company.employee_count.toLocaleString()}名`
+                    : "従業員 —"}
+                </span>
+                {/* バッジ2: 創業 */}
+                {(() => {
+                  const year = parseInt(detail.established);
+                  const age = !isNaN(year) ? new Date().getFullYear() - year : null;
+                  return (
+                    <span
+                      style={{
+                        padding: "5px 11px",
+                        background: "var(--bg-tint)",
+                        color: "var(--ink-soft)",
+                        border: "1px solid var(--line)",
+                        borderRadius: 100,
+                        fontSize: 11,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {age !== null ? `創業 ${age}年` : "創業 —"}
+                    </span>
+                  );
+                })()}
+                {/* バッジ3: 採用中 */}
                 {company.job_count > 0 && (
                   <span
                     style={{
@@ -186,53 +223,13 @@ function Hero({
                     採用中 {company.job_count}件
                   </span>
                 )}
+                {/* バッジ4: 更新日 */}
                 {isFresh && (
                   <span
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 5,
-                      padding: "5px 11px",
-                      background: "var(--royal-50)",
-                      color: "var(--royal)",
-                      border: "1px solid var(--royal-100)",
-                      borderRadius: 100,
-                      fontSize: 11,
-                      fontWeight: 600,
-                    }}
-                  >
-                    <svg
-                      width="11"
-                      height="11"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 6v6l4 2" />
-                    </svg>
-                    {freshLabel}
-                  </span>
-                )}
-                {company.accepting_casual_meetings && (
-                  <span
-                    style={{
-                      padding: "5px 11px",
-                      background: "var(--success-soft)",
-                      color: "var(--success)",
-                      border: "1px solid #A7F3D0",
-                      borderRadius: 100,
-                      fontSize: 11,
-                      fontWeight: 600,
-                    }}
-                  >
-                    カジュアル面談歓迎
-                  </span>
-                )}
-                {company.phase && (
-                  <span
-                    style={{
                       padding: "5px 11px",
                       background: "var(--bg-tint)",
                       color: "var(--ink-soft)",
@@ -242,7 +239,15 @@ function Hero({
                       fontWeight: 500,
                     }}
                   >
-                    {company.phase}
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "var(--ink-soft)",
+                      }}
+                    />
+                    {freshLabel}
                   </span>
                 )}
               </div>
