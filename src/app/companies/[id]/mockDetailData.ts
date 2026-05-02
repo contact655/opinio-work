@@ -9,6 +9,7 @@ export type FreshnessItem = {
 };
 
 export type JobItem = {
+  id?: string;
   title: string;
   tags: string[];
   salary: string;

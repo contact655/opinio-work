@@ -142,18 +142,31 @@ function mapJob(row: Record<string, any>): Job {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[]): CompanyDetail {
-  // jobs → JobCat[] (全求人を1カテゴリにまとめる)
+function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[], roles: Record<string, any>[] = []): CompanyDetail {
+  // jobs → JobCat[] (ow_roles 親カテゴリでグループ化)
   const jobCats: JobCat[] = jobs.length > 0
     ? (() => {
-        // job_category ごとにグループ化
-        const grouped: Record<string, typeof jobs> = {};
-        for (const j of jobs) {
-          const cat = (j.job_category as string) ?? "その他";
-          if (!grouped[cat]) grouped[cat] = [];
-          grouped[cat].push(j);
+        // ow_roles を id でマップ化
+        const rolesMap = new Map(roles.map((r) => [r.id as string, r]));
+
+        // role_category_id → 親カテゴリ名を解決
+        function getParentCatName(roleId: string | null | undefined): string {
+          if (!roleId) return "その他";
+          const role = rolesMap.get(roleId);
+          if (!role) return "その他";
+          if (!role.parent_id) return role.name as string;          // 自身が親
+          return (rolesMap.get(role.parent_id as string)?.name as string) ?? (role.name as string);
         }
-        return Object.entries(grouped).map(([cat, items]) => ({
+
+        // 親カテゴリごとにグループ化
+        const grouped = new Map<string, typeof jobs>();
+        for (const j of jobs) {
+          const cat = getParentCatName(j.role_category_id as string | null);
+          if (!grouped.has(cat)) grouped.set(cat, []);
+          grouped.get(cat)!.push(j);
+        }
+
+        return Array.from(grouped.entries()).map(([cat, items]) => ({
           cat,
           total: items.length,
           items: items.map((j) => {
@@ -161,6 +174,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
             const sMax = j.salary_max as number;
             const salary = sMin && sMax ? `¥${sMin}–${sMax}万` : "応相談";
             const item: JobItem = {
+              id: j.id as string,
               title: (j.title as string) ?? "",
               tags: [],
               salary,
@@ -377,14 +391,19 @@ export async function getCompanyById(
     return null;
   }
 
-  // Fetch jobs for this company (for detail page job list)
-  const { data: jobRows } = await supabase
-    .from("ow_jobs")
-    .select("id, title, job_category, salary_min, salary_max, published_at")
-    .eq("company_id", id);
+  // Fetch jobs + roles in parallel (for category-grouped job list)
+  const [{ data: jobRows }, { data: roleRows }] = await Promise.all([
+    supabase
+      .from("ow_jobs")
+      .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at")
+      .eq("company_id", id),
+    supabase
+      .from("ow_roles")
+      .select("id, name, parent_id"),
+  ]);
 
   const company = mapCompany(data, jobRows?.length ?? 0);
-  const detail = buildCompanyDetail(data, jobRows ?? []);
+  const detail = buildCompanyDetail(data, jobRows ?? [], roleRows ?? []);
 
   return { company, detail };
 }

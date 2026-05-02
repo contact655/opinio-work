@@ -1773,12 +1773,20 @@ function JobsSection({
                 {cat.total}件
               </span>
             </div>
+            {cat.total > 4 && (
+              <Link
+                href={`/jobs?company=${company.id}`}
+                style={{ fontSize: 12, color: "var(--royal)", fontWeight: 500, textDecoration: "none" }}
+              >
+                すべて見る →
+              </Link>
+            )}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {cat.items.map((job, i) => (
+            {cat.items.slice(0, 4).map((job, i) => (
               <Link
-                key={i}
-                href={`/jobs?company=${company.id}`}
+                key={job.id ?? i}
+                href={job.id ? `/jobs/${job.id}` : `/jobs?company=${company.id}`}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr auto auto",
