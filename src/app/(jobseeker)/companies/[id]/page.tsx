@@ -8,7 +8,7 @@ import {
   getArticlesByCompany,
   getCompanyEmployees,
 } from "@/lib/supabase/queries";
-import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee } from "@/lib/supabase/queries";
+import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import type { Company } from "@/app/companies/mockCompanies";
@@ -1340,9 +1340,9 @@ function EmployeeCard({
       {/* Avatar */}
       <div
         style={{
-          width: 64,
-          height: 64,
-          borderRadius: 12,
+          width: 48,
+          height: 48,
+          borderRadius: 8,
           background: employee.avatarGradient,
           flexShrink: 0,
           display: "flex",
@@ -1350,7 +1350,7 @@ function EmployeeCard({
           justifyContent: "center",
           fontFamily: 'var(--font-noto-serif)',
           fontWeight: 700,
-          fontSize: 25,
+          fontSize: 19,
           color: "#fff",
         }}
       >
@@ -1421,8 +1421,8 @@ function EmployeeCard({
 
 const EMPLOYEE_GRID_STYLE: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(2, 1fr)",
-  gap: 12,
+  gridTemplateColumns: "repeat(5, 1fr)",
+  gap: 10,
 };
 
 // ─── CompanyPostsSection ─────────────────────────────────────────────────────
@@ -1519,9 +1519,54 @@ function CompanyPostsSection({
 
 function CurrentEmployeesSection({
   employees,
+  categories,
 }: {
   employees: CompanyEmployee[];
+  categories: CompanyEmployeeCategoryItem[];
 }) {
+  // ── カテゴリ別社員マップ (roleId → employees) ──────────────────────────────
+  const empsByCategory = new Map<string, CompanyEmployee[]>();
+  for (const emp of employees) {
+    if (!emp.roleCategoryId) continue;
+    if (!empsByCategory.has(emp.roleCategoryId)) empsByCategory.set(emp.roleCategoryId, []);
+    empsByCategory.get(emp.roleCategoryId)!.push(emp);
+  }
+
+  // ── 親グループ化 (display_order 順を保持) ─────────────────────────────────
+  type Group = {
+    groupKey: string;
+    parentName: string;
+    isParentDirect: boolean; // parent_id が null = 親直カテゴリ
+    children: CompanyEmployeeCategoryItem[];
+  };
+  const groups: Group[] = [];
+  const groupMap = new Map<string, Group>();
+  for (const cat of categories) {
+    const groupKey = cat.parentId ?? cat.roleId;
+    if (!groupMap.has(groupKey)) {
+      const g: Group = {
+        groupKey,
+        parentName: cat.parentId ? (cat.parentName ?? cat.roleName) : cat.roleName,
+        isParentDirect: !cat.parentId,
+        children: [],
+      };
+      groups.push(g);
+      groupMap.set(groupKey, g);
+    }
+    groupMap.get(groupKey)!.children.push(cat);
+  }
+
+  // カテゴリ未割り当て社員 (roleCategoryId が null の場合)
+  const uncategorized = employees.filter((e) => !e.roleCategoryId);
+
+  const SECTION_ICON = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+
   return (
     <section
       id="current-employees"
@@ -1534,15 +1579,7 @@ function CurrentEmployeesSection({
       }}
     >
       <div style={{ marginBottom: 20 }}>
-        <SecTitle
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-          }
-        >
+        <SecTitle icon={SECTION_ICON}>
           現役社員
           <span
             style={{
@@ -1558,23 +1595,135 @@ function CurrentEmployeesSection({
         </SecTitle>
       </div>
 
-      {employees.length > 0 ? (
-        <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)]">
+      {employees.length === 0 ? (
+        <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8, margin: 0 }}>
+          公開準備中 — Opinio で取材した社員プロフィールが順次公開されます
+        </p>
+      ) : categories.length === 0 ? (
+        // カテゴリ設定なし → フラット 5 列
+        <div style={EMPLOYEE_GRID_STYLE}>
           {employees.map((emp) => (
             <EmployeeCard key={emp.userId} employee={emp} />
           ))}
         </div>
       ) : (
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--ink-mute)",
-            lineHeight: 1.8,
-            margin: 0,
-          }}
-        >
-          公開準備中 — Opinio で取材した社員プロフィールが順次公開されます
-        </p>
+        // カテゴリ設定あり → 階層表示
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {groups.map((group) => {
+            const totalInGroup = group.children.reduce(
+              (sum, cat) => sum + (empsByCategory.get(cat.roleId)?.length ?? 0),
+              0
+            );
+            if (totalInGroup === 0) return null; // 0 名カテゴリは非表示
+
+            return (
+              <div key={group.groupKey}>
+                {/* 親カテゴリ見出し */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 6,
+                    marginBottom: 12,
+                    paddingBottom: 8,
+                    borderBottom: "1px solid var(--line-soft)",
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+                    {group.parentName}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 11,
+                      fontWeight: 400,
+                      color: "var(--ink-mute)",
+                    }}
+                  >
+                    {totalInGroup}名
+                  </span>
+                </div>
+
+                {group.isParentDirect ? (
+                  // 親直: 子見出しなしでグリッドを直接表示
+                  <div style={EMPLOYEE_GRID_STYLE}>
+                    {(empsByCategory.get(group.children[0].roleId) ?? []).map((emp) => (
+                      <EmployeeCard key={emp.userId} employee={emp} />
+                    ))}
+                  </div>
+                ) : (
+                  // 子カテゴリあり: 子見出し + グリッド
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {group.children.map((cat) => {
+                      const empsInCat = empsByCategory.get(cat.roleId) ?? [];
+                      if (empsInCat.length === 0) return null;
+                      return (
+                        <div key={cat.roleId}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "baseline",
+                              gap: 5,
+                              marginBottom: 8,
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: "var(--ink-soft)",
+                              }}
+                            >
+                              {cat.roleName}
+                            </span>
+                            <span
+                              style={{
+                                fontFamily: "Inter, sans-serif",
+                                fontSize: 11,
+                                fontWeight: 400,
+                                color: "var(--ink-mute)",
+                              }}
+                            >
+                              {empsInCat.length}名
+                            </span>
+                          </div>
+                          <div style={EMPLOYEE_GRID_STYLE}>
+                            {empsInCat.map((emp) => (
+                              <EmployeeCard key={emp.userId} employee={emp} />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* カテゴリ未割り当て社員 */}
+          {uncategorized.length > 0 && (
+            <div>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "var(--ink)",
+                  marginBottom: 12,
+                  paddingBottom: 8,
+                  borderBottom: "1px solid var(--line-soft)",
+                }}
+              >
+                その他
+              </div>
+              <div style={EMPLOYEE_GRID_STYLE}>
+                {uncategorized.map((emp) => (
+                  <EmployeeCard key={emp.userId} employee={emp} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </section>
   );
@@ -1918,8 +2067,8 @@ function RecruitersSection({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-          gap: 16,
+          gridTemplateColumns: "repeat(5, 1fr)",
+          gap: 10,
         }}
       >
         {recruiters.map((r, i) => (
@@ -1927,8 +2076,8 @@ function RecruitersSection({
             key={r.id}
             style={{
               display: "flex",
-              gap: 14,
-              padding: 16,
+              gap: 10,
+              padding: "10px 12px",
               border: "1px solid var(--line)",
               borderRadius: 12,
               background: "#fff",
@@ -1937,9 +2086,9 @@ function RecruitersSection({
           >
             <div
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 12,
+                width: 48,
+                height: 48,
+                borderRadius: 8,
                 flexShrink: 0,
                 background: r.avatar_color ?? AV_GRADIENTS[i % AV_GRADIENTS.length],
                 color: "#fff",
@@ -1948,7 +2097,7 @@ function RecruitersSection({
                 justifyContent: "center",
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 700,
-                fontSize: 25,
+                fontSize: 19,
               }}
             >
               {r.avatar_initial}
@@ -2475,7 +2624,7 @@ export default async function CompanyDetailPage({
 
   if (!companyResult) return notFound();
 
-  const { company, detail } = companyResult;
+  const { company, detail, employeeCategories } = companyResult;
 
   // Resolve ow_users.id and check existing bookmark
   let initialBookmarked = false;
@@ -2522,7 +2671,7 @@ export default async function CompanyDetailPage({
                 postsCount={postsCount}
               />
             )}
-            <CurrentEmployeesSection employees={employees.current} />
+            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
             <AlumniSection alumni={employees.alumni} />
             <JobsSection company={company} detail={detail} />
             {recruiters.length > 0 && (

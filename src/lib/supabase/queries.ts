@@ -382,7 +382,7 @@ export async function getCompanies(): Promise<Company[]> {
 
 export async function getCompanyById(
   id: string
-): Promise<{ company: Company; detail: CompanyDetail } | null> {
+): Promise<{ company: Company; detail: CompanyDetail; employeeCategories: CompanyEmployeeCategoryItem[] } | null> {
   const supabase = createClient();
 
   const { data, error } = await supabase
@@ -396,8 +396,8 @@ export async function getCompanyById(
     return null;
   }
 
-  // Fetch jobs + roles in parallel (for category-grouped job list)
-  const [{ data: jobRows }, { data: roleRows }] = await Promise.all([
+  // Fetch jobs + roles + employee categories in parallel
+  const [{ data: jobRows }, { data: roleRows }, employeeCategories] = await Promise.all([
     supabase
       .from("ow_jobs")
       .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at")
@@ -405,12 +405,13 @@ export async function getCompanyById(
     supabase
       .from("ow_roles")
       .select("id, name, parent_id"),
+    getCompanyEmployeeCategories(id),
   ]);
 
   const company = mapCompany(data, jobRows?.length ?? 0);
   const detail = buildCompanyDetail(data, jobRows ?? [], roleRows ?? []);
 
-  return { company, detail };
+  return { company, detail, employeeCategories };
 }
 
 // ─── Role queries ─────────────────────────────────────────────────────────────
@@ -597,6 +598,11 @@ export type CompanyEmployee = {
   roleTitle: string | null;
   isMentor: boolean;
   endedAt: string | null; // "YYYY-MM" 形式、OB のみ使用
+  // === Phase Q-5 追加: カテゴリ情報 ===
+  roleCategoryId: string | null;
+  roleCategoryName: string | null;
+  roleParentId: string | null;
+  roleParentName: string | null;
 };
 
 export async function getCompanyEmployees(companyId: string): Promise<{
@@ -606,10 +612,20 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   const supabase = createClient();
   const EMPTY = { current: [], alumni: [] };
 
+  // 全 ow_roles を取得 (カテゴリ名・親情報解決用)
+  const { data: allRoles } = await supabase
+    .from("ow_roles")
+    .select("id, name, parent_id");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const roleMap = new Map<string, Record<string, any>>(
+    (allRoles ?? []).map((r) => [r.id as string, r])
+  );
+
   // 現役社員 (is_current = true)
   const { data: currentRows, error: e1 } = await supabase
     .from("ow_experiences")
-    .select("role_title, ow_users!inner(id, name, avatar_color, is_mentor)")
+    .select("role_title, role_category_id, ow_users!inner(id, name, avatar_color, is_mentor)")
     .eq("company_id", companyId)
     .eq("is_current", true);
 
@@ -621,7 +637,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // OB 社員 (is_current = false, ended_at あり)
   const { data: alumniRows, error: e2 } = await supabase
     .from("ow_experiences")
-    .select("role_title, ended_at, ow_users!inner(id, name, avatar_color, is_mentor)")
+    .select("role_title, role_category_id, ended_at, ow_users!inner(id, name, avatar_color, is_mentor)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .not("ended_at", "is", null)
@@ -638,6 +654,9 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     const u = row.ow_users as Record<string, any>;
     const name = (u?.name as string) ?? "—";
     const hex = u?.avatar_color as string | null;
+    const roleCategoryId = (row.role_category_id as string | null) ?? null;
+    const role = roleCategoryId ? roleMap.get(roleCategoryId) : null;
+    const parent = role?.parent_id ? roleMap.get(role.parent_id as string) : null;
     return {
       userId: u?.id as string,
       name,
@@ -648,6 +667,10 @@ export async function getCompanyEmployees(companyId: string): Promise<{
       roleTitle: (row.role_title as string | null) ?? null,
       isMentor: (u?.is_mentor as boolean) ?? false,
       endedAt: endedAt ? (endedAt as string).slice(0, 7) : null,
+      roleCategoryId,
+      roleCategoryName: (role?.name as string | null) ?? null,
+      roleParentId: (role?.parent_id as string | null) ?? null,
+      roleParentName: (parent?.name as string | null) ?? null,
     };
   }
 
@@ -655,6 +678,59 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     current: (currentRows ?? []).map((r) => mapEmp(r)),
     alumni: (alumniRows ?? []).map((r) => mapEmp(r, r.ended_at)),
   };
+}
+
+// ─── Company employee categories (ow_company_employee_categories) ─────────────
+
+/** Phase Q: 各企業のカテゴリ表示設定 (display_order 順) */
+export type CompanyEmployeeCategoryItem = {
+  id: string;
+  roleId: string;
+  roleName: string;
+  parentId: string | null;
+  parentName: string | null;
+  displayOrder: number;
+};
+
+export async function getCompanyEmployeeCategories(
+  companyId: string
+): Promise<CompanyEmployeeCategoryItem[]> {
+  const supabase = createClient();
+
+  const [catResult, rolesResult] = await Promise.all([
+    supabase
+      .from("ow_company_employee_categories")
+      .select("id, role_id, display_order, ow_roles!inner(id, name, parent_id)")
+      .eq("company_id", companyId)
+      .order("display_order"),
+    supabase
+      .from("ow_roles")
+      .select("id, name, parent_id"),
+  ]);
+
+  if (catResult.error || !catResult.data) {
+    if (catResult.error) console.error("[getCompanyEmployeeCategories]", catResult.error.message);
+    return [];
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const roleMap = new Map<string, Record<string, any>>(
+    (rolesResult.data ?? []).map((r) => [r.id as string, r])
+  );
+
+  return catResult.data.map((item) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const role = item.ow_roles as Record<string, any>;
+    const parent = role.parent_id ? roleMap.get(role.parent_id as string) : null;
+    return {
+      id: item.id as string,
+      roleId: role.id as string,
+      roleName: role.name as string,
+      parentId: (role.parent_id as string | null) ?? null,
+      parentName: (parent?.name as string | null) ?? null,
+      displayOrder: item.display_order as number,
+    };
+  });
 }
 
 // ─── Mentors ──────────────────────────────────────────────────────────────────
