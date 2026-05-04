@@ -38,3 +38,6 @@ next-env.d.ts
 # Seed script output
 scripts/.seed-sample-data-output.txt
 scripts/.seed-external-links-output.txt
+
+# Claude Code Desktop が自動生成する worktree ディレクトリ
+.claude/worktrees/
