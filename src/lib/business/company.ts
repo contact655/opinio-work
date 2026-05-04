@@ -91,7 +91,7 @@ export function transformDbToForm(row: DbCompany): BizCompany {
     avgOvertimeHours: row.avg_overtime_hours ?? "",
     paidLeaveRate: row.paid_leave_rate != null ? String(row.paid_leave_rate) : "",
     workstyleNote: row.workstyle_description ?? "",
-    // TODO: next session — fetch from ow_company_photos + Supabase Storage
+    // 写真は /biz/company/page.tsx で fetchOfficePhotosForCompany により別途取得。このフィールドは使用されない。
     photos: [],
     isPublished: row.is_published ?? false,
     acceptingCasualMeetings: row.accepting_casual_meetings ?? true,
