@@ -14,6 +14,7 @@ import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail, CompanyNumbers } from "@/app/companies/[id]/mockDetailData";
+import { PhotoCarousel } from "./PhotoCarousel";
 import BookmarkButton from "./CompanyDetailClient";
 import EvaluationText from "./EvaluationText";
 import { createClient } from "@/lib/supabase/server";
@@ -489,85 +490,6 @@ function SecTitle({
   );
 }
 
-// ─── Photo Gallery ────────────────────────────────────────────────────────────
-
-function PhotoCard({ photo }: { photo: CompanyPhoto }) {
-  return (
-    <div
-      style={{
-        borderRadius: 12,
-        overflow: "hidden",
-        position: "relative",
-        aspectRatio: "4/3",
-      }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={photo.image_url}
-        alt={photo.caption ?? "オフィス写真"}
-        loading="lazy"
-        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-      />
-      {photo.caption && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: "8px 12px",
-            background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.65) 100%)",
-            color: "#fff",
-            fontSize: 11,
-            fontWeight: 500,
-            borderRadius: "0 0 12px 12px",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {photo.caption}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PhotoGallery({ photos }: { photos: CompanyPhoto[] }) {
-  if (photos.length === 0) return null;
-
-  // 1 枚: 横長フル幅
-  if (photos.length === 1) {
-    return (
-      <div style={{ marginBottom: 20 }}>
-        <PhotoCard photo={photos[0]} />
-      </div>
-    );
-  }
-
-  // 2〜3 枚: 3 カラム均等（モバイルは 1 カラム）
-  if (photos.length <= 3) {
-    return (
-      <div
-        style={{ display: "grid", gap: 10, marginBottom: 20 }}
-        className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(3,1fr)]"
-      >
-        {photos.map((p) => <PhotoCard key={p.id} photo={p} />)}
-      </div>
-    );
-  }
-
-  // 4〜6 枚: 2 段 × 3 カラム（モバイルは 2 カラム）
-  return (
-    <div
-      style={{ display: "grid", gap: 10, marginBottom: 20 }}
-      className="[grid-template-columns:repeat(2,1fr)] sm:[grid-template-columns:repeat(3,1fr)]"
-    >
-      {photos.slice(0, 6).map((p) => <PhotoCard key={p.id} photo={p} />)}
-    </div>
-  );
-}
-
 // ─── Sections ─────────────────────────────────────────────────────────────────
 
 function AboutSection({
@@ -638,7 +560,7 @@ function AboutSection({
         </div>
       )}
 
-      <PhotoGallery photos={photos} />
+      <PhotoCarousel photos={photos} />
 
       {detail.about && (
         <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9 }}>

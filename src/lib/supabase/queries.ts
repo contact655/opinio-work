@@ -513,7 +513,7 @@ export async function getCompanyPhotos(companyId: string): Promise<CompanyPhoto[
     .select("id, image_url, category, caption, display_order")
     .eq("company_id", companyId)
     .order("display_order", { ascending: true })
-    .limit(6);
+    .limit(10);
   if (error) {
     console.error("[getCompanyPhotos]", error.message);
     return [];
