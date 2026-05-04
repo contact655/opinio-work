@@ -2537,7 +2537,7 @@ function Sidebar({
               }}
             >
               {hasMeeting
-                ? "まず、話を聞いてみませんか？"
+                ? "対話から、はじめよう。"
                 : hasJobs
                   ? `${company.job_count}件の求人を、見てみませんか？`
                   : "現在、受付中の求人・面談はありません"}
