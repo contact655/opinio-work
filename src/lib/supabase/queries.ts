@@ -500,16 +500,17 @@ export async function getJobById(
 
 export type CompanyPhoto = {
   id: string;
-  photo_url: string;
+  image_url: string;
   category: string | null;
+  caption: string | null;
   display_order: number;
 };
 
 export async function getCompanyPhotos(companyId: string): Promise<CompanyPhoto[]> {
   const supabase = createClient();
   const { data, error } = await supabase
-    .from("ow_company_photos")
-    .select("id, photo_url, category, display_order")
+    .from("ow_company_office_photos")
+    .select("id, image_url, category, caption, display_order")
     .eq("company_id", companyId)
     .order("display_order", { ascending: true })
     .limit(6);
@@ -520,8 +521,9 @@ export async function getCompanyPhotos(companyId: string): Promise<CompanyPhoto[
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data ?? []).map((row: Record<string, any>): CompanyPhoto => ({
     id: row.id as string,
-    photo_url: row.photo_url as string,
+    image_url: row.image_url as string,
     category: (row.category as string) ?? null,
+    caption: (row.caption as string) ?? null,
     display_order: (row.display_order as number) ?? 0,
   }));
 }

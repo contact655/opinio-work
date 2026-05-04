@@ -491,242 +491,79 @@ function SecTitle({
 
 // ─── Photo Gallery ────────────────────────────────────────────────────────────
 
-const PLACEHOLDER_GRADIENTS = [
-  "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
-  "linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%)",
-  "linear-gradient(135deg, #059669 0%, #047857 100%)",
-];
-
-function PhotoGallery({
-  company,
-  photos,
-}: {
-  company: Company;
-  photos: CompanyPhoto[];
-}) {
-  if (photos.length === 0) {
-    return (
-      <>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "2fr 1fr",
-            gap: 10,
-            height: 240,
-            marginBottom: 10,
-          }}
-          className="[grid-template-columns:1fr] sm:[grid-template-columns:2fr_1fr] [height:auto]"
-        >
-          <div
-            style={{
-              borderRadius: 12,
-              background: company.gradient,
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              minHeight: 160,
-            }}
-          >
-            <span
-              style={{
-                position: "absolute",
-                top: 12,
-                left: 12,
-                background: "rgba(255,255,255,0.95)",
-                color: "var(--ink)",
-                fontSize: 10,
-                fontWeight: 700,
-                padding: "4px 10px",
-                borderRadius: 100,
-                letterSpacing: "0.05em",
-              }}
-            >
-              Opinio編集部 撮影
-            </span>
-            <div
-              style={{
-                color: "rgba(255,255,255,0.95)",
-                fontFamily: 'var(--font-noto-serif)',
-                fontWeight: 500,
-                fontStyle: "italic",
-                fontSize: 20,
-                textAlign: "center",
-                lineHeight: 1.4,
-              }}
-            >
-              Working at {company.name}
-            </div>
-            <div
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                padding: "12px 16px",
-                background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.6) 100%)",
-                color: "#fff",
-                fontSize: 12,
-                fontWeight: 500,
-                borderRadius: "0 0 12px 12px",
-              }}
-            >
-              メインオフィス
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateRows: "1fr 1fr", gap: 10 }}>
-            {PLACEHOLDER_GRADIENTS.slice(1).map((bg, i) => (
-              <div
-                key={i}
-                style={{
-                  borderRadius: 12,
-                  background: bg,
-                  position: "relative",
-                  minHeight: 80,
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    left: 8,
-                    background: "rgba(255,255,255,0.95)",
-                    fontSize: 9,
-                    fontWeight: 700,
-                    padding: "3px 8px",
-                    borderRadius: 100,
-                  }}
-                >
-                  {i === 0 ? "OFFICE" : "EVENT"}
-                </span>
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    padding: "8px 12px",
-                    background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.6) 100%)",
-                    color: "#fff",
-                    fontSize: 11,
-                    borderRadius: "0 0 12px 12px",
-                  }}
-                >
-                  {i === 0 ? "エントランス" : "全社イベントスペース"}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div
-          style={{
-            fontSize: 11,
-            color: "var(--ink-mute)",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            marginBottom: 20,
-          }}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5}>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 6v6l4 2" />
-          </svg>
-          Opinio編集部 訪問取材時に撮影
-        </div>
-      </>
-    );
-  }
-
-  // Real photos: first large (2fr), up to 2 more in right column
-  const [main, ...rest] = photos;
-  const rightPhotos = rest.slice(0, 2);
-
+function PhotoCard({ photo }: { photo: CompanyPhoto }) {
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: rightPhotos.length > 0 ? "2fr 1fr" : "1fr",
-        gap: 10,
-        marginBottom: 20,
+        borderRadius: 12,
+        overflow: "hidden",
+        position: "relative",
+        aspectRatio: "4/3",
       }}
-      className="[grid-template-columns:1fr] sm:[grid-template-columns:2fr_1fr]"
     >
-      <div
-        style={{
-          borderRadius: 12,
-          overflow: "hidden",
-          position: "relative",
-          minHeight: 180,
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={main.photo_url}
-          alt={main.category ?? "オフィス写真"}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", minHeight: 200 }}
-        />
-        {main.category && (
-          <span
-            style={{
-              position: "absolute",
-              top: 12,
-              left: 12,
-              background: "rgba(255,255,255,0.95)",
-              color: "var(--ink)",
-              fontSize: 10,
-              fontWeight: 700,
-              padding: "4px 10px",
-              borderRadius: 100,
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-            }}
-          >
-            {main.category}
-          </span>
-        )}
-      </div>
-      {rightPhotos.length > 0 && (
-        <div style={{ display: "grid", gridTemplateRows: "1fr 1fr", gap: 10 }}>
-          {rightPhotos.map((photo) => (
-            <div
-              key={photo.id}
-              style={{
-                borderRadius: 12,
-                overflow: "hidden",
-                position: "relative",
-                minHeight: 80,
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={photo.photo_url}
-                alt={photo.category ?? ""}
-                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", minHeight: 80 }}
-              />
-              {photo.category && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    left: 8,
-                    background: "rgba(255,255,255,0.95)",
-                    fontSize: 9,
-                    fontWeight: 700,
-                    padding: "3px 8px",
-                    borderRadius: 100,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {photo.category}
-                </span>
-              )}
-            </div>
-          ))}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photo.image_url}
+        alt={photo.caption ?? "オフィス写真"}
+        loading="lazy"
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+      />
+      {photo.caption && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: "8px 12px",
+            background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.65) 100%)",
+            color: "#fff",
+            fontSize: 11,
+            fontWeight: 500,
+            borderRadius: "0 0 12px 12px",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {photo.caption}
         </div>
       )}
+    </div>
+  );
+}
+
+function PhotoGallery({ photos }: { photos: CompanyPhoto[] }) {
+  if (photos.length === 0) return null;
+
+  // 1 枚: 横長フル幅
+  if (photos.length === 1) {
+    return (
+      <div style={{ marginBottom: 20 }}>
+        <PhotoCard photo={photos[0]} />
+      </div>
+    );
+  }
+
+  // 2〜3 枚: 3 カラム均等（モバイルは 1 カラム）
+  if (photos.length <= 3) {
+    return (
+      <div
+        style={{ display: "grid", gap: 10, marginBottom: 20 }}
+        className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(3,1fr)]"
+      >
+        {photos.map((p) => <PhotoCard key={p.id} photo={p} />)}
+      </div>
+    );
+  }
+
+  // 4〜6 枚: 2 段 × 3 カラム（モバイルは 2 カラム）
+  return (
+    <div
+      style={{ display: "grid", gap: 10, marginBottom: 20 }}
+      className="[grid-template-columns:repeat(2,1fr)] sm:[grid-template-columns:repeat(3,1fr)]"
+    >
+      {photos.slice(0, 6).map((p) => <PhotoCard key={p.id} photo={p} />)}
     </div>
   );
 }
@@ -803,7 +640,7 @@ function AboutSection({
         </div>
       )}
 
-      <PhotoGallery company={company} photos={photos} />
+      <PhotoGallery photos={photos} />
 
       {detail.about && (
         <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9 }}>
