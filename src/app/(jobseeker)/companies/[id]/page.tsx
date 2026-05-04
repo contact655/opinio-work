@@ -382,12 +382,12 @@ function Hero({
 function TabsBar({ company }: { company: Company }) {
   const tabs = [
     { label: "概要", href: "#about" },
+    { label: "特徴", href: "#opinion" },
+    { label: "働き方", href: "#work-style" },
     {
       label: `求人${company.job_count > 0 ? ` ${company.job_count}件` : ""}`,
       href: "#jobs",
     },
-    { label: "働き方", href: "#work-style" },
-    { label: "特徴", href: "#opinion" },
   ];
 
   return (
