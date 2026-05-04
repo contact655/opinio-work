@@ -20,7 +20,7 @@ type Application = {
       id: string;
       name: string;
       logo_url: string | null;
-      ow_company_photos: { photo_url: string }[];
+      ow_company_office_photos: { image_url: string; caption: string | null }[];
     };
   };
 };
@@ -85,7 +85,7 @@ export default function ApplicationsPage() {
         `*,
         ow_jobs(id, title, job_category, salary_min, salary_max, location,
           ow_companies(id, name, logo_url,
-            ow_company_photos(photo_url)
+            ow_company_office_photos(image_url, caption)
           )
         )`
       )
@@ -224,7 +224,7 @@ export default function ApplicationsPage() {
                 {filtered.map((app) => {
                   const job = app.ow_jobs;
                   const company = job?.ow_companies;
-                  const photos = company?.ow_company_photos || [];
+                  const photos = company?.ow_company_office_photos || [];
                   const statusConf =
                     STATUS_CONFIG[app.status] || STATUS_CONFIG.applied;
                   const currentStep = STATUS_TO_STEP[app.status] ?? 0;
@@ -241,7 +241,7 @@ export default function ApplicationsPage() {
                             <div
                               className="w-full h-full bg-gray-200 bg-cover bg-center min-h-[140px]"
                               style={{
-                                backgroundImage: `url(${photos[0].photo_url})`,
+                                backgroundImage: `url(${photos[0].image_url})`,
                               }}
                             />
                           ) : (
