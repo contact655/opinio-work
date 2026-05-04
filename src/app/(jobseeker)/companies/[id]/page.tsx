@@ -571,11 +571,9 @@ function PhotoGallery({ photos }: { photos: CompanyPhoto[] }) {
 // ─── Sections ─────────────────────────────────────────────────────────────────
 
 function AboutSection({
-  company,
   detail,
   photos,
 }: {
-  company: Company;
   detail: CompanyDetail;
   photos: CompanyPhoto[];
 }) {
@@ -2794,7 +2792,7 @@ export default async function CompanyDetailPage({
           <main className="pb-28 md:pb-0">
             {/* γ-6 修正⑤: 編集部の見立てカード（TabsBar 直下、AboutSection 直前） */}
             <OpinioOpinionCard detail={detail} />
-            <AboutSection company={company} detail={detail} photos={photos} />
+            <AboutSection detail={detail} photos={photos} />
             <CompanyFeaturesSection company={company} detail={detail} />
             <NumbersSection numbers={detail.numbers} />
             <WorkStyleSection detail={detail} />
