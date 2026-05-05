@@ -57,10 +57,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "questions required" }, { status: 400 });
   }
 
-  // Verify mentor exists and is available
+  // Verify mentor exists and is available; user_id を同時取得して mentor_user_id に使う
   const { data: mentor } = await supabase
     .from("ow_mentors")
-    .select("id, is_available")
+    .select("id, is_available, user_id")
     .eq("id", mentor_id)
     .maybeSingle();
 
@@ -76,7 +76,9 @@ export async function POST(req: Request) {
     .insert({
       user_id: owUserId,
       mentor_id,
-      mentor_user_id: null,
+      // Phase ν-5 でメンター本人が ow_users と紐付くまでは user_id=NULL のため
+      // mentor_user_id も NULL になる（想定通り）。紐付け後は自動で解決される。
+      mentor_user_id: mentor.user_id ?? null,
       themes: Array.isArray(themes) ? themes : [],
       current_situation: (current_situation as string).trim(),
       questions: (questions as string).trim(),
