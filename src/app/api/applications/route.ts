@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { resolveOwUserId } from "@/lib/supabase/resolveOwUserId";
 import { notify } from "@/lib/notify/email";
 import {
   applicationAdminTemplate,
@@ -15,6 +16,11 @@ export async function POST(req: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const owUserId = await resolveOwUserId(supabase, user.id);
+  if (!owUserId) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
   let body: Record<string, unknown>;
@@ -35,7 +41,7 @@ export async function POST(req: Request) {
   const { data: existing } = await supabase
     .from("ow_job_applications")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", owUserId)
     .eq("job_id", job_id)
     .maybeSingle();
 
@@ -51,7 +57,7 @@ export async function POST(req: Request) {
     .from("ow_job_applications")
     .insert({
       job_id,
-      user_id: user.id,
+      user_id: owUserId,
       name,
       email,
       phone: phone ?? null,
