@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { resolveOwUserId } from "@/lib/supabase/resolveOwUserId";
+import { createConversation } from "@/lib/conversations/createConversation";
 import { notify } from "@/lib/notify/email";
 import {
   applicationAdminTemplate,
@@ -79,9 +80,27 @@ export async function POST(req: Request) {
   // ── Notify (best-effort, T1) ──────────────────────────────────────────────
   const { data: jobForNotify } = await supabase
     .from("ow_jobs")
-    .select("title, ow_companies!inner(name)")
+    .select("title, company_id, ow_companies!inner(name)")
     .eq("id", job_id as string)
     .maybeSingle();
+
+  // ── 対話生成 (best-effort, Y2) ───────────────────────────────────────────
+  // notify より前に実行することで、notify が throw しても対話生成は実行済み。
+  // §4-9: notify 処理自体の best-effort 化は Phase η 前で対処予定。
+  try {
+    const companyId = jobForNotify?.company_id;
+    if (!companyId) {
+      console.error("[applications] company_id not found for job", job_id);
+    } else {
+      await createConversation(supabase, {
+        kind: "company",
+        candidateUserId: owUserId,
+        companyId,
+      });
+    }
+  } catch (e) {
+    console.error("[applications] createConversation failed:", e);
+  }
 
   if (jobForNotify) {
     const companyName =
