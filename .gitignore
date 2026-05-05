@@ -41,3 +41,6 @@ scripts/.seed-external-links-output.txt
 
 # Claude Code Desktop が自動生成する worktree ディレクトリ
 .claude/worktrees/
+
+# Backups (DB data exports, not for version control)
+docs/backups/
