@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { createConversation } from "@/lib/conversations/createConversation";
 import { notify } from "@/lib/notify/email";
 import {
   casualMeetingAdminTemplate,
@@ -86,6 +87,19 @@ export async function POST(req: Request) {
   if (error) {
     console.error("[POST /api/casual-meetings]", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // ── 対話生成 (best-effort, Y2) ───────────────────────────────────────────
+  // notify より前に実行することで、notify が throw しても対話生成は実行済み。
+  // §4-9: notify 処理自体の best-effort 化は Phase η 前で対処予定。
+  try {
+    await createConversation(supabase, {
+      kind: "company",
+      candidateUserId: owUserId,
+      companyId: company_id,
+    });
+  } catch (e) {
+    console.error("[casual-meetings] createConversation failed:", e);
   }
 
   // ── Notify (best-effort, T3) ──────────────────────────────────────────────
