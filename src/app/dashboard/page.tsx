@@ -532,10 +532,6 @@ export default function DashboardPage() {
             <Link href="/career-consultation" style={{ color: "#6b7280", textDecoration: "none" }} className="hover:text-gray-900 transition-colors">
               キャリア相談
             </Link>
-            <span style={{ color: "#d1d5db" }}>·</span>
-            <Link href="/dashboard/job-tracking" style={{ color: "#6b7280", textDecoration: "none" }} className="hover:text-gray-900 transition-colors">
-              転職トラッキング
-            </Link>
           </div>
         </div>
       </main>
