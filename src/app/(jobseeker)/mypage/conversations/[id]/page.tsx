@@ -137,6 +137,20 @@ export default function ConversationDetailPage() {
       setMessages((msgs as MessageRow[]) || []);
     }
 
+    // D: 既読更新(B 画面アクセス時に last_read_at を now() に更新)
+    // UPDATE 失敗は表示をブロックしない(migration 069 で last_read_at + UPDATE RLS 修正済み)
+    if (!msgsError && myParticipant?.id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: updateError } = await (supabase as any)
+        .from("ow_conversation_participants")
+        .update({ last_read_at: new Date().toISOString() })
+        .eq("id", myParticipant.id);
+
+      if (updateError) {
+        console.error("[Step 4-2 D] last_read_at update failed:", updateError.message);
+      }
+    }
+
     setLoading(false);
   }, [conversationId]);
 
