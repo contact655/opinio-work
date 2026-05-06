@@ -79,6 +79,17 @@ export default function ApplicationsPage() {
       return;
     }
 
+    const { data: owUser } = await supabase
+      .from("ow_users")
+      .select("id")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+
+    if (!owUser) {
+      setLoading(false);
+      return;
+    }
+
     const { data } = await supabase
       .from("ow_job_applications")
       .select(
@@ -89,7 +100,7 @@ export default function ApplicationsPage() {
           )
         )`
       )
-      .eq("user_id", user.id)
+      .eq("user_id", owUser.id)
       .order("created_at", { ascending: false });
 
     setApplications((data as Application[]) || []);
