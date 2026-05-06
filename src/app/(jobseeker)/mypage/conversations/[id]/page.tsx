@@ -58,7 +58,7 @@ export default function ConversationDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const loadData = useCallback(async () => {
     const supabase = createClient();
@@ -160,7 +160,10 @@ export default function ConversationDetailPage() {
   }, [loadData]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [messages]);
 
   const handleSend = async () => {
@@ -273,7 +276,7 @@ export default function ConversationDetailPage() {
           )}
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto bg-white border-x border-card-border px-4 py-4 space-y-4 min-h-0">
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto bg-white border-x border-card-border px-4 py-4 space-y-4 min-h-0">
             {messages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <p className="text-gray-400 text-sm">まだメッセージはありません</p>
@@ -325,7 +328,6 @@ export default function ConversationDetailPage() {
                 );
               })
             )}
-            <div ref={bottomRef} />
           </div>
 
           {/* Input */}
