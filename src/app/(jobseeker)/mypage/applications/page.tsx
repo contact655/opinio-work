@@ -73,8 +73,9 @@ export default function ApplicationsPage() {
   const loadData = useCallback(async () => {
     const supabase = createClient();
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user ?? null;
     if (!user) {
       setLoading(false);
       return;

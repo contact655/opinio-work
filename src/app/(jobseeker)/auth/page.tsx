@@ -43,7 +43,8 @@ function AuthPageInner() {
   // 認証済みチェック: すでにログイン済みなら next へリダイレクト
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const user = session?.user ?? null;
       if (user) router.replace(nextUrl || "/");
     });
   }, [nextUrl, router]);

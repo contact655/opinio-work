@@ -77,8 +77,9 @@ function WorkHistoryForm() {
     setError("");
 
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user ?? null;
     if (!user) {
       setError("ログインが必要です");
       setLoading(false);
