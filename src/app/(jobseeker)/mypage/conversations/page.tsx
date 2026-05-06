@@ -35,6 +35,7 @@ const SIDEBAR_ITEMS = [
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [hasUnreadMap, setHasUnreadMap] = useState<Map<string, boolean>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +80,50 @@ export default function ConversationsPage() {
       setError(fetchError.message);
     } else {
       setConversations((data as Conversation[]) || []);
+
+      const conversationIds = (data ?? []).map((c: Conversation) => c.id);
+      if (conversationIds.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: myParticipants, error: partError } = await (supabase as any)
+          .from("ow_conversation_participants")
+          .select("id, conversation_id, last_read_at")
+          .eq("user_id", owUser.id)
+          .in("conversation_id", conversationIds);
+
+        if (partError) {
+          console.error("[Step 4-3 E] participants fetch failed:", partError.message);
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: messages, error: msgError } = await (supabase as any)
+          .from("ow_conversation_messages")
+          .select("conversation_id, sender_participant_id, sent_at")
+          .in("conversation_id", conversationIds)
+          .is("deleted_at", null);
+
+        if (msgError) {
+          console.error("[Step 4-3 E] messages fetch failed:", msgError.message);
+        }
+
+        const participantMap = new Map<string, { id: string; last_read_at: string | null }>();
+        for (const p of myParticipants ?? []) {
+          participantMap.set(p.conversation_id, { id: p.id, last_read_at: p.last_read_at });
+        }
+
+        const nextUnreadMap = new Map<string, boolean>();
+        for (const convId of conversationIds) {
+          const myPart = participantMap.get(convId);
+          if (!myPart) { nextUnreadMap.set(convId, false); continue; }
+          const hasUnread = (messages ?? []).some(
+            (m: { conversation_id: string; sender_participant_id: string | null; sent_at: string }) =>
+              m.conversation_id === convId &&
+              m.sender_participant_id !== myPart.id &&
+              (!myPart.last_read_at || new Date(m.sent_at) > new Date(myPart.last_read_at))
+          );
+          nextUnreadMap.set(convId, hasUnread);
+        }
+        setHasUnreadMap(nextUnreadMap);
+      }
     }
 
     setLoading(false);
@@ -172,6 +217,14 @@ export default function ConversationsPage() {
                           {displayDate}
                         </div>
                       </div>
+
+                      {hasUnreadMap.get(conv.id) && (
+                        <div
+                          className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-red-500"
+                          aria-label="未読あり"
+                          title="未読あり"
+                        />
+                      )}
                     </div>
                   </Link>
                 );
