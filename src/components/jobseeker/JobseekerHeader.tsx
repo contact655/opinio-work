@@ -20,8 +20,9 @@ export function JobseekerHeader() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ? { email: data.user.email ?? "" } : null);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const user = session?.user;
+      setUser(user ? { email: user.email ?? "" } : null);
       setLoading(false);
     });
   }, []);
