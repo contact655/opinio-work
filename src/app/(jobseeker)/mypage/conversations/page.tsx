@@ -148,7 +148,7 @@ export default function ConversationsPage() {
                 ).toLocaleDateString("ja-JP");
 
                 return (
-                  <Link key={conv.id} href="#" className="block">
+                  <Link key={conv.id} href={`/mypage/conversations/${conv.id}`} className="block">
                     <div className="bg-white rounded-card border border-card-border p-4 hover:border-primary transition flex items-center gap-4">
                       {/* Logo */}
                       {company?.logo_url ? (
