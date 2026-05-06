@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 type Conversation = {
   id: string;
@@ -23,6 +24,14 @@ type Conversation = {
     name: string;
   } | null;
 };
+
+const SIDEBAR_ITEMS = [
+  { label: "応募管理", href: "/mypage/applications", active: false },
+  { label: "対話", href: "/mypage/conversations", active: true },
+  { label: "プロフィール", href: "/onboarding", active: false },
+  { label: "保存した求人", href: "#", active: false },
+  { label: "通知設定", href: "#", active: false },
+];
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -52,7 +61,7 @@ export default function ConversationsPage() {
       return;
     }
 
-    // RLS (migration 066) filters by owUser.id via ow_conversation_participants
+    // RLS (migration 066 + 067) filters by owUser.id via ow_conversation_participants
     // No explicit .eq() needed — RLS handles it
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error: fetchError } = await (supabase as any)
@@ -81,29 +90,96 @@ export default function ConversationsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <main className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-gray-600">読み込み中...</p>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-4">対話一覧 (Step 2-3 検証用)</h1>
+    <main className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto px-4 py-8 flex gap-6">
+        {/* Left Sidebar */}
+        <aside className="hidden lg:block w-[200px] flex-shrink-0">
+          <nav className="sticky top-24 space-y-1">
+            {SIDEBAR_ITEMS.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                  item.active
+                    ? "bg-primary-light text-primary font-medium"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </aside>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-          <strong>Error:</strong> {error}
+        {/* Main */}
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold mb-6">対話一覧</h1>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+              <strong>Error:</strong> {error}
+            </div>
+          )}
+
+          {conversations.length === 0 ? (
+            <div className="bg-white rounded-card border border-card-border p-8 text-center">
+              <p className="text-gray-600 text-lg mb-4">まだ対話がありません</p>
+              <Link href="/jobs" className="text-primary hover:underline text-sm">
+                求人を探す →
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {conversations.map((conv) => {
+                const company = conv.ow_companies;
+                const displayName =
+                  conv.kind === "mentor"
+                    ? conv.mentor?.name ?? "メンター"
+                    : company?.name ?? "(企業情報なし)";
+                const displayDate = new Date(
+                  conv.last_message_at ?? conv.created_at
+                ).toLocaleDateString("ja-JP");
+
+                return (
+                  <Link key={conv.id} href="#" className="block">
+                    <div className="bg-white rounded-card border border-card-border p-4 hover:border-primary transition flex items-center gap-4">
+                      {/* Logo */}
+                      {company?.logo_url ? (
+                        <img
+                          src={company.logo_url}
+                          alt={company.name}
+                          className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-royal-50 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
+                          {company?.logo_letter ?? company?.name?.[0] ?? "?"}
+                        </div>
+                      )}
+
+                      {/* Name + date */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-foreground truncate">
+                          {displayName}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-0.5">
+                          {displayDate}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
-
-      <p className="text-sm text-gray-500 mb-4">
-        件数: {conversations.length}
-      </p>
-
-      <pre className="bg-gray-50 border border-gray-200 rounded p-4 text-xs overflow-auto whitespace-pre-wrap">
-        {JSON.stringify(conversations, null, 2)}
-      </pre>
-    </div>
+      </div>
+    </main>
   );
 }

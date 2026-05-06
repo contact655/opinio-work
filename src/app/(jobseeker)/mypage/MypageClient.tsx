@@ -1054,6 +1054,7 @@ export default function MypageClient({
             <SidebarItem icon={Icons.dashboard} label="ダッシュボード" active={activeView === "dashboard"} onClick={() => navigate("dashboard")} />
             <SidebarItem icon={Icons.briefcase} label="カジュアル面談" active={activeView === "casual"} badge={pendingCasualCount} onClick={() => navigate("casual")} />
             <SidebarItem icon={Icons.message} label="メンター相談" active={activeView === "mentor-reserve"} badge={pendingMentorCount} onClick={() => navigate("mentor-reserve")} />
+            <SidebarItem icon={Icons.message} label="対話" active={false} onClick={() => { window.location.href = "/mypage/conversations"; }} />
             <SidebarItem icon={Icons.bookmark} label="ブックマーク" active={activeView === "bookmarks"} onClick={() => navigate("bookmarks")} />
           </nav>
 

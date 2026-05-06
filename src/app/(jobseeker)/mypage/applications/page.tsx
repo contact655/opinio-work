@@ -52,6 +52,7 @@ const STATUS_TO_STEP: Record<string, number> = {
 
 const SIDEBAR_ITEMS = [
   { label: "応募管理", href: "/mypage/applications", active: true },
+  { label: "対話", href: "/mypage/conversations", active: false },
   { label: "プロフィール", href: "/onboarding", active: false },
   { label: "保存した求人", href: "#", active: false },
   { label: "通知設定", href: "#", active: false },
