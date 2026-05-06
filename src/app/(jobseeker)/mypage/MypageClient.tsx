@@ -300,7 +300,7 @@ function DashboardView({
         fontFamily: 'var(--font-noto-serif)', fontWeight: 500,
         fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em",
       }}>
-        おかえりなさい、田中翔太さん
+        おかえりなさい、{userName}さん
       </h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
         あなたのOpinio活動の全体像を確認できます。
@@ -363,6 +363,7 @@ function DashboardView({
                 )}
               </div>
               <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                {/* TODO: Phase ν-5 で Supabase ow_users.current_role に接続する */}
                 {MOCK_USER.currentRole}
               </div>
             </div>
@@ -385,10 +386,12 @@ function DashboardView({
               <span style={{
                 fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 700, color: "var(--royal)",
               }}>
+                {/* TODO: Phase ν-5 で実データ計算に切り替える */}
                 {MOCK_USER.profileCompletion}%
               </span>
             </div>
             <div style={{ height: 6, background: "#fff", borderRadius: 100, overflow: "hidden", marginBottom: 8 }}>
+              {/* TODO: Phase ν-5 で実データ計算に切り替える */}
               <div style={{
                 height: "100%", width: `${MOCK_USER.profileCompletion}%`,
                 background: "linear-gradient(to right, var(--royal), var(--accent))",
