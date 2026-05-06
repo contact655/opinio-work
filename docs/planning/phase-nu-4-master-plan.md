@@ -307,6 +307,15 @@ CREATE POLICY "company_or_participant_can_select" ON ow_conversations
 - 各カードをクリックすると 4A-7 の詳細ページに遷移する
 - TypeScript エラーなし
 
+**制約**:
+- サイドバー・ヘッダー設計: 候補者側 /mypage 本体（系統 A、MypageClient.tsx
+  配下のレイアウト）に揃える方針で実装する。/mypage/conversations（系統 B、
+  シンプルサイドバー）の UI を「対話一覧の機能ロジック・データ取得・
+  カードコンポーネント」としては流用するが、「レイアウト・ナビゲーション
+  （サイドバー、ヘッダー、MOCK 切替バー等）」は系統 A のパターンを採用する。
+  これは Phase ν-3 以前から存在する候補者側の系統 A/B 不整合に企業側を
+  引きずられないための予防策。
+
 **コミット**: `feat(nu-4): Sub-step 4A-6: implement /biz/conversations list page`
 
 ---
@@ -392,6 +401,17 @@ CREATE POLICY "company_or_participant_can_select" ON ow_conversations
 - テストデータの状況
 - 残タスク（Phase ν-5 以降のスコープ）
 - 次のセッションでやること
+
+**Phase ν-5 候補スコープの仮置き**:
+- 候補者側マイページのサイドバー系統統一: 現状 /mypage 本体（系統 A:
+  「マイアクティビティ」サイドバー + MOCK 切替バー）と /mypage/conversations、
+  /mypage/applications 等（系統 B: シンプルサイドバー）で UI が分断している。
+  Phase ν-3 以前から存在する既知の課題（優先順位を下げて放置）。
+  Phase ν-5 で layout 設計を見直して統一する。
+
+  影響ページ調査が必要（系統 A: /mypage、系統 B: 現時点で /mypage/conversations
+  と /mypage/applications を確認、他にも該当ページがある可能性）。
+  原因は Next.js App Router の layout.tsx 階層分岐にあると推測。
 
 **完了条件**:
 - 引き継ぎ書が作成され、コミット済み
