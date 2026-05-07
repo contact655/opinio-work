@@ -322,9 +322,22 @@ CREATE POLICY "company_or_participant_can_select" ON ow_conversations
 
 ---
 
-## Sub-step 4A-7: /biz/conversations/[id] 詳細・返信・join API Route 実装
+## Sub-step 4A-7: /biz/conversations/[id] 詳細・返信・join API Route 実装 ✅ 完全完了（2026-05-08）
 
 **目的**: 企業側の対話詳細ページと返信機能、および HR 参加者追加 API を実装する
+
+### 実装サマリ（2026-05-08 完了）
+
+| 段階 | 内容 | コミット |
+|------|------|---------|
+| 段階 1 | `/biz/conversations/[id]` 詳細ページ（Server Component、チャット表示、参加者一覧、候補者サイドバー） | `5bc3b41` |
+| 段階 2 | 返信フォーム（ReplyForm.tsx）+ POST API（messages/route.ts）+ migration 072/073 | `38a41ee` / `e8946d3` / `0822b16` |
+| 段階 3 | 参加するボタン（JoinButton.tsx）+ lazy join API（join/route.ts）+ migration 074 | `16e1e79` / `6bd05fa` |
+
+**技術課題と解決（段階 2〜3 で発生した RLS バグ群）:**
+- migration 072: `ow_conversations` UPDATE RLS の UUID 不一致（auth.uid() vs ow_users.id）修正
+- migration 073: UPDATE RLS が RLS チェーン問題で引き続きサイレント失敗 → SECURITY DEFINER トリガーで last_message_at を自動更新
+- migration 074: `ow_conversation_participants` INSERT WITH CHECK の自己参照（同テーブル直接 SELECT）による無限再帰修正（条件 1 を削除）
 
 ### 詳細ページ: `src/app/biz/conversations/[id]/page.tsx`
 
@@ -497,12 +510,115 @@ CREATE POLICY "company_or_participant_can_select" ON ow_conversations
 
 ## 完了条件（Phase ν-4 全体）
 
-- [ ] 4A-0: ハードコード名の UI 影響箇所を特定・報告
-- [ ] 4A-1: `/mypage` の歓迎メッセージが実ユーザー名を表示する
-- [ ] 4A-2: 5 Client Component ファイルで `getSession()` に切り替え完了
-- [ ] 4A-3: `/mypage/applications` の動作確認完了
-- [ ] 4A-4: migration 070 適用済み、INSERT RLS が機能する
-- [ ] 4A-5: テストデータ投入済み、MCP で確認完了
-- [ ] 4A-6: `/biz/conversations` 一覧ページが動作する
-- [ ] 4A-7: `/biz/conversations/[id]` 詳細・返信が動作する
+- [x] 4A-0: ハードコード名の UI 影響箇所を特定・報告
+- [x] 4A-1: `/mypage` の歓迎メッセージが実ユーザー名を表示する
+- [x] 4A-2: 5 Client Component ファイルで `getSession()` に切り替え完了
+- [x] 4A-3: `/mypage/applications` の動作確認完了
+- [x] 4A-4: migration 070 適用済み、INSERT RLS が機能する
+- [x] 4A-5: テストデータ投入済み、MCP で確認完了
+- [x] 4A-6: `/biz/conversations` 一覧ページが動作する（commit `877a4e4`）
+- [x] 4A-7: `/biz/conversations/[id]` 詳細・返信・参加ボタンが動作する（commit `16e1e79` + `6bd05fa`）
 - [ ] 4A-8: 引き継ぎ書 v18 作成・コミット済み
+
+---
+
+## Phase ν-4 で適用した migration 一覧（2026-05-07/08）
+
+| version | name | 適用日 | commit | 解決した問題 |
+|---------|------|--------|--------|-------------|
+| 070 | phase_nu_4_company_admin_rls | 2026-05-07 | — | 同社 HR が ow_conversations/participants を SELECT 可能に。ow_conversation_messages INSERT RLS の UUID 不一致修正 |
+| 071 | fix_ow_conversations_select_recursion | 2026-05-07 | — | ow_conversations_select と ow_conversation_participants_select の相互参照による無限再帰を、IN サブクエリ化で解消 |
+| 072 | fix_ow_conversations_update_rls | 2026-05-08 | `38a41ee` | ow_conversations UPDATE RLS の `p.user_id = auth.uid()` (UUID 空間不一致) を `ow_users.auth_id = auth.uid()` 経由に修正 |
+| 073 | auto_update_last_message_at | 2026-05-08 | `0822b16` | migration 072 後も UPDATE が RLS チェーン問題でサイレント失敗。AFTER INSERT トリガー（SECURITY DEFINER）で last_message_at を自動更新し RLS を完全回避 |
+| 074 | fix_ow_conversation_participants_insert_recursion | 2026-05-08 | `6bd05fa` | INSERT WITH CHECK 条件 1 が同テーブルを直接 SELECT → PostgreSQL の「無限再帰」検出エラー。条件 1 を削除（条件 2・3 で十分）し解消 |
+
+---
+
+## Phase ν-4 で得た技術的知見（2026-05-08 追記）
+
+既存の知見（DML CTE / role CHECK 制約）に加え、Phase ν-4 後半で以下を習得:
+
+1. **schema_migrations への INSERT は migration ファイルに書かない** — Supabase CLI が自動で管理する。手書きすると二重登録でエラーになる
+
+2. **テストデータ 0 件状態での RLS 検証は不十分** — SELECT が通っても INSERT/UPDATE の RLS バグは insert 実行時まで表面化しない。テストデータは「正常に挿入できるパス」と「拒否されるパス」の両方を用意すべき
+
+3. **RLS 相互参照は静的レビューで見抜けない** — A→B→A の参照チェーンは図を書いても発見しづらい。必ずブラウザで実際の操作をして確認（動作確認が最終砦）
+
+4. **DML CTE は最終 SELECT で参照しないと実行されない** — `WITH update_conv AS (UPDATE ...) SELECT 1` のように「参照なし SELECT」では UPDATE が最適化で除去される（4A-5 の last_message_at null 問題）
+
+5. **ow_conversation_participants の role CHECK 制約** — 許可値は `candidate / company_admin / mentor / editor / operator` のみ。`'hr'` は CHECK 違反になる
+
+6. **既存値 grep だけでなく CHECK 制約定義を確認すべし** — 特定の値がテーブルに入っていても、それが CHECK 制約で明示的に許可された値かどうかは別途確認が必要
+
+7. **RLS UPDATE の auth.uid() vs ow_users.id 不一致はサイレント失敗** — エラーログに何も出ず、updateError = null、0 行更新のまま処理が続く。`SELECT COUNT(*) affected` を確認しないと気づけない
+
+8. **複雑な RLS チェーンの問題は migration 修正だけでは解決しない場合がある** — 参照チェーンが深くなると、ポリシー定義が理論上正しくても PostgreSQL の評価コンテキストが期待通りに動かない。SECURITY DEFINER（トリガーまたは RPC 関数）で RLS を完全回避するのが最終解
+
+9. **PG15+ の SECURITY DEFINER は `SET search_path = public, pg_temp` 必須** — migration 036 で習得した知見が migration 073 で再活用された
+
+10. **WITH CHECK の同一テーブル自己参照は PostgreSQL のスタック検出で即エラー** — ポリシー評価中に同テーブルを再 SELECT しようとすると「infinite recursion detected」が発生。回避策は条件の削除または SECURITY DEFINER 関数化
+
+11. **「最も保守的な解 = 機能削除」が正解の場合がある** — migration 074 では「既存参加者が他者を追加できる」条件 1 を削除することで無限再帰を解消。未使用機能の削除は、SECURITY DEFINER 化より変更範囲が小さく安全
+
+---
+
+## テスト用アカウント情報
+
+### テスト担当者_001（段階 2 返信フォーム検証用）
+
+- Email: `contact+biz001@opinio.co.jp`
+- Password: `OpinioTest_biz001_2026!`
+- auth_id: `837dd8c8-d863-465e-9672-d4cd2f1f896a`
+- ow_users.id: `1c21269b-d06a-4ecf-97bd-663c0027e86a`
+- 所属: 会社_001 管理者 + 対話 `0e668917-...` の participant（company_admin）
+
+### テスト担当者_005（段階 3 lazy join 検証用）
+
+- Email: `contact+biz005@opinio.co.jp`
+- Password: `OpinioTest_biz005_2026!`
+- auth_id: `21e85177-e121-49ba-8889-99d051bc9edd`
+- ow_users.id: `8feca16e-ca2a-4a22-8a11-14af2aafa2b8`
+- 所属: 会社_001 メンバー（段階 3 で「参加するボタン」を押して participant に昇格）
+
+---
+
+## Phase ν-5 候補スコープ（2026-05-08 更新）
+
+### 優先度 A（リリース前必須）
+
+- **A-1**: ログアウト機能 UI 実装（現状 `/biz` にログアウトボタンが存在しない）
+- **A-2**: 候補者側マイページの UI 統一（`/mypage/conversations` を `/biz/conversations` と同等品質に。系統 A/B の UI 分断解消）
+
+### 優先度 B（コア体験改善）
+
+- **B-1**: マイページのキャリアプレビュー（ダッシュボードに自分のキャリア概要セクション追加）
+- **B-2**: 現役社員プロフィールページの充実（`/u/[id]` の表示内容拡充、現状「薄い」との指摘あり）
+- **B-3**: `/biz/candidates/[id]` 候補者プロフィール詳細ページ実装（4A-7 段階 1.5 で「準備中」とした箇所の本実装）
+
+### 優先度 C / 将来
+
+- **C-1**: 現役社員プロフィールの編集 UI
+- **C-2**: `/profile/edit` のモックデータ排除（Phase 5 Stage 3 相当）
+- **C-3**: `ow_users.current_role` カラム追加検討（候補者プロフィールに現職情報を表示するため）
+- **C-4**: ActivityList 残り 5 イベント追加（casual_meeting_applied / offer_sent / message_sent 等）
+
+### Phase ν-5 全体テーマ仮説
+
+**「自己 / 他者の見える化」**
+
+対話を始める前段階の自己認識・他者認識を支える UX 強化。
+- 現役社員プロフィールが薄い（B-2）
+- マイページにキャリアが出ない（B-1）
+- 候補者側が自分の対話状況を把握しにくい（A-2）
+
+これらは「自分が見えない / 相手が見えない」という共通テーマを持つ。
+
+---
+
+## Sub-step 4A-8 残タスク
+
+- **引き継ぎ書 v18 作成**（明日着手予定、30〜60 分）
+  - ファイル: `docs/handoff/handover-2026-05-08-nu4-complete.md`
+  - 上記「Phase ν-4 で得た技術的知見」11 件を転記
+  - Phase ν-5 優先度 A/B/C の整理を含める
+- **Phase ν-5 着手判断**（引き継ぎ書完成後に柴さんと相談）
