@@ -1,0 +1,116 @@
+import { createClient } from "@/lib/supabase/server";
+import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
+
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  const conversationId = params.id;
+  const supabase = createClient();
+
+  // ── Auth check ─────────────────────────────────────────────────────────────
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // ── Body validation ────────────────────────────────────────────────────────
+  let body: { message?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const messageBody = body.message?.trim() ?? "";
+  if (!messageBody) {
+    return NextResponse.json({ error: "message is required" }, { status: 400 });
+  }
+  if (messageBody.length > 5000) {
+    return NextResponse.json(
+      { error: "message too long (max 5000 chars)" },
+      { status: 400 }
+    );
+  }
+
+  // ── Resolve ow_users.id from auth.uid() ───────────────────────────────────
+  // auth.uid() is auth.users.id (Supabase Auth UUID space)
+  // ow_users.id is the app-level UUID — different spaces
+  const { data: owUser } = await supabase
+    .from("ow_users")
+    .select("id")
+    .eq("auth_id", user.id)
+    .maybeSingle();
+
+  if (!owUser) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // ── Participant check ──────────────────────────────────────────────────────
+  // The sender must be an active participant of this conversation.
+  // ow_conversation_messages INSERT RLS also enforces this, but we check early
+  // to return a clear 403 rather than a generic Supabase error.
+  const { data: participant } = await supabase
+    .from("ow_conversation_participants")
+    .select("id, role")
+    .eq("conversation_id", conversationId)
+    .eq("user_id", owUser.id)
+    .is("left_at", null)
+    .maybeSingle();
+
+  if (!participant) {
+    return NextResponse.json(
+      { error: "Not a participant of this conversation" },
+      { status: 403 }
+    );
+  }
+
+  // ── INSERT message ─────────────────────────────────────────────────────────
+  const now = new Date().toISOString();
+
+  const { data: newMsg, error: insertError } = await supabase
+    .from("ow_conversation_messages")
+    .insert({
+      conversation_id: conversationId,
+      sender_participant_id: participant.id,
+      body: messageBody,
+      sent_at: now,
+    })
+    .select("id")
+    .single();
+
+  if (insertError) {
+    console.error(
+      "[conversations/messages POST] insert error:",
+      insertError.message
+    );
+    return NextResponse.json({ error: insertError.message }, { status: 500 });
+  }
+
+  // ── UPDATE last_message_at (best-effort) ───────────────────────────────────
+  // migration 072 fixed ow_conversations UPDATE RLS UUID mismatch.
+  // If this still fails due to RLS, we log and continue (non-blocking).
+  try {
+    const { error: updateError } = await supabase
+      .from("ow_conversations")
+      .update({ last_message_at: now })
+      .eq("id", conversationId);
+
+    if (updateError) {
+      console.warn(
+        "[conversations/messages POST] last_message_at update failed:",
+        updateError.message
+      );
+    }
+  } catch (e) {
+    console.warn("[conversations/messages POST] last_message_at update threw:", e);
+  }
+
+  // ── Revalidate detail page ─────────────────────────────────────────────────
+  revalidatePath(`/biz/conversations/${conversationId}`);
+
+  return NextResponse.json({ ok: true, id: newMsg.id });
+}

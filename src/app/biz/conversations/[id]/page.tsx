@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import { ReplyForm } from "./ReplyForm";
 
 export const dynamic = "force-dynamic";
 
@@ -409,8 +410,8 @@ export default async function BizConversationDetailPage({
             )}
           </div>
 
-          {/* Reply placeholder (Stage 2) */}
-          {!isParticipant && (
+          {/* Reply area */}
+          {!isParticipant ? (
             <div style={{
               borderTop: "1px solid var(--line-soft)",
               padding: "12px 16px",
@@ -420,17 +421,8 @@ export default async function BizConversationDetailPage({
                 返信するには「参加する」ボタンから対話に参加してください
               </p>
             </div>
-          )}
-          {isParticipant && (
-            <div style={{
-              borderTop: "1px solid var(--line-soft)",
-              padding: "12px 16px",
-              background: "var(--bg-tint)",
-            }}>
-              <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, textAlign: "center" }}>
-                ※ 返信フォームは次のアップデートで追加予定です
-              </p>
-            </div>
+          ) : (
+            <ReplyForm conversationId={conv.id} />
           )}
         </div>
 
