@@ -308,11 +308,13 @@ CREATE POLICY "company_or_participant_can_select" ON ow_conversations
 - TypeScript エラーなし
 
 **制約**:
-- サイドバー・ヘッダー設計: 候補者側 /mypage 本体（系統 A、MypageClient.tsx
-  配下のレイアウト）に揃える方針で実装する。/mypage/conversations（系統 B、
-  シンプルサイドバー）の UI を「対話一覧の機能ロジック・データ取得・
-  カードコンポーネント」としては流用するが、「レイアウト・ナビゲーション
-  （サイドバー、ヘッダー、MOCK 切替バー等）」は系統 A のパターンを採用する。
+- 流用範囲: ロジック骨格のみ参考にする
+  （getSession → ow_users 取得 → SELECT conversations → 未読判定の流れ）
+  候補者側 `/mypage/conversations` の `SIDEBAR_ITEMS` や `<aside>` JSX、
+  レイアウト構造はコピーしない
+  （`phase-nu-4-step-6-pre-investigation.md` で「企業側は系統 A で BusinessLayout を直接 wrap」と確定）
+- レイアウト: `BusinessLayout` コンポーネントを直接 wrap する形で新規作成
+  （`/biz/layout.tsx` は存在しない。`/biz/dashboard/page.tsx` と同じパターン）
   これは Phase ν-3 以前から存在する候補者側の系統 A/B 不整合に企業側を
   引きずられないための予防策。
 
@@ -337,6 +339,11 @@ CREATE POLICY "company_or_participant_can_select" ON ow_conversations
 - 返信入力エリア（textarea + 送信ボタン）
 - stage 変更ドロップダウン（inquiry → casual_meeting → interview → offer → closed）
 - 参加者一覧（HR 追加ボタン含む）
+- 候補者プロフィールサマリーを表示
+  - 表示カラム: `name`, `about_me`, `age_range`, `location`
+  - `ow_users.current_role` は存在しないため表示しない
+    （詳細は `phase-nu-4-step-7-pre-investigation.md` 重大発見 2 参照）
+  - 「プロフィール詳細を見る」リンクを 1 つ配置（候補者の詳細プロフィール画面へ）
 
 ### 返信 API: `src/app/api/biz/conversations/[id]/messages/route.ts`
 
@@ -348,6 +355,11 @@ CREATE POLICY "company_or_participant_can_select" ON ow_conversations
 // 3. ow_conversation_messages に INSERT
 // 4. ow_conversations.last_message_at を UPDATE
 ```
+
+- 送信パターン: 候補者側返信フォームと同じパターンに揃える
+  （`phase-nu-4-step-7-pre-investigation.md` の「候補者側返信フォームの実装パターン」参照）
+  対称性とメンテナンス容易性を優先するため、候補者側と HR 側で送信経路を
+  バラバラにしない
 
 ### Lazy Registration: ハイブリッド方式
 
@@ -367,7 +379,7 @@ CREATE POLICY "company_or_participant_can_select" ON ow_conversations
     await supabase.from('ow_conversation_participants').insert({
       conversation_id: conversationId,
       user_id: owUserId,
-      role: 'company_admin',
+      role: 'hr',  // 既存命名規則に合わせる(4A-6/4A-7 事前調査で確定)
     });
   }
   ```
@@ -412,6 +424,13 @@ CREATE POLICY "company_or_participant_can_select" ON ow_conversations
   影響ページ調査が必要（系統 A: /mypage、系統 B: 現時点で /mypage/conversations
   と /mypage/applications を確認、他にも該当ページがある可能性）。
   原因は Next.js App Router の layout.tsx 階層分岐にあると推測。
+- migration 071: `ow_conversation_messages` UPDATE ポリシーの UUID 不一致バグ修正
+  （4A-6/4A-7 事前調査で発見。UPDATE の `user_id = auth.uid()` 直接比較が常に false
+  → メッセージ編集・論理削除が一般ユーザーに不可。4A-7 では編集・削除機能を
+  持たないため non-blocking だが、将来実装時に必要）
+- `ow_users.current_role` カラムの追加検討
+  （現職情報の表示に必要。追加するなら `ow_companies` との関連設計も検討。
+  4A-7 の候補者プロフィールサマリーでは非表示で回避済み）
 
 **完了条件**:
 - 引き継ぎ書が作成され、コミット済み
