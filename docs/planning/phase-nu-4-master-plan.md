@@ -414,6 +414,19 @@ CREATE POLICY "company_or_participant_can_select" ON ow_conversations
 - 残タスク（Phase ν-5 以降のスコープ）
 - 次のセッションでやること
 
+**Phase ν-4 実装で得た技術的知見**:
+
+- **DML CTE の実行保証**: PostgreSQL の WITH 句内の DML CTE（INSERT/UPDATE/DELETE）は、
+  最終 SELECT から参照されない場合、実行されないことがある（最適化により除去される）。
+  確実に実行したい場合は最終 SELECT で明示的に参照する。
+  例: `SELECT (SELECT id FROM update_conv1) AS updated_id`
+  （Sub-step 4A-5 で update_conv1/2 が未実行となり last_message_at が null になった事例から）
+
+- **ow_conversation_participants の role CHECK 制約**:
+  許可値は `'candidate' / 'company_admin' / 'mentor' / 'editor' / 'operator'`。
+  `'hr'` は許可されていない。企業側参加者には `'company_admin'` を使う。
+  （Sub-step 4A-5 シードデータ投入時に CHECK 違反で発覚）
+
 **Phase ν-5 候補スコープの仮置き**:
 - 候補者側マイページのサイドバー系統統一: 現状 /mypage 本体（系統 A:
   「マイアクティビティ」サイドバー + MOCK 切替バー）と /mypage/conversations、
