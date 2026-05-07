@@ -353,4 +353,162 @@ COMMIT;
 
 ---
 
-*（診断完了: 2026-05-07）*
+## 補足: mentor 対話まわりの調査
+
+> 追記: 2026-05-08  
+> 目的: Option 1 の `mentor_user_id` 条件追加の要否を判定するための追加調査
+
+### 調査 1: ow_conversations テーブルのカラム構造
+
+```
+id                uuid  NOT NULL
+kind              text  NOT NULL           ← 'company' | 'mentor'
+stage             text  NOT NULL
+company_id        uuid  NULLABLE           ← kind='company' 時に使用
+mentor_user_id    uuid  NULLABLE           ← kind='mentor' 時に使用  ★存在確認
+candidate_user_id uuid  NOT NULL           ← 常に必須
+status            text  NOT NULL
+last_message_at   timestamptz  NULLABLE
+created_at        timestamptz  NOT NULL
+```
+
+**発見**: `mentor_user_id` カラムは実在する（nullable uuid）。  
+mentor 対話は `ow_conversations` に `kind='mentor'`, `mentor_user_id={メンターの ow_users.id}`, `company_id=NULL` で格納される設計。
+
+---
+
+### 調査 2: DB の種別別件数（2026-05-08 時点）
+
+| kind | 件数 |
+|------|------|
+| `company` | **2 件** |
+| `mentor` | **0 件** |
+
+**mentor 対話は現在 0 件**。バグが潜在するが未発動。
+
+---
+
+### 調査 3: create_conversation RPC の mentor 対話処理
+
+```sql
+-- RPC の引数
+p_kind text, p_candidate_user_id uuid,
+p_company_id uuid DEFAULT NULL,
+p_mentor_user_id uuid DEFAULT NULL     ← 引数として受け取る
+
+-- INSERT 処理（抜粋）
+INSERT INTO ow_conversations (kind, stage, company_id, mentor_user_id, candidate_user_id)
+VALUES (p_kind, 'mediated', NULL, p_mentor_user_id, p_candidate_user_id);
+
+-- participants への追加（candidates のみ）
+INSERT INTO ow_conversation_participants (conversation_id, user_id, role)
+VALUES (v_conversation_id, p_candidate_user_id, 'candidate');
+-- ↑ mentor は participants に追加されない
+```
+
+**重要発見**: `create_conversation` RPC は mentor_user_id を `ow_conversations` に格納するが、  
+**mentor 自身を `ow_conversation_participants` に追加しない**。
+
+---
+
+### 調査 4: mentor 対話の表示経路
+
+`/mypage/conversations/page.tsx` の SELECT クエリ（該当箇所）:
+
+```typescript
+// L69-78: ow_conversations を直接 SELECT（RLS に委ねる）
+const { data, error: fetchError } = await supabase
+  .from("ow_conversations")
+  .select(`
+    id, kind, stage, status, last_message_at, created_at,
+    company_id, mentor_user_id,
+    ow_companies(id, name, logo_url, logo_letter),
+    mentor:ow_users!mentor_user_id(id, name)   ← mentor 名取得は FK 経由
+  `)
+  .order("last_message_at", { ascending: false });
+
+// L67 コメント:
+// "RLS (migration 066 + 067) filters by owUser.id via ow_conversation_participants"
+```
+
+**表示経路の整理**:
+
+| 主体 | 経路 | 現状 |
+|------|------|------|
+| **候補者が mentor 対話を表示** | `/mypage/conversations` → `ow_conversations` SELECT → Condition A（participants 経由）| ✅ 動作（候補者は participants に登録済み） |
+| **メンターが自分の対話を表示** | 未実装（該当ページなし） | ❌ 未実装 |
+
+---
+
+### 判定: 案 A/B/C のどれか
+
+**判定: 案 A — Option 1 を採用、`mentor_user_id` 条件は追加不要**
+
+#### 根拠
+
+**① mentor 対話は同一テーブル・同一 SELECT を通る（案 B は不成立）**
+
+`/mypage/conversations` は kind に関係なく全対話を `ow_conversations` から SELECT している。  
+「mentor 対話は別経路」という想定は誤り。案 B は不成立。
+
+**② Option 1 後に候補者が mentor 対話を表示できるか → YES**
+
+| 修正後 Condition A | mentor 対話での動作 |
+|---|---|
+| `candidate_user_id IN (SELECT ow_users.id FROM ow_users WHERE ow_users.auth_id = auth.uid())` | 候補者の `candidate_user_id` が直接マッチ → **表示可 ✅** |
+
+Option 1 は company/mentor 問わず「候補者が自分の対話を見る」ケースをすべてカバーする。
+
+**③ mentor_user_id 条件が必要になるのは「メンター側ページ」を実装する時**
+
+現状、`/biz/mentor` や `/mentor/conversations` に相当する画面は未実装であり、  
+メンター自身が自分の対話を閲覧する要件はスコープ外。  
+**今回の migration 071 に `mentor_user_id` 条件を追加する必要はない。**
+
+---
+
+### ⚠️ 将来の罠: mentor 対話が作成された直後に潜在バグが顕在化する
+
+現在 `ow_conversations_select` の **Condition A** は `ow_conversation_participants` を参照しており、  
+`ow_conversation_participants_select` の **Condition B** は `ow_conversations` を参照している。  
+この相互依存は **mentor 対話が作成されても company 対話が作成されても** 等しく無限ループを引き起こす。  
+（今回は company 対話が作成された時点で顕在化した）
+
+**migration 071 適用前に mentor 対話が作成されると同じエラーが発生する**。  
+→ migration 071 を迅速に適用することが最優先。
+
+---
+
+### 将来の mentor 側ページ実装時に必要な追加対応
+
+メンター自身が自分の対話を閲覧するページ（例: `/mentor/conversations`）を実装する際は、  
+`ow_conversations_select` に以下の Condition D を追加する migration が必要:
+
+```sql
+-- 将来 migration（Phase ν-5 以降）
+-- Condition D: mentor 自身が自分の対話を閲覧可能にする
+OR (
+  mentor_user_id IN (
+    SELECT ow_users.id FROM ow_users WHERE ow_users.auth_id = auth.uid()
+  )
+)
+```
+
+この対応なしにメンター側ページを実装すると、  
+メンターが `ow_conversations` を SELECT できず画面が空になる。
+
+---
+
+### 最終結論
+
+| 項目 | 内容 |
+|------|------|
+| mentor 対話の DB 件数 | **0 件**（kind='company' 2件のみ） |
+| mentor 対話の表示経路 | `/mypage/conversations` の `ow_conversations` SELECT（同テーブル・同ポリシー） |
+| Option 1 の mentor_user_id 条件追加の要否 | **不要**（候補者は `candidate_user_id` で直接マッチ、メンター側ページは未実装） |
+| 採用する案 | **案 A（Option 1 の SQL そのまま、追加変更なし）** |
+| migration 071 の緊急度 | **高**（mentor 対話が作成される前に適用必須） |
+
+---
+
+*（補足調査完了: 2026-05-08）*
