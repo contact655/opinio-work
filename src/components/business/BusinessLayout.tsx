@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, MessageSquare, ClipboardList, Users, Newspaper } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, MessageSquare, MessageCircle, ClipboardList, Users, Newspaper } from "lucide-react";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
 
@@ -45,6 +45,11 @@ const NAV_ITEMS = [
     href: "/biz/meetings",
     label: "カジュアル面談",
     icon: <MessageSquare size={16} strokeWidth={2.2} />,
+  },
+  {
+    href: "/biz/conversations",
+    label: "対話管理",
+    icon: <MessageCircle size={16} strokeWidth={2.2} />,
   },
   {
     href: "/biz/posts",
