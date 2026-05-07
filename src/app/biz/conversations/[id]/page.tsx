@@ -4,6 +4,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { ReplyForm } from "./ReplyForm";
+import { JoinButton } from "./JoinButton";
 
 export const dynamic = "force-dynamic";
 
@@ -410,19 +411,11 @@ export default async function BizConversationDetailPage({
             )}
           </div>
 
-          {/* Reply area */}
-          {!isParticipant ? (
-            <div style={{
-              borderTop: "1px solid var(--line-soft)",
-              padding: "12px 16px",
-              background: "var(--bg-tint)",
-            }}>
-              <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, textAlign: "center" }}>
-                返信するには「参加する」ボタンから対話に参加してください
-              </p>
-            </div>
-          ) : (
+          {/* Reply area: JoinButton for non-participants, ReplyForm for participants */}
+          {isParticipant ? (
             <ReplyForm conversationId={conv.id} />
+          ) : (
+            <JoinButton conversationId={conv.id} />
           )}
         </div>
 
