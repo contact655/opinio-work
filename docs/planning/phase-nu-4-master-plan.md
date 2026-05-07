@@ -379,7 +379,7 @@ CREATE POLICY "company_or_participant_can_select" ON ow_conversations
     await supabase.from('ow_conversation_participants').insert({
       conversation_id: conversationId,
       user_id: owUserId,
-      role: 'hr',  // 既存命名規則に合わせる(4A-6/4A-7 事前調査で確定)
+      role: 'company_admin',  // CHECK 制約許可値(2026-05-08 修正: 'hr' → 'company_admin')
     });
   }
   ```
