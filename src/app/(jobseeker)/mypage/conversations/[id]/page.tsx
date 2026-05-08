@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
-import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
 import { formatDateSeparator } from "@/lib/utils/formatDateSeparator";
@@ -35,19 +34,6 @@ type ConversationDetail = {
   mentor: { name: string } | null;
 };
 
-// B: 機能未実装のため disabled（当面プレースホルダー）
-type SidebarItem =
-  | { label: string; href: string; disabled?: false }
-  | { label: string; href?: never; disabled: true };
-
-const SIDEBAR_ITEMS: SidebarItem[] = [
-  { label: "応募管理",   href: "/mypage/applications" },
-  { label: "対話",       href: "/mypage/conversations" },
-  { label: "プロフィール", href: "/profile/edit" },
-  { label: "保存した求人", disabled: true },  // B: 未実装
-  { label: "通知設定",   disabled: true },    // B: 未実装
-];
-
 const STAGE_LABELS: Record<string, string> = {
   inquiry: "問い合わせ",
   casual_meeting: "カジュアル面談",
@@ -72,7 +58,6 @@ function isGroupedMessage(
 
 export default function ConversationDetailPage() {
   const params = useParams();
-  const pathname = usePathname();
   const conversationId = params.id as string;
 
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
@@ -223,9 +208,9 @@ export default function ConversationDetailPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-gray-600">読み込み中...</p>
-      </main>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
+        <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>読み込み中...</p>
+      </div>
     );
   }
 
@@ -238,44 +223,8 @@ export default function ConversationDetailPage() {
   const stageLabel = conversation ? (STAGE_LABELS[conversation.stage] ?? conversation.stage) : "";
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto px-4 py-8 flex gap-6">
-        {/* Left Sidebar — top-24(96px) → top-16(64px) に修正 */}
-        <aside className="hidden lg:block w-[200px] flex-shrink-0">
-          <nav className="sticky top-16 space-y-1">
-            {SIDEBAR_ITEMS.map((item) => {
-              if (item.disabled) {
-                return (
-                  <span
-                    key={item.label}
-                    className="block px-3 py-2 rounded-lg text-sm text-gray-400 cursor-not-allowed select-none"
-                    aria-disabled="true"
-                    title="準備中"
-                  >
-                    {item.label}
-                  </span>
-                );
-              }
-              const isActive = pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
-                    isActive
-                      ? "bg-primary-light text-primary font-medium"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </aside>
-
-        {/* Main — height 計算: 100vh - header(60) - padding(py-8 × 2 = 64) ≈ 120px */}
-        <div className="flex-1 min-w-0 flex flex-col" style={{ height: "calc(100vh - 120px)" }}>
+    // MypageLayout の <main> padding: 36px 40px 60px + header 65px + MOCK banner ~44px ≈ 205px
+    <div className="flex flex-col" style={{ height: "calc(100vh - 205px)" }}>
           {/* Header */}
           <div className="bg-white rounded-t-card border border-card-border px-4 py-3 flex items-center gap-3 flex-shrink-0">
             <Link
@@ -461,7 +410,5 @@ export default function ConversationDetailPage() {
             )}
           </div>
         </div>
-      </div>
-    </main>
   );
 }
