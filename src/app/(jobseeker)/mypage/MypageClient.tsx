@@ -951,7 +951,7 @@ export default function MypageClient({
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <SidebarItem icon={Icons.user} label="プロフィールを編集" active={false} onClick={() => { window.location.href = "/profile/edit"; }} />
-            <SidebarItem icon={Icons.settings} label="設定" active={false} onClick={() => {}} />
+            <SidebarItem icon={Icons.settings} label="設定" active={false} onClick={() => { window.location.href = "/profile/edit"; }} />
           </nav>
         </aside>
 
