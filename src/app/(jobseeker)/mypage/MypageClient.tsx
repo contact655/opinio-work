@@ -243,10 +243,13 @@ function SidebarItem({
 // ─── VIEW: Dashboard ──────────────────────────────────────────────────────────
 
 function DashboardView({
-  isMentor, onNavigate, userName, userInitial, userAvatar, userCover, companyBookmarks, casualMeetings, mentorReservations,
+  isMentor, onNavigate, userName, userInitial, userAvatar,
+  userLocation, userAboutMe,
+  companyBookmarks, casualMeetings, mentorReservations,
 }: {
   isMentor: boolean; onNavigate: (v: ActiveView) => void;
-  userName: string; userInitial: string; userAvatar: string; userCover: string;
+  userName: string; userInitial: string; userAvatar: string;
+  userLocation?: string | null; userAboutMe?: string | null;
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
@@ -294,179 +297,140 @@ function DashboardView({
     },
   ];
 
+  const statCards = [
+    {
+      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>,
+      iconBg: "var(--warm-soft)", iconColor: "#B45309",
+      value: pendingCasual, label: "カジュアル面談\n申込中",
+      onClick: () => onNavigate("casual"),
+    },
+    {
+      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+      iconBg: "var(--royal-50)", iconColor: "var(--royal)",
+      value: pendingMentor, label: "メンター相談\n審査中",
+      onClick: () => onNavigate("mentor-reserve"),
+    },
+    {
+      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
+      iconBg: "var(--pink-soft, #FCE7F3)", iconColor: "var(--pink)",
+      value: totalBookmarks, label: "ブックマーク\n合計",
+      onClick: () => onNavigate("bookmarks"),
+    },
+    {
+      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+      iconBg: "var(--purple-soft)", iconColor: "var(--purple)",
+      value: 8, label: "閲覧した\n記事数",
+      onClick: undefined as (() => void) | undefined,
+    },
+  ];
+
   return (
     <div>
-      <h1 style={{
-        fontFamily: 'var(--font-noto-serif)', fontWeight: 500,
-        fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em",
-      }}>
-        おかえりなさい、{userName}さん
-      </h1>
-      <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
-        あなたのOpinio活動の全体像を確認できます。
-      </p>
-
-      {/* Profile card */}
+      {/* Compact profile card — ファーストビューで自分の物語が見える */}
       <div style={{
         background: "#fff", border: "1px solid var(--line)",
-        borderRadius: 16, overflow: "hidden", marginBottom: 20,
+        borderRadius: 16, padding: "24px 28px", marginBottom: 20,
+        display: "flex", alignItems: "flex-start", gap: 20,
       }}>
-        <div style={{
-          height: 100,
-          background: userCover,
-        }} />
-        <div style={{ padding: "0 28px 24px", marginTop: -40, position: "relative" }}>
+        {/* Avatar */}
+        <div style={{ position: "relative", flexShrink: 0 }}>
           <div style={{
-            width: 80, height: 80, borderRadius: "50%",
+            width: 68, height: 68, borderRadius: "50%",
             background: userAvatar,
             color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 30, fontWeight: 600,
-            border: "4px solid #fff", boxShadow: "0 4px 12px rgba(15,23,42,0.08)",
-            marginBottom: 14,
+            fontSize: 26, fontWeight: 600,
+            border: "3px solid #fff", boxShadow: "0 2px 10px rgba(15,23,42,0.10)",
           }}>
             {userInitial}
-            {isMentor && (
-              <div style={{
-                position: "absolute", bottom: 0, right: 0,
-                width: 22, height: 22,
-                background: "linear-gradient(135deg, var(--royal), var(--accent))",
-                borderRadius: "50%", border: "3px solid #fff",
-                display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
-              }}>
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
-                </svg>
-              </div>
-            )}
           </div>
+          {isMentor && (
+            <div style={{
+              position: "absolute", bottom: 0, right: -2,
+              width: 20, height: 20,
+              background: "linear-gradient(135deg, var(--royal), var(--accent))",
+              borderRadius: "50%", border: "2px solid #fff",
+              display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
+            }}>
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
+              </svg>
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-            gap: 16, flexWrap: "wrap", marginBottom: 4,
+            gap: 12, marginBottom: 2,
           }}>
-            <div>
-              <div style={{
-                fontFamily: 'var(--font-noto-serif)',
-                fontWeight: 700, fontSize: 20, color: "var(--ink)",
-              }}>
-                {userName}
-                {isMentor && (
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    width: 18, height: 18, marginLeft: 6,
-                    background: "linear-gradient(135deg, var(--royal), var(--accent))",
-                    color: "#fff", borderRadius: "50%", verticalAlign: "middle",
-                  }}>
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
-                    </svg>
-                  </span>
-                )}
-              </div>
-              <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                {/* TODO: Phase ν-5 で Supabase ow_users.current_role に接続する */}
-                {MOCK_USER.currentRole}
-              </div>
+            <div style={{
+              fontFamily: "var(--font-noto-serif)",
+              fontWeight: 700, fontSize: 20, color: "var(--ink)",
+              display: "flex", alignItems: "center", gap: 6,
+            }}>
+              {userName}
+              {isMentor && (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  width: 16, height: 16,
+                  background: "linear-gradient(135deg, var(--royal), var(--accent))",
+                  color: "#fff", borderRadius: "50%",
+                }}>
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
+                  </svg>
+                </span>
+              )}
             </div>
             <Link href="/profile/edit" style={{
-              padding: "7px 14px", background: "#fff", color: "var(--ink)",
+              padding: "6px 13px", background: "#fff", color: "var(--ink)",
               border: "1px solid var(--line)", borderRadius: 8,
               fontFamily: "inherit", fontSize: 12, fontWeight: 600,
+              textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
             }}>
               プロフィールを編集
             </Link>
           </div>
-          {/* Completeness bar */}
-          <div style={{
-            background: "var(--bg-tint)", borderRadius: 10, padding: "12px 16px", marginTop: 16,
-          }}>
+
+          {/* 肩書き（mock → ν-6 段階3 でインライン編集化） */}
+          <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 6 }}>
+            {MOCK_USER.currentRole}
+          </div>
+
+          {/* 場所 */}
+          {userLocation && (
             <div style={{
-              display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8,
+              display: "flex", alignItems: "center", gap: 4,
+              fontSize: 12, color: "var(--ink-mute)", marginBottom: 10,
             }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>プロフィール完成度</span>
-              <span style={{
-                fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 700, color: "var(--royal)",
-              }}>
-                {/* TODO: Phase ν-5 で実データ計算に切り替える */}
-                {MOCK_USER.profileCompletion}%
-              </span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+              {userLocation}
             </div>
-            <div style={{ height: 6, background: "#fff", borderRadius: 100, overflow: "hidden", marginBottom: 8 }}>
-              {/* TODO: Phase ν-5 で実データ計算に切り替える */}
-              <div style={{
-                height: "100%", width: `${MOCK_USER.profileCompletion}%`,
-                background: "linear-gradient(to right, var(--royal), var(--accent))",
-                borderRadius: 100,
-              }} />
+          )}
+
+          {/* About Me — 物語の核心 */}
+          {userAboutMe ? (
+            <div style={{
+              fontSize: 13, color: "var(--ink)", lineHeight: 1.85,
+              paddingTop: userLocation ? 0 : 4,
+            }}>
+              {userAboutMe}
             </div>
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-              基本情報と職歴を充実させると、企業やメンターがあなたをより理解できます。
-              <Link href="/profile/edit" style={{ color: "var(--royal)", fontWeight: 600, marginLeft: 4 }}>
-                プロフィールを編集する →
+          ) : (
+            <div style={{
+              fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7,
+              paddingTop: userLocation ? 0 : 4, fontStyle: "italic",
+            }}>
+              自己紹介を追加すると、企業やメンターがあなたをより理解できます
+              <Link href="/profile/edit" style={{ color: "var(--royal)", fontWeight: 600, marginLeft: 6, fontStyle: "normal" }}>
+                追加する →
               </Link>
             </div>
-          </div>
+          )}
         </div>
-      </div>
-
-      {/* Stats grid */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20,
-      }}>
-        {[
-          {
-            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>,
-            iconBg: "var(--warm-soft)", iconColor: "#B45309",
-            value: pendingCasual, label: "カジュアル面談\n申込中",
-            onClick: () => onNavigate("casual"),
-          },
-          {
-            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-            iconBg: "var(--royal-50)", iconColor: "var(--royal)",
-            value: pendingMentor, label: "メンター相談\n審査中",
-            onClick: () => onNavigate("mentor-reserve"),
-          },
-          {
-            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
-            iconBg: "var(--pink-soft, #FCE7F3)", iconColor: "var(--pink)",
-            value: totalBookmarks, label: "ブックマーク\n合計",
-            onClick: () => onNavigate("bookmarks"),
-          },
-          {
-            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
-            iconBg: "var(--purple-soft)", iconColor: "var(--purple)",
-            value: 8, label: "閲覧した\n記事数",
-            onClick: undefined,
-          },
-        ].map((card, i) => (
-          <div
-            key={i}
-            onClick={card.onClick}
-            style={{
-              background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-              padding: "18px 20px", cursor: card.onClick ? "pointer" : "default",
-              transition: "all 0.2s",
-            }}
-            className={card.onClick ? "stat-card-hover" : ""}
-          >
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: card.iconBg, color: card.iconColor,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              marginBottom: 10,
-            }}>
-              {card.icon}
-            </div>
-            <div style={{
-              fontFamily: "Inter, sans-serif", fontSize: 24, fontWeight: 700,
-              color: "var(--ink)", marginBottom: 2,
-            }}>
-              {card.value}
-            </div>
-            <div style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 500, lineHeight: 1.5, whiteSpace: "pre-line" }}>
-              {card.label}
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* Recent activity */}
@@ -545,6 +509,44 @@ function DashboardView({
           ))}
         </div>
         )}
+      </SectionBlock>
+
+      {/* マイアクティビティ（数字カード）— 格下げ: ページ下部に移動 */}
+      <SectionBlock title="マイアクティビティ" titleEn="Activity">
+        <div style={{
+          display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12,
+        }}>
+          {statCards.map((card, i) => (
+            <div
+              key={i}
+              onClick={card.onClick}
+              style={{
+                background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
+                padding: "16px 18px", cursor: card.onClick ? "pointer" : "default",
+                transition: "all 0.2s",
+              }}
+              className={card.onClick ? "stat-card-hover" : ""}
+            >
+              <div style={{
+                width: 30, height: 30, borderRadius: 8,
+                background: card.iconBg, color: card.iconColor,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                marginBottom: 8,
+              }}>
+                {card.icon}
+              </div>
+              <div style={{
+                fontFamily: "Inter, sans-serif", fontSize: 22, fontWeight: 700,
+                color: "var(--ink)", marginBottom: 2,
+              }}>
+                {card.value}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 500, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                {card.label}
+              </div>
+            </div>
+          ))}
+        </div>
       </SectionBlock>
     </div>
   );
@@ -913,11 +915,9 @@ export default function MypageClient({
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
   const userAvatar = owUser?.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)";
-  const userCover = owUser?.cover_color ?? "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
 
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
   const [isMentor, setIsMentor] = useState(owUser?.is_mentor ?? false);
-  const [showBanner, setShowBanner] = useState(true);
   const [receivedRequests, setReceivedRequests] = useState(MOCK_RECEIVED_REQUESTS);
 
   const navigate = useCallback((v: ActiveView) => {
@@ -944,7 +944,7 @@ export default function MypageClient({
     );
   };
 
-  const topOffset = showBanner ? 116 : 65;
+  const topOffset = 65;
 
   return (
     <>
@@ -990,51 +990,6 @@ export default function MypageClient({
           ※ モック用の切替。本番ではユーザーの役割に応じて動的に表示
         </span>
       </div>
-
-      {/* Onboarding banner */}
-      {showBanner && (
-        <div style={{
-          background: "linear-gradient(135deg, var(--royal-50) 0%, #fff 100%)",
-          borderBottom: "1px solid var(--royal-100)",
-          padding: "14px 32px",
-          display: "flex", alignItems: "center", gap: 14,
-        }}>
-          <div style={{
-            width: 36, height: 36, background: "var(--royal)", color: "#fff",
-            borderRadius: 10, display: "flex", alignItems: "center",
-            justifyContent: "center", flexShrink: 0,
-          }}>
-            {Icons.user}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)", marginBottom: 2 }}>
-              プロフィールを完成させましょう
-            </div>
-            <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-              キャリア情報を追加すると、企業やメンターがあなたのことを理解しやすくなります。
-            </div>
-          </div>
-          <Link href="/profile/edit" style={{
-            padding: "7px 14px", background: "var(--royal)", color: "#fff",
-            border: "none", borderRadius: 8, fontFamily: "inherit",
-            fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-          }}>
-            プロフィールを編集
-          </Link>
-          <button
-            onClick={() => setShowBanner(false)}
-            style={{
-              border: "none", background: "none", cursor: "pointer",
-              color: "var(--ink-mute)", padding: 6, borderRadius: 6,
-              display: "flex", alignItems: "center",
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-      )}
 
       {/* Layout */}
       <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", minHeight: `calc(100vh - ${topOffset}px)` }}>
@@ -1099,7 +1054,8 @@ export default function MypageClient({
               userName={userName}
               userInitial={userInitial}
               userAvatar={userAvatar}
-              userCover={userCover}
+              userLocation={owUser?.location}
+              userAboutMe={owUser?.about_me}
               companyBookmarks={companyBookmarks}
               casualMeetings={casualMeetings}
               mentorReservations={mentorReservations}
