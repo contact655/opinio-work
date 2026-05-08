@@ -130,16 +130,32 @@
    - birth_year / birth_date を追加して逆算
    - DB マイグレーション + UI 変更 + プライバシー設定が絡む
 
+3. **/mypage 配下の全ページの UI 統一**
+   - 現状: /mypage はν-6 で刷新されたコンパクトプロフィールカード + 新サイドバー
+     /mypage/conversations 等は旧レイアウト（別サイドバー構造、MOCK バナーなし、古いフォント感）
+   - 問題: /mypage と /mypage/conversations を行き来したときの体験が断絶している
+   - 影響範囲:
+     - /mypage/conversations
+     - /mypage/applications（応募管理）
+     - /mypage/bookmarks（保存した求人）
+     - /mypage/notifications（通知設定）
+   - 対応:
+     - サイドバーを /mypage と統一
+     - MOCK バナーを /mypage 配下の全ページで表示
+     - フォント / 余白 / 配色を ν-6 スタイルに揃える
+   - 注意: ν-7 候補リストの「/mypage/conversations の 3-pane 化」と
+     セットで対応するか、先にレイアウト統一を済ませるかの判断が必要
+
 ### 中優先度
-3. **CareerHistoryEditor 約 900 行のリファクタリング**
+4. **CareerHistoryEditor 約 900 行のリファクタリング**
    - StintCard / StintForm / careerEditorUtils に分割
    - ロジックと UI の責務分離
 
-4. **MOCK 切り替えバナーの position: sticky 警告対応**
+5. **MOCK 切り替えバナーの position: sticky 警告対応**
    - 現状 Console に Next.js の警告が出る
    - layout-router.js:110 の skipping auto-scroll behavior
 
-5. **レスポンシブ対応の実機確認と修正**
+6. **レスポンシブ対応の実機確認と修正**
    - `docs/planning/phase-nu-6-responsive-checklist.md` 参照
    - モバイル / タブレットでの動作確認
    - 崩れ箇所の修正
