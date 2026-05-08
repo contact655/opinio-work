@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 type InlineEditableSectionProps = {
   label: string;
@@ -52,20 +52,33 @@ export default function InlineEditableSection({
   onSave,
   onCancel,
 }: InlineEditableSectionProps) {
+  // React-state hover (reliable, no CSS <style> tag dependency)
+  const [hovered, setHovered] = useState(false);
+
   // ── Section-level edit mode ──────────────────────────────────────────
   if (sectionEditMode) {
     return (
       <div style={{ marginTop: 14 }}>
-        {/* Label row with pencil icon */}
+        {/* Label row — full-width flex for a generous click / hover target */}
         <div
-          className={!isEditing ? "ies-header" : undefined}
+          role={!isEditing ? "button" : undefined}
+          tabIndex={!isEditing ? 0 : undefined}
           onClick={!isEditing ? onEdit : undefined}
+          onMouseEnter={() => { if (!isEditing) setHovered(true); }}
+          onMouseLeave={() => setHovered(false)}
+          onKeyDown={(e) => {
+            if (!isEditing && (e.key === "Enter" || e.key === " ")) {
+              e.preventDefault();
+              onEdit?.();
+            }
+          }}
           style={{
-            display: "inline-flex",
+            display: "flex",          // full-width (was inline-flex — too small a target)
             alignItems: "center",
-            gap: 5,
+            gap: 6,
             cursor: !isEditing ? "pointer" : "default",
             marginBottom: 8,
+            userSelect: "none",
           }}
         >
           <span
@@ -80,15 +93,15 @@ export default function InlineEditableSection({
           >
             {label}
           </span>
+          {/* Pencil — React-state controlled (no CSS <style> injection) */}
           {!isEditing && (
             <span
-              className="ies-pencil"
               aria-hidden
               style={{
                 color: "var(--ink-mute)",
                 display: "flex",
                 alignItems: "center",
-                opacity: 0,
+                opacity: hovered ? 1 : 0,
                 transition: "opacity 0.15s",
               }}
             >
@@ -151,13 +164,6 @@ export default function InlineEditableSection({
             </button>
           </div>
         )}
-
-        <style>{`
-          @media (hover: hover) {
-            .ies-header:hover .ies-pencil { opacity: 1 !important; }
-          }
-          .ies-header:hover { opacity: 0.8; }
-        `}</style>
       </div>
     );
   }
