@@ -50,14 +50,6 @@ const STATUS_TO_STEP: Record<string, number> = {
   rejected: -1,
 };
 
-const SIDEBAR_ITEMS = [
-  { label: "応募管理", href: "/mypage/applications", active: true },
-  { label: "対話", href: "/mypage/conversations", active: false },
-  { label: "プロフィール", href: "/profile/edit", active: false },
-  { label: "保存した求人", href: "#", active: false },
-  { label: "通知設定", href: "#", active: false },
-];
-
 const FILTER_TABS = [
   { key: "all", label: "すべて" },
   { key: "doc_review", label: "書類選考中" },
@@ -136,37 +128,18 @@ export default function ApplicationsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-gray-600">読み込み中...</p>
-      </main>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
+        <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>読み込み中...</p>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-background">
-        <div className="max-w-6xl mx-auto px-4 py-8 flex gap-6">
-          {/* Left Sidebar */}
-          <aside className="hidden lg:block w-[200px] flex-shrink-0">
-            <nav className="sticky top-24 space-y-1">
-              {SIDEBAR_ITEMS.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
-                    item.active
-                      ? "bg-primary-light text-primary font-medium"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </aside>
-
-          {/* Main */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold mb-6">応募管理</h1>
+    <div>
+      <h1 style={{
+        fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
+        color: "var(--ink)", marginBottom: 24,
+      }}>応募管理</h1>
 
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -335,9 +308,7 @@ export default function ApplicationsPage() {
                   );
                 })}
               </div>
-            )}
-          </div>
-        </div>
-      </main>
+      )}
+    </div>
   );
 }
