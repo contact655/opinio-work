@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { ChevronDown } from "lucide-react";
 
 const NAV_LINKS = [
   { href: "/companies", label: "企業を見る" },
@@ -15,19 +16,57 @@ const NAV_LINKS = [
 
 export function JobseekerHeader() {
   const pathname = usePathname();
-  const [user, setUser] = useState<{ email: string } | null>(null);
+  const router = useRouter();
+  const [user, setUser] = useState<{ email: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const user = session?.user;
-      setUser(user ? { email: user.email ?? "" } : null);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const authUser = session?.user;
+      if (!authUser) {
+        setLoading(false);
+        return;
+      }
+      // Fetch display name from ow_users for initial
+      const { data: owUser } = await supabase
+        .from("ow_users")
+        .select("name")
+        .eq("auth_id", authUser.id)
+        .maybeSingle();
+
+      setUser({
+        email: authUser.email ?? "",
+        name: owUser?.name ?? authUser.email?.split("@")[0] ?? "",
+      });
       setLoading(false);
     });
   }, []);
 
-  const initial = user?.email?.charAt(0).toUpperCase() ?? "";
+  // Click-outside to close dropdown
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    if (dropdownOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownOpen]);
+
+  // Use first character of name (first word, first char), fallback to email
+  const initial = user?.name
+    ? user.name.trim().charAt(0).toUpperCase()
+    : user?.email?.charAt(0).toUpperCase() ?? "";
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setDropdownOpen(false);
+    router.push("/");
+  }
 
   return (
     <header style={{
@@ -89,27 +128,118 @@ export function JobseekerHeader() {
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
           {!loading && (
             user ? (
-              <Link href="/mypage" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #002366, #3B5FD9)",
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  fontFamily: "'Inter', sans-serif",
-                }}>
-                  {initial}
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)" }}>
-                  マイページ
-                </span>
-              </Link>
+              /* ── Logged-in: avatar button + dropdown ── */
+              <div style={{ position: "relative" }} ref={dropdownRef}>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  aria-label="アカウントメニュー"
+                  aria-expanded={dropdownOpen}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    cursor: "pointer",
+                    padding: "4px 8px 4px 4px",
+                    borderRadius: 100,
+                    border: "none",
+                    background: "transparent",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                >
+                  {/* Avatar circle */}
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, var(--royal), var(--accent))",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    fontFamily: "'Inter', sans-serif",
+                    flexShrink: 0,
+                  }}>
+                    {initial}
+                  </div>
+                  {/* Chevron */}
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      color: "var(--ink-mute)",
+                      transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 0.2s ease",
+                      flexShrink: 0,
+                    }}
+                  />
+                </button>
+
+                {/* Dropdown */}
+                {dropdownOpen && (
+                  <div style={{
+                    position: "absolute",
+                    right: 0,
+                    top: 46,
+                    minWidth: 190,
+                    background: "#fff",
+                    borderRadius: 10,
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
+                    overflow: "hidden",
+                    zIndex: 200,
+                  }}>
+                    {/* Header: name + email */}
+                    <div style={{ padding: "12px 16px", borderBottom: "0.5px solid var(--line-soft)" }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+                        {user.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+                        {user.email}
+                      </div>
+                    </div>
+                    {/* マイページ */}
+                    <Link
+                      href="/mypage"
+                      onClick={() => setDropdownOpen(false)}
+                      style={{
+                        display: "block",
+                        padding: "10px 16px",
+                        fontSize: 13,
+                        color: "var(--ink-soft)",
+                        fontWeight: 500,
+                        textDecoration: "none",
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
+                    >
+                      マイページ
+                    </Link>
+                    {/* ログアウト */}
+                    <button
+                      onClick={handleLogout}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 16px",
+                        fontSize: 13,
+                        color: "var(--ink-soft)",
+                        fontWeight: 500,
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        borderTop: "0.5px solid var(--line-soft)",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                    >
+                      ログアウト
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
+              /* ── Logged-out: ログイン + 無料登録 ── */
               <>
                 <Link
                   href="/auth"
