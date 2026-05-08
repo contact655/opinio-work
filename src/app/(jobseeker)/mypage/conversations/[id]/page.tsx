@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Fragment } from "react";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
+import { formatDateSeparator } from "@/lib/utils/formatDateSeparator";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
@@ -31,12 +34,17 @@ type ConversationDetail = {
   mentor: { name: string } | null;
 };
 
-const SIDEBAR_ITEMS = [
-  { label: "応募管理", href: "/mypage/applications", active: false },
-  { label: "対話", href: "/mypage/conversations", active: true },
-  { label: "プロフィール", href: "/onboarding", active: false },
-  { label: "保存した求人", href: "#", active: false },
-  { label: "通知設定", href: "#", active: false },
+// B: 機能未実装のため disabled（当面プレースホルダー）
+type SidebarItem =
+  | { label: string; href: string; disabled?: false }
+  | { label: string; href?: never; disabled: true };
+
+const SIDEBAR_ITEMS: SidebarItem[] = [
+  { label: "応募管理",   href: "/mypage/applications" },
+  { label: "対話",       href: "/mypage/conversations" },
+  { label: "プロフィール", href: "/onboarding" },
+  { label: "保存した求人", disabled: true },  // B: 未実装
+  { label: "通知設定",   disabled: true },    // B: 未実装
 ];
 
 const STAGE_LABELS: Record<string, string> = {
@@ -47,13 +55,29 @@ const STAGE_LABELS: Record<string, string> = {
   closed: "終了",
 };
 
+// 連続メッセージのグルーピング判定: 同一送信者かつ 5 分以内
+function isGroupedMessage(
+  curr: MessageRow,
+  prev: MessageRow | null,
+  needsSeparator: boolean
+): boolean {
+  if (!prev || needsSeparator) return false;
+  const sameSender = curr.sender_participant_id === prev.sender_participant_id;
+  const withinFiveMin =
+    new Date(curr.sent_at).getTime() - new Date(prev.sent_at).getTime() <
+    5 * 60 * 1000;
+  return sameSender && withinFiveMin;
+}
+
 export default function ConversationDetailPage() {
   const params = useParams();
+  const pathname = usePathname();
   const conversationId = params.id as string;
 
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
+  const [myUserName, setMyUserName] = useState<string | null>(null); // A-3 準備
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
@@ -72,9 +96,10 @@ export default function ConversationDetailPage() {
       return;
     }
 
+    // id + name を取得（A-3 で自分の名前をバブルに表示するため）
     const { data: owUser } = await supabase
       .from("ow_users")
-      .select("id")
+      .select("id, name")
       .eq("auth_id", user.id)
       .maybeSingle();
 
@@ -82,6 +107,8 @@ export default function ConversationDetailPage() {
       setLoading(false);
       return;
     }
+
+    setMyUserName(owUser.name ?? user.email?.split("@")[0] ?? null);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: conv, error: convError } = await (supabase as any)
@@ -106,7 +133,6 @@ export default function ConversationDetailPage() {
     }
     setConversation(conv as ConversationDetail);
 
-    // Find my participant record to identify own messages
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: myParticipant } = await (supabase as any)
       .from("ow_conversation_participants")
@@ -117,7 +143,6 @@ export default function ConversationDetailPage() {
 
     setMyParticipantId(myParticipant?.id ?? null);
 
-    // Fetch messages with sender info
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: msgs, error: msgsError } = await (supabase as any)
       .from("ow_conversation_messages")
@@ -138,8 +163,7 @@ export default function ConversationDetailPage() {
       setMessages((msgs as MessageRow[]) || []);
     }
 
-    // D: 既読更新(B 画面アクセス時に last_read_at を now() に更新)
-    // UPDATE 失敗は表示をブロックしない(migration 069 で last_read_at + UPDATE RLS 修正済み)
+    // D: 既読更新（last_read_at を now() に更新、失敗は表示をブロックしない）
     if (!msgsError && myParticipant?.id) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: updateError } = await (supabase as any)
@@ -159,6 +183,7 @@ export default function ConversationDetailPage() {
     loadData();
   }, [loadData]);
 
+  // 新着メッセージ到着時に最下部へスクロール
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (container) {
@@ -214,26 +239,41 @@ export default function ConversationDetailPage() {
   return (
     <main className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 py-8 flex gap-6">
-        {/* Left Sidebar */}
+        {/* Left Sidebar — top-24(96px) → top-16(64px) に修正 */}
         <aside className="hidden lg:block w-[200px] flex-shrink-0">
-          <nav className="sticky top-24 space-y-1">
-            {SIDEBAR_ITEMS.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
-                  item.active
-                    ? "bg-primary-light text-primary font-medium"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+          <nav className="sticky top-16 space-y-1">
+            {SIDEBAR_ITEMS.map((item) => {
+              if (item.disabled) {
+                return (
+                  <span
+                    key={item.label}
+                    className="block px-3 py-2 rounded-lg text-sm text-gray-400 cursor-not-allowed select-none"
+                    aria-disabled="true"
+                    title="準備中"
+                  >
+                    {item.label}
+                  </span>
+                );
+              }
+              const isActive = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                    isActive
+                      ? "bg-primary-light text-primary font-medium"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </aside>
 
-        {/* Main */}
+        {/* Main — height 計算: 100vh - header(60) - padding(py-8 × 2 = 64) ≈ 120px */}
         <div className="flex-1 min-w-0 flex flex-col" style={{ height: "calc(100vh - 120px)" }}>
           {/* Header */}
           <div className="bg-white rounded-t-card border border-card-border px-4 py-3 flex items-center gap-3 flex-shrink-0">
@@ -247,7 +287,7 @@ export default function ConversationDetailPage() {
               </svg>
             </Link>
 
-            {/* Logo */}
+            {/* 企業 / メンターロゴ */}
             {company?.logo_url ? (
               <img
                 src={company.logo_url}
@@ -255,8 +295,8 @@ export default function ConversationDetailPage() {
                 className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-royal-50 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-                {company?.logo_letter ?? company?.name?.[0] ?? "?"}
+              <div className="w-8 h-8 rounded-lg bg-primary-light flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                {company?.logo_letter ?? company?.name?.[0] ?? displayName[0] ?? "?"}
               </div>
             )}
 
@@ -276,57 +316,93 @@ export default function ConversationDetailPage() {
           )}
 
           {/* Messages */}
-          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto bg-white border-x border-card-border px-4 py-4 space-y-4 min-h-0">
+          <div
+            ref={messagesContainerRef}
+            className="flex-1 overflow-y-auto bg-white border-x border-card-border px-4 py-4 min-h-0"
+          >
             {messages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <p className="text-gray-400 text-sm">まだメッセージはありません</p>
               </div>
             ) : (
-              messages.map((msg) => {
-                const isMe = msg.sender_participant_id === myParticipantId;
-                const participant = msg.ow_conversation_participants;
-                const senderName = participant?.ow_users?.name ?? "運営";
-                const time = new Date(msg.sent_at).toLocaleTimeString("ja-JP", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
-                const date = new Date(msg.sent_at).toLocaleDateString("ja-JP", {
-                  month: "numeric",
-                  day: "numeric",
-                });
+              <div className="space-y-1">
+                {messages.map((msg, i) => {
+                  const prevMsg = i > 0 ? messages[i - 1] : null;
+                  const isMe = msg.sender_participant_id === myParticipantId;
 
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col gap-1 ${isMe ? "items-end" : "items-start"}`}
-                  >
-                    {!isMe && (
-                      <span className="text-xs text-gray-500 px-1">{senderName}</span>
-                    )}
-                    <div className="flex items-end gap-2">
-                      {isMe && (
-                        <span className="text-xs text-gray-400 flex-shrink-0">
-                          {date} {time}
-                        </span>
+                  // 日付セパレータの要否
+                  const needsSeparator =
+                    !prevMsg ||
+                    new Date(msg.sent_at).toDateString() !==
+                      new Date(prevMsg.sent_at).toDateString();
+
+                  // グルーピング（同一送信者 + 5 分以内 + セパレータなし）
+                  const grouped = isGroupedMessage(msg, prevMsg, needsSeparator);
+
+                  const participant = msg.ow_conversation_participants;
+                  const senderName = participant?.ow_users?.name ?? "運営";
+
+                  // 相対時刻（7 日以上は YYYY/MM/DD HH:MM）
+                  const msgTime = formatRelativeTime(msg.sent_at, { withTime: true });
+
+                  return (
+                    <Fragment key={msg.id}>
+                      {/* 日付セパレータ */}
+                      {needsSeparator && (
+                        <div className="flex items-center gap-3 py-3">
+                          <div className="flex-1 h-px bg-gray-100" />
+                          <span className="text-xs text-gray-400 flex-shrink-0 px-2 select-none">
+                            {formatDateSeparator(msg.sent_at)}
+                          </span>
+                          <div className="flex-1 h-px bg-gray-100" />
+                        </div>
                       )}
+
+                      {/* メッセージ行 */}
                       <div
-                        className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words ${
-                          isMe
-                            ? "bg-primary text-white rounded-br-sm"
-                            : "bg-gray-100 text-foreground rounded-bl-sm"
+                        className={`flex flex-col ${isMe ? "items-end" : "items-start"} ${
+                          grouped ? "mt-0.5" : "mt-3"
                         }`}
                       >
-                        {msg.body}
+                        {/* 送信者名: !isMe のみ、グループ 2 通目以降は非表示 */}
+                        {!isMe && !grouped && (
+                          <span className="text-xs text-gray-500 mb-0.5 px-1">
+                            {senderName}
+                          </span>
+                        )}
+
+                        {/* バブル行 */}
+                        <div className="flex items-end gap-2">
+                          {/* isMe: 時刻 → バブル */}
+                          {isMe && (
+                            <span className="text-xs text-gray-400 flex-shrink-0 self-end">
+                              {msgTime}
+                            </span>
+                          )}
+
+                          {/* 吹き出し */}
+                          <div
+                            className={`max-w-[65%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words ${
+                              isMe
+                                ? "bg-primary text-white rounded-br-sm"
+                                : "bg-gray-100 text-foreground rounded-bl-sm"
+                            }`}
+                          >
+                            {msg.body}
+                          </div>
+
+                          {/* !isMe: バブル → 時刻 */}
+                          {!isMe && (
+                            <span className="text-xs text-gray-400 flex-shrink-0 self-end">
+                              {msgTime}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {!isMe && (
-                        <span className="text-xs text-gray-400 flex-shrink-0">
-                          {date} {time}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
+                    </Fragment>
+                  );
+                })}
+              </div>
             )}
           </div>
 
