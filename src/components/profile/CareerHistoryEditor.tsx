@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState, useEffect, useCallback } from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 
@@ -52,15 +51,14 @@ type Stint = {
   companyId?: string;
   companyText?: string;
   companyAnonymized?: string;
-  roleCategoryId: string; // slug
-  roleLabel: string;      // resolved display label
+  roleCategoryId: string;
+  roleLabel: string;
   roleTitle?: string;
-  startedAt: string;      // YYYY-MM
-  endedAt?: string;       // YYYY-MM
+  startedAt: string;   // YYYY-MM
+  endedAt?: string;    // YYYY-MM
   isCurrent: boolean;
   description?: string;
   why?: string;
-  displayOrder: number;
 };
 
 type StintDraft = {
@@ -68,8 +66,8 @@ type StintDraft = {
   isAnon: boolean;
   roleCategoryId: string;
   roleTitle: string;
-  startedAt: string;   // YYYY-MM
-  endedAt: string;     // YYYY-MM or ""
+  startedAt: string;
+  endedAt: string;
   isCurrent: boolean;
   why: string;
   description: string;
@@ -87,6 +85,15 @@ const EMPTY_DRAFT: StintDraft = {
   description: "",
 };
 
+// ── Sort helper: isCurrent first, then startedAt DESC ────────────────────────
+
+function sortStints(arr: Stint[]): Stint[] {
+  return [...arr].sort((a, b) => {
+    if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
+    return b.startedAt.localeCompare(a.startedAt);
+  });
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatPeriod(startedAt: string, endedAt?: string, isCurrent?: boolean): string {
@@ -96,10 +103,10 @@ function formatPeriod(startedAt: string, endedAt?: string, isCurrent?: boolean):
   return `${fmt(startedAt)} 〜`;
 }
 
-function fieldStyle(focused?: boolean): React.CSSProperties {
+function fieldStyle(): React.CSSProperties {
   return {
     width: "100%",
-    border: focused ? "1.5px solid var(--royal)" : "1.5px solid var(--line)",
+    border: "1.5px solid var(--line)",
     borderRadius: 8,
     padding: "8px 10px",
     fontSize: 13,
@@ -108,7 +115,6 @@ function fieldStyle(focused?: boolean): React.CSSProperties {
     outline: "none",
     fontFamily: "inherit",
     boxSizing: "border-box",
-    boxShadow: focused ? "0 0 0 3px rgba(0,35,102,0.08)" : "none",
     transition: "border-color 0.15s, box-shadow 0.15s",
   };
 }
@@ -129,13 +135,11 @@ function labelStyle(): React.CSSProperties {
 
 function IconButton({
   onClick,
-  disabled,
   title,
   danger,
   children,
 }: {
   onClick: () => void;
-  disabled?: boolean;
   title?: string;
   danger?: boolean;
   children: React.ReactNode;
@@ -144,7 +148,7 @@ function IconButton({
   return (
     <button
       type="button"
-      onClick={disabled ? undefined : onClick}
+      onClick={onClick}
       title={title}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -155,14 +159,13 @@ function IconButton({
         alignItems: "center",
         justifyContent: "center",
         border: "none",
-        background: hovered && !disabled
-          ? (danger ? "var(--error-soft)" : "var(--line-soft)")
+        background: hovered
+          ? danger ? "var(--error-soft)" : "var(--line-soft)"
           : "transparent",
         borderRadius: 5,
         fontSize: 13,
         color: danger ? "var(--error)" : "var(--ink-mute)",
-        cursor: disabled ? "default" : "pointer",
-        opacity: disabled ? 0.25 : 1,
+        cursor: "pointer",
         transition: "background 0.12s",
         padding: 0,
         fontFamily: "inherit",
@@ -197,8 +200,7 @@ function StintForm({
 
   const whyLen = draft.why.length;
   const whyOver = whyLen > 500;
-  const isValid =
-    !!draft.companyName.trim() && !!draft.roleCategoryId && !!draft.startedAt;
+  const isValid = !!draft.companyName.trim() && !!draft.roleCategoryId && !!draft.startedAt;
   const canSave = isValid && !whyOver && !isSaving;
 
   return (
@@ -216,26 +218,9 @@ function StintForm({
     >
       {/* Company name + anon toggle */}
       <div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 4,
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <label style={labelStyle()}>会社名 *</label>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 11,
-              color: "var(--ink-soft)",
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-          >
+          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--ink-soft)", cursor: "pointer", userSelect: "none" }}>
             <input
               type="checkbox"
               checked={draft.isAnon}
@@ -266,9 +251,7 @@ function StintForm({
         >
           <option value="">選択してください</option>
           {ROLE_OPTIONS.map((r) => (
-            <option key={r.slug} value={r.slug}>
-              {r.label}
-            </option>
+            <option key={r.slug} value={r.slug}>{r.label}</option>
           ))}
         </select>
       </div>
@@ -289,14 +272,7 @@ function StintForm({
       {/* Period */}
       <div>
         <label style={labelStyle()}>期間 *</label>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <input
             type="month"
             value={draft.startedAt}
@@ -304,34 +280,15 @@ function StintForm({
             disabled={isSaving}
             style={{ ...fieldStyle(), width: "auto", flex: "1 1 130px" }}
           />
-          <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>
-            〜
-          </span>
+          <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>〜</span>
           <input
             type="month"
             value={draft.isCurrent ? "" : draft.endedAt}
             onChange={(e) => set("endedAt", e.target.value)}
             disabled={isSaving || draft.isCurrent}
-            style={{
-              ...fieldStyle(),
-              width: "auto",
-              flex: "1 1 130px",
-              opacity: draft.isCurrent ? 0.4 : 1,
-            }}
+            style={{ ...fieldStyle(), width: "auto", flex: "1 1 130px", opacity: draft.isCurrent ? 0.4 : 1 }}
           />
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 12,
-              color: "var(--ink-soft)",
-              cursor: "pointer",
-              userSelect: "none",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
+          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--ink-soft)", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
             <input
               type="checkbox"
               checked={draft.isCurrent}
@@ -345,9 +302,7 @@ function StintForm({
 
       {/* Why (narrative field) */}
       <div>
-        <label style={labelStyle()}>
-          この時期に目指していたこと（任意）
-        </label>
+        <label style={labelStyle()}>この時期に目指していたこと（任意）</label>
         <textarea
           value={draft.why}
           onChange={(e) => set("why", e.target.value)}
@@ -356,18 +311,8 @@ function StintForm({
           rows={3}
           style={{ ...fieldStyle(), resize: "vertical", lineHeight: 1.7 }}
         />
-        <div
-          style={{
-            fontSize: 11,
-            color: whyOver ? "var(--error)" : "var(--ink-mute)",
-            textAlign: "right",
-            marginTop: 2,
-            fontFamily: "Inter, sans-serif",
-          }}
-        >
-          {whyOver
-            ? `${whyLen - 500} 文字超過`
-            : `残り ${500 - whyLen} 文字`}
+        <div style={{ fontSize: 11, color: whyOver ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
+          {whyOver ? `${whyLen - 500} 文字超過` : `残り ${500 - whyLen} 文字`}
         </div>
       </div>
 
@@ -385,30 +330,12 @@ function StintForm({
       </div>
 
       {/* Action buttons */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: 8,
-          marginTop: 2,
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
         <button
           type="button"
           onClick={onCancel}
           disabled={isSaving}
-          style={{
-            padding: "7px 16px",
-            background: "#fff",
-            color: "var(--ink-soft)",
-            border: "1px solid var(--line)",
-            borderRadius: 8,
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: isSaving ? "default" : "pointer",
-            fontFamily: "inherit",
-            opacity: isSaving ? 0.5 : 1,
-          }}
+          style={{ padding: "7px 16px", background: "#fff", color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isSaving ? "default" : "pointer", fontFamily: "inherit", opacity: isSaving ? 0.5 : 1 }}
         >
           キャンセル
         </button>
@@ -416,18 +343,7 @@ function StintForm({
           type="button"
           onClick={canSave ? onSave : undefined}
           disabled={!canSave}
-          style={{
-            padding: "7px 18px",
-            background: canSave ? "var(--royal)" : "var(--ink-mute)",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: canSave ? "pointer" : "default",
-            fontFamily: "inherit",
-            transition: "background 0.15s",
-          }}
+          style={{ padding: "7px 18px", background: canSave ? "var(--royal)" : "var(--ink-mute)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: canSave ? "pointer" : "default", fontFamily: "inherit", transition: "background 0.15s" }}
         >
           {isSaving ? "保存中…" : "保存"}
         </button>
@@ -440,18 +356,12 @@ function StintForm({
 
 function StintCard({
   stint,
-  idx,
-  total,
   onEdit,
   onDelete,
-  onReorder,
 }: {
   stint: Stint;
-  idx: number;
-  total: number;
   onEdit: () => void;
   onDelete: () => void;
-  onReorder: (idx: number, dir: -1 | 1) => void;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -461,47 +371,16 @@ function StintCard({
       onMouseLeave={() => setHovered(false)}
       style={{ padding: "10px 0", position: "relative" }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 8,
-        }}
-      >
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Company name + "現在" badge */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              marginBottom: 2,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: "var(--ink)",
-              }}
-            >
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
               {stint.displayCompanyName}
             </span>
             {stint.isCurrent && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: "var(--success)",
-                  background: "var(--success-soft)",
-                  borderRadius: 4,
-                  padding: "1px 6px",
-                  letterSpacing: "0.04em",
-                  flexShrink: 0,
-                }}
-              >
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.04em", flexShrink: 0 }}>
                 現在
               </span>
             )}
@@ -513,17 +392,11 @@ function StintCard({
           </div>
 
           {/* Period */}
-          <div
-            style={{
-              fontSize: 11,
-              color: "var(--ink-mute)",
-              fontFamily: "Inter, sans-serif",
-            }}
-          >
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
             {formatPeriod(stint.startedAt, stint.endedAt, stint.isCurrent)}
           </div>
 
-          {/* Why snippet (narrative field) */}
+          {/* Why snippet (narrative) */}
           {stint.why && (
             <div
               style={{
@@ -545,37 +418,10 @@ function StintCard({
           )}
         </div>
 
-        {/* Controls (hover reveal) */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            opacity: hovered ? 1 : 0,
-            transition: "opacity 0.15s",
-            flexShrink: 0,
-          }}
-        >
-          <IconButton
-            onClick={() => onReorder(idx, -1)}
-            disabled={idx === 0}
-            title="上に移動"
-          >
-            ↑
-          </IconButton>
-          <IconButton
-            onClick={() => onReorder(idx, 1)}
-            disabled={idx === total - 1}
-            title="下に移動"
-          >
-            ↓
-          </IconButton>
-          <IconButton onClick={onEdit} title="編集">
-            ✎
-          </IconButton>
-          <IconButton onClick={onDelete} title="削除" danger>
-            ×
-          </IconButton>
+        {/* Controls: ✎ and × only (hover reveal) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
+          <IconButton onClick={onEdit} title="編集">✎</IconButton>
+          <IconButton onClick={onDelete} title="削除" danger>×</IconButton>
         </div>
       </div>
     </div>
@@ -606,16 +452,13 @@ export default function CareerHistoryEditor() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
 
-  // Supabase browser client (for display_order swap)
-  const supabase = useMemo(() => createClient(), []);
-
   // ── Fetch on mount ──────────────────────────────────────────────────────────
   useEffect(() => {
     fetch("/api/jobseeker/experiences")
       .then((r) => r.json())
       .then((data: { experiences?: Record<string, unknown>[] }) => {
         const rows = data.experiences ?? [];
-        const mapped: Stint[] = rows.map((e, idx) => ({
+        const mapped: Stint[] = rows.map((e) => ({
           id: e.id as string,
           displayCompanyName: e.displayCompanyName as string,
           companyType: (e.companyType ?? "custom") as Stint["companyType"],
@@ -623,17 +466,15 @@ export default function CareerHistoryEditor() {
           companyText: e.companyText as string | undefined,
           companyAnonymized: e.companyAnonymized as string | undefined,
           roleCategoryId: e.roleCategoryId as string,
-          roleLabel:
-            ROLE_LABEL[e.roleCategoryId as string] ?? (e.roleCategoryId as string),
+          roleLabel: ROLE_LABEL[e.roleCategoryId as string] ?? (e.roleCategoryId as string),
           roleTitle: e.roleTitle as string | undefined,
           startedAt: e.startedAt as string,
           endedAt: e.endedAt as string | undefined,
           isCurrent: e.isCurrent as boolean,
           description: e.description as string | undefined,
           why: e.why as string | undefined,
-          displayOrder: (e.displayOrder as number) ?? idx,
         }));
-        setStints(mapped);
+        setStints(sortStints(mapped));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -648,12 +489,9 @@ export default function CareerHistoryEditor() {
     []
   );
 
-  // ── Draft from stint (for edit mode) ────────────────────────────────────────
+  // ── Draft from stint ─────────────────────────────────────────────────────────
   const draftFromStint = useCallback((s: Stint): StintDraft => ({
-    companyName:
-      s.companyType === "anon"
-        ? (s.companyAnonymized ?? "非公開企業")
-        : s.displayCompanyName,
+    companyName: s.companyType === "anon" ? (s.companyAnonymized ?? "非公開企業") : s.displayCompanyName,
     isAnon: s.companyType === "anon",
     roleCategoryId: s.roleCategoryId,
     roleTitle: s.roleTitle ?? "",
@@ -665,13 +503,10 @@ export default function CareerHistoryEditor() {
   }), []);
 
   // ── Edit handlers ────────────────────────────────────────────────────────────
-  const startEdit = useCallback(
-    (s: Stint) => {
-      setEditingId(s.id);
-      setEditDraft(draftFromStint(s));
-    },
-    [draftFromStint]
-  );
+  const startEdit = useCallback((s: Stint) => {
+    setEditingId(s.id);
+    setEditDraft(draftFromStint(s));
+  }, [draftFromStint]);
 
   const cancelEdit = useCallback(() => {
     setEditingId(null);
@@ -686,9 +521,7 @@ export default function CareerHistoryEditor() {
         role_category_id: editDraft.roleCategoryId,
         role_title: editDraft.roleTitle || undefined,
         started_at: editDraft.startedAt,
-        ended_at: editDraft.isCurrent
-          ? undefined
-          : editDraft.endedAt || undefined,
+        ended_at: editDraft.isCurrent ? undefined : editDraft.endedAt || undefined,
         is_current: editDraft.isCurrent,
         why: editDraft.why || undefined,
         description: editDraft.description || undefined,
@@ -706,9 +539,9 @@ export default function CareerHistoryEditor() {
       });
       if (!res.ok) throw new Error();
 
-      // Optimistic update
+      // Optimistic update + re-sort
       setStints((prev) =>
-        prev.map((s) =>
+        sortStints(prev.map((s) =>
           s.id === editingId
             ? {
                 ...s,
@@ -721,20 +554,16 @@ export default function CareerHistoryEditor() {
                   ? editDraft.companyName || "非公開企業"
                   : undefined,
                 roleCategoryId: editDraft.roleCategoryId,
-                roleLabel:
-                  ROLE_LABEL[editDraft.roleCategoryId] ??
-                  editDraft.roleCategoryId,
+                roleLabel: ROLE_LABEL[editDraft.roleCategoryId] ?? editDraft.roleCategoryId,
                 roleTitle: editDraft.roleTitle || undefined,
                 startedAt: editDraft.startedAt,
-                endedAt: editDraft.isCurrent
-                  ? undefined
-                  : editDraft.endedAt || undefined,
+                endedAt: editDraft.isCurrent ? undefined : editDraft.endedAt || undefined,
                 isCurrent: editDraft.isCurrent,
                 why: editDraft.why || undefined,
                 description: editDraft.description || undefined,
               }
             : s
-        )
+        ))
       );
       cancelEdit();
       showToast("職歴を更新しました");
@@ -758,9 +587,7 @@ export default function CareerHistoryEditor() {
         role_category_id: addDraft.roleCategoryId,
         role_title: addDraft.roleTitle || undefined,
         started_at: addDraft.startedAt,
-        ended_at: addDraft.isCurrent
-          ? undefined
-          : addDraft.endedAt || undefined,
+        ended_at: addDraft.isCurrent ? undefined : addDraft.endedAt || undefined,
         is_current: addDraft.isCurrent,
         why: addDraft.why || undefined,
         description: addDraft.description || undefined,
@@ -791,20 +618,16 @@ export default function CareerHistoryEditor() {
           ? addDraft.companyName || "非公開企業"
           : undefined,
         roleCategoryId: addDraft.roleCategoryId,
-        roleLabel:
-          ROLE_LABEL[addDraft.roleCategoryId] ?? addDraft.roleCategoryId,
+        roleLabel: ROLE_LABEL[addDraft.roleCategoryId] ?? addDraft.roleCategoryId,
         roleTitle: addDraft.roleTitle || undefined,
         startedAt: addDraft.startedAt,
-        endedAt: addDraft.isCurrent
-          ? undefined
-          : addDraft.endedAt || undefined,
+        endedAt: addDraft.isCurrent ? undefined : addDraft.endedAt || undefined,
         isCurrent: addDraft.isCurrent,
         why: addDraft.why || undefined,
         description: addDraft.description || undefined,
-        displayOrder: stints.length,
       };
 
-      setStints((prev) => [...prev, newStint]);
+      setStints((prev) => sortStints([...prev, newStint]));
       cancelAdd();
       showToast("職歴を追加しました");
     } catch {
@@ -819,10 +642,9 @@ export default function CareerHistoryEditor() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const res = await fetch(
-        `/api/jobseeker/experiences/${deleteTarget.id}`,
-        { method: "DELETE" }
-      );
+      const res = await fetch(`/api/jobseeker/experiences/${deleteTarget.id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error();
       setStints((prev) => prev.filter((s) => s.id !== deleteTarget.id));
       setDeleteTarget(null);
@@ -833,35 +655,6 @@ export default function CareerHistoryEditor() {
       setDeleting(false);
     }
   }, [deleteTarget, showToast]);
-
-  // ── Reorder (swap display_order in DB + local) ───────────────────────────────
-  const reorder = useCallback(
-    async (idx: number, dir: -1 | 1) => {
-      const targetIdx = idx + dir;
-      if (targetIdx < 0 || targetIdx >= stints.length) return;
-      const a = stints[idx];
-      const b = stints[targetIdx];
-      // Swap in DB (best-effort, no error surface to user)
-      await Promise.all([
-        supabase
-          .from("ow_experiences")
-          .update({ display_order: b.displayOrder })
-          .eq("id", a.id),
-        supabase
-          .from("ow_experiences")
-          .update({ display_order: a.displayOrder })
-          .eq("id", b.id),
-      ]);
-      // Swap in local state
-      setStints((prev) => {
-        const next = [...prev];
-        next[idx] = { ...a, displayOrder: b.displayOrder };
-        next[targetIdx] = { ...b, displayOrder: a.displayOrder };
-        return next.sort((x, y) => x.displayOrder - y.displayOrder);
-      });
-    },
-    [stints, supabase]
-  );
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -889,36 +682,20 @@ export default function CareerHistoryEditor() {
           ) : (
             <StintCard
               stint={s}
-              idx={idx}
-              total={stints.length}
               onEdit={() => startEdit(s)}
               onDelete={() => setDeleteTarget(s)}
-              onReorder={reorder}
             />
           )}
-          {/* Divider between stints */}
+          {/* Divider */}
           {idx < stints.length - 1 && editingId !== s.id && (
-            <div
-              style={{
-                height: 1,
-                background: "var(--line-soft)",
-                margin: "2px 0",
-              }}
-            />
+            <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
           )}
         </div>
       ))}
 
       {/* Empty state */}
       {stints.length === 0 && !adding && (
-        <div
-          style={{
-            fontSize: 12,
-            color: "var(--ink-mute)",
-            fontStyle: "italic",
-            padding: "2px 0 6px",
-          }}
-        >
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
           職歴はまだ登録されていません
         </div>
       )}
@@ -983,11 +760,7 @@ export default function CareerHistoryEditor() {
 
       {/* Toast */}
       {toastMsg && (
-        <Toast
-          message={toastMsg}
-          variant={toastVariant}
-          onDone={() => setToastMsg(null)}
-        />
+        <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />
       )}
     </div>
   );

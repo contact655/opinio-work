@@ -77,7 +77,6 @@ export async function GET() {
       .from("ow_experiences")
       .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, why, display_order")
       .eq("user_id", owUserId)
-      .order("display_order", { ascending: true })
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
     supabase.from("ow_roles").select("id, name"),
