@@ -24,25 +24,28 @@ export function JobseekerHeader() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const authUser = session?.user;
-      if (!authUser) {
-        setLoading(false);
-        return;
-      }
-      // Fetch display name from ow_users for initial
-      const { data: owUser } = await supabase
-        .from("ow_users")
-        .select("name")
-        .eq("auth_id", authUser.id)
-        .maybeSingle();
+    supabase.auth.getSession()
+      .then(async ({ data: { session } }) => {
+        const authUser = session?.user;
+        if (!authUser) return;
+        // Fetch display name from ow_users for initial
+        const { data: owUser } = await supabase
+          .from("ow_users")
+          .select("name")
+          .eq("auth_id", authUser.id)
+          .maybeSingle();
 
-      setUser({
-        email: authUser.email ?? "",
-        name: owUser?.name ?? authUser.email?.split("@")[0] ?? "",
+        setUser({
+          email: authUser.email ?? "",
+          name: owUser?.name ?? authUser.email?.split("@")[0] ?? "",
+        });
+      })
+      .catch(() => {
+        // getSession 失敗時も loading を解除してボタンを表示する
+      })
+      .finally(() => {
+        setLoading(false);
       });
-      setLoading(false);
-    });
   }, []);
 
   // Click-outside to close dropdown
