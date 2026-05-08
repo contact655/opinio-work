@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
 import { formatDateSeparator } from "@/lib/utils/formatDateSeparator";
+import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
@@ -364,25 +365,53 @@ export default function ConversationDetailPage() {
                           grouped ? "mt-0.5" : "mt-3"
                         }`}
                       >
-                        {/* 送信者名: !isMe のみ、グループ 2 通目以降は非表示 */}
-                        {!isMe && !grouped && (
-                          <span className="text-xs text-gray-500 mb-0.5 px-1">
-                            {senderName}
+                        {/*
+                          A-3-mypage: 送信者名を両側に表示（グループ 2 通目以降は非表示）
+                          - !isMe: 左寄せ、アバター幅(28px) + gap(8px) = 36px 分インデント
+                          - isMe : 右寄せ、同幅インデント
+                        */}
+                        {!grouped && (
+                          <span
+                            className={`text-xs text-gray-500 mb-0.5 ${
+                              isMe ? "pr-9 text-right" : "pl-9"
+                            }`}
+                          >
+                            {isMe ? (myUserName ?? "自分") : senderName}
                           </span>
                         )}
 
-                        {/* バブル行 */}
-                        <div className="flex items-end gap-2">
-                          {/* isMe: 時刻 → バブル */}
-                          {isMe && (
-                            <span className="text-xs text-gray-400 flex-shrink-0 self-end">
-                              {msgTime}
-                            </span>
+                        {/*
+                          バブル行レイアウト（flex-row-reverse で isMe を右揃え）:
+                          JSX 順: [avatar][bubble][time]
+                          isMe 視覚順（flex-row-reverse）: [time][bubble][avatar]
+                          !isMe 視覚順: [avatar][bubble][time]
+                        */}
+                        <div
+                          className={`flex items-end gap-2 ${isMe ? "flex-row-reverse" : ""}`}
+                        >
+                          {/* アバター（グループ 2 通目以降はスペーサーで位置を保持） */}
+                          {!grouped ? (
+                            isMe ? (
+                              <InitialAvatar
+                                name={myUserName ?? "自"}
+                                size={28}
+                              />
+                            ) : (
+                              <InitialAvatar
+                                name={senderName}
+                                size={28}
+                                bgStyle="var(--line)"
+                                textColor="var(--ink-soft)"
+                              />
+                            )
+                          ) : (
+                            // スペーサー: アバター非表示時もバブルの水平位置を揃える
+                            <div style={{ width: 28, flexShrink: 0 }} />
                           )}
 
                           {/* 吹き出し */}
                           <div
-                            className={`max-w-[65%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words ${
+                            className={`max-w-[60%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words ${
                               isMe
                                 ? "bg-primary text-white rounded-br-sm"
                                 : "bg-gray-100 text-foreground rounded-bl-sm"
@@ -391,12 +420,10 @@ export default function ConversationDetailPage() {
                             {msg.body}
                           </div>
 
-                          {/* !isMe: バブル → 時刻 */}
-                          {!isMe && (
-                            <span className="text-xs text-gray-400 flex-shrink-0 self-end">
-                              {msgTime}
-                            </span>
-                          )}
+                          {/* 時刻 */}
+                          <span className="text-xs text-gray-400 flex-shrink-0 self-end">
+                            {msgTime}
+                          </span>
                         </div>
                       </div>
                     </Fragment>
