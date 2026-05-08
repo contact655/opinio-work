@@ -76,6 +76,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       ended_at: body.ended_at ? `${body.ended_at}-01` : null,
       is_current: (body.is_current as boolean | undefined) ?? false,
       description: (body.description as string | undefined) ?? null,
+      why: (body.why as string | undefined) ?? null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", params.id);

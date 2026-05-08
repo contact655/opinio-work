@@ -7,6 +7,7 @@ import InlineEditableSection from "@/components/profile/InlineEditableSection";
 import InlineEditableField from "@/components/profile/InlineEditableField";
 import Toast from "@/components/ui/Toast";
 import { LOCATIONS, AGE_RANGES } from "@/app/profile/edit/mockProfileData";
+import CareerHistoryEditor from "@/components/profile/CareerHistoryEditor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -492,6 +493,11 @@ export default function UserProfileCard({
             placeholder="キャリアの次のチャプターは何ですか？"
             maxLength={500}
           />
+        </InlineEditableSection>
+
+        {/* ── 職歴 (CareerHistoryEditor manages its own state / API) */}
+        <InlineEditableSection label="職歴">
+          <CareerHistoryEditor />
         </InlineEditableSection>
 
         {/* ── SNSリンク (Section-level edit) */}

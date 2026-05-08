@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import type { Experience } from "@/app/(jobseeker)/profile/edit/mockProfileData";
 
 export const dynamic = "force-dynamic";
 
@@ -76,8 +75,9 @@ export async function GET() {
   const [{ data: rows, error: rowsErr }, { data: allRoles }] = await Promise.all([
     supabase
       .from("ow_experiences")
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description")
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, why, display_order")
       .eq("user_id", owUserId)
+      .order("display_order", { ascending: true })
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
     supabase.from("ow_roles").select("id, name"),
@@ -110,7 +110,7 @@ export async function GET() {
     }
   }
 
-  const experiences: Experience[] = (rows ?? []).map((r) => {
+  const experiences = (rows ?? []).map((r) => {
     let companyType: "master" | "custom" | "anon";
     let displayCompanyName: string;
     if (r.company_id) {
@@ -138,6 +138,9 @@ export async function GET() {
       endedAt: r.ended_at ? (r.ended_at as string).slice(0, 7) : undefined,
       isCurrent: r.is_current as boolean,
       description: r.description as string | undefined || undefined,
+      // Phase ν-6 fields
+      why: r.why as string | undefined || undefined,
+      displayOrder: (r.display_order as number) ?? 0,
     };
   });
 
@@ -189,7 +192,8 @@ export async function POST(req: Request) {
       ended_at: body.ended_at ? `${body.ended_at}-01` : null,
       is_current: (body.is_current as boolean | undefined) ?? false,
       description: (body.description as string | undefined) ?? null,
-      display_order: 0,
+      why: (body.why as string | undefined) ?? null,
+      display_order: (body.display_order as number | undefined) ?? 0,
     })
     .select("id")
     .single();
