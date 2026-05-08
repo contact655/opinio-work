@@ -4,10 +4,13 @@ import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
+import Tabs, { type TabItem } from "./Tabs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type SaveStatus = "idle" | "saving" | "saved";
+
+type ProfileTab = "basic" | "career" | "skills" | "socials" | "account";
 
 type OwUser = {
   id: string;
@@ -27,6 +30,14 @@ type SettingsState = {
 
 const DEFAULT_AVATAR_COLOR = "linear-gradient(135deg, #002366, #3B5FD9)";
 const DEFAULT_COVER_COLOR  = "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
+
+const PROFILE_TABS: TabItem[] = [
+  { key: "basic",   label: "基本情報" },
+  { key: "career",  label: "職歴" },
+  { key: "skills",  label: "スキル" },
+  { key: "socials", label: "SNS" },
+  { key: "account", label: "アカウント設定" },
+];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -129,6 +140,56 @@ function selectStyle(): React.CSSProperties {
   };
 }
 
+// ─── Placeholder Tab Content ──────────────────────────────────────────────────
+
+function PlaceholderTabContent({ label }: { label: string }) {
+  return (
+    <div style={{ maxWidth: 680 }}>
+      <div
+        style={{
+          background: "#fff", border: "1px solid var(--line)",
+          borderRadius: 14, padding: "48px 32px",
+          display: "flex", flexDirection: "column", alignItems: "center",
+          gap: 12, marginBottom: 24,
+        }}
+      >
+        <div style={{
+          width: 40, height: 40, borderRadius: "50%",
+          background: "var(--bg-tint)", display: "flex",
+          alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)" }}>
+          {label}（実装中）
+        </div>
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, textAlign: "center" }}>
+          この機能は現在開発中です。近日公開予定です。
+        </div>
+      </div>
+      {/* 各タブ最下部に「保存」ボタン — プレースホルダーは disabled */}
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          disabled
+          style={{
+            padding: "10px 24px", fontSize: 13, fontWeight: 600,
+            background: "var(--bg-tint)", color: "var(--ink-mute)",
+            border: "1px solid var(--line)", borderRadius: 8,
+            fontFamily: "inherit", cursor: "not-allowed",
+          }}
+        >
+          保存
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ProfileEditClient({
@@ -138,6 +199,7 @@ export default function ProfileEditClient({
   owUser: OwUser;
   authEmail: string;
 }) {
+  const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
   const [settings, setSettings] = useState<SettingsState>({
     avatarColor: owUser?.avatar_color ?? DEFAULT_AVATAR_COLOR,
     coverColor:  owUser?.cover_color  ?? DEFAULT_COVER_COLOR,
@@ -152,7 +214,6 @@ export default function ProfileEditClient({
     setSaveStatus("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      // 設定ページで編集できるのは visibility のみ
       await fetch("/api/jobseeker/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -183,8 +244,8 @@ export default function ProfileEditClient({
           <h1 style={{
             fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
             color: "var(--ink)", margin: 0,
-          }}>設定</h1>
-          <SaveStatusPill status={saveStatus} />
+          }}>プロフィール</h1>
+          {activeTab === "account" && <SaveStatusPill status={saveStatus} />}
           <div style={{ marginLeft: "auto" }}>
             <Link
               href="/mypage"
@@ -204,150 +265,196 @@ export default function ProfileEditClient({
           </div>
         </div>
 
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.9 }}>
-          プロフィール画像・カバー画像、および公開設定を管理します。
-        </p>
+        {/* ── タブナビゲーション ──────────────────────────────────────────────── */}
+        <Tabs
+          tabs={PROFILE_TABS}
+          activeTab={activeTab}
+          onTabChange={(key) => setActiveTab(key as ProfileTab)}
+        />
 
-        <div style={{ maxWidth: 680 }}>
+        {/* ── タブコンテンツ ──────────────────────────────────────────────────── */}
 
-          {/* ── Section 1: プロフィール画像・カバー ────────────────────────── */}
-          <FormSection
-            title="プロフィール画像・カバー"
-            desc="プロフィールページのヘッダーに表示されます。"
-          >
-            <div style={{ display: "flex", gap: 24, alignItems: "flex-start", marginBottom: 20 }}>
-              <div style={{ flexShrink: 0 }}>
-                <div
-                  style={{
-                    width: 200, height: 80, borderRadius: "10px 10px 0 0",
-                    background: settings.coverColor, position: "relative",
-                  }}
-                >
+        {/* 基本情報タブ（実装中） */}
+        {activeTab === "basic" && (
+          <PlaceholderTabContent label="基本情報" />
+        )}
+
+        {/* 職歴タブ（実装中） */}
+        {activeTab === "career" && (
+          <PlaceholderTabContent label="職歴" />
+        )}
+
+        {/* スキルタブ（実装中） */}
+        {activeTab === "skills" && (
+          <PlaceholderTabContent label="スキル" />
+        )}
+
+        {/* SNSタブ（実装中） */}
+        {activeTab === "socials" && (
+          <PlaceholderTabContent label="SNS" />
+        )}
+
+        {/* アカウント設定タブ（動作） */}
+        {activeTab === "account" && (
+          <div style={{ maxWidth: 680 }}>
+
+            {/* ── Section 1: プロフィール画像・カバー ──────────────────────── */}
+            <FormSection
+              title="プロフィール画像・カバー"
+              desc="プロフィールページのヘッダーに表示されます。"
+            >
+              <div style={{ display: "flex", gap: 24, alignItems: "flex-start", marginBottom: 20 }}>
+                <div style={{ flexShrink: 0 }}>
                   <div
                     style={{
-                      width: 68, height: 68, borderRadius: "50%",
-                      background: settings.avatarColor,
-                      color: "#fff", display: "flex", alignItems: "center",
-                      justifyContent: "center", fontSize: 26, fontWeight: 600,
-                      border: "4px solid #fff",
-                      position: "absolute", bottom: -34, left: 14,
-                      boxShadow: "0 4px 12px rgba(15,23,42,0.1)",
+                      width: 200, height: 80, borderRadius: "10px 10px 0 0",
+                      background: settings.coverColor, position: "relative",
                     }}
                   >
-                    {displayName.charAt(0) || "?"}
+                    <div
+                      style={{
+                        width: 68, height: 68, borderRadius: "50%",
+                        background: settings.avatarColor,
+                        color: "#fff", display: "flex", alignItems: "center",
+                        justifyContent: "center", fontSize: 26, fontWeight: 600,
+                        border: "4px solid #fff",
+                        position: "absolute", bottom: -34, left: 14,
+                        boxShadow: "0 4px 12px rgba(15,23,42,0.1)",
+                      }}
+                    >
+                      {displayName.charAt(0) || "?"}
+                    </div>
+                  </div>
+                  <div style={{ height: 34 }} />
+                  <div style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center", marginTop: 2 }}>
+                    プレビュー
                   </div>
                 </div>
-                <div style={{ height: 34 }} />
-                <div style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center", marginTop: 2 }}>
-                  プレビュー
+                <div style={{ flex: 1, paddingTop: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
+                    プロフィール画像
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
+                    未設定の場合、名前の頭文字で自動生成されます。
+                  </div>
+                  <button
+                    type="button"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "7px 12px", background: "#fff", color: "var(--ink)",
+                      border: "1px solid var(--line)", borderRadius: 6,
+                      fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                      cursor: "not-allowed", opacity: 0.5,
+                    }}
+                    disabled
+                    title="画像アップロードは近日公開予定です"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    画像をアップロード（近日公開）
+                  </button>
                 </div>
               </div>
-              <div style={{ flex: 1, paddingTop: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
-                  プロフィール画像
-                </div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
-                  未設定の場合、名前の頭文字で自動生成されます。
+            </FormSection>
+
+            {/* ── Section 2: ログイン情報 ───────────────────────────────────── */}
+            <FormSection title="ログイン情報">
+              <FormGroup label="メールアドレス">
+                <input
+                  type="email"
+                  value={authEmail}
+                  readOnly
+                  style={{ ...inputStyle(), background: "var(--bg-tint)", color: "var(--ink-soft)", cursor: "default" }}
+                />
+              </FormGroup>
+              <div style={{ marginBottom: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
+                  パスワード
                 </div>
                 <button
                   type="button"
                   style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "7px 12px", background: "#fff", color: "var(--ink)",
-                    border: "1px solid var(--line)", borderRadius: 6,
-                    fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                    cursor: "not-allowed", opacity: 0.5,
+                    padding: "8px 16px", fontSize: 13, fontWeight: 600,
+                    border: "1px solid var(--line)", borderRadius: 8,
+                    background: "#fff", color: "var(--ink)", cursor: "pointer",
+                    fontFamily: "inherit",
                   }}
-                  disabled
-                  title="画像アップロードは近日公開予定です"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                  画像をアップロード（近日公開）
+                  パスワードを変更
                 </button>
               </div>
-            </div>
-          </FormSection>
+            </FormSection>
 
-          {/* ── Section 2: ログイン情報 ─────────────────────────────────────── */}
-          <FormSection title="ログイン情報">
-            <FormGroup label="メールアドレス">
-              <input
-                type="email"
-                value={authEmail}
-                readOnly
-                style={{ ...inputStyle(), background: "var(--bg-tint)", color: "var(--ink-soft)", cursor: "default" }}
-              />
-            </FormGroup>
-            <div style={{ marginBottom: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
-                パスワード
+            {/* ── Section 3: プロフィールの公開設定 ───────────────────────── */}
+            <FormSection
+              title="プロフィールの公開設定"
+              desc="プロフィールページを他のユーザーが閲覧できるかどうかを設定します。"
+            >
+              <FormGroup label="公開範囲">
+                <select
+                  value={settings.visibility}
+                  onChange={(e) =>
+                    patchSettings({ visibility: e.target.value as SettingsState["visibility"] })
+                  }
+                  style={selectStyle()}
+                >
+                  <option value="public">すべてのOpinioユーザーに公開</option>
+                  <option value="login_only">ログインユーザーのみ公開</option>
+                  <option value="private">非公開（自分だけ見れる）</option>
+                </select>
+              </FormGroup>
+            </FormSection>
+
+            {/* ── Danger zone ──────────────────────────────────────────────── */}
+            <div
+              style={{
+                background: "var(--error-soft)", border: "1px solid #FECACA",
+                borderRadius: 14, padding: "20px 24px", marginBottom: 24,
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--error)", marginBottom: 6 }}>
+                ⚠ アカウント削除
+              </div>
+              <div style={{ fontSize: 12, color: "#991B1B", marginBottom: 14, lineHeight: 1.7 }}>
+                アカウントを削除すると、プロフィール・職歴・記事へのコメントなど、すべてのデータが完全に削除されます。
+                取材済みの記事は掲載を続ける場合があります。この操作は取り消せません。
               </div>
               <button
                 type="button"
                 style={{
                   padding: "8px 16px", fontSize: 13, fontWeight: 600,
-                  border: "1px solid var(--line)", borderRadius: 8,
-                  background: "#fff", color: "var(--ink)", cursor: "pointer",
+                  border: "1px solid var(--error)", borderRadius: 8,
+                  background: "#fff", color: "var(--error)", cursor: "pointer",
                   fontFamily: "inherit",
                 }}
               >
-                パスワードを変更
+                アカウントを削除する
               </button>
             </div>
-          </FormSection>
 
-          {/* ── Section 3: プロフィールの公開設定 ─────────────────────────── */}
-          <FormSection
-            title="プロフィールの公開設定"
-            desc="プロフィールページを他のユーザーが閲覧できるかどうかを設定します。"
-          >
-            <FormGroup label="公開範囲">
-              <select
-                value={settings.visibility}
-                onChange={(e) =>
-                  patchSettings({ visibility: e.target.value as SettingsState["visibility"] })
-                }
-                style={selectStyle()}
+            {/* ── アカウント設定タブの「保存」ボタン ──────────────────────── */}
+            {/* 公開設定は自動保存のため、「保存」ボタンは情報提供用 */}
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
+              <SaveStatusPill status={saveStatus} />
+              <button
+                type="button"
+                onClick={triggerSave}
+                style={{
+                  padding: "10px 24px", fontSize: 13, fontWeight: 600,
+                  background: "var(--royal)", color: "#fff",
+                  border: "none", borderRadius: 8,
+                  fontFamily: "inherit", cursor: "pointer",
+                }}
               >
-                <option value="public">すべてのOpinioユーザーに公開</option>
-                <option value="login_only">ログインユーザーのみ公開</option>
-                <option value="private">非公開（自分だけ見れる）</option>
-              </select>
-            </FormGroup>
-          </FormSection>
+                変更を保存
+              </button>
+            </div>
 
-          {/* ── Danger zone ─────────────────────────────────────────────────── */}
-          <div
-            style={{
-              background: "var(--error-soft)", border: "1px solid #FECACA",
-              borderRadius: 14, padding: "20px 24px",
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--error)", marginBottom: 6 }}>
-              ⚠ アカウント削除
-            </div>
-            <div style={{ fontSize: 12, color: "#991B1B", marginBottom: 14, lineHeight: 1.7 }}>
-              アカウントを削除すると、プロフィール・職歴・記事へのコメントなど、すべてのデータが完全に削除されます。
-              取材済みの記事は掲載を続ける場合があります。この操作は取り消せません。
-            </div>
-            <button
-              type="button"
-              style={{
-                padding: "8px 16px", fontSize: 13, fontWeight: 600,
-                border: "1px solid var(--error)", borderRadius: 8,
-                background: "#fff", color: "var(--error)", cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              アカウントを削除する
-            </button>
           </div>
-
-        </div>
+        )}
 
         <style>{`
           input:focus, textarea:focus, select:focus {
