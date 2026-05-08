@@ -69,7 +69,9 @@ export type MypageActiveKey =
   | "mentor-schedule"
   // サブページ (/mypage/conversations, /mypage/applications など)
   | "conversations"
-  | "applications";
+  | "applications"
+  // 設定ページ (/profile/edit)
+  | "settings";
 
 export default function MypageLayout({
   activeKey,
@@ -193,7 +195,7 @@ export default function MypageLayout({
             アカウント
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
-            <SidebarItem icon={Icons.settings} label="設定" active={false} onClick={() => { window.location.href = "/profile/edit"; }} />
+            <SidebarItem icon={Icons.settings} label="設定" active={activeKey === "settings"} onClick={() => { window.location.href = "/profile/edit"; }} />
           </nav>
         </aside>
 
