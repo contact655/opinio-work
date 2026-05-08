@@ -21,7 +21,7 @@ export default async function MypagePage() {
 
   const { data: owUser } = await supabase
     .from("ow_users")
-    .select("id, name, avatar_color, cover_color, about_me, age_range, location, social_links, is_mentor")
+    .select("id, name, avatar_color, cover_color, about_me, age_range, location, social_links, future_aspirations, is_mentor")
     .eq("auth_id", user.id)
     .maybeSingle();
 

@@ -27,6 +27,7 @@ type OwUser = {
   age_range: string | null;
   location: string | null;
   social_links: Record<string, string> | null;
+  future_aspirations: string | null;
   is_mentor: boolean;
 } | null;
 
@@ -245,12 +246,14 @@ function SidebarItem({
 
 function DashboardView({
   userId, isMentor, onNavigate, userName, userInitial, userAvatar,
-  userLocation, userAboutMe,
+  userLocation, userAboutMe, userAgeRange, userFutureAspirations, userSocialLinks,
   companyBookmarks, casualMeetings, mentorReservations,
 }: {
   userId: string; isMentor: boolean; onNavigate: (v: ActiveView) => void;
   userName: string; userInitial: string; userAvatar: string;
   userLocation?: string | null; userAboutMe?: string | null;
+  userAgeRange?: string | null; userFutureAspirations?: string | null;
+  userSocialLinks?: Record<string, string> | null;
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
@@ -327,7 +330,7 @@ function DashboardView({
 
   return (
     <div>
-      {/* コンパクトプロフィールカード — Phase ν-6 段階2: About Me インライン編集対応 */}
+      {/* コンパクトプロフィールカード — Phase ν-6 段階3: 全フィールドインライン編集対応 */}
       <UserProfileCard
         userId={userId}
         userName={userName}
@@ -336,6 +339,9 @@ function DashboardView({
         currentRole={MOCK_USER.currentRole}
         userLocation={userLocation}
         userAboutMe={userAboutMe}
+        userAgeRange={userAgeRange}
+        userFutureAspirations={userFutureAspirations}
+        userSocialLinks={userSocialLinks}
         isMentor={isMentor}
       />
 
@@ -961,6 +967,9 @@ export default function MypageClient({
               userAvatar={userAvatar}
               userLocation={owUser?.location}
               userAboutMe={owUser?.about_me}
+              userAgeRange={owUser?.age_range}
+              userFutureAspirations={owUser?.future_aspirations}
+              userSocialLinks={owUser?.social_links}
               companyBookmarks={companyBookmarks}
               casualMeetings={casualMeetings}
               mentorReservations={mentorReservations}
