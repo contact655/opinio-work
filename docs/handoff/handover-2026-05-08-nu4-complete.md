@@ -633,3 +633,101 @@ Phase ν-6  送信者識別-biz / 候補者プロフィール詳細 / 空会話�
 | テスト/バグ由来の孤立レコード | ❌ 出すべきでない（`status = 'draft'` 等でフィルタ） |
 | 招待フロー（企業→候補者への対話開始通知） | ✅ 出すべき（`stage = 'invited'` 等の専用値が必要） |
 
+---
+
+## 12. Phase ν-6 段階 1 完了サマリー（2026-05-08 追記）
+
+### 12-1. マスタープラン
+
+- **パス**: `docs/planning/phase-nu-6-master-plan.md`
+- **コミット**: `f73709c`
+- **全体テーマ**: 「自己の物語化 — 経歴ではなく WHY を語る場所」
+- **構成**: 段階 0〜5（hotfix → レイアウト刷新 → インライン編集基盤 → 横展開 → 職歴 → 仕上げ）
+
+### 12-2. 段階 0 完了（`1768dee`）
+
+- `/profile/edit` 左サイドバー上部の「マイページへ」リンクのアイコンを `eye` → `chevron-left` に修正
+- ラベルを「マイページへ」→「マイページ」に整理
+- 既に実装済みだったボタンの **アイコン不整合** を解消した hotfix
+
+### 12-3. 段階 1 完了
+
+| コミット | 種別 | 内容 |
+|---------|------|------|
+| `44bddb5` | feat(db) | `ow_users.future_aspirations TEXT NULL` カラム追加（migration 075）。CHECK 制約で 500 文字上限 |
+| `c98dad6` | feat(mypage) | ヒーローバナー縮小・数字カード格下げ。コンパクトプロフィールカード（アバター/名前/場所/About Me）をファーストビューに |
+| `6cfb281` | fix(profile/edit) | MOCK_PROFILE フォールバック削除 hotfix |
+
+**段階 1 の変更概要:**
+
+- **カバー画像バナー + 完成度ゲージ** → コンパクトプロフィールカードに置き換え
+  - `about_me`（200 字 truncate）・`location` をファーストビューに表示
+  - 未入力時はプレースホルダー誘導テキストを表示（黄色バナー廃止）
+- **数字カード 4 つ** → ページ下部「マイアクティビティ」セクションに格下げ
+- **`showBanner` state・topOffset 動的計算** を削除（topOffset = 65 固定）
+- **`future_aspirations`** は段階 3（インライン編集横展開）まで非表示、DB カラムのみ追加
+
+### 12-4. 段階 1 で起きたこと（学習事項）
+
+**一度目の着手（`a40ea07` + `70c39e3`）→ 巻き戻し（`a2aaa19`）**
+
+| 問題 | 内容 |
+|------|------|
+| 指示違反 | 段階 0 の動作確認前に段階 1 まで進んだ |
+| migration 未適用 | DB に `future_aspirations` カラムが存在しない状態でアプリコードをコミット |
+| dev 環境破損 | `useContext` エラーが発生し `/mypage` がレンダリング不能に |
+
+**教訓（次セッションへの申し送り）:**
+
+1. 段階の境界で必ず動作確認を行う
+2. `'use client'` ディレクティブを改修前に目視確認する
+3. DB マイグレーション適用完了を確認してからアプリコードの改修コミットを切る
+4. migration ファイル作成後はコミット前に Hisato への適用依頼 → 完了報告待ち
+
+**二度目の着手（正しい手順）:** 段階 0 動作確認 → migration 作成 → 適用依頼 → 適用完了報告受領 → コミット → コード改修 → tsc チェック → コミット の順で成功。
+
+### 12-5. MOCK_PROFILE フォールバック問題（hotfix `6cfb281`）
+
+`ProfileEditClient.tsx` の `buildInitialProfile()` が `owUser.xxx ?? MOCK_PROFILE.xxx` パターンで DB null 時に田中翔太さんのモックデータを表示・保存していた問題を修正。
+
+| フィールド | 修正前 | 修正後 |
+|-----------|-------|-------|
+| `aboutMe` | DB null → 田中翔太の長文 | DB null → `""` |
+| `ageRange` | DB null → `"30代前半"` | DB null → `""` |
+| `location` | DB null → `"東京都"` | DB null → `""` |
+| `socialLinks` | DB null → 架空 SNS リンク | DB null → `{twitter:"", linkedin:"", note:""}` |
+| `visibility` | DB null → MOCK 値 | DB null → `"public"` |
+| `avatarColor` / `coverColor` | MOCK 参照 | デザイントークン定数に変更（視覚は同一） |
+
+`MOCK_PROFILE` import を完全削除。`LOCATIONS` / `AGE_RANGES` / 型定義は引き続き `mockProfileData.ts` から利用。
+
+### 12-6. 動作確認結果
+
+| 確認項目 | 結果 |
+|---------|------|
+| `/mypage` コンパクトプロフィールカード表示 | ✅ 正常（tsc + dev server 307 確認） |
+| 黄色バナー廃止 | ✅ 削除済み |
+| 数字カードのページ下部移動 | ✅ 移動済み |
+| `/profile/edit` モックデータなし | ✅ DB 真値 or 空欄を表示 |
+| `ow_users.future_aspirations` カラム存在 | ✅ migration 075 適用済み（Supabase Dashboard + CLI 確認） |
+| `tsc --noEmit` | ✅ エラーなし |
+
+### 12-7. 次セッションでの予定（段階 2）
+
+- `<InlineEditableField>` / `<InlineEditableSection>` 共通コンポーネント構築
+  - `src/components/profile/InlineEditableField.tsx`
+  - `src/components/profile/InlineEditableSection.tsx`
+- About Me セクションでフル実装（Wantedly 風インライン編集）
+  - 状態: `display | editing | saving | error`
+  - 鉛筆アイコンでホバー対応、クリックで編集モード切り替え
+  - 楽観的更新 + Supabase 同期 + エラートースト
+- 想定 60〜90 分
+
+### 12-8. 残タスクメモ
+
+| 項目 | 優先度 | 対応時期 |
+|------|-------|---------|
+| `/profile/edit` 入力フィールドのプレースホルダーテキスト追加 | 中 | 段階 2 で対応 |
+| `mockProfileData.ts` の `MOCK_PROFILE` 自体は参照ゼロだが、`LOCATIONS` / `AGE_RANGES` / 型定義のため残置 | 低 | 段階 5 仕上げ時に整理検討 |
+| `ow_users.age_range` の実データ確認（Hisato 実年齢との齟齬の可能性） | 低 | 段階 5 までに `/profile/edit` で修正 |
+
