@@ -723,11 +723,84 @@ Phase ν-6  送信者識別-biz / 候補者プロフィール詳細 / 空会話�
   - 楽観的更新 + Supabase 同期 + エラートースト
 - 想定 60〜90 分
 
-### 12-8. 残タスクメモ
+### 12-8. 残タスクメモ（段階 1 時点）
 
 | 項目 | 優先度 | 対応時期 |
 |------|-------|---------|
 | `/profile/edit` 入力フィールドのプレースホルダーテキスト追加 | 中 | 段階 2 で対応 |
 | `mockProfileData.ts` の `MOCK_PROFILE` 自体は参照ゼロだが、`LOCATIONS` / `AGE_RANGES` / 型定義のため残置 | 低 | 段階 5 仕上げ時に整理検討 |
 | `ow_users.age_range` の実データ確認（Hisato 実年齢との齟齬の可能性） | 低 | 段階 5 までに `/profile/edit` で修正 |
+
+---
+
+### 12-9. 段階 2 完了（2026-05-08 追記）
+
+#### 設計ドキュメント（コミット `96ff1a6`）
+
+- **ファイル**: `docs/planning/phase-nu-6-step-2-design.md`（417 行）
+- §8「論点整理」5 項目を Hisato が確定:
+
+| 論点 | 確定内容 |
+|------|---------|
+| モバイルのペンシルアイコン | `@media (hover: hover)` でデスクトップのみ表示（モバイルはタップで編集開始） |
+| 成功時 Toast | 表示しない（保存ボタンが「保存中…」→ 消えるだけで十分。静寂 UX） |
+| `MypageClient` state 更新 | `UserProfileCard` 内で `useState` 個別管理（親に巻き上げない） |
+| 同時編集 | 複数フィールドの同時編集 OK（フィールド単位で独立した状態機械） |
+| キーボードショートカット | Escape = キャンセル、Ctrl+Enter / Cmd+Enter = 保存 |
+
+#### 実装（コミット `b704df4`）
+
+**新規ファイル:**
+
+| ファイル | 内容 |
+|---------|------|
+| `src/components/ui/Toast.tsx` | `MembersClient.tsx` から切り出した共通 Toast。`variant?: "default" \| "error"` 追加（エラー時は `var(--error)` 赤色） |
+| `src/components/profile/InlineEditableField.tsx` | 3 状態（`display / editing / saving`）の汎用インライン編集フィールド。`type="text" \| "textarea" \| "select"` 対応。ホバー時ペンシルアイコン、文字数カウンター、エラー時ロールバック + Toast |
+| `src/components/profile/InlineEditableSection.tsx` | セクションラベル付き視覚ラッパー（`10px Inter 大文字ラベル` + children） |
+| `src/components/profile/UserProfileCard.tsx` | コンパクトプロフィールカード全体をコンポーネント化。`about_me` は Supabase `ow_users` に直接 PATCH（楽観的更新: DB 成功後に `setAboutMe` 実行） |
+
+**修正ファイル:**
+
+| ファイル | 変更内容 |
+|---------|---------|
+| `src/app/(jobseeker)/mypage/MypageClient.tsx` | `DashboardView` の compact profile card JSX（約 100 行）を `<UserProfileCard>` 1 コンポーネントに置き換え。`userId` prop 追加。`aboutMePreview` の 200 字 truncate 処理を削除（全文表示に変更） |
+| `src/app/biz/members/MembersClient.tsx` | ローカル `Toast` 関数を削除し、`src/components/ui/Toast` を import に切り替え |
+
+#### 動作確認結果（Hisato による実機確認）
+
+| 確認項目 | 結果 |
+|---------|------|
+| `/mypage` 自己紹介エリアをクリック → 編集モード遷移 | ✅ |
+| `textarea` + 残り文字数カウンター（500 字上限） | ✅ |
+| [保存] ボタン → 楽観的更新 + Supabase 永続化 | ✅ |
+| ハードリロードで永続化確認 | ✅ |
+| [キャンセル] ボタン / Escape キー | ✅ |
+| Cmd+Enter で保存 | ✅ |
+| `tsc --noEmit` | ✅ エラーなし |
+| `/profile/edit` との同期 | 🟡 手動リロードが必要（Server Component キャッシュ起因、ν-7 候補） |
+
+### 12-10. 段階 2 で判明した既知問題（ν-7 候補）
+
+**MOCK 切り替えバナーの `position: sticky` が Console 警告を多発させる**
+
+- 警告文: `"Skipping auto-scroll behavior due to 'position: sticky' on element"`
+- 発生箇所: `layout-router.js`（Next.js 内部）
+- 実害: なし。Console が冗長になるのみ
+- 対応案: バナーの z-index と sticky 設定の見直し
+
+### 12-11. 段階 3 への申し送り
+
+段階 3 では `InlineEditableField` を以下のフィールドに横展開する:
+
+| フィールド | DB カラム | type | 補足 |
+|-----------|---------|------|------|
+| 名前 | `name` | `"text"` | `required=true`（空保存 NG） |
+| 所在地 | `location` | `"select"` | `options=LOCATIONS`（`mockProfileData.ts` から流用） |
+| 年齢層 | `age_range` | `"select"` | `options=AGE_RANGES`（同上） |
+| この先やってみたいこと | `future_aspirations` | `"textarea"` | `maxLength=500`。placeholder:「キャリアの次のチャプターは何ですか？」（Hisato 確定）。ν-6 テーマ「自己の物語化」の中核セクション |
+| SNS リンク | `social_links` (JSONB) | Section 単位保存 | twitter / linkedin / note の 3 フィールドを 1 回の PATCH にまとめる（JSONB race condition 回避） |
+
+**スコープ外（ν-7 へ繰り越し）:**
+
+- スキル・特徴（tags UI）— `type="text"|"textarea"|"select"` に収まらない専用コンポーネントが必要なため ν-7 で対応
 
