@@ -4,6 +4,9 @@
 **前バージョン**: v17（Phase ν-3 Step 4 完走: 候補者側既読処理 + 未読バッジ）  
 **最新コミット**: `e552039`（マスタープラン更新）
 
+> **📌 2026-05-08 追記: Phase ν-5 完走**  
+> Phase ν-5「見える化（候補者側 UI 統一 + 送信者識別）」が同日中に完走。§11 に完走サマリーを追記。§6・§7・§8・§9・§10 を更新済み。
+
 ---
 
 ## 0. このドキュメントの読み方
@@ -386,17 +389,17 @@ SELECT email, auth_id FROM ow_users WHERE email = 'contact+biz00X@opinio.co.jp';
 |------|------|
 | 影響 | `/mypage` 本体（系統 A: 「マイアクティビティ」サイドバー）と `/mypage/conversations`, `/mypage/applications`（系統 B: シンプルサイドバー）で UI が異なる |
 | 原因 | Next.js App Router の `layout.tsx` 階層分岐による設計上の分断 |
-| 状態 | Phase ν-3 から継続する既知問題。機能には影響なし |
-| 修正方針 | Phase ν-5 で layout 設計を見直して統一する（A-2 スコープ） |
+| 状態 | ✅ **Phase ν-5 A-2 で対応完了（2026-05-08）** |
+| 修正内容 | `/mypage/conversations` 一覧・詳細の sidebar top・disabled 項目・active 判定を統一。スタイル手法の全面統一（Tailwind 継続・インライン CSS 混在許容）はリスク対比でスコープ外とした |
 
 ### 6-3. ログアウトの発見性が低い（`/mypage` 側）
 
 | 項目 | 内容 |
 |------|------|
 | 影響 | `/mypage` ヘッダーのログアウトは `User` アイコン円ボタン 1 つのみ。ホバー変化なし・テキストなし・▼ なしで「クリックするとメニューが出る」と気づきにくい |
-| `/biz` 側の状態 | ✅ A-1（2026-05-08）で `ChevronDown` 追加済み。ログアウト機能自体はコミット `0e8eedb` から実装済みだった |
-| `/mypage` 側の状態 | 引き続き発見性が低い。リリース前に改善が必要 |
-| 修正方針 | A-2（候補者側 UI 統一）のスコープで対応予定 |
+| `/biz` 側の状態 | ✅ A-1（2026-05-08、commit `08821fd`）で `ChevronDown` 追加済み |
+| `/mypage` 側の状態 | ✅ **Phase ν-5 A-2 段階 1 で対応完了（2026-05-08、commit `882d568`）** |
+| 修正内容 | `JobseekerHeader` をイニシャル円 + ChevronDown ドロップダウンに全面改修。ow_users.name を取得して表示名・ログアウトを提供 |
 
 ### 6-4. 返信フォームのオートセーブなし（UX）
 
@@ -410,9 +413,11 @@ SELECT email, auth_id FROM ow_users WHERE email = 'contact+biz00X@opinio.co.jp';
 
 | 項目 | 内容 |
 |------|------|
-| 影響 | `43ef84f4`（会社_003）・`922bf4c4`（会社_004）の対話が一覧で「日付なし」表示 |
-| 原因 | シードデータ投入時にメッセージなし（DML CTE 問題で last_message_at バックフィルも未到達） |
-| 修正方針 | 必要になったら Dashboard SQL Editor で手動 UPDATE 実行 |
+| 影響 | `43ef84f4`（会社_003）・`922bf4c4`（会社_004）の対話が一覧で「昨日 HH:MM」のような誤った時刻を表示していた（created_at へのフォールバックバグ） |
+| 原因 | 候補者側一覧が `last_message_at ?? created_at` にフォールバックしており、メッセージ 0 件でも created_at が時刻として表示されていた |
+| 状態 | ✅ **Phase ν-5 hotfix で対応済み（2026-05-08、commit `d4994ee`）** |
+| 修正内容 | `last_message_at = null` のとき「これから対話」固定テキスト（var(--ink-soft) 色）を表示。created_at へのフォールバックを完全に停止 |
+| ν-6 繰り越し | **空会話の一覧表示可否**: 全会話の status/stage が `"active"` で統一されており、「メッセージありの進行中」と「空会話」を DB 側で区別できない。§11-4 参照 |
 
 ### 6-6. 対話画面の送信者識別なし
 
@@ -422,7 +427,9 @@ SELECT email, auth_id FROM ow_users WHERE email = 'contact+biz00X@opinio.co.jp';
 | 影響（企業側） | 担当者_001 と担当者_005 が両方 `company_admin` で参加すると、右側青吹き出しが全部同色・名前なしで誰が書いたか分からない |
 | 影響（候補者側） | 複数 HR からの返信を区別できない |
 | 発見経緯 | Phase ν-4 段階 3 動作確認時に Hisato が指摘。担当者_005 で参加して返信した際、担当者_001 のメッセージと見分けがつかない問題が顕在化 |
-| 対応予定 | Phase ν-5 A-3 で実装 |
+| 状態 | ✅ **Phase ν-5 A-3-mypage で候補者側を対応済み（2026-05-08、commit `6c33043`）** |
+| 修正内容 | `/mypage/conversations/[id]` で自分・相手双方に送信者名 + InitialAvatar 表示。連続メッセージは 5 分以内同一送信者でグルーピング省略 |
+| 残課題 | `/biz/conversations/[id]`（企業側）の送信者識別は未対応。Phase ν-6 A-3-biz で実装予定 |
 
 ---
 
@@ -432,26 +439,13 @@ SELECT email, auth_id FROM ow_users WHERE email = 'contact+biz00X@opinio.co.jp';
 
 | ID | 内容 | 推定工数 | 状態 |
 |----|------|---------|------|
-| **A-1** | `/biz` ヘッダーアバターへの `ChevronDown` 追加（ログアウトの発見性向上） | 30 分 | ✅ 部分完了（2026-05-08、commit `08821fd`） |
-| **A-2** | 候補者側マイページの UI 統一（`/mypage/conversations` を `/biz/conversations` と同等品質に。系統 A/B の分断解消。`/mypage` ログアウト発見性改善も含む） | 2〜3 時間 | 🔜 未着手 |
-| **A-3** | 対話画面の送信者識別 UI（`/biz/conversations/[id]` + `/mypage/conversations/[id]`） | 30 分〜半日 | 🔜 未着手 |
+| **A-1** | `/biz` ヘッダーアバターへの `ChevronDown` 追加（ログアウトの発見性向上） | 30 分 | ✅ 完了（2026-05-08、commit `08821fd`） |
+| **A-2** | 候補者側マイページの UI 統一（`/mypage/conversations` 一覧・詳細。`/mypage` ログアウト発見性改善含む） | 2〜3 時間 | ✅ 完了（2026-05-08、commits `882d568` / `df1e8f2` / `406f4c7` / `1d121ee`） |
+| **A-3** | 対話画面の送信者識別 UI | 30 分〜半日 | ✅ /mypage 側完了（2026-05-08、commits `9730240` / `15f7a83` / `9412c9b` / `6c33043`）。/biz 側は ν-6 へ繰り越し |
 
-> **A-1 備考**: 当初「ログアウト機能の実装」と記載したが誤認識。ログアウト機能自体はコミット `0e8eedb`（S1a foundation）時点で `/biz` 側に実装済みだった。A-1 の実際のスコープは発見性向上（`ChevronDown` 追加）のみ。`/mypage` 側のログアウト発見性改善は A-2 のスコープに含める。
+> **A-1 備考**: 当初「ログアウト機能の実装」と記載したが誤認識。ログアウト機能自体はコミット `0e8eedb`（S1a foundation）時点で `/biz` 側に実装済みだった。A-1 の実際のスコープは発見性向上（`ChevronDown` 追加）のみ。`/mypage` 側のログアウト発見性改善は A-2 のスコープに含めて対応済み。
 
-**A-3 詳細:**
-
-- **スコープ**:
-  - `/biz/conversations/[id]`: 自分のメッセージと同僚のメッセージを区別、送信者名 + ロールバッジを表示
-  - `/mypage/conversations/[id]`: 候補者目線で複数 HR の発言を区別できるよう、同様に送信者名 + 企業情報を表示
-
-- **設計案候補**（着手時に判断）:
-  1. 名前のみ表示（最小実装、〜30 分）
-  2. アバター + 名前 + 担当者ごとの微妙な色分け（中規模、〜2 時間）
-  3. 「自分」と「同僚」を視覚的に区別（Slack スタイル、大規模、〜半日）
-
-- **推奨着手タイミング**: A-2（候補者側 UI 統一）と並行または直前。A-2 で UI 改修するついでに送信者識別も入れるのが自然で手戻り防止になる。
-
-- **優先度 A の根拠**: Phase ν-4 段階 3 で複数担当者参加が可能になった以上、リリース時点で「誰のメッセージか分からない」は混乱を生む。
+> **A-3 実装メモ（/mypage 側）**: `InitialAvatar` コンポーネントを `src/components/ui/InitialAvatar.tsx` に切り出し。自分側（royal gradient）・相手側（var(--line) ニュートラル）で視覚的に区別。連続メッセージは同一送信者 + 5 分以内でグルーピング省略（Slack 方式）。
 
 ### 7-2. 優先度 B（コア体験改善）
 
@@ -499,35 +493,33 @@ A-1（ログアウトボタン）は独立した小タスクで、テーマと�
 # 1. ワークツリーが main のみであることを確認
 git worktree list
 
-# 2. 最新コミットが e552039（マスタープラン更新）であることを確認
+# 2. 最新コミットが d4994ee（ν-5 hotfix）であることを確認
 git log --oneline -5
 
 # 3. dev サーバー起動
 npm run dev   # /Users/hisato/opinio-work/ から
 ```
 
-### 8-2. 推奨ルート（Phase ν-5 着手）
+### 8-2. 推奨ルート（Phase ν-6 着手）
 
-以下の順序で進めると、最小コストで最大の効果が得られる:
+Phase ν-5 が完走し、残タスクは以下の優先度で整理済み:
 
-#### ステップ 1: A-1 ✅ 完了（2026-05-08）
+#### 最優先: A-3-biz（/biz 側の送信者識別 UI）
 
-`ChevronDown` アイコンを `/biz` ヘッダーアバターボタン右端に追加済み（commit `08821fd`）。  
-ログアウト機能はコミット `0e8eedb` から実装済み（アバタークリック → ドロップダウン → 「ログアウト」）。  
-担当者アカウント切り替えは `/biz/auth` ページへのリダイレクト後に別アカウントでログインすることで対応可能。
+| 項目 | 詳細 |
+|------|------|
+| ファイル | `src/app/biz/conversations/[id]/page.tsx` |
+| 内容 | /mypage 側（commit `6c33043`）と同様に、isMe/isOther の両側に送信者名 + アバターを表示 |
+| 参考 | /mypage 側の実装を見て同パターンで実装可能。Server Component なのでアプローチが異なる点に注意 |
+| 工数 | 30 分〜1 時間 |
 
-#### ステップ 2: A-2 または B-3 を柴さんと相談して選択
+#### 次点: B-3（`/biz/candidates/[id]` 候補者プロフィール詳細）
 
-| 選択肢 | 優先する価値 |
-|--------|-------------|
-| **A-2**（候補者側 UI 統一） | 候補者体験の一貫性。リリース前に必須と判断するなら先行 |
-| **B-3**（`/biz/candidates/[id]`） | 企業側が候補者を詳細に見られるようになる。対話 UX の完成度を上げる |
+対話詳細から候補者プロフィールに遷移できるページ。4A-7 段階 1.5 で「準備中」としていた箇所。
 
-> **注記**: A-2 着手時には **A-3（送信者識別 UI）も同時に検討する**。対話画面の UI を改修するタイミングで送信者識別を組み込むのが手戻り最小。
+#### ν-6 繰り越し論点（判断必要）
 
-#### ステップ 3: B-2 現役社員プロフィール充実（任意）
-
-`/u/[id]` の表示は現状「薄い」ため、ここを充実させると **Opinio の差別化ポイント**（社員の声・スナップショット思想）が前面に出る。
+§11-4 参照。`ow_conversations.status / stage` の設計と空会話 UX の方針を確認してから実装。
 
 ### 8-3. 参考：セッション開始時の定形チェック
 
@@ -545,6 +537,8 @@ SELECT version, name FROM supabase_migrations.schema_migrations ORDER BY version
 
 ## 9. 数字サマリー
 
+### Phase ν-4
+
 | 指標 | 値 |
 |------|---|
 | Phase ν-4 実施期間 | 2026-05-06〜2026-05-08（3 日間） |
@@ -554,17 +548,88 @@ SELECT version, name FROM supabase_migrations.schema_migrations ORDER BY version
 | 発見・修正した RLS バグ | 5 件（SELECT 無限再帰 / UPDATE UUID 不一致 / RLS チェーンサイレントブロック / INSERT WITH CHECK 自己参照） |
 | 動作確認済みシナリオ | 2 シナリオ（担当者_001: 参加中 HR として返信 / 担当者_005: 非参加 HR として lazy join → 返信） |
 
+### Phase ν-5
+
+| 指標 | 値 |
+|------|---|
+| Phase ν-5 実施期間 | 2026-05-08（同日中に完走） |
+| コミット数 | 10 本（A-1〜A-3 + hotfix 2 件 + utils/component 追加） |
+| 新規ファイル | `formatRelativeTime.ts`（更新）/ `formatDateSeparator.ts` / `InitialAvatar.tsx` |
+| 修正ファイル | `JobseekerHeader.tsx` / `conversations/page.tsx` / `conversations/[id]/page.tsx` |
+| 発見・修正したバグ | 2 件（loading 永続化バグ `df1e8f2` / last_message_at null フォールバックバグ `d4994ee`） |
+| 動作確認済みシナリオ | 3 シナリオ（Header dropdown / 一覧相対時刻 / 詳細送信者識別 + グルーピング） |
+
 ---
 
 ## 10. Phase ν 全体の進捗図
 
 ```
-Phase ν-1  候補者側 conversations 一覧・詳細（読み取り）   ✅ 完了
-Phase ν-2  メッセージ送受信（候補者側送信 API）             ✅ 完了
-Phase ν-3  既読処理 + 未読バッジ（候補者側）                ✅ 完了
-Phase ν-4  企業側対話 UI（一覧・詳細・返信・参加）           ✅ 完了 ← 本セッション
-Phase ν-5  見える化（ログアウト / 候補者プロフィール等）     🔜 次フェーズ
+Phase ν-1  候補者側 conversations 一覧・詳細（読み取り）        ✅ 完了
+Phase ν-2  メッセージ送受信（候補者側送信 API）                  ✅ 完了
+Phase ν-3  既読処理 + 未読バッジ（候補者側）                     ✅ 完了
+Phase ν-4  企業側対話 UI（一覧・詳細・返信・参加）                ✅ 完了
+Phase ν-5  見える化（候補者側 UI 統一 + 送信者識別-mypage）       ✅ 完了 ← 本セッション追記
+Phase ν-6  送信者識別-biz / 候補者プロフィール詳細 / 空会話設計  🔜 次フェーズ
 ```
 
-**現在の到達点:** 求職者と企業の両側から対話ができるエンドツーエンドのメッセージング基盤が完成。認証・RLS・トリガーの三層が整合した状態でコミット済み。
+**現在の到達点:** 求職者と企業の両側から対話ができるエンドツーエンドのメッセージング基盤が完成。候補者側 UI の視認性（ログアウト・相対時刻・送信者識別）が整い、「誰と話しているか / 誰が話しているか」が両側で明確になった。
+
+---
+
+## 11. Phase ν-5 完走サマリー（2026-05-08 追記）
+
+### 11-1. 実装内容と全コミット一覧
+
+| コミット | 種別 | 内容 |
+|---------|------|------|
+| `08821fd` | feat | A-1: /biz ヘッダーアバターに ChevronDown 追加 |
+| `882d568` | feat | A-2 段階 1: JobseekerHeader イニシャル円 + ChevronDown ドロップダウン全面改修 |
+| `df1e8f2` | **hotfix** | JobseekerHeader loading 永続化バグ修正（.finally() パターン導入） |
+| `406f4c7` | feat | `formatRelativeTime` ユーティリティ新規作成 |
+| `1d121ee` | feat | A-2 段階 2: `/mypage/conversations` 一覧 4 項目改修（相対時刻・カード・sidebar top・href整理） |
+| `9730240` | feat | `formatRelativeTime` に `withTime` オプション追加 + `formatDateSeparator` 追加 |
+| `15f7a83` | refactor | `InitialAvatar` を `src/components/ui/InitialAvatar.tsx` に切り出し、JobseekerHeader 参照更新 |
+| `9412c9b` | feat | A-2/A-3 段階 3: `/mypage/conversations/[id]` 構造改善（時刻・セパレータ・sidebar・grouping 基盤） |
+| `6c33043` | feat | **A-3-mypage 独立コミット**: 自分のメッセージに送信者名 + InitialAvatar 追加 |
+| `d4994ee` | **hotfix** | `last_message_at = null` 時の created_at フォールバックを停止し「これから対話」表示に変更 |
+
+### 11-2. hotfix 2 件の経緯
+
+**df1e8f2（loading 永続化バグ）**
+
+`getSession()` が例外を投げた場合に `setLoading(false)` が呼ばれず、ログイン/無料登録ボタンが DOM に出ない状態が発生しうるバグ。`getSession()` が失敗した際に `loading = true` のまま固着し、`{!loading && (...)}` ブロックごと非表示になることで「ボタンを押しても何も起きない」症状になると推定（直接の証跡は未取得）。`.finally(() => setLoading(false))` パターンに統一して修正。
+
+**d4994ee（last_message_at null フォールバックバグ）**
+
+一覧画面が `conv.last_message_at ?? conv.created_at` でフォールバックしていたため、メッセージ 0 件の会話でも `created_at`（「昨日 17:25」等）が時刻として表示されていた。詳細画面は「まだメッセージはありません」を正確に表示しており、両者で不整合が生じていた。Supabase MCP で DB 直接確認し、004 の `total_messages = 0`・`last_message_at = null` を確認して切り分け。フォールバックを停止し「これから対話」固定テキストに変更。
+
+### 11-3. 新規ユーティリティ / コンポーネント
+
+| ファイル | 種別 | 用途 |
+|---------|------|------|
+| `src/lib/utils/formatRelativeTime.ts` | ユーティリティ | 日時を「たった今/N分前/今日 HH:MM/…」に変換。`withTime: true` で 7 日以上に時刻付与 |
+| `src/lib/utils/formatDateSeparator.ts` | ユーティリティ | メッセージリスト日付区切りラベル「今日/昨日/YYYY/MM/DD」 |
+| `src/components/ui/InitialAvatar.tsx` | コンポーネント | イニシャル円アバター。`name / size / bgStyle / textColor` props。JobseekerHeader + 詳細画面で共用 |
+
+### 11-4. Phase ν-6 繰り越し論点（status / stage 設計・空会話 UX）
+
+**現状:**
+- `ow_conversations` の `status` と `stage` は全件 `"active"` で統一されており、「メッセージありの進行中」と「作成されたが誰も発言していない空会話」を DB 側で区別できない
+- `d4994ee` の「これから対話」表示で UX 上の誤解は解消済み。実害なし
+
+**ν-6 で検討すべき設計変更:**
+
+| 変更内容 | 内容 |
+|---------|------|
+| `status` の値域拡張 | `"pending"` / `"invited"` / `"closed"` 等を追加。状態遷移図の設計が必要 |
+| 一覧クエリへのフィルタ追加 | 意図的に作られた会話のみ表示する条件（例: `status != 'draft'`） |
+| 空会話の有効期限設定 | 一定期間メッセージがない会話を自動 `closed` にする運用 |
+
+**想定される UX シナリオと方針:**
+
+| シナリオ | 空会話が一覧に出るべきか |
+|---------|----------------------|
+| 企業が面談承認 → スレッド生成 → 候補者が最初のメッセージを送るまで | ✅ 出すべき（「これから対話」で現状対処済み） |
+| テスト/バグ由来の孤立レコード | ❌ 出すべきでない（`status = 'draft'` 等でフィルタ） |
+| 招待フロー（企業→候補者への対話開始通知） | ✅ 出すべき（`stage = 'invited'` 等の専用値が必要） |
 
