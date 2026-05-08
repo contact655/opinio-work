@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
 import Link from "next/link";
 
 type Conversation = {
@@ -25,15 +27,21 @@ type Conversation = {
   } | null;
 };
 
-const SIDEBAR_ITEMS = [
-  { label: "応募管理", href: "/mypage/applications", active: false },
-  { label: "対話", href: "/mypage/conversations", active: true },
-  { label: "プロフィール", href: "/onboarding", active: false },
-  { label: "保存した求人", href: "#", active: false },
-  { label: "通知設定", href: "#", active: false },
+// B: 機能未実装のため disabled（当面プレースホルダー）
+type SidebarItem =
+  | { label: string; href: string; disabled?: false }
+  | { label: string; href?: never; disabled: true };
+
+const SIDEBAR_ITEMS: SidebarItem[] = [
+  { label: "応募管理",   href: "/mypage/applications" },
+  { label: "対話",       href: "/mypage/conversations" },
+  { label: "プロフィール", href: "/onboarding" },
+  { label: "保存した求人", disabled: true },   // B: 未実装
+  { label: "通知設定",   disabled: true },     // B: 未実装
 ];
 
 export default function ConversationsPage() {
+  const pathname = usePathname();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [hasUnreadMap, setHasUnreadMap] = useState<Map<string, boolean>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -147,20 +155,37 @@ export default function ConversationsPage() {
       <div className="max-w-6xl mx-auto px-4 py-8 flex gap-6">
         {/* Left Sidebar */}
         <aside className="hidden lg:block w-[200px] flex-shrink-0">
-          <nav className="sticky top-24 space-y-1">
-            {SIDEBAR_ITEMS.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
-                  item.active
-                    ? "bg-primary-light text-primary font-medium"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+          {/* fix: top-24(96px) → top-16(64px) = header 60px + 4px バッファ */}
+          <nav className="sticky top-16 space-y-1">
+            {SIDEBAR_ITEMS.map((item) => {
+              if (item.disabled) {
+                // B: 機能未実装 — クリック不可、視覚的に無効化
+                return (
+                  <span
+                    key={item.label}
+                    className="block px-3 py-2 rounded-lg text-sm text-gray-400 cursor-not-allowed select-none"
+                    aria-disabled="true"
+                    title="準備中"
+                  >
+                    {item.label}
+                  </span>
+                );
+              }
+              const isActive = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                    isActive
+                      ? "bg-primary-light text-primary font-medium"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </aside>
 
@@ -189,14 +214,23 @@ export default function ConversationsPage() {
                   conv.kind === "mentor"
                     ? conv.mentor?.name ?? "メンター"
                     : company?.name ?? "(企業情報なし)";
-                const displayDate = new Date(
+
+                // 相対時刻表示（絶対日付から変更）
+                const displayDate = formatRelativeTime(
                   conv.last_message_at ?? conv.created_at
-                ).toLocaleDateString("ja-JP");
+                );
+                const hasUnread = hasUnreadMap.get(conv.id) ?? false;
 
                 return (
                   <Link key={conv.id} href={`/mypage/conversations/${conv.id}`} className="block">
-                    <div className="bg-white rounded-card border border-card-border p-4 hover:border-primary transition flex items-center gap-4">
-                      {/* Logo */}
+                    <div
+                      className={`bg-white rounded-card border p-4 transition-all duration-150 flex items-center gap-4 ${
+                        hasUnread
+                          ? "border-primary shadow-card-hover"
+                          : "border-card-border hover:border-primary hover:shadow-card-hover"
+                      }`}
+                    >
+                      {/* Logo / Avatar */}
                       {company?.logo_url ? (
                         <img
                           src={company.logo_url}
@@ -204,24 +238,29 @@ export default function ConversationsPage() {
                           className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-royal-50 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                          {company?.logo_letter ?? company?.name?.[0] ?? "?"}
+                        <div className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
+                          {company?.logo_letter ?? company?.name?.[0] ?? displayName[0] ?? "?"}
                         </div>
                       )}
 
                       {/* Name + date */}
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-foreground truncate">
+                        <div
+                          className={`text-sm truncate ${
+                            hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground"
+                          }`}
+                        >
                           {displayName}
                         </div>
-                        <div className="text-sm text-gray-500 mt-0.5">
+                        <div className="text-xs text-gray-400 mt-0.5 tabular-nums">
                           {displayDate}
                         </div>
                       </div>
 
-                      {hasUnreadMap.get(conv.id) && (
+                      {/* 未読インジケーター */}
+                      {hasUnread && (
                         <div
-                          className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-red-500"
+                          className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-primary"
                           aria-label="未読あり"
                           title="未読あり"
                         />
