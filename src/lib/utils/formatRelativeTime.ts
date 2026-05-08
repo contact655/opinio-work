@@ -1,19 +1,22 @@
 /**
  * 日時を相対表示に変換するユーティリティ
  *
- * | 経過時間              | 表示             |
- * |---------------------|-----------------|
- * | 1 分未満             | たった今          |
- * | 1 時間未満            | N 分前           |
- * | 今日（同日・1h+）      | 今日 HH:MM       |
- * | 昨日                 | 昨日 HH:MM       |
- * | 7 日未満             | N 日前           |
- * | 7 日以上             | YYYY/MM/DD      |
+ * | 経過時間              | 表示                              |
+ * |---------------------|----------------------------------|
+ * | 1 分未満             | たった今                           |
+ * | 1 時間未満            | N 分前                            |
+ * | 今日（同日・1h+）      | 今日 HH:MM                        |
+ * | 昨日                 | 昨日 HH:MM                        |
+ * | 7 日未満             | N 日前                            |
+ * | 7 日以上             | YYYY/MM/DD（withTime: true で HH:MM 付与）|
  *
  * タイムゾーン: ローカル時刻（Asia/Tokyo 環境を想定）
  * 外部依存なし（date-fns 不使用）
  */
-export function formatRelativeTime(date: Date | string): string {
+export function formatRelativeTime(
+  date: Date | string,
+  options?: { withTime?: boolean }
+): string {
   const d = typeof date === "string" ? new Date(date) : date;
   const now = new Date();
 
@@ -58,9 +61,9 @@ export function formatRelativeTime(date: Date | string): string {
   );
   if (diffDays < 7) return `${diffDays}日前`;
 
-  // 7 日以上 → YYYY/MM/DD
+  // 7 日以上 → YYYY/MM/DD（withTime: true のとき HH:MM を付与）
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
-  return `${y}/${m}/${day}`;
+  return options?.withTime ? `${y}/${m}/${day} ${HHmm}` : `${y}/${m}/${day}`;
 }
