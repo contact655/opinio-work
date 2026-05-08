@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
 import Link from "next/link";
+import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 
 type Conversation = {
   id: string;
@@ -129,14 +130,16 @@ export default function ConversationsPage() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
-        <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>読み込み中...</p>
-      </div>
+      <MypageLayout activeKey="conversations">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
+          <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>読み込み中...</p>
+        </div>
+      </MypageLayout>
     );
   }
 
   return (
-    <div>
+    <MypageLayout activeKey="conversations">
       <h1 style={{
         fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
         color: "var(--ink)", marginBottom: 24,
@@ -229,6 +232,6 @@ export default function ConversationsPage() {
           })}
         </div>
       )}
-    </div>
+    </MypageLayout>
   );
 }
