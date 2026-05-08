@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { MemberRecord, PendingInviteRecord } from "@/lib/business/members";
+import Toast from "@/components/ui/Toast";
 
 type Tab = "active" | "inactive";
 type ActionType = "permission" | "deactivate" | "reactivate";
@@ -650,33 +651,7 @@ function AddMemberDialog({
   );
 }
 
-// ── Toast ───────────────────────────────────────────────────────────
-function Toast({ message, onDone }: { message: string; onDone: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 3000);
-    return () => clearTimeout(t);
-  }, [onDone]);
-
-  return (
-    <div style={{
-      position: "fixed",
-      bottom: 32,
-      left: "50%",
-      transform: "translateX(-50%)",
-      background: "var(--ink)",
-      color: "#fff",
-      padding: "12px 22px",
-      borderRadius: 100,
-      fontSize: 13,
-      fontWeight: 600,
-      zIndex: 2000,
-      boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-      whiteSpace: "nowrap",
-    }}>
-      {message}
-    </div>
-  );
-}
+// ── Toast は src/components/ui/Toast.tsx に移動済み ─────────────────
 
 // ── PendingInvitesSection ────────────────────────────────────────────
 function daysUntilExpiry(expiresAt: string): number {

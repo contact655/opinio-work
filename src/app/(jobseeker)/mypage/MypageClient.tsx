@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import UserProfileCard from "@/components/profile/UserProfileCard";
 import {
   MOCK_USER,
   MOCK_BOOKMARKS_ARTICLES,
@@ -243,11 +244,11 @@ function SidebarItem({
 // ─── VIEW: Dashboard ──────────────────────────────────────────────────────────
 
 function DashboardView({
-  isMentor, onNavigate, userName, userInitial, userAvatar,
+  userId, isMentor, onNavigate, userName, userInitial, userAvatar,
   userLocation, userAboutMe,
   companyBookmarks, casualMeetings, mentorReservations,
 }: {
-  isMentor: boolean; onNavigate: (v: ActiveView) => void;
+  userId: string; isMentor: boolean; onNavigate: (v: ActiveView) => void;
   userName: string; userInitial: string; userAvatar: string;
   userLocation?: string | null; userAboutMe?: string | null;
   companyBookmarks: Bookmark[];
@@ -297,11 +298,6 @@ function DashboardView({
     },
   ];
 
-  // About Me を 200 文字で truncate（段階 2 でインライン編集化する際に拡張）
-  const aboutMePreview = userAboutMe
-    ? userAboutMe.length > 200 ? userAboutMe.slice(0, 200) + "…" : userAboutMe
-    : null;
-
   const statCards = [
     {
       icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>,
@@ -331,110 +327,17 @@ function DashboardView({
 
   return (
     <div>
-      {/* コンパクトプロフィールカード — ファーストビューで自分の物語が見える */}
-      <div style={{
-        background: "#fff", border: "1px solid var(--line)",
-        borderRadius: 16, padding: "24px 28px", marginBottom: 20,
-        display: "flex", alignItems: "flex-start", gap: 20,
-      }}>
-        {/* アバター */}
-        <div style={{ position: "relative", flexShrink: 0 }}>
-          <div style={{
-            width: 72, height: 72, borderRadius: "50%",
-            background: userAvatar,
-            color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 28, fontWeight: 600,
-            border: "3px solid #fff", boxShadow: "0 2px 10px rgba(15,23,42,0.10)",
-          }}>
-            {userInitial}
-          </div>
-          {isMentor && (
-            <div style={{
-              position: "absolute", bottom: 0, right: -2,
-              width: 20, height: 20,
-              background: "linear-gradient(135deg, var(--royal), var(--accent))",
-              borderRadius: "50%", border: "2px solid #fff",
-              display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
-            }}>
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
-              </svg>
-            </div>
-          )}
-        </div>
-
-        {/* 情報エリア */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* 名前行 + 編集ボタン */}
-          <div style={{
-            display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-            gap: 12, marginBottom: 3,
-          }}>
-            <div style={{
-              fontFamily: "var(--font-noto-serif)",
-              fontWeight: 700, fontSize: 20, color: "var(--ink)",
-              display: "flex", alignItems: "center", gap: 6,
-            }}>
-              {userName}
-              {isMentor && (
-                <span style={{
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  width: 16, height: 16,
-                  background: "linear-gradient(135deg, var(--royal), var(--accent))",
-                  color: "#fff", borderRadius: "50%",
-                }}>
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
-                  </svg>
-                </span>
-              )}
-            </div>
-            <Link href="/profile/edit" style={{
-              padding: "6px 13px", background: "#fff", color: "var(--ink-soft)",
-              border: "1px solid var(--line)", borderRadius: 8,
-              fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-              textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
-            }}>
-              プロフィールを編集
-            </Link>
-          </div>
-
-          {/* 肩書き（mock — 段階3でインライン編集化） */}
-          <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 6 }}>
-            {MOCK_USER.currentRole}
-          </div>
-
-          {/* 場所 */}
-          {userLocation && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 4,
-              fontSize: 12, color: "var(--ink-mute)", marginBottom: 12,
-            }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-              </svg>
-              {userLocation}
-            </div>
-          )}
-
-          {/* About Me */}
-          {aboutMePreview ? (
-            <div style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.85 }}>
-              {aboutMePreview}
-            </div>
-          ) : (
-            <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, fontStyle: "italic" }}>
-              自己紹介を追加すると、企業やメンターがあなたをより理解できます
-              <Link href="/profile/edit" style={{
-                color: "var(--royal)", fontWeight: 600,
-                marginLeft: 6, fontStyle: "normal", textDecoration: "none",
-              }}>
-                追加する →
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* コンパクトプロフィールカード — Phase ν-6 段階2: About Me インライン編集対応 */}
+      <UserProfileCard
+        userId={userId}
+        userName={userName}
+        userInitial={userInitial}
+        userAvatar={userAvatar}
+        currentRole={MOCK_USER.currentRole}
+        userLocation={userLocation}
+        userAboutMe={userAboutMe}
+        isMentor={isMentor}
+      />
 
       {/* Recent activity */}
       <SectionBlock
@@ -1050,6 +953,7 @@ export default function MypageClient({
         <main style={{ padding: "36px 40px 60px", maxWidth: 1000 }}>
           {activeView === "dashboard" && (
             <DashboardView
+              userId={owUser?.id ?? ""}
               isMentor={isMentor}
               onNavigate={navigate}
               userName={userName}
