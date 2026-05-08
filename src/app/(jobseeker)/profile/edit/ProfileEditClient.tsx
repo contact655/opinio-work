@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
-  MOCK_PROFILE,
   LOCATIONS,
   AGE_RANGES,
   type ProfileData,
@@ -29,20 +28,40 @@ type OwUser = {
   visibility: string | null;
 } | null;
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+// アバター・カバーのデフォルト色（UI 表示用、Opinio デザイントークンに準拠）
+const DEFAULT_AVATAR_COLOR = "linear-gradient(135deg, #002366, #3B5FD9)";
+const DEFAULT_COVER_COLOR  = "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
+const DEFAULT_SOCIAL_LINKS: ProfileData["socialLinks"] = { twitter: "", linkedin: "", note: "" };
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildInitialProfile(owUser: OwUser, authEmail: string, initialExperiences: Experience[]): ProfileData {
-  if (!owUser) return { ...MOCK_PROFILE, email: authEmail, experiences: initialExperiences };
+  // owUser が null = 認証ガードをすり抜けたケース（通常は発生しない）
+  if (!owUser) {
+    return {
+      name: "",
+      location: "",
+      ageRange: "",
+      aboutMe: "",
+      avatarColor: DEFAULT_AVATAR_COLOR,
+      coverColor: DEFAULT_COVER_COLOR,
+      experiences: initialExperiences,
+      socialLinks: DEFAULT_SOCIAL_LINKS,
+      email: authEmail,
+      visibility: "public",
+    };
+  }
   return {
-    ...MOCK_PROFILE,
-    name: owUser.name ?? MOCK_PROFILE.name,
-    aboutMe: owUser.about_me ?? MOCK_PROFILE.aboutMe,
-    ageRange: owUser.age_range ?? MOCK_PROFILE.ageRange,
-    location: owUser.location ?? MOCK_PROFILE.location,
-    socialLinks: (owUser.social_links as ProfileData["socialLinks"]) ?? MOCK_PROFILE.socialLinks,
-    visibility: (owUser.visibility as ProfileData["visibility"]) ?? MOCK_PROFILE.visibility,
-    avatarColor: owUser.avatar_color ?? MOCK_PROFILE.avatarColor,
-    coverColor: owUser.cover_color ?? MOCK_PROFILE.coverColor,
+    name: owUser.name ?? "",
+    aboutMe: owUser.about_me ?? "",
+    ageRange: owUser.age_range ?? "",
+    location: owUser.location ?? "",
+    socialLinks: (owUser.social_links as ProfileData["socialLinks"]) ?? DEFAULT_SOCIAL_LINKS,
+    visibility: (owUser.visibility as ProfileData["visibility"]) ?? "public",
+    avatarColor: owUser.avatar_color ?? DEFAULT_AVATAR_COLOR,
+    coverColor: owUser.cover_color ?? DEFAULT_COVER_COLOR,
     email: authEmail,
     experiences: initialExperiences,
   };
