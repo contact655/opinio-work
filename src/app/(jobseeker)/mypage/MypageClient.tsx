@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import MypageLayout from "./_components/MypageLayout";
+import MypageLayout, { type MypageActiveKey } from "./_components/MypageLayout";
 import { useMypageMock } from "./_components/MypageMockContext";
 import UserProfileCard from "@/components/profile/UserProfileCard";
 import {
@@ -805,7 +805,7 @@ export default function MypageClient({
   return (
     <MypageLayout
       activeKey={activeView}
-      onNavigate={(key) => navigate(key as ActiveView)}
+      onNavigate={(key: MypageActiveKey) => navigate(key as ActiveView)}
       onIsMentorChange={(v) => {
         // isMentor が false に戻ったときメンター専用ビューを解除する
         if (!v && (activeView === "mentor-requests" || activeView === "mentor-schedule")) {
