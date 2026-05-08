@@ -8,8 +8,9 @@
 
 ## 目的
 
-/mypage（新レイアウト）と /mypage/conversations, applications（古いレイアウト）の
-世界観の断絶を解消する。dogfooding する Hisato さん本人が違和感なく使える状態を作る。
+/mypage（新レイアウト）と /mypage/conversations, applications（古いレイアウト）、
+さらに /profile/edit（設定ページ）の世界観の断絶を解消する。
+dogfooding する Hisato さん本人が違和感なく使える状態を作る。
 
 ---
 
@@ -22,7 +23,7 @@
 
 ---
 
-## 段階構成
+## 段階構成（全7段階）
 
 ### 段階0: hotfix ✅【完了済み】
 **コミット**: `4dbaf94`, `831b1af`
@@ -114,6 +115,31 @@ const SIDEBAR_ITEMS: SidebarItem[] = [...]
 
 ---
 
+### 段階7: /profile/edit を MypageLayout に移行
+
+**動機**: ν-7 段階3 完了後の dogfooding で、Hisato さんが
+「設定の時のサイドバーが急になくなる」と表明。/mypage 配下の世界観統一
+（段階1〜6）に加えて、設定ページの統一も必要と判断。
+
+**実装内容**:
+- /profile/edit を MypageLayout でラップ
+- activeKey として `"settings"` を新規追加（MypageActiveKey 型を拡張）
+- 設定ページのコンテンツ（プロフィール画像・カバー、ログイン情報、
+  公開設定、アカウント削除）は維持
+
+**設計判断**:
+- 「← マイページ」右上ボタンは維持（戻るボタンとしての一般的UX）
+- 左カラムの「マイページから行えます」ガイダンスは削除
+  （MypageLayout の新サイドバーに物理的に置き換わるため）
+- サイドバー「設定」項目がアクティブ表示される
+
+**スコープ外**:
+- 設定ページのコンテンツ自体の変更
+- アカウント削除フローの変更
+- パスワード変更フローの変更
+
+---
+
 ## ファイル変更予定
 
 | ファイル | 変更種別 | 内容 |
@@ -125,6 +151,8 @@ const SIDEBAR_ITEMS: SidebarItem[] = [...]
 | `src/app/(jobseeker)/mypage/applications/page.tsx` | 修正 | 旧 SIDEBAR_ITEMS 削除 + MypageLayout でラップ |
 | `src/app/(jobseeker)/mypage/work-history/new/page.tsx` | 削除候補 | 段階6で要確認 |
 | `src/app/(jobseeker)/mypage/company-membership/new/page.tsx` | 削除候補 | 段階6で要確認 |
+| `src/app/(jobseeker)/mypage/_components/MypageLayout.tsx` | 修正 | `"settings"` を MypageActiveKey に追加（段階7） |
+| `src/app/profile/edit/page.tsx` | 修正 | MypageLayout でラップ + activeKey="settings"（段階7） |
 
 ---
 
