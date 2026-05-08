@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, MessageSquare, MessageCircle, ClipboardList, Users, Newspaper } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, MessageSquare, MessageCircle, ClipboardList, Users, Newspaper, ChevronDown } from "lucide-react";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
 
@@ -220,6 +220,7 @@ export function BusinessLayout({
           <button
             onClick={() => setAvatarOpen(!avatarOpen)}
             aria-label="アカウントメニュー"
+            aria-expanded={avatarOpen}
             style={{
               display: "flex", alignItems: "center", gap: 10,
               cursor: "pointer", padding: "6px 12px 6px 6px",
@@ -243,6 +244,15 @@ export function BusinessLayout({
               </div>
               <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>Admin</div>
             </div>
+            <ChevronDown
+              size={14}
+              style={{
+                color: "var(--ink-mute)",
+                transform: avatarOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s ease",
+                flexShrink: 0,
+              }}
+            />
           </button>
 
           {avatarOpen && (
