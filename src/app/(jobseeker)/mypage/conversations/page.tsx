@@ -215,10 +215,12 @@ export default function ConversationsPage() {
                     ? conv.mentor?.name ?? "メンター"
                     : company?.name ?? "(企業情報なし)";
 
-                // 相対時刻表示（絶対日付から変更）
-                const displayDate = formatRelativeTime(
-                  conv.last_message_at ?? conv.created_at
-                );
+                // last_message_at が null = メッセージ未着。created_at へのフォールバックを停止し
+                // 「これから対話」固定テキストを表示する（フォールバック時の誤解を防ぐ hotfix）
+                const hasMessages = conv.last_message_at !== null;
+                const displayDate = hasMessages
+                  ? formatRelativeTime(conv.last_message_at!)
+                  : null;
                 const hasUnread = hasUnreadMap.get(conv.id) ?? false;
 
                 return (
@@ -252,9 +254,16 @@ export default function ConversationsPage() {
                         >
                           {displayName}
                         </div>
-                        <div className="text-xs text-gray-400 mt-0.5 tabular-nums">
-                          {displayDate}
-                        </div>
+                        {displayDate ? (
+                          <div className="text-xs text-gray-400 mt-0.5 tabular-nums">
+                            {displayDate}
+                          </div>
+                        ) : (
+                          // last_message_at = null: メッセージ未着状態
+                          <div className="text-xs mt-0.5" style={{ color: "var(--ink-soft)" }}>
+                            これから対話
+                          </div>
+                        )}
                       </div>
 
                       {/* 未読インジケーター */}
