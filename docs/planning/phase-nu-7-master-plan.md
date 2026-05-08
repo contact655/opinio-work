@@ -113,18 +113,23 @@ const SIDEBAR_ITEMS: SidebarItem[] = [...]
 
 ---
 
-### 段階6: 宙ぶらりんページの整理
+### 段階6: 宙ぶらりんページ・旧構造の整理 ✅【完了済み】
 
-以下のページ・ルートがどこからもリンクされていない（または参照元なし）:
-- `/mypage/work-history/new`
-- `/mypage/company-membership/new`
-- `src/app/dashboard/page.tsx`（段階5 調査で追加）
-- `src/app/api/save-job/route.ts`（参照元 0件、段階5 調査で追加）
+**実施内容**:
+- `/mypage/work-history/new` 削除（321行）
+- `/mypage/company-membership/new` 削除（387行）
+- `/dashboard/` 削除（972行 / page.tsx + profile/page.tsx）
+- `/api/save-job/` 削除（32行）
 
-**作業**:
-1. `grep -r "work-history/new\|company-membership/new"` で参照箇所を全確認
-2. 参照がなければ page.tsx を削除
-3. 参照があれば遷移元も含めて整理
+**ボーナス修正**: `Header.tsx` の「マイページ」リンクが
+`/dashboard`（旧）を指していたバグを発見・同時修正 → `/mypage` に変更。
+
+**削除合計**: 1,712行
+
+**設計判断**:
+- `/dashboard` は ν-6 以前の旧マイページであることを Hisato さんが確認
+- 求人ブックマーク機能は ν-8 で新規設計（旧 API は流用しない）
+- `src/lib/supabase/types.ts` は自動生成ファイルのため変更なし
 
 ---
 
