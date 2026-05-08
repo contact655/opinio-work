@@ -47,7 +47,8 @@ function SidebarItem({
 
 const Icons = {
   dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
-  briefcase: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>,
+  briefcase:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>,
+  application: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>,
   message:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   bookmark:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
   check:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01 9 11.01"/></svg>,
@@ -161,8 +162,9 @@ export default function MypageLayout({
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <SidebarItem icon={Icons.dashboard} label="ダッシュボード"  active={activeKey === "dashboard"}      onClick={() => nav("dashboard")} />
-            <SidebarItem icon={Icons.briefcase} label="カジュアル面談"  active={activeKey === "casual"}          badge={pendingCasualCount}  onClick={() => nav("casual")} />
-            <SidebarItem icon={Icons.message}   label="メンター相談"    active={activeKey === "mentor-reserve"}  badge={pendingMentorCount}  onClick={() => nav("mentor-reserve")} />
+            <SidebarItem icon={Icons.briefcase}   label="カジュアル面談"  active={activeKey === "casual"}         badge={pendingCasualCount}  onClick={() => nav("casual")} />
+            <SidebarItem icon={Icons.application} label="応募管理"        active={activeKey === "applications"}                               onClick={() => { window.location.href = "/mypage/applications"; }} />
+            <SidebarItem icon={Icons.message}     label="メンター相談"    active={activeKey === "mentor-reserve"} badge={pendingMentorCount}  onClick={() => nav("mentor-reserve")} />
             <SidebarItem icon={Icons.message}   label="対話"            active={activeKey === "conversations"}   onClick={() => { window.location.href = "/mypage/conversations"; }} />
             <SidebarItem icon={Icons.bookmark}  label="ブックマーク"    active={activeKey === "bookmarks"}       onClick={() => nav("bookmarks")} />
           </nav>
