@@ -133,7 +133,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [...]
 
 ---
 
-### 段階7: /profile/edit を MypageLayout に移行
+### 段階7: /profile/edit を MypageLayout に移行 ✅【完了済み】
 
 **動機**: ν-7 段階3 完了後の dogfooding で、Hisato さんが
 「設定の時のサイドバーが急になくなる」と表明。/mypage 配下の世界観統一
