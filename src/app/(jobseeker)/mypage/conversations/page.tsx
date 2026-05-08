@@ -35,7 +35,7 @@ type SidebarItem =
 const SIDEBAR_ITEMS: SidebarItem[] = [
   { label: "応募管理",   href: "/mypage/applications" },
   { label: "対話",       href: "/mypage/conversations" },
-  { label: "プロフィール", href: "/onboarding" },
+  { label: "プロフィール", href: "/profile/edit" },
   { label: "保存した求人", disabled: true },   // B: 未実装
   { label: "通知設定",   disabled: true },     // B: 未実装
 ];
