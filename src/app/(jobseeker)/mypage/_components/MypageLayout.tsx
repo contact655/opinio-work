@@ -57,16 +57,18 @@ const Icons = {
 
 // ─── MypageLayout ─────────────────────────────────────────────────────────────
 
+/** /mypage および配下サブページで使うナビゲーションキー。 */
 export type MypageActiveKey =
+  // SPA ビュー (/mypage)
   | "dashboard"
   | "casual"
   | "mentor-reserve"
-  | "conversations"
   | "bookmarks"
   | "mentor-requests"
   | "mentor-schedule"
-  | "applications"
-  | string; // forward-compatible for future keys
+  // サブページ (/mypage/conversations, /mypage/applications など)
+  | "conversations"
+  | "applications";
 
 export default function MypageLayout({
   activeKey,
@@ -79,7 +81,7 @@ export default function MypageLayout({
 }: {
   activeKey: MypageActiveKey;
   /** SPA ビュー切替ハンドラ。/mypage でのみ使用。サブページでは未指定。 */
-  onNavigate?: (key: string) => void;
+  onNavigate?: (key: MypageActiveKey) => void;
   /** isMentor が変化したときに呼ばれるコールバック（例: activeView のリセット）。 */
   onIsMentorChange?: (v: boolean) => void;
   pendingCasualCount?: number;
@@ -96,7 +98,7 @@ export default function MypageLayout({
     onIsMentorChange?.(v);
   }
 
-  function nav(key: string) {
+  function nav(key: MypageActiveKey) {
     onNavigate?.(key);
   }
 
