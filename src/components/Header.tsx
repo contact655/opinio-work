@@ -278,7 +278,7 @@ export default function Header() {
               style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)" }}
             >
               <Link
-                href="/dashboard"
+                href="/mypage"
                 className="flex items-center gap-2 px-4 py-2.5 text-[14px] hover:bg-gray-50 transition-colors"
                 style={{ color: "#374151", fontWeight: 500 }}
                 onClick={() => setProfileDropdownOpen(false)}
@@ -329,7 +329,7 @@ export default function Header() {
     return (
       <>
         <Link
-          href="/dashboard"
+          href="/mypage"
           className="block"
           style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}
           onClick={() => setMenuOpen(false)}
