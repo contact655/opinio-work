@@ -7,6 +7,7 @@ import { formatDateSeparator } from "@/lib/utils/formatDateSeparator";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 
 type MessageRow = {
   id: string;
@@ -208,9 +209,11 @@ export default function ConversationDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
-        <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>読み込み中...</p>
-      </div>
+      <MypageLayout activeKey="conversations">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
+          <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>読み込み中...</p>
+        </div>
+      </MypageLayout>
     );
   }
 
@@ -223,8 +226,9 @@ export default function ConversationDetailPage() {
   const stageLabel = conversation ? (STAGE_LABELS[conversation.stage] ?? conversation.stage) : "";
 
   return (
-    // MypageLayout の <main> padding: 36px 40px 60px + header 65px + MOCK banner ~44px ≈ 205px
-    <div className="flex flex-col" style={{ height: "calc(100vh - 205px)" }}>
+    <MypageLayout activeKey="conversations">
+      {/* MypageLayout の <main> padding: 36px 40px 60px + header 65px + MOCK banner ~44px ≈ 205px */}
+      <div className="flex flex-col" style={{ height: "calc(100vh - 205px)" }}>
           {/* Header */}
           <div className="bg-white rounded-t-card border border-card-border px-4 py-3 flex items-center gap-3 flex-shrink-0">
             <Link
@@ -410,5 +414,6 @@ export default function ConversationDetailPage() {
             )}
           </div>
         </div>
+    </MypageLayout>
   );
 }
