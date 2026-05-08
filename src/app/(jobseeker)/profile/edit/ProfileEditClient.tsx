@@ -176,7 +176,7 @@ export default function ProfileEditClient({
 
   return (
     <MypageMockProvider>
-      <MypageLayout activeKey="settings">
+      <MypageLayout activeKey="profile">
 
         {/* ── ヘッダー行: タイトル + 保存状態 + ← マイページ ───────────────── */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
