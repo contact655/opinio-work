@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronDown } from "lucide-react";
+import { InitialAvatar } from "@/components/ui/InitialAvatar";
 
 const NAV_LINKS = [
   { href: "/companies", label: "企業を見る" },
@@ -150,23 +151,8 @@ export function JobseekerHeader() {
                   onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                 >
-                  {/* Avatar circle */}
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg, var(--royal), var(--accent))",
-                    color: "#fff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    fontFamily: "'Inter', sans-serif",
-                    flexShrink: 0,
-                  }}>
-                    {initial}
-                  </div>
+                  {/* Avatar circle — InitialAvatar 共通コンポーネント使用 */}
+                  <InitialAvatar name={user.name || user.email} size={32} />
                   {/* Chevron */}
                   <ChevronDown
                     size={14}
