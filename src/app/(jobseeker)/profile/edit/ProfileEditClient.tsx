@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
+import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
+import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -173,97 +175,46 @@ export default function ProfileEditClient({
   );
 
   return (
-    <>
-      {/* ── Page title bar ───────────────────────────────────────────────────── */}
-      <div
-        style={{
-          padding: "20px 32px 0",
-          display: "flex", alignItems: "center", gap: 12,
-        }}
-      >
-        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>設定</span>
-        <SaveStatusPill status={saveStatus} />
-        <div style={{ marginLeft: "auto" }}>
-          <Link
-            href="/mypage"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "8px 16px", fontSize: 13, fontWeight: 600,
-              border: "1px solid var(--line)", borderRadius: 8,
-              background: "#fff", color: "var(--ink-soft)",
-              textDecoration: "none",
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            マイページ
-          </Link>
-        </div>
-      </div>
+    <MypageMockProvider>
+      <MypageLayout activeKey="settings">
 
-      {/* ── Layout ──────────────────────────────────────────────────────────── */}
-      <div
-        className="settings-layout"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "200px 1fr",
-          minHeight: "calc(100vh - 140px)",
-          marginTop: 20,
-        }}
-      >
-        {/* ── Sidebar: avatar + name only ────────────────────────────────────── */}
-        <aside
-          style={{
-            borderRight: "1px solid var(--line)",
-            padding: "28px 20px 24px",
-            position: "sticky", top: 65, alignSelf: "start",
-            height: "calc(100vh - 65px)",
-          }}
-        >
-          <div
-            style={{
-              width: 56, height: 56, borderRadius: "50%",
-              background: settings.avatarColor,
-              color: "#fff", display: "flex", alignItems: "center",
-              justifyContent: "center", fontSize: 20, fontWeight: 600,
-              marginBottom: 12,
-              boxShadow: "0 2px 8px rgba(15,23,42,0.12)",
-            }}
-          >
-            {displayName.charAt(0) || "?"}
-          </div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: 2 }}>
-            {displayName || "—"}
-          </div>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5, marginTop: 2 }}>
-            名前・自己紹介の編集は<br />
-            <Link href="/mypage" style={{ color: "var(--royal)", textDecoration: "underline" }}>
+        {/* ── ヘッダー行: タイトル + 保存状態 + ← マイページ ───────────────── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+          <h1 style={{
+            fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
+            color: "var(--ink)", margin: 0,
+          }}>設定</h1>
+          <SaveStatusPill status={saveStatus} />
+          <div style={{ marginLeft: "auto" }}>
+            <Link
+              href="/mypage"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", fontSize: 13, fontWeight: 600,
+                border: "1px solid var(--line)", borderRadius: 8,
+                background: "#fff", color: "var(--ink-soft)",
+                textDecoration: "none",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
               マイページ
-            </Link>から行えます
+            </Link>
           </div>
-        </aside>
+        </div>
 
-        {/* ── Main: 2 sections, no tabs ──────────────────────────────────────── */}
-        <main style={{ padding: "36px 48px 60px", maxWidth: 760 }}>
-          <h1
-            style={{
-              fontFamily: "var(--font-noto-serif)", fontWeight: 500,
-              fontSize: 26, color: "var(--ink)", marginBottom: 10, letterSpacing: "0.02em",
-            }}
-          >
-            設定
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 36, lineHeight: 1.9 }}>
-            プロフィール画像・カバー画像、および公開設定を管理します。
-          </p>
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.9 }}>
+          プロフィール画像・カバー画像、および公開設定を管理します。
+        </p>
 
-          {/* ── Section 1: プロフィール画像・カバー ──────────────────────────── */}
+        <div style={{ maxWidth: 680 }}>
+
+          {/* ── Section 1: プロフィール画像・カバー ────────────────────────── */}
           <FormSection
             title="プロフィール画像・カバー"
             desc="プロフィールページのヘッダーに表示されます。"
           >
-            {/* Preview */}
             <div style={{ display: "flex", gap: 24, alignItems: "flex-start", marginBottom: 20 }}>
               <div style={{ flexShrink: 0 }}>
                 <div
@@ -291,7 +242,6 @@ export default function ProfileEditClient({
                   プレビュー
                 </div>
               </div>
-
               <div style={{ flex: 1, paddingTop: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
                   プロフィール画像
@@ -322,7 +272,7 @@ export default function ProfileEditClient({
             </div>
           </FormSection>
 
-          {/* ── Section 2: アカウント設定 ──────────────────────────────────── */}
+          {/* ── Section 2: ログイン情報 ─────────────────────────────────────── */}
           <FormSection title="ログイン情報">
             <FormGroup label="メールアドレス">
               <input
@@ -350,6 +300,7 @@ export default function ProfileEditClient({
             </div>
           </FormSection>
 
+          {/* ── Section 3: プロフィールの公開設定 ─────────────────────────── */}
           <FormSection
             title="プロフィールの公開設定"
             desc="プロフィールページを他のユーザーが閲覧できるかどうかを設定します。"
@@ -369,7 +320,7 @@ export default function ProfileEditClient({
             </FormGroup>
           </FormSection>
 
-          {/* Danger zone */}
+          {/* ── Danger zone ─────────────────────────────────────────────────── */}
           <div
             style={{
               background: "var(--error-soft)", border: "1px solid #FECACA",
@@ -395,18 +346,17 @@ export default function ProfileEditClient({
               アカウントを削除する
             </button>
           </div>
-        </main>
-      </div>
 
-      <style>{`
-        input:focus, textarea:focus, select:focus {
-          border-color: var(--royal) !important;
-          box-shadow: 0 0 0 3px var(--royal-50) !important;
-        }
-        @media (max-width: 900px) {
-          .settings-layout { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
-    </>
+        </div>
+
+        <style>{`
+          input:focus, textarea:focus, select:focus {
+            border-color: var(--royal) !important;
+            box-shadow: 0 0 0 3px var(--royal-50) !important;
+          }
+        `}</style>
+
+      </MypageLayout>
+    </MypageMockProvider>
   );
 }
