@@ -35,6 +35,7 @@ type OwUser = {
   visibility: string | null;
   location: string | null;
   age_range: string | null;
+  birth_date: string | null;
   about_me: string | null;
   future_aspirations: string | null;
   social_links: Record<string, string> | null;
@@ -638,6 +639,26 @@ export default function ProfileEditClient({
     endpoint: "/api/jobseeker/profile",
   });
 
+  // ── 生年月日の状態（"YYYY-MM-DD" 文字列または null） ───────────────────
+  const parseBirthDate = (s: string | null): { year: string; month: string; day: string } => {
+    if (!s) return { year: "", month: "", day: "" };
+    const [y, m, d] = s.split("-");
+    return { year: y ?? "", month: m ? String(parseInt(m, 10)) : "", day: d ? String(parseInt(d, 10)) : "" };
+  };
+  const initialParsed = parseBirthDate(owUser?.birth_date ?? null);
+  const [birthYear,  setBirthYear]  = useState<string>(initialParsed.year);
+  const [birthMonth, setBirthMonth] = useState<string>(initialParsed.month);
+  const [birthDay,   setBirthDay]   = useState<string>(initialParsed.day);
+
+  const handleBirthDateChange = useCallback((year: string, month: string, day: string) => {
+    if (!year || !month || !day) {
+      patchBasic({ birth_date: null });
+      return;
+    }
+    const dateStr = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    patchBasic({ birth_date: dateStr });
+  }, [patchBasic]);
+
   const patchBasicInfo = useCallback((fieldPatch: Partial<BasicInfo>) => {
     setBasicInfo((prev) => {
       const next = { ...prev, ...fieldPatch };
@@ -729,7 +750,66 @@ export default function ProfileEditClient({
                 </div>
               </FormGroup>
 
-              <FormGroup label="年齢層" hint="おおよその年齢層を選択してください。">
+              <FormGroup
+                label="生年月日"
+                hint="生年月日を入力すると年齢が自動で計算されます。入力しない場合は年齢非公開となります。"
+              >
+                <div style={{ display: "flex", gap: 8 }}>
+                  {/* 年 */}
+                  <div style={{ position: "relative", flex: "0 0 110px" }}>
+                    <select
+                      value={birthYear}
+                      onChange={(e) => {
+                        setBirthYear(e.target.value);
+                        handleBirthDateChange(e.target.value, birthMonth, birthDay);
+                      }}
+                      style={selectStyle()}
+                      aria-label="生年（年）"
+                    >
+                      <option value="">年</option>
+                      {Array.from({ length: 101 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                        <option key={y} value={String(y)}>{y}年</option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* 月 */}
+                  <div style={{ position: "relative", flex: "0 0 80px" }}>
+                    <select
+                      value={birthMonth}
+                      onChange={(e) => {
+                        setBirthMonth(e.target.value);
+                        handleBirthDateChange(birthYear, e.target.value, birthDay);
+                      }}
+                      style={selectStyle()}
+                      aria-label="生年月日（月）"
+                    >
+                      <option value="">月</option>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <option key={m} value={String(m)}>{m}月</option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* 日 */}
+                  <div style={{ position: "relative", flex: "0 0 80px" }}>
+                    <select
+                      value={birthDay}
+                      onChange={(e) => {
+                        setBirthDay(e.target.value);
+                        handleBirthDateChange(birthYear, birthMonth, e.target.value);
+                      }}
+                      style={selectStyle()}
+                      aria-label="生年月日（日）"
+                    >
+                      <option value="">日</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                        <option key={d} value={String(d)}>{d}日</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </FormGroup>
+
+              <FormGroup label="年齢層" hint="おおよその年齢層を選択してください。（生年月日入力後は自動計算されます）">
                 <div style={{ position: "relative" }}>
                   <select
                     value={basicInfo.ageRange}

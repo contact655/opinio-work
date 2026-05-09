@@ -9,6 +9,7 @@ import {
   SOCIAL_META,
   SNS_PLATFORMS,
 } from "@/components/SocialIcon";
+import { getUserAge } from "@/lib/age";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,9 @@ export type UserProfileCardProps = {
   currentRole?: string | null;
   userLocation?: string | null;
   userAboutMe?: string | null;
+  /** 生年月日（DATE 文字列 "YYYY-MM-DD"）。サーバ側で年齢計算に使用 */
+  userBirthDate?: string | null;
+  /** age_range（B-3 で削除予定。birth_date がある場合は使用しない） */
   userAgeRange?: string | null;
   userFutureAspirations?: string | null;
   /** social_links JSONB — SocialPlatform キー（"twitter" は E で "x" に移行済み）*/
@@ -67,6 +71,7 @@ export default function UserProfileCard({
   currentRole,
   userLocation,
   userAboutMe,
+  userBirthDate,
   userAgeRange,
   userFutureAspirations,
   userSocialLinks,
@@ -75,6 +80,14 @@ export default function UserProfileCard({
 }: UserProfileCardProps) {
 
   const initial = userInitial || userName?.charAt(0) || "?";
+
+  // 年齢表示: birth_date 優先（サーバ側計算）、フォールバックは age_range（B-3 で削除予定）
+  const age = getUserAge(userBirthDate);
+  const ageDisplay = age !== null
+    ? `${age}歳`
+    : userAgeRange && userAgeRange !== "非公開"
+      ? userAgeRange
+      : null;
 
   // アクティブな SNS のみ（SNS_PLATFORMS の順序を維持）
   const activeSocials = SNS_PLATFORMS.filter(
@@ -159,7 +172,7 @@ export default function UserProfileCard({
             </div>
           )}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-            {userAgeRange && (
+            {ageDisplay && (
               <MetaItem
                 icon={
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -167,7 +180,7 @@ export default function UserProfileCard({
                     <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
                   </svg>
                 }
-                text={userAgeRange}
+                text={ageDisplay}
               />
             )}
             {userLocation && (

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { CareerEntry } from "@/lib/utils/career";
 import { CareerTimeline } from "@/components/profile/CareerTimeline";
+import { getUserAge } from "@/lib/age";
 import {
   SocialIcon,
   type SocialPlatform,
@@ -36,6 +37,7 @@ type OwUser = {
   cover_color: string | null;
   about_me: string | null;
   age_range: string | null;
+  birth_date: string | null;
   location: string | null;
   social_links: SocialLinks | null;
   is_mentor: boolean;
@@ -60,7 +62,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   // maybeSingle() returns null for private/nonexistent → notFound()
   const { data: user } = await supabase
     .from("ow_users")
-    .select("id, name, avatar_color, cover_color, about_me, age_range, location, social_links, is_mentor")
+    .select("id, name, avatar_color, cover_color, about_me, age_range, birth_date, location, social_links, is_mentor")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -71,6 +73,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const avatarColor = owUser.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)";
   const coverColor = owUser.cover_color ?? "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
   const initial = owUser.name.charAt(0);
+
+  // 年齢表示: birth_date 優先（サーバ側計算）、フォールバックは age_range（B-3 で削除予定）
+  const age = getUserAge(owUser.birth_date);
+  const ageDisplay = age !== null
+    ? `${age}歳`
+    : owUser.age_range && owUser.age_range !== "非公開"
+      ? owUser.age_range
+      : null;
 
   const socialLinks = owUser.social_links ?? {};
   // SNS_PLATFORMS の順序を維持しつつ、値が空文字列でないキーのみ抽出
@@ -220,12 +230,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 )}
               </div>
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                {owUser.age_range && (
+                {ageDisplay && (
                   <span style={{ fontSize: 13, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 5 }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                       <circle cx="12" cy="8" r="4" /><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
                     </svg>
-                    {owUser.age_range}
+                    {ageDisplay}
                   </span>
                 )}
                 {owUser.location && (
