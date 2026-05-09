@@ -28,6 +28,11 @@ export type UserProfileCardProps = {
   userSocialLinks?: Record<string, string> | null;
   /** ow_user_skill_tags — sort_order 昇順 */
   userSkillTags?: { id: string; label: string; sort_order: number }[];
+  /** ow_user_educations — sort_order 昇順 */
+  userEducations?: {
+    id: string; school: string; faculty: string | null; degree: string | null;
+    enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
+  }[];
   isMentor: boolean;
 };
 
@@ -73,6 +78,7 @@ export default function UserProfileCard({
   userFutureAspirations,
   userSocialLinks,
   userSkillTags = [],
+  userEducations = [],
   isMentor,
 }: UserProfileCardProps) {
 
@@ -246,6 +252,70 @@ export default function UserProfileCard({
                 {tag.label}
               </span>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── 学歴 ─────────────────────────────────────────────────────────── */}
+      {userEducations.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
+            学歴
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {userEducations.map((edu) => {
+              const formatYM = (s: string | null) => {
+                if (!s) return null;
+                const [y, m] = s.split("-");
+                return m ? `${y}年${parseInt(m, 10)}月` : `${y}年`;
+              };
+              const period = (() => {
+                const start = formatYM(edu.enrolled_at);
+                if (edu.is_current) return start ? `${start} 〜 在学中` : "在学中";
+                const end = formatYM(edu.graduated_at);
+                if (start && end) return `${start} 〜 ${end}`;
+                if (start) return `${start} 〜`;
+                return null;
+              })();
+              return (
+                <div key={edu.id} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 6, flexShrink: 0, marginTop: 1,
+                    background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                      <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+                      {edu.school}
+                      {edu.is_current && (
+                        <span style={{
+                          marginLeft: 6, fontSize: 10, fontWeight: 600,
+                          color: "var(--success)", background: "var(--success-soft)",
+                          border: "1px solid #A7F3D0", padding: "1px 6px", borderRadius: 100,
+                        }}>
+                          在学中
+                        </span>
+                      )}
+                    </div>
+                    {(edu.faculty || edu.degree) && (
+                      <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                        {[edu.faculty, edu.degree].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
+                    {period && (
+                      <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                        {period}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

@@ -42,6 +42,17 @@ type OwUser = {
   is_mentor: boolean;
 };
 
+type Education = {
+  id: string;
+  school: string;
+  faculty: string | null;
+  degree: string | null;
+  enrolled_at: string | null;
+  graduated_at: string | null;
+  is_current: boolean;
+  sort_order: number;
+};
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
@@ -83,8 +94,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
     (k) => socialLinks[k] && socialLinks[k]!.trim() !== ""
   );
 
-  // Fetch experiences + skill tags in parallel（RLS select_all=true のため認証不問で読める）
-  const [{ data: expRows }, { data: allRoles }, { data: skillTagsRaw }] = await Promise.all([
+  // Fetch experiences + skill tags + educations in parallel（RLS select_all=true のため認証不問で読める）
+  const [{ data: expRows }, { data: allRoles }, { data: skillTagsRaw }, { data: educationsRaw }] = await Promise.all([
     supabase
       .from("ow_experiences")
       .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, why")
@@ -97,9 +108,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .select("id, label, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
+    supabase
+      .from("ow_user_educations")
+      .select("id, school, faculty, degree, enrolled_at, graduated_at, is_current, sort_order")
+      .eq("user_id", owUser.id)
+      .order("sort_order", { ascending: true }),
   ]);
 
-  const skillTags = skillTagsRaw ?? [];
+  const skillTags  = skillTagsRaw  ?? [];
+  const educations = (educationsRaw ?? []) as Education[];
 
   const uuidToSlug = new Map<string, string>();
   for (const role of allRoles ?? []) {
@@ -328,6 +345,92 @@ export default async function UserProfilePage({ params }: { params: { id: string
         </div>
         <CareerTimeline careers={experiences} />
       </section>
+
+      {/* Educations — 0件時はセクションごと非表示 */}
+      {educations.length > 0 && (
+        <section style={{
+          background: "#fff", border: "1px solid var(--line)",
+          borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+        }}>
+          <div style={{
+            display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
+            paddingBottom: 14, borderBottom: "1px solid var(--line)",
+          }}>
+            <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
+              学歴
+            </span>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+              EDUCATION
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {educations.map((edu, i) => {
+              const formatYM = (s: string | null) => {
+                if (!s) return null;
+                const [y, m] = s.split("-");
+                return m ? `${y}年${parseInt(m, 10)}月` : `${y}年`;
+              };
+              const period = (() => {
+                const start = formatYM(edu.enrolled_at);
+                if (edu.is_current) return start ? `${start} 〜 在学中` : "在学中";
+                const end = formatYM(edu.graduated_at);
+                if (start && end) return `${start} 〜 ${end}`;
+                if (start) return `${start} 〜`;
+                if (end) return `〜 ${end}`;
+                return null;
+              })();
+              return (
+                <div
+                  key={edu.id}
+                  style={{
+                    paddingBottom: i < educations.length - 1 ? 14 : 0,
+                    borderBottom: i < educations.length - 1 ? "1px solid var(--line-soft)" : "none",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    {/* アイコン */}
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                        <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                      </svg>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 3 }}>
+                        {edu.school}
+                      </div>
+                      {(edu.faculty || edu.degree) && (
+                        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 3 }}>
+                          {[edu.faculty, edu.degree].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
+                      {period && (
+                        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                          {period}
+                        </div>
+                      )}
+                    </div>
+                    {edu.is_current && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, padding: "3px 8px",
+                        background: "var(--success-soft)", color: "var(--success)",
+                        border: "1px solid #A7F3D0", borderRadius: 100,
+                        flexShrink: 0,
+                      }}>
+                        在学中
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Social Links */}
       {activeSocials.length > 0 && (

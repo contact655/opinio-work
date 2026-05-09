@@ -25,18 +25,39 @@ export default async function MypagePage() {
     .eq("auth_id", user.id)
     .maybeSingle();
 
-  // Fetch skill tags for UserProfileCard display
+  // Fetch skill tags + educations for UserProfileCard display
   let skillTags: { id: string; label: string; sort_order: number }[] = [];
+  let educations: {
+    id: string; school: string; faculty: string | null; degree: string | null;
+    enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
+  }[] = [];
   if (owUser) {
-    const { data: tags } = await supabase
-      .from("ow_user_skill_tags")
-      .select("id, label, sort_order")
-      .eq("user_id", owUser.id)
-      .order("sort_order", { ascending: true });
+    const [{ data: tags }, { data: edus }] = await Promise.all([
+      supabase
+        .from("ow_user_skill_tags")
+        .select("id, label, sort_order")
+        .eq("user_id", owUser.id)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("ow_user_educations")
+        .select("id, school, faculty, degree, enrolled_at, graduated_at, is_current, sort_order")
+        .eq("user_id", owUser.id)
+        .order("sort_order", { ascending: true }),
+    ]);
     skillTags = (tags ?? []).map((t) => ({
       id: t.id as string,
       label: t.label as string,
       sort_order: t.sort_order as number,
+    }));
+    educations = (edus ?? []).map((e) => ({
+      id: e.id as string,
+      school: e.school as string,
+      faculty: (e.faculty as string | null) ?? null,
+      degree: (e.degree as string | null) ?? null,
+      enrolled_at: (e.enrolled_at as string | null) ?? null,
+      graduated_at: (e.graduated_at as string | null) ?? null,
+      is_current: e.is_current as boolean,
+      sort_order: e.sort_order as number,
     }));
   }
 
@@ -189,5 +210,5 @@ export default async function MypagePage() {
     }
   }
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} companyBookmarks={companyBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} />;
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} companyBookmarks={companyBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} />;
 }

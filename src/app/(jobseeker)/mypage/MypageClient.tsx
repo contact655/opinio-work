@@ -208,7 +208,7 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
 function DashboardView({
   userId, isMentor, onNavigate, userName, userInitial, userAvatar,
   userLocation, userAboutMe, userBirthDate, userFutureAspirations, userSocialLinks,
-  userSkillTags,
+  userSkillTags, userEducations,
   companyBookmarks, casualMeetings, mentorReservations,
 }: {
   userId: string; isMentor: boolean; onNavigate: (v: ActiveView) => void;
@@ -217,6 +217,10 @@ function DashboardView({
   userBirthDate?: string | null; userFutureAspirations?: string | null;
   userSocialLinks?: Record<string, string> | null;
   userSkillTags?: { id: string; label: string; sort_order: number }[];
+  userEducations?: {
+    id: string; school: string; faculty: string | null; degree: string | null;
+    enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
+  }[];
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
@@ -306,6 +310,7 @@ function DashboardView({
         userFutureAspirations={userFutureAspirations}
         userSocialLinks={userSocialLinks}
         userSkillTags={userSkillTags}
+        userEducations={userEducations}
         isMentor={isMentor}
       />
 
@@ -765,12 +770,17 @@ function MentorScheduleView() {
 export default function MypageClient({
   owUser,
   skillTags = [],
+  educations = [],
   companyBookmarks,
   casualMeetings,
   mentorReservations,
 }: {
   owUser: OwUser;
   skillTags?: { id: string; label: string; sort_order: number }[];
+  educations?: {
+    id: string; school: string; faculty: string | null; degree: string | null;
+    enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
+  }[];
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
@@ -835,6 +845,7 @@ export default function MypageClient({
           userFutureAspirations={owUser?.future_aspirations}
           userSocialLinks={owUser?.social_links}
           userSkillTags={skillTags}
+          userEducations={educations}
           companyBookmarks={companyBookmarks}
           casualMeetings={casualMeetings}
           mentorReservations={mentorReservations}

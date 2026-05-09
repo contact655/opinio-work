@@ -22,6 +22,17 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 type SkillTag = { id: string; label: string; sort_order: number };
 
+type Education = {
+  id: string;
+  school: string;
+  faculty: string | null;
+  degree: string | null;
+  enrolled_at: string | null;
+  graduated_at: string | null;
+  is_current: boolean;
+  sort_order: number;
+};
+
 /** JSONB キー名は "x"（ν-8 段階6-1 E で twitter → x 移行済み）。値は URL 文字列。空文字列 = 未設定。 */
 type SocialLinks = Partial<Record<SocialPlatform, string>>;
 
@@ -68,9 +79,22 @@ const BASIC_FIELD_TO_DB: Record<string, string> = {
   futureAspirations: "future_aspirations",
 };
 
+const DEGREE_OPTIONS = ["高校卒", "専門卒", "短大卒", "学士", "修士", "博士", "その他"] as const;
+
+function parseDateToYM(s: string | null): { year: string; month: string } {
+  if (!s) return { year: "", month: "" };
+  const [y, m] = s.split("-");
+  return { year: y ?? "", month: m ? String(parseInt(m, 10)) : "" };
+}
+
+function formatYMToDate(year: string, month: string): string | null {
+  if (!year || !month) return null;
+  return `${year}-${month.padStart(2, "0")}-01`;
+}
+
 const PROFILE_TABS: TabItem[] = [
   { key: "basic",   label: "基本情報" },
-  { key: "career",  label: "職歴" },
+  { key: "career",  label: "職歴・学歴" },
   { key: "skills",  label: "スキル" },
   { key: "socials", label: "SNS" },
   { key: "account", label: "アカウント設定" },
@@ -553,17 +577,363 @@ function SocialLinksEditor({
   );
 }
 
+// ─── Education Editor ─────────────────────────────────────────────────────────
+
+function EducationCardEditor({
+  edu,
+  onUpdate,
+  onDelete,
+}: {
+  edu: Education;
+  onUpdate: (id: string, patch: Partial<Education>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const enrolledYM  = parseDateToYM(edu.enrolled_at);
+  const graduatedYM = parseDateToYM(edu.graduated_at);
+
+  const [localSchool,      setLocalSchool]      = useState(edu.school);
+  const [localFaculty,     setLocalFaculty]      = useState(edu.faculty ?? "");
+  const [localDegree,      setLocalDegree]       = useState(edu.degree ?? "");
+  const [enrolledYear,     setEnrolledYear]      = useState(enrolledYM.year);
+  const [enrolledMonth,    setEnrolledMonth]     = useState(enrolledYM.month);
+  const [graduatedYear,    setGraduatedYear]     = useState(graduatedYM.year);
+  const [graduatedMonth,   setGraduatedMonth]    = useState(graduatedYM.month);
+  const [isCurrent,        setIsCurrent]         = useState(edu.is_current);
+  const [saving,           setSaving]            = useState(false);
+  const [fieldError,       setFieldError]        = useState<string | null>(null);
+
+  const YEAR_OPTS = Array.from({ length: 61 }, (_, i) => new Date().getFullYear() + 4 - i);
+
+  const save = useCallback(async (payload: {
+    school: string; faculty: string; degree: string;
+    enrolled_at: string | null; graduated_at: string | null; is_current: boolean;
+  }) => {
+    if (!payload.school.trim()) { setFieldError("学校名を入力してください。"); return; }
+    setFieldError(null);
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/jobseeker/educations/${edu.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          school: payload.school.trim(),
+          faculty: payload.faculty.trim() || null,
+          degree: payload.degree || null,
+          enrolled_at: payload.enrolled_at,
+          graduated_at: payload.graduated_at,
+          is_current: payload.is_current,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { message?: string }).message ?? res.statusText);
+      }
+      const updated: Education = await res.json();
+      onUpdate(edu.id, updated);
+    } catch (e) {
+      setFieldError((e as Error).message ?? "保存に失敗しました。");
+    } finally {
+      setSaving(false);
+    }
+  }, [edu.id, onUpdate]);
+
+  const buildAndSave = useCallback((overrides: {
+    school?: string; faculty?: string; degree?: string;
+    enrolledYear?: string; enrolledMonth?: string;
+    graduatedYear?: string; graduatedMonth?: string;
+    isCurrent?: boolean;
+  }) => {
+    const s  = overrides.school        ?? localSchool;
+    const f  = overrides.faculty       ?? localFaculty;
+    const d  = overrides.degree        ?? localDegree;
+    const ey = overrides.enrolledYear  ?? enrolledYear;
+    const em = overrides.enrolledMonth ?? enrolledMonth;
+    const gy = overrides.graduatedYear ?? graduatedYear;
+    const gm = overrides.graduatedMonth ?? graduatedMonth;
+    const ic = overrides.isCurrent     ?? isCurrent;
+    save({
+      school: s,
+      faculty: f,
+      degree: d,
+      enrolled_at: formatYMToDate(ey, em),
+      graduated_at: ic ? null : formatYMToDate(gy, gm),
+      is_current: ic,
+    });
+  }, [localSchool, localFaculty, localDegree, enrolledYear, enrolledMonth, graduatedYear, graduatedMonth, isCurrent, save]);
+
+  const handleDelete = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/jobseeker/educations/${edu.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("削除に失敗しました。");
+      onDelete(edu.id);
+    } catch (e) {
+      setFieldError((e as Error).message ?? "削除に失敗しました。");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{
+      border: "1px solid var(--line)", borderRadius: 10, padding: "20px 24px",
+      marginBottom: 16, background: "#fff", position: "relative",
+      opacity: saving ? 0.7 : 1, transition: "opacity 0.2s",
+    }}>
+      {/* 削除ボタン */}
+      <button
+        type="button"
+        onClick={handleDelete}
+        disabled={saving}
+        aria-label="この学歴を削除"
+        style={{
+          position: "absolute", top: 12, right: 12,
+          background: "none", border: "none", padding: 4,
+          cursor: saving ? "not-allowed" : "pointer",
+          color: "var(--ink-mute)", display: "flex", alignItems: "center",
+          borderRadius: 6, transition: "color 0.15s",
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--error)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-mute)"; }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
+      {/* 学校名（必須） */}
+      <FormGroup label="学校名 *">
+        <input
+          type="text"
+          value={localSchool}
+          onChange={(e) => setLocalSchool(e.target.value)}
+          onBlur={() => buildAndSave({ school: localSchool })}
+          placeholder="例：○○大学"
+          maxLength={100}
+          style={inputStyle({ paddingRight: 12 })}
+        />
+      </FormGroup>
+
+      {/* 学部・学科（任意） */}
+      <FormGroup label="学部・学科">
+        <input
+          type="text"
+          value={localFaculty}
+          onChange={(e) => setLocalFaculty(e.target.value)}
+          onBlur={() => buildAndSave({ faculty: localFaculty })}
+          placeholder="例：経済学部 経営学科"
+          maxLength={100}
+          style={inputStyle({ paddingRight: 12 })}
+        />
+      </FormGroup>
+
+      {/* 学位（任意） */}
+      <FormGroup label="学位">
+        <div style={{ position: "relative" }}>
+          <select
+            value={localDegree}
+            onChange={(e) => {
+              setLocalDegree(e.target.value);
+              buildAndSave({ degree: e.target.value });
+            }}
+            style={selectStyle()}
+          >
+            <option value="">選択してください（任意）</option>
+            {DEGREE_OPTIONS.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+      </FormGroup>
+
+      {/* 入学年月 */}
+      <FormGroup label="入学年月">
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ position: "relative", flex: "0 0 110px" }}>
+            <select
+              value={enrolledYear}
+              onChange={(e) => { setEnrolledYear(e.target.value); buildAndSave({ enrolledYear: e.target.value }); }}
+              style={selectStyle()}
+            >
+              <option value="">年</option>
+              {YEAR_OPTS.map((y) => (
+                <option key={y} value={String(y)}>{y}年</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ position: "relative", flex: "0 0 80px" }}>
+            <select
+              value={enrolledMonth}
+              onChange={(e) => { setEnrolledMonth(e.target.value); buildAndSave({ enrolledMonth: e.target.value }); }}
+              style={selectStyle()}
+            >
+              <option value="">月</option>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <option key={m} value={String(m)}>{m}月</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </FormGroup>
+
+      {/* 在学中チェックボックス */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
+          <input
+            type="checkbox"
+            checked={isCurrent}
+            onChange={(e) => {
+              setIsCurrent(e.target.checked);
+              buildAndSave({ isCurrent: e.target.checked });
+            }}
+            style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--royal)" }}
+          />
+          <span style={{ color: "var(--ink)" }}>在学中</span>
+        </label>
+      </div>
+
+      {/* 卒業年月（在学中は無効） */}
+      <FormGroup label="卒業年月">
+        <div style={{ display: "flex", gap: 8, opacity: isCurrent ? 0.4 : 1, transition: "opacity 0.2s" }}>
+          <div style={{ position: "relative", flex: "0 0 110px" }}>
+            <select
+              value={graduatedYear}
+              onChange={(e) => { setGraduatedYear(e.target.value); buildAndSave({ graduatedYear: e.target.value }); }}
+              disabled={isCurrent}
+              style={{ ...selectStyle(), cursor: isCurrent ? "not-allowed" : "pointer" }}
+            >
+              <option value="">年</option>
+              {YEAR_OPTS.map((y) => (
+                <option key={y} value={String(y)}>{y}年</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ position: "relative", flex: "0 0 80px" }}>
+            <select
+              value={graduatedMonth}
+              onChange={(e) => { setGraduatedMonth(e.target.value); buildAndSave({ graduatedMonth: e.target.value }); }}
+              disabled={isCurrent}
+              style={{ ...selectStyle(), cursor: isCurrent ? "not-allowed" : "pointer" }}
+            >
+              <option value="">月</option>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <option key={m} value={String(m)}>{m}月</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </FormGroup>
+
+      {fieldError && (
+        <div style={{ fontSize: 11, color: "var(--error)", marginTop: 4, lineHeight: 1.6 }}>
+          {fieldError}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EducationEditor({
+  educations,
+  setEducations,
+  setSaveStatus,
+}: {
+  educations: Education[];
+  setEducations: React.Dispatch<React.SetStateAction<Education[]>>;
+  setSaveStatus: (s: SaveStatus) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+
+  const handleAdd = async () => {
+    setAdding(true);
+    setSaveStatus("saving");
+    try {
+      const res = await fetch("/api/jobseeker/educations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ school: "学校名を入力", is_current: false }),
+      });
+      if (!res.ok) throw new Error("追加に失敗しました。");
+      const inserted: Education = await res.json();
+      setEducations((prev) => [...prev, inserted]);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    } catch {
+      setSaveStatus("idle");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleUpdate = useCallback((id: string, patch: Partial<Education>) => {
+    setEducations((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  }, [setEducations]);
+
+  const handleDelete = useCallback((id: string) => {
+    setEducations((prev) => prev.filter((e) => e.id !== id));
+  }, [setEducations]);
+
+  return (
+    <FormSection
+      title="学歴"
+      desc="大学・大学院・専門学校・高校などを登録できます。新しい順に入力することをおすすめします。"
+    >
+      {educations.length === 0 && (
+        <div style={{
+          textAlign: "center", padding: "24px 0",
+          fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8,
+          marginBottom: 16,
+        }}>
+          まだ学歴が登録されていません。<br />「+ 学歴を追加」から登録してください。
+        </div>
+      )}
+
+      {educations.map((edu) => (
+        <EducationCardEditor
+          key={edu.id}
+          edu={edu}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+        />
+      ))}
+
+      <button
+        type="button"
+        onClick={handleAdd}
+        disabled={adding}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "8px 16px", fontSize: 13, fontWeight: 600,
+          background: adding ? "var(--bg-tint)" : "var(--royal-50)",
+          color: adding ? "var(--ink-mute)" : "var(--royal)",
+          border: "1px solid var(--royal-100)", borderRadius: 8,
+          fontFamily: "inherit", cursor: adding ? "not-allowed" : "pointer",
+          transition: "all 0.15s",
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        {adding ? "追加中..." : "+ 学歴を追加"}
+      </button>
+    </FormSection>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ProfileEditClient({
   owUser,
   authEmail,
   initialSkillTags,
+  initialEducations,
   initialSocialLinks,
 }: {
   owUser: OwUser;
   authEmail: string;
   initialSkillTags: SkillTag[];
+  initialEducations: Education[];
   initialSocialLinks: SocialLinks;
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
@@ -606,6 +976,10 @@ export default function ProfileEditClient({
   // ── スキルタブの状態 ─────────────────────────────────────────────────────
   const [skillTags, setSkillTags] = useState<SkillTag[]>(initialSkillTags);
   const [skillSaveStatus, setSkillSaveStatus] = useState<SaveStatus>("idle");
+
+  // ── 学歴タブの状態 ───────────────────────────────────────────────────────
+  const [educations, setEducations] = useState<Education[]>(initialEducations);
+  const [educSaveStatus, setEducSaveStatus] = useState<SaveStatus>("idle");
 
   // ── SNS タブの状態 ───────────────────────────────────────────────────────
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(initialSocialLinks);
@@ -681,6 +1055,7 @@ export default function ProfileEditClient({
             color: "var(--ink)", margin: 0,
           }}>プロフィール</h1>
           {activeTab === "basic"   && <SaveStatusPill status={basicSaveStatus} />}
+          {activeTab === "career"  && <SaveStatusPill status={educSaveStatus} />}
           {activeTab === "skills"  && <SaveStatusPill status={skillSaveStatus} />}
           {activeTab === "socials" && <SaveStatusPill status={socialSaveStatus} />}
           {activeTab === "account" && <SaveStatusPill status={saveStatus} />}
@@ -838,10 +1213,15 @@ export default function ProfileEditClient({
           </div>
         )}
 
-        {/* 職歴タブ */}
+        {/* 職歴・学歴タブ */}
         {activeTab === "career" && (
           <div style={{ maxWidth: 680 }}>
             <CareerHistoryEditor />
+            <EducationEditor
+              educations={educations}
+              setEducations={setEducations}
+              setSaveStatus={setEducSaveStatus}
+            />
           </div>
         )}
 
