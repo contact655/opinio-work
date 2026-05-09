@@ -103,8 +103,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
     (k) => socialLinks[k]
   );
 
-  // Fetch experiences (RLS allows public/login_only visibility)
-  const [{ data: expRows }, { data: allRoles }] = await Promise.all([
+  // Fetch experiences + skill tags in parallel（RLS select_all=true のため認証不問で読める）
+  const [{ data: expRows }, { data: allRoles }, { data: skillTagsRaw }] = await Promise.all([
     supabase
       .from("ow_experiences")
       .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, why")
@@ -112,7 +112,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
     supabase.from("ow_roles").select("id, name"),
+    supabase
+      .from("ow_user_skill_tags")
+      .select("id, label, sort_order")
+      .eq("user_id", owUser.id)
+      .order("sort_order", { ascending: true }),
   ]);
+
+  const skillTags = skillTagsRaw ?? [];
 
   const uuidToSlug = new Map<string, string>();
   for (const role of allRoles ?? []) {
@@ -288,6 +295,38 @@ export default async function UserProfilePage({ params }: { params: { id: string
           <p style={{ fontSize: 13, color: "var(--ink-mute)", margin: 0 }}>
             自己紹介は未設定です
           </p>
+        </section>
+      )}
+
+      {/* Skills — 0件時はセクションごと非表示 */}
+      {skillTags.length > 0 && (
+        <section style={{
+          background: "#fff", border: "1px solid var(--line)",
+          borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+        }}>
+          <div style={{
+            display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
+            paddingBottom: 14, borderBottom: "1px solid var(--line)",
+          }}>
+            <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
+              スキル
+            </span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {skillTags.map((tag) => (
+              <span
+                key={tag.id as string}
+                style={{
+                  display: "inline-flex", alignItems: "center",
+                  padding: "5px 12px", borderRadius: 100,
+                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                  fontSize: 13, color: "var(--royal)", fontWeight: 500,
+                }}
+              >
+                {tag.label as string}
+              </span>
+            ))}
+          </div>
         </section>
       )}
 
