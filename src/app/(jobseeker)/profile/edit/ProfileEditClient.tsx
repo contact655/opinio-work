@@ -5,6 +5,7 @@ import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
 import Tabs, { type TabItem } from "./Tabs";
+import CareerHistoryEditor from "@/components/profile/CareerHistoryEditor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -279,9 +280,11 @@ export default function ProfileEditClient({
           <PlaceholderTabContent label="基本情報" />
         )}
 
-        {/* 職歴タブ（実装中） */}
+        {/* 職歴タブ */}
         {activeTab === "career" && (
-          <PlaceholderTabContent label="職歴" />
+          <div style={{ maxWidth: 680 }}>
+            <CareerHistoryEditor />
+          </div>
         )}
 
         {/* スキルタブ（実装中） */}
