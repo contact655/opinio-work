@@ -1,7 +1,13 @@
 -- ν-8 段階1: SNS 連携テーブル新規作成
 -- ν-8 では URL 貼付のみ、ν-9 以降で OAuth 連携を検討（verified / oauth_token 伏線）
+--
+-- A3 べき等化:
+--   CREATE TABLE IF NOT EXISTS
+--   CREATE INDEX IF NOT EXISTS
+--   DROP POLICY IF EXISTS → CREATE POLICY のパターンに変更
+--   (PostgreSQL は CREATE POLICY IF NOT EXISTS を未サポートのため)
 
-CREATE TABLE ow_user_socials (
+CREATE TABLE IF NOT EXISTS ow_user_socials (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES ow_users(id) ON DELETE CASCADE,
   platform TEXT NOT NULL,
@@ -16,7 +22,7 @@ CREATE TABLE ow_user_socials (
     CHECK (platform IN ('note', 'x', 'github', 'linkedin', 'other'))
 );
 
-CREATE INDEX ow_user_socials_user_id_idx ON ow_user_socials(user_id);
+CREATE INDEX IF NOT EXISTS ow_user_socials_user_id_idx ON ow_user_socials(user_id);
 
 COMMENT ON TABLE ow_user_socials IS 'ユーザーのSNS連携。ν-8 ではURL貼付のみ、ν-9 以降でOAuth連携を検討（verified/oauth_token 伏線）。';
 COMMENT ON COLUMN ow_user_socials.platform IS 'プラットフォーム種別。note/x/github/linkedin の4種固定 + その他枠。';
@@ -30,21 +36,25 @@ COMMENT ON COLUMN ow_user_socials.oauth_token IS 'ν-9 以降で OAuth 連携時
 ALTER TABLE ow_user_socials ENABLE ROW LEVEL SECURITY;
 
 -- 全ユーザーが閲覧可能（公開プロフィール）
+DROP POLICY IF EXISTS "ow_user_socials_select_all" ON ow_user_socials;
 CREATE POLICY "ow_user_socials_select_all"
   ON ow_user_socials FOR SELECT USING (true);
 
 -- 自分のレコードのみ INSERT 可
 -- 既存パターン: user_id IN (SELECT id FROM ow_users WHERE auth_id = auth.uid())
+DROP POLICY IF EXISTS "ow_user_socials_insert_own" ON ow_user_socials;
 CREATE POLICY "ow_user_socials_insert_own"
   ON ow_user_socials FOR INSERT
   WITH CHECK (user_id IN (SELECT id FROM ow_users WHERE auth_id = auth.uid()));
 
 -- 自分のレコードのみ UPDATE 可
+DROP POLICY IF EXISTS "ow_user_socials_update_own" ON ow_user_socials;
 CREATE POLICY "ow_user_socials_update_own"
   ON ow_user_socials FOR UPDATE
   USING (user_id IN (SELECT id FROM ow_users WHERE auth_id = auth.uid()));
 
 -- 自分のレコードのみ DELETE 可
+DROP POLICY IF EXISTS "ow_user_socials_delete_own" ON ow_user_socials;
 CREATE POLICY "ow_user_socials_delete_own"
   ON ow_user_socials FOR DELETE
   USING (user_id IN (SELECT id FROM ow_users WHERE auth_id = auth.uid()));

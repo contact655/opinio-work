@@ -1,7 +1,13 @@
 -- ν-8 段階1: スキルタグテーブル新規作成
 -- ν-8 では完全自由入力、ν-9 以降でマスタ化検討（master_id カラムで伏線）
+--
+-- A3 べき等化:
+--   CREATE TABLE IF NOT EXISTS
+--   CREATE INDEX IF NOT EXISTS
+--   DROP POLICY IF EXISTS → CREATE POLICY のパターンに変更
+--   (PostgreSQL は CREATE POLICY IF NOT EXISTS を未サポートのため)
 
-CREATE TABLE ow_user_skill_tags (
+CREATE TABLE IF NOT EXISTS ow_user_skill_tags (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES ow_users(id) ON DELETE CASCADE,
   label TEXT NOT NULL,
@@ -11,8 +17,8 @@ CREATE TABLE ow_user_skill_tags (
   CONSTRAINT ow_user_skill_tags_label_length CHECK (char_length(label) BETWEEN 1 AND 50)
 );
 
-CREATE INDEX ow_user_skill_tags_user_id_idx ON ow_user_skill_tags(user_id);
-CREATE INDEX ow_user_skill_tags_label_idx ON ow_user_skill_tags(label);
+CREATE INDEX IF NOT EXISTS ow_user_skill_tags_user_id_idx ON ow_user_skill_tags(user_id);
+CREATE INDEX IF NOT EXISTS ow_user_skill_tags_label_idx ON ow_user_skill_tags(label);
 
 COMMENT ON TABLE ow_user_skill_tags IS 'ユーザーのスキルタグ。ν-8 では自由入力、ν-9 以降でマスタ化を検討（master_id 伏線）。';
 COMMENT ON COLUMN ow_user_skill_tags.label IS 'タグ表示文字列。ν-8 では自由入力、1〜50字。';
@@ -22,21 +28,25 @@ COMMENT ON COLUMN ow_user_skill_tags.master_id IS 'ν-9 以降でスキルマス
 ALTER TABLE ow_user_skill_tags ENABLE ROW LEVEL SECURITY;
 
 -- 全ユーザーが閲覧可能（公開プロフィール）
+DROP POLICY IF EXISTS "ow_user_skill_tags_select_all" ON ow_user_skill_tags;
 CREATE POLICY "ow_user_skill_tags_select_all"
   ON ow_user_skill_tags FOR SELECT USING (true);
 
 -- 自分のレコードのみ INSERT 可
 -- 既存パターン: user_id IN (SELECT id FROM ow_users WHERE auth_id = auth.uid())
+DROP POLICY IF EXISTS "ow_user_skill_tags_insert_own" ON ow_user_skill_tags;
 CREATE POLICY "ow_user_skill_tags_insert_own"
   ON ow_user_skill_tags FOR INSERT
   WITH CHECK (user_id IN (SELECT id FROM ow_users WHERE auth_id = auth.uid()));
 
 -- 自分のレコードのみ UPDATE 可
+DROP POLICY IF EXISTS "ow_user_skill_tags_update_own" ON ow_user_skill_tags;
 CREATE POLICY "ow_user_skill_tags_update_own"
   ON ow_user_skill_tags FOR UPDATE
   USING (user_id IN (SELECT id FROM ow_users WHERE auth_id = auth.uid()));
 
 -- 自分のレコードのみ DELETE 可
+DROP POLICY IF EXISTS "ow_user_skill_tags_delete_own" ON ow_user_skill_tags;
 CREATE POLICY "ow_user_skill_tags_delete_own"
   ON ow_user_skill_tags FOR DELETE
   USING (user_id IN (SELECT id FROM ow_users WHERE auth_id = auth.uid()));
