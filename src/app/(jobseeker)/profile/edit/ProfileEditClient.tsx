@@ -12,6 +12,8 @@ import { LOCATIONS, AGE_RANGES } from "@/app/profile/edit/mockProfileData";
 
 type SaveStatus = "idle" | "saving" | "saved";
 
+type SkillTag = { id: string; label: string; sort_order: number };
+
 type ProfileTab = "basic" | "career" | "skills" | "socials" | "account";
 
 type OwUser = {
@@ -206,6 +208,216 @@ function PlaceholderTabContent({ label }: { label: string }) {
   );
 }
 
+// ─── Skill Tags Editor ────────────────────────────────────────────────────────
+
+function SkillTagsEditor({
+  skillTags,
+  setSkillTags,
+  setSaveStatus,
+}: {
+  skillTags: SkillTag[];
+  setSkillTags: React.Dispatch<React.SetStateAction<SkillTag[]>>;
+  setSaveStatus: (s: SaveStatus) => void;
+}) {
+  const [pendingLabel, setPendingLabel] = useState("");
+  const [inputError, setInputError]     = useState<string | null>(null);
+
+  const count       = skillTags.length;
+  const isAtLimit   = count >= 15;
+  const isAlmost    = count >= 12 && count < 15; // 残り3個以下
+  const charLen     = pendingLabel.length;
+  const charIsAmber = charLen > 40;
+
+  const handleAdd = async () => {
+    const label = pendingLabel.trim();
+    if (label.length === 0) return;
+
+    // クライアント側バリデーション
+    if (label.length > 50) {
+      setInputError("タグは50字以内で入力してください。");
+      return;
+    }
+    if (skillTags.some((t) => t.label === label)) {
+      setInputError("同じタグがすでに登録されています。");
+      return;
+    }
+    if (count >= 15) {
+      setInputError("スキルタグは最大15個まで登録できます。");
+      return;
+    }
+
+    setInputError(null);
+
+    // 楽観更新: 仮 ID で先にチップを追加
+    const tempId  = `pending-${Date.now()}`;
+    const tempTag: SkillTag = { id: tempId, label, sort_order: 9999 };
+    setSkillTags((prev) => [...prev, tempTag]);
+    setPendingLabel("");
+    setSaveStatus("saving");
+
+    try {
+      const res = await fetch("/api/jobseeker/skill-tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { message?: string }).message ?? res.statusText);
+      }
+      const confirmed: SkillTag = await res.json();
+      // サーバ確定値（id, sort_order）で仮チップを置換
+      setSkillTags((prev) => prev.map((t) => (t.id === tempId ? confirmed : t)));
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    } catch (e) {
+      // ロールバック: 仮チップを除去 + inline エラー
+      setSkillTags((prev) => prev.filter((t) => t.id !== tempId));
+      setInputError((e as Error).message ?? "保存に失敗しました。");
+      setSaveStatus("idle");
+    }
+  };
+
+  const handleDelete = async (tag: SkillTag) => {
+    // 楽観更新: 即チップを除去
+    setSkillTags((prev) => prev.filter((t) => t.id !== tag.id));
+    setSaveStatus("saving");
+
+    try {
+      const res = await fetch(`/api/jobseeker/skill-tags/${tag.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("削除に失敗しました。");
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    } catch {
+      // ロールバック: sort_order 順で復元
+      setSkillTags((prev) =>
+        [...prev, tag].sort((a, b) => a.sort_order - b.sort_order)
+      );
+      setSaveStatus("idle");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      handleAdd();
+    }
+  };
+
+  return (
+    <FormSection
+      title="スキル"
+      desc="あなたのスキルや得意な技術・経験した領域をタグで登録してください。最大15個まで。"
+    >
+      {/* 確定済みタグのチップ列 */}
+      {skillTags.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+          {skillTags.map((tag) => (
+            <span
+              key={tag.id}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "5px 10px 5px 12px", borderRadius: 100,
+                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                fontSize: 13, color: "var(--royal)", fontWeight: 500,
+                opacity: tag.id.startsWith("pending-") ? 0.55 : 1,
+                transition: "opacity 0.2s",
+              }}
+            >
+              {tag.label}
+              {/* 仮IDのチップ（保存中）には✕を出さない */}
+              {!tag.id.startsWith("pending-") && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(tag)}
+                  aria-label={`${tag.label} を削除`}
+                  style={{
+                    background: "none", border: "none", padding: 2,
+                    cursor: "pointer", color: "var(--royal)", opacity: 0.5,
+                    display: "flex", alignItems: "center",
+                    borderRadius: "50%", transition: "opacity 0.15s",
+                    lineHeight: 1,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.5"; }}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* 入力エリア（上限未達の場合のみ表示） */}
+      {!isAtLimit && (
+        <div>
+          <div style={{ position: "relative" }}>
+            <input
+              type="text"
+              value={pendingLabel}
+              onChange={(e) => {
+                setPendingLabel(e.target.value);
+                setInputError(null);
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="例: TypeScript, React, Supabase…（Enter または , で確定）"
+              maxLength={55}
+              style={inputStyle({ paddingRight: charLen > 0 ? 68 : 12 })}
+            />
+            {/* 入力中文字数カウンター */}
+            {charLen > 0 && (
+              <span style={{
+                position: "absolute", right: 12, top: "50%",
+                transform: "translateY(-50%)",
+                fontSize: 11,
+                color: charIsAmber ? "var(--warm)" : "var(--ink-mute)",
+                fontFamily: "Inter, sans-serif",
+                pointerEvents: "none",
+              }}>
+                {charLen} / 50
+              </span>
+            )}
+          </div>
+
+          {/* inline エラー */}
+          {inputError && (
+            <div style={{ fontSize: 11, color: "var(--error)", marginTop: 6, lineHeight: 1.6 }}>
+              {inputError}
+            </div>
+          )}
+
+          {/* 確定ヒント */}
+          {!inputError && (
+            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6, lineHeight: 1.6 }}>
+              Enter またはカンマ（,）で確定
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* タグカウンター（n / 15） */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+        <span style={{
+          fontSize: 11, fontFamily: "Inter, sans-serif",
+          color: isAtLimit ? "var(--error)" : isAlmost ? "var(--warm)" : "var(--ink-mute)",
+        }}>
+          {isAtLimit
+            ? `${count} / 15（上限に達しました）`
+            : isAlmost
+            ? `${count} / 15（残り${15 - count}個）`
+            : `${count} / 15`}
+        </span>
+      </div>
+    </FormSection>
+  );
+}
+
 // ─── Textarea Field with soft-limit counter ───────────────────────────────────
 
 function TextareaField({
@@ -265,9 +477,11 @@ function TextareaField({
 export default function ProfileEditClient({
   owUser,
   authEmail,
+  initialSkillTags,
 }: {
   owUser: OwUser;
   authEmail: string;
+  initialSkillTags: SkillTag[];
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
 
@@ -305,6 +519,10 @@ export default function ProfileEditClient({
     },
     [triggerSave]
   );
+
+  // ── スキルタブの状態 ─────────────────────────────────────────────────────
+  const [skillTags, setSkillTags] = useState<SkillTag[]>(initialSkillTags);
+  const [skillSaveStatus, setSkillSaveStatus] = useState<SaveStatus>("idle");
 
   // ── 基本情報タブの状態（名前・所在地・年齢層） ──────────────────────────
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
@@ -353,6 +571,7 @@ export default function ProfileEditClient({
             color: "var(--ink)", margin: 0,
           }}>プロフィール</h1>
           {activeTab === "basic"   && <SaveStatusPill status={basicSaveStatus} />}
+          {activeTab === "skills"  && <SaveStatusPill status={skillSaveStatus} />}
           {activeTab === "account" && <SaveStatusPill status={saveStatus} />}
           <div style={{ marginLeft: "auto" }}>
             <Link
@@ -470,9 +689,15 @@ export default function ProfileEditClient({
           </div>
         )}
 
-        {/* スキルタブ（実装中） */}
+        {/* スキルタブ */}
         {activeTab === "skills" && (
-          <PlaceholderTabContent label="スキル" />
+          <div style={{ maxWidth: 680 }}>
+            <SkillTagsEditor
+              skillTags={skillTags}
+              setSkillTags={setSkillTags}
+              setSaveStatus={setSkillSaveStatus}
+            />
+          </div>
         )}
 
         {/* SNSタブ（実装中） */}

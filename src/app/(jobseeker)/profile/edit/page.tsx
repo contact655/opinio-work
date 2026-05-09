@@ -18,10 +18,20 @@ export default async function ProfileEditPage() {
     .eq("auth_id", user.id)
     .maybeSingle();
 
+  // スキルタグ初期データ（RLS select_all=true、認証不問で取得可）
+  const { data: skillTagsRaw } = owUser
+    ? await supabase
+        .from("ow_user_skill_tags")
+        .select("id, label, sort_order")
+        .eq("user_id", owUser.id)
+        .order("sort_order", { ascending: true })
+    : { data: [] };
+
   return (
     <ProfileEditClient
       owUser={owUser}
       authEmail={user.email ?? ""}
+      initialSkillTags={skillTagsRaw ?? []}
     />
   );
 }
