@@ -6,6 +6,7 @@ import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
 import Tabs, { type TabItem } from "./Tabs";
 import CareerHistoryEditor from "@/components/profile/CareerHistoryEditor";
+import { LOCATIONS, AGE_RANGES } from "./mockProfileData";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,7 +20,19 @@ type OwUser = {
   avatar_color: string | null;
   cover_color: string | null;
   visibility: string | null;
+  location: string | null;
+  age_range: string | null;
+  about_me: string | null;
+  future_aspirations: string | null;
 } | null;
+
+// ─── Basic info state ─────────────────────────────────────────────────────────
+
+type BasicInfo = {
+  name: string;
+  location: string;
+  ageRange: string;
+};
 
 type SettingsState = {
   avatarColor: string;
@@ -201,6 +214,8 @@ export default function ProfileEditClient({
   authEmail: string;
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
+
+  // ── アカウント設定タブの状態 ────────────────────────────────────────────
   const [settings, setSettings] = useState<SettingsState>({
     avatarColor: owUser?.avatar_color ?? DEFAULT_AVATAR_COLOR,
     coverColor:  owUser?.cover_color  ?? DEFAULT_COVER_COLOR,
@@ -209,7 +224,6 @@ export default function ProfileEditClient({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const settingsRef = useRef<SettingsState>(settings);
   const saveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const displayName = owUser?.name ?? "";
 
   const triggerSave = useCallback(() => {
     setSaveStatus("saving");
@@ -236,6 +250,38 @@ export default function ProfileEditClient({
     [triggerSave]
   );
 
+  // ── 基本情報タブの状態（名前・所在地・年齢層） ──────────────────────────
+  const [basicInfo, setBasicInfo] = useState<BasicInfo>({
+    name:     owUser?.name     ?? "",
+    location: owUser?.location ?? "",
+    ageRange: owUser?.age_range ?? "",
+  });
+  const basicInfoRef   = useRef<BasicInfo>(basicInfo);
+  const [basicSaveStatus, setBasicSaveStatus] = useState<SaveStatus>("idle");
+  const basicSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const patchBasicInfo = useCallback((patch: Partial<BasicInfo>) => {
+    setBasicInfo((prev) => {
+      const next = { ...prev, ...patch };
+      basicInfoRef.current = next;
+      return next;
+    });
+    setBasicSaveStatus("saving");
+    if (basicSaveTimer.current) clearTimeout(basicSaveTimer.current);
+    basicSaveTimer.current = setTimeout(async () => {
+      await fetch("/api/jobseeker/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name:     basicInfoRef.current.name,
+          location: basicInfoRef.current.location,
+          age_range: basicInfoRef.current.ageRange,
+        }),
+      }).catch(() => {});
+      setBasicSaveStatus("saved");
+    }, 700);
+  }, []);
+
   return (
     <MypageMockProvider>
       <MypageLayout activeKey="profile">
@@ -246,6 +292,7 @@ export default function ProfileEditClient({
             fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
             color: "var(--ink)", margin: 0,
           }}>プロフィール</h1>
+          {activeTab === "basic"   && <SaveStatusPill status={basicSaveStatus} />}
           {activeTab === "account" && <SaveStatusPill status={saveStatus} />}
           <div style={{ marginLeft: "auto" }}>
             <Link
@@ -275,9 +322,87 @@ export default function ProfileEditClient({
 
         {/* ── タブコンテンツ ──────────────────────────────────────────────────── */}
 
-        {/* 基本情報タブ（実装中） */}
+        {/* 基本情報タブ */}
         {activeTab === "basic" && (
-          <PlaceholderTabContent label="基本情報" />
+          <div style={{ maxWidth: 680 }}>
+
+            {/* ── Section 1: 基本情報（名前・所在地・年齢層） ──────────────── */}
+            <FormSection
+              title="基本情報"
+              desc="プロフィールページに表示される情報です。変更すると自動で保存されます。"
+            >
+              <FormGroup label="名前">
+                <input
+                  type="text"
+                  value={basicInfo.name}
+                  onChange={(e) => patchBasicInfo({ name: e.target.value })}
+                  placeholder="例：山田 太郎"
+                  style={inputStyle()}
+                />
+              </FormGroup>
+
+              <FormGroup label="所在地" hint="現在お住まいの都道府県を選択してください。">
+                <div style={{ position: "relative" }}>
+                  <select
+                    value={basicInfo.location}
+                    onChange={(e) => patchBasicInfo({ location: e.target.value })}
+                    style={selectStyle()}
+                  >
+                    <option value="">選択してください</option>
+                    {LOCATIONS.map((loc) => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
+              </FormGroup>
+
+              <FormGroup label="年齢層" hint="おおよその年齢層を選択してください。">
+                <div style={{ position: "relative" }}>
+                  <select
+                    value={basicInfo.ageRange}
+                    onChange={(e) => patchBasicInfo({ ageRange: e.target.value })}
+                    style={selectStyle()}
+                  >
+                    <option value="">選択してください</option>
+                    {AGE_RANGES.map((range) => (
+                      <option key={range} value={range}>{range}</option>
+                    ))}
+                  </select>
+                </div>
+              </FormGroup>
+            </FormSection>
+
+            {/* ── Section 2: 自己紹介（次のコミットで実装） ───────────────────── */}
+            <FormSection
+              title="自己紹介"
+              desc="あなたのキャリアや想いを、企業・メンターに伝えるテキストです。200字を目安に。"
+            >
+              <div style={{
+                padding: "20px", borderRadius: 8,
+                background: "var(--bg-tint)", border: "1px dashed var(--line)",
+                color: "var(--ink-mute)", fontSize: 12, textAlign: "center",
+                lineHeight: 1.7,
+              }}>
+                次のコミットで実装予定です
+              </div>
+            </FormSection>
+
+            {/* ── Section 3: やってみたいこと（次のコミットで実装） ────────────── */}
+            <FormSection
+              title="この先やってみたいこと"
+              desc="中長期でやってみたいこと、挑戦したいことを自由に書いてください。"
+            >
+              <div style={{
+                padding: "20px", borderRadius: 8,
+                background: "var(--bg-tint)", border: "1px dashed var(--line)",
+                color: "var(--ink-mute)", fontSize: 12, textAlign: "center",
+                lineHeight: 1.7,
+              }}>
+                次のコミットで実装予定です
+              </div>
+            </FormSection>
+
+          </div>
         )}
 
         {/* 職歴タブ */}
@@ -325,7 +450,7 @@ export default function ProfileEditClient({
                         boxShadow: "0 4px 12px rgba(15,23,42,0.1)",
                       }}
                     >
-                      {displayName.charAt(0) || "?"}
+                      {basicInfo.name.charAt(0) || "?"}
                     </div>
                   </div>
                   <div style={{ height: 34 }} />
