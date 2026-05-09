@@ -221,10 +221,7 @@ function DashboardView({
     id: string; school: string; faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
-  userCertifications?: {
-    id: string; name: string; issuer: string | null;
-    issued_at: string | null; expires_at: string | null; no_expiry: boolean; sort_order: number;
-  }[];
+  userCertifications?: { id: string; name: string; sort_order: number }[];
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
@@ -787,10 +784,7 @@ export default function MypageClient({
     id: string; school: string; faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
-  certifications?: {
-    id: string; name: string; issuer: string | null;
-    issued_at: string | null; expires_at: string | null; no_expiry: boolean; sort_order: number;
-  }[];
+  certifications?: { id: string; name: string; sort_order: number }[];
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];

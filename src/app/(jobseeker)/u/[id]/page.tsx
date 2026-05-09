@@ -56,10 +56,6 @@ type Education = {
 type Certification = {
   id: string;
   name: string;
-  issuer: string | null;
-  issued_at: string | null;
-  expires_at: string | null;
-  no_expiry: boolean;
   sort_order: number;
 };
 
@@ -128,7 +124,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .order("sort_order", { ascending: true }),
     supabase
       .from("ow_user_certifications")
-      .select("id, name, issuer, issued_at, expires_at, no_expiry, sort_order")
+      .select("id, name, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
   ]);
@@ -451,7 +447,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         </section>
       )}
 
-      {/* Certifications — 0件時はセクションごと非表示 */}
+      {/* Certifications — 0件時はセクションごと非表示（資格名のみチップ表示） */}
       {certifications.length > 0 && (
         <section style={{
           background: "#fff", border: "1px solid var(--line)",
@@ -468,66 +464,24 @@ export default async function UserProfilePage({ params }: { params: { id: string
               CERTIFICATIONS
             </span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {certifications.map((cert, i) => {
-              const formatYM = (s: string | null) => {
-                if (!s) return null;
-                const [y, m] = s.split("-");
-                return m ? `${y}年${parseInt(m, 10)}月` : `${y}年`;
-              };
-              const issued  = formatYM(cert.issued_at);
-              const expires = cert.no_expiry ? "有効期限なし" : formatYM(cert.expires_at);
-              return (
-                <div
-                  key={cert.id}
-                  style={{
-                    paddingBottom: i < certifications.length - 1 ? 14 : 0,
-                    borderBottom: i < certifications.length - 1 ? "1px solid var(--line-soft)" : "none",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                    {/* アイコン */}
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-                      background: "var(--warm-soft)", border: "1px solid #FDE68A",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="8" r="6" />
-                        <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-                      </svg>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 3 }}>
-                        {cert.name}
-                      </div>
-                      {cert.issuer && (
-                        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 3 }}>
-                          {cert.issuer}
-                        </div>
-                      )}
-                      {(issued || expires) && (
-                        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
-                          {issued ? `取得: ${issued}` : ""}
-                          {issued && expires ? " · " : ""}
-                          {expires ? `有効期限: ${expires}` : ""}
-                        </div>
-                      )}
-                    </div>
-                    {cert.no_expiry && (
-                      <span style={{
-                        fontSize: 11, fontWeight: 600, padding: "3px 8px",
-                        background: "var(--warm-soft)", color: "#92400E",
-                        border: "1px solid #FDE68A", borderRadius: 100,
-                        flexShrink: 0,
-                      }}>
-                        永続
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {certifications.map((cert) => (
+              <span
+                key={cert.id}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "5px 12px", borderRadius: 100,
+                  background: "var(--warm-soft)", border: "1px solid #FDE68A",
+                  fontSize: 13, color: "#92400E", fontWeight: 500,
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="8" r="6" />
+                  <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+                </svg>
+                {cert.name}
+              </span>
+            ))}
           </div>
         </section>
       )}

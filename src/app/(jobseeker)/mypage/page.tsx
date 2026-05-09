@@ -31,10 +31,7 @@ export default async function MypagePage() {
     id: string; school: string; faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[] = [];
-  let certifications: {
-    id: string; name: string; issuer: string | null;
-    issued_at: string | null; expires_at: string | null; no_expiry: boolean; sort_order: number;
-  }[] = [];
+  let certifications: { id: string; name: string; sort_order: number }[] = [];
   if (owUser) {
     const [{ data: tags }, { data: edus }, { data: certs }] = await Promise.all([
       supabase
@@ -49,7 +46,7 @@ export default async function MypagePage() {
         .order("sort_order", { ascending: true }),
       supabase
         .from("ow_user_certifications")
-        .select("id, name, issuer, issued_at, expires_at, no_expiry, sort_order")
+        .select("id, name, sort_order")
         .eq("user_id", owUser.id)
         .order("sort_order", { ascending: true }),
     ]);
@@ -71,10 +68,6 @@ export default async function MypagePage() {
     certifications = (certs ?? []).map((c) => ({
       id: c.id as string,
       name: c.name as string,
-      issuer: (c.issuer as string | null) ?? null,
-      issued_at: (c.issued_at as string | null) ?? null,
-      expires_at: (c.expires_at as string | null) ?? null,
-      no_expiry: c.no_expiry as boolean,
       sort_order: c.sort_order as number,
     }));
   }

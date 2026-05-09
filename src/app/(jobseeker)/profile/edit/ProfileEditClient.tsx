@@ -36,10 +36,6 @@ type Education = {
 type Certification = {
   id: string;
   name: string;
-  issuer: string | null;
-  issued_at: string | null;
-  expires_at: string | null;
-  no_expiry: boolean;
   sort_order: number;
 };
 
@@ -943,39 +939,20 @@ function CertificationCardEditor({
   onUpdate: (id: string, patch: Partial<Certification>) => void;
   onDelete: (id: string) => void;
 }) {
-  const issuedYM  = parseDateToYM(cert.issued_at);
-  const expiresYM = parseDateToYM(cert.expires_at);
+  const [localName,  setLocalName]  = useState(cert.name);
+  const [saving,     setSaving]     = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
-  const [localName,      setLocalName]      = useState(cert.name);
-  const [localIssuer,    setLocalIssuer]    = useState(cert.issuer ?? "");
-  const [issuedYear,     setIssuedYear]     = useState(issuedYM.year);
-  const [issuedMonth,    setIssuedMonth]    = useState(issuedYM.month);
-  const [expiresYear,    setExpiresYear]    = useState(expiresYM.year);
-  const [expiresMonth,   setExpiresMonth]   = useState(expiresYM.month);
-  const [noExpiry,       setNoExpiry]       = useState(cert.no_expiry);
-  const [saving,         setSaving]         = useState(false);
-  const [fieldError,     setFieldError]     = useState<string | null>(null);
-
-  const YEAR_OPTS = Array.from({ length: 61 }, (_, i) => new Date().getFullYear() + 4 - i);
-
-  const save = useCallback(async (payload: {
-    name: string; issuer: string;
-    issued_at: string | null; expires_at: string | null; no_expiry: boolean;
-  }) => {
-    if (!payload.name.trim()) { setFieldError("資格名を入力してください。"); return; }
+  const saveName = useCallback(async (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) { setFieldError("資格名を入力してください。"); return; }
     setFieldError(null);
     setSaving(true);
     try {
       const res = await fetch(`/api/jobseeker/certifications/${cert.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: payload.name.trim(),
-          issuer: payload.issuer.trim() || null,
-          issued_at: payload.issued_at,
-          expires_at: payload.expires_at,
-          no_expiry: payload.no_expiry,
-        }),
+        body: JSON.stringify({ name: trimmed }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -989,28 +966,6 @@ function CertificationCardEditor({
       setSaving(false);
     }
   }, [cert.id, onUpdate]);
-
-  const buildAndSave = useCallback((overrides: {
-    name?: string; issuer?: string;
-    issuedYear?: string; issuedMonth?: string;
-    expiresYear?: string; expiresMonth?: string;
-    noExpiry?: boolean;
-  }) => {
-    const n  = overrides.name        ?? localName;
-    const is = overrides.issuer      ?? localIssuer;
-    const iy = overrides.issuedYear  ?? issuedYear;
-    const im = overrides.issuedMonth ?? issuedMonth;
-    const ey = overrides.expiresYear ?? expiresYear;
-    const em = overrides.expiresMonth ?? expiresMonth;
-    const ne = overrides.noExpiry    ?? noExpiry;
-    save({
-      name: n,
-      issuer: is,
-      issued_at: formatYMToDate(iy, im),
-      expires_at: ne ? null : formatYMToDate(ey, em),
-      no_expiry: ne,
-    });
-  }, [localName, localIssuer, issuedYear, issuedMonth, expiresYear, expiresMonth, noExpiry, save]);
 
   const handleDelete = async () => {
     setSaving(true);
@@ -1026,8 +981,8 @@ function CertificationCardEditor({
 
   return (
     <div style={{
-      border: "1px solid var(--line)", borderRadius: 10, padding: "20px 24px",
-      marginBottom: 16, background: "#fff", position: "relative",
+      border: "1px solid var(--line)", borderRadius: 10, padding: "16px 20px",
+      marginBottom: 12, background: "#fff", position: "relative",
       opacity: saving ? 0.7 : 1, transition: "opacity 0.2s",
     }}>
       {/* 削除ボタン */}
@@ -1057,103 +1012,12 @@ function CertificationCardEditor({
         <input
           type="text"
           value={localName}
-          onChange={(e) => setLocalName(e.target.value)}
-          onBlur={() => buildAndSave({ name: localName })}
-          placeholder="例：AWS ソリューションアーキテクト"
+          onChange={(e) => { setLocalName(e.target.value); setFieldError(null); }}
+          onBlur={() => saveName(localName)}
+          placeholder="例：国家資格キャリアコンサルタント、AWS ソリューションアーキテクト、TOEIC L&R…"
           maxLength={100}
           style={inputStyle({ paddingRight: 12 })}
         />
-      </FormGroup>
-
-      {/* 発行機関（任意） */}
-      <FormGroup label="発行機関">
-        <input
-          type="text"
-          value={localIssuer}
-          onChange={(e) => setLocalIssuer(e.target.value)}
-          onBlur={() => buildAndSave({ issuer: localIssuer })}
-          placeholder="例：Amazon Web Services"
-          maxLength={100}
-          style={inputStyle({ paddingRight: 12 })}
-        />
-      </FormGroup>
-
-      {/* 取得年月 */}
-      <FormGroup label="取得年月">
-        <div style={{ display: "flex", gap: 8 }}>
-          <div style={{ position: "relative", flex: "0 0 110px" }}>
-            <select
-              value={issuedYear}
-              onChange={(e) => { setIssuedYear(e.target.value); buildAndSave({ issuedYear: e.target.value }); }}
-              style={selectStyle()}
-            >
-              <option value="">年</option>
-              {YEAR_OPTS.map((y) => (
-                <option key={y} value={String(y)}>{y}年</option>
-              ))}
-            </select>
-          </div>
-          <div style={{ position: "relative", flex: "0 0 80px" }}>
-            <select
-              value={issuedMonth}
-              onChange={(e) => { setIssuedMonth(e.target.value); buildAndSave({ issuedMonth: e.target.value }); }}
-              style={selectStyle()}
-            >
-              <option value="">月</option>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <option key={m} value={String(m)}>{m}月</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </FormGroup>
-
-      {/* 有効期限なしチェックボックス */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
-          <input
-            type="checkbox"
-            checked={noExpiry}
-            onChange={(e) => {
-              setNoExpiry(e.target.checked);
-              buildAndSave({ noExpiry: e.target.checked });
-            }}
-            style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--royal)" }}
-          />
-          <span style={{ color: "var(--ink)" }}>有効期限なし（永続資格）</span>
-        </label>
-      </div>
-
-      {/* 有効期限（有効期限なしの場合は無効） */}
-      <FormGroup label="有効期限">
-        <div style={{ display: "flex", gap: 8, opacity: noExpiry ? 0.4 : 1, transition: "opacity 0.2s" }}>
-          <div style={{ position: "relative", flex: "0 0 110px" }}>
-            <select
-              value={expiresYear}
-              onChange={(e) => { setExpiresYear(e.target.value); buildAndSave({ expiresYear: e.target.value }); }}
-              disabled={noExpiry}
-              style={{ ...selectStyle(), cursor: noExpiry ? "not-allowed" : "pointer" }}
-            >
-              <option value="">年</option>
-              {YEAR_OPTS.map((y) => (
-                <option key={y} value={String(y)}>{y}年</option>
-              ))}
-            </select>
-          </div>
-          <div style={{ position: "relative", flex: "0 0 80px" }}>
-            <select
-              value={expiresMonth}
-              onChange={(e) => { setExpiresMonth(e.target.value); buildAndSave({ expiresMonth: e.target.value }); }}
-              disabled={noExpiry}
-              style={{ ...selectStyle(), cursor: noExpiry ? "not-allowed" : "pointer" }}
-            >
-              <option value="">月</option>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <option key={m} value={String(m)}>{m}月</option>
-              ))}
-            </select>
-          </div>
-        </div>
       </FormGroup>
 
       {fieldError && (
@@ -1183,7 +1047,7 @@ function CertificationEditor({
       const res = await fetch("/api/jobseeker/certifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "資格名を入力", no_expiry: false }),
+        body: JSON.stringify({ name: "資格名を入力" }),
       });
       if (!res.ok) throw new Error("追加に失敗しました。");
       const inserted: Certification = await res.json();

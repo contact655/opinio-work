@@ -37,7 +37,7 @@ export default async function ProfileEditPage() {
     owUser
       ? supabase
           .from("ow_user_certifications")
-          .select("id, name, issuer, issued_at, expires_at, no_expiry, sort_order")
+          .select("id, name, sort_order")
           .eq("user_id", owUser.id)
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] }),

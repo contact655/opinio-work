@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// auth_id → ow_users.id（educations ルートと同じパターン）
+// auth_id → ow_users.id
 async function resolveOwUserId(
   supabase: ReturnType<typeof createClient>,
   authUid: string
@@ -27,7 +27,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("ow_user_certifications")
-    .select("id, name, issuer, issued_at, expires_at, no_expiry, sort_order")
+    .select("id, name, sort_order")
     .eq("user_id", owUserId)
     .order("sort_order", { ascending: true });
 
@@ -39,19 +39,13 @@ export async function GET() {
   return NextResponse.json({ certifications: data ?? [] });
 }
 
-// POST /api/jobseeker/certifications — 資格追加
+// POST /api/jobseeker/certifications — 資格追加（資格名のみ）
 export async function POST(req: Request) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: {
-    name?: unknown;
-    issuer?: unknown;
-    issued_at?: unknown;
-    expires_at?: unknown;
-    no_expiry?: unknown;
-  };
+  let body: { name?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -60,26 +54,13 @@ export async function POST(req: Request) {
 
   const name = typeof body.name === "string" ? body.name.trim() : "";
 
-  // バリデーション 1: name（1-100字 必須）
+  // バリデーション: name（1-100字 必須）
   if (name.length < 1 || name.length > 100) {
     return NextResponse.json(
       { error: "INVALID_NAME_LENGTH", message: "資格名は1〜100字で入力してください。" },
       { status: 400 }
     );
   }
-
-  // バリデーション 2: issuer（100字以内 任意）
-  const issuer = typeof body.issuer === "string" ? body.issuer.trim() : null;
-  if (issuer !== null && issuer.length > 100) {
-    return NextResponse.json(
-      { error: "INVALID_ISSUER_LENGTH", message: "発行機関は100字以内で入力してください。" },
-      { status: 400 }
-    );
-  }
-
-  const issued_at  = typeof body.issued_at  === "string" && body.issued_at  ? body.issued_at  : null;
-  const no_expiry  = body.no_expiry === true;
-  const expires_at = no_expiry ? null : (typeof body.expires_at === "string" && body.expires_at ? body.expires_at : null);
 
   const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -97,16 +78,8 @@ export async function POST(req: Request) {
 
   const { data: inserted, error: insertError } = await supabase
     .from("ow_user_certifications")
-    .insert({
-      user_id: owUserId,
-      name,
-      issuer: issuer || null,
-      issued_at,
-      expires_at,
-      no_expiry,
-      sort_order: nextSortOrder,
-    })
-    .select("id, name, issuer, issued_at, expires_at, no_expiry, sort_order")
+    .insert({ user_id: owUserId, name, sort_order: nextSortOrder })
+    .select("id, name, sort_order")
     .single();
 
   if (insertError) {
