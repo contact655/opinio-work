@@ -32,6 +32,8 @@ type BasicInfo = {
   name: string;
   location: string;
   ageRange: string;
+  aboutMe: string;
+  futureAspirations: string;
 };
 
 type SettingsState = {
@@ -204,6 +206,60 @@ function PlaceholderTabContent({ label }: { label: string }) {
   );
 }
 
+// ─── Textarea Field with soft-limit counter ───────────────────────────────────
+
+function TextareaField({
+  value,
+  onChange,
+  placeholder,
+  softLimit = 200,
+  rows = 5,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  softLimit?: number;
+  rows?: number;
+}) {
+  const len    = value.length;
+  const isOver = len > softLimit;
+
+  return (
+    <div>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        style={{
+          ...inputStyle({ resize: "vertical", lineHeight: 1.8, minHeight: rows * 24 }),
+        }}
+      />
+      <div style={{
+        display: "flex", justifyContent: "space-between",
+        alignItems: "flex-start", marginTop: 6, gap: 8,
+      }}>
+        {isOver ? (
+          <div style={{ fontSize: 11, color: "var(--warm)", lineHeight: 1.6, flex: 1 }}>
+            {softLimit}字の目安を超えています。保存は可能ですが、読み手が読みやすい長さを意識してみてください。
+          </div>
+        ) : (
+          <div style={{ flex: 1 }} />
+        )}
+        <div style={{
+          fontSize: 11,
+          color: isOver ? "var(--warm)" : "var(--ink-mute)",
+          fontFamily: "Inter, sans-serif",
+          flexShrink: 0,
+          lineHeight: 1.6,
+        }}>
+          {len} / {softLimit}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ProfileEditClient({
@@ -252,9 +308,11 @@ export default function ProfileEditClient({
 
   // ── 基本情報タブの状態（名前・所在地・年齢層） ──────────────────────────
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
-    name:     owUser?.name     ?? "",
-    location: owUser?.location ?? "",
-    ageRange: owUser?.age_range ?? "",
+    name:              owUser?.name              ?? "",
+    location:          owUser?.location          ?? "",
+    ageRange:          owUser?.age_range         ?? "",
+    aboutMe:           owUser?.about_me          ?? "",
+    futureAspirations: owUser?.future_aspirations ?? "",
   });
   const basicInfoRef   = useRef<BasicInfo>(basicInfo);
   const [basicSaveStatus, setBasicSaveStatus] = useState<SaveStatus>("idle");
@@ -273,9 +331,11 @@ export default function ProfileEditClient({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name:     basicInfoRef.current.name,
-          location: basicInfoRef.current.location,
-          age_range: basicInfoRef.current.ageRange,
+          name:               basicInfoRef.current.name,
+          location:           basicInfoRef.current.location,
+          age_range:          basicInfoRef.current.ageRange,
+          about_me:           basicInfoRef.current.aboutMe,
+          future_aspirations: basicInfoRef.current.futureAspirations,
         }),
       }).catch(() => {});
       setBasicSaveStatus("saved");
@@ -372,34 +432,32 @@ export default function ProfileEditClient({
               </FormGroup>
             </FormSection>
 
-            {/* ── Section 2: 自己紹介（次のコミットで実装） ───────────────────── */}
+            {/* ── Section 2: 自己紹介 ──────────────────────────────────────────── */}
             <FormSection
               title="自己紹介"
               desc="あなたのキャリアや想いを、企業・メンターに伝えるテキストです。200字を目安に。"
             >
-              <div style={{
-                padding: "20px", borderRadius: 8,
-                background: "var(--bg-tint)", border: "1px dashed var(--line)",
-                color: "var(--ink-mute)", fontSize: 12, textAlign: "center",
-                lineHeight: 1.7,
-              }}>
-                次のコミットで実装予定です
-              </div>
+              <TextareaField
+                value={basicInfo.aboutMe}
+                onChange={(v) => patchBasicInfo({ aboutMe: v })}
+                placeholder="例：リクルートで4年間営業を経験後、SaaS 企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"
+                softLimit={200}
+                rows={5}
+              />
             </FormSection>
 
-            {/* ── Section 3: やってみたいこと（次のコミットで実装） ────────────── */}
+            {/* ── Section 3: やってみたいこと ──────────────────────────────────── */}
             <FormSection
               title="この先やってみたいこと"
               desc="中長期でやってみたいこと、挑戦したいことを自由に書いてください。"
             >
-              <div style={{
-                padding: "20px", borderRadius: 8,
-                background: "var(--bg-tint)", border: "1px dashed var(--line)",
-                color: "var(--ink-mute)", fontSize: 12, textAlign: "center",
-                lineHeight: 1.7,
-              }}>
-                次のコミットで実装予定です
-              </div>
+              <TextareaField
+                value={basicInfo.futureAspirations}
+                onChange={(v) => patchBasicInfo({ futureAspirations: v })}
+                placeholder="例：プロダクトの企画段階から関わり、ユーザーインタビューを起点にして機能をゼロから作る経験をしてみたいです。将来的には自分でプロダクトを立ち上げることも視野に入れています。"
+                softLimit={200}
+                rows={5}
+              />
             </FormSection>
 
           </div>
