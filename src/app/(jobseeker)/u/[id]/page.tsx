@@ -26,7 +26,7 @@ const DB_NAME_TO_SLUG: Record<string, string> = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-/** JSONB キー名と一致（twitter = X、キー名は ν-9 で移行予定） */
+/** JSONB キー名と一致（"x" = X、ν-8 段階6-1 E で twitter → x 移行済み） */
 type SocialLinks = Partial<Record<SocialPlatform, string>>;
 
 type OwUser = {

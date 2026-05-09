@@ -1,9 +1,9 @@
-// SNS アイコンコンポーネント — ν-8 段階5 コミット B / D'
-// 7種固定: twitter(X) / linkedin / github / instagram / facebook / youtube / note
-// SVG は public/icons/sns/ に同梱。キー名は JSONB キー（twitter = X）と一致。
+// SNS アイコンコンポーネント — ν-8 段階5 コミット B / D'、段階6-1 コミット E で twitter→x 移行
+// 7種固定: x / linkedin / github / instagram / facebook / youtube / note
+// SVG は public/icons/sns/ に同梱。キー名は JSONB キー（"x" = X）と一致。
 
 export type SocialPlatform =
-  | "twitter"
+  | "x"
   | "linkedin"
   | "github"
   | "instagram"
@@ -15,7 +15,7 @@ export const SOCIAL_META: Record<
   SocialPlatform,
   { label: string; color: string; placeholder: string }
 > = {
-  twitter:   { label: "X",         color: "#000000", placeholder: "https://x.com/yourname" },
+  x:         { label: "X",         color: "#000000", placeholder: "https://x.com/yourname" },
   linkedin:  { label: "LinkedIn",  color: "#0A66C2", placeholder: "https://www.linkedin.com/in/yourname" },
   github:    { label: "GitHub",    color: "#181717", placeholder: "https://github.com/yourname" },
   instagram: { label: "Instagram", color: "#E4405F", placeholder: "https://www.instagram.com/yourname" },
@@ -26,7 +26,7 @@ export const SOCIAL_META: Record<
 
 /** JSONB に保存する順序（表示順も兼ねる） */
 export const SNS_PLATFORMS: SocialPlatform[] = [
-  "twitter",
+  "x",
   "linkedin",
   "github",
   "instagram",

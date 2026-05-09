@@ -22,7 +22,7 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 type SkillTag = { id: string; label: string; sort_order: number };
 
-/** JSONB キー名は "twitter"（X の表示名と区別）。値は URL 文字列。空文字列 = 未設定。 */
+/** JSONB キー名は "x"（ν-8 段階6-1 E で twitter → x 移行済み）。値は URL 文字列。空文字列 = 未設定。 */
 type SocialLinks = Partial<Record<SocialPlatform, string>>;
 
 type ProfileTab = "basic" | "career" | "skills" | "socials" | "account";
