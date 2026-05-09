@@ -21,10 +21,8 @@ export type UserProfileCardProps = {
   currentRole?: string | null;
   userLocation?: string | null;
   userAboutMe?: string | null;
-  /** 生年月日（DATE 文字列 "YYYY-MM-DD"）。サーバ側で年齢計算に使用 */
+  /** 生年月日（DATE 文字列 "YYYY-MM-DD"）。サーバ側で年齢計算に使用。NULL = 非公開 */
   userBirthDate?: string | null;
-  /** age_range（B-3 で削除予定。birth_date がある場合は使用しない） */
-  userAgeRange?: string | null;
   userFutureAspirations?: string | null;
   /** social_links JSONB — SocialPlatform キー（"twitter" は E で "x" に移行済み）*/
   userSocialLinks?: Record<string, string> | null;
@@ -72,7 +70,6 @@ export default function UserProfileCard({
   userLocation,
   userAboutMe,
   userBirthDate,
-  userAgeRange,
   userFutureAspirations,
   userSocialLinks,
   userSkillTags = [],
@@ -81,13 +78,9 @@ export default function UserProfileCard({
 
   const initial = userInitial || userName?.charAt(0) || "?";
 
-  // 年齢表示: birth_date 優先（サーバ側計算）、フォールバックは age_range（B-3 で削除予定）
+  // 年齢表示: birth_date をサーバ側で計算（NULL = 非公開）
   const age = getUserAge(userBirthDate);
-  const ageDisplay = age !== null
-    ? `${age}歳`
-    : userAgeRange && userAgeRange !== "非公開"
-      ? userAgeRange
-      : null;
+  const ageDisplay = age !== null ? `${age}歳` : null;
 
   // アクティブな SNS のみ（SNS_PLATFORMS の順序を維持）
   const activeSocials = SNS_PLATFORMS.filter(

@@ -1,5 +1,6 @@
 import type { MeetingApplication, MeetingStatus } from "@/lib/business/mockMeetings";
 import type { createClient } from "@/lib/supabase/server";
+import { getUserAge } from "@/lib/age";
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
@@ -9,7 +10,7 @@ type DbApplicant = {
   id: string;
   name: string;
   avatar_color: string | null;
-  age_range: string | null;
+  birth_date: string | null;
 };
 
 type DbJob = {
@@ -138,7 +139,7 @@ export function transformMeeting(
     applicantName: applicant?.name ?? "—",
     applicantInitial: applicant?.name?.charAt(0) ?? "?",
     applicantGradient,
-    applicantAge: applicant?.age_range ?? "—",
+    applicantAge: (() => { const a = getUserAge(applicant?.birth_date ?? null); return a != null ? `${a}歳` : "—"; })(),
     applicantCurrentCompany: currentExp ? resolveCompanyName(currentExp) : "—",
     applicantCurrentRole: currentExp?.role_title ?? "—",
     jobTitle: row.job?.title ?? null,
@@ -245,7 +246,7 @@ export async function fetchMeetingsForCompany(
         `id, intent, interest_reason, questions, preferred_format,
          company_internal_memo, company_read_at, assignee_user_id,
          created_at, job_id, status,
-         applicant:ow_users!user_id (id, name, avatar_color, age_range),
+         applicant:ow_users!user_id (id, name, avatar_color, birth_date),
          job:ow_jobs!job_id (id, title, salary_min, salary_max),
          assignee:ow_users!assignee_user_id (id, name, avatar_color)`
       )

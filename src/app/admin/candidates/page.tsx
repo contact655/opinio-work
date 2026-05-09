@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+import { getUserAge } from "@/lib/age";
 
 async function getUsers(query?: string) {
   const supabase = createClient();
   let q = supabase
     .from("ow_users")
-    .select("id, name, email, is_mentor, location, age_range, visibility, created_at")
+    .select("id, name, email, is_mentor, location, birth_date, visibility, created_at")
     .order("created_at", { ascending: false });
 
   if (query) {
@@ -74,7 +75,7 @@ export default async function AdminCandidatesPage({
                   </td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{u.email}</td>
                   <td className="px-4 py-3 text-gray-600">{u.location || "-"}</td>
-                  <td className="px-4 py-3 text-gray-600">{u.age_range || "-"}</td>
+                  <td className="px-4 py-3 text-gray-600">{u.birth_date ? `${getUserAge(u.birth_date)}歳` : "-"}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
                       u.visibility === "public" ? "bg-green-100 text-green-700" :

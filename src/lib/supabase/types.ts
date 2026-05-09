@@ -4648,7 +4648,6 @@ export type Database = {
       ow_users: {
         Row: {
           about_me: string | null
-          age_range: string | null
           auth_id: string | null
           avatar_color: string | null
           cover_color: string | null
@@ -4667,7 +4666,6 @@ export type Database = {
         }
         Insert: {
           about_me?: string | null
-          age_range?: string | null
           auth_id?: string | null
           avatar_color?: string | null
           cover_color?: string | null
@@ -4686,7 +4684,6 @@ export type Database = {
         }
         Update: {
           about_me?: string | null
-          age_range?: string | null
           auth_id?: string | null
           avatar_color?: string | null
           cover_color?: string | null

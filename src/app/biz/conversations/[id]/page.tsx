@@ -14,7 +14,6 @@ type CandidateInfo = {
   id: string;
   name: string | null;
   about_me: string | null;
-  age_range: string | null;
   location: string | null;
   avatar_color: string | null;
 };
@@ -103,7 +102,7 @@ export default async function BizConversationDetailPage({
     .from("ow_conversations")
     .select(`
       id, kind, stage, status, last_message_at, created_at,
-      candidate:ow_users!candidate_user_id(id, name, about_me, age_range, location, avatar_color)
+      candidate:ow_users!candidate_user_id(id, name, about_me, location, avatar_color)
     `)
     .eq("id", conversationId)
     .eq("company_id", ctx.tenantId)
@@ -470,24 +469,6 @@ export default async function BizConversationDetailPage({
                 )}
               </div>
             </div>
-
-            {/* Age range */}
-            {candidate?.age_range && (
-              <div style={{ marginBottom: 10 }}>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "var(--ink-mute)",
-                  display: "block",
-                  marginBottom: 2,
-                }}>
-                  年代
-                </span>
-                <span style={{ fontSize: 13, color: "var(--ink)" }}>
-                  {candidate.age_range}
-                </span>
-              </div>
-            )}
 
             {/* About me */}
             {candidate?.about_me ? (

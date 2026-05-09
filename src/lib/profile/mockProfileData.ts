@@ -24,7 +24,6 @@ export type SocialLinks = {
 export type ProfileData = {
   name: string;
   location: string;
-  ageRange: string;
   aboutMe: string;
   avatarColor: string;
   coverColor: string;
@@ -39,14 +38,9 @@ export const LOCATIONS = [
   "愛知県", "福岡県", "北海道", "海外", "非公開",
 ];
 
-export const AGE_RANGES = [
-  "20代前半", "20代後半", "30代前半", "30代後半", "40代", "50代以上", "非公開",
-];
-
 export const MOCK_PROFILE: ProfileData = {
   name: "田中 翔太",
   location: "東京都",
-  ageRange: "30代前半",
   aboutMe:
     "リクルートで4年間営業を経験後、タイミーへ転職しPdM・エンタープライズ営業を経験。2024年よりLayerXにジョイン。Bakuraku事業のプロダクトマネージャーとして、企業の経費精算・請求書処理の自動化を推進しています。「業務の民主化」というビジョンに共感し、プロダクト・ビジネス両面から事業成長に貢献しています。",
   avatarColor: "linear-gradient(135deg, #002366, #3B5FD9)",

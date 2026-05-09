@@ -26,7 +26,6 @@ type OwUser = {
   avatar_color: string | null;
   cover_color: string | null;
   about_me: string | null;
-  age_range: string | null;
   birth_date: string | null;
   location: string | null;
   social_links: Record<string, string> | null;
@@ -208,14 +207,14 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
 
 function DashboardView({
   userId, isMentor, onNavigate, userName, userInitial, userAvatar,
-  userLocation, userAboutMe, userBirthDate, userAgeRange, userFutureAspirations, userSocialLinks,
+  userLocation, userAboutMe, userBirthDate, userFutureAspirations, userSocialLinks,
   userSkillTags,
   companyBookmarks, casualMeetings, mentorReservations,
 }: {
   userId: string; isMentor: boolean; onNavigate: (v: ActiveView) => void;
   userName: string; userInitial: string; userAvatar: string;
   userLocation?: string | null; userAboutMe?: string | null;
-  userBirthDate?: string | null; userAgeRange?: string | null; userFutureAspirations?: string | null;
+  userBirthDate?: string | null; userFutureAspirations?: string | null;
   userSocialLinks?: Record<string, string> | null;
   userSkillTags?: { id: string; label: string; sort_order: number }[];
   companyBookmarks: Bookmark[];
@@ -304,7 +303,6 @@ function DashboardView({
         userLocation={userLocation}
         userAboutMe={userAboutMe}
         userBirthDate={userBirthDate}
-        userAgeRange={userAgeRange}
         userFutureAspirations={userFutureAspirations}
         userSocialLinks={userSocialLinks}
         userSkillTags={userSkillTags}
@@ -834,7 +832,6 @@ export default function MypageClient({
           userLocation={owUser?.location}
           userAboutMe={owUser?.about_me}
           userBirthDate={owUser?.birth_date}
-          userAgeRange={owUser?.age_range}
           userFutureAspirations={owUser?.future_aspirations}
           userSocialLinks={owUser?.social_links}
           userSkillTags={skillTags}

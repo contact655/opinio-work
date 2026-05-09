@@ -50,7 +50,6 @@ type MemberProfile = {
   background?: string;
   photo_url?: string;
   tagline?: string;
-  age_range?: string;
   location?: string;
   hometown?: string;
   is_current: boolean;
@@ -194,7 +193,6 @@ async function getMemberProfile(
         background: cmMember.background,
         photo_url: cmMember.photo_url,
         tagline: cmMember.tagline,
-        age_range: cmMember.age_range,
         location: cmMember.location,
         hometown: cmMember.hometown,
         is_current: cmMember.is_current ?? true,
@@ -232,7 +230,6 @@ async function getMemberProfile(
         role: whMember.role || "",
         background: profile.bio || undefined,
         tagline: undefined,
-        age_range: undefined,
         location: undefined,
         hometown: undefined,
         is_current: whMember.status === "current",
@@ -576,7 +573,6 @@ export default async function MemberDetailPage({
               </h1>
               <p style={{ fontSize: 14, color: "#6b7280", margin: 0 }}>
                 {companyName} · {member.role}
-                {member.age_range && ` · ${member.age_range}`}
                 {member.location && ` · ${member.location}`}
               </p>
             </div>
@@ -905,12 +901,6 @@ export default async function MemberDetailPage({
                     gap: 8,
                   }}
                 >
-                  <MetaRow
-                    icon="歳"
-                    text={member.age_range || "未登録"}
-                    muted={!member.age_range}
-                    showLink={isOwner}
-                  />
                   <MetaRow
                     icon="地"
                     text={member.location || "未登録"}

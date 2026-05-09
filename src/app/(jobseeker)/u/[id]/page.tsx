@@ -36,7 +36,6 @@ type OwUser = {
   avatar_color: string | null;
   cover_color: string | null;
   about_me: string | null;
-  age_range: string | null;
   birth_date: string | null;
   location: string | null;
   social_links: SocialLinks | null;
@@ -62,7 +61,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   // maybeSingle() returns null for private/nonexistent → notFound()
   const { data: user } = await supabase
     .from("ow_users")
-    .select("id, name, avatar_color, cover_color, about_me, age_range, birth_date, location, social_links, is_mentor")
+    .select("id, name, avatar_color, cover_color, about_me, birth_date, location, social_links, is_mentor")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -74,13 +73,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const coverColor = owUser.cover_color ?? "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
   const initial = owUser.name.charAt(0);
 
-  // 年齢表示: birth_date 優先（サーバ側計算）、フォールバックは age_range（B-3 で削除予定）
+  // 年齢表示: birth_date をサーバ側で計算（NULL = 非公開）
   const age = getUserAge(owUser.birth_date);
-  const ageDisplay = age !== null
-    ? `${age}歳`
-    : owUser.age_range && owUser.age_range !== "非公開"
-      ? owUser.age_range
-      : null;
+  const ageDisplay = age !== null ? `${age}歳` : null;
 
   const socialLinks = owUser.social_links ?? {};
   // SNS_PLATFORMS の順序を維持しつつ、値が空文字列でないキーのみ抽出

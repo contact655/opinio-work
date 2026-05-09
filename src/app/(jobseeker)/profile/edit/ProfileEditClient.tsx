@@ -7,7 +7,7 @@ import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
 import Tabs, { type TabItem } from "./Tabs";
 import CareerHistoryEditor from "@/components/profile/CareerHistoryEditor";
-import { LOCATIONS, AGE_RANGES } from "@/lib/profile/mockProfileData";
+import { LOCATIONS } from "@/lib/profile/mockProfileData";
 import {
   SocialIcon,
   type SocialPlatform,
@@ -34,7 +34,6 @@ type OwUser = {
   cover_color: string | null;
   visibility: string | null;
   location: string | null;
-  age_range: string | null;
   birth_date: string | null;
   about_me: string | null;
   future_aspirations: string | null;
@@ -46,7 +45,6 @@ type OwUser = {
 type BasicInfo = {
   name: string;
   location: string;
-  ageRange: string;
   aboutMe: string;
   futureAspirations: string;
 };
@@ -66,7 +64,6 @@ const DEFAULT_COVER_COLOR  = "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)
 const BASIC_FIELD_TO_DB: Record<string, string> = {
   name:              "name",
   location:          "location",
-  ageRange:          "age_range",
   aboutMe:           "about_me",
   futureAspirations: "future_aspirations",
 };
@@ -626,11 +623,10 @@ export default function ProfileEditClient({
     patchSocial({ social_links: socialRef.current });
   }, [patchSocial]);
 
-  // ── 基本情報タブの状態（名前・所在地・年齢層） ──────────────────────────
+  // ── 基本情報タブの状態（名前・所在地） ───────────────────────────────────
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
     name:              owUser?.name              ?? "",
     location:          owUser?.location          ?? "",
-    ageRange:          owUser?.age_range         ?? "",
     aboutMe:           owUser?.about_me          ?? "",
     futureAspirations: owUser?.future_aspirations ?? "",
   });
@@ -720,7 +716,7 @@ export default function ProfileEditClient({
         {activeTab === "basic" && (
           <div style={{ maxWidth: 680 }}>
 
-            {/* ── Section 1: 基本情報（名前・所在地・年齢層） ──────────────── */}
+            {/* ── Section 1: 基本情報（名前・所在地・生年月日） ────────────── */}
             <FormSection
               title="基本情報"
               desc="プロフィールページに表示される情報です。変更すると自動で保存されます。"
@@ -809,20 +805,6 @@ export default function ProfileEditClient({
                 </div>
               </FormGroup>
 
-              <FormGroup label="年齢層" hint="おおよその年齢層を選択してください。（生年月日入力後は自動計算されます）">
-                <div style={{ position: "relative" }}>
-                  <select
-                    value={basicInfo.ageRange}
-                    onChange={(e) => patchBasicInfo({ ageRange: e.target.value })}
-                    style={selectStyle()}
-                  >
-                    <option value="">選択してください</option>
-                    {AGE_RANGES.map((range) => (
-                      <option key={range} value={range}>{range}</option>
-                    ))}
-                  </select>
-                </div>
-              </FormGroup>
             </FormSection>
 
             {/* ── Section 2: 自己紹介 ──────────────────────────────────────────── */}
