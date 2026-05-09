@@ -25,6 +25,21 @@ export default async function MypagePage() {
     .eq("auth_id", user.id)
     .maybeSingle();
 
+  // Fetch skill tags for UserProfileCard display
+  let skillTags: { id: string; label: string; sort_order: number }[] = [];
+  if (owUser) {
+    const { data: tags } = await supabase
+      .from("ow_user_skill_tags")
+      .select("id, label, sort_order")
+      .eq("user_id", owUser.id)
+      .order("sort_order", { ascending: true });
+    skillTags = (tags ?? []).map((t) => ({
+      id: t.id as string,
+      label: t.label as string,
+      sort_order: t.sort_order as number,
+    }));
+  }
+
   // Fetch company bookmarks (target_type='company' only; articles/mentors are mock for now)
   let companyBookmarks: Bookmark[] = [];
   if (owUser) {
@@ -174,5 +189,5 @@ export default async function MypagePage() {
     }
   }
 
-  return <MypageClient owUser={owUser} companyBookmarks={companyBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} />;
+  return <MypageClient owUser={owUser} skillTags={skillTags} companyBookmarks={companyBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} />;
 }

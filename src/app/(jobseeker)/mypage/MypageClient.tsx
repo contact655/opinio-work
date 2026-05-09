@@ -208,6 +208,7 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
 function DashboardView({
   userId, isMentor, onNavigate, userName, userInitial, userAvatar,
   userLocation, userAboutMe, userAgeRange, userFutureAspirations, userSocialLinks,
+  userSkillTags,
   companyBookmarks, casualMeetings, mentorReservations,
 }: {
   userId: string; isMentor: boolean; onNavigate: (v: ActiveView) => void;
@@ -215,6 +216,7 @@ function DashboardView({
   userLocation?: string | null; userAboutMe?: string | null;
   userAgeRange?: string | null; userFutureAspirations?: string | null;
   userSocialLinks?: Record<string, string> | null;
+  userSkillTags?: { id: string; label: string; sort_order: number }[];
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
@@ -303,6 +305,7 @@ function DashboardView({
         userAgeRange={userAgeRange}
         userFutureAspirations={userFutureAspirations}
         userSocialLinks={userSocialLinks}
+        userSkillTags={userSkillTags}
         isMentor={isMentor}
       />
 
@@ -761,11 +764,13 @@ function MentorScheduleView() {
 
 export default function MypageClient({
   owUser,
+  skillTags = [],
   companyBookmarks,
   casualMeetings,
   mentorReservations,
 }: {
   owUser: OwUser;
+  skillTags?: { id: string; label: string; sort_order: number }[];
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
@@ -829,6 +834,7 @@ export default function MypageClient({
           userAgeRange={owUser?.age_range}
           userFutureAspirations={owUser?.future_aspirations}
           userSocialLinks={owUser?.social_links}
+          userSkillTags={skillTags}
           companyBookmarks={companyBookmarks}
           casualMeetings={casualMeetings}
           mentorReservations={mentorReservations}
