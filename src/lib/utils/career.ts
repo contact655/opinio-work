@@ -5,6 +5,35 @@
  * CareerTimeline（Commit F）および将来の表示コンポーネントで使用。
  */
 
+// ─── CareerEntry 型 ───────────────────────────────────────────────────────────
+
+/**
+ * ow_experiences + ow_companies(logo) を結合したキャリアエントリ。
+ * /u/[id]/page.tsx の SELECT 結果を正規化したもの。
+ * CareerTimeline の入力型として使用。
+ */
+export type CareerEntry = {
+  id: string;
+  /** 表示用会社名 */
+  companyName: string;
+  companyType: "master" | "custom" | "anon";
+  /** ow_companies.logo_url (company_id がある場合のみ) */
+  logoUrl: string | null;
+  /** ow_companies.logo_letter (フォールバック用) */
+  logoLetter: string | null;
+  /** ow_companies.logo_gradient (フォールバック用) */
+  logoGradient: string | null;
+  roleSlug: string;
+  roleTitle: string | null;
+  /** "YYYY-MM-DD" */
+  startedAt: string;
+  /** "YYYY-MM-DD" | null（現職） */
+  endedAt: string | null;
+  isCurrent: boolean;
+  description: string | null;
+  why: string | null;
+};
+
 // ─── calculateTenure ──────────────────────────────────────────────────────────
 
 /**
@@ -54,4 +83,65 @@ export function calculateTenure(
   }
 
   return { years, months, label };
+}
+
+// ─── groupOverlappingCareers ──────────────────────────────────────────────────
+
+/**
+ * キャリアエントリを「期間が重なる者同士を同グループ」に分類する。
+ *
+ * 前提: 入力は事前ソート済み（is_current=true 先頭、その後 startedAt 降順）
+ *
+ * アルゴリズム:
+ *   各エントリをグループリストに順番に追加する。
+ *   「既存グループ内の誰かと期間が重なれば同グループ」方式。
+ *   重なりなければ新グループを開始。
+ *
+ * 期間重なり判定（A と B）:
+ *   A.start <= B.end  かつ  B.start <= A.end
+ *   ※ end が null（現職）は今日基準で計算
+ *
+ * @example
+ *   // 単独
+ *   groupOverlappingCareers([A]) → [[A]]
+ *   // 2社並行
+ *   groupOverlappingCareers([A(2020-現在), B(2019-現在)]) → [[A, B]]
+ *   // 3社連鎖: A と B は重なる, B と C は重なる → 全員同グループ
+ *   groupOverlappingCareers([A, B, C]) → [[A, B, C]]
+ *   // 連続だが重ならない
+ *   groupOverlappingCareers([A(2022-現在), B(2018-2021)]) → [[A], [B]]
+ */
+export function groupOverlappingCareers(careers: CareerEntry[]): CareerEntry[][] {
+  if (careers.length === 0) return [];
+
+  const today = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+
+  /** "YYYY-MM-DD" / "YYYY-MM" → "YYYY-MM" */
+  const toYM = (d: string | null): string => d ? d.slice(0, 7) : today;
+
+  /** A と B の期間が重なるか */
+  function overlaps(a: CareerEntry, b: CareerEntry): boolean {
+    const aStart = toYM(a.startedAt);
+    const aEnd   = toYM(a.endedAt);
+    const bStart = toYM(b.startedAt);
+    const bEnd   = toYM(b.endedAt);
+    // 期間重なり: aStart <= bEnd && bStart <= aEnd
+    return aStart <= bEnd && bStart <= aEnd;
+  }
+
+  const groups: CareerEntry[][] = [];
+
+  for (const entry of careers) {
+    // 既存グループの中で、誰か1人でも重なれば同グループに追加
+    const targetGroup = groups.find((group) =>
+      group.some((member) => overlaps(entry, member))
+    );
+    if (targetGroup) {
+      targetGroup.push(entry);
+    } else {
+      groups.push([entry]);
+    }
+  }
+
+  return groups;
 }
