@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { CareerEntry } from "@/lib/utils/career";
+import { CareerTimeline } from "@/components/profile/CareerTimeline";
 
 // DB_NAME_TO_SLUG for role label resolution
 const DB_NAME_TO_SLUG: Record<string, string> = {
@@ -15,36 +17,6 @@ const DB_NAME_TO_SLUG: Record<string, string> = {
   "デザイナー": "designer", "事業開発": "biz_dev", "HRBP": "hrbp",
   "コーポレート": "corporate", "データサイエンティスト": "data_scientist",
 };
-
-function getRoleLabel(slugOrUuid: string): string {
-  // Inline label lookup (mirrors roleData.ts)
-  const LABELS: Record<string, string> = {
-    sales: "営業", pm: "PdM / PM", cs: "カスタマーサクセス",
-    engineer: "エンジニア", marketing: "マーケティング", exec: "経営・CxO", other: "その他",
-    field_sales: "フィールドセールス", enterprise_sales: "エンタープライズ営業",
-    inside_sales: "インサイドセールス", sdr_bdr: "SDR / BDR",
-    product_manager: "プロダクトマネージャー", product_owner: "プロダクトオーナー",
-    pmm: "PMM（プロダクトマーケティングマネージャー）",
-    backend: "バックエンドエンジニア", frontend: "フロントエンドエンジニア",
-    fullstack: "フルスタックエンジニア", sre: "SRE / インフラエンジニア",
-    ios_android: "iOS / Androidエンジニア",
-    ceo: "CEO", coo: "COO", cpo: "CPO", cto: "CTO", cfo: "CFO",
-    designer: "デザイナー", biz_dev: "事業開発", hrbp: "HRBP",
-    corporate: "コーポレート（HR/経理/法務）", data_scientist: "データサイエンティスト",
-    customer_success: "カスタマーサクセス", customer_support: "カスタマーサポート",
-    digital_mkt: "デジタルマーケティング", content_mkt: "コンテンツマーケティング",
-    event_mkt: "イベントマーケティング",
-  };
-  return LABELS[slugOrUuid] ?? slugOrUuid;
-}
-
-function formatCareerPeriod(startedAt: string, endedAt: string | null, isCurrent: boolean): string {
-  const start = startedAt.slice(0, 7).replace("-", ".");
-  if (isCurrent) return `${start} 〜 現在`;
-  if (!endedAt) return `${start} 〜`;
-  const end = endedAt.slice(0, 7).replace("-", ".");
-  return `${start} 〜 ${end}`;
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -135,7 +107,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const [{ data: expRows }, { data: allRoles }] = await Promise.all([
     supabase
       .from("ow_experiences")
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description")
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, why")
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
@@ -148,39 +120,42 @@ export default async function UserProfilePage({ params }: { params: { id: string
     if (slug) uuidToSlug.set(role.id as string, slug);
   }
 
-  // Resolve company names for master entries in experiences
+  // Resolve company info (name + logo) for master entries in experiences
   const expCompanyIds = (expRows ?? [])
     .filter((r) => r.company_id)
     .map((r) => r.company_id as string);
-  const expCompanyMap = new Map<string, string>();
+
+  type CompanyInfo = { name: string; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null };
+  const expCompanyMap = new Map<string, CompanyInfo>();
   if (expCompanyIds.length > 0) {
     const { data: expCompanies } = await supabase
       .from("ow_companies")
-      .select("id, name")
+      .select("id, name, logo_url, logo_letter, logo_gradient")
       .in("id", expCompanyIds);
     for (const c of expCompanies ?? []) {
-      expCompanyMap.set(c.id as string, c.name as string);
+      expCompanyMap.set(c.id as string, {
+        name: c.name as string,
+        logoUrl: (c.logo_url as string | null) ?? null,
+        logoLetter: (c.logo_letter as string | null) ?? null,
+        logoGradient: (c.logo_gradient as string | null) ?? null,
+      });
     }
   }
 
-  type ExpEntry = {
-    id: string;
-    companyName: string;
-    companyType: "master" | "custom" | "anon";
-    roleSlug: string;
-    roleTitle: string | null;
-    startedAt: string;
-    endedAt: string | null;
-    isCurrent: boolean;
-    description: string | null;
-  };
-
-  const experiences: ExpEntry[] = (expRows ?? []).map((r) => {
+  const experiences: CareerEntry[] = (expRows ?? []).map((r) => {
     let companyName: string;
     let companyType: "master" | "custom" | "anon";
+    let logoUrl: string | null = null;
+    let logoLetter: string | null = null;
+    let logoGradient: string | null = null;
+
     if (r.company_id) {
       companyType = "master";
-      companyName = expCompanyMap.get(r.company_id as string) ?? "不明な企業";
+      const info = expCompanyMap.get(r.company_id as string);
+      companyName = info?.name ?? "不明な企業";
+      logoUrl = info?.logoUrl ?? null;
+      logoLetter = info?.logoLetter ?? null;
+      logoGradient = info?.logoGradient ?? null;
     } else if (r.company_text) {
       companyType = "custom";
       companyName = r.company_text as string;
@@ -193,12 +168,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
       id: r.id as string,
       companyName,
       companyType,
+      logoUrl,
+      logoLetter,
+      logoGradient,
       roleSlug: uuidToSlug.get(roleUuid) ?? roleUuid,
       roleTitle: r.role_title as string | null,
       startedAt: r.started_at as string,
       endedAt: r.ended_at as string | null,
       isCurrent: r.is_current as boolean,
       description: r.description as string | null,
+      why: (r.why as string | null) ?? null,
     };
   });
 
@@ -328,74 +307,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             CAREER
           </span>
         </div>
-        {experiences.length === 0 ? (
-          <div style={{ padding: "20px 0", textAlign: "center", color: "var(--ink-mute)", fontSize: 13 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: "50%",
-              background: "var(--bg-tint)", border: "1px solid var(--line)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 12px", color: "var(--ink-mute)",
-            }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="2" y="7" width="20" height="14" rx="2" />
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-              </svg>
-            </div>
-            職歴は非公開または未登録です
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {experiences.map((exp) => (
-              <div key={exp.id} style={{
-                background: "var(--bg-tint)",
-                border: exp.isCurrent ? "1px solid var(--success)" : "1px solid var(--line)",
-                borderLeft: exp.isCurrent ? "3px solid var(--success)" : "1px solid var(--line)",
-                borderRadius: 10, padding: "14px 16px",
-              }}>
-                <div style={{
-                  fontFamily: "Inter, sans-serif", fontSize: 11,
-                  color: "var(--ink-mute)", fontWeight: 500, marginBottom: 4,
-                }}>
-                  {formatCareerPeriod(exp.startedAt, exp.endedAt, exp.isCurrent)}
-                  {exp.isCurrent && (
-                    <span style={{
-                      background: "var(--success-soft)", color: "var(--success)",
-                      padding: "1px 6px", borderRadius: 4, fontWeight: 700,
-                      marginLeft: 6, fontSize: 9, letterSpacing: "0.05em",
-                    }}>
-                      CURRENT
-                    </span>
-                  )}
-                </div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: 3 }}>
-                  {exp.roleTitle || getRoleLabel(exp.roleSlug)}
-                </div>
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 6 }}>
-                  {exp.companyType === "anon" ? (
-                    <span style={{ fontStyle: "italic" }}>{exp.companyName}</span>
-                  ) : (
-                    exp.companyName
-                  )}
-                  {exp.companyType === "master" && (
-                    <span style={{
-                      fontSize: 9, padding: "1px 6px", borderRadius: 3,
-                      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                      color: "var(--royal)",
-                    }}>マスタ登録</span>
-                  )}
-                </div>
-                {exp.description && (
-                  <div style={{
-                    fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
-                    marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--line)",
-                  }}>
-                    {exp.description}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <CareerTimeline careers={experiences} />
       </section>
 
       {/* Social Links */}
