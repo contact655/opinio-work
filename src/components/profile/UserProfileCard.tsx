@@ -33,6 +33,11 @@ export type UserProfileCardProps = {
     id: string; school: string; faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
+  /** ow_user_certifications — sort_order 昇順 */
+  userCertifications?: {
+    id: string; name: string; issuer: string | null;
+    issued_at: string | null; expires_at: string | null; no_expiry: boolean; sort_order: number;
+  }[];
   isMentor: boolean;
 };
 
@@ -79,6 +84,7 @@ export default function UserProfileCard({
   userSocialLinks,
   userSkillTags = [],
   userEducations = [],
+  userCertifications = [],
   isMentor,
 }: UserProfileCardProps) {
 
@@ -310,6 +316,64 @@ export default function UserProfileCard({
                     {period && (
                       <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                         {period}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── 資格・認定 ───────────────────────────────────────────────────── */}
+      {userCertifications.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
+            資格・認定
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {userCertifications.map((cert) => {
+              const formatYM = (s: string | null) => {
+                if (!s) return null;
+                const [y, m] = s.split("-");
+                return m ? `${y}年${parseInt(m, 10)}月` : `${y}年`;
+              };
+              const issued  = formatYM(cert.issued_at);
+              const expires = cert.no_expiry ? "永続" : formatYM(cert.expires_at);
+              return (
+                <div key={cert.id} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 6, flexShrink: 0, marginTop: 1,
+                    background: "var(--warm-soft)", border: "1px solid #FDE68A",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="8" r="6" />
+                      <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+                      {cert.name}
+                      {cert.no_expiry && (
+                        <span style={{
+                          marginLeft: 6, fontSize: 10, fontWeight: 600,
+                          color: "#92400E", background: "var(--warm-soft)",
+                          border: "1px solid #FDE68A", padding: "1px 6px", borderRadius: 100,
+                        }}>
+                          永続
+                        </span>
+                      )}
+                    </div>
+                    {cert.issuer && (
+                      <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>{cert.issuer}</div>
+                    )}
+                    {(issued || expires) && (
+                      <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                        {issued ? `取得: ${issued}` : ""}
+                        {issued && expires && !cert.no_expiry ? " · " : ""}
+                        {expires && !cert.no_expiry ? `有効期限: ${expires}` : ""}
                       </div>
                     )}
                   </div>

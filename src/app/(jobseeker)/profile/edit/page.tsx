@@ -18,8 +18,8 @@ export default async function ProfileEditPage() {
     .eq("auth_id", user.id)
     .maybeSingle();
 
-  // スキルタグ + 学歴 を並列取得（RLS select_all=true、認証不問で取得可）
-  const [{ data: skillTagsRaw }, { data: educationsRaw }] = await Promise.all([
+  // スキルタグ + 学歴 + 資格 を並列取得（RLS select_all=true、認証不問で取得可）
+  const [{ data: skillTagsRaw }, { data: educationsRaw }, { data: certificationsRaw }] = await Promise.all([
     owUser
       ? supabase
           .from("ow_user_skill_tags")
@@ -34,6 +34,13 @@ export default async function ProfileEditPage() {
           .eq("user_id", owUser.id)
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] }),
+    owUser
+      ? supabase
+          .from("ow_user_certifications")
+          .select("id, name, issuer, issued_at, expires_at, no_expiry, sort_order")
+          .eq("user_id", owUser.id)
+          .order("sort_order", { ascending: true })
+      : Promise.resolve({ data: [] }),
   ]);
 
   return (
@@ -42,6 +49,7 @@ export default async function ProfileEditPage() {
       authEmail={user.email ?? ""}
       initialSkillTags={skillTagsRaw ?? []}
       initialEducations={educationsRaw ?? []}
+      initialCertifications={certificationsRaw ?? []}
       initialSocialLinks={(owUser?.social_links as Record<string, string> | null) ?? {}}
     />
   );

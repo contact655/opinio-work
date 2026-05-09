@@ -208,7 +208,7 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
 function DashboardView({
   userId, isMentor, onNavigate, userName, userInitial, userAvatar,
   userLocation, userAboutMe, userBirthDate, userFutureAspirations, userSocialLinks,
-  userSkillTags, userEducations,
+  userSkillTags, userEducations, userCertifications,
   companyBookmarks, casualMeetings, mentorReservations,
 }: {
   userId: string; isMentor: boolean; onNavigate: (v: ActiveView) => void;
@@ -220,6 +220,10 @@ function DashboardView({
   userEducations?: {
     id: string; school: string; faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
+  }[];
+  userCertifications?: {
+    id: string; name: string; issuer: string | null;
+    issued_at: string | null; expires_at: string | null; no_expiry: boolean; sort_order: number;
   }[];
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
@@ -311,6 +315,7 @@ function DashboardView({
         userSocialLinks={userSocialLinks}
         userSkillTags={userSkillTags}
         userEducations={userEducations}
+        userCertifications={userCertifications}
         isMentor={isMentor}
       />
 
@@ -771,6 +776,7 @@ export default function MypageClient({
   owUser,
   skillTags = [],
   educations = [],
+  certifications = [],
   companyBookmarks,
   casualMeetings,
   mentorReservations,
@@ -780,6 +786,10 @@ export default function MypageClient({
   educations?: {
     id: string; school: string; faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
+  }[];
+  certifications?: {
+    id: string; name: string; issuer: string | null;
+    issued_at: string | null; expires_at: string | null; no_expiry: boolean; sort_order: number;
   }[];
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
@@ -846,6 +856,7 @@ export default function MypageClient({
           userSocialLinks={owUser?.social_links}
           userSkillTags={skillTags}
           userEducations={educations}
+          userCertifications={certifications}
           companyBookmarks={companyBookmarks}
           casualMeetings={casualMeetings}
           mentorReservations={mentorReservations}

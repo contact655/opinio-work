@@ -25,14 +25,18 @@ export default async function MypagePage() {
     .eq("auth_id", user.id)
     .maybeSingle();
 
-  // Fetch skill tags + educations for UserProfileCard display
+  // Fetch skill tags + educations + certifications for UserProfileCard display
   let skillTags: { id: string; label: string; sort_order: number }[] = [];
   let educations: {
     id: string; school: string; faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[] = [];
+  let certifications: {
+    id: string; name: string; issuer: string | null;
+    issued_at: string | null; expires_at: string | null; no_expiry: boolean; sort_order: number;
+  }[] = [];
   if (owUser) {
-    const [{ data: tags }, { data: edus }] = await Promise.all([
+    const [{ data: tags }, { data: edus }, { data: certs }] = await Promise.all([
       supabase
         .from("ow_user_skill_tags")
         .select("id, label, sort_order")
@@ -41,6 +45,11 @@ export default async function MypagePage() {
       supabase
         .from("ow_user_educations")
         .select("id, school, faculty, degree, enrolled_at, graduated_at, is_current, sort_order")
+        .eq("user_id", owUser.id)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("ow_user_certifications")
+        .select("id, name, issuer, issued_at, expires_at, no_expiry, sort_order")
         .eq("user_id", owUser.id)
         .order("sort_order", { ascending: true }),
     ]);
@@ -58,6 +67,15 @@ export default async function MypagePage() {
       graduated_at: (e.graduated_at as string | null) ?? null,
       is_current: e.is_current as boolean,
       sort_order: e.sort_order as number,
+    }));
+    certifications = (certs ?? []).map((c) => ({
+      id: c.id as string,
+      name: c.name as string,
+      issuer: (c.issuer as string | null) ?? null,
+      issued_at: (c.issued_at as string | null) ?? null,
+      expires_at: (c.expires_at as string | null) ?? null,
+      no_expiry: c.no_expiry as boolean,
+      sort_order: c.sort_order as number,
     }));
   }
 
@@ -210,5 +228,5 @@ export default async function MypagePage() {
     }
   }
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} companyBookmarks={companyBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} />;
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} companyBookmarks={companyBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} />;
 }

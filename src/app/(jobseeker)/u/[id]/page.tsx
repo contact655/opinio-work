@@ -53,6 +53,16 @@ type Education = {
   sort_order: number;
 };
 
+type Certification = {
+  id: string;
+  name: string;
+  issuer: string | null;
+  issued_at: string | null;
+  expires_at: string | null;
+  no_expiry: boolean;
+  sort_order: number;
+};
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
@@ -94,8 +104,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
     (k) => socialLinks[k] && socialLinks[k]!.trim() !== ""
   );
 
-  // Fetch experiences + skill tags + educations in parallel（RLS select_all=true のため認証不問で読める）
-  const [{ data: expRows }, { data: allRoles }, { data: skillTagsRaw }, { data: educationsRaw }] = await Promise.all([
+  // Fetch experiences + skill tags + educations + certifications in parallel（RLS select_all=true のため認証不問で読める）
+  const [
+    { data: expRows }, { data: allRoles }, { data: skillTagsRaw },
+    { data: educationsRaw }, { data: certificationsRaw },
+  ] = await Promise.all([
     supabase
       .from("ow_experiences")
       .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, why")
@@ -113,10 +126,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .select("id, school, faculty, degree, enrolled_at, graduated_at, is_current, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
+    supabase
+      .from("ow_user_certifications")
+      .select("id, name, issuer, issued_at, expires_at, no_expiry, sort_order")
+      .eq("user_id", owUser.id)
+      .order("sort_order", { ascending: true }),
   ]);
 
-  const skillTags  = skillTagsRaw  ?? [];
-  const educations = (educationsRaw ?? []) as Education[];
+  const skillTags      = skillTagsRaw      ?? [];
+  const educations     = (educationsRaw     ?? []) as Education[];
+  const certifications = (certificationsRaw ?? []) as Certification[];
 
   const uuidToSlug = new Map<string, string>();
   for (const role of allRoles ?? []) {
@@ -422,6 +441,87 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         flexShrink: 0,
                       }}>
                         在学中
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Certifications — 0件時はセクションごと非表示 */}
+      {certifications.length > 0 && (
+        <section style={{
+          background: "#fff", border: "1px solid var(--line)",
+          borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+        }}>
+          <div style={{
+            display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
+            paddingBottom: 14, borderBottom: "1px solid var(--line)",
+          }}>
+            <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
+              資格・認定
+            </span>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+              CERTIFICATIONS
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {certifications.map((cert, i) => {
+              const formatYM = (s: string | null) => {
+                if (!s) return null;
+                const [y, m] = s.split("-");
+                return m ? `${y}年${parseInt(m, 10)}月` : `${y}年`;
+              };
+              const issued  = formatYM(cert.issued_at);
+              const expires = cert.no_expiry ? "有効期限なし" : formatYM(cert.expires_at);
+              return (
+                <div
+                  key={cert.id}
+                  style={{
+                    paddingBottom: i < certifications.length - 1 ? 14 : 0,
+                    borderBottom: i < certifications.length - 1 ? "1px solid var(--line-soft)" : "none",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    {/* アイコン */}
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                      background: "var(--warm-soft)", border: "1px solid #FDE68A",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="8" r="6" />
+                        <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+                      </svg>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 3 }}>
+                        {cert.name}
+                      </div>
+                      {cert.issuer && (
+                        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 3 }}>
+                          {cert.issuer}
+                        </div>
+                      )}
+                      {(issued || expires) && (
+                        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                          {issued ? `取得: ${issued}` : ""}
+                          {issued && expires ? " · " : ""}
+                          {expires ? `有効期限: ${expires}` : ""}
+                        </div>
+                      )}
+                    </div>
+                    {cert.no_expiry && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, padding: "3px 8px",
+                        background: "var(--warm-soft)", color: "#92400E",
+                        border: "1px solid #FDE68A", borderRadius: 100,
+                        flexShrink: 0,
+                      }}>
+                        永続
                       </span>
                     )}
                   </div>
