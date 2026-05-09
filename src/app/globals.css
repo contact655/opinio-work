@@ -206,3 +206,15 @@ p, .description, .desc {
 .animate-blink-dot {
   animation: blink-dot 2s ease-in-out infinite;
 }
+
+/* ─── SNS icon link (/u/[id] 公開ページ — Server Component のため CSS で hover 定義) ─── */
+.sns-icon-link {
+  display: block;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.sns-icon-link:hover {
+  opacity: 0.8;
+  transform: scale(0.94);
+}

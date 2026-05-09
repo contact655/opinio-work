@@ -338,7 +338,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
               リンク
             </span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* アイコンのみ横並び（要望B 準拠） */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {activeSocials.map((platform) => {
               const url = socialLinks[platform]!;
               const label = SOCIAL_META[platform].label;
@@ -348,24 +349,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 10,
-                    fontSize: 13, color: "var(--royal)", fontWeight: 500,
-                    textDecoration: "none",
-                    padding: "8px 12px", borderRadius: 8,
-                    border: "1px solid var(--line)", background: "var(--bg-tint)",
-                    maxWidth: 320,
-                  }}
+                  aria-label={label}
+                  title={label}
+                  className="sns-icon-link"
                 >
-                  <SocialIcon platform={platform} size={15} />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {label}
-                  </span>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: "auto", flexShrink: 0, color: "var(--ink-mute)" }}>
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
+                  <SocialIcon platform={platform} variant="display" />
                 </a>
               );
             })}

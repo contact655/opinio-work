@@ -1,4 +1,4 @@
-// SNS アイコンコンポーネント — ν-8 段階5 コミット B
+// SNS アイコンコンポーネント — ν-8 段階5 コミット B / D'
 // 7種固定: twitter(X) / linkedin / github / instagram / facebook / youtube / note
 // SVG は public/icons/sns/ に同梱。キー名は JSONB キー（twitter = X）と一致。
 
@@ -37,7 +37,15 @@ export const SNS_PLATFORMS: SocialPlatform[] = [
 
 interface SocialIconProps {
   platform: SocialPlatform;
-  /** アイコンの一辺 px（デフォルト: 20） */
+  /**
+   * "icon"（デフォルト）: <img> のみ。編集 UI での inline 使用向け。
+   * "display": ブランドカラー背景 38×38px の正方形ブロック。公開ページ向け。
+   *   - note 以外: 背景 = ブランドカラー、アイコン = 白（CSS filter）
+   *   - note: SVG 自体に色背景があるため背景なしで SVG を fill
+   *   css クラス "sns-icon-link" と組み合わせて hover を globals.css で定義。
+   */
+  variant?: "icon" | "display";
+  /** variant="icon" のときのアイコン一辺 px（デフォルト: 20） */
   size?: number;
 }
 
@@ -46,8 +54,61 @@ interface SocialIconProps {
  * SVG は /icons/sns/{platform}.svg を参照（public/ に同梱）。
  * aria-label には表示名（"X", "LinkedIn" 等）を設定。
  */
-export function SocialIcon({ platform, size = 20 }: SocialIconProps) {
+export function SocialIcon({ platform, size = 20, variant = "icon" }: SocialIconProps) {
   const meta = SOCIAL_META[platform];
+
+  // ── display variant: ブランドカラー背景 + アイコン ──────────────────────
+  if (variant === "display") {
+    // note SVG は自身にブランドカラー rect を持つため背景不要
+    if (platform === "note") {
+      return (
+        <span
+          style={{
+            width: 38, height: 38,
+            borderRadius: 10,
+            overflow: "hidden",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icons/sns/note.svg"
+            alt=""
+            aria-label="note"
+            width={38}
+            height={38}
+            style={{ display: "block" }}
+          />
+        </span>
+      );
+    }
+
+    // その他 6 種: ブランドカラー背景 + 白アイコン
+    return (
+      <span
+        style={{
+          width: 38, height: 38,
+          borderRadius: 10,
+          background: meta.color,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/icons/sns/${platform}.svg`}
+          alt=""
+          aria-label={meta.label}
+          width={22}
+          height={22}
+          style={{ display: "block", filter: "brightness(0) invert(1)" }}
+        />
+      </span>
+    );
+  }
+
+  // ── icon variant（デフォルト）: <img> のみ ──────────────────────────────
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
