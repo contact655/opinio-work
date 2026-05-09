@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { useDebouncedPatch } from "@/lib/hooks/useDebouncedPatch";
 import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
@@ -16,7 +17,8 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SaveStatus = "idle" | "saving" | "saved";
+// SaveStatus は useDebouncedPatch から再エクスポート（"error" を追加含む）
+type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 type SkillTag = { id: string; label: string; sort_order: number };
 
@@ -58,6 +60,15 @@ type SettingsState = {
 
 const DEFAULT_AVATAR_COLOR = "linear-gradient(135deg, #002366, #3B5FD9)";
 const DEFAULT_COVER_COLOR  = "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
+
+// BasicInfo camelCase → DB snake_case マッピング（useCallback の外に置いて安定化）
+const BASIC_FIELD_TO_DB: Record<string, string> = {
+  name:              "name",
+  location:          "location",
+  ageRange:          "age_range",
+  aboutMe:           "about_me",
+  futureAspirations: "future_aspirations",
+};
 
 const PROFILE_TABS: TabItem[] = [
   { key: "basic",   label: "基本情報" },
@@ -600,27 +611,19 @@ export default function ProfileEditClient({
 
   // ── SNS タブの状態 ───────────────────────────────────────────────────────
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(initialSocialLinks);
-  const socialRef      = useRef<SocialLinks>(initialSocialLinks);
-  const [socialSaveStatus, setSocialSaveStatus] = useState<SaveStatus>("idle");
-  const socialSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const socialRef = useRef<SocialLinks>(initialSocialLinks);
+  const { patch: patchSocial, status: socialSaveStatus } = useDebouncedPatch({
+    endpoint: "/api/jobseeker/profile",
+  });
 
-  const patchSocialLinks = useCallback((patch: Partial<SocialLinks>) => {
-    setSocialLinks((prev) => {
-      const next = { ...prev, ...patch };
-      socialRef.current = next;
-      return next;
-    });
-    setSocialSaveStatus("saving");
-    if (socialSaveTimer.current) clearTimeout(socialSaveTimer.current);
-    socialSaveTimer.current = setTimeout(async () => {
-      await fetch("/api/jobseeker/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ social_links: socialRef.current }),
-      }).catch(() => {});
-      setSocialSaveStatus("saved");
-    }, 700);
-  }, []);
+  const patchSocialLinks = useCallback((fieldPatch: Partial<SocialLinks>) => {
+    // 1. ref を先に更新（マージ済みの最新値を保持）
+    socialRef.current = { ...socialRef.current, ...fieldPatch };
+    // 2. UI state を更新
+    setSocialLinks({ ...socialRef.current });
+    // 3. social_links オブジェクト全体を送信（partial patch では整合性が保てない）
+    patchSocial({ social_links: socialRef.current });
+  }, [patchSocial]);
 
   // ── 基本情報タブの状態（名前・所在地・年齢層） ──────────────────────────
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
@@ -630,33 +633,25 @@ export default function ProfileEditClient({
     aboutMe:           owUser?.about_me          ?? "",
     futureAspirations: owUser?.future_aspirations ?? "",
   });
-  const basicInfoRef   = useRef<BasicInfo>(basicInfo);
-  const [basicSaveStatus, setBasicSaveStatus] = useState<SaveStatus>("idle");
-  const basicSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const basicInfoRef = useRef<BasicInfo>(basicInfo);
+  const { patch: patchBasic, status: basicSaveStatus } = useDebouncedPatch({
+    endpoint: "/api/jobseeker/profile",
+  });
 
-  const patchBasicInfo = useCallback((patch: Partial<BasicInfo>) => {
+  const patchBasicInfo = useCallback((fieldPatch: Partial<BasicInfo>) => {
     setBasicInfo((prev) => {
-      const next = { ...prev, ...patch };
+      const next = { ...prev, ...fieldPatch };
       basicInfoRef.current = next;
       return next;
     });
-    setBasicSaveStatus("saving");
-    if (basicSaveTimer.current) clearTimeout(basicSaveTimer.current);
-    basicSaveTimer.current = setTimeout(async () => {
-      await fetch("/api/jobseeker/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name:               basicInfoRef.current.name,
-          location:           basicInfoRef.current.location,
-          age_range:          basicInfoRef.current.ageRange,
-          about_me:           basicInfoRef.current.aboutMe,
-          future_aspirations: basicInfoRef.current.futureAspirations,
-        }),
-      }).catch(() => {});
-      setBasicSaveStatus("saved");
-    }, 700);
-  }, []);
+    // 変更フィールドのみ snake_case に変換して送信
+    // useDebouncedPatch の pendingRef が複数フィールドの変更を蓄積してマージする
+    const dbPatch: Record<string, string> = {};
+    for (const [key, value] of Object.entries(fieldPatch) as [keyof BasicInfo, string][]) {
+      dbPatch[BASIC_FIELD_TO_DB[key]] = value;
+    }
+    patchBasic(dbPatch);
+  }, [patchBasic]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <MypageMockProvider>
