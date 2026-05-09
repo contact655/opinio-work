@@ -202,8 +202,11 @@ function StintForm({
   const descOver = descLen > 500;
   const whyLen = draft.why.length;
   const whyOver = whyLen > 500;
+  // 期間バリデーション: ended_at が入力済みかつ現職フラグなし の場合のみ started_at <= ended_at を検証
+  // YYYY-MM 文字列の辞書順比較で正しく動作（例: "2024-04" > "2023-04"）
+  const periodInvalid = !draft.isCurrent && !!draft.endedAt && draft.startedAt > draft.endedAt;
   const isValid = !!draft.companyName.trim() && !!draft.roleCategoryId && !!draft.startedAt;
-  const canSave = isValid && !descOver && !whyOver && !isSaving;
+  const canSave = isValid && !descOver && !whyOver && !periodInvalid && !isSaving;
 
   return (
     <div
@@ -300,6 +303,11 @@ function StintForm({
             現在も在籍中
           </label>
         </div>
+        {periodInvalid && (
+          <div style={{ fontSize: 11, color: "var(--error)", marginTop: 4, fontFamily: "Inter, sans-serif" }}>
+            終了年月は開始年月以降に設定してください
+          </div>
+        )}
       </div>
 
       {/* Description (業務内容) */}
