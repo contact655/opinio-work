@@ -3,6 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { CareerEntry } from "@/lib/utils/career";
 import { CareerTimeline } from "@/components/profile/CareerTimeline";
+import {
+  SocialIcon,
+  type SocialPlatform,
+  SOCIAL_META,
+  SNS_PLATFORMS,
+} from "@/components/SocialIcon";
 
 // DB_NAME_TO_SLUG for role label resolution
 const DB_NAME_TO_SLUG: Record<string, string> = {
@@ -20,12 +26,8 @@ const DB_NAME_TO_SLUG: Record<string, string> = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SocialLinks = {
-  twitter?: string;
-  linkedin?: string;
-  note?: string;
-  [key: string]: string | undefined;
-};
+/** JSONB キー名と一致（twitter = X、キー名は ν-9 で移行予定） */
+type SocialLinks = Partial<Record<SocialPlatform, string>>;
 
 type OwUser = {
   id: string;
@@ -37,34 +39,6 @@ type OwUser = {
   location: string | null;
   social_links: SocialLinks | null;
   is_mentor: boolean;
-};
-
-// ─── Sub components ───────────────────────────────────────────────────────────
-
-function SocialIcon({ platform }: { platform: string }) {
-  if (platform === "twitter") return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  );
-  if (platform === "linkedin") return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.95v5.66H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43c-1.14 0-2.06-.93-2.06-2.07 0-1.14.92-2.06 2.06-2.06s2.06.92 2.06 2.06c0 1.14-.92 2.07-2.06 2.07zm1.78 13.02H3.56V9h3.56v11.45z" />
-    </svg>
-  );
-  if (platform === "note") return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <path d="M14 2v6h6" />
-    </svg>
-  );
-  return null;
-}
-
-const PLATFORM_LABEL: Record<string, string> = {
-  twitter: "X (Twitter)",
-  linkedin: "LinkedIn",
-  note: "note",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -99,8 +73,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const initial = owUser.name.charAt(0);
 
   const socialLinks = owUser.social_links ?? {};
-  const activeSocials = (["twitter", "linkedin", "note"] as const).filter(
-    (k) => socialLinks[k]
+  // SNS_PLATFORMS の順序を維持しつつ、値が空文字列でないキーのみ抽出
+  const activeSocials = SNS_PLATFORMS.filter(
+    (k) => socialLinks[k] && socialLinks[k]!.trim() !== ""
   );
 
   // Fetch experiences + skill tags in parallel（RLS select_all=true のため認証不問で読める）
@@ -366,6 +341,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {activeSocials.map((platform) => {
               const url = socialLinks[platform]!;
+              const label = SOCIAL_META[platform].label;
               return (
                 <a
                   key={platform}
@@ -381,11 +357,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     maxWidth: 320,
                   }}
                 >
-                  <span style={{ color: "var(--ink-soft)", flexShrink: 0 }}>
-                    <SocialIcon platform={platform} />
-                  </span>
+                  <SocialIcon platform={platform} size={15} />
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {PLATFORM_LABEL[platform]}
+                    {label}
                   </span>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: "auto", flexShrink: 0, color: "var(--ink-mute)" }}>
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
