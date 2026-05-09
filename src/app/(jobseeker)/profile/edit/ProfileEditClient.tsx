@@ -7,12 +7,21 @@ import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageM
 import Tabs, { type TabItem } from "./Tabs";
 import CareerHistoryEditor from "@/components/profile/CareerHistoryEditor";
 import { LOCATIONS, AGE_RANGES } from "@/app/profile/edit/mockProfileData";
+import {
+  SocialIcon,
+  type SocialPlatform,
+  SOCIAL_META,
+  SNS_PLATFORMS,
+} from "@/components/SocialIcon";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type SaveStatus = "idle" | "saving" | "saved";
 
 type SkillTag = { id: string; label: string; sort_order: number };
+
+/** JSONB キー名は "twitter"（X の表示名と区別）。値は URL 文字列。空文字列 = 未設定。 */
+type SocialLinks = Partial<Record<SocialPlatform, string>>;
 
 type ProfileTab = "basic" | "career" | "skills" | "socials" | "account";
 
@@ -26,6 +35,7 @@ type OwUser = {
   age_range: string | null;
   about_me: string | null;
   future_aspirations: string | null;
+  social_links: Record<string, string> | null;
 } | null;
 
 // ─── Basic info state ─────────────────────────────────────────────────────────
@@ -472,16 +482,80 @@ function TextareaField({
   );
 }
 
+// ─── Social Links Editor ──────────────────────────────────────────────────────
+
+function SocialLinksEditor({
+  socialLinks,
+  patchSocialLinks,
+}: {
+  socialLinks: SocialLinks;
+  patchSocialLinks: (patch: Partial<SocialLinks>) => void;
+}) {
+  return (
+    <div style={{ maxWidth: 680 }}>
+      <FormSection
+        title="SNS・外部リンク"
+        desc="登録したリンクはプロフィールページに表示されます。変更すると自動で保存されます。"
+      >
+        {SNS_PLATFORMS.map((platform) => {
+          const meta = SOCIAL_META[platform];
+          return (
+            <div
+              key={platform}
+              style={{
+                display: "flex", alignItems: "center", gap: 12,
+                marginBottom: 14,
+              }}
+            >
+              {/* アイコン */}
+              <span style={{ flexShrink: 0, width: 22, display: "flex", justifyContent: "center" }}>
+                <SocialIcon platform={platform} size={20} />
+              </span>
+
+              {/* ラベル（固定幅で揃える） */}
+              <span style={{
+                width: 82, fontSize: 12, fontWeight: 600,
+                color: "var(--ink)", flexShrink: 0,
+                lineHeight: 1.4,
+              }}>
+                {meta.label}
+              </span>
+
+              {/* URL 入力欄 */}
+              <input
+                type="url"
+                value={socialLinks[platform] ?? ""}
+                onChange={(e) => patchSocialLinks({ [platform]: e.target.value })}
+                placeholder={meta.placeholder}
+                style={{
+                  ...inputStyle({ fontSize: 12 }),
+                  flex: 1,
+                }}
+              />
+            </div>
+          );
+        })}
+
+        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.7 }}>
+          空欄の SNS はプロフィールページに表示されません。
+        </div>
+      </FormSection>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ProfileEditClient({
   owUser,
   authEmail,
   initialSkillTags,
+  initialSocialLinks,
 }: {
   owUser: OwUser;
   authEmail: string;
   initialSkillTags: SkillTag[];
+  initialSocialLinks: SocialLinks;
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
 
@@ -523,6 +597,30 @@ export default function ProfileEditClient({
   // ── スキルタブの状態 ─────────────────────────────────────────────────────
   const [skillTags, setSkillTags] = useState<SkillTag[]>(initialSkillTags);
   const [skillSaveStatus, setSkillSaveStatus] = useState<SaveStatus>("idle");
+
+  // ── SNS タブの状態 ───────────────────────────────────────────────────────
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>(initialSocialLinks);
+  const socialRef      = useRef<SocialLinks>(initialSocialLinks);
+  const [socialSaveStatus, setSocialSaveStatus] = useState<SaveStatus>("idle");
+  const socialSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const patchSocialLinks = useCallback((patch: Partial<SocialLinks>) => {
+    setSocialLinks((prev) => {
+      const next = { ...prev, ...patch };
+      socialRef.current = next;
+      return next;
+    });
+    setSocialSaveStatus("saving");
+    if (socialSaveTimer.current) clearTimeout(socialSaveTimer.current);
+    socialSaveTimer.current = setTimeout(async () => {
+      await fetch("/api/jobseeker/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ social_links: socialRef.current }),
+      }).catch(() => {});
+      setSocialSaveStatus("saved");
+    }, 700);
+  }, []);
 
   // ── 基本情報タブの状態（名前・所在地・年齢層） ──────────────────────────
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
@@ -572,6 +670,7 @@ export default function ProfileEditClient({
           }}>プロフィール</h1>
           {activeTab === "basic"   && <SaveStatusPill status={basicSaveStatus} />}
           {activeTab === "skills"  && <SaveStatusPill status={skillSaveStatus} />}
+          {activeTab === "socials" && <SaveStatusPill status={socialSaveStatus} />}
           {activeTab === "account" && <SaveStatusPill status={saveStatus} />}
           <div style={{ marginLeft: "auto" }}>
             <Link
@@ -700,9 +799,12 @@ export default function ProfileEditClient({
           </div>
         )}
 
-        {/* SNSタブ（実装中） */}
+        {/* SNS タブ */}
         {activeTab === "socials" && (
-          <PlaceholderTabContent label="SNS" />
+          <SocialLinksEditor
+            socialLinks={socialLinks}
+            patchSocialLinks={patchSocialLinks}
+          />
         )}
 
         {/* アカウント設定タブ（動作） */}
