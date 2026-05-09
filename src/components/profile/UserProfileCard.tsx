@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import InlineEditableSection from "@/components/profile/InlineEditableSection";
 import InlineEditableField from "@/components/profile/InlineEditableField";
 import Toast from "@/components/ui/Toast";
-import { LOCATIONS, AGE_RANGES } from "@/app/profile/edit/mockProfileData";
+import { LOCATIONS, AGE_RANGES } from "@/lib/profile/mockProfileData";
 import CareerHistoryEditor from "@/components/profile/CareerHistoryEditor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

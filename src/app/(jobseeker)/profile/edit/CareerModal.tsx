@@ -5,8 +5,8 @@ import { MOCK_COMPANIES } from "@/app/companies/mockCompanies";
 import {
   searchRoles,
   getRoleLabelById,
-} from "./roleData";
-import type { Experience, CompanyType } from "@/app/profile/edit/mockProfileData";
+} from "@/app/(jobseeker)/profile/edit/roleData";
+import type { Experience, CompanyType } from "@/lib/profile/mockProfileData";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

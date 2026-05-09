@@ -7,7 +7,7 @@ import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
 import Tabs, { type TabItem } from "./Tabs";
 import CareerHistoryEditor from "@/components/profile/CareerHistoryEditor";
-import { LOCATIONS, AGE_RANGES } from "@/app/profile/edit/mockProfileData";
+import { LOCATIONS, AGE_RANGES } from "@/lib/profile/mockProfileData";
 import {
   SocialIcon,
   type SocialPlatform,
