@@ -198,10 +198,12 @@ function StintForm({
     [draft, onDraftChange]
   );
 
+  const descLen = draft.description.length;
+  const descOver = descLen > 500;
   const whyLen = draft.why.length;
   const whyOver = whyLen > 500;
   const isValid = !!draft.companyName.trim() && !!draft.roleCategoryId && !!draft.startedAt;
-  const canSave = isValid && !whyOver && !isSaving;
+  const canSave = isValid && !descOver && !whyOver && !isSaving;
 
   return (
     <div
@@ -300,6 +302,22 @@ function StintForm({
         </div>
       </div>
 
+      {/* Description (業務内容) */}
+      <div>
+        <label style={labelStyle()}>業務内容（任意）</label>
+        <textarea
+          value={draft.description}
+          onChange={(e) => set("description", e.target.value)}
+          placeholder="業務内容や成果、チームの規模など"
+          disabled={isSaving}
+          rows={3}
+          style={{ ...fieldStyle(), resize: "vertical", lineHeight: 1.7 }}
+        />
+        <div style={{ fontSize: 11, color: descOver ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
+          {descOver ? `${descLen - 500} 文字超過` : `残り ${500 - descLen} 文字`}
+        </div>
+      </div>
+
       {/* Why (narrative field) */}
       <div>
         <label style={labelStyle()}>この時期に目指していたこと（任意）</label>
@@ -314,19 +332,6 @@ function StintForm({
         <div style={{ fontSize: 11, color: whyOver ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
           {whyOver ? `${whyLen - 500} 文字超過` : `残り ${500 - whyLen} 文字`}
         </div>
-      </div>
-
-      {/* Description (optional) */}
-      <div>
-        <label style={labelStyle()}>職務内容（任意）</label>
-        <textarea
-          value={draft.description}
-          onChange={(e) => set("description", e.target.value)}
-          placeholder="担当した業務・役割など"
-          disabled={isSaving}
-          rows={3}
-          style={{ ...fieldStyle(), resize: "vertical", lineHeight: 1.7 }}
-        />
       </div>
 
       {/* Action buttons */}
@@ -396,13 +401,33 @@ function StintCard({
             {formatPeriod(stint.startedAt, stint.endedAt, stint.isCurrent)}
           </div>
 
+          {/* Description snippet (業務内容) */}
+          {stint.description && (
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--ink-soft)",
+                marginTop: 6,
+                paddingLeft: 8,
+                borderLeft: "2px solid var(--line)",
+                lineHeight: 1.65,
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+            >
+              {stint.description}
+            </div>
+          )}
+
           {/* Why snippet (narrative) */}
           {stint.why && (
             <div
               style={{
                 fontSize: 11,
                 color: "var(--ink-soft)",
-                marginTop: 6,
+                marginTop: 4,
                 paddingLeft: 8,
                 borderLeft: "2px solid var(--line)",
                 lineHeight: 1.65,
