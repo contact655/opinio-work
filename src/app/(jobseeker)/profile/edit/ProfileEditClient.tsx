@@ -561,16 +561,16 @@ function TextareaField({
 
 function SocialLinksEditor({
   socialLinks,
-  patchSocialLinks,
+  setSocialLinks,
 }: {
   socialLinks: SocialLinks;
-  patchSocialLinks: (patch: Partial<SocialLinks>) => void;
+  setSocialLinks: React.Dispatch<React.SetStateAction<SocialLinks>>;
 }) {
   return (
     <div style={{ maxWidth: 680 }}>
       <FormSection
         title="SNS・外部リンク"
-        desc="登録したリンクはプロフィールページに表示されます。変更すると自動で保存されます。"
+        desc="登録したリンクはプロフィールページに表示されます。"
       >
         {SNS_PLATFORMS.map((platform) => {
           const meta = SOCIAL_META[platform];
@@ -600,7 +600,7 @@ function SocialLinksEditor({
               <input
                 type="url"
                 value={socialLinks[platform] ?? ""}
-                onChange={(e) => patchSocialLinks({ [platform]: e.target.value })}
+                onChange={(e) => setSocialLinks((prev) => ({ ...prev, [platform]: e.target.value }))}
                 placeholder={meta.placeholder}
                 style={{
                   ...inputStyle({ fontSize: 12 }),
@@ -2121,21 +2121,39 @@ export default function ProfileEditClient({
   const [awards,           setAwards]           = useState<Award[]>(initialAwards);
   const [mediaAppearances, setMediaAppearances] = useState<MediaAppearance[]>(initialMediaAppearances);
 
-  // ── SNS タブの状態 ───────────────────────────────────────────────────────
+  // ── SNS タブの状態（明示保存方式） ──────────────────────────────────────
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(initialSocialLinks);
-  const socialRef = useRef<SocialLinks>(initialSocialLinks);
-  const { patch: patchSocial, status: socialSaveStatus } = useDebouncedPatch({
-    endpoint: "/api/jobseeker/profile",
-  });
+  // 保存済みの値を保持して変更検知（JSON.stringify 比較）
+  const [savedSocialLinks, setSavedSocialLinks] = useState<SocialLinks>(initialSocialLinks);
+  const [socialSaving, setSocialSaving] = useState(false);
+  const [socialToastMsg,     setSocialToastMsg]     = useState<string | null>(null);
+  const [socialToastVariant, setSocialToastVariant] = useState<"default" | "error">("default");
 
-  const patchSocialLinks = useCallback((fieldPatch: Partial<SocialLinks>) => {
-    // 1. ref を先に更新（マージ済みの最新値を保持）
-    socialRef.current = { ...socialRef.current, ...fieldPatch };
-    // 2. UI state を更新
-    setSocialLinks({ ...socialRef.current });
-    // 3. social_links オブジェクト全体を送信（partial patch では整合性が保てない）
-    patchSocial({ social_links: socialRef.current });
-  }, [patchSocial]);
+  const isSocialDirty = JSON.stringify(socialLinks) !== JSON.stringify(savedSocialLinks);
+
+  const handleSaveSocial = useCallback(async () => {
+    setSocialSaving(true);
+    try {
+      const res = await fetch("/api/jobseeker/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ social_links: socialLinks }),
+      });
+      if (!res.ok) throw new Error();
+      setSavedSocialLinks(socialLinks); // 保存成功: 次回比較の基準点を更新
+      setSocialToastVariant("default");
+      setSocialToastMsg("SNS リンクを保存しました");
+    } catch {
+      setSocialToastVariant("error");
+      setSocialToastMsg("保存に失敗しました。もう一度お試しください。");
+    } finally {
+      setSocialSaving(false);
+    }
+  }, [socialLinks]);
+
+  const handleCancelSocial = useCallback(() => {
+    setSocialLinks(savedSocialLinks);
+  }, [savedSocialLinks]);
 
   // ── 基本情報タブの状態（名前・所在地） ───────────────────────────────────
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
@@ -2197,7 +2215,6 @@ export default function ProfileEditClient({
           {activeTab === "basic"   && <SaveStatusPill status={basicSaveStatus} />}
           {activeTab === "skills"  && <SaveStatusPill status={skillSaveStatus} />}
           {activeTab === "certs"   && <SaveStatusPill status={certSaveStatus} />}
-          {activeTab === "socials" && <SaveStatusPill status={socialSaveStatus} />}
           <div style={{ marginLeft: "auto" }}>
             <Link
               href="/mypage"
@@ -2394,10 +2411,53 @@ export default function ProfileEditClient({
 
         {/* SNS タブ */}
         {activeTab === "socials" && (
-          <SocialLinksEditor
-            socialLinks={socialLinks}
-            patchSocialLinks={patchSocialLinks}
-          />
+          <>
+            <SocialLinksEditor
+              socialLinks={socialLinks}
+              setSocialLinks={setSocialLinks}
+            />
+            {/* 保存・キャンセルボタン */}
+            <div style={{ maxWidth: 680, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, marginBottom: 24 }}>
+              <button
+                type="button"
+                onClick={handleCancelSocial}
+                disabled={!isSocialDirty || socialSaving}
+                style={{
+                  padding: "10px 20px", fontSize: 13, fontWeight: 600,
+                  background: "#fff", color: "var(--ink-soft)",
+                  border: "1px solid var(--line)", borderRadius: 8,
+                  fontFamily: "inherit",
+                  cursor: !isSocialDirty || socialSaving ? "default" : "pointer",
+                  opacity: !isSocialDirty || socialSaving ? 0.5 : 1,
+                }}
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveSocial}
+                disabled={!isSocialDirty || socialSaving}
+                style={{
+                  padding: "10px 24px", fontSize: 13, fontWeight: 600,
+                  background: !isSocialDirty || socialSaving ? "var(--ink-mute)" : "var(--royal)",
+                  color: "#fff",
+                  border: "none", borderRadius: 8,
+                  fontFamily: "inherit",
+                  cursor: !isSocialDirty || socialSaving ? "default" : "pointer",
+                  transition: "background 0.15s",
+                }}
+              >
+                {socialSaving ? "保存中…" : "保存"}
+              </button>
+            </div>
+            {socialToastMsg && (
+              <Toast
+                message={socialToastMsg}
+                variant={socialToastVariant}
+                onDone={() => setSocialToastMsg(null)}
+              />
+            )}
+          </>
         )}
 
         {/* アカウント設定タブ（動作） */}
