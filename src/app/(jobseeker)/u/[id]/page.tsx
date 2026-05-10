@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { CareerEntry } from "@/lib/utils/career";
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import {
-  toTimelineCareerEntries,
+  buildTimelineCareerEntriesFromRaw,
   toTimelineEducationEntries,
   buildFutureData,
+  type RawExperienceRow,
   type RawEducation,
 } from "@/lib/utils/timeline";
 import { getUserAge } from "@/lib/age";
@@ -16,20 +16,6 @@ import {
   SOCIAL_META,
   SNS_PLATFORMS,
 } from "@/components/SocialIcon";
-
-// DB_NAME_TO_SLUG for role label resolution
-const DB_NAME_TO_SLUG: Record<string, string> = {
-  "営業": "sales", "PdM / PM": "pm", "カスタマーサクセス": "cs",
-  "エンジニア": "engineer", "マーケティング": "marketing", "経営・CxO": "exec", "その他": "other",
-  "フィールドセールス": "field_sales", "エンタープライズ営業": "enterprise_sales",
-  "インサイドセールス": "inside_sales", "SDR / BDR": "sdr_bdr",
-  "プロダクトマネージャー": "product_manager", "プロダクトオーナー": "product_owner", "PMM": "pmm",
-  "バックエンド": "backend", "フロントエンド": "frontend", "フルスタック": "fullstack",
-  "SRE / インフラ": "sre", "iOS / Android": "ios_android",
-  "CEO": "ceo", "COO": "coo", "CPO": "cpo", "CTO": "cto", "CFO": "cfo",
-  "デザイナー": "designer", "事業開発": "biz_dev", "HRBP": "hrbp",
-  "コーポレート": "corporate", "データサイエンティスト": "data_scientist",
-};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,13 +135,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const educations     = (educationsRaw     ?? []) as Education[];
   const certifications = (certificationsRaw ?? []) as Certification[];
 
-  const uuidToSlug = new Map<string, string>();
+  // ロール表示名を直接参照（ow_roles.name が日本語表示ラベルそのもの、slug 変換不要）
+  const roleNameById = new Map<string, string>();
   for (const role of allRoles ?? []) {
-    const slug = DB_NAME_TO_SLUG[role.name as string];
-    if (slug) uuidToSlug.set(role.id as string, slug);
+    roleNameById.set(role.id as string, role.name as string);
   }
 
   // Resolve company info (name + logo) for master entries in experiences
+  // ロゴは A-1(Phase 2)で MergedTimeline に渡す予定のため取得を維持、現時点では name のみ使用
   const expCompanyIds = (expRows ?? [])
     .filter((r) => r.company_id)
     .map((r) => r.company_id as string);
@@ -177,47 +164,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
     }
   }
 
-  const experiences: CareerEntry[] = (expRows ?? []).map((r) => {
-    let companyName: string;
-    let companyType: "master" | "custom" | "anon";
-    let logoUrl: string | null = null;
-    let logoLetter: string | null = null;
-    let logoGradient: string | null = null;
+  // timeline 向け会社名 Map（ロゴは A-1 まで未使用）
+  const companyNameById = new Map<string, string>();
+  expCompanyMap.forEach((info, id) => companyNameById.set(id, info.name));
 
-    if (r.company_id) {
-      companyType = "master";
-      const info = expCompanyMap.get(r.company_id as string);
-      companyName = info?.name ?? "不明な企業";
-      logoUrl = info?.logoUrl ?? null;
-      logoLetter = info?.logoLetter ?? null;
-      logoGradient = info?.logoGradient ?? null;
-    } else if (r.company_text) {
-      companyType = "custom";
-      companyName = r.company_text as string;
-    } else {
-      companyType = "anon";
-      companyName = (r.company_anonymized as string) ?? "非公開企業";
-    }
-    const roleUuid = r.role_category_id as string;
-    return {
-      id: r.id as string,
-      companyName,
-      companyType,
-      logoUrl,
-      logoLetter,
-      logoGradient,
-      roleSlug: uuidToSlug.get(roleUuid) ?? roleUuid,
-      roleTitle: r.role_title as string | null,
-      startedAt: r.started_at as string,
-      endedAt: r.ended_at as string | null,
-      isCurrent: r.is_current as boolean,
-      description: r.description as string | null,
-      why: (r.why as string | null) ?? null,
-    };
-  });
-
-  // MergedTimeline 用データ整形（experiences / educations 確定後に実行）
-  const timelineCareers = toTimelineCareerEntries(experiences);
+  // MergedTimeline 用データ整形
+  const timelineCareers = buildTimelineCareerEntriesFromRaw(
+    (expRows ?? []) as RawExperienceRow[],
+    roleNameById,
+    companyNameById,
+  );
   const timelineEdus    = toTimelineEducationEntries(educations as RawEducation[]);
   const futureData      = buildFutureData(owUser, viewerIsOwner);
 
