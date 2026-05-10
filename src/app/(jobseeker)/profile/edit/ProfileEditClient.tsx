@@ -1180,101 +1180,22 @@ function EducationEditor({
 
 // ─── Certification Editor ─────────────────────────────────────────────────────
 
-function CertificationCardEditor({
-  cert,
-  onUpdate,
-  onDelete,
-}: {
-  cert: Certification;
-  onUpdate: (id: string, patch: Partial<Certification>) => void;
-  onDelete: (id: string) => void;
-}) {
-  const [localName,  setLocalName]  = useState(cert.name);
-  const [saving,     setSaving]     = useState(false);
-  const [fieldError, setFieldError] = useState<string | null>(null);
-
-  const saveName = useCallback(async (name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) { setFieldError("資格名を入力してください。"); return; }
-    setFieldError(null);
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/jobseeker/certifications/${cert.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { message?: string }).message ?? res.statusText);
-      }
-      const updated: Certification = await res.json();
-      onUpdate(cert.id, updated);
-    } catch (e) {
-      setFieldError((e as Error).message ?? "保存に失敗しました。");
-    } finally {
-      setSaving(false);
-    }
-  }, [cert.id, onUpdate]);
-
-  const handleDelete = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/jobseeker/certifications/${cert.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("削除に失敗しました。");
-      onDelete(cert.id);
-    } catch (e) {
-      setFieldError((e as Error).message ?? "削除に失敗しました。");
-      setSaving(false);
-    }
-  };
-
+function CertCard({
+  cert, onEdit, onDelete,
+}: { cert: Certification; onEdit: () => void; onDelete: () => void; }) {
+  const [hovered, setHovered] = useState(false);
   return (
-    <div style={{
-      border: "1px solid var(--line)", borderRadius: 10, padding: "16px 20px",
-      marginBottom: 12, background: "#fff", position: "relative",
-      opacity: saving ? 0.7 : 1, transition: "opacity 0.2s",
-    }}>
-      {/* 削除ボタン */}
-      <button
-        type="button"
-        onClick={handleDelete}
-        disabled={saving}
-        aria-label="この資格を削除"
-        style={{
-          position: "absolute", top: 12, right: 12,
-          background: "none", border: "none", padding: 4,
-          cursor: saving ? "not-allowed" : "pointer",
-          color: "var(--ink-mute)", display: "flex", alignItems: "center",
-          borderRadius: 6, transition: "color 0.15s",
-        }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--error)"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-mute)"; }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
-
-      {/* 資格名（必須） */}
-      <FormGroup label="資格名 *">
-        <input
-          type="text"
-          value={localName}
-          onChange={(e) => { setLocalName(e.target.value); setFieldError(null); }}
-          onBlur={() => saveName(localName)}
-          placeholder="例：国家資格キャリアコンサルタント、AWS ソリューションアーキテクト、TOEIC L&R…"
-          maxLength={100}
-          style={inputStyle({ paddingRight: 12 })}
-        />
-      </FormGroup>
-
-      {fieldError && (
-        <div style={{ fontSize: 11, color: "var(--error)", marginTop: 4, lineHeight: 1.6 }}>
-          {fieldError}
+    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      style={{ padding: "10px 0", position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", flex: 1, minWidth: 0 }}>
+          {cert.name}
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
+          <AchieveIconBtn onClick={onEdit} title="編集">✎</AchieveIconBtn>
+          <AchieveIconBtn onClick={onDelete} title="削除" danger>×</AchieveIconBtn>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -1282,89 +1203,120 @@ function CertificationCardEditor({
 function CertificationEditor({
   certifications,
   setCertifications,
-  setSaveStatus,
 }: {
   certifications: Certification[];
   setCertifications: React.Dispatch<React.SetStateAction<Certification[]>>;
-  setSaveStatus: (s: SaveStatus) => void;
 }) {
-  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [adding,    setAdding]    = useState(false);
+  const [addDraft,  setAddDraft]  = useState("");
+  const [addSaving, setAddSaving] = useState(false);
+  const [toastMsg,     setToastMsg]     = useState<string | null>(null);
+  const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
+  const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
+    setToastVariant(variant); setToastMsg(msg);
+  }, []);
 
-  const handleAdd = async () => {
-    setAdding(true);
-    setSaveStatus("saving");
+  const saveEdit = useCallback(async () => {
+    if (!editingId) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/jobseeker/certifications/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editDraft.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      const updated: Certification = await res.json();
+      setCertifications((prev) => prev.map((c) => (c.id === editingId ? { ...c, ...updated } : c)));
+      setEditingId(null); setEditDraft("");
+      showToast("資格を更新しました");
+    } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
+    finally { setEditSaving(false); }
+  }, [editingId, editDraft, setCertifications, showToast]);
+
+  const saveAdd = useCallback(async () => {
+    setAddSaving(true);
     try {
       const res = await fetch("/api/jobseeker/certifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "資格名を入力" }),
+        body: JSON.stringify({ name: addDraft.trim() }),
       });
-      if (!res.ok) throw new Error("追加に失敗しました。");
+      if (!res.ok) throw new Error();
       const inserted: Certification = await res.json();
       setCertifications((prev) => [...prev, inserted]);
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
-    } catch {
-      setSaveStatus("idle");
-    } finally {
-      setAdding(false);
-    }
-  };
+      setAdding(false); setAddDraft("");
+      showToast("資格を追加しました");
+    } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
+    finally { setAddSaving(false); }
+  }, [addDraft, setCertifications, showToast]);
 
-  const handleUpdate = useCallback((id: string, patch: Partial<Certification>) => {
-    setCertifications((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-  }, [setCertifications]);
-
-  const handleDelete = useCallback((id: string) => {
-    setCertifications((prev) => prev.filter((c) => c.id !== id));
-  }, [setCertifications]);
+  const handleDelete = useCallback(async (cert: Certification) => {
+    try {
+      const res = await fetch(`/api/jobseeker/certifications/${cert.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setCertifications((prev) => prev.filter((c) => c.id !== cert.id));
+      showToast("資格を削除しました");
+    } catch { showToast("削除に失敗しました。もう一度お試しください。", "error"); }
+  }, [setCertifications, showToast]);
 
   return (
     <div style={{ maxWidth: 680 }}>
-      <FormSection
-        title="資格・認定"
-        desc="取得済みの資格や認定を登録できます。新しい順に入力することをおすすめします。"
-      >
-        {certifications.length === 0 && (
-          <div style={{
-            textAlign: "center", padding: "24px 0",
-            fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8,
-            marginBottom: 16,
-          }}>
-            まだ資格が登録されていません。<br />「+ 資格を追加」から登録してください。
+      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>資格・認定</div>
+      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+        取得済みの資格や認定を登録できます。新しい順に入力することをおすすめします。
+      </div>
+      {certifications.length === 0 && !adding && (
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
+          資格はまだ登録されていません
+        </div>
+      )}
+      {certifications.map((cert, idx) => (
+        <div key={cert.id}>
+          {editingId === cert.id ? (
+            <div style={formBox}>
+              <div>
+                <label style={ael()}>資格名 *</label>
+                <input type="text" value={editDraft}
+                  onChange={(e) => setEditDraft(e.target.value)}
+                  placeholder="例：国家資格キャリアコンサルタント、AWS ソリューションアーキテクト…"
+                  maxLength={100} disabled={editSaving} style={aef()} autoFocus />
+              </div>
+              <AchieveFormActions isSaving={editSaving} canSave={!!editDraft.trim() && !editSaving}
+                onSave={() => { void saveEdit(); }}
+                onCancel={() => { setEditingId(null); setEditDraft(""); }} />
+            </div>
+          ) : (
+            <CertCard cert={cert}
+              onEdit={() => { setEditingId(cert.id); setEditDraft(cert.name); }}
+              onDelete={() => { void handleDelete(cert); }} />
+          )}
+          {idx < certifications.length - 1 && editingId !== cert.id && (
+            <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
+          )}
+        </div>
+      ))}
+      {adding && (
+        <div style={{ marginTop: certifications.length > 0 ? 12 : 0 }}>
+          <div style={formBox}>
+            <div>
+              <label style={ael()}>資格名 *</label>
+              <input type="text" value={addDraft}
+                onChange={(e) => setAddDraft(e.target.value)}
+                placeholder="例：国家資格キャリアコンサルタント、AWS ソリューションアーキテクト…"
+                maxLength={100} disabled={addSaving} style={aef()} autoFocus />
+            </div>
+            <AchieveFormActions isSaving={addSaving} canSave={!!addDraft.trim() && !addSaving}
+              onSave={() => { void saveAdd(); }}
+              onCancel={() => { setAdding(false); setAddDraft(""); }} />
           </div>
-        )}
-
-        {certifications.map((cert) => (
-          <CertificationCardEditor
-            key={cert.id}
-            cert={cert}
-            onUpdate={handleUpdate}
-            onDelete={handleDelete}
-          />
-        ))}
-
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={adding}
-          style={{
-            display: "flex", alignItems: "center", gap: 6,
-            padding: "8px 16px", fontSize: 13, fontWeight: 600,
-            background: adding ? "var(--bg-tint)" : "var(--royal-50)",
-            color: adding ? "var(--ink-mute)" : "var(--royal)",
-            border: "1px solid var(--royal-100)", borderRadius: 8,
-            fontFamily: "inherit", cursor: adding ? "not-allowed" : "pointer",
-            transition: "all 0.15s",
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          {adding ? "追加中..." : "+ 資格を追加"}
-        </button>
-      </FormSection>
+        </div>
+      )}
+      {!adding && <AddSectionBtn label="資格を追加" onClick={() => setAdding(true)} />}
+      {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
     </div>
   );
 }
@@ -2114,7 +2066,6 @@ export default function ProfileEditClient({
 
   // ── 資格タブの状態 ───────────────────────────────────────────────────────
   const [certifications, setCertifications] = useState<Certification[]>(initialCertifications);
-  const [certSaveStatus, setCertSaveStatus] = useState<SaveStatus>("idle");
 
   // ── 実績・受賞タブの状態 ─────────────────────────────────────────────────
   const [achievements,     setAchievements]     = useState<Achievement[]>(initialAchievements);
@@ -2214,7 +2165,6 @@ export default function ProfileEditClient({
           }}>プロフィール</h1>
           {activeTab === "basic"   && <SaveStatusPill status={basicSaveStatus} />}
           {activeTab === "skills"  && <SaveStatusPill status={skillSaveStatus} />}
-          {activeTab === "certs"   && <SaveStatusPill status={certSaveStatus} />}
           <div style={{ marginLeft: "auto" }}>
             <Link
               href="/mypage"
@@ -2396,7 +2346,6 @@ export default function ProfileEditClient({
           <CertificationEditor
             certifications={certifications}
             setCertifications={setCertifications}
-            setSaveStatus={setCertSaveStatus}
           />
         )}
 
