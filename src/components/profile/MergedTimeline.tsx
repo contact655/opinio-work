@@ -1,4 +1,5 @@
 import { Briefcase, GraduationCap } from "lucide-react";
+import FutureSectionEditor from "./FutureSectionEditor";
 
 // ─── Public types (re-exported for use in Commit C) ───────────────────────────
 
@@ -488,65 +489,7 @@ function EducationContent({ data }: { data: EducationEntry }) {
   );
 }
 
-function FutureContent({
-  future,
-  viewerIsOwner,
-}: {
-  future: FutureData;
-  viewerIsOwner: boolean;
-}) {
-  const hasText = !!future.text?.trim();
-
-  return (
-    <div style={{ paddingTop: 8, paddingBottom: 24, paddingLeft: 12 }}>
-      <div
-        style={{
-          fontFamily: "'Noto Serif JP', serif",
-          fontSize: 14,
-          fontWeight: 700,
-          color: "var(--warm)",
-          marginBottom: 8,
-        }}
-      >
-        目指す姿・ありたい未来
-      </div>
-
-      {hasText ? (
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--ink-soft)",
-            lineHeight: 1.85,
-            margin: 0,
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {future.text}
-        </p>
-      ) : viewerIsOwner ? (
-        /* CTA placeholder — onClick は Commit D で追加 */
-        <button
-          type="button"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 13,
-            color: "var(--warm)",
-            background: "var(--warm-soft)",
-            border: "1px dashed #fde68a",
-            borderRadius: 8,
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontFamily: "'Noto Sans JP', sans-serif",
-          }}
-        >
-          ✦ 目指す姿を書いてみる
-        </button>
-      ) : null}
-    </div>
-  );
-}
+// FutureContent は FutureSectionEditor に移行（Commit D）
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -636,7 +579,10 @@ export default function MergedTimeline({
                     initial={future!.initial}
                   />
                 </div>
-                <FutureContent future={future!} viewerIsOwner={viewerIsOwner} />
+                <FutureSectionEditor
+                  initialText={future!.text}
+                  viewerIsOwner={viewerIsOwner}
+                />
               </div>
             );
           }

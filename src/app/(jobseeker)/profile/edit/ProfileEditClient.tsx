@@ -92,7 +92,6 @@ type BasicInfo = {
   name: string;
   location: string;
   aboutMe: string;
-  futureAspirations: string;
 };
 
 type SettingsState = {
@@ -2139,10 +2138,9 @@ export default function ProfileEditClient({
   const initialParsed = parseBirthDate(owUser?.birth_date ?? null);
 
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
-    name:              owUser?.name              ?? "",
-    location:          owUser?.location          ?? "",
-    aboutMe:           owUser?.about_me          ?? "",
-    futureAspirations: owUser?.future_aspirations ?? "",
+    name:     owUser?.name      ?? "",
+    location: owUser?.location  ?? "",
+    aboutMe:  owUser?.about_me  ?? "",
   });
   const [birthYear,  setBirthYear]  = useState<string>(initialParsed.year);
   const [birthMonth, setBirthMonth] = useState<string>(initialParsed.month);
@@ -2150,10 +2148,9 @@ export default function ProfileEditClient({
 
   // 変更検知用の初期値（保存成功時に更新）
   const [initialBasicInfo, setInitialBasicInfo] = useState<BasicInfo>({
-    name:              owUser?.name              ?? "",
-    location:          owUser?.location          ?? "",
-    aboutMe:           owUser?.about_me          ?? "",
-    futureAspirations: owUser?.future_aspirations ?? "",
+    name:     owUser?.name      ?? "",
+    location: owUser?.location  ?? "",
+    aboutMe:  owUser?.about_me  ?? "",
   });
   const [initialBirthYear,  setInitialBirthYear]  = useState<string>(initialParsed.year);
   const [initialBirthMonth, setInitialBirthMonth] = useState<string>(initialParsed.month);
@@ -2181,11 +2178,10 @@ export default function ProfileEditClient({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name:                basicInfo.name,
-          location:            basicInfo.location,
-          about_me:            basicInfo.aboutMe,
-          future_aspirations:  basicInfo.futureAspirations,
-          birth_date:          birthDate,
+          name:       basicInfo.name,
+          location:   basicInfo.location,
+          about_me:   basicInfo.aboutMe,
+          birth_date: birthDate,
         }),
       });
       if (!res.ok) throw new Error();
@@ -2345,20 +2341,6 @@ export default function ProfileEditClient({
                 value={basicInfo.aboutMe}
                 onChange={(v) => setBasicInfo((prev) => ({ ...prev, aboutMe: v }))}
                 placeholder="例：リクルートで4年間営業を経験後、SaaS 企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"
-                softLimit={200}
-                rows={5}
-              />
-            </FormSection>
-
-            {/* ── Section 3: やってみたいこと ──────────────────────────────────── */}
-            <FormSection
-              title="この先やってみたいこと"
-              desc="中長期でやってみたいこと、挑戦したいことを自由に書いてください。"
-            >
-              <TextareaField
-                value={basicInfo.futureAspirations}
-                onChange={(v) => setBasicInfo((prev) => ({ ...prev, futureAspirations: v }))}
-                placeholder="例：プロダクトの企画段階から関わり、ユーザーインタビューを起点にして機能をゼロから作る経験をしてみたいです。将来的には自分でプロダクトを立ち上げることも視野に入れています。"
                 softLimit={200}
                 rows={5}
               />
