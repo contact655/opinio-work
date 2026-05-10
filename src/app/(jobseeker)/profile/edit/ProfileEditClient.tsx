@@ -1049,10 +1049,14 @@ function EducationEditor({
   }, [deleteTarget, setEducations, showToast]);
 
   return (
-    <FormSection
-      title="学歴"
-      desc="大学・大学院・専門学校・高校などを登録できます。新しい順に入力することをおすすめします。"
-    >
+    <div style={{ marginTop: 32 }}>
+      {/* Section header — フラット（職歴と同じ構造、白カードなし） */}
+      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>
+        学歴
+      </div>
+      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+        大学・大学院・専門学校・高校などを登録できます。新しい順に入力することをおすすめします。
+      </div>
       {/* Education list */}
       {educations.map((edu, idx) => (
         <div key={edu.id}>
@@ -1138,7 +1142,7 @@ function EducationEditor({
       {toastMsg && (
         <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />
       )}
-    </FormSection>
+    </div>
   );
 }
 
