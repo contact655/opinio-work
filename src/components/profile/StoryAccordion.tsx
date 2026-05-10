@@ -17,6 +17,8 @@ type Story = {
   image_url: string | null;
   video_url: string | null;
   link_url: string | null;
+  period_start: string | null;  // "YYYY-MM-DD" from DB
+  period_end: string | null;    // "YYYY-MM-DD" from DB
   sort_order: number;
 };
 
@@ -27,6 +29,8 @@ type StoryDraft = {
   image_url: string;
   video_url: string;
   link_url: string;
+  period_start: string;  // "YYYY-MM" for <input type="month">
+  period_end: string;    // "YYYY-MM" for <input type="month">
 };
 
 const EMPTY_DRAFT: StoryDraft = {
@@ -36,6 +40,8 @@ const EMPTY_DRAFT: StoryDraft = {
   image_url: "",
   video_url: "",
   link_url: "",
+  period_start: "",
+  period_end: "",
 };
 
 function draftFromStory(s: Story): StoryDraft {
@@ -46,6 +52,9 @@ function draftFromStory(s: Story): StoryDraft {
     image_url: s.image_url ?? "",
     video_url: s.video_url ?? "",
     link_url: s.link_url ?? "",
+    // "YYYY-MM-DD" → "YYYY-MM" (slice 7 chars)
+    period_start: s.period_start?.slice(0, 7) ?? "",
+    period_end: s.period_end?.slice(0, 7) ?? "",
   };
 }
 
@@ -67,6 +76,8 @@ function canSaveDraft(draft: StoryDraft): boolean {
 }
 
 function makeBody(draft: StoryDraft, experienceId?: string): Record<string, unknown> {
+  // "YYYY-MM" → "YYYY-MM-01" (project-wide convention; same as AchievementEditor / CareerHistoryEditor)
+  const monthToDate = (s: string): string | null => (s ? `${s}-01` : null);
   const body: Record<string, unknown> = {
     type: draft.type,
     title: draft.title.trim() || null,
@@ -74,6 +85,8 @@ function makeBody(draft: StoryDraft, experienceId?: string): Record<string, unkn
     image_url: draft.image_url.trim() || null,
     video_url: draft.video_url.trim() || null,
     link_url: draft.link_url.trim() || null,
+    period_start: monthToDate(draft.period_start),
+    period_end: monthToDate(draft.period_end),
   };
   if (experienceId) body.experience_id = experienceId;
   return body;
@@ -182,6 +195,20 @@ function IconBtn({
   );
 }
 
+/** "YYYY-MM-DD" → "YYYY年M月" */
+function formatYearMonth(dateStr: string): string {
+  const [y, m] = dateStr.split("-");
+  return `${y}年${parseInt(m)}月`;
+}
+
+/** period_start / period_end をまとめて "YYYY年M月 〜 YYYY年M月" 形式で返す。両方 null なら null */
+function formatPeriod(start: string | null, end: string | null): string | null {
+  if (!start && !end) return null;
+  if (start && end) return `${formatYearMonth(start)} 〜 ${formatYearMonth(end)}`;
+  if (start) return `${formatYearMonth(start)} 〜`;
+  return `〜 ${formatYearMonth(end!)}`;
+}
+
 /** URL を最大 N 文字で省略表示 */
 function truncateUrl(url: string, max = 50): string {
   if (url.length <= max) return url;
@@ -207,6 +234,13 @@ function StoryCard({
           <TypeBadge type={story.type} />
 
           <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Period */}
+            {formatPeriod(story.period_start, story.period_end) && (
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginBottom: 2 }}>
+                {formatPeriod(story.period_start, story.period_end)}
+              </div>
+            )}
+
             {/* Title */}
             {story.title && (
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>
@@ -320,22 +354,19 @@ function StoryForm({
     [draft, onDraftChange]
   );
 
-  const canSave = canSaveDraft(draft) && !isSaving;
+  // 終了年月 < 開始年月 のとき invalid（両方入力されている場合のみチェック）
+  const periodInvalid =
+    !!draft.period_start && !!draft.period_end && draft.period_start > draft.period_end;
+
+  const canSave = canSaveDraft(draft) && !isSaving && !periodInvalid;
   const effectivelyDisabled = !canSave || !!justSaved;
 
   return (
     <div style={formBoxStyle}>
-      {/* Type selector */}
-      <TypeSelector
-        value={draft.type}
-        onChange={(t) => onDraftChange({ ...draft, type: t })}
-        disabled={isSaving}
-      />
-
       {/* Title — all types */}
       <div>
         <label style={labelStyle()}>
-          タイトル {draft.type === "card" ? "（任意）" : "（任意）"}
+          タイトル（任意）
         </label>
         <input
           type="text"
@@ -347,6 +378,40 @@ function StoryForm({
           style={inputStyle(isSaving)}
         />
       </div>
+
+      {/* Period — all types */}
+      <div>
+        <label style={labelStyle()}>期間（任意）</label>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="month"
+            value={draft.period_start}
+            onChange={(e) => set("period_start", e.target.value)}
+            disabled={isSaving}
+            style={{ ...inputStyle(isSaving), flex: 1 }}
+          />
+          <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>〜</span>
+          <input
+            type="month"
+            value={draft.period_end}
+            onChange={(e) => set("period_end", e.target.value)}
+            disabled={isSaving}
+            style={{ ...inputStyle(isSaving), flex: 1 }}
+          />
+        </div>
+        {periodInvalid && (
+          <div style={{ fontSize: 11, color: "var(--error)", marginTop: 4 }}>
+            終了年月は開始年月以降に設定してください
+          </div>
+        )}
+      </div>
+
+      {/* Type selector */}
+      <TypeSelector
+        value={draft.type}
+        onChange={(t) => onDraftChange({ ...draft, type: t })}
+        disabled={isSaving}
+      />
 
       {/* Type-specific URL field */}
       {draft.type === "image" && (
