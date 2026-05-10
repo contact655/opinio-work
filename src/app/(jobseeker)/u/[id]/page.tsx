@@ -2,7 +2,13 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { CareerEntry } from "@/lib/utils/career";
-import { CareerTimeline } from "@/components/profile/CareerTimeline";
+import MergedTimeline from "@/components/profile/MergedTimeline";
+import {
+  toTimelineCareerEntries,
+  toTimelineEducationEntries,
+  buildFutureData,
+  type RawEducation,
+} from "@/lib/utils/timeline";
 import { getUserAge } from "@/lib/age";
 import {
   SocialIcon,
@@ -40,6 +46,8 @@ type OwUser = {
   location: string | null;
   social_links: SocialLinks | null;
   is_mentor: boolean;
+  future_aspirations: string | null;
+  auth_id: string;
 };
 
 type Education = {
@@ -76,11 +84,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
   // RLS handles visibility: anon sees public only, authenticated sees public+login_only+own.
   // maybeSingle() returns null for private/nonexistent → notFound()
-  const { data: user } = await supabase
-    .from("ow_users")
-    .select("id, name, avatar_color, cover_color, about_me, birth_date, location, social_links, is_mentor")
-    .eq("id", params.id)
-    .maybeSingle();
+  // auth.getUser() と ow_users fetch を並列実行
+  const [
+    { data: { user: authUser } },
+    { data: user },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("ow_users")
+      .select("id, name, avatar_color, cover_color, about_me, birth_date, location, social_links, is_mentor, future_aspirations, auth_id")
+      .eq("id", params.id)
+      .maybeSingle(),
+  ]);
 
   if (!user) notFound();
 
@@ -89,6 +104,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const avatarColor = owUser.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)";
   const coverColor = owUser.cover_color ?? "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
   const initial = owUser.name.charAt(0);
+  const viewerIsOwner = !!authUser && owUser.auth_id === authUser.id;
 
   // 年齢表示: birth_date をサーバ側で計算（NULL = 非公開）
   const age = getUserAge(owUser.birth_date);
@@ -199,6 +215,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
       why: (r.why as string | null) ?? null,
     };
   });
+
+  // MergedTimeline 用データ整形（experiences / educations 確定後に実行）
+  const timelineCareers = toTimelineCareerEntries(experiences);
+  const timelineEdus    = toTimelineEducationEntries(educations as RawEducation[]);
+  const futureData      = buildFutureData(owUser, viewerIsOwner);
 
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 0 80px" }}>
@@ -342,108 +363,29 @@ export default async function UserProfilePage({ params }: { params: { id: string
         </section>
       )}
 
-      {/* Career */}
-      <section style={{
-        background: "#fff", border: "1px solid var(--line)",
-        borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-      }}>
-        <div style={{
-          display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
-          paddingBottom: 14, borderBottom: "1px solid var(--line)",
-        }}>
-          <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
-            キャリア
-          </span>
-          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
-            CAREER
-          </span>
-        </div>
-        <CareerTimeline careers={experiences} />
-      </section>
-
-      {/* Educations — 0件時はセクションごと非表示 */}
-      {educations.length > 0 && (
+      {/* 経歴 — キャリア + 学歴 + 未来を MergedTimeline で統合表示 */}
+      {(timelineCareers.length > 0 || timelineEdus.length > 0 || futureData != null) && (
         <section style={{
           background: "#fff", border: "1px solid var(--line)",
           borderRadius: 14, padding: "24px 28px", marginBottom: 20,
         }}>
           <div style={{
-            display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
+            display: "flex", alignItems: "baseline", gap: 10, marginBottom: 20,
             paddingBottom: 14, borderBottom: "1px solid var(--line)",
           }}>
             <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
-              学歴
+              経歴
             </span>
             <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
-              EDUCATION
+              TIMELINE
             </span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {educations.map((edu, i) => {
-              const formatYM = (s: string | null) => {
-                if (!s) return null;
-                const [y, m] = s.split("-");
-                return m ? `${y}年${parseInt(m, 10)}月` : `${y}年`;
-              };
-              const period = (() => {
-                const start = formatYM(edu.enrolled_at);
-                if (edu.is_current) return start ? `${start} 〜 在学中` : "在学中";
-                const end = formatYM(edu.graduated_at);
-                if (start && end) return `${start} 〜 ${end}`;
-                if (start) return `${start} 〜`;
-                if (end) return `〜 ${end}`;
-                return null;
-              })();
-              return (
-                <div
-                  key={edu.id}
-                  style={{
-                    paddingBottom: i < educations.length - 1 ? 14 : 0,
-                    borderBottom: i < educations.length - 1 ? "1px solid var(--line-soft)" : "none",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                    {/* アイコン */}
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-                      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-                        <path d="M6 12v5c3 3 9 3 12 0v-5" />
-                      </svg>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 3 }}>
-                        {edu.school}
-                      </div>
-                      {(edu.faculty || edu.degree) && (
-                        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 3 }}>
-                          {[edu.faculty, edu.degree].filter(Boolean).join(" · ")}
-                        </div>
-                      )}
-                      {period && (
-                        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
-                          {period}
-                        </div>
-                      )}
-                    </div>
-                    {edu.is_current && (
-                      <span style={{
-                        fontSize: 11, fontWeight: 600, padding: "3px 8px",
-                        background: "var(--success-soft)", color: "var(--success)",
-                        border: "1px solid #A7F3D0", borderRadius: 100,
-                        flexShrink: 0,
-                      }}>
-                        在学中
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <MergedTimeline
+            careers={timelineCareers}
+            educations={timelineEdus}
+            future={futureData}
+            viewerIsOwner={viewerIsOwner}
+          />
         </section>
       )}
 
