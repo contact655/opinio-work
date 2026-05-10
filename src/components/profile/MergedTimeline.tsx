@@ -1,5 +1,6 @@
 import { Briefcase, GraduationCap } from "lucide-react";
 import FutureSectionEditor from "./FutureSectionEditor";
+import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 
 // ─── Public types (re-exported for use in Commit C) ───────────────────────────
 
@@ -283,6 +284,78 @@ function ParallelBadge() {
 
 // ─── Icon circle sub-components ───────────────────────────────────────────────
 
+/**
+ * タイムラインのアイコン列（64px date col の右）に表示するアイコン円。
+ *
+ * 3 段階フォールバック（A-1 判断 C/D）:
+ *   1. logo_url あり → CompanyLogoImg（画像 + onError fallback は Client Component）
+ *   2. logo_url なし かつ logo_letter + logo_gradient あり → LetterCircle
+ *   3. どちらもなし → Briefcase アイコン（段階6-3-2 と同一）
+ *
+ * 並行勤務グループ（A-2）のアイコン列は `isCurrent` ベースで色を決め、
+ * ロゴは各 ParallelCareerCard 内の小ロゴで表示する（H-iii 方針）。
+ */
+function CompanyLogoIcon({
+  isCurrent,
+  logo_url,
+  logo_letter,
+  logo_gradient,
+}: {
+  isCurrent: boolean;
+  logo_url?: string | null;
+  logo_letter?: string | null;
+  logo_gradient?: string | null;
+}) {
+  const wrapStyle: React.CSSProperties = {
+    width: 36,
+    height: 36,
+    borderRadius: "50%",
+    flexShrink: 0,
+    margin: "0 auto",
+    position: "relative",
+    zIndex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
+  // ステップ 1: logo_url あり → 画像ロゴ（onError は CompanyLogoImg が担当）
+  if (logo_url) {
+    return (
+      <div style={wrapStyle}>
+        <CompanyLogoImg
+          logoUrl={logo_url}
+          logoLetter={logo_letter ?? null}
+          logoGradient={logo_gradient ?? null}
+          size={36}
+        />
+      </div>
+    );
+  }
+
+  // ステップ 2: logo_letter + logo_gradient あり → ブランド円（全社登録済みのため通常はここに到達）
+  if (logo_letter && logo_gradient) {
+    return (
+      <div style={wrapStyle}>
+        <LetterCircle letter={logo_letter} gradient={logo_gradient} size={36} />
+      </div>
+    );
+  }
+
+  // ステップ 3: どちらもなし → Briefcase（段階6-3-2 と同一のフォールバック）
+  return (
+    <div
+      style={{
+        ...wrapStyle,
+        background: isCurrent ? "var(--royal)" : "var(--ink-mute)",
+      }}
+    >
+      <Briefcase size={16} color="#fff" strokeWidth={2} />
+    </div>
+  );
+}
+
+/** 並行勤務グループのアイコン列用（H-iii: グループ全体を is_current で色分け、ロゴはカード内）*/
 function CareerIcon({ isCurrent }: { isCurrent: boolean }) {
   return (
     <div
@@ -554,16 +627,43 @@ function EducationContent({ data }: { data: EducationEntry }) {
 /**
  * 並行グループ内の個別カード（d-2 スタイル）。
  * CareerContent と同内容だが、padding 規則と border-left は CSS クラスで制御する。
+ * H-iii: グループアイコン列はそのまま維持し、各カードの会社名左に 24px 小ロゴを表示する。
  */
 function ParallelCareerCard({ data }: { data: CareerEntry }) {
   const duration = formatDuration(data.started_at, data.ended_at);
+
+  // 小ロゴ 24px（H-iii 方針: 各カード固有の企業アイコン）
+  const SmallLogo = () => {
+    if (data.logo_url) {
+      return (
+        <CompanyLogoImg
+          logoUrl={data.logo_url}
+          logoLetter={data.logo_letter ?? null}
+          logoGradient={data.logo_gradient ?? null}
+          size={24}
+        />
+      );
+    }
+    if (data.logo_letter && data.logo_gradient) {
+      return (
+        <LetterCircle
+          letter={data.logo_letter}
+          gradient={data.logo_gradient}
+          size={24}
+        />
+      );
+    }
+    return null; // フォールバックなし = 小ロゴ非表示
+  };
+
   return (
     <div
       className="d2-parallel-card"
       style={{ flex: 1, padding: "10px 14px 14px", minWidth: 0 }}
     >
-      {/* Company + badges */}
-      <div style={{ marginBottom: 2 }}>
+      {/* Company 名行: 小ロゴ + 会社名 + badges */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
+        <SmallLogo />
         <span
           style={{
             fontFamily: "'Noto Serif JP', serif",
@@ -780,7 +880,12 @@ export default function MergedTimeline({
                     paddingTop: 8,
                   }}
                 >
-                  <CareerIcon isCurrent={c.is_current} />
+                  <CompanyLogoIcon
+                    isCurrent={c.is_current}
+                    logo_url={c.logo_url}
+                    logo_letter={c.logo_letter}
+                    logo_gradient={c.logo_gradient}
+                  />
                 </div>
                 <CareerContent data={c} isParallel={entry.isParallel} />
               </div>
