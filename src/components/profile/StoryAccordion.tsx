@@ -51,11 +51,15 @@ function draftFromStory(s: Story): StoryDraft {
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
+// API と同じ簡易マッチ(文字列含有チェック、完全な URL 構造バリデーションではない)。
+// 今後厳密化する場合は API 側(/api/jobseeker/experience-stories/route.ts)と同期して変更すること。
+const looksLikeYouTubeUrl = (url: string): boolean => /youtube\.com|youtu\.be/.test(url);
+
 function canSaveDraft(draft: StoryDraft): boolean {
   if (draft.type === "image") return !!draft.image_url.trim();
   if (draft.type === "video") {
     const url = draft.video_url.trim();
-    return !!url && /youtube\.com|youtu\.be/.test(url);
+    return !!url && looksLikeYouTubeUrl(url);
   }
   if (draft.type === "link") return !!draft.link_url.trim();
   // card: title か description どちらか必須
@@ -363,23 +367,38 @@ function StoryForm({
         </div>
       )}
 
-      {draft.type === "video" && (
-        <div>
-          <label style={labelStyle()}>YouTube URL *</label>
-          <input
-            type="url"
-            value={draft.video_url}
-            onChange={(e) => set("video_url", e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=..."
-            maxLength={1000}
-            disabled={isSaving}
-            style={inputStyle(isSaving)}
-          />
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
-            youtube.com または youtu.be の URL を入力してください。
+      {draft.type === "video" && (() => {
+        const url = draft.video_url.trim();
+        const hasInput = url.length > 0;
+        const isValidYouTube = looksLikeYouTubeUrl(url);
+        const showError = hasInput && !isValidYouTube;
+        return (
+          <div>
+            <label style={labelStyle()}>YouTube URL *</label>
+            <input
+              type="url"
+              value={draft.video_url}
+              onChange={(e) => set("video_url", e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              maxLength={1000}
+              disabled={isSaving}
+              style={{
+                ...inputStyle(isSaving),
+                borderColor: showError ? "var(--error)" : undefined,
+              }}
+            />
+            {showError ? (
+              <div style={{ fontSize: 11, color: "var(--error)", marginTop: 4 }}>
+                YouTube の URL を入力してください（youtube.com または youtu.be）
+              </div>
+            ) : !hasInput ? (
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
+                youtube.com または youtu.be の URL を入力してください。
+              </div>
+            ) : null}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {draft.type === "link" && (
         <div>
