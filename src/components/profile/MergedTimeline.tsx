@@ -47,10 +47,22 @@ export interface MergedTimelineProps {
 
 // ─── Internal discriminated union ─────────────────────────────────────────────
 
+/** buildTimeline が返す中間型（並行グループ化前） */
 type TimelineEntry =
   | { kind: "future" }
   | { kind: "career";    data: CareerEntry;    isParallel: boolean }
   | { kind: "education"; data: EducationEntry };
+
+/**
+ * レンダリング用エントリ型。
+ * groupParallelEntries() が TimelineEntry[] から変換して生成する。
+ * 同一開始月の並行職歴 2件以上は "career-group" にバンドルされる。
+ */
+type RenderEntry =
+  | { kind: "future" }
+  | { kind: "career";       data: CareerEntry;    isParallel: boolean }
+  | { kind: "career-group"; items: CareerEntry[] }
+  | { kind: "education";    data: EducationEntry };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -146,6 +158,50 @@ function buildTimeline(
   const result: TimelineEntry[] = [];
   if (hasFuture) result.push({ kind: "future" });
   return [...result, ...combined];
+}
+
+/**
+ * TimelineEntry[] を走査し、連続する isParallel=true かつ同一開始月の
+ * career エントリを "career-group" にまとめた RenderEntry[] を返す。
+ *
+ * - 2件以上が連続する場合のみグループ化（1件のみの isParallel はフォールバックで career のまま）
+ * - グループ化はソート後の配列をそのまま走査するため、ソート順を変えない
+ */
+function groupParallelEntries(entries: TimelineEntry[]): RenderEntry[] {
+  const result: RenderEntry[] = [];
+  let i = 0;
+  while (i < entries.length) {
+    const entry = entries[i];
+    if (entry.kind === "career" && entry.isParallel) {
+      const month = entry.data.started_at.slice(0, 7);
+      const group: CareerEntry[] = [entry.data];
+      let j = i + 1;
+      while (j < entries.length) {
+        const next = entries[j];
+        if (
+          next.kind === "career" &&
+          next.isParallel &&
+          next.data.started_at.slice(0, 7) === month
+        ) {
+          group.push(next.data);
+          j++;
+        } else {
+          break;
+        }
+      }
+      if (group.length >= 2) {
+        result.push({ kind: "career-group", items: group });
+      } else {
+        // isParallel=true だが連続仲間なし（防衛的フォールバック）→ 通常カード
+        result.push(entry);
+      }
+      i = j;
+    } else {
+      result.push(entry as RenderEntry);
+      i++;
+    }
+  }
+  return result;
 }
 
 // ─── Badge sub-components ─────────────────────────────────────────────────────
@@ -489,6 +545,87 @@ function EducationContent({ data }: { data: EducationEntry }) {
   );
 }
 
+/**
+ * 並行グループ内の個別カード（d-2 スタイル）。
+ * CareerContent と同内容だが、padding 規則と border-left は CSS クラスで制御する。
+ */
+function ParallelCareerCard({ data }: { data: CareerEntry }) {
+  const duration = formatDuration(data.started_at, data.ended_at);
+  return (
+    <div
+      className="d2-parallel-card"
+      style={{ flex: 1, padding: "10px 14px 14px", minWidth: 0 }}
+    >
+      {/* Company + badges */}
+      <div style={{ marginBottom: 2 }}>
+        <span
+          style={{
+            fontFamily: "'Noto Serif JP', serif",
+            fontSize: 14,
+            fontWeight: 700,
+            color: "var(--ink)",
+          }}
+        >
+          {data.company_name}
+        </span>
+        {data.is_current && <CurrentBadge />}
+        <ParallelBadge />
+      </div>
+
+      {/* Role label */}
+      <div
+        style={{
+          fontSize: 13,
+          color: "var(--ink-soft)",
+          marginBottom: data.role_title ? 2 : 0,
+        }}
+      >
+        {data.role_label}
+      </div>
+
+      {/* Role title (free text) */}
+      {data.role_title && (
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 4 }}>
+          {data.role_title}
+        </div>
+      )}
+
+      {/* Duration (mobile only — DateCol shows group range on desktop) */}
+      {duration && (
+        <div
+          className="tl-duration-mobile"
+          style={{
+            fontFamily: "Inter, sans-serif",
+            fontSize: 11,
+            color: "var(--ink-mute)",
+            marginBottom: 4,
+          }}
+        >
+          {formatYM(data.started_at)}
+          {" — "}
+          {data.is_current ? "現在" : data.ended_at ? formatYM(data.ended_at) : ""}
+          {" "}（{duration}）
+        </div>
+      )}
+
+      {/* Description */}
+      {data.description && (
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--ink-soft)",
+            lineHeight: 1.75,
+            margin: "6px 0 0",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {data.description}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // FutureContent は FutureSectionEditor に移行（Commit D）
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -502,8 +639,9 @@ export default function MergedTimeline({
   const hasFuture = future != null && (!!(future.text?.trim()) || viewerIsOwner);
   const parallelIds = buildParallelMap(careers);
   const entries = buildTimeline(careers, educations, hasFuture, parallelIds);
+  const renderEntries = groupParallelEntries(entries);
 
-  if (entries.length === 0) return null;
+  if (renderEntries.length === 0) return null;
 
   return (
     <>
@@ -541,6 +679,21 @@ export default function MergedTimeline({
           display: none;
         }
 
+        /* d-2: 並行勤務グループ — 横並びカード */
+        .d2-parallel-inner {
+          display: flex;
+          flex-direction: row;
+          background: var(--bg-tint);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        /* 2枚目以降のカードに縦区切り線 */
+        .d2-parallel-card + .d2-parallel-card {
+          border-left: 2px solid var(--line);
+        }
+
         @media (max-width: 639px) {
           .merged-timeline::before {
             left: 22px; /* center of 44px icon col */
@@ -557,11 +710,22 @@ export default function MergedTimeline({
           .tl-duration-mobile {
             display: block;
           }
+
+          /* モバイル: カードを縦積みに切り替え */
+          .d2-parallel-inner {
+            flex-direction: column;
+          }
+
+          /* 縦積み時は横線に切り替え */
+          .d2-parallel-card + .d2-parallel-card {
+            border-left: none;
+            border-top: 2px solid var(--line);
+          }
         }
       `}</style>
 
       <div className="merged-timeline">
-        {entries.map((entry, idx) => {
+        {renderEntries.map((entry, idx) => {
           if (entry.kind === "future") {
             return (
               <div key="future" className="tl-row">
@@ -613,6 +777,54 @@ export default function MergedTimeline({
                   <CareerIcon isCurrent={c.is_current} />
                 </div>
                 <CareerContent data={c} isParallel={entry.isParallel} />
+              </div>
+            );
+          }
+
+          if (entry.kind === "career-group") {
+            const items = entry.items;
+            const anyIsCurrent = items.some((c) => c.is_current);
+            // グループ共通の開始月（全件同一）
+            const groupStart = items[0].started_at;
+            // グループ終了: any is_current なら null（「現在」）、なければ最遅 ended_at
+            const groupEnd = anyIsCurrent
+              ? null
+              : items.reduce<string | null>((latest, c) => {
+                  if (!c.ended_at) return latest;
+                  return !latest || c.ended_at > latest ? c.ended_at : latest;
+                }, null);
+            const startLabel = formatYM(groupStart);
+            const endLabel = anyIsCurrent ? "現在" : groupEnd ? formatYM(groupEnd) : "";
+            const duration = formatDuration(groupStart, groupEnd);
+
+            return (
+              <div key={`group-${groupStart.slice(0, 7)}`} className="tl-row">
+                <div className="tl-date-col">
+                  <DateCol
+                    startLabel={startLabel}
+                    endLabel={endLabel}
+                    duration={duration}
+                  />
+                </div>
+                {/* アイコン: グループ内に is_current があれば royal, なければ muted（暫定 A-1 pending） */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "center",
+                    paddingTop: 8,
+                  }}
+                >
+                  <CareerIcon isCurrent={anyIsCurrent} />
+                </div>
+                {/* d-2: bg-tint 背景 + border-left 区切り */}
+                <div style={{ paddingTop: 8, paddingBottom: 20, paddingLeft: 12 }}>
+                  <div className="d2-parallel-inner">
+                    {items.map((c) => (
+                      <ParallelCareerCard key={c.id} data={c} />
+                    ))}
+                  </div>
+                </div>
               </div>
             );
           }
