@@ -18,8 +18,15 @@ export default async function ProfileEditPage() {
     .eq("auth_id", user.id)
     .maybeSingle();
 
-  // スキルタグ + 学歴 + 資格 を並列取得（RLS select_all=true、認証不問で取得可）
-  const [{ data: skillTagsRaw }, { data: educationsRaw }, { data: certificationsRaw }] = await Promise.all([
+  // スキルタグ + 学歴 + 資格 + 実績 + 受賞 + メディア掲載 を並列取得
+  const [
+    { data: skillTagsRaw },
+    { data: educationsRaw },
+    { data: certificationsRaw },
+    { data: achievementsRaw },
+    { data: awardsRaw },
+    { data: mediaAppearancesRaw },
+  ] = await Promise.all([
     owUser
       ? supabase
           .from("ow_user_skill_tags")
@@ -41,6 +48,27 @@ export default async function ProfileEditPage() {
           .eq("user_id", owUser.id)
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] }),
+    owUser
+      ? supabase
+          .from("ow_user_achievements")
+          .select("id, title, value, unit, description, period_start, period_end, sort_order")
+          .eq("user_id", owUser.id)
+          .order("sort_order", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    owUser
+      ? supabase
+          .from("ow_user_awards")
+          .select("id, title, issuer, awarded_at, description, sort_order")
+          .eq("user_id", owUser.id)
+          .order("sort_order", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    owUser
+      ? supabase
+          .from("ow_user_media_appearances")
+          .select("id, title, media_name, url, thumbnail_url, appeared_at, description, sort_order")
+          .eq("user_id", owUser.id)
+          .order("sort_order", { ascending: true })
+      : Promise.resolve({ data: [] }),
   ]);
 
   return (
@@ -51,6 +79,9 @@ export default async function ProfileEditPage() {
       initialEducations={educationsRaw ?? []}
       initialCertifications={certificationsRaw ?? []}
       initialSocialLinks={(owUser?.social_links as Record<string, string> | null) ?? {}}
+      initialAchievements={achievementsRaw ?? []}
+      initialAwards={awardsRaw ?? []}
+      initialMediaAppearances={mediaAppearancesRaw ?? []}
     />
   );
 }

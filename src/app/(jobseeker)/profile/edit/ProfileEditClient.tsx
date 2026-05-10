@@ -44,7 +44,38 @@ type Certification = {
 /** JSONB キー名は "x"（ν-8 段階6-1 E で twitter → x 移行済み）。値は URL 文字列。空文字列 = 未設定。 */
 type SocialLinks = Partial<Record<SocialPlatform, string>>;
 
-type ProfileTab = "basic" | "career" | "skills" | "certs" | "socials" | "account";
+type Achievement = {
+  id: string;
+  title: string;
+  value: number | null;
+  unit: string | null;
+  description: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  sort_order: number;
+};
+
+type Award = {
+  id: string;
+  title: string;
+  issuer: string | null;
+  awarded_at: string | null;
+  description: string | null;
+  sort_order: number;
+};
+
+type MediaAppearance = {
+  id: string;
+  title: string;
+  media_name: string | null;
+  url: string | null;
+  thumbnail_url: string | null;
+  appeared_at: string | null;
+  description: string | null;
+  sort_order: number;
+};
+
+type ProfileTab = "basic" | "career" | "skills" | "certs" | "achievements" | "socials" | "account";
 
 type OwUser = {
   id: string;
@@ -102,12 +133,13 @@ function formatYMToDate(year: string, month: string): string | null {
 }
 
 const PROFILE_TABS: TabItem[] = [
-  { key: "basic",   label: "基本情報" },
-  { key: "career",  label: "職歴・学歴" },
-  { key: "skills",  label: "スキル" },
-  { key: "certs",   label: "資格" },
-  { key: "socials", label: "SNS" },
-  { key: "account", label: "アカウント設定" },
+  { key: "basic",        label: "基本情報" },
+  { key: "career",       label: "職歴・学歴" },
+  { key: "skills",       label: "スキル" },
+  { key: "certs",        label: "資格" },
+  { key: "achievements", label: "実績・受賞" },
+  { key: "socials",      label: "SNS" },
+  { key: "account",      label: "アカウント設定" },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -1337,6 +1369,675 @@ function CertificationEditor({
   );
 }
 
+// ─── 実績・受賞タブ — shared helpers ─────────────────────────────────────────
+
+/** "2024-06-01" → "2024年6月" */
+function fmtYM(s: string | null): string {
+  if (!s) return "";
+  const [y, m] = s.split("-");
+  if (!y || !m) return s;
+  return `${y}年${parseInt(m, 10)}月`;
+}
+/** "<input type=month>" value ("2024-06") → "2024-06-01" or null */
+function monthToDate(s: string): string | null {
+  return s ? `${s}-01` : null;
+}
+/** "2024-06-01" → "2024-06" (for <input type=month>) */
+function dateToMonth(s: string | null): string {
+  return s ? s.slice(0, 7) : "";
+}
+
+// ── shared micro-components ──────────────────────────────────────────────────
+
+function AchieveIconBtn({
+  onClick, title, danger, children,
+}: { onClick: () => void; title?: string; danger?: boolean; children: React.ReactNode }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button type="button" onClick={onClick} title={title}
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      style={{
+        width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center",
+        border: "none",
+        background: hovered ? (danger ? "var(--error-soft)" : "var(--line-soft)") : "transparent",
+        borderRadius: 5, fontSize: 13,
+        color: danger ? "var(--error)" : "var(--ink-mute)",
+        cursor: "pointer", transition: "background 0.12s", padding: 0, fontFamily: "inherit", flexShrink: 0,
+      }}>{children}</button>
+  );
+}
+
+const aef = (): React.CSSProperties => ({
+  width: "100%", border: "1.5px solid var(--line)", borderRadius: 8,
+  padding: "8px 10px", fontSize: 13, color: "var(--ink)",
+  background: "#fff", outline: "none", fontFamily: "inherit",
+  boxSizing: "border-box", transition: "border-color 0.15s",
+});
+const ael = (): React.CSSProperties => ({
+  display: "block", fontSize: 11, fontWeight: 700,
+  color: "var(--ink-mute)", letterSpacing: "0.08em",
+  textTransform: "uppercase", marginBottom: 4,
+});
+const formBox: React.CSSProperties = {
+  background: "var(--bg-tint)", border: "1.5px solid var(--royal)", borderRadius: 10, padding: 16,
+  display: "flex", flexDirection: "column", gap: 14, boxShadow: "0 0 0 3px rgba(0,35,102,0.06)",
+};
+function AchieveFormActions({ isSaving, canSave, onSave, onCancel }: {
+  isSaving: boolean; canSave: boolean; onSave: () => void; onCancel: () => void;
+}) {
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
+      <button type="button" onClick={onCancel} disabled={isSaving}
+        style={{ padding: "7px 16px", background: "#fff", color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isSaving ? "default" : "pointer", fontFamily: "inherit", opacity: isSaving ? 0.5 : 1 }}>
+        キャンセル
+      </button>
+      <button type="button" onClick={canSave ? onSave : undefined} disabled={!canSave}
+        style={{ padding: "7px 18px", background: canSave ? "var(--royal)" : "var(--ink-mute)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: canSave ? "pointer" : "default", fontFamily: "inherit", transition: "background 0.15s" }}>
+        {isSaving ? "保存中…" : "保存"}
+      </button>
+    </div>
+  );
+}
+function AddSectionBtn({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick}
+      style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px 14px", width: "100%", background: "transparent", border: "1px dashed var(--line)", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit", transition: "border-color 0.15s, color 0.15s" }}>
+      <span style={{ fontSize: 15, lineHeight: 1 }}>+</span>{label}
+    </button>
+  );
+}
+
+// ─── AchievementEditor ────────────────────────────────────────────────────────
+
+type AchievementDraft = {
+  title: string; value: string; unit: string;
+  description: string; period_start: string; period_end: string;
+};
+const EMPTY_ACH_DRAFT: AchievementDraft = {
+  title: "", value: "", unit: "", description: "", period_start: "", period_end: "",
+};
+function draftFromAch(a: Achievement): AchievementDraft {
+  return {
+    title: a.title, value: a.value !== null ? String(a.value) : "",
+    unit: a.unit ?? "", description: a.description ?? "",
+    period_start: dateToMonth(a.period_start), period_end: dateToMonth(a.period_end),
+  };
+}
+
+function AchievementForm({
+  draft, onDraftChange, isSaving, onSave, onCancel,
+}: { draft: AchievementDraft; onDraftChange: (d: AchievementDraft) => void; isSaving: boolean; onSave: () => void; onCancel: () => void; }) {
+  const set = useCallback((k: keyof AchievementDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
+  const canSave = !!draft.title.trim() && !isSaving;
+  return (
+    <div style={formBox}>
+      <div>
+        <label style={ael()}>タイトル（実績の名称）*</label>
+        <input type="text" value={draft.title} onChange={(e) => set("title", e.target.value)}
+          placeholder="例：新規顧客獲得数 150%達成" maxLength={100} disabled={isSaving} style={aef()} />
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: "0 0 120px" }}>
+          <label style={ael()}>数値（任意）</label>
+          <input type="number" value={draft.value} onChange={(e) => set("value", e.target.value)}
+            placeholder="例：150" disabled={isSaving} style={{ ...aef(), width: "100%" }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={ael()}>単位（任意）</label>
+          <input type="text" value={draft.unit} onChange={(e) => set("unit", e.target.value)}
+            placeholder="例：%、件、万円" maxLength={20} disabled={isSaving} style={aef()} />
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <label style={ael()}>開始年月（任意）</label>
+          <input type="month" value={draft.period_start} onChange={(e) => set("period_start", e.target.value)}
+            disabled={isSaving} style={aef()} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={ael()}>終了年月（任意）</label>
+          <input type="month" value={draft.period_end} onChange={(e) => set("period_end", e.target.value)}
+            disabled={isSaving} style={aef()} />
+        </div>
+      </div>
+      <div>
+        <label style={ael()}>詳細（任意）</label>
+        <textarea value={draft.description} onChange={(e) => set("description", e.target.value)}
+          placeholder="達成背景や取り組み内容など" maxLength={500} rows={3} disabled={isSaving}
+          style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
+      </div>
+      <AchieveFormActions isSaving={isSaving} canSave={canSave} onSave={onSave} onCancel={onCancel} />
+    </div>
+  );
+}
+
+function AchievementCard({
+  item, onEdit, onDelete,
+}: { item: Achievement; onEdit: () => void; onDelete: () => void; }) {
+  const [hovered, setHovered] = useState(false);
+  const period = [fmtYM(item.period_start), fmtYM(item.period_end)].filter(Boolean).join(" 〜 ");
+  return (
+    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      style={{ padding: "10px 0", position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{item.title}</span>
+            {item.value !== null && (
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", fontFamily: "Inter, sans-serif" }}>
+                {item.value.toLocaleString()}{item.unit || ""}
+              </span>
+            )}
+          </div>
+          {period && (
+            <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginBottom: 2 }}>{period}</div>
+          )}
+          {item.description && (
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
+          <AchieveIconBtn onClick={onEdit} title="編集">✎</AchieveIconBtn>
+          <AchieveIconBtn onClick={onDelete} title="削除" danger>×</AchieveIconBtn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AchievementEditor({
+  achievements, setAchievements,
+}: { achievements: Achievement[]; setAchievements: React.Dispatch<React.SetStateAction<Achievement[]>>; }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<AchievementDraft>(EMPTY_ACH_DRAFT);
+  const [editSaving, setEditSaving] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [addDraft, setAddDraft] = useState<AchievementDraft>(EMPTY_ACH_DRAFT);
+  const [addSaving, setAddSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Achievement | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
+  const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
+    setToastVariant(variant); setToastMsg(msg);
+  }, []);
+
+  const makeBody = (d: AchievementDraft) => ({
+    title: d.title.trim(),
+    value: d.value !== "" && !isNaN(parseInt(d.value, 10)) ? parseInt(d.value, 10) : null,
+    unit: d.unit.trim() || null,
+    description: d.description.trim() || null,
+    period_start: monthToDate(d.period_start),
+    period_end: monthToDate(d.period_end),
+  });
+
+  const saveEdit = useCallback(async () => {
+    if (!editingId) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/jobseeker/achievements/${editingId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makeBody(editDraft)),
+      });
+      if (!res.ok) throw new Error();
+      const updated: Achievement = await res.json();
+      setAchievements((prev) => prev.map((a) => (a.id === editingId ? { ...a, ...updated } : a)));
+      setEditingId(null); setEditDraft(EMPTY_ACH_DRAFT);
+      showToast("実績を更新しました");
+    } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
+    finally { setEditSaving(false); }
+  }, [editingId, editDraft, setAchievements, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveAdd = useCallback(async () => {
+    setAddSaving(true);
+    try {
+      const res = await fetch("/api/jobseeker/achievements", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makeBody(addDraft)),
+      });
+      if (!res.ok) throw new Error();
+      const inserted: Achievement = await res.json();
+      setAchievements((prev) => [...prev, inserted]);
+      setAdding(false); setAddDraft(EMPTY_ACH_DRAFT);
+      showToast("実績を追加しました");
+    } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
+    finally { setAddSaving(false); }
+  }, [addDraft, setAchievements, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/jobseeker/achievements/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setAchievements((prev) => prev.filter((a) => a.id !== deleteTarget.id));
+      setDeleteTarget(null); showToast("実績を削除しました");
+    } catch { showToast("削除に失敗しました。もう一度お試しください。", "error"); }
+    finally { setDeleting(false); }
+  }, [deleteTarget, setAchievements, showToast]);
+
+  return (
+    <div style={{ marginTop: 0 }}>
+      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>数値実績</div>
+      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+        定量的な成果を登録できます。売上達成率・顧客獲得数・コスト削減など。
+      </div>
+      {achievements.map((item, idx) => (
+        <div key={item.id}>
+          {editingId === item.id ? (
+            <AchievementForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving}
+              onSave={() => { void saveEdit(); }} onCancel={() => { setEditingId(null); setEditDraft(EMPTY_ACH_DRAFT); }} />
+          ) : (
+            <AchievementCard item={item} onEdit={() => { setEditingId(item.id); setEditDraft(draftFromAch(item)); }}
+              onDelete={() => setDeleteTarget(item)} />
+          )}
+          {idx < achievements.length - 1 && editingId !== item.id && (
+            <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
+          )}
+        </div>
+      ))}
+      {achievements.length === 0 && !adding && (
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
+          数値実績はまだ登録されていません
+        </div>
+      )}
+      {adding && (
+        <div style={{ marginTop: achievements.length > 0 ? 12 : 0 }}>
+          <AchievementForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving}
+            onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_ACH_DRAFT); }} />
+        </div>
+      )}
+      {!adding && <AddSectionBtn label="数値実績を追加" onClick={() => setAdding(true)} />}
+      <ConfirmDialog isOpen={!!deleteTarget} title="実績を削除しますか？"
+        message={deleteTarget ? `「${deleteTarget.title}」を削除します。この操作は取り消せません。` : ""}
+        confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
+        onConfirm={() => { void confirmDelete(); }} onCancel={() => setDeleteTarget(null)} />
+      {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
+    </div>
+  );
+}
+
+// ─── AwardEditor ──────────────────────────────────────────────────────────────
+
+type AwardDraft = { title: string; issuer: string; awarded_at: string; description: string; };
+const EMPTY_AWARD_DRAFT: AwardDraft = { title: "", issuer: "", awarded_at: "", description: "" };
+function draftFromAward(a: Award): AwardDraft {
+  return { title: a.title, issuer: a.issuer ?? "", awarded_at: dateToMonth(a.awarded_at), description: a.description ?? "" };
+}
+
+function AwardForm({
+  draft, onDraftChange, isSaving, onSave, onCancel,
+}: { draft: AwardDraft; onDraftChange: (d: AwardDraft) => void; isSaving: boolean; onSave: () => void; onCancel: () => void; }) {
+  const set = useCallback((k: keyof AwardDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
+  const canSave = !!draft.title.trim() && !isSaving;
+  return (
+    <div style={formBox}>
+      <div>
+        <label style={ael()}>受賞名 *</label>
+        <input type="text" value={draft.title} onChange={(e) => set("title", e.target.value)}
+          placeholder="例：社内MVP賞、〇〇業界アワード最優秀賞" maxLength={200} disabled={isSaving} style={aef()} />
+      </div>
+      <div>
+        <label style={ael()}>授与機関（任意）</label>
+        <input type="text" value={draft.issuer} onChange={(e) => set("issuer", e.target.value)}
+          placeholder="例：株式会社○○、〇〇協会" maxLength={100} disabled={isSaving} style={aef()} />
+      </div>
+      <div>
+        <label style={ael()}>受賞年月（任意）</label>
+        <input type="month" value={draft.awarded_at} onChange={(e) => set("awarded_at", e.target.value)}
+          disabled={isSaving} style={{ ...aef(), maxWidth: 180 }} />
+      </div>
+      <div>
+        <label style={ael()}>詳細（任意）</label>
+        <textarea value={draft.description} onChange={(e) => set("description", e.target.value)}
+          placeholder="受賞の背景や内容など" maxLength={500} rows={3} disabled={isSaving}
+          style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
+      </div>
+      <AchieveFormActions isSaving={isSaving} canSave={canSave} onSave={onSave} onCancel={onCancel} />
+    </div>
+  );
+}
+
+function AwardCard({
+  item, onEdit, onDelete,
+}: { item: Award; onEdit: () => void; onDelete: () => void; }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      style={{ padding: "10px 0", position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{item.title}</div>
+          {(item.issuer || item.awarded_at) && (
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 1 }}>
+              {[item.issuer, fmtYM(item.awarded_at)].filter(Boolean).join("　")}
+            </div>
+          )}
+          {item.description && (
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
+          <AchieveIconBtn onClick={onEdit} title="編集">✎</AchieveIconBtn>
+          <AchieveIconBtn onClick={onDelete} title="削除" danger>×</AchieveIconBtn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AwardEditor({
+  awards, setAwards,
+}: { awards: Award[]; setAwards: React.Dispatch<React.SetStateAction<Award[]>>; }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<AwardDraft>(EMPTY_AWARD_DRAFT);
+  const [editSaving, setEditSaving] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [addDraft, setAddDraft] = useState<AwardDraft>(EMPTY_AWARD_DRAFT);
+  const [addSaving, setAddSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Award | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
+  const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
+    setToastVariant(variant); setToastMsg(msg);
+  }, []);
+
+  const makeBody = (d: AwardDraft) => ({
+    title: d.title.trim(), issuer: d.issuer.trim() || null,
+    awarded_at: monthToDate(d.awarded_at), description: d.description.trim() || null,
+  });
+
+  const saveEdit = useCallback(async () => {
+    if (!editingId) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/jobseeker/awards/${editingId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makeBody(editDraft)),
+      });
+      if (!res.ok) throw new Error();
+      const updated: Award = await res.json();
+      setAwards((prev) => prev.map((a) => (a.id === editingId ? { ...a, ...updated } : a)));
+      setEditingId(null); setEditDraft(EMPTY_AWARD_DRAFT);
+      showToast("受賞歴を更新しました");
+    } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
+    finally { setEditSaving(false); }
+  }, [editingId, editDraft, setAwards, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveAdd = useCallback(async () => {
+    setAddSaving(true);
+    try {
+      const res = await fetch("/api/jobseeker/awards", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makeBody(addDraft)),
+      });
+      if (!res.ok) throw new Error();
+      const inserted: Award = await res.json();
+      setAwards((prev) => [...prev, inserted]);
+      setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT);
+      showToast("受賞歴を追加しました");
+    } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
+    finally { setAddSaving(false); }
+  }, [addDraft, setAwards, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/jobseeker/awards/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setAwards((prev) => prev.filter((a) => a.id !== deleteTarget.id));
+      setDeleteTarget(null); showToast("受賞歴を削除しました");
+    } catch { showToast("削除に失敗しました。もう一度お試しください。", "error"); }
+    finally { setDeleting(false); }
+  }, [deleteTarget, setAwards, showToast]);
+
+  return (
+    <div style={{ marginTop: 36 }}>
+      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>受賞歴</div>
+      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+        社内外のアワード・表彰・コンペ入賞などを登録できます。
+      </div>
+      {awards.map((item, idx) => (
+        <div key={item.id}>
+          {editingId === item.id ? (
+            <AwardForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving}
+              onSave={() => { void saveEdit(); }} onCancel={() => { setEditingId(null); setEditDraft(EMPTY_AWARD_DRAFT); }} />
+          ) : (
+            <AwardCard item={item} onEdit={() => { setEditingId(item.id); setEditDraft(draftFromAward(item)); }}
+              onDelete={() => setDeleteTarget(item)} />
+          )}
+          {idx < awards.length - 1 && editingId !== item.id && (
+            <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
+          )}
+        </div>
+      ))}
+      {awards.length === 0 && !adding && (
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
+          受賞歴はまだ登録されていません
+        </div>
+      )}
+      {adding && (
+        <div style={{ marginTop: awards.length > 0 ? 12 : 0 }}>
+          <AwardForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving}
+            onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT); }} />
+        </div>
+      )}
+      {!adding && <AddSectionBtn label="受賞歴を追加" onClick={() => setAdding(true)} />}
+      <ConfirmDialog isOpen={!!deleteTarget} title="受賞歴を削除しますか？"
+        message={deleteTarget ? `「${deleteTarget.title}」を削除します。この操作は取り消せません。` : ""}
+        confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
+        onConfirm={() => { void confirmDelete(); }} onCancel={() => setDeleteTarget(null)} />
+      {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
+    </div>
+  );
+}
+
+// ─── MediaAppearanceEditor ────────────────────────────────────────────────────
+
+type MediaAppearanceDraft = {
+  title: string; media_name: string; url: string;
+  thumbnail_url: string; appeared_at: string; description: string;
+};
+const EMPTY_MA_DRAFT: MediaAppearanceDraft = {
+  title: "", media_name: "", url: "", thumbnail_url: "", appeared_at: "", description: "",
+};
+function draftFromMA(m: MediaAppearance): MediaAppearanceDraft {
+  return {
+    title: m.title, media_name: m.media_name ?? "", url: m.url ?? "",
+    thumbnail_url: m.thumbnail_url ?? "", appeared_at: dateToMonth(m.appeared_at),
+    description: m.description ?? "",
+  };
+}
+
+function MediaAppearanceForm({
+  draft, onDraftChange, isSaving, onSave, onCancel,
+}: { draft: MediaAppearanceDraft; onDraftChange: (d: MediaAppearanceDraft) => void; isSaving: boolean; onSave: () => void; onCancel: () => void; }) {
+  const set = useCallback((k: keyof MediaAppearanceDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
+  const canSave = !!draft.title.trim() && !isSaving;
+  return (
+    <div style={formBox}>
+      <div>
+        <label style={ael()}>掲載タイトル *</label>
+        <input type="text" value={draft.title} onChange={(e) => set("title", e.target.value)}
+          placeholder="例：○○CEOインタビュー「SaaSの未来」" maxLength={200} disabled={isSaving} style={aef()} />
+      </div>
+      <div>
+        <label style={ael()}>媒体名（任意）</label>
+        <input type="text" value={draft.media_name} onChange={(e) => set("media_name", e.target.value)}
+          placeholder="例：Forbes Japan、日経ビジネス" maxLength={100} disabled={isSaving} style={aef()} />
+      </div>
+      <div>
+        <label style={ael()}>掲載年月（任意）</label>
+        <input type="month" value={draft.appeared_at} onChange={(e) => set("appeared_at", e.target.value)}
+          disabled={isSaving} style={{ ...aef(), maxWidth: 180 }} />
+      </div>
+      <div>
+        <label style={ael()}>URL（任意）</label>
+        <input type="url" value={draft.url} onChange={(e) => set("url", e.target.value)}
+          placeholder="https://..." disabled={isSaving} style={aef()} />
+      </div>
+      <div>
+        <label style={ael()}>サムネイル URL（任意）</label>
+        <input type="url" value={draft.thumbnail_url} onChange={(e) => set("thumbnail_url", e.target.value)}
+          placeholder="https://..." disabled={isSaving} style={aef()} />
+      </div>
+      <div>
+        <label style={ael()}>詳細（任意）</label>
+        <textarea value={draft.description} onChange={(e) => set("description", e.target.value)}
+          placeholder="掲載の背景や内容など" maxLength={500} rows={3} disabled={isSaving}
+          style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
+      </div>
+      <AchieveFormActions isSaving={isSaving} canSave={canSave} onSave={onSave} onCancel={onCancel} />
+    </div>
+  );
+}
+
+function MediaAppearanceCard({
+  item, onEdit, onDelete,
+}: { item: MediaAppearance; onEdit: () => void; onDelete: () => void; }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      style={{ padding: "10px 0", position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+            {item.url ? (
+              <a href={item.url} target="_blank" rel="noopener noreferrer"
+                style={{ color: "var(--ink)", textDecoration: "underline", textUnderlineOffset: 2 }}>
+                {item.title}
+              </a>
+            ) : item.title}
+          </div>
+          {(item.media_name || item.appeared_at) && (
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 1 }}>
+              {[item.media_name, fmtYM(item.appeared_at)].filter(Boolean).join("　")}
+            </div>
+          )}
+          {item.description && (
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
+          <AchieveIconBtn onClick={onEdit} title="編集">✎</AchieveIconBtn>
+          <AchieveIconBtn onClick={onDelete} title="削除" danger>×</AchieveIconBtn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MediaAppearanceEditor({
+  mediaAppearances, setMediaAppearances,
+}: { mediaAppearances: MediaAppearance[]; setMediaAppearances: React.Dispatch<React.SetStateAction<MediaAppearance[]>>; }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<MediaAppearanceDraft>(EMPTY_MA_DRAFT);
+  const [editSaving, setEditSaving] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [addDraft, setAddDraft] = useState<MediaAppearanceDraft>(EMPTY_MA_DRAFT);
+  const [addSaving, setAddSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<MediaAppearance | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
+  const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
+    setToastVariant(variant); setToastMsg(msg);
+  }, []);
+
+  const makeBody = (d: MediaAppearanceDraft) => ({
+    title: d.title.trim(), media_name: d.media_name.trim() || null,
+    url: d.url.trim() || null, thumbnail_url: d.thumbnail_url.trim() || null,
+    appeared_at: monthToDate(d.appeared_at), description: d.description.trim() || null,
+  });
+
+  const saveEdit = useCallback(async () => {
+    if (!editingId) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/jobseeker/media-appearances/${editingId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makeBody(editDraft)),
+      });
+      if (!res.ok) throw new Error();
+      const updated: MediaAppearance = await res.json();
+      setMediaAppearances((prev) => prev.map((m) => (m.id === editingId ? { ...m, ...updated } : m)));
+      setEditingId(null); setEditDraft(EMPTY_MA_DRAFT);
+      showToast("メディア掲載を更新しました");
+    } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
+    finally { setEditSaving(false); }
+  }, [editingId, editDraft, setMediaAppearances, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveAdd = useCallback(async () => {
+    setAddSaving(true);
+    try {
+      const res = await fetch("/api/jobseeker/media-appearances", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makeBody(addDraft)),
+      });
+      if (!res.ok) throw new Error();
+      const inserted: MediaAppearance = await res.json();
+      setMediaAppearances((prev) => [...prev, inserted]);
+      setAdding(false); setAddDraft(EMPTY_MA_DRAFT);
+      showToast("メディア掲載を追加しました");
+    } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
+    finally { setAddSaving(false); }
+  }, [addDraft, setMediaAppearances, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/jobseeker/media-appearances/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setMediaAppearances((prev) => prev.filter((m) => m.id !== deleteTarget.id));
+      setDeleteTarget(null); showToast("メディア掲載を削除しました");
+    } catch { showToast("削除に失敗しました。もう一度お試しください。", "error"); }
+    finally { setDeleting(false); }
+  }, [deleteTarget, setMediaAppearances, showToast]);
+
+  return (
+    <div style={{ marginTop: 36 }}>
+      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>メディア掲載</div>
+      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+        取材・インタビュー・記事掲載・登壇などを登録できます。
+      </div>
+      {mediaAppearances.map((item, idx) => (
+        <div key={item.id}>
+          {editingId === item.id ? (
+            <MediaAppearanceForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving}
+              onSave={() => { void saveEdit(); }} onCancel={() => { setEditingId(null); setEditDraft(EMPTY_MA_DRAFT); }} />
+          ) : (
+            <MediaAppearanceCard item={item} onEdit={() => { setEditingId(item.id); setEditDraft(draftFromMA(item)); }}
+              onDelete={() => setDeleteTarget(item)} />
+          )}
+          {idx < mediaAppearances.length - 1 && editingId !== item.id && (
+            <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
+          )}
+        </div>
+      ))}
+      {mediaAppearances.length === 0 && !adding && (
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
+          メディア掲載はまだ登録されていません
+        </div>
+      )}
+      {adding && (
+        <div style={{ marginTop: mediaAppearances.length > 0 ? 12 : 0 }}>
+          <MediaAppearanceForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving}
+            onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_MA_DRAFT); }} />
+        </div>
+      )}
+      {!adding && <AddSectionBtn label="メディア掲載を追加" onClick={() => setAdding(true)} />}
+      <ConfirmDialog isOpen={!!deleteTarget} title="メディア掲載を削除しますか？"
+        message={deleteTarget ? `「${deleteTarget.title}」を削除します。この操作は取り消せません。` : ""}
+        confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
+        onConfirm={() => { void confirmDelete(); }} onCancel={() => setDeleteTarget(null)} />
+      {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ProfileEditClient({
@@ -1346,6 +2047,9 @@ export default function ProfileEditClient({
   initialEducations,
   initialCertifications,
   initialSocialLinks,
+  initialAchievements,
+  initialAwards,
+  initialMediaAppearances,
 }: {
   owUser: OwUser;
   authEmail: string;
@@ -1353,6 +2057,9 @@ export default function ProfileEditClient({
   initialEducations: Education[];
   initialCertifications: Certification[];
   initialSocialLinks: SocialLinks;
+  initialAchievements: Achievement[];
+  initialAwards: Award[];
+  initialMediaAppearances: MediaAppearance[];
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
 
@@ -1401,6 +2108,11 @@ export default function ProfileEditClient({
   // ── 資格タブの状態 ───────────────────────────────────────────────────────
   const [certifications, setCertifications] = useState<Certification[]>(initialCertifications);
   const [certSaveStatus, setCertSaveStatus] = useState<SaveStatus>("idle");
+
+  // ── 実績・受賞タブの状態 ─────────────────────────────────────────────────
+  const [achievements,     setAchievements]     = useState<Achievement[]>(initialAchievements);
+  const [awards,           setAwards]           = useState<Award[]>(initialAwards);
+  const [mediaAppearances, setMediaAppearances] = useState<MediaAppearance[]>(initialMediaAppearances);
 
   // ── SNS タブの状態 ───────────────────────────────────────────────────────
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(initialSocialLinks);
@@ -1663,6 +2375,15 @@ export default function ProfileEditClient({
             setCertifications={setCertifications}
             setSaveStatus={setCertSaveStatus}
           />
+        )}
+
+        {/* 実績・受賞タブ */}
+        {activeTab === "achievements" && (
+          <div style={{ maxWidth: 680 }}>
+            <AchievementEditor achievements={achievements} setAchievements={setAchievements} />
+            <AwardEditor awards={awards} setAwards={setAwards} />
+            <MediaAppearanceEditor mediaAppearances={mediaAppearances} setMediaAppearances={setMediaAppearances} />
+          </div>
         )}
 
         {/* SNS タブ */}
