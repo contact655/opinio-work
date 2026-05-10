@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
+import StoryAccordion from "./StoryAccordion";
 
 // ── Role options (seeded in ow_roles) ──────────────────────────────────────────
 
@@ -465,6 +466,9 @@ function StintCard({
           <IconButton onClick={onDelete} title="削除" danger>×</IconButton>
         </div>
       </div>
+
+      {/* ストーリーアコーディオン */}
+      <StoryAccordion experienceId={stint.id} />
     </div>
   );
 }
