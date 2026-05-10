@@ -1,4 +1,4 @@
-import { Briefcase, GraduationCap, Star } from "lucide-react";
+import { Briefcase, GraduationCap } from "lucide-react";
 
 // ─── Public types (re-exported for use in Commit C) ───────────────────────────
 
@@ -26,11 +26,20 @@ export interface EducationEntry {
   is_current: boolean;
 }
 
+export interface FutureData {
+  /** ow_users.future_aspirations テキスト */
+  text: string | null;
+  /** ow_users.avatar_color（CSS gradient 文字列）。NULL の場合は親側でフォールバック値を渡す */
+  avatarColor: string;
+  /** アバターイニシャル（例: "田"）。通常は name[0] */
+  initial: string;
+}
+
 export interface MergedTimelineProps {
   careers: CareerEntry[];
   educations: EducationEntry[];
-  /** ow_users.future_aspirations テキスト */
-  future?: string | null;
+  /** future_aspirations + アバター情報。null の場合はセクション非表示 */
+  future?: FutureData | null;
   /** プロフィールオーナー本人が閲覧中かどうか（CTA 表示制御） */
   viewerIsOwner?: boolean;
 }
@@ -255,14 +264,19 @@ function EducationIcon({ isCurrent }: { isCurrent: boolean }) {
   );
 }
 
-function FutureIcon() {
+function FutureIcon({ avatarColor, initial }: { avatarColor: string; initial: string }) {
   return (
     <div
       style={{
-        width: 36,
-        height: 36,
+        width: 40,
+        height: 40,
         borderRadius: "50%",
-        background: "var(--warm)",
+        background: avatarColor,
+        border: "2px solid #fff",
+        boxShadow: "0 0 0 1px var(--royal-100)",
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: 700,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -272,7 +286,7 @@ function FutureIcon() {
         zIndex: 1,
       }}
     >
-      <Star size={16} color="#fff" strokeWidth={2} fill="#fff" />
+      {initial}
     </div>
   );
 }
@@ -475,13 +489,13 @@ function EducationContent({ data }: { data: EducationEntry }) {
 }
 
 function FutureContent({
-  text,
+  future,
   viewerIsOwner,
 }: {
-  text: string | null | undefined;
+  future: FutureData;
   viewerIsOwner: boolean;
 }) {
-  const hasText = !!text?.trim();
+  const hasText = !!future.text?.trim();
 
   return (
     <div style={{ paddingTop: 8, paddingBottom: 24, paddingLeft: 12 }}>
@@ -507,7 +521,7 @@ function FutureContent({
             whiteSpace: "pre-wrap",
           }}
         >
-          {text}
+          {future.text}
         </p>
       ) : viewerIsOwner ? (
         /* CTA placeholder — onClick は Commit D で追加 */
@@ -527,8 +541,7 @@ function FutureContent({
             fontFamily: "'Noto Sans JP', sans-serif",
           }}
         >
-          <Star size={14} strokeWidth={2} />
-          目指す姿を書いてみる
+          ✦ 目指す姿を書いてみる
         </button>
       ) : null}
     </div>
@@ -543,7 +556,7 @@ export default function MergedTimeline({
   future,
   viewerIsOwner = false,
 }: MergedTimelineProps) {
-  const hasFuture = !!(future?.trim()) || viewerIsOwner;
+  const hasFuture = future != null && (!!(future.text?.trim()) || viewerIsOwner);
   const parallelIds = buildParallelMap(careers);
   const entries = buildTimeline(careers, educations, hasFuture, parallelIds);
 
@@ -618,9 +631,12 @@ export default function MergedTimeline({
                     paddingTop: 8,
                   }}
                 >
-                  <FutureIcon />
+                  <FutureIcon
+                    avatarColor={future!.avatarColor}
+                    initial={future!.initial}
+                  />
                 </div>
-                <FutureContent text={future} viewerIsOwner={viewerIsOwner} />
+                <FutureContent future={future!} viewerIsOwner={viewerIsOwner} />
               </div>
             );
           }
