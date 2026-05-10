@@ -183,12 +183,14 @@ function StintForm({
   draft,
   onDraftChange,
   isSaving,
+  justSaved,
   onSave,
   onCancel,
 }: {
   draft: StintDraft;
   onDraftChange: (d: StintDraft) => void;
   isSaving: boolean;
+  justSaved?: boolean;
   onSave: () => void;
   onCancel: () => void;
 }) {
@@ -207,6 +209,7 @@ function StintForm({
   const periodInvalid = !draft.isCurrent && !!draft.endedAt && draft.startedAt > draft.endedAt;
   const isValid = !!draft.companyName.trim() && !!draft.roleCategoryId && !!draft.startedAt;
   const canSave = isValid && !descOver && !whyOver && !periodInvalid && !isSaving;
+  const effectivelyDisabled = !canSave || !!justSaved;
 
   return (
     <div
@@ -354,11 +357,16 @@ function StintForm({
         </button>
         <button
           type="button"
-          onClick={canSave ? onSave : undefined}
-          disabled={!canSave}
-          style={{ padding: "7px 18px", background: canSave ? "var(--royal)" : "var(--ink-mute)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: canSave ? "pointer" : "default", fontFamily: "inherit", transition: "background 0.15s" }}
+          onClick={effectivelyDisabled ? undefined : onSave}
+          disabled={effectivelyDisabled}
+          style={{
+            padding: "7px 18px", minWidth: 130,
+            background: justSaved ? "var(--success)" : canSave ? "var(--royal)" : "var(--ink-mute)",
+            color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700,
+            cursor: effectivelyDisabled ? "default" : "pointer", fontFamily: "inherit", transition: "background 0.2s",
+          }}
         >
-          {isSaving ? "保存中…" : "保存"}
+          {isSaving ? "保存中…" : justSaved ? "✓ 保存しました" : "保存"}
         </button>
       </div>
     </div>
@@ -469,13 +477,15 @@ export default function CareerHistoryEditor() {
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<StintDraft>(EMPTY_DRAFT);
-  const [editSaving, setEditSaving] = useState(false);
+  const [editDraft,    setEditDraft]    = useState<StintDraft>(EMPTY_DRAFT);
+  const [editSaving,   setEditSaving]   = useState(false);
+  const [editJustSaved, setEditJustSaved] = useState(false);
 
   // Add state
-  const [adding, setAdding] = useState(false);
-  const [addDraft, setAddDraft] = useState<StintDraft>(EMPTY_DRAFT);
-  const [addSaving, setAddSaving] = useState(false);
+  const [adding,       setAdding]       = useState(false);
+  const [addDraft,     setAddDraft]     = useState<StintDraft>(EMPTY_DRAFT);
+  const [addSaving,    setAddSaving]    = useState(false);
+  const [addJustSaved, setAddJustSaved] = useState(false);
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<Stint | null>(null);
@@ -598,8 +608,11 @@ export default function CareerHistoryEditor() {
             : s
         ))
       );
-      cancelEdit();
       showToast("職歴を更新しました");
+      setEditJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      cancelEdit();
+      setEditJustSaved(false);
     } catch {
       showToast("保存に失敗しました。もう一度お試しください。", "error");
     } finally {
@@ -661,8 +674,11 @@ export default function CareerHistoryEditor() {
       };
 
       setStints((prev) => sortStints([...prev, newStint]));
-      cancelAdd();
       showToast("職歴を追加しました");
+      setAddJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      cancelAdd();
+      setAddJustSaved(false);
     } catch {
       showToast("追加に失敗しました。もう一度お試しください。", "error");
     } finally {
@@ -709,6 +725,7 @@ export default function CareerHistoryEditor() {
               draft={editDraft}
               onDraftChange={setEditDraft}
               isSaving={editSaving}
+              justSaved={editJustSaved}
               onSave={() => { void saveEdit(); }}
               onCancel={cancelEdit}
             />
@@ -740,6 +757,7 @@ export default function CareerHistoryEditor() {
             draft={addDraft}
             onDraftChange={setAddDraft}
             isSaving={addSaving}
+            justSaved={addJustSaved}
             onSave={() => { void saveAdd(); }}
             onCancel={cancelAdd}
           />

@@ -746,12 +746,14 @@ function EducationForm({
   draft,
   onDraftChange,
   isSaving,
+  justSaved,
   onSave,
   onCancel,
 }: {
   draft: EducationDraft;
   onDraftChange: (d: EducationDraft) => void;
   isSaving: boolean;
+  justSaved?: boolean;
   onSave: () => void;
   onCancel: () => void;
 }) {
@@ -762,6 +764,7 @@ function EducationForm({
   );
 
   const canSave = !!draft.school.trim() && !isSaving;
+  const effectivelyDisabled = !canSave || !!justSaved;
 
   const ef = (): React.CSSProperties => ({
     width: "100%", border: "1.5px solid var(--line)", borderRadius: 8,
@@ -905,11 +908,16 @@ function EducationForm({
         </button>
         <button
           type="button"
-          onClick={canSave ? onSave : undefined}
-          disabled={!canSave}
-          style={{ padding: "7px 18px", background: canSave ? "var(--royal)" : "var(--ink-mute)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: canSave ? "pointer" : "default", fontFamily: "inherit", transition: "background 0.15s" }}
+          onClick={effectivelyDisabled ? undefined : onSave}
+          disabled={effectivelyDisabled}
+          style={{
+            padding: "7px 18px", minWidth: 130,
+            background: justSaved ? "var(--success)" : canSave ? "var(--royal)" : "var(--ink-mute)",
+            color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700,
+            cursor: effectivelyDisabled ? "default" : "pointer", fontFamily: "inherit", transition: "background 0.2s",
+          }}
         >
-          {isSaving ? "保存中…" : "保存"}
+          {isSaving ? "保存中…" : justSaved ? "✓ 保存しました" : "保存"}
         </button>
       </div>
     </div>
@@ -926,13 +934,15 @@ function EducationEditor({
   setEducations: React.Dispatch<React.SetStateAction<Education[]>>;
 }) {
   // Edit state
-  const [editingId,  setEditingId]  = useState<string | null>(null);
-  const [editDraft,  setEditDraft]  = useState<EducationDraft>(EMPTY_EDU_DRAFT);
-  const [editSaving, setEditSaving] = useState(false);
+  const [editingId,    setEditingId]    = useState<string | null>(null);
+  const [editDraft,    setEditDraft]    = useState<EducationDraft>(EMPTY_EDU_DRAFT);
+  const [editSaving,   setEditSaving]   = useState(false);
+  const [editJustSaved, setEditJustSaved] = useState(false);
   // Add state
-  const [adding,    setAdding]    = useState(false);
-  const [addDraft,  setAddDraft]  = useState<EducationDraft>(EMPTY_EDU_DRAFT);
-  const [addSaving, setAddSaving] = useState(false);
+  const [adding,      setAdding]      = useState(false);
+  const [addDraft,    setAddDraft]    = useState<EducationDraft>(EMPTY_EDU_DRAFT);
+  const [addSaving,   setAddSaving]   = useState(false);
+  const [addJustSaved, setAddJustSaved] = useState(false);
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<Education | null>(null);
   const [deleting,     setDeleting]     = useState(false);
@@ -980,9 +990,12 @@ function EducationEditor({
       if (!res.ok) throw new Error();
       const updated: Education = await res.json();
       setEducations((prev) => prev.map((e) => (e.id === editingId ? { ...e, ...updated } : e)));
+      showToast("学歴を更新しました");
+      setEditJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
       setEditingId(null);
       setEditDraft(EMPTY_EDU_DRAFT);
-      showToast("学歴を更新しました");
+      setEditJustSaved(false);
     } catch {
       showToast("保存に失敗しました。もう一度お試しください。", "error");
     } finally {
@@ -1016,9 +1029,12 @@ function EducationEditor({
       if (!res.ok) throw new Error();
       const inserted: Education = await res.json();
       setEducations((prev) => [...prev, inserted]);
+      showToast("学歴を追加しました");
+      setAddJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
       setAdding(false);
       setAddDraft(EMPTY_EDU_DRAFT);
-      showToast("学歴を追加しました");
+      setAddJustSaved(false);
     } catch {
       showToast("追加に失敗しました。もう一度お試しください。", "error");
     } finally {
@@ -1060,6 +1076,7 @@ function EducationEditor({
               draft={editDraft}
               onDraftChange={setEditDraft}
               isSaving={editSaving}
+              justSaved={editJustSaved}
               onSave={() => { void saveEdit(); }}
               onCancel={cancelEdit}
             />
@@ -1091,6 +1108,7 @@ function EducationEditor({
             draft={addDraft}
             onDraftChange={setAddDraft}
             isSaving={addSaving}
+            justSaved={addJustSaved}
             onSave={() => { void saveAdd(); }}
             onCancel={cancelAdd}
           />
@@ -1170,12 +1188,14 @@ function CertificationEditor({
   certifications: Certification[];
   setCertifications: React.Dispatch<React.SetStateAction<Certification[]>>;
 }) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState("");
-  const [editSaving, setEditSaving] = useState(false);
-  const [adding,    setAdding]    = useState(false);
-  const [addDraft,  setAddDraft]  = useState("");
-  const [addSaving, setAddSaving] = useState(false);
+  const [editingId,    setEditingId]    = useState<string | null>(null);
+  const [editDraft,    setEditDraft]    = useState("");
+  const [editSaving,   setEditSaving]   = useState(false);
+  const [editJustSaved, setEditJustSaved] = useState(false);
+  const [adding,       setAdding]       = useState(false);
+  const [addDraft,     setAddDraft]     = useState("");
+  const [addSaving,    setAddSaving]    = useState(false);
+  const [addJustSaved, setAddJustSaved] = useState(false);
   const [toastMsg,     setToastMsg]     = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
   const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
@@ -1194,8 +1214,11 @@ function CertificationEditor({
       if (!res.ok) throw new Error();
       const updated: Certification = await res.json();
       setCertifications((prev) => prev.map((c) => (c.id === editingId ? { ...c, ...updated } : c)));
-      setEditingId(null); setEditDraft("");
       showToast("資格を更新しました");
+      setEditJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setEditingId(null); setEditDraft("");
+      setEditJustSaved(false);
     } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
     finally { setEditSaving(false); }
   }, [editingId, editDraft, setCertifications, showToast]);
@@ -1211,8 +1234,11 @@ function CertificationEditor({
       if (!res.ok) throw new Error();
       const inserted: Certification = await res.json();
       setCertifications((prev) => [...prev, inserted]);
-      setAdding(false); setAddDraft("");
       showToast("資格を追加しました");
+      setAddJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setAdding(false); setAddDraft("");
+      setAddJustSaved(false);
     } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
     finally { setAddSaving(false); }
   }, [addDraft, setCertifications, showToast]);
@@ -1248,7 +1274,7 @@ function CertificationEditor({
                   placeholder="例：国家資格キャリアコンサルタント、AWS ソリューションアーキテクト…"
                   maxLength={100} disabled={editSaving} style={aef()} autoFocus />
               </div>
-              <AchieveFormActions isSaving={editSaving} canSave={!!editDraft.trim() && !editSaving}
+              <AchieveFormActions isSaving={editSaving} justSaved={editJustSaved} canSave={!!editDraft.trim() && !editSaving}
                 onSave={() => { void saveEdit(); }}
                 onCancel={() => { setEditingId(null); setEditDraft(""); }} />
             </div>
@@ -1272,7 +1298,7 @@ function CertificationEditor({
                 placeholder="例：国家資格キャリアコンサルタント、AWS ソリューションアーキテクト…"
                 maxLength={100} disabled={addSaving} style={aef()} autoFocus />
             </div>
-            <AchieveFormActions isSaving={addSaving} canSave={!!addDraft.trim() && !addSaving}
+            <AchieveFormActions isSaving={addSaving} justSaved={addJustSaved} canSave={!!addDraft.trim() && !addSaving}
               onSave={() => { void saveAdd(); }}
               onCancel={() => { setAdding(false); setAddDraft(""); }} />
           </div>
@@ -1337,18 +1363,24 @@ const formBox: React.CSSProperties = {
   background: "var(--bg-tint)", border: "1.5px solid var(--royal)", borderRadius: 10, padding: 16,
   display: "flex", flexDirection: "column", gap: 14, boxShadow: "0 0 0 3px rgba(0,35,102,0.06)",
 };
-function AchieveFormActions({ isSaving, canSave, onSave, onCancel }: {
-  isSaving: boolean; canSave: boolean; onSave: () => void; onCancel: () => void;
+function AchieveFormActions({ isSaving, justSaved, canSave, onSave, onCancel }: {
+  isSaving: boolean; justSaved?: boolean; canSave: boolean; onSave: () => void; onCancel: () => void;
 }) {
+  const effectivelyDisabled = !canSave || !!justSaved;
   return (
     <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
       <button type="button" onClick={onCancel} disabled={isSaving}
         style={{ padding: "7px 16px", background: "#fff", color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isSaving ? "default" : "pointer", fontFamily: "inherit", opacity: isSaving ? 0.5 : 1 }}>
         キャンセル
       </button>
-      <button type="button" onClick={canSave ? onSave : undefined} disabled={!canSave}
-        style={{ padding: "7px 18px", background: canSave ? "var(--royal)" : "var(--ink-mute)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: canSave ? "pointer" : "default", fontFamily: "inherit", transition: "background 0.15s" }}>
-        {isSaving ? "保存中…" : "保存"}
+      <button type="button" onClick={effectivelyDisabled ? undefined : onSave} disabled={effectivelyDisabled}
+        style={{
+          padding: "7px 18px", minWidth: 130,
+          background: justSaved ? "var(--success)" : canSave ? "var(--royal)" : "var(--ink-mute)",
+          color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700,
+          cursor: effectivelyDisabled ? "default" : "pointer", fontFamily: "inherit", transition: "background 0.2s",
+        }}>
+        {isSaving ? "保存中…" : justSaved ? "✓ 保存しました" : "保存"}
       </button>
     </div>
   );
@@ -1380,8 +1412,8 @@ function draftFromAch(a: Achievement): AchievementDraft {
 }
 
 function AchievementForm({
-  draft, onDraftChange, isSaving, onSave, onCancel,
-}: { draft: AchievementDraft; onDraftChange: (d: AchievementDraft) => void; isSaving: boolean; onSave: () => void; onCancel: () => void; }) {
+  draft, onDraftChange, isSaving, justSaved, onSave, onCancel,
+}: { draft: AchievementDraft; onDraftChange: (d: AchievementDraft) => void; isSaving: boolean; justSaved?: boolean; onSave: () => void; onCancel: () => void; }) {
   const set = useCallback((k: keyof AchievementDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
   const canSave = !!draft.title.trim() && !isSaving;
   return (
@@ -1421,7 +1453,7 @@ function AchievementForm({
           placeholder="達成背景や取り組み内容など" maxLength={500} rows={3} disabled={isSaving}
           style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
       </div>
-      <AchieveFormActions isSaving={isSaving} canSave={canSave} onSave={onSave} onCancel={onCancel} />
+      <AchieveFormActions isSaving={isSaving} justSaved={justSaved} canSave={canSave} onSave={onSave} onCancel={onCancel} />
     </div>
   );
 }
@@ -1463,15 +1495,17 @@ function AchievementCard({
 function AchievementEditor({
   achievements, setAchievements,
 }: { achievements: Achievement[]; setAchievements: React.Dispatch<React.SetStateAction<Achievement[]>>; }) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<AchievementDraft>(EMPTY_ACH_DRAFT);
-  const [editSaving, setEditSaving] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [addDraft, setAddDraft] = useState<AchievementDraft>(EMPTY_ACH_DRAFT);
-  const [addSaving, setAddSaving] = useState(false);
+  const [editingId,    setEditingId]    = useState<string | null>(null);
+  const [editDraft,    setEditDraft]    = useState<AchievementDraft>(EMPTY_ACH_DRAFT);
+  const [editSaving,   setEditSaving]   = useState(false);
+  const [editJustSaved, setEditJustSaved] = useState(false);
+  const [adding,       setAdding]       = useState(false);
+  const [addDraft,     setAddDraft]     = useState<AchievementDraft>(EMPTY_ACH_DRAFT);
+  const [addSaving,    setAddSaving]    = useState(false);
+  const [addJustSaved, setAddJustSaved] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Achievement | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [deleting,     setDeleting]     = useState(false);
+  const [toastMsg,     setToastMsg]     = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
   const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
     setToastVariant(variant); setToastMsg(msg);
@@ -1497,8 +1531,11 @@ function AchievementEditor({
       if (!res.ok) throw new Error();
       const updated: Achievement = await res.json();
       setAchievements((prev) => prev.map((a) => (a.id === editingId ? { ...a, ...updated } : a)));
-      setEditingId(null); setEditDraft(EMPTY_ACH_DRAFT);
       showToast("実績を更新しました");
+      setEditJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setEditingId(null); setEditDraft(EMPTY_ACH_DRAFT);
+      setEditJustSaved(false);
     } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
     finally { setEditSaving(false); }
   }, [editingId, editDraft, setAchievements, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1513,8 +1550,11 @@ function AchievementEditor({
       if (!res.ok) throw new Error();
       const inserted: Achievement = await res.json();
       setAchievements((prev) => [...prev, inserted]);
-      setAdding(false); setAddDraft(EMPTY_ACH_DRAFT);
       showToast("実績を追加しました");
+      setAddJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setAdding(false); setAddDraft(EMPTY_ACH_DRAFT);
+      setAddJustSaved(false);
     } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
     finally { setAddSaving(false); }
   }, [addDraft, setAchievements, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1540,7 +1580,7 @@ function AchievementEditor({
       {achievements.map((item, idx) => (
         <div key={item.id}>
           {editingId === item.id ? (
-            <AchievementForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving}
+            <AchievementForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
               onSave={() => { void saveEdit(); }} onCancel={() => { setEditingId(null); setEditDraft(EMPTY_ACH_DRAFT); }} />
           ) : (
             <AchievementCard item={item} onEdit={() => { setEditingId(item.id); setEditDraft(draftFromAch(item)); }}
@@ -1558,7 +1598,7 @@ function AchievementEditor({
       )}
       {adding && (
         <div style={{ marginTop: achievements.length > 0 ? 12 : 0 }}>
-          <AchievementForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving}
+          <AchievementForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
             onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_ACH_DRAFT); }} />
         </div>
       )}
@@ -1581,8 +1621,8 @@ function draftFromAward(a: Award): AwardDraft {
 }
 
 function AwardForm({
-  draft, onDraftChange, isSaving, onSave, onCancel,
-}: { draft: AwardDraft; onDraftChange: (d: AwardDraft) => void; isSaving: boolean; onSave: () => void; onCancel: () => void; }) {
+  draft, onDraftChange, isSaving, justSaved, onSave, onCancel,
+}: { draft: AwardDraft; onDraftChange: (d: AwardDraft) => void; isSaving: boolean; justSaved?: boolean; onSave: () => void; onCancel: () => void; }) {
   const set = useCallback((k: keyof AwardDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
   const canSave = !!draft.title.trim() && !isSaving;
   return (
@@ -1608,7 +1648,7 @@ function AwardForm({
           placeholder="受賞の背景や内容など" maxLength={500} rows={3} disabled={isSaving}
           style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
       </div>
-      <AchieveFormActions isSaving={isSaving} canSave={canSave} onSave={onSave} onCancel={onCancel} />
+      <AchieveFormActions isSaving={isSaving} justSaved={justSaved} canSave={canSave} onSave={onSave} onCancel={onCancel} />
     </div>
   );
 }
@@ -1644,15 +1684,17 @@ function AwardCard({
 function AwardEditor({
   awards, setAwards,
 }: { awards: Award[]; setAwards: React.Dispatch<React.SetStateAction<Award[]>>; }) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<AwardDraft>(EMPTY_AWARD_DRAFT);
-  const [editSaving, setEditSaving] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [addDraft, setAddDraft] = useState<AwardDraft>(EMPTY_AWARD_DRAFT);
-  const [addSaving, setAddSaving] = useState(false);
+  const [editingId,    setEditingId]    = useState<string | null>(null);
+  const [editDraft,    setEditDraft]    = useState<AwardDraft>(EMPTY_AWARD_DRAFT);
+  const [editSaving,   setEditSaving]   = useState(false);
+  const [editJustSaved, setEditJustSaved] = useState(false);
+  const [adding,       setAdding]       = useState(false);
+  const [addDraft,     setAddDraft]     = useState<AwardDraft>(EMPTY_AWARD_DRAFT);
+  const [addSaving,    setAddSaving]    = useState(false);
+  const [addJustSaved, setAddJustSaved] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Award | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [deleting,     setDeleting]     = useState(false);
+  const [toastMsg,     setToastMsg]     = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
   const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
     setToastVariant(variant); setToastMsg(msg);
@@ -1674,8 +1716,11 @@ function AwardEditor({
       if (!res.ok) throw new Error();
       const updated: Award = await res.json();
       setAwards((prev) => prev.map((a) => (a.id === editingId ? { ...a, ...updated } : a)));
-      setEditingId(null); setEditDraft(EMPTY_AWARD_DRAFT);
       showToast("受賞歴を更新しました");
+      setEditJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setEditingId(null); setEditDraft(EMPTY_AWARD_DRAFT);
+      setEditJustSaved(false);
     } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
     finally { setEditSaving(false); }
   }, [editingId, editDraft, setAwards, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1690,8 +1735,11 @@ function AwardEditor({
       if (!res.ok) throw new Error();
       const inserted: Award = await res.json();
       setAwards((prev) => [...prev, inserted]);
-      setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT);
       showToast("受賞歴を追加しました");
+      setAddJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT);
+      setAddJustSaved(false);
     } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
     finally { setAddSaving(false); }
   }, [addDraft, setAwards, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1717,7 +1765,7 @@ function AwardEditor({
       {awards.map((item, idx) => (
         <div key={item.id}>
           {editingId === item.id ? (
-            <AwardForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving}
+            <AwardForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
               onSave={() => { void saveEdit(); }} onCancel={() => { setEditingId(null); setEditDraft(EMPTY_AWARD_DRAFT); }} />
           ) : (
             <AwardCard item={item} onEdit={() => { setEditingId(item.id); setEditDraft(draftFromAward(item)); }}
@@ -1735,7 +1783,7 @@ function AwardEditor({
       )}
       {adding && (
         <div style={{ marginTop: awards.length > 0 ? 12 : 0 }}>
-          <AwardForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving}
+          <AwardForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
             onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT); }} />
         </div>
       )}
@@ -1767,8 +1815,8 @@ function draftFromMA(m: MediaAppearance): MediaAppearanceDraft {
 }
 
 function MediaAppearanceForm({
-  draft, onDraftChange, isSaving, onSave, onCancel,
-}: { draft: MediaAppearanceDraft; onDraftChange: (d: MediaAppearanceDraft) => void; isSaving: boolean; onSave: () => void; onCancel: () => void; }) {
+  draft, onDraftChange, isSaving, justSaved, onSave, onCancel,
+}: { draft: MediaAppearanceDraft; onDraftChange: (d: MediaAppearanceDraft) => void; isSaving: boolean; justSaved?: boolean; onSave: () => void; onCancel: () => void; }) {
   const set = useCallback((k: keyof MediaAppearanceDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
   const canSave = !!draft.title.trim() && !isSaving;
   return (
@@ -1804,7 +1852,7 @@ function MediaAppearanceForm({
           placeholder="掲載の背景や内容など" maxLength={500} rows={3} disabled={isSaving}
           style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
       </div>
-      <AchieveFormActions isSaving={isSaving} canSave={canSave} onSave={onSave} onCancel={onCancel} />
+      <AchieveFormActions isSaving={isSaving} justSaved={justSaved} canSave={canSave} onSave={onSave} onCancel={onCancel} />
     </div>
   );
 }
@@ -1847,15 +1895,17 @@ function MediaAppearanceCard({
 function MediaAppearanceEditor({
   mediaAppearances, setMediaAppearances,
 }: { mediaAppearances: MediaAppearance[]; setMediaAppearances: React.Dispatch<React.SetStateAction<MediaAppearance[]>>; }) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<MediaAppearanceDraft>(EMPTY_MA_DRAFT);
-  const [editSaving, setEditSaving] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [addDraft, setAddDraft] = useState<MediaAppearanceDraft>(EMPTY_MA_DRAFT);
-  const [addSaving, setAddSaving] = useState(false);
+  const [editingId,    setEditingId]    = useState<string | null>(null);
+  const [editDraft,    setEditDraft]    = useState<MediaAppearanceDraft>(EMPTY_MA_DRAFT);
+  const [editSaving,   setEditSaving]   = useState(false);
+  const [editJustSaved, setEditJustSaved] = useState(false);
+  const [adding,       setAdding]       = useState(false);
+  const [addDraft,     setAddDraft]     = useState<MediaAppearanceDraft>(EMPTY_MA_DRAFT);
+  const [addSaving,    setAddSaving]    = useState(false);
+  const [addJustSaved, setAddJustSaved] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<MediaAppearance | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [deleting,     setDeleting]     = useState(false);
+  const [toastMsg,     setToastMsg]     = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
   const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
     setToastVariant(variant); setToastMsg(msg);
@@ -1878,8 +1928,11 @@ function MediaAppearanceEditor({
       if (!res.ok) throw new Error();
       const updated: MediaAppearance = await res.json();
       setMediaAppearances((prev) => prev.map((m) => (m.id === editingId ? { ...m, ...updated } : m)));
-      setEditingId(null); setEditDraft(EMPTY_MA_DRAFT);
       showToast("メディア掲載を更新しました");
+      setEditJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setEditingId(null); setEditDraft(EMPTY_MA_DRAFT);
+      setEditJustSaved(false);
     } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
     finally { setEditSaving(false); }
   }, [editingId, editDraft, setMediaAppearances, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1894,8 +1947,11 @@ function MediaAppearanceEditor({
       if (!res.ok) throw new Error();
       const inserted: MediaAppearance = await res.json();
       setMediaAppearances((prev) => [...prev, inserted]);
-      setAdding(false); setAddDraft(EMPTY_MA_DRAFT);
       showToast("メディア掲載を追加しました");
+      setAddJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setAdding(false); setAddDraft(EMPTY_MA_DRAFT);
+      setAddJustSaved(false);
     } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
     finally { setAddSaving(false); }
   }, [addDraft, setMediaAppearances, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1921,7 +1977,7 @@ function MediaAppearanceEditor({
       {mediaAppearances.map((item, idx) => (
         <div key={item.id}>
           {editingId === item.id ? (
-            <MediaAppearanceForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving}
+            <MediaAppearanceForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
               onSave={() => { void saveEdit(); }} onCancel={() => { setEditingId(null); setEditDraft(EMPTY_MA_DRAFT); }} />
           ) : (
             <MediaAppearanceCard item={item} onEdit={() => { setEditingId(item.id); setEditDraft(draftFromMA(item)); }}
@@ -1939,7 +1995,7 @@ function MediaAppearanceEditor({
       )}
       {adding && (
         <div style={{ marginTop: mediaAppearances.length > 0 ? 12 : 0 }}>
-          <MediaAppearanceForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving}
+          <MediaAppearanceForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
             onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_MA_DRAFT); }} />
         </div>
       )}
@@ -1990,7 +2046,8 @@ export default function ProfileEditClient({
     coverColor:  owUser?.cover_color  ?? DEFAULT_COVER_COLOR,
     visibility:  (owUser?.visibility ?? "public") as SettingsState["visibility"],
   });
-  const [accountSaving, setAccountSaving] = useState(false);
+  const [accountSaving,       setAccountSaving]       = useState(false);
+  const [accountJustSaved,    setAccountJustSaved]    = useState(false);
   const [accountToastMsg,     setAccountToastMsg]     = useState<string | null>(null);
   const [accountToastVariant, setAccountToastVariant] = useState<"default" | "error">("default");
 
@@ -2008,6 +2065,8 @@ export default function ProfileEditClient({
       setInitialSettings(settings); // 保存成功: 次回比較の基準点を更新
       setAccountToastVariant("default");
       setAccountToastMsg("アカウント設定を保存しました");
+      setAccountJustSaved(true);
+      setTimeout(() => setAccountJustSaved(false), 3000);
     } catch {
       setAccountToastVariant("error");
       setAccountToastMsg("保存に失敗しました。もう一度お試しください。");
@@ -2038,7 +2097,8 @@ export default function ProfileEditClient({
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(initialSocialLinks);
   // 保存済みの値を保持して変更検知（JSON.stringify 比較）
   const [savedSocialLinks, setSavedSocialLinks] = useState<SocialLinks>(initialSocialLinks);
-  const [socialSaving, setSocialSaving] = useState(false);
+  const [socialSaving,       setSocialSaving]       = useState(false);
+  const [socialJustSaved,    setSocialJustSaved]    = useState(false);
   const [socialToastMsg,     setSocialToastMsg]     = useState<string | null>(null);
   const [socialToastVariant, setSocialToastVariant] = useState<"default" | "error">("default");
 
@@ -2056,6 +2116,8 @@ export default function ProfileEditClient({
       setSavedSocialLinks(socialLinks); // 保存成功: 次回比較の基準点を更新
       setSocialToastVariant("default");
       setSocialToastMsg("SNS リンクを保存しました");
+      setSocialJustSaved(true);
+      setTimeout(() => setSocialJustSaved(false), 3000);
     } catch {
       setSocialToastVariant("error");
       setSocialToastMsg("保存に失敗しました。もう一度お試しください。");
@@ -2098,6 +2160,7 @@ export default function ProfileEditClient({
   const [initialBirthDay,   setInitialBirthDay]   = useState<string>(initialParsed.day);
 
   const [basicSaving,       setBasicSaving]       = useState(false);
+  const [basicJustSaved,    setBasicJustSaved]    = useState(false);
   const [basicToastMsg,     setBasicToastMsg]     = useState<string | null>(null);
   const [basicToastVariant, setBasicToastVariant] = useState<"default" | "error">("default");
 
@@ -2132,6 +2195,8 @@ export default function ProfileEditClient({
       setInitialBirthDay(birthDay);
       setBasicToastVariant("default");
       setBasicToastMsg("基本情報を保存しました");
+      setBasicJustSaved(true);
+      setTimeout(() => setBasicJustSaved(false), 3000);
     } catch {
       setBasicToastVariant("error");
       setBasicToastMsg("保存に失敗しました。もう一度お試しください。");
@@ -2304,14 +2369,14 @@ export default function ProfileEditClient({
               <button
                 type="button"
                 onClick={handleCancelBasic}
-                disabled={!isBasicDirty || basicSaving}
+                disabled={!isBasicDirty || basicSaving || basicJustSaved}
                 style={{
                   padding: "10px 20px", fontSize: 13, fontWeight: 600,
                   background: "#fff", color: "var(--ink-soft)",
                   border: "1px solid var(--line)", borderRadius: 8,
                   fontFamily: "inherit",
-                  cursor: !isBasicDirty || basicSaving ? "default" : "pointer",
-                  opacity: !isBasicDirty || basicSaving ? 0.5 : 1,
+                  cursor: !isBasicDirty || basicSaving || basicJustSaved ? "default" : "pointer",
+                  opacity: !isBasicDirty || basicSaving || basicJustSaved ? 0.5 : 1,
                 }}
               >
                 キャンセル
@@ -2319,18 +2384,18 @@ export default function ProfileEditClient({
               <button
                 type="button"
                 onClick={handleSaveBasic}
-                disabled={!isBasicDirty || basicSaving}
+                disabled={!isBasicDirty || basicSaving || basicJustSaved}
                 style={{
-                  padding: "10px 24px", fontSize: 13, fontWeight: 600,
-                  background: !isBasicDirty || basicSaving ? "var(--ink-mute)" : "var(--royal)",
+                  padding: "10px 24px", fontSize: 13, fontWeight: 600, minWidth: 140,
+                  background: basicJustSaved ? "var(--success)" : (!isBasicDirty || basicSaving) ? "var(--ink-mute)" : "var(--royal)",
                   color: "#fff",
                   border: "none", borderRadius: 8,
                   fontFamily: "inherit",
-                  cursor: !isBasicDirty || basicSaving ? "default" : "pointer",
-                  transition: "background 0.15s",
+                  cursor: !isBasicDirty || basicSaving || basicJustSaved ? "default" : "pointer",
+                  transition: "background 0.2s",
                 }}
               >
-                {basicSaving ? "保存中…" : "保存"}
+                {basicSaving ? "保存中…" : basicJustSaved ? "✓ 保存しました" : "保存"}
               </button>
             </div>
             {basicToastMsg && (
@@ -2394,14 +2459,14 @@ export default function ProfileEditClient({
               <button
                 type="button"
                 onClick={handleCancelSocial}
-                disabled={!isSocialDirty || socialSaving}
+                disabled={!isSocialDirty || socialSaving || socialJustSaved}
                 style={{
                   padding: "10px 20px", fontSize: 13, fontWeight: 600,
                   background: "#fff", color: "var(--ink-soft)",
                   border: "1px solid var(--line)", borderRadius: 8,
                   fontFamily: "inherit",
-                  cursor: !isSocialDirty || socialSaving ? "default" : "pointer",
-                  opacity: !isSocialDirty || socialSaving ? 0.5 : 1,
+                  cursor: !isSocialDirty || socialSaving || socialJustSaved ? "default" : "pointer",
+                  opacity: !isSocialDirty || socialSaving || socialJustSaved ? 0.5 : 1,
                 }}
               >
                 キャンセル
@@ -2409,18 +2474,18 @@ export default function ProfileEditClient({
               <button
                 type="button"
                 onClick={handleSaveSocial}
-                disabled={!isSocialDirty || socialSaving}
+                disabled={!isSocialDirty || socialSaving || socialJustSaved}
                 style={{
-                  padding: "10px 24px", fontSize: 13, fontWeight: 600,
-                  background: !isSocialDirty || socialSaving ? "var(--ink-mute)" : "var(--royal)",
+                  padding: "10px 24px", fontSize: 13, fontWeight: 600, minWidth: 140,
+                  background: socialJustSaved ? "var(--success)" : (!isSocialDirty || socialSaving) ? "var(--ink-mute)" : "var(--royal)",
                   color: "#fff",
                   border: "none", borderRadius: 8,
                   fontFamily: "inherit",
-                  cursor: !isSocialDirty || socialSaving ? "default" : "pointer",
-                  transition: "background 0.15s",
+                  cursor: !isSocialDirty || socialSaving || socialJustSaved ? "default" : "pointer",
+                  transition: "background 0.2s",
                 }}
               >
-                {socialSaving ? "保存中…" : "保存"}
+                {socialSaving ? "保存中…" : socialJustSaved ? "✓ 保存しました" : "保存"}
               </button>
             </div>
             {socialToastMsg && (
@@ -2579,14 +2644,14 @@ export default function ProfileEditClient({
               <button
                 type="button"
                 onClick={handleCancelAccount}
-                disabled={!isAccountDirty || accountSaving}
+                disabled={!isAccountDirty || accountSaving || accountJustSaved}
                 style={{
                   padding: "10px 20px", fontSize: 13, fontWeight: 600,
                   background: "#fff", color: "var(--ink-soft)",
                   border: "1px solid var(--line)", borderRadius: 8,
                   fontFamily: "inherit",
-                  cursor: !isAccountDirty || accountSaving ? "default" : "pointer",
-                  opacity: !isAccountDirty || accountSaving ? 0.5 : 1,
+                  cursor: !isAccountDirty || accountSaving || accountJustSaved ? "default" : "pointer",
+                  opacity: !isAccountDirty || accountSaving || accountJustSaved ? 0.5 : 1,
                 }}
               >
                 キャンセル
@@ -2594,18 +2659,18 @@ export default function ProfileEditClient({
               <button
                 type="button"
                 onClick={handleSaveAccount}
-                disabled={!isAccountDirty || accountSaving}
+                disabled={!isAccountDirty || accountSaving || accountJustSaved}
                 style={{
-                  padding: "10px 24px", fontSize: 13, fontWeight: 600,
-                  background: !isAccountDirty || accountSaving ? "var(--ink-mute)" : "var(--royal)",
+                  padding: "10px 24px", fontSize: 13, fontWeight: 600, minWidth: 140,
+                  background: accountJustSaved ? "var(--success)" : (!isAccountDirty || accountSaving) ? "var(--ink-mute)" : "var(--royal)",
                   color: "#fff",
                   border: "none", borderRadius: 8,
                   fontFamily: "inherit",
-                  cursor: !isAccountDirty || accountSaving ? "default" : "pointer",
-                  transition: "background 0.15s",
+                  cursor: !isAccountDirty || accountSaving || accountJustSaved ? "default" : "pointer",
+                  transition: "background 0.2s",
                 }}
               >
-                {accountSaving ? "保存中…" : "保存"}
+                {accountSaving ? "保存中…" : accountJustSaved ? "✓ 保存しました" : "保存"}
               </button>
             </div>
             {accountToastMsg && (
