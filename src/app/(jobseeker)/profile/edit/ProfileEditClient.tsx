@@ -18,9 +18,6 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// SaveStatus は useDebouncedPatch から再エクスポート（"error" を追加含む）
-type SaveStatus = "idle" | "saving" | "saved" | "error";
-
 type SkillTag = { id: string; label: string; sort_order: number };
 
 type Education = {
@@ -134,38 +131,6 @@ const PROFILE_TABS: TabItem[] = [
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
-function SaveStatusPill({ status }: { status: SaveStatus }) {
-  if (status === "idle") return null;
-  const saving = status === "saving";
-  return (
-    <span
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 6,
-        fontSize: 12, padding: "4px 10px", borderRadius: 100,
-        color: saving ? "var(--ink-soft)" : "var(--success)",
-        background: saving ? "var(--bg-tint)" : "var(--success-soft)",
-        transition: "all 0.3s",
-      }}
-    >
-      {saving ? (
-        <>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-          </svg>
-          保存中...
-        </>
-      ) : (
-        <>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-          自動保存されました
-        </>
-      )}
-    </span>
-  );
-}
 
 function FormSection({
   title, desc, children,
@@ -289,14 +254,14 @@ function PlaceholderTabContent({ label }: { label: string }) {
 function SkillTagsEditor({
   skillTags,
   setSkillTags,
-  setSaveStatus,
 }: {
   skillTags: SkillTag[];
   setSkillTags: React.Dispatch<React.SetStateAction<SkillTag[]>>;
-  setSaveStatus: (s: SaveStatus) => void;
 }) {
   const [pendingLabel, setPendingLabel] = useState("");
   const [inputError, setInputError]     = useState<string | null>(null);
+  const [skillToastMsg,     setSkillToastMsg]     = useState<string | null>(null);
+  const [skillToastVariant, setSkillToastVariant] = useState<"default" | "error">("default");
 
   const count       = skillTags.length;
   const isAtLimit   = count >= 15;
@@ -329,7 +294,6 @@ function SkillTagsEditor({
     const tempTag: SkillTag = { id: tempId, label, sort_order: 9999 };
     setSkillTags((prev) => [...prev, tempTag]);
     setPendingLabel("");
-    setSaveStatus("saving");
 
     try {
       const res = await fetch("/api/jobseeker/skill-tags", {
@@ -344,34 +308,33 @@ function SkillTagsEditor({
       const confirmed: SkillTag = await res.json();
       // サーバ確定値（id, sort_order）で仮チップを置換
       setSkillTags((prev) => prev.map((t) => (t.id === tempId ? confirmed : t)));
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
+      setSkillToastVariant("default");
+      setSkillToastMsg("スキルタグを追加しました");
     } catch (e) {
       // ロールバック: 仮チップを除去 + inline エラー
       setSkillTags((prev) => prev.filter((t) => t.id !== tempId));
       setInputError((e as Error).message ?? "保存に失敗しました。");
-      setSaveStatus("idle");
     }
   };
 
   const handleDelete = async (tag: SkillTag) => {
     // 楽観更新: 即チップを除去
     setSkillTags((prev) => prev.filter((t) => t.id !== tag.id));
-    setSaveStatus("saving");
 
     try {
       const res = await fetch(`/api/jobseeker/skill-tags/${tag.id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("削除に失敗しました。");
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
+      setSkillToastVariant("default");
+      setSkillToastMsg("スキルタグを削除しました");
     } catch {
       // ロールバック: sort_order 順で復元
       setSkillTags((prev) =>
         [...prev, tag].sort((a, b) => a.sort_order - b.sort_order)
       );
-      setSaveStatus("idle");
+      setSkillToastVariant("error");
+      setSkillToastMsg("削除に失敗しました。もう一度お試しください。");
     }
   };
 
@@ -383,6 +346,7 @@ function SkillTagsEditor({
   };
 
   return (
+    <>
     <FormSection
       title="スキル"
       desc="あなたのスキルや得意な技術・経験した領域をタグで登録してください。最大15個まで。"
@@ -491,6 +455,14 @@ function SkillTagsEditor({
         </span>
       </div>
     </FormSection>
+    {skillToastMsg && (
+      <Toast
+        message={skillToastMsg}
+        variant={skillToastVariant}
+        onDone={() => setSkillToastMsg(null)}
+      />
+    )}
+    </>
   );
 }
 
@@ -2050,7 +2022,6 @@ export default function ProfileEditClient({
 
   // ── スキルタブの状態 ─────────────────────────────────────────────────────
   const [skillTags, setSkillTags] = useState<SkillTag[]>(initialSkillTags);
-  const [skillSaveStatus, setSkillSaveStatus] = useState<SaveStatus>("idle");
 
   // ── 学歴タブの状態 ───────────────────────────────────────────────────────
   const [educations, setEducations] = useState<Education[]>(initialEducations);
@@ -2186,7 +2157,6 @@ export default function ProfileEditClient({
             fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
             color: "var(--ink)", margin: 0,
           }}>プロフィール</h1>
-          {activeTab === "skills"  && <SaveStatusPill status={skillSaveStatus} />}
           <div style={{ marginLeft: "auto" }}>
             <Link
               href="/mypage"
@@ -2391,7 +2361,6 @@ export default function ProfileEditClient({
             <SkillTagsEditor
               skillTags={skillTags}
               setSkillTags={setSkillTags}
-              setSaveStatus={setSkillSaveStatus}
             />
           </div>
         )}
