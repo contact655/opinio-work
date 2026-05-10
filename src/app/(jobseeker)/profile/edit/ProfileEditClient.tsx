@@ -2063,40 +2063,47 @@ export default function ProfileEditClient({
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
 
-  // ── アカウント設定タブの状態 ────────────────────────────────────────────
+  // ── アカウント設定タブの状態（明示保存方式） ────────────────────────────
   const [settings, setSettings] = useState<SettingsState>({
     avatarColor: owUser?.avatar_color ?? DEFAULT_AVATAR_COLOR,
     coverColor:  owUser?.cover_color  ?? DEFAULT_COVER_COLOR,
     visibility:  (owUser?.visibility ?? "public") as SettingsState["visibility"],
   });
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const settingsRef = useRef<SettingsState>(settings);
-  const saveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 初期値を保持して変更検知（JSON.stringify 比較）
+  const [initialSettings, setInitialSettings] = useState<SettingsState>({
+    avatarColor: owUser?.avatar_color ?? DEFAULT_AVATAR_COLOR,
+    coverColor:  owUser?.cover_color  ?? DEFAULT_COVER_COLOR,
+    visibility:  (owUser?.visibility ?? "public") as SettingsState["visibility"],
+  });
+  const [accountSaving, setAccountSaving] = useState(false);
+  const [accountToastMsg,     setAccountToastMsg]     = useState<string | null>(null);
+  const [accountToastVariant, setAccountToastVariant] = useState<"default" | "error">("default");
 
-  const triggerSave = useCallback(() => {
-    setSaveStatus("saving");
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      await fetch("/api/jobseeker/profile", {
+  const isAccountDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
+
+  const handleSaveAccount = useCallback(async () => {
+    setAccountSaving(true);
+    try {
+      const res = await fetch("/api/jobseeker/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visibility: settingsRef.current.visibility }),
-      }).catch(() => {});
-      setSaveStatus("saved");
-    }, 700);
-  }, []);
-
-  const patchSettings = useCallback(
-    (patch: Partial<SettingsState>) => {
-      setSettings((prev) => {
-        const next = { ...prev, ...patch };
-        settingsRef.current = next;
-        return next;
+        body: JSON.stringify({ visibility: settings.visibility }),
       });
-      triggerSave();
-    },
-    [triggerSave]
-  );
+      if (!res.ok) throw new Error();
+      setInitialSettings(settings); // 保存成功: 次回比較の基準点を更新
+      setAccountToastVariant("default");
+      setAccountToastMsg("アカウント設定を保存しました");
+    } catch {
+      setAccountToastVariant("error");
+      setAccountToastMsg("保存に失敗しました。もう一度お試しください。");
+    } finally {
+      setAccountSaving(false);
+    }
+  }, [settings]);
+
+  const handleCancelAccount = useCallback(() => {
+    setSettings(initialSettings);
+  }, [initialSettings]);
 
   // ── スキルタブの状態 ─────────────────────────────────────────────────────
   const [skillTags, setSkillTags] = useState<SkillTag[]>(initialSkillTags);
@@ -2191,7 +2198,6 @@ export default function ProfileEditClient({
           {activeTab === "skills"  && <SaveStatusPill status={skillSaveStatus} />}
           {activeTab === "certs"   && <SaveStatusPill status={certSaveStatus} />}
           {activeTab === "socials" && <SaveStatusPill status={socialSaveStatus} />}
-          {activeTab === "account" && <SaveStatusPill status={saveStatus} />}
           <div style={{ marginLeft: "auto" }}>
             <Link
               href="/mypage"
@@ -2497,7 +2503,7 @@ export default function ProfileEditClient({
                 <select
                   value={settings.visibility}
                   onChange={(e) =>
-                    patchSettings({ visibility: e.target.value as SettingsState["visibility"] })
+                    setSettings((prev) => ({ ...prev, visibility: e.target.value as SettingsState["visibility"] }))
                   }
                   style={selectStyle()}
                 >
@@ -2535,23 +2541,47 @@ export default function ProfileEditClient({
               </button>
             </div>
 
-            {/* ── アカウント設定タブの「保存」ボタン ──────────────────────── */}
-            {/* 公開設定は自動保存のため、「保存」ボタンは情報提供用 */}
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
-              <SaveStatusPill status={saveStatus} />
+            {/* ── アカウント設定タブの保存・キャンセル ───────────────────── */}
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
               <button
                 type="button"
-                onClick={triggerSave}
+                onClick={handleCancelAccount}
+                disabled={!isAccountDirty || accountSaving}
                 style={{
-                  padding: "10px 24px", fontSize: 13, fontWeight: 600,
-                  background: "var(--royal)", color: "#fff",
-                  border: "none", borderRadius: 8,
-                  fontFamily: "inherit", cursor: "pointer",
+                  padding: "10px 20px", fontSize: 13, fontWeight: 600,
+                  background: "#fff", color: "var(--ink-soft)",
+                  border: "1px solid var(--line)", borderRadius: 8,
+                  fontFamily: "inherit",
+                  cursor: !isAccountDirty || accountSaving ? "default" : "pointer",
+                  opacity: !isAccountDirty || accountSaving ? 0.5 : 1,
                 }}
               >
-                変更を保存
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAccount}
+                disabled={!isAccountDirty || accountSaving}
+                style={{
+                  padding: "10px 24px", fontSize: 13, fontWeight: 600,
+                  background: !isAccountDirty || accountSaving ? "var(--ink-mute)" : "var(--royal)",
+                  color: "#fff",
+                  border: "none", borderRadius: 8,
+                  fontFamily: "inherit",
+                  cursor: !isAccountDirty || accountSaving ? "default" : "pointer",
+                  transition: "background 0.15s",
+                }}
+              >
+                {accountSaving ? "保存中…" : "保存"}
               </button>
             </div>
+            {accountToastMsg && (
+              <Toast
+                message={accountToastMsg}
+                variant={accountToastVariant}
+                onDone={() => setAccountToastMsg(null)}
+              />
+            )}
 
           </div>
         )}
