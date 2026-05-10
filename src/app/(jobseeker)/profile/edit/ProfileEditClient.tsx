@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
-import { useDebouncedPatch } from "@/lib/hooks/useDebouncedPatch";
 import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
@@ -109,14 +108,6 @@ type SettingsState = {
 
 const DEFAULT_AVATAR_COLOR = "linear-gradient(135deg, #002366, #3B5FD9)";
 const DEFAULT_COVER_COLOR  = "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
-
-// BasicInfo camelCase → DB snake_case マッピング（useCallback の外に置いて安定化）
-const BASIC_FIELD_TO_DB: Record<string, string> = {
-  name:              "name",
-  location:          "location",
-  aboutMe:           "about_me",
-  futureAspirations: "future_aspirations",
-};
 
 const DEGREE_OPTIONS = ["高校卒", "専門卒", "短大卒", "学士", "修士", "博士", "その他"] as const;
 const EDU_YEAR_OPTS  = Array.from({ length: 61 }, (_, i) => new Date().getFullYear() + 4 - i);
@@ -2106,52 +2097,84 @@ export default function ProfileEditClient({
     setSocialLinks(savedSocialLinks);
   }, [savedSocialLinks]);
 
-  // ── 基本情報タブの状態（名前・所在地） ───────────────────────────────────
-  const [basicInfo, setBasicInfo] = useState<BasicInfo>({
-    name:              owUser?.name              ?? "",
-    location:          owUser?.location          ?? "",
-    aboutMe:           owUser?.about_me          ?? "",
-    futureAspirations: owUser?.future_aspirations ?? "",
-  });
-  const basicInfoRef = useRef<BasicInfo>(basicInfo);
-  const { patch: patchBasic, status: basicSaveStatus } = useDebouncedPatch({
-    endpoint: "/api/jobseeker/profile",
-  });
-
-  // ── 生年月日の状態（"YYYY-MM-DD" 文字列または null） ───────────────────
+  // ── 基本情報タブの状態 ────────────────────────────────────────────────────
   const parseBirthDate = (s: string | null): { year: string; month: string; day: string } => {
     if (!s) return { year: "", month: "", day: "" };
     const [y, m, d] = s.split("-");
     return { year: y ?? "", month: m ? String(parseInt(m, 10)) : "", day: d ? String(parseInt(d, 10)) : "" };
   };
   const initialParsed = parseBirthDate(owUser?.birth_date ?? null);
+
+  const [basicInfo, setBasicInfo] = useState<BasicInfo>({
+    name:              owUser?.name              ?? "",
+    location:          owUser?.location          ?? "",
+    aboutMe:           owUser?.about_me          ?? "",
+    futureAspirations: owUser?.future_aspirations ?? "",
+  });
   const [birthYear,  setBirthYear]  = useState<string>(initialParsed.year);
   const [birthMonth, setBirthMonth] = useState<string>(initialParsed.month);
   const [birthDay,   setBirthDay]   = useState<string>(initialParsed.day);
 
-  const handleBirthDateChange = useCallback((year: string, month: string, day: string) => {
-    if (!year || !month || !day) {
-      patchBasic({ birth_date: null });
-      return;
-    }
-    const dateStr = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-    patchBasic({ birth_date: dateStr });
-  }, [patchBasic]);
+  // 変更検知用の初期値（保存成功時に更新）
+  const [initialBasicInfo, setInitialBasicInfo] = useState<BasicInfo>({
+    name:              owUser?.name              ?? "",
+    location:          owUser?.location          ?? "",
+    aboutMe:           owUser?.about_me          ?? "",
+    futureAspirations: owUser?.future_aspirations ?? "",
+  });
+  const [initialBirthYear,  setInitialBirthYear]  = useState<string>(initialParsed.year);
+  const [initialBirthMonth, setInitialBirthMonth] = useState<string>(initialParsed.month);
+  const [initialBirthDay,   setInitialBirthDay]   = useState<string>(initialParsed.day);
 
-  const patchBasicInfo = useCallback((fieldPatch: Partial<BasicInfo>) => {
-    setBasicInfo((prev) => {
-      const next = { ...prev, ...fieldPatch };
-      basicInfoRef.current = next;
-      return next;
-    });
-    // 変更フィールドのみ snake_case に変換して送信
-    // useDebouncedPatch の pendingRef が複数フィールドの変更を蓄積してマージする
-    const dbPatch: Record<string, string> = {};
-    for (const [key, value] of Object.entries(fieldPatch) as [keyof BasicInfo, string][]) {
-      dbPatch[BASIC_FIELD_TO_DB[key]] = value;
+  const [basicSaving,       setBasicSaving]       = useState(false);
+  const [basicToastMsg,     setBasicToastMsg]     = useState<string | null>(null);
+  const [basicToastVariant, setBasicToastVariant] = useState<"default" | "error">("default");
+
+  const isBasicDirty =
+    JSON.stringify(basicInfo) !== JSON.stringify(initialBasicInfo) ||
+    birthYear  !== initialBirthYear  ||
+    birthMonth !== initialBirthMonth ||
+    birthDay   !== initialBirthDay;
+
+  const handleSaveBasic = useCallback(async () => {
+    setBasicSaving(true);
+    try {
+      const birthDate =
+        birthYear && birthMonth && birthDay
+          ? `${birthYear}-${birthMonth.padStart(2, "0")}-${birthDay.padStart(2, "0")}`
+          : null;
+      const res = await fetch("/api/jobseeker/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name:                basicInfo.name,
+          location:            basicInfo.location,
+          about_me:            basicInfo.aboutMe,
+          future_aspirations:  basicInfo.futureAspirations,
+          birth_date:          birthDate,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      setInitialBasicInfo(basicInfo);
+      setInitialBirthYear(birthYear);
+      setInitialBirthMonth(birthMonth);
+      setInitialBirthDay(birthDay);
+      setBasicToastVariant("default");
+      setBasicToastMsg("基本情報を保存しました");
+    } catch {
+      setBasicToastVariant("error");
+      setBasicToastMsg("保存に失敗しました。もう一度お試しください。");
+    } finally {
+      setBasicSaving(false);
     }
-    patchBasic(dbPatch);
-  }, [patchBasic]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [basicInfo, birthYear, birthMonth, birthDay]);
+
+  const handleCancelBasic = useCallback(() => {
+    setBasicInfo(initialBasicInfo);
+    setBirthYear(initialBirthYear);
+    setBirthMonth(initialBirthMonth);
+    setBirthDay(initialBirthDay);
+  }, [initialBasicInfo, initialBirthYear, initialBirthMonth, initialBirthDay]);
 
   return (
     <MypageMockProvider>
@@ -2163,7 +2186,6 @@ export default function ProfileEditClient({
             fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
             color: "var(--ink)", margin: 0,
           }}>プロフィール</h1>
-          {activeTab === "basic"   && <SaveStatusPill status={basicSaveStatus} />}
           {activeTab === "skills"  && <SaveStatusPill status={skillSaveStatus} />}
           <div style={{ marginLeft: "auto" }}>
             <Link
@@ -2200,13 +2222,13 @@ export default function ProfileEditClient({
             {/* ── Section 1: 基本情報（名前・所在地・生年月日） ────────────── */}
             <FormSection
               title="基本情報"
-              desc="プロフィールページに表示される情報です。変更すると自動で保存されます。"
+              desc="プロフィールページに表示される情報です。"
             >
               <FormGroup label="名前">
                 <input
                   type="text"
                   value={basicInfo.name}
-                  onChange={(e) => patchBasicInfo({ name: e.target.value })}
+                  onChange={(e) => setBasicInfo((prev) => ({ ...prev, name: e.target.value }))}
                   placeholder="例：山田 太郎"
                   style={inputStyle()}
                 />
@@ -2216,7 +2238,7 @@ export default function ProfileEditClient({
                 <div style={{ position: "relative" }}>
                   <select
                     value={basicInfo.location}
-                    onChange={(e) => patchBasicInfo({ location: e.target.value })}
+                    onChange={(e) => setBasicInfo((prev) => ({ ...prev, location: e.target.value }))}
                     style={selectStyle()}
                   >
                     <option value="">選択してください</option>
@@ -2236,10 +2258,7 @@ export default function ProfileEditClient({
                   <div style={{ position: "relative", flex: "0 0 110px" }}>
                     <select
                       value={birthYear}
-                      onChange={(e) => {
-                        setBirthYear(e.target.value);
-                        handleBirthDateChange(e.target.value, birthMonth, birthDay);
-                      }}
+                      onChange={(e) => setBirthYear(e.target.value)}
                       style={selectStyle()}
                       aria-label="生年（年）"
                     >
@@ -2253,10 +2272,7 @@ export default function ProfileEditClient({
                   <div style={{ position: "relative", flex: "0 0 80px" }}>
                     <select
                       value={birthMonth}
-                      onChange={(e) => {
-                        setBirthMonth(e.target.value);
-                        handleBirthDateChange(birthYear, e.target.value, birthDay);
-                      }}
+                      onChange={(e) => setBirthMonth(e.target.value)}
                       style={selectStyle()}
                       aria-label="生年月日（月）"
                     >
@@ -2270,10 +2286,7 @@ export default function ProfileEditClient({
                   <div style={{ position: "relative", flex: "0 0 80px" }}>
                     <select
                       value={birthDay}
-                      onChange={(e) => {
-                        setBirthDay(e.target.value);
-                        handleBirthDateChange(birthYear, birthMonth, e.target.value);
-                      }}
+                      onChange={(e) => setBirthDay(e.target.value)}
                       style={selectStyle()}
                       aria-label="生年月日（日）"
                     >
@@ -2295,7 +2308,7 @@ export default function ProfileEditClient({
             >
               <TextareaField
                 value={basicInfo.aboutMe}
-                onChange={(v) => patchBasicInfo({ aboutMe: v })}
+                onChange={(v) => setBasicInfo((prev) => ({ ...prev, aboutMe: v }))}
                 placeholder="例：リクルートで4年間営業を経験後、SaaS 企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"
                 softLimit={200}
                 rows={5}
@@ -2309,12 +2322,54 @@ export default function ProfileEditClient({
             >
               <TextareaField
                 value={basicInfo.futureAspirations}
-                onChange={(v) => patchBasicInfo({ futureAspirations: v })}
+                onChange={(v) => setBasicInfo((prev) => ({ ...prev, futureAspirations: v }))}
                 placeholder="例：プロダクトの企画段階から関わり、ユーザーインタビューを起点にして機能をゼロから作る経験をしてみたいです。将来的には自分でプロダクトを立ち上げることも視野に入れています。"
                 softLimit={200}
                 rows={5}
               />
             </FormSection>
+
+            {/* ── 保存・キャンセルボタン ────────────────────────────────────────── */}
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, marginBottom: 24 }}>
+              <button
+                type="button"
+                onClick={handleCancelBasic}
+                disabled={!isBasicDirty || basicSaving}
+                style={{
+                  padding: "10px 20px", fontSize: 13, fontWeight: 600,
+                  background: "#fff", color: "var(--ink-soft)",
+                  border: "1px solid var(--line)", borderRadius: 8,
+                  fontFamily: "inherit",
+                  cursor: !isBasicDirty || basicSaving ? "default" : "pointer",
+                  opacity: !isBasicDirty || basicSaving ? 0.5 : 1,
+                }}
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveBasic}
+                disabled={!isBasicDirty || basicSaving}
+                style={{
+                  padding: "10px 24px", fontSize: 13, fontWeight: 600,
+                  background: !isBasicDirty || basicSaving ? "var(--ink-mute)" : "var(--royal)",
+                  color: "#fff",
+                  border: "none", borderRadius: 8,
+                  fontFamily: "inherit",
+                  cursor: !isBasicDirty || basicSaving ? "default" : "pointer",
+                  transition: "background 0.15s",
+                }}
+              >
+                {basicSaving ? "保存中…" : "保存"}
+              </button>
+            </div>
+            {basicToastMsg && (
+              <Toast
+                message={basicToastMsg}
+                variant={basicToastVariant}
+                onDone={() => setBasicToastMsg(null)}
+              />
+            )}
 
           </div>
         )}
