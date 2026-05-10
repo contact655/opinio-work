@@ -7,6 +7,12 @@ export interface CareerEntry {
   id: string;
   /** 表示用企業名（匿名化済みの場合は "非公開" 等） */
   company_name: string;
+  /** 企業ロゴ画像 URL（ow_companies.logo_url）。null = 未登録 */
+  logo_url?: string | null;
+  /** 企業ロゴイニシャル文字（ow_companies.logo_letter）。フォールバック表示に使用 */
+  logo_letter?: string | null;
+  /** 企業ロゴ背景グラデーション（ow_companies.logo_gradient）。フォールバック表示に使用 */
+  logo_gradient?: string | null;
   /** ロールカテゴリのラベル（例: "プロダクトマネージャー"） */
   role_label: string;
   /** 自由記述の役職名（例: "Bakuraku事業 PdM"） */

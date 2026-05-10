@@ -26,6 +26,19 @@ const FALLBACK_AVATAR_COLOR = "linear-gradient(135deg, #002366, #3B5FD9)";
 
 // ─── buildTimelineCareerEntriesFromRaw ───────────────────────────────────────
 
+/**
+ * ow_companies の企業情報（名前 + ロゴ 3 フィールド）を格納する Map の value 型。
+ * buildTimelineCareerEntriesFromRaw の第3引数 Map<company_id, CompanyLogoInfo> として使用。
+ *
+ * ロゴフィールドは optional ではなく null 許容: DB から取得した値をそのまま格納する。
+ */
+export type CompanyLogoInfo = {
+  name: string;
+  logoUrl: string | null;
+  logoLetter: string | null;
+  logoGradient: string | null;
+};
+
 /** ow_experiences の SELECT 結果の行型 */
 export type RawExperienceRow = {
   id: string;
@@ -46,23 +59,26 @@ export type RawExperienceRow = {
 /**
  * ow_experiences の SELECT 結果 + 解決済み Map から MergedTimeline の CareerEntry を生成する。
  *
- * /mypage で使用。ow_roles.name が日本語表示ラベルそのもの（"プロダクトマネージャー" 等）
+ * /mypage・/u/[id] 共通。ow_roles.name が日本語表示ラベルそのもの（"プロダクトマネージャー" 等）
  * なので、slug 変換（DB_NAME_TO_SLUG）を経由せず直接 role_label に使う。
  *
- * @param expRows       - ow_experiences SELECT 結果（is_current DESC, started_at DESC ソート済み）
- * @param roleNameById  - Map<role_category_id, ow_roles.name>（= 表示ラベル）
- * @param companyNameById - Map<company_id, company_name>（master 企業のみ）
+ * @param expRows        - ow_experiences SELECT 結果（is_current DESC, started_at DESC ソート済み）
+ * @param roleNameById   - Map<role_category_id, ow_roles.name>（= 表示ラベル）
+ * @param companyInfoById - Map<company_id, CompanyLogoInfo>（master 企業のみ。名前 + ロゴ 3 フィールド）
  */
 export function buildTimelineCareerEntriesFromRaw(
   expRows: RawExperienceRow[],
   roleNameById: Map<string, string>,
-  companyNameById: Map<string, string>,
+  companyInfoById: Map<string, CompanyLogoInfo>,
 ): CareerEntry[] {
   return expRows.map((r) => {
+    // ロゴ情報: master 企業（company_id あり）のみ取得。custom / anon は null
+    const companyInfo = r.company_id ? companyInfoById.get(r.company_id) : undefined;
+
     // 会社名解決: master（company_id）> custom（company_text）> anon（company_anonymized）
     let company_name: string;
     if (r.company_id) {
-      company_name = companyNameById.get(r.company_id) ?? "不明な企業";
+      company_name = companyInfo?.name ?? "不明な企業";
     } else if (r.company_text) {
       company_name = r.company_text;
     } else {
@@ -73,14 +89,17 @@ export function buildTimelineCareerEntriesFromRaw(
     const role_label = roleNameById.get(r.role_category_id) ?? r.role_category_id;
 
     return {
-      id:           r.id,
+      id:            r.id,
       company_name,
+      logo_url:      companyInfo?.logoUrl ?? null,
+      logo_letter:   companyInfo?.logoLetter ?? null,
+      logo_gradient: companyInfo?.logoGradient ?? null,
       role_label,
-      role_title:   r.role_title,
-      started_at:   r.started_at,
-      ended_at:     r.ended_at,
-      is_current:   r.is_current,
-      description:  r.description,
+      role_title:    r.role_title,
+      started_at:    r.started_at,
+      ended_at:      r.ended_at,
+      is_current:    r.is_current,
+      description:   r.description,
     };
   });
 }

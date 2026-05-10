@@ -12,6 +12,7 @@ import type { CareerEntry } from "@/components/profile/MergedTimeline";
 import {
   buildTimelineCareerEntriesFromRaw,
   type RawExperienceRow,
+  type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
 
 export const metadata = { title: "マイページ — Opinio" };
@@ -99,25 +100,30 @@ export default async function MypagePage() {
       roleNameById.set(role.id as string, role.name as string);
     }
 
-    // master 企業の会社名を二次取得
+    // master 企業の会社名 + ロゴ 3 フィールドを二次取得（A-1: logo_url / logo_letter / logo_gradient 追加）
     const masterCompanyIds = (expRows ?? [])
       .filter((r) => r.company_id)
       .map((r) => r.company_id as string);
-    const companyNameById = new Map<string, string>();
+    const companyInfoById = new Map<string, CompanyLogoInfo>();
     if (masterCompanyIds.length > 0) {
       const { data: companies } = await supabase
         .from("ow_companies")
-        .select("id, name")
+        .select("id, name, logo_url, logo_letter, logo_gradient")
         .in("id", masterCompanyIds);
       for (const c of companies ?? []) {
-        companyNameById.set(c.id as string, c.name as string);
+        companyInfoById.set(c.id as string, {
+          name: c.name as string,
+          logoUrl: (c.logo_url as string | null) ?? null,
+          logoLetter: (c.logo_letter as string | null) ?? null,
+          logoGradient: (c.logo_gradient as string | null) ?? null,
+        });
       }
     }
 
     timelineCareers = buildTimelineCareerEntriesFromRaw(
       (expRows ?? []) as RawExperienceRow[],
       roleNameById,
-      companyNameById,
+      companyInfoById,
     );
   }
 

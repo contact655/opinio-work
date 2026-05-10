@@ -8,6 +8,7 @@ import {
   buildFutureData,
   type RawExperienceRow,
   type RawEducation,
+  type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
 import { getUserAge } from "@/lib/age";
 import {
@@ -141,21 +142,19 @@ export default async function UserProfilePage({ params }: { params: { id: string
     roleNameById.set(role.id as string, role.name as string);
   }
 
-  // Resolve company info (name + logo) for master entries in experiences
-  // ロゴは A-1(Phase 2)で MergedTimeline に渡す予定のため取得を維持、現時点では name のみ使用
+  // Resolve company info (name + logo 3 フィールド) for master entries in experiences
   const expCompanyIds = (expRows ?? [])
     .filter((r) => r.company_id)
     .map((r) => r.company_id as string);
 
-  type CompanyInfo = { name: string; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null };
-  const expCompanyMap = new Map<string, CompanyInfo>();
+  const companyInfoById = new Map<string, CompanyLogoInfo>();
   if (expCompanyIds.length > 0) {
     const { data: expCompanies } = await supabase
       .from("ow_companies")
       .select("id, name, logo_url, logo_letter, logo_gradient")
       .in("id", expCompanyIds);
     for (const c of expCompanies ?? []) {
-      expCompanyMap.set(c.id as string, {
+      companyInfoById.set(c.id as string, {
         name: c.name as string,
         logoUrl: (c.logo_url as string | null) ?? null,
         logoLetter: (c.logo_letter as string | null) ?? null,
@@ -164,15 +163,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
     }
   }
 
-  // timeline 向け会社名 Map（ロゴは A-1 まで未使用）
-  const companyNameById = new Map<string, string>();
-  expCompanyMap.forEach((info, id) => companyNameById.set(id, info.name));
-
   // MergedTimeline 用データ整形
   const timelineCareers = buildTimelineCareerEntriesFromRaw(
     (expRows ?? []) as RawExperienceRow[],
     roleNameById,
-    companyNameById,
+    companyInfoById,
   );
   const timelineEdus    = toTimelineEducationEntries(educations as RawEducation[]);
   const futureData      = buildFutureData(owUser, viewerIsOwner);
