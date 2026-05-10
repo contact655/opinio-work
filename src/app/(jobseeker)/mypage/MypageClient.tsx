@@ -327,7 +327,6 @@ function DashboardView({
         userFutureAspirations={userFutureAspirations}
         userSocialLinks={userSocialLinks}
         userSkillTags={userSkillTags}
-        userEducations={userEducations}
         userCertifications={userCertifications}
         isMentor={isMentor}
       />
