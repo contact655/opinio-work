@@ -8,6 +8,11 @@ import type {
   MentorReservation,
   MentorReservationStatus,
 } from "@/app/mypage/mockMypageData";
+import type { CareerEntry } from "@/components/profile/MergedTimeline";
+import {
+  buildTimelineCareerEntriesFromRaw,
+  type RawExperienceRow,
+} from "@/lib/utils/timeline";
 
 export const metadata = { title: "マイページ — Opinio" };
 
@@ -25,15 +30,22 @@ export default async function MypagePage() {
     .eq("auth_id", user.id)
     .maybeSingle();
 
-  // Fetch skill tags + educations + certifications for UserProfileCard display
+  // Fetch skill tags + educations + certifications + experiences + roles in parallel
   let skillTags: { id: string; label: string; sort_order: number }[] = [];
   let educations: {
     id: string; school: string; faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[] = [];
   let certifications: { id: string; name: string; sort_order: number }[] = [];
+  let timelineCareers: CareerEntry[] = [];
   if (owUser) {
-    const [{ data: tags }, { data: edus }, { data: certs }] = await Promise.all([
+    const [
+      { data: tags },
+      { data: edus },
+      { data: certs },
+      { data: expRows },
+      { data: allRoles },
+    ] = await Promise.all([
       supabase
         .from("ow_user_skill_tags")
         .select("id, label, sort_order")
@@ -49,7 +61,17 @@ export default async function MypagePage() {
         .select("id, name, sort_order")
         .eq("user_id", owUser.id)
         .order("sort_order", { ascending: true }),
+      supabase
+        .from("ow_experiences")
+        .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, why")
+        .eq("user_id", owUser.id)
+        .order("is_current", { ascending: false })
+        .order("started_at", { ascending: false }),
+      supabase
+        .from("ow_roles")
+        .select("id, name"),
     ]);
+
     skillTags = (tags ?? []).map((t) => ({
       id: t.id as string,
       label: t.label as string,
@@ -70,6 +92,33 @@ export default async function MypagePage() {
       name: c.name as string,
       sort_order: c.sort_order as number,
     }));
+
+    // ow_roles.name は日本語表示ラベルそのもの（slug 変換不要）
+    const roleNameById = new Map<string, string>();
+    for (const role of allRoles ?? []) {
+      roleNameById.set(role.id as string, role.name as string);
+    }
+
+    // master 企業の会社名を二次取得
+    const masterCompanyIds = (expRows ?? [])
+      .filter((r) => r.company_id)
+      .map((r) => r.company_id as string);
+    const companyNameById = new Map<string, string>();
+    if (masterCompanyIds.length > 0) {
+      const { data: companies } = await supabase
+        .from("ow_companies")
+        .select("id, name")
+        .in("id", masterCompanyIds);
+      for (const c of companies ?? []) {
+        companyNameById.set(c.id as string, c.name as string);
+      }
+    }
+
+    timelineCareers = buildTimelineCareerEntriesFromRaw(
+      (expRows ?? []) as RawExperienceRow[],
+      roleNameById,
+      companyNameById,
+    );
   }
 
   // Fetch company bookmarks (target_type='company' only; articles/mentors are mock for now)
@@ -221,5 +270,5 @@ export default async function MypagePage() {
     }
   }
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} companyBookmarks={companyBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} />;
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} />;
 }

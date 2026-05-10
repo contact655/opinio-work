@@ -63,6 +63,21 @@ const SLUG_TO_LABEL: Record<string, string> = {
   other:             "その他",
 };
 
+// ============================================================
+// CareerEntry 構築ヘルパー(2 系統あり)
+// ============================================================
+//
+// 1. toTimelineCareerEntries(LegacyCareerEntry[]):
+//    /u/[id] で使用。LegacyCareerEntry(camelCase + slug 解決済み)を受け取る。
+//    DB_NAME_TO_SLUG の前処理が呼び出し側で必要。
+//
+// 2. buildTimelineCareerEntriesFromRaw(rawRows, roleMap, companyMap):
+//    /mypage で使用(C-2 で追加)。DB の生データ + 解決済み Map を受け取る。
+//    DB_NAME_TO_SLUG を経由しないため呼び出し側が薄い。
+//
+// 将来的には 2 に統一する想定(段階6-3-3 以降で /u/[id] を 2 に移行 → 1 を削除予定)。
+// ============================================================
+
 // ─── toTimelineCareerEntries ──────────────────────────────────────────────────
 
 /**
@@ -85,6 +100,67 @@ export function toTimelineCareerEntries(
     is_current:   c.isCurrent,
     description:  c.description,
   }));
+}
+
+// ─── buildTimelineCareerEntriesFromRaw ───────────────────────────────────────
+
+/** ow_experiences の SELECT 結果の行型 */
+export type RawExperienceRow = {
+  id: string;
+  company_id: string | null;
+  company_text: string | null;
+  company_anonymized: string | null;
+  /** ow_roles の UUID */
+  role_category_id: string;
+  role_title: string | null;
+  /** DATE "YYYY-MM-DD" */
+  started_at: string;
+  /** DATE "YYYY-MM-DD" | null（is_current の場合 null）*/
+  ended_at: string | null;
+  is_current: boolean;
+  description: string | null;
+};
+
+/**
+ * ow_experiences の SELECT 結果 + 解決済み Map から MergedTimeline の CareerEntry を生成する。
+ *
+ * /mypage で使用。ow_roles.name が日本語表示ラベルそのもの（"プロダクトマネージャー" 等）
+ * なので、slug 変換（DB_NAME_TO_SLUG）を経由せず直接 role_label に使う。
+ *
+ * @param expRows       - ow_experiences SELECT 結果（is_current DESC, started_at DESC ソート済み）
+ * @param roleNameById  - Map<role_category_id, ow_roles.name>（= 表示ラベル）
+ * @param companyNameById - Map<company_id, company_name>（master 企業のみ）
+ */
+export function buildTimelineCareerEntriesFromRaw(
+  expRows: RawExperienceRow[],
+  roleNameById: Map<string, string>,
+  companyNameById: Map<string, string>,
+): CareerEntry[] {
+  return expRows.map((r) => {
+    // 会社名解決: master（company_id）> custom（company_text）> anon（company_anonymized）
+    let company_name: string;
+    if (r.company_id) {
+      company_name = companyNameById.get(r.company_id) ?? "不明な企業";
+    } else if (r.company_text) {
+      company_name = r.company_text;
+    } else {
+      company_name = r.company_anonymized ?? "非公開企業";
+    }
+
+    // ow_roles.name は日本語表示ラベルそのものなので変換不要
+    const role_label = roleNameById.get(r.role_category_id) ?? r.role_category_id;
+
+    return {
+      id:           r.id,
+      company_name,
+      role_label,
+      role_title:   r.role_title,
+      started_at:   r.started_at,
+      ended_at:     r.ended_at,
+      is_current:   r.is_current,
+      description:  r.description,
+    };
+  });
 }
 
 // ─── toTimelineEducationEntries ───────────────────────────────────────────────

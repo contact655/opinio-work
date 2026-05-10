@@ -5,6 +5,12 @@ import Link from "next/link";
 import MypageLayout, { type MypageActiveKey } from "./_components/MypageLayout";
 import { useMypageMock } from "./_components/MypageMockContext";
 import UserProfileCard from "@/components/profile/UserProfileCard";
+import MergedTimeline, { type CareerEntry } from "@/components/profile/MergedTimeline";
+import {
+  toTimelineEducationEntries,
+  buildFutureData,
+  type RawEducation,
+} from "@/lib/utils/timeline";
 import {
   MOCK_USER,
   MOCK_BOOKMARKS_ARTICLES,
@@ -208,7 +214,7 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
 function DashboardView({
   userId, isMentor, onNavigate, userName, userInitial, userAvatar,
   userLocation, userAboutMe, userBirthDate, userFutureAspirations, userSocialLinks,
-  userSkillTags, userEducations, userCertifications,
+  userSkillTags, userEducations, userCertifications, timelineCareers,
   companyBookmarks, casualMeetings, mentorReservations,
 }: {
   userId: string; isMentor: boolean; onNavigate: (v: ActiveView) => void;
@@ -222,6 +228,7 @@ function DashboardView({
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
   userCertifications?: { id: string; name: string; sort_order: number }[];
+  timelineCareers?: CareerEntry[];
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
@@ -236,6 +243,15 @@ function DashboardView({
     MOCK_BOOKMARKS_ARTICLES.length +
     companyBookmarks.length +
     MOCK_BOOKMARKS_MENTORS.length;
+
+  // MergedTimeline 用データ整形（/mypage は常に本人なので viewerIsOwner = true）
+  const timelineEdus = toTimelineEducationEntries((userEducations ?? []) as RawEducation[]);
+  const futureData = buildFutureData(
+    { name: userName, avatar_color: userAvatar, future_aspirations: userFutureAspirations ?? null },
+    true,
+  );
+  const hasMergedTimeline =
+    (timelineCareers?.length ?? 0) > 0 || timelineEdus.length > 0 || futureData != null;
 
   const recentActivity: {
     id: string;
@@ -315,6 +331,18 @@ function DashboardView({
         userCertifications={userCertifications}
         isMentor={isMentor}
       />
+
+      {/* 経歴タイムライン（キャリア + 学歴 + 未来を統合表示） */}
+      {hasMergedTimeline && (
+        <SectionBlock title="経歴" titleEn="TIMELINE">
+          <MergedTimeline
+            careers={timelineCareers ?? []}
+            educations={timelineEdus}
+            future={futureData}
+            viewerIsOwner={true}
+          />
+        </SectionBlock>
+      )}
 
       {/* Recent activity */}
       <SectionBlock
@@ -774,6 +802,7 @@ export default function MypageClient({
   skillTags = [],
   educations = [],
   certifications = [],
+  timelineCareers = [],
   companyBookmarks,
   casualMeetings,
   mentorReservations,
@@ -785,6 +814,7 @@ export default function MypageClient({
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
   certifications?: { id: string; name: string; sort_order: number }[];
+  timelineCareers?: CareerEntry[];
   companyBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
@@ -851,6 +881,7 @@ export default function MypageClient({
           userSkillTags={skillTags}
           userEducations={educations}
           userCertifications={certifications}
+          timelineCareers={timelineCareers}
           companyBookmarks={companyBookmarks}
           casualMeetings={casualMeetings}
           mentorReservations={mentorReservations}
