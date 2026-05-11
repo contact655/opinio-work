@@ -27,7 +27,10 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("ow_user_educations")
-    .select("id, school, faculty, degree, enrolled_at, graduated_at, is_current, sort_order")
+    .select(`
+      id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order,
+      school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)
+    `)
     .eq("user_id", owUserId)
     .order("sort_order", { ascending: true });
 
@@ -52,6 +55,7 @@ export async function POST(req: Request) {
     enrolled_at?: unknown;
     graduated_at?: unknown;
     is_current?: unknown;
+    school_id?: unknown;
   };
   try {
     body = await req.json();
@@ -102,6 +106,9 @@ export async function POST(req: Request) {
 
   const nextSortOrder = (maxRow?.sort_order ?? 0) + 1;
 
+  // school_id: 文字列なら採用、null 明示なら null、省略なら null
+  const school_id = typeof body.school_id === "string" ? body.school_id : null;
+
   const { data: inserted, error: insertError } = await supabase
     .from("ow_user_educations")
     .insert({
@@ -113,8 +120,12 @@ export async function POST(req: Request) {
       graduated_at,
       is_current,
       sort_order: nextSortOrder,
+      school_id,
     })
-    .select("id, school, faculty, degree, enrolled_at, graduated_at, is_current, sort_order")
+    .select(`
+      id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order,
+      school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)
+    `)
     .single();
 
   if (insertError) {

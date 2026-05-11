@@ -12,14 +12,7 @@ export async function PUT(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: {
-    school?: unknown;
-    faculty?: unknown;
-    degree?: unknown;
-    enrolled_at?: unknown;
-    graduated_at?: unknown;
-    is_current?: unknown;
-  };
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -55,19 +48,28 @@ export async function PUT(
   const is_current = body.is_current === true;
   const graduated_at = is_current ? null : (typeof body.graduated_at === "string" && body.graduated_at ? body.graduated_at : null);
 
+  // school_id: body に明示的に含まれる場合のみ更新(undefined = 変更なし、null = クリア、string = セット)
+  const updatePayload: Record<string, unknown> = {
+    school,
+    faculty: faculty || null,
+    degree,
+    enrolled_at,
+    graduated_at,
+    is_current,
+  };
+  if ("school_id" in body) {
+    updatePayload.school_id = typeof body.school_id === "string" ? body.school_id : null;
+  }
+
   // RLS の update_own が他人のレコード更新を自動的に弾く
   const { data: updated, error } = await supabase
     .from("ow_user_educations")
-    .update({
-      school,
-      faculty: faculty || null,
-      degree,
-      enrolled_at,
-      graduated_at,
-      is_current,
-    })
+    .update(updatePayload)
     .eq("id", params.id)
-    .select("id, school, faculty, degree, enrolled_at, graduated_at, is_current, sort_order")
+    .select(`
+      id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order,
+      school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)
+    `)
     .single();
 
   if (error) {

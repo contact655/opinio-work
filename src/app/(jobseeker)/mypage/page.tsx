@@ -34,7 +34,9 @@ export default async function MypagePage() {
   // Fetch skill tags + educations + certifications + experiences + roles in parallel
   let skillTags: { id: string; label: string; sort_order: number }[] = [];
   let educations: {
-    id: string; school: string; faculty: string | null; degree: string | null;
+    id: string; school: string; school_id: string | null;
+    school_master: { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
+    faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[] = [];
   let certifications: { id: string; name: string; sort_order: number }[] = [];
@@ -54,7 +56,7 @@ export default async function MypagePage() {
         .order("sort_order", { ascending: true }),
       supabase
         .from("ow_user_educations")
-        .select("id, school, faculty, degree, enrolled_at, graduated_at, is_current, sort_order")
+        .select(`id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)`)
         .eq("user_id", owUser.id)
         .order("sort_order", { ascending: true }),
       supabase
@@ -81,6 +83,8 @@ export default async function MypagePage() {
     educations = (edus ?? []).map((e) => ({
       id: e.id as string,
       school: e.school as string,
+      school_id: (e.school_id as string | null) ?? null,
+      school_master: (e.school_master as unknown as { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null) ?? null,
       faculty: (e.faculty as string | null) ?? null,
       degree: (e.degree as string | null) ?? null,
       enrolled_at: (e.enrolled_at as string | null) ?? null,

@@ -24,9 +24,19 @@ export interface CareerEntry {
   description?: string | null;
 }
 
+export interface EducationSchoolMaster {
+  id: string;
+  name: string;
+  logo_letter: string | null;
+  logo_gradient: string | null;
+  logo_url: string | null;
+}
+
 export interface EducationEntry {
   id: string;
   school: string;
+  school_id?: string | null;                    // Phase 3: FK to ow_schools (nullable)
+  school_master?: EducationSchoolMaster | null; // Phase 3: JOIN result for logo display
   faculty?: string | null;
   degree?: string | null;
   enrolled_at: string;         // "YYYY-MM-DD"

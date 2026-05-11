@@ -224,7 +224,9 @@ function DashboardView({
   userSocialLinks?: Record<string, string> | null;
   userSkillTags?: { id: string; label: string; sort_order: number }[];
   userEducations?: {
-    id: string; school: string; faculty: string | null; degree: string | null;
+    id: string; school: string; school_id: string | null;
+    school_master: { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
+    faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
   userCertifications?: { id: string; name: string; sort_order: number }[];
@@ -809,7 +811,9 @@ export default function MypageClient({
   owUser: OwUser;
   skillTags?: { id: string; label: string; sort_order: number }[];
   educations?: {
-    id: string; school: string; faculty: string | null; degree: string | null;
+    id: string; school: string; school_id: string | null;
+    school_master: { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
+    faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
   certifications?: { id: string; name: string; sort_order: number }[];

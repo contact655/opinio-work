@@ -37,7 +37,7 @@ export default async function ProfileEditPage() {
     owUser
       ? supabase
           .from("ow_user_educations")
-          .select("id, school, faculty, degree, enrolled_at, graduated_at, is_current, sort_order")
+          .select(`id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)`)
           .eq("user_id", owUser.id)
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] }),
@@ -76,7 +76,8 @@ export default async function ProfileEditPage() {
       owUser={owUser}
       authEmail={user.email ?? ""}
       initialSkillTags={skillTagsRaw ?? []}
-      initialEducations={educationsRaw ?? []}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      initialEducations={(educationsRaw ?? []) as any}
       initialCertifications={certificationsRaw ?? []}
       initialSocialLinks={(owUser?.social_links as Record<string, string> | null) ?? {}}
       initialAchievements={achievementsRaw ?? []}

@@ -110,6 +110,14 @@ export function buildTimelineCareerEntriesFromRaw(
 export type RawEducation = {
   id: string;
   school: string;
+  school_id?: string | null;   // Phase 3: FK to ow_schools (nullable)
+  school_master?: {            // Phase 3: LEFT JOIN result
+    id: string;
+    name: string;
+    logo_letter: string | null;
+    logo_gradient: string | null;
+    logo_url: string | null;
+  } | null;
   faculty: string | null;
   degree: string | null;
   /** DATE "YYYY-MM-DD" | null（DB 制約なし） */
@@ -130,13 +138,15 @@ export function toTimelineEducationEntries(
   return edus
     .filter((e) => !!e.enrolled_at)
     .map((e) => ({
-      id:          e.id,
-      school:      e.school,
-      faculty:     e.faculty,
-      degree:      e.degree,
-      enrolled_at: e.enrolled_at!,  // filtered above; guaranteed non-null
+      id:           e.id,
+      school:       e.school,
+      school_id:    e.school_id ?? null,
+      school_master: e.school_master ?? null,
+      faculty:      e.faculty,
+      degree:       e.degree,
+      enrolled_at:  e.enrolled_at!,  // filtered above; guaranteed non-null
       graduated_at: e.graduated_at,
-      is_current:  e.is_current,
+      is_current:   e.is_current,
     }));
 }
 
