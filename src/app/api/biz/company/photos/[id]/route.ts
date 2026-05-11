@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 
@@ -99,7 +100,12 @@ export async function DELETE(
       const match = url.pathname.match(/\/ow-uploads\/(.+)$/);
       if (match) {
         const path = match[1];
-        await supabase.storage.from("ow-uploads").remove([path]);
+        // companies/office-photos/{companyId}/... の第1セグメントは "companies" であり
+        // ow_uploads_owner_delete の foldername[1] = auth.uid() 条件に合致しない。
+        // 業務ロジック認可は getCompanyContext で完結済みのため、Storage 操作のみ service role を使用。
+        // （allow_all_storage 削除（migration 095）の事前対応）
+        const supabaseAdmin = createAdminClient();
+        await supabaseAdmin.storage.from("ow-uploads").remove([path]);
       }
     } catch (storageError) {
       console.warn("[DELETE photos] Storage removal failed (orphan accepted):", storageError);
