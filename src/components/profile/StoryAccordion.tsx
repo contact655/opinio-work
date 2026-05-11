@@ -65,6 +65,18 @@ function draftFromStory(s: Story): StoryDraft {
 // 今後厳密化する場合は API 側(/api/jobseeker/experience-stories/route.ts)と同期して変更すること。
 const looksLikeYouTubeUrl = (url: string): boolean => /youtube\.com|youtu\.be/.test(url);
 
+/** YouTube 動画 ID を URL から抽出。4 パターン対応: ?v= / youtu.be/ / shorts/ / embed/
+ *  戻り値 null = 非 YouTube or 解析不能 → iframe 生成禁止（三層防御の第三層）
+ */
+function extractYouTubeId(url: string): string | null {
+  const m =
+    url.match(/[?&]v=([^&#]+)/) ??
+    url.match(/youtu\.be\/([^?&#]+)/) ??
+    url.match(/\/shorts\/([^?&#]+)/) ??
+    url.match(/\/embed\/([^?&#]+)/);
+  return m?.[1] ?? null;
+}
+
 function canSaveDraft(draft: StoryDraft): boolean {
   if (draft.type === "image") return !!draft.image_url.trim();
   if (draft.type === "video") {
@@ -220,8 +232,17 @@ function StoryCard({
   story, onEdit, onDelete,
 }: { story: Story; onEdit: () => void; onDelete: () => void }) {
   const [hovered, setHovered] = useState(false);
+  // image type: onError でフォールバック表示に切り替え
+  const [imgBroken, setImgBroken] = useState(false);
 
-  const primaryUrl = story.image_url ?? story.video_url ?? story.link_url ?? null;
+  // video の三層防御:
+  //   1. 編集時: looksLikeYouTubeUrl でバリデーション済み(StoryForm)
+  //   2. 表示時: looksLikeYouTubeUrl で再チェック
+  //   3. extractYouTubeId の戻り値 null チェック → null なら iframe 生成禁止
+  const youtubeId =
+    story.type === "video" && story.video_url && looksLikeYouTubeUrl(story.video_url)
+      ? extractYouTubeId(story.video_url)
+      : null;
 
   return (
     <div
@@ -230,55 +251,161 @@ function StoryCard({
       style={{ padding: "8px 0", position: "relative" }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-        {/* Left: badge + content */}
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, flex: 1, minWidth: 0 }}>
-          <TypeBadge type={story.type} />
 
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Period */}
+        {/* Left: full content column (TypeBadge+period → media → title/desc) */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+
+          {/* Header row: TypeBadge + period (inline) */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+            <TypeBadge type={story.type} />
             {formatPeriod(story.period_start, story.period_end) && (
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginBottom: 2 }}>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                 {formatPeriod(story.period_start, story.period_end)}
-              </div>
-            )}
-
-            {/* Title */}
-            {story.title && (
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>
-                {story.title}
-              </div>
-            )}
-
-            {/* Type-specific secondary line */}
-            {story.type === "card" && story.description && (
-              <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                {story.description.length > 80 ? story.description.slice(0, 80) + "…" : story.description}
-              </div>
-            )}
-
-            {story.type === "link" && story.link_url && (
-              <a
-                href={story.link_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ fontSize: 12, color: "var(--accent)", textDecoration: "underline", wordBreak: "break-all" }}
-              >
-                {truncateUrl(story.link_url)}
-              </a>
-            )}
-
-            {(story.type === "image" || story.type === "video") && primaryUrl && (
-              <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", wordBreak: "break-all" }}>
-                {truncateUrl(primaryUrl)}
-              </div>
+              </span>
             )}
           </div>
+
+          {/* ── image type ───────────────────────────────────────────────── */}
+          {story.type === "image" && (
+            <>
+              {/* 画像本体(title の上に配置 = Wantedly 的ビジュアルファースト) */}
+              {story.image_url && !imgBroken && (
+                <img
+                  src={story.image_url}
+                  alt={story.title ?? ""}
+                  loading="lazy"
+                  onError={() => setImgBroken(true)}
+                  style={{
+                    width: "100%", maxHeight: 200, objectFit: "cover",
+                    borderRadius: 8, display: "block", marginBottom: 6,
+                  }}
+                />
+              )}
+              {story.title && (
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>
+                  {story.title}
+                </div>
+              )}
+              {story.description && (
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                  {story.description}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── video type ───────────────────────────────────────────────── */}
+          {story.type === "video" && (
+            <>
+              {youtubeId ? (
+                /* 16:9 レスポンシブ iframe — YouTube のみ(三層防御クリア時) */
+                <div
+                  style={{
+                    position: "relative", paddingTop: "56.25%",
+                    marginBottom: 6, borderRadius: 8, overflow: "hidden", background: "#000",
+                  }}
+                >
+                  <iframe
+                    src={`https://www.youtube.com/embed/${youtubeId}`}
+                    title={story.title ?? "動画"}
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
+                    sandbox="allow-scripts allow-same-origin allow-presentation"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                </div>
+              ) : (
+                /* 非 YouTube or ID 抽出失敗 → URL truncate テキストにフォールバック */
+                story.video_url && (
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", wordBreak: "break-all", marginBottom: 4 }}>
+                    {truncateUrl(story.video_url)}
+                  </div>
+                )
+              )}
+              {story.title && (
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>
+                  {story.title}
+                </div>
+              )}
+              {story.description && (
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                  {story.description}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── card type ────────────────────────────────────────────────── */}
+          {/* royal-50 背景のリッチカード。description は全文表示(truncate しない) */}
+          {/* ※ card_color は DB フィールドなし → 固定色。技術的負債として handover 記録 */}
+          {story.type === "card" && (
+            <div
+              style={{
+                background: "var(--royal-50)",
+                borderRadius: 8,
+                padding: "10px 12px",
+              }}
+            >
+              {story.title && (
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: story.description ? 4 : 0 }}>
+                  {story.title}
+                </div>
+              )}
+              {story.description && (
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                  {story.description}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── link type ────────────────────────────────────────────────── */}
+          {/* OGP fetch は DB フィールド(og_image/og_title)なし → 別 Phase。技術的負債として handover 記録 */}
+          {story.type === "link" && (
+            <>
+              {/* title があれば title をリンクテキストに、なければ URL を表示 */}
+              {story.title && story.link_url ? (
+                <a
+                  href={story.link_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: 13, fontWeight: 600, color: "var(--accent)",
+                    textDecoration: "underline", wordBreak: "break-all",
+                    display: "block", marginBottom: 2,
+                  }}
+                >
+                  {story.title}
+                </a>
+              ) : story.title ? (
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>
+                  {story.title}
+                </div>
+              ) : null}
+              {/* URL 表示(title と重複するが別行で URL を見せる) */}
+              {story.link_url && (
+                <a
+                  href={story.link_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 12, color: "var(--accent)", textDecoration: "underline", wordBreak: "break-all" }}
+                >
+                  {truncateUrl(story.link_url)}
+                </a>
+              )}
+              {story.description && (
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6, marginTop: 4 }}>
+                  {story.description}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        {/* Controls (hover reveal) */}
+        {/* Controls (hover reveal) — flexShrink: 0 でレイアウト崩れなし */}
         <div
           style={{
-            display: "flex", alignItems: "center", gap: 1,
+            display: "flex", alignItems: "flex-start", gap: 1,
             opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0,
           }}
         >
