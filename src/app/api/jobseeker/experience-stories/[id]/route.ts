@@ -67,22 +67,37 @@ export async function PUT(
 
   const periodStart = typeof body.period_start === "string" && body.period_start ? body.period_start : null;
   const periodEnd   = typeof body.period_end   === "string" && body.period_end   ? body.period_end   : null;
+  // section_id: body に含まれているときのみ更新(省略時は既存値を維持)。
+  //   null      → 未分類への移動(section_id = NULL)
+  //   "uuid"    → 指定セクションへ移動
+  //   省略      → 変更なし
+  // RLS WITH CHECK(migration 094)が「他人のセクション ID への改ざん」を DB レベルで防止。
+  const hasSectionId = "section_id" in body;
+  const sectionId = hasSectionId
+    ? (body.section_id === null ? null : typeof body.section_id === "string" ? body.section_id : undefined)
+    : undefined;
 
-  // RLS (update_own) が ownership チェックを担う
+  // RLS (ow_experience_stories_update_own + WITH CHECK) が ownership を保証
+  const updatePayload: Record<string, unknown> = {
+    type,
+    title:        title || null,
+    description:  description || null,
+    image_url:    imageUrl || null,
+    video_url:    videoUrl || null,
+    link_url:     linkUrl || null,
+    period_start: periodStart,
+    period_end:   periodEnd,
+  };
+  // null(未分類移動)も string(セクション指定)も !== undefined が true → 同じ分岐で処理
+  if (hasSectionId && sectionId !== undefined) {
+    updatePayload.section_id = sectionId;
+  }
+
   const { data: updated, error } = await supabase
     .from("ow_experience_stories")
-    .update({
-      type,
-      title:        title || null,
-      description:  description || null,
-      image_url:    imageUrl || null,
-      video_url:    videoUrl || null,
-      link_url:     linkUrl || null,
-      period_start: periodStart,
-      period_end:   periodEnd,
-    })
+    .update(updatePayload)
     .eq("id", params.id)
-    .select("id, experience_id, type, title, description, image_url, video_url, link_url, period_start, period_end, sort_order")
+    .select("id, experience_id, section_id, type, title, description, image_url, video_url, link_url, period_start, period_end, sort_order")
     .single();
 
   if (error) {

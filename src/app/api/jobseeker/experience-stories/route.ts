@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   // experience_id 経由で ownership を確認しながら取得
   let query = supabase
     .from("ow_experience_stories")
-    .select("id, experience_id, type, title, description, image_url, video_url, link_url, period_start, period_end, sort_order, created_at, ow_experiences!inner(user_id)")
+    .select("id, experience_id, section_id, type, title, description, image_url, video_url, link_url, period_start, period_end, sort_order, created_at, ow_experiences!inner(user_id)")
     .eq("ow_experiences.user_id", owUserId)
     .order("sort_order", { ascending: true });
 
@@ -148,11 +148,16 @@ export async function POST(req: Request) {
 
   const periodStart = typeof body.period_start === "string" && body.period_start ? body.period_start : null;
   const periodEnd   = typeof body.period_end   === "string" && body.period_end   ? body.period_end   : null;
+  // section_id: 任意。null = 未分類エリアに表示。
+  // WITH CHECK(RLS)が「自分の experience に属するセクション ID のみ」を保証するため、
+  // API 層での追加検証は不要。
+  const sectionId = typeof body.section_id === "string" ? body.section_id : null;
 
   const { data: inserted, error: insertError } = await supabase
     .from("ow_experience_stories")
     .insert({
       experience_id: experienceId,
+      section_id:   sectionId || null,
       type,
       title:        title || null,
       description:  description || null,
@@ -163,7 +168,7 @@ export async function POST(req: Request) {
       period_end:   periodEnd,
       sort_order:   nextSortOrder,
     })
-    .select("id, experience_id, type, title, description, image_url, video_url, link_url, period_start, period_end, sort_order")
+    .select("id, experience_id, section_id, type, title, description, image_url, video_url, link_url, period_start, period_end, sort_order")
     .single();
 
   if (insertError) {
