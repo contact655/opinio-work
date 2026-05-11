@@ -1,6 +1,7 @@
-import { Briefcase, GraduationCap } from "lucide-react";
+import { Briefcase } from "lucide-react";
 import FutureSectionEditor from "./FutureSectionEditor";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
+import SchoolLogoImg from "./SchoolLogoImg";
 
 // ─── Public types (re-exported for use in Commit C) ───────────────────────────
 
@@ -388,27 +389,7 @@ function CareerIcon({ isCurrent }: { isCurrent: boolean }) {
   );
 }
 
-function EducationIcon({ isCurrent }: { isCurrent: boolean }) {
-  return (
-    <div
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: "50%",
-        background: isCurrent ? "var(--purple)" : "var(--ink-mute)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        margin: "0 auto",
-        position: "relative",
-        zIndex: 1,
-      }}
-    >
-      <GraduationCap size={16} color="#fff" strokeWidth={2} />
-    </div>
-  );
-}
+// EducationIcon は段階6-6 Phase 4 で SchoolLogoImg に完全置換（判断点 #9 案 a）
 
 function FutureIcon({ avatarColor, initial }: { avatarColor: string; initial: string }) {
   return (
@@ -973,7 +954,7 @@ export default function MergedTimeline({
                     paddingTop: 8,
                   }}
                 >
-                  <EducationIcon isCurrent={e.is_current} />
+                  <SchoolLogoImg schoolMaster={e.school_master ?? null} />
                 </div>
                 <EducationContent data={e} />
               </div>
