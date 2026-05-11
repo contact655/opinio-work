@@ -954,7 +954,7 @@ export default function MergedTimeline({
                     paddingTop: 8,
                   }}
                 >
-                  <SchoolLogoImg schoolMaster={e.school_master ?? null} />
+                  <SchoolLogoImg schoolMaster={e.school_master ?? null} size={36} />
                 </div>
                 <EducationContent data={e} />
               </div>
