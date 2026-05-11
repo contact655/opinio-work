@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import Link from "next/link";
@@ -39,6 +40,17 @@ type Education = {
   graduated_at: string | null;
   is_current: boolean;
   sort_order: number;
+};
+
+// ow_schools マスター行型（Phase 5: datalist 候補用）
+type School = {
+  id: string;
+  name: string;
+  name_kana: string | null;
+  logo_letter: string | null;
+  logo_gradient: string | null;
+  logo_url: string | null;
+  type: string;
 };
 
 type Certification = {
@@ -596,6 +608,7 @@ function SocialLinksEditor({
 // Draft type for the education edit/add form
 type EducationDraft = {
   school:        string;
+  school_id:     string | null;  // Phase 5: FK to ow_schools (null = フリー入力 or 未選択)
   faculty:       string;
   degree:        string;
   enrolledYear:  string;
@@ -606,7 +619,7 @@ type EducationDraft = {
 };
 
 const EMPTY_EDU_DRAFT: EducationDraft = {
-  school: "", faculty: "", degree: "",
+  school: "", school_id: null, faculty: "", degree: "",
   enrolledYear: "", enrolledMonth: "",
   graduatedYear: "", graduatedMonth: "",
   isCurrent: false,
@@ -617,6 +630,7 @@ function draftFromEducation(edu: Education): EducationDraft {
   const graduatedYM = parseDateToYM(edu.graduated_at);
   return {
     school:         edu.school,
+    school_id:      edu.school_id ?? null,  // Phase 5: 既存の school_id を引き継ぐ
     faculty:        edu.faculty  ?? "",
     degree:         edu.degree   ?? "",
     enrolledYear:   enrolledYM.year,
@@ -758,6 +772,7 @@ function EducationForm({
   justSaved,
   onSave,
   onCancel,
+  schools,
 }: {
   draft: EducationDraft;
   onDraftChange: (d: EducationDraft) => void;
@@ -765,6 +780,7 @@ function EducationForm({
   justSaved?: boolean;
   onSave: () => void;
   onCancel: () => void;
+  schools: School[];
 }) {
   const set = useCallback(
     (key: keyof EducationDraft, val: string | boolean) =>
@@ -800,18 +816,32 @@ function EducationForm({
       display: "flex", flexDirection: "column", gap: 14,
       boxShadow: "0 0 0 3px rgba(0,35,102,0.06)",
     }}>
-      {/* 学校名 */}
+      {/* 学校名 — Phase 5: datalist コンボボックス */}
       <div>
         <label style={el()}>学校名 *</label>
         <input
           type="text"
+          list="school-options"
           value={draft.school}
-          onChange={(e) => set("school", e.target.value)}
-          placeholder="例：○○大学"
+          onChange={(e) => {
+            const newSchool = e.target.value;
+            const matched = schools.find((s) => s.name === newSchool);
+            onDraftChange({
+              ...draft,
+              school:    newSchool,
+              school_id: matched?.id ?? null,
+            });
+          }}
+          placeholder="例：○○大学（候補リストから選択または手動入力）"
           maxLength={100}
           disabled={isSaving}
           style={ef()}
         />
+        <datalist id="school-options">
+          {schools.map((s) => (
+            <option key={s.id} value={s.name} />
+          ))}
+        </datalist>
       </div>
 
       {/* 学部・学科 */}
@@ -942,6 +972,19 @@ function EducationEditor({
   educations: Education[];
   setEducations: React.Dispatch<React.SetStateAction<Education[]>>;
 }) {
+  // Schools master for datalist（Phase 5）
+  const [schools, setSchools] = useState<School[]>([]);
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("ow_schools")
+      .select("id, name, name_kana, logo_letter, logo_gradient, logo_url, type")
+      .order("name", { ascending: true })
+      .then(({ data, error }) => {
+        if (!error && data) setSchools(data as School[]);
+      });
+  }, []);
+
   // Edit state
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editDraft,    setEditDraft]    = useState<EducationDraft>(EMPTY_EDU_DRAFT);
@@ -989,6 +1032,7 @@ function EducationEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           school:       trimmedSchool,
+          school_id:    editDraft.school_id,  // Phase 5: 明示的に送信(null = クリア, uuid = セット)
           faculty:      editDraft.faculty.trim() || null,
           degree:       editDraft.degree || null,
           enrolled_at:  formatYMToDate(editDraft.enrolledYear, editDraft.enrolledMonth),
@@ -1028,6 +1072,7 @@ function EducationEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           school:       trimmedSchool,
+          school_id:    addDraft.school_id,   // Phase 5: datalist 選択時にセットされた id
           faculty:      addDraft.faculty.trim() || null,
           degree:       addDraft.degree || null,
           enrolled_at:  formatYMToDate(addDraft.enrolledYear, addDraft.enrolledMonth),
@@ -1088,6 +1133,7 @@ function EducationEditor({
               justSaved={editJustSaved}
               onSave={() => { void saveEdit(); }}
               onCancel={cancelEdit}
+              schools={schools}
             />
           ) : (
             <EducationCard
@@ -1120,6 +1166,7 @@ function EducationEditor({
             justSaved={addJustSaved}
             onSave={() => { void saveAdd(); }}
             onCancel={cancelAdd}
+            schools={schools}
           />
         </div>
       )}
