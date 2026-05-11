@@ -49,6 +49,8 @@ type Story = {
   image_url: string | null;
   video_url: string | null;
   link_url: string | null;
+  og_image_url: string | null;  // 段階6-5: link type OGP プレビュー用
+  og_title: string | null;      // 段階6-5: link type OGP プレビュー用
   period_start: string | null;  // "YYYY-MM-DD" from DB
   period_end: string | null;    // "YYYY-MM-DD" from DB
   sort_order: number;
@@ -140,6 +142,30 @@ function makeBody(draft: StoryDraft, experienceId?: string): Record<string, unkn
   };
   if (experienceId) body.experience_id = experienceId;
   return body;
+}
+
+// ─── OGP fetch helper ─────────────────────────────────────────────────────────
+// link type ストーリー保存時に呼ばれる。失敗は null で継続（段階6-5 判断点 2: 案 α）。
+
+async function fetchOgp(url: string): Promise<{ og_image_url: string | null; og_title: string | null }> {
+  try {
+    const res = await fetch("/api/jobseeker/ogp-fetch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    if (res.ok) {
+      const data = await res.json() as { og_image_url?: string | null; og_title?: string | null };
+      return {
+        og_image_url: data.og_image_url ?? null,
+        og_title: data.og_title ?? null,
+      };
+    }
+    // 400 / 500 等の場合も null で継続（保存はブロックしない）
+  } catch {
+    // ネットワークエラー等も null で継続
+  }
+  return { og_image_url: null, og_title: null };
 }
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
@@ -1386,10 +1412,15 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
     if (!editingId) return;
     setEditSaving(true);
     try {
+      // link type のみ OGP fetch（判断点 1: 同期取得）。失敗は null で保存（判断点 2）。
+      const ogpFields =
+        editDraft.type === "link" && editDraft.link_url.trim()
+          ? await fetchOgp(editDraft.link_url.trim())
+          : { og_image_url: null, og_title: null };
       const res = await fetch(`/api/jobseeker/experience-stories/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(makeBody(editDraft)),
+        body: JSON.stringify({ ...makeBody(editDraft), ...ogpFields }),
       });
       if (!res.ok) throw new Error();
       const updated: Story = await res.json();
@@ -1410,10 +1441,15 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
   const saveAdd = useCallback(async () => {
     setAddSaving(true);
     try {
+      // link type のみ OGP fetch（判断点 1: 同期取得）。失敗は null で保存（判断点 2）。
+      const ogpFields =
+        addDraft.type === "link" && addDraft.link_url.trim()
+          ? await fetchOgp(addDraft.link_url.trim())
+          : { og_image_url: null, og_title: null };
       const res = await fetch("/api/jobseeker/experience-stories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(makeBody(addDraft, experienceId)),
+        body: JSON.stringify({ ...makeBody(addDraft, experienceId), ...ogpFields }),
       });
       if (!res.ok) throw new Error();
       const inserted: Story = await res.json();

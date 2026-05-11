@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   // experience_id 経由で ownership を確認しながら取得
   let query = supabase
     .from("ow_experience_stories")
-    .select("id, experience_id, section_id, type, title, description, image_url, video_url, link_url, period_start, period_end, sort_order, created_at, ow_experiences!inner(user_id)")
+    .select("id, experience_id, section_id, type, title, description, image_url, video_url, link_url, og_image_url, og_title, period_start, period_end, sort_order, created_at, ow_experiences!inner(user_id)")
     .eq("ow_experiences.user_id", owUserId)
     .order("sort_order", { ascending: true });
 
@@ -152,6 +152,9 @@ export async function POST(req: Request) {
   // WITH CHECK(RLS)が「自分の experience に属するセクション ID のみ」を保証するため、
   // API 層での追加検証は不要。
   const sectionId = typeof body.section_id === "string" ? body.section_id : null;
+  // og_image_url / og_title: link type のみ実質使用。null / undefined はいずれも null で保存。
+  const ogImageUrl = typeof body.og_image_url === "string" ? body.og_image_url : null;
+  const ogTitle    = typeof body.og_title     === "string" ? body.og_title     : null;
 
   const { data: inserted, error: insertError } = await supabase
     .from("ow_experience_stories")
@@ -164,11 +167,13 @@ export async function POST(req: Request) {
       image_url:    imageUrl || null,
       video_url:    videoUrl || null,
       link_url:     linkUrl || null,
+      og_image_url: ogImageUrl || null,
+      og_title:     ogTitle || null,
       period_start: periodStart,
       period_end:   periodEnd,
       sort_order:   nextSortOrder,
     })
-    .select("id, experience_id, section_id, type, title, description, image_url, video_url, link_url, period_start, period_end, sort_order")
+    .select("id, experience_id, section_id, type, title, description, image_url, video_url, link_url, og_image_url, og_title, period_start, period_end, sort_order")
     .single();
 
   if (insertError) {

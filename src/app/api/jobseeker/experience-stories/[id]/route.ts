@@ -76,6 +76,9 @@ export async function PUT(
   const sectionId = hasSectionId
     ? (body.section_id === null ? null : typeof body.section_id === "string" ? body.section_id : undefined)
     : undefined;
+  // og_image_url / og_title: link type のみ実質使用。undefined は null として保存。
+  const ogImageUrl = typeof body.og_image_url === "string" ? body.og_image_url : null;
+  const ogTitle    = typeof body.og_title     === "string" ? body.og_title     : null;
 
   // RLS (ow_experience_stories_update_own + WITH CHECK) が ownership を保証
   const updatePayload: Record<string, unknown> = {
@@ -85,6 +88,8 @@ export async function PUT(
     image_url:    imageUrl || null,
     video_url:    videoUrl || null,
     link_url:     linkUrl || null,
+    og_image_url: ogImageUrl,
+    og_title:     ogTitle,
     period_start: periodStart,
     period_end:   periodEnd,
   };
@@ -97,7 +102,7 @@ export async function PUT(
     .from("ow_experience_stories")
     .update(updatePayload)
     .eq("id", params.id)
-    .select("id, experience_id, section_id, type, title, description, image_url, video_url, link_url, period_start, period_end, sort_order")
+    .select("id, experience_id, section_id, type, title, description, image_url, video_url, link_url, og_image_url, og_title, period_start, period_end, sort_order")
     .single();
 
   if (error) {
