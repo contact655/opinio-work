@@ -1,6 +1,27 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  useDroppable,
+  type DragStartEvent,
+  type DragOverEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";
@@ -163,6 +184,94 @@ function labelStyle(): React.CSSProperties {
   };
 }
 
+// ─── DnD helper: GripHandle ──────────────────────────────────────────────────
+
+function GripHandle(props: React.HTMLAttributes<HTMLSpanElement> & { visible: boolean }) {
+  const { visible, ...rest } = props;
+  return (
+    <span
+      {...rest}
+      title="ドラッグして並べ替え"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 18,
+        flexShrink: 0,
+        cursor: "grab",
+        color: "var(--ink-mute)",
+        opacity: visible ? 1 : 0,
+        transition: "opacity 0.15s",
+        userSelect: "none",
+        touchAction: "none",
+      }}
+    >
+      {/* 6-dot grip (2×3) */}
+      <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+        <circle cx="2" cy="2" r="1.3" /><circle cx="6" cy="2" r="1.3" />
+        <circle cx="2" cy="6" r="1.3" /><circle cx="6" cy="6" r="1.3" />
+        <circle cx="2" cy="10" r="1.3" /><circle cx="6" cy="10" r="1.3" />
+      </svg>
+    </span>
+  );
+}
+
+// ─── DnD helper: buildNewStoriesAfterDrag ─────────────────────────────────────
+//
+// onDragOver が active story の section_id を更新済みの前提で呼ばれる。
+// activeContainerId = active story の現在のコンテナ（onDragOver 後）
+// overId           = drop 先のストーリー ID（コンテナ ID の場合は末尾扱い）
+// sections         = 現在のセクション配列（sort_order 順）
+//
+// 戻り値: 全ストーリーに clean sort_order（1,2,3…）を振り直した新配列
+
+function buildNewStoriesAfterDrag(
+  currentStories: Story[],
+  sections: StorySection[],
+  activeId: string,
+  overId: string,
+  activeContainerId: string,  // section UUID or "uncategorized"
+): Story[] {
+  // コンテナ → ID 配列（sort_order 順）マップを構築
+  const containers: Record<string, string[]> = {};
+  for (const sec of sections) {
+    containers[sec.id] = currentStories
+      .filter(s => s.section_id === sec.id)
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map(s => s.id);
+  }
+  containers["uncategorized"] = currentStories
+    .filter(s => s.section_id === null)
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map(s => s.id);
+
+  // コンテナ内 arrayMove（overId が story ID の場合）
+  const container = containers[activeContainerId] ?? [];
+  const oldIdx = container.indexOf(activeId);
+  const newIdx = container.indexOf(overId);
+  if (oldIdx !== -1 && newIdx !== -1 && oldIdx !== newIdx) {
+    containers[activeContainerId] = arrayMove(container, oldIdx, newIdx);
+  }
+  // overId がコンテナ ID など story 以外の場合 → 末尾に残す（onDragOver で既に末尾）
+
+  // 全ストーリーを視覚順で再採番 (1, 2, 3 …)
+  const storyMap = new Map(currentStories.map(s => [s.id, s]));
+  const result: Story[] = [];
+  let order = 1;
+
+  for (const sec of sections) {
+    for (const id of (containers[sec.id] ?? [])) {
+      const s = storyMap.get(id);
+      if (s) result.push({ ...s, sort_order: order++, section_id: sec.id });
+    }
+  }
+  for (const id of (containers["uncategorized"] ?? [])) {
+    const s = storyMap.get(id);
+    if (s) result.push({ ...s, sort_order: order++, section_id: null });
+  }
+  return result;
+}
+
 // ─── Type badge config ────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<StoryType, { label: string; bg: string; color: string }> = {
@@ -245,8 +354,13 @@ function truncateUrl(url: string, max = 50): string {
 }
 
 function StoryCard({
-  story, onEdit, onDelete,
-}: { story: Story; onEdit: () => void; onDelete: () => void }) {
+  story, onEdit, onDelete, dragHandle,
+}: {
+  story: Story;
+  onEdit: () => void;
+  onDelete: () => void;
+  dragHandle?: React.HTMLAttributes<HTMLSpanElement>;
+}) {
   const [hovered, setHovered] = useState(false);
   // image type: onError でフォールバック表示に切り替え
   const [imgBroken, setImgBroken] = useState(false);
@@ -267,6 +381,9 @@ function StoryCard({
       style={{ padding: "8px 0", position: "relative" }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+
+        {/* Drag handle (hover reveal) */}
+        {dragHandle && <GripHandle visible={hovered} {...dragHandle} />}
 
         {/* Left: full content column (TypeBadge+period → media → title/desc) */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -486,10 +603,12 @@ function SectionHeader({
   section,
   onSave,
   onDelete,
+  dragHandle,
 }: {
   section: StorySection;
   onSave: (id: string, name: string) => Promise<void>;
   onDelete: (section: StorySection) => void;
+  dragHandle?: React.HTMLAttributes<HTMLSpanElement>;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(section.name);
@@ -602,6 +721,8 @@ function SectionHeader({
         </>
       ) : (
         <>
+          {/* Drag handle (hover reveal) */}
+          {dragHandle && <GripHandle visible={hovered} {...dragHandle} />}
           <span
             style={{
               flex: 1,
@@ -996,6 +1117,114 @@ function StoryForm({
 
 // ─── Main: StoryAccordion ─────────────────────────────────────────────────────
 
+// ─── DnD wrapper components ───────────────────────────────────────────────────
+
+/** セクション並べ替え用 useSortable ラッパー */
+function SortableSectionWrapper({
+  section, onSave, onDelete, disabled,
+}: {
+  section: StorySection;
+  onSave: (id: string, name: string) => Promise<void>;
+  onDelete: (section: StorySection) => void;
+  disabled: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: section.id,
+    data: { type: "section" },
+    disabled,
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        zIndex: isDragging ? 1 : undefined,
+      }}
+    >
+      <SectionHeader
+        section={section}
+        onSave={onSave}
+        onDelete={onDelete}
+        dragHandle={{ ...attributes, ...listeners }}
+      />
+    </div>
+  );
+}
+
+/** ストーリー並べ替え用 useSortable ラッパー（表示 / 編集フォームを内包） */
+function SortableStoryWrapper({
+  story, editingId, editDraft, sections, editSaving, editJustSaved,
+  onSaveEdit, onCancelEdit, onEdit, onDelete, onDraftChange, disabled,
+}: {
+  story: Story;
+  editingId: string | null;
+  editDraft: StoryDraft;
+  sections: StorySection[];
+  editSaving: boolean;
+  editJustSaved: boolean;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  onEdit: (id: string) => void;
+  onDelete: (story: Story) => void;
+  onDraftChange: (d: StoryDraft) => void;
+  disabled: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: story.id,
+    data: { type: "story" },
+    disabled,
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        zIndex: isDragging ? 1 : undefined,
+      }}
+    >
+      {editingId === story.id ? (
+        <StoryForm
+          draft={editDraft}
+          sections={sections}
+          onDraftChange={onDraftChange}
+          isSaving={editSaving}
+          justSaved={editJustSaved}
+          onSave={onSaveEdit}
+          onCancel={onCancelEdit}
+        />
+      ) : (
+        <StoryCard
+          story={story}
+          onEdit={() => onEdit(story.id)}
+          onDelete={() => onDelete(story)}
+          dragHandle={disabled ? undefined : { ...attributes, ...listeners }}
+        />
+      )}
+    </div>
+  );
+}
+
+/** ドロップ対象コンテナ（空セクションへのドロップ受け付け用） */
+function DroppableContainer({
+  id, sectionId, children,
+}: {
+  id: string;
+  sectionId: string | null;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({
+    id,
+    data: { type: "container", sectionId },
+  });
+  return <div ref={setNodeRef}>{children}</div>;
+}
+
+// ─── Main: StoryAccordion ─────────────────────────────────────────────────────
+
 interface StoryAccordionProps {
   /** ow_experiences.id */
   experienceId: string;
@@ -1016,6 +1245,19 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
   // セクション削除
   const [deleteSectionTarget, setDeleteSectionTarget] = useState<StorySection | null>(null);
   const [deletingSection,     setDeletingSection]     = useState(false);
+
+  // B-1 Commit B: DnD state
+  const [dndActiveId,   setDndActiveId]   = useState<string | null>(null);
+  const [dndActiveType, setDndActiveType] = useState<"section" | "story" | null>(null);
+  // ロールバック用スナップショット
+  const prevStoriesRef  = useRef<Story[]>([]);
+  const prevSectionsRef = useRef<StorySection[]>([]);
+
+  // B-1: dnd-kit sensors (PointerSensor = mouse + touch, KeyboardSensor = a11y)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   // Edit state
   const [editingId,     setEditingId]     = useState<string | null>(null);
@@ -1219,6 +1461,117 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
     setAddDraft(EMPTY_DRAFT);
   }, []);
 
+  // ── B-1: DnD handlers ───────────────────────────────────────────────────────
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    prevStoriesRef.current  = stories;
+    prevSectionsRef.current = sections;
+    setDndActiveId(event.active.id as string);
+    setDndActiveType(event.active.data.current?.type as "section" | "story" ?? null);
+  }, [stories, sections]);
+
+  // cross-section 移動: ドラッグ中に story の section_id を更新し視覚フィードバックを提供
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over || active.data.current?.type !== "story") return;
+
+    const activeStory = stories.find(s => s.id === active.id);
+    if (!activeStory) return;
+
+    let targetSectionId: string | null;
+    if (over.data.current?.type === "container") {
+      targetSectionId = over.data.current?.sectionId ?? null;
+    } else if (over.data.current?.type === "story") {
+      targetSectionId = stories.find(s => s.id === over.id)?.section_id ?? null;
+    } else if (over.data.current?.type === "section") {
+      targetSectionId = over.id as string;
+    } else {
+      return;
+    }
+
+    if (activeStory.section_id === targetSectionId) return; // 同一コンテナ → 不要
+
+    setStories(prev => prev.map(s =>
+      s.id === active.id ? { ...s, section_id: targetSectionId } : s
+    ));
+  }, [stories]);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    setDndActiveId(null);
+    setDndActiveType(null);
+
+    if (!over) {
+      // ドロップ先なし → ロールバック
+      setStories(prevStoriesRef.current);
+      setSections(prevSectionsRef.current);
+      return;
+    }
+
+    if (dndActiveType === "section") {
+      // セクションは section header 同士の drop のみ受け付け
+      if (over.data.current?.type !== "section") return;
+      const oldIdx = sections.findIndex(s => s.id === active.id);
+      const newIdx = sections.findIndex(s => s.id === over.id);
+      if (oldIdx === newIdx || oldIdx === -1 || newIdx === -1) return;
+
+      const newSections = arrayMove(sections, oldIdx, newIdx);
+      setSections(newSections);
+
+      // API: /experience-story-sections/reorder (楽観 UI + 失敗時ロールバック)
+      void (async () => {
+        try {
+          const res = await fetch("/api/jobseeker/experience-story-sections/reorder", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderedIds: newSections.map(s => s.id) }),
+          });
+          if (!res.ok) throw new Error();
+        } catch {
+          setSections(prevSectionsRef.current);
+          showToast("セクションの並べ替えに失敗しました。", "error");
+        }
+      })();
+
+    } else if (dndActiveType === "story") {
+      // onDragOver で section_id は更新済み。activeContainerId = 現在のコンテナ
+      const activeStory = stories.find(s => s.id === active.id);
+      const activeContainerId = activeStory?.section_id ?? "uncategorized";
+      const overId = over.id as string;
+
+      // 新ストーリー配列を計算（sort_order 再採番 + section_id 確定）
+      const newStories = buildNewStoriesAfterDrag(
+        stories, sections, active.id as string, overId, activeContainerId
+      );
+      setStories(newStories);
+
+      // API: /experience-stories/reorder
+      const items = newStories.map(s => ({
+        id: s.id, sort_order: s.sort_order, section_id: s.section_id,
+      }));
+      void (async () => {
+        try {
+          const res = await fetch("/api/jobseeker/experience-stories/reorder", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items }),
+          });
+          if (!res.ok) throw new Error();
+        } catch {
+          setStories(prevStoriesRef.current);
+          showToast("ストーリーの並べ替えに失敗しました。", "error");
+        }
+      })();
+    }
+  }, [dndActiveType, sections, stories, showToast]);
+
+  const handleDragCancel = useCallback(() => {
+    setStories(prevStoriesRef.current);
+    setSections(prevSectionsRef.current);
+    setDndActiveId(null);
+    setDndActiveType(null);
+  }, []);
+
   // ── Accordion count label ────────────────────────────────────────────────────
 
   const countLabel = loaded
@@ -1226,37 +1579,6 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
       ? `ストーリー（${stories.length}件）`
       : "ストーリー"
     : "ストーリー";
-
-  // ── Grouped render helper ────────────────────────────────────────────────────
-  // セクション別にストーリーを表示するために使う。hooks を使わないため関数で定義。
-
-  const renderStoryRow = (s: Story, idx: number, group: Story[]) => (
-    <div key={s.id}>
-      {editingId === s.id ? (
-        <StoryForm
-          draft={editDraft}
-          sections={sections}
-          onDraftChange={setEditDraft}
-          isSaving={editSaving}
-          justSaved={editJustSaved}
-          onSave={() => { void saveEdit(); }}
-          onCancel={cancelEdit}
-        />
-      ) : (
-        <StoryCard
-          story={s}
-          onEdit={() => {
-            setEditingId(s.id);
-            setEditDraft(draftFromStory(s));
-          }}
-          onDelete={() => setDeleteTarget(s)}
-        />
-      )}
-      {idx < group.length - 1 && editingId !== s.id && (
-        <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
-      )}
-    </div>
-  );
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -1323,71 +1645,182 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
       {isOpen && loaded && (
         <div style={{ paddingBottom: 8 }}>
 
-          {/* ── Sectioned story list ────────────────────────────────────────── */}
+          {/* ── Sectioned story list (B-1: DnD) ─────────────────────────────── */}
 
-          {/* セクションごとにまとめて表示 */}
-          {sections.map((section) => {
-            const sectionStories = stories.filter((s) => s.section_id === section.id);
-            return (
-              <div key={section.id}>
-                <SectionHeader
-                  section={section}
-                  onSave={updateSectionName}
-                  onDelete={setDeleteSectionTarget}
-                />
-                {sectionStories.map((s, idx) => renderStoryRow(s, idx, sectionStories))}
-                {sectionStories.length === 0 && (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            {/* B-1: セクション並べ替え SortableContext */}
+            <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+              {sections.map((section) => {
+                const sectionStories = stories
+                  .filter((s) => s.section_id === section.id)
+                  .sort((a, b) => a.sort_order - b.sort_order);
+                return (
+                  <div key={section.id}>
+                    {/* B-1: セクションヘッダーを並べ替え可能ラッパーで包む */}
+                    <SortableSectionWrapper
+                      section={section}
+                      onSave={updateSectionName}
+                      onDelete={setDeleteSectionTarget}
+                      disabled={!!editingId || adding}
+                    />
+                    {/* B-1: セクション内ストーリーの SortableContext + ドロップ対象コンテナ */}
+                    <DroppableContainer id={`container-${section.id}`} sectionId={section.id}>
+                      <SortableContext
+                        items={sectionStories.map((s) => s.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {sectionStories.map((s) => (
+                          <SortableStoryWrapper
+                            key={s.id}
+                            story={s}
+                            editingId={editingId}
+                            editDraft={editDraft}
+                            sections={sections}
+                            editSaving={editSaving}
+                            editJustSaved={editJustSaved}
+                            onSaveEdit={() => { void saveEdit(); }}
+                            onCancelEdit={cancelEdit}
+                            onEdit={(id) => { setEditingId(id); setEditDraft(draftFromStory(s)); }}
+                            onDelete={setDeleteTarget}
+                            onDraftChange={setEditDraft}
+                            disabled={!!editingId || adding}
+                          />
+                        ))}
+                        {sectionStories.length === 0 && (
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: "var(--ink-mute)",
+                              fontStyle: "italic",
+                              padding: "4px 0 4px 4px",
+                            }}
+                          >
+                            このセクションにはまだストーリーがありません
+                          </div>
+                        )}
+                      </SortableContext>
+                    </DroppableContainer>
+                  </div>
+                );
+              })}
+            </SortableContext>
+
+            {/* 未分類エリア: セクションがある場合は「未分類」ヘッダーを表示 */}
+            {(uncategorized.length > 0 || !hasAnySections) && (
+              <div>
+                {hasAnySections && uncategorized.length > 0 && (
                   <div
                     style={{
-                      fontSize: 11,
+                      fontSize: 10,
+                      fontWeight: 700,
                       color: "var(--ink-mute)",
-                      fontStyle: "italic",
-                      padding: "4px 0 4px 4px",
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      padding: "6px 0 4px",
+                      borderBottom: "1.5px solid var(--line)",
+                      marginTop: 12,
+                      marginBottom: 4,
                     }}
                   >
-                    このセクションにはまだストーリーがありません
+                    未分類
                   </div>
                 )}
+                <DroppableContainer id="container-uncategorized" sectionId={null}>
+                  <SortableContext
+                    items={uncategorized.map((s) => s.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {uncategorized.map((s) => (
+                      <SortableStoryWrapper
+                        key={s.id}
+                        story={s}
+                        editingId={editingId}
+                        editDraft={editDraft}
+                        sections={sections}
+                        editSaving={editSaving}
+                        editJustSaved={editJustSaved}
+                        onSaveEdit={() => { void saveEdit(); }}
+                        onCancelEdit={cancelEdit}
+                        onEdit={(id) => { setEditingId(id); setEditDraft(draftFromStory(s)); }}
+                        onDelete={setDeleteTarget}
+                        onDraftChange={setEditDraft}
+                        disabled={!!editingId || adding}
+                      />
+                    ))}
+                    {/* グローバル空状態: セクションも stories もない場合のみ表示 */}
+                    {!hasAnySections && uncategorized.length === 0 && !adding && (
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "var(--ink-mute)",
+                          fontStyle: "italic",
+                          padding: "2px 0 6px",
+                        }}
+                      >
+                        ストーリーはまだ登録されていません
+                      </div>
+                    )}
+                  </SortableContext>
+                </DroppableContainer>
               </div>
-            );
-          })}
+            )}
 
-          {/* 未分類エリア: セクションがある場合は「未分類」ヘッダーを表示 */}
-          {(uncategorized.length > 0 || !hasAnySections) && (
-            <div>
-              {hasAnySections && uncategorized.length > 0 && (
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: "var(--ink-mute)",
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    padding: "6px 0 4px",
-                    borderBottom: "1.5px solid var(--line)",
-                    marginTop: 12,
-                    marginBottom: 4,
-                  }}
-                >
-                  未分類
-                </div>
-              )}
-              {uncategorized.map((s, idx) => renderStoryRow(s, idx, uncategorized))}
-              {/* グローバル空状態: セクションも stories もない場合のみ表示 */}
-              {!hasAnySections && uncategorized.length === 0 && !adding && (
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--ink-mute)",
-                    fontStyle: "italic",
-                    padding: "2px 0 6px",
-                  }}
-                >
-                  ストーリーはまだ登録されていません
-                </div>
-              )}
-            </div>
-          )}
+            {/* B-1: DragOverlay — ドラッグ中のフローティングプレビュー */}
+            <DragOverlay>
+              {dndActiveId && dndActiveType === "section" && (() => {
+                const sec = sections.find((s) => s.id === dndActiveId);
+                return sec ? (
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1.5px solid var(--royal)",
+                      borderRadius: 6,
+                      padding: "4px 10px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "var(--ink-soft)",
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      boxShadow: "0 4px 12px rgba(0,35,102,0.15)",
+                      cursor: "grabbing",
+                    }}
+                  >
+                    {sec.name}
+                  </div>
+                ) : null;
+              })()}
+              {dndActiveId && dndActiveType === "story" && (() => {
+                const st = stories.find((s) => s.id === dndActiveId);
+                return st ? (
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid var(--line)",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      boxShadow: "0 4px 12px rgba(0,35,102,0.15)",
+                      cursor: "grabbing",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <TypeBadge type={st.type} />
+                    <span style={{ fontSize: 12, color: "var(--ink)", fontWeight: 600 }}>
+                      {st.title ?? st.type}
+                    </span>
+                  </div>
+                ) : null;
+              })()}
+            </DragOverlay>
+          </DndContext>
 
           {/* ── Add story form ──────────────────────────────────────────────── */}
           {adding && (
