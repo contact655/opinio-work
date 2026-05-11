@@ -379,6 +379,15 @@ function truncateUrl(url: string, max = 50): string {
   return url.slice(0, max) + "…";
 }
 
+/** URL からドメイン名を取得（www. を除去）。パース失敗時は null。 */
+function extractDomain(url: string): string | null {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
 function StoryCard({
   story, onEdit, onDelete, dragHandle,
 }: {
@@ -390,6 +399,8 @@ function StoryCard({
   const [hovered, setHovered] = useState(false);
   // image type: onError でフォールバック表示に切り替え
   const [imgBroken, setImgBroken] = useState(false);
+  // link type: OGP 画像の読み込み失敗フォールバック（段階6-5 Phase 4）
+  const [ogImgBroken, setOgImgBroken] = useState(false);
 
   // video の三層防御:
   //   1. 編集時: looksLikeYouTubeUrl でバリデーション済み(StoryForm)
@@ -519,46 +530,83 @@ function StoryCard({
           )}
 
           {/* ── link type ────────────────────────────────────────────────── */}
-          {/* OGP fetch は DB フィールド(og_image/og_title)なし → 別 Phase。技術的負債として handover 記録 */}
-          {story.type === "link" && (
-            <>
-              {/* title があれば title をリンクテキストに、なければ URL を表示 */}
-              {story.title && story.link_url ? (
-                <a
-                  href={story.link_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    fontSize: 13, fontWeight: 600, color: "var(--accent)",
-                    textDecoration: "underline", wordBreak: "break-all",
-                    display: "block", marginBottom: 2,
-                  }}
-                >
-                  {story.title}
-                </a>
-              ) : story.title ? (
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>
-                  {story.title}
+          {/* 段階6-5 Phase 4: OGP リッチカード表示。og_image_url / og_title が                         */}
+          {/* null の既存ストーリーは displayTitle + domain のみ表示（漸進的移行 / 判断点 6）           */}
+          {story.type === "link" && (() => {
+            const ogImg = story.og_image_url;
+            const showOgImg = !!ogImg && !ogImgBroken;
+            // タイトル優先順: og_title → 手動タイトル → ドメイン名 → URL そのまま
+            const displayTitle =
+              story.og_title ||
+              story.title ||
+              extractDomain(story.link_url ?? "") ||
+              story.link_url;
+            const domain = extractDomain(story.link_url ?? "");
+
+            return (
+              <a
+                href={story.link_url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "block",
+                  border: "1px solid var(--line)",
+                  borderRadius: 8,
+                  overflow: "hidden",
+                  textDecoration: "none",
+                  color: "inherit",
+                }}
+              >
+                {/* OGP 画像（あれば表示。読み込み失敗で非表示に切り替え） */}
+                {showOgImg && (
+                  <img
+                    src={ogImg}
+                    alt=""
+                    loading="lazy"
+                    onError={() => setOgImgBroken(true)}
+                    style={{
+                      width: "100%",
+                      maxHeight: 180,
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                )}
+                <div style={{ padding: "8px 10px" }}>
+                  {/* タイトル（2 行まで。超過は省略表示） */}
+                  {displayTitle && (
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "var(--ink)",
+                        lineHeight: 1.4,
+                        marginBottom: domain ? 4 : 0,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {displayTitle}
+                    </div>
+                  )}
+                  {/* ドメイン名（www. 除去済み） */}
+                  {domain && (
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "var(--ink-mute)",
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      {domain}
+                    </div>
+                  )}
                 </div>
-              ) : null}
-              {/* URL 表示(title と重複するが別行で URL を見せる) */}
-              {story.link_url && (
-                <a
-                  href={story.link_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontSize: 12, color: "var(--accent)", textDecoration: "underline", wordBreak: "break-all" }}
-                >
-                  {truncateUrl(story.link_url)}
-                </a>
-              )}
-              {story.description && (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6, marginTop: 4 }}>
-                  {story.description}
-                </div>
-              )}
-            </>
-          )}
+              </a>
+            );
+          })()}
         </div>
 
         {/* Controls (hover reveal) — flexShrink: 0 でレイアウト崩れなし */}
