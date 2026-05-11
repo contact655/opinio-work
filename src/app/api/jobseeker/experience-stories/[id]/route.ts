@@ -102,6 +102,13 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Fetch image_url before delete so we can clean up Storage (best-effort)
+  const { data: story } = await supabase
+    .from("ow_experience_stories")
+    .select("image_url")
+    .eq("id", params.id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("ow_experience_stories")
     .delete()
@@ -110,6 +117,21 @@ export async function DELETE(
   if (error) {
     console.error("[DELETE /api/jobseeker/experience-stories/[id]]", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Best-effort Storage cleanup: remove the uploaded image if it lives in ow-uploads
+  // Failure here is non-blocking (DB row is already deleted)
+  const imageUrl = story?.image_url as string | null | undefined;
+  if (imageUrl) {
+    const match = imageUrl.match(/\/object\/public\/ow-uploads\/(.+)$/);
+    if (match) {
+      await supabase.storage
+        .from("ow-uploads")
+        .remove([decodeURIComponent(match[1])])
+        .catch((e: unknown) => {
+          console.warn("[DELETE story] Storage cleanup failed:", e);
+        });
+    }
   }
 
   return new NextResponse(null, { status: 204 });

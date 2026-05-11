@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
+import { createClient } from "@/lib/supabase/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -354,11 +355,71 @@ function StoryForm({
     [draft, onDraftChange]
   );
 
+  // ── Image upload ─────────────────────────────────────────────────────────────
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [fileErr, setFileErr] = useState<string | null>(null);
+
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      // Reset so the same file can be re-selected after an error
+      e.target.value = "";
+      setFileErr(null);
+
+      // Client-side MIME validation (matches policy in 093 migration)
+      const ALLOWED_MIMES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+      if (!ALLOWED_MIMES.includes(file.type)) {
+        setFileErr("JPEG / PNG / WebP / GIF のみ対応しています");
+        return;
+      }
+      // 5 MB limit (matches frontend spec in 093 migration comment)
+      if (file.size > 5 * 1024 * 1024) {
+        setFileErr("ファイルサイズは 5MB 以下にしてください");
+        return;
+      }
+
+      setIsUploading(true);
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("認証が必要です。ページをリロードしてください。");
+
+        const rawExt = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+        // Normalise extension so it aligns with actual MIME
+        const EXT_MAP: Record<string, string> = {
+          jpeg: "jpg", jpg: "jpg", png: "png", webp: "webp", gif: "gif",
+        };
+        const ext = EXT_MAP[rawExt] ?? rawExt;
+        // Path: {auth_uid}/experience-stories/{uuid}.{ext}
+        // auth_uid as 1st segment → existing ow_uploads_owner_delete/update policies cover this path
+        const path = `${user.id}/experience-stories/${crypto.randomUUID()}.${ext}`;
+
+        const { error: storageErr } = await supabase.storage
+          .from("ow-uploads")
+          .upload(path, file, { contentType: file.type, upsert: false });
+        if (storageErr) throw storageErr;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("ow-uploads")
+          .getPublicUrl(path);
+        set("image_url", publicUrl);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "アップロードに失敗しました。もう一度お試しください。";
+        setFileErr(msg);
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [set]
+  );
+
   // 終了年月 < 開始年月 のとき invalid（両方入力されている場合のみチェック）
   const periodInvalid =
     !!draft.period_start && !!draft.period_end && draft.period_start > draft.period_end;
 
-  const canSave = canSaveDraft(draft) && !isSaving && !periodInvalid;
+  const canSave = canSaveDraft(draft) && !isSaving && !isUploading && !periodInvalid;
   const effectivelyDisabled = !canSave || !!justSaved;
 
   return (
@@ -416,19 +477,81 @@ function StoryForm({
       {/* Type-specific URL field */}
       {draft.type === "image" && (
         <div>
-          <label style={labelStyle()}>画像 URL *</label>
+          <label style={labelStyle()}>画像 *</label>
+
+          {/* 48px thumbnail preview — shown once image_url is set */}
+          {draft.image_url && (
+            <div style={{ marginBottom: 8 }}>
+              <img
+                src={draft.image_url}
+                alt=""
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                style={{
+                  width: 48, height: 48,
+                  objectFit: "cover",
+                  borderRadius: 6,
+                  border: "1.5px solid var(--line)",
+                  display: "block",
+                }}
+              />
+            </div>
+          )}
+
+          {/* Upload button + hidden file input */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <button
+              type="button"
+              disabled={isSaving || isUploading}
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                padding: "6px 14px",
+                fontSize: 12,
+                fontWeight: 600,
+                fontFamily: "inherit",
+                border: "1.5px solid var(--line)",
+                borderRadius: 7,
+                background: "#fff",
+                color: isUploading ? "var(--ink-mute)" : "var(--ink-soft)",
+                cursor: isSaving || isUploading ? "default" : "pointer",
+                opacity: isSaving ? 0.5 : 1,
+                transition: "background 0.12s",
+                flexShrink: 0,
+              }}
+            >
+              {isUploading ? "アップロード中…" : "📎 ファイルを選択"}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              style={{ display: "none" }}
+              onChange={(e) => { void handleFileChange(e); }}
+            />
+            <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+              JPEG / PNG / WebP / GIF、5MB 以下
+            </span>
+          </div>
+
+          {/* Upload error */}
+          {fileErr && (
+            <div style={{ fontSize: 11, color: "var(--error)", marginBottom: 6 }}>
+              {fileErr}
+            </div>
+          )}
+
+          {/* URL fallback input */}
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>
+            または URL を直接入力
+          </div>
           <input
             type="url"
             value={draft.image_url}
-            onChange={(e) => set("image_url", e.target.value)}
+            onChange={(e) => { setFileErr(null); set("image_url", e.target.value); }}
             placeholder="https://example.com/image.png"
             maxLength={1000}
-            disabled={isSaving}
-            style={inputStyle(isSaving)}
+            disabled={isSaving || isUploading}
+            style={inputStyle(isSaving || isUploading)}
           />
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
-            ※ 画像アップロードは次フェーズで対応。現在は URL 直貼りで保存できます。
-          </div>
         </div>
       )}
 
