@@ -1,0 +1,23 @@
+-- ============================================================
+-- Migration 095: Drop allow_all_storage policy
+-- ============================================================
+-- 段階6-4 Phase 2
+--
+-- Purpose:
+--   storage.objects テーブルの allow_all_storage ポリシーを削除する。
+--   このポリシーは全バケット・全操作を全ユーザー(未認証含む)に許可
+--   しており、本番運用拡大前に必須の解消対象。
+--
+-- Prerequisites:
+--   - Phase 1(commit bfba8fa)で /api/biz/company/photos/[id]/route.ts
+--     の Storage DELETE が service role 経由に切り替え済みであること。
+--     これにより companies/ パスの削除がポリシー削除後も動作する。
+--
+-- Effect after apply:
+--   - 未認証ユーザーからの全 Storage 操作が拒否される
+--   - 認証ユーザーは個別ポリシー(ow_uploads_*, documents, etc.)に従う
+--
+-- Rollback: supabase/rollbacks/095_security_drop_allow_all_storage_rollback.sql
+-- ============================================================
+
+DROP POLICY IF EXISTS "allow_all_storage" ON storage.objects;
