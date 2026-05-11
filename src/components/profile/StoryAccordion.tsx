@@ -9,9 +9,19 @@ import { createClient } from "@/lib/supabase/client";
 
 type StoryType = "image" | "video" | "card" | "link";
 
+// A-3 Commit C: セクション型
+type StorySection = {
+  id: string;
+  experience_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+};
+
 type Story = {
   id: string;
   experience_id: string;
+  section_id: string | null;   // A-3 Commit C: セクション帰属（null = 未分類）
   type: StoryType;
   title: string | null;
   description: string | null;
@@ -24,6 +34,7 @@ type Story = {
 };
 
 type StoryDraft = {
+  section_id: string | null;   // A-3 Commit C: null = 未分類
   type: StoryType;
   title: string;
   description: string;
@@ -35,6 +46,7 @@ type StoryDraft = {
 };
 
 const EMPTY_DRAFT: StoryDraft = {
+  section_id: null,
   type: "card",
   title: "",
   description: "",
@@ -47,6 +59,7 @@ const EMPTY_DRAFT: StoryDraft = {
 
 function draftFromStory(s: Story): StoryDraft {
   return {
+    section_id: s.section_id ?? null,
     type: s.type,
     title: s.title ?? "",
     description: s.description ?? "",
@@ -93,6 +106,9 @@ function makeBody(draft: StoryDraft, experienceId?: string): Record<string, unkn
   const monthToDate = (s: string): string | null => (s ? `${s}-01` : null);
   const body: Record<string, unknown> = {
     type: draft.type,
+    // A-3 Commit C: section_id を常に含める → PUT handler の hasSectionId=true が保証される
+    // null = 未分類への移動、uuid = 指定セクションへの移動
+    section_id: draft.section_id,
     title: draft.title.trim() || null,
     description: draft.description.trim() || null,
     image_url: draft.image_url.trim() || null,
@@ -460,10 +476,166 @@ function TypeSelector({
   );
 }
 
+// ─── SectionHeader ────────────────────────────────────────────────────────────
+// セクション名のインライン編集 + 削除ボタン（justSaved パターン）。
+// セクション削除は ConfirmDialog を経由（onDelete → 親がダイアログ表示）。
+// ストーリー削除と異なり、セクション削除は配下ストーリーを全て「未分類」に移動させる
+// インパクトが大きい操作のため、確認ダイアログが必要。
+
+function SectionHeader({
+  section,
+  onSave,
+  onDelete,
+}: {
+  section: StorySection;
+  onSave: (id: string, name: string) => Promise<void>;
+  onDelete: (section: StorySection) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(section.name);
+  const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
+  const handleSave = async () => {
+    const trimmed = name.trim();
+    // 変更なしの場合はそのまま閉じる
+    if (!trimmed || trimmed === section.name) {
+      setEditing(false);
+      setName(section.name);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave(section.id, trimmed);
+      setJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setEditing(false);
+      setJustSaved(false);
+    } catch {
+      // toast は親コンポーネント(updateSectionName)が表示する
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "6px 0 4px",
+        borderBottom: "1.5px solid var(--line)",
+        marginTop: 12,
+        marginBottom: 4,
+      }}
+    >
+      {editing ? (
+        <>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { void handleSave(); }
+              if (e.key === "Escape") { setEditing(false); setName(section.name); }
+            }}
+            maxLength={50}
+            disabled={saving}
+            autoFocus
+            style={{
+              flex: 1,
+              border: "1.5px solid var(--royal)",
+              borderRadius: 5,
+              padding: "2px 7px",
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--ink)",
+              background: "#fff",
+              outline: "none",
+              fontFamily: "inherit",
+              boxSizing: "border-box",
+            }}
+          />
+          <button
+            type="button"
+            disabled={saving || !name.trim()}
+            onClick={() => { void handleSave(); }}
+            style={{
+              padding: "2px 10px",
+              fontSize: 11,
+              fontWeight: 700,
+              fontFamily: "inherit",
+              background: justSaved ? "var(--success)" : !name.trim() ? "var(--ink-mute)" : "var(--royal)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 5,
+              cursor: saving || !name.trim() ? "default" : "pointer",
+              transition: "background 0.15s",
+              flexShrink: 0,
+            }}
+          >
+            {saving ? "…" : justSaved ? "✓" : "保存"}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setEditing(false); setName(section.name); }}
+            disabled={saving}
+            style={{
+              padding: "2px 8px",
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: "inherit",
+              background: "transparent",
+              color: "var(--ink-mute)",
+              border: "1px solid var(--line)",
+              borderRadius: 5,
+              cursor: saving ? "default" : "pointer",
+              flexShrink: 0,
+            }}
+          >
+            取消
+          </button>
+        </>
+      ) : (
+        <>
+          <span
+            style={{
+              flex: 1,
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--ink-soft)",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            {section.name}
+          </span>
+          <div
+            style={{
+              opacity: hovered ? 1 : 0,
+              transition: "opacity 0.15s",
+              display: "flex",
+              gap: 1,
+            }}
+          >
+            <IconBtn onClick={() => setEditing(true)} title="セクション名を編集">✎</IconBtn>
+            <IconBtn onClick={() => onDelete(section)} title="セクションを削除" danger>×</IconBtn>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── StoryForm ────────────────────────────────────────────────────────────────
 
 function StoryForm({
   draft,
+  sections,
   onDraftChange,
   isSaving,
   justSaved,
@@ -471,6 +643,7 @@ function StoryForm({
   onCancel,
 }: {
   draft: StoryDraft;
+  sections: StorySection[];
   onDraftChange: (d: StoryDraft) => void;
   isSaving: boolean;
   justSaved?: boolean;
@@ -478,7 +651,7 @@ function StoryForm({
   onCancel: () => void;
 }) {
   const set = useCallback(
-    (k: keyof StoryDraft, v: string) => onDraftChange({ ...draft, [k]: v }),
+    (k: keyof StoryDraft, v: string | null) => onDraftChange({ ...draft, [k]: v }),
     [draft, onDraftChange]
   );
 
@@ -750,6 +923,31 @@ function StoryForm({
         />
       </div>
 
+      {/* Section selector (A-3 Commit C) — セクションが1件以上あるときのみ表示 */}
+      {sections.length > 0 && (
+        <div>
+          <label style={labelStyle()}>セクション（任意）</label>
+          <select
+            value={draft.section_id ?? ""}
+            onChange={(e) =>
+              onDraftChange({ ...draft, section_id: e.target.value || null })
+            }
+            disabled={isSaving}
+            style={{
+              ...inputStyle(isSaving),
+              cursor: isSaving ? "default" : "pointer",
+            }}
+          >
+            <option value="">未分類</option>
+            {sections.map((sec) => (
+              <option key={sec.id} value={sec.id}>
+                {sec.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Actions */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
         <button
@@ -809,6 +1007,16 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
   const [loading,  setLoading]  = useState(false);
   const [stories,  setStories]  = useState<Story[]>([]);
 
+  // A-3 Commit C: sections state
+  const [sections, setSections] = useState<StorySection[]>([]);
+  // 新規セクション追加インライン UI
+  const [addingSection,    setAddingSection]    = useState(false);
+  const [newSectionName,   setNewSectionName]   = useState("");
+  const [sectionCreating,  setSectionCreating]  = useState(false);
+  // セクション削除
+  const [deleteSectionTarget, setDeleteSectionTarget] = useState<StorySection | null>(null);
+  const [deletingSection,     setDeletingSection]     = useState(false);
+
   // Edit state
   const [editingId,     setEditingId]     = useState<string | null>(null);
   const [editDraft,     setEditDraft]     = useState<StoryDraft>(EMPTY_DRAFT);
@@ -821,7 +1029,7 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
   const [addSaving,     setAddSaving]     = useState(false);
   const [addJustSaved,  setAddJustSaved]  = useState(false);
 
-  // Delete state
+  // Delete state (story)
   const [deleteTarget, setDeleteTarget] = useState<Story | null>(null);
   const [deleting,     setDeleting]     = useState(false);
 
@@ -834,7 +1042,7 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
     setToastMsg(msg);
   }, []);
 
-  // ── Lazy load on first expand ────────────────────────────────────────────────
+  // ── Lazy load on first expand (stories + sections を並列取得) ─────────────────
 
   useEffect(() => {
     if (!isOpen || loaded) return;
@@ -842,16 +1050,21 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
     let cancelled = false;
     setLoading(true);
 
-    fetch(`/api/jobseeker/experience-stories?experience_id=${experienceId}`)
-      .then((res) => res.json())
-      .then((json: { stories?: Story[] }) => {
+    Promise.all([
+      fetch(`/api/jobseeker/experience-stories?experience_id=${experienceId}`)
+        .then((res) => res.json() as Promise<{ stories?: Story[] }>),
+      fetch(`/api/jobseeker/experience-story-sections?experience_id=${experienceId}`)
+        .then((res) => res.json() as Promise<{ sections?: StorySection[] }>),
+    ])
+      .then(([storiesJson, sectionsJson]) => {
         if (!cancelled) {
-          setStories(json.stories ?? []);
+          setStories(storiesJson.stories ?? []);
+          setSections(sectionsJson.sections ?? []);
           setLoaded(true);
         }
       })
       .catch(() => {
-        if (!cancelled) showToast("ストーリーの取得に失敗しました。", "error");
+        if (!cancelled) showToast("データの取得に失敗しました。", "error");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -860,7 +1073,72 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
     return () => { cancelled = true; };
   }, [isOpen, loaded, experienceId, showToast]);
 
-  // ── Save edit ────────────────────────────────────────────────────────────────
+  // ── Section CRUD ─────────────────────────────────────────────────────────────
+
+  /** セクション名を更新。SectionHeader から呼ばれる(Promise を返す → justSaved パターン) */
+  const updateSectionName = useCallback(async (id: string, name: string) => {
+    const res = await fetch(`/api/jobseeker/experience-story-sections/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error();
+    const updated: StorySection = await res.json();
+    setSections((prev) => prev.map((s) => (s.id === id ? updated : s)));
+    showToast("セクション名を更新しました");
+  }, [showToast]);
+
+  /** 新規セクション作成 */
+  const createSection = useCallback(async () => {
+    if (!newSectionName.trim()) return;
+    setSectionCreating(true);
+    try {
+      const res = await fetch("/api/jobseeker/experience-story-sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ experience_id: experienceId, name: newSectionName.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      const inserted: StorySection = await res.json();
+      setSections((prev) => [...prev, inserted]);
+      setNewSectionName("");
+      setAddingSection(false);
+      showToast("セクションを追加しました");
+    } catch {
+      showToast("セクションの追加に失敗しました。", "error");
+    } finally {
+      setSectionCreating(false);
+    }
+  }, [newSectionName, experienceId, showToast]);
+
+  /** セクション削除の確定 */
+  const confirmDeleteSection = useCallback(async () => {
+    if (!deleteSectionTarget) return;
+    setDeletingSection(true);
+    try {
+      const res = await fetch(
+        `/api/jobseeker/experience-story-sections/${deleteSectionTarget.id}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error();
+      setSections((prev) => prev.filter((s) => s.id !== deleteSectionTarget.id));
+      // DB: ON DELETE SET NULL → ストーリーの section_id は DB 側で自動 NULL になる
+      // ローカル state も同期して更新（再フェッチ不要）
+      setStories((prev) =>
+        prev.map((s) =>
+          s.section_id === deleteSectionTarget.id ? { ...s, section_id: null } : s
+        )
+      );
+      setDeleteSectionTarget(null);
+      showToast("セクションを削除しました（ストーリーは未分類に移動しました）");
+    } catch {
+      showToast("削除に失敗しました。もう一度お試しください。", "error");
+    } finally {
+      setDeletingSection(false);
+    }
+  }, [deleteSectionTarget, showToast]);
+
+  // ── Story CRUD ───────────────────────────────────────────────────────────────
 
   const saveEdit = useCallback(async () => {
     if (!editingId) return;
@@ -887,8 +1165,6 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
     }
   }, [editingId, editDraft, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Save add ─────────────────────────────────────────────────────────────────
-
   const saveAdd = useCallback(async () => {
     setAddSaving(true);
     try {
@@ -912,8 +1188,6 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
       setAddSaving(false);
     }
   }, [addDraft, experienceId, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Confirm delete ───────────────────────────────────────────────────────────
 
   const confirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
@@ -953,7 +1227,42 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
       : "ストーリー"
     : "ストーリー";
 
+  // ── Grouped render helper ────────────────────────────────────────────────────
+  // セクション別にストーリーを表示するために使う。hooks を使わないため関数で定義。
+
+  const renderStoryRow = (s: Story, idx: number, group: Story[]) => (
+    <div key={s.id}>
+      {editingId === s.id ? (
+        <StoryForm
+          draft={editDraft}
+          sections={sections}
+          onDraftChange={setEditDraft}
+          isSaving={editSaving}
+          justSaved={editJustSaved}
+          onSave={() => { void saveEdit(); }}
+          onCancel={cancelEdit}
+        />
+      ) : (
+        <StoryCard
+          story={s}
+          onEdit={() => {
+            setEditingId(s.id);
+            setEditDraft(draftFromStory(s));
+          }}
+          onDelete={() => setDeleteTarget(s)}
+        />
+      )}
+      {idx < group.length - 1 && editingId !== s.id && (
+        <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
+      )}
+    </div>
+  );
+
   // ── Render ───────────────────────────────────────────────────────────────────
+
+  const hasAnySections = sections.length > 0;
+  const uncategorized = stories.filter((s) => s.section_id === null);
+  const hasAnyContent = stories.length > 0 || hasAnySections;
 
   return (
     <div
@@ -1013,53 +1322,79 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
       {/* Accordion body */}
       {isOpen && loaded && (
         <div style={{ paddingBottom: 8 }}>
-          {/* Story list */}
-          {stories.map((s, idx) => (
-            <div key={s.id}>
-              {editingId === s.id ? (
-                <StoryForm
-                  draft={editDraft}
-                  onDraftChange={setEditDraft}
-                  isSaving={editSaving}
-                  justSaved={editJustSaved}
-                  onSave={() => { void saveEdit(); }}
-                  onCancel={cancelEdit}
-                />
-              ) : (
-                <StoryCard
-                  story={s}
-                  onEdit={() => {
-                    setEditingId(s.id);
-                    setEditDraft(draftFromStory(s));
-                  }}
-                  onDelete={() => setDeleteTarget(s)}
-                />
-              )}
-              {idx < stories.length - 1 && editingId !== s.id && (
-                <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
-              )}
-            </div>
-          ))}
 
-          {/* Empty state */}
-          {stories.length === 0 && !adding && (
-            <div
-              style={{
-                fontSize: 12,
-                color: "var(--ink-mute)",
-                fontStyle: "italic",
-                padding: "2px 0 6px",
-              }}
-            >
-              ストーリーはまだ登録されていません
+          {/* ── Sectioned story list ────────────────────────────────────────── */}
+
+          {/* セクションごとにまとめて表示 */}
+          {sections.map((section) => {
+            const sectionStories = stories.filter((s) => s.section_id === section.id);
+            return (
+              <div key={section.id}>
+                <SectionHeader
+                  section={section}
+                  onSave={updateSectionName}
+                  onDelete={setDeleteSectionTarget}
+                />
+                {sectionStories.map((s, idx) => renderStoryRow(s, idx, sectionStories))}
+                {sectionStories.length === 0 && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "var(--ink-mute)",
+                      fontStyle: "italic",
+                      padding: "4px 0 4px 4px",
+                    }}
+                  >
+                    このセクションにはまだストーリーがありません
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* 未分類エリア: セクションがある場合は「未分類」ヘッダーを表示 */}
+          {(uncategorized.length > 0 || !hasAnySections) && (
+            <div>
+              {hasAnySections && uncategorized.length > 0 && (
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: "var(--ink-mute)",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    padding: "6px 0 4px",
+                    borderBottom: "1.5px solid var(--line)",
+                    marginTop: 12,
+                    marginBottom: 4,
+                  }}
+                >
+                  未分類
+                </div>
+              )}
+              {uncategorized.map((s, idx) => renderStoryRow(s, idx, uncategorized))}
+              {/* グローバル空状態: セクションも stories もない場合のみ表示 */}
+              {!hasAnySections && uncategorized.length === 0 && !adding && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--ink-mute)",
+                    fontStyle: "italic",
+                    padding: "2px 0 6px",
+                  }}
+                >
+                  ストーリーはまだ登録されていません
+                </div>
+              )}
             </div>
           )}
 
-          {/* Add form */}
+          {/* ── Add story form ──────────────────────────────────────────────── */}
           {adding && (
-            <div style={{ marginTop: stories.length > 0 ? 12 : 0 }}>
+            <div style={{ marginTop: hasAnyContent ? 12 : 0 }}>
               <StoryForm
                 draft={addDraft}
+                sections={sections}
                 onDraftChange={setAddDraft}
                 isSaving={addSaving}
                 justSaved={addJustSaved}
@@ -1069,38 +1404,148 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
             </div>
           )}
 
-          {/* "+ ストーリーを追加" button */}
+          {/* ── Action buttons ──────────────────────────────────────────────── */}
           {!adding && (
-            <button
-              type="button"
-              onClick={() => setAdding(true)}
-              style={{
-                marginTop: stories.length > 0 ? 8 : 4,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 5,
-                padding: "7px 14px",
-                width: "100%",
-                background: "transparent",
-                border: "1px dashed var(--line)",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                color: "var(--ink-soft)",
-                cursor: "pointer",
-                fontFamily: "inherit",
-                transition: "border-color 0.15s, color 0.15s",
-              }}
-            >
-              <span style={{ fontSize: 15, lineHeight: 1 }}>+</span>
-              ストーリーを追加
-            </button>
+            <div style={{ marginTop: hasAnyContent ? 8 : 4, display: "flex", flexDirection: "column", gap: 6 }}>
+
+              {/* "+ ストーリーを追加" — プライマリ */}
+              <button
+                type="button"
+                onClick={() => setAdding(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 5,
+                  padding: "7px 14px",
+                  width: "100%",
+                  background: "transparent",
+                  border: "1px dashed var(--line)",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--ink-soft)",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  transition: "border-color 0.15s, color 0.15s",
+                }}
+              >
+                <span style={{ fontSize: 15, lineHeight: 1 }}>+</span>
+                ストーリーを追加
+              </button>
+
+              {/* "+ セクションを追加" / セクション名入力 — セカンダリ */}
+              {!addingSection ? (
+                <button
+                  type="button"
+                  onClick={() => setAddingSection(true)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 5,
+                    padding: "5px 14px",
+                    width: "100%",
+                    background: "transparent",
+                    border: "1px dashed var(--line-soft)",
+                    borderRadius: 8,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "var(--ink-mute)",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    transition: "border-color 0.15s, color 0.15s",
+                  }}
+                >
+                  <span style={{ fontSize: 13, lineHeight: 1 }}>+</span>
+                  セクションを追加
+                </button>
+              ) : (
+                /* セクション名インライン入力フォーム */
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 8px",
+                    border: "1px solid var(--line)",
+                    borderRadius: 8,
+                    background: "var(--bg-tint)",
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={newSectionName}
+                    onChange={(e) => setNewSectionName(e.target.value)}
+                    placeholder="例：プロジェクト・表彰・外部発信"
+                    maxLength={50}
+                    disabled={sectionCreating}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { void createSection(); }
+                      if (e.key === "Escape") { setAddingSection(false); setNewSectionName(""); }
+                    }}
+                    style={{
+                      flex: 1,
+                      border: "1.5px solid var(--royal)",
+                      borderRadius: 6,
+                      padding: "4px 8px",
+                      fontSize: 12,
+                      color: "var(--ink)",
+                      background: "#fff",
+                      outline: "none",
+                      fontFamily: "inherit",
+                      boxSizing: "border-box",
+                      opacity: sectionCreating ? 0.6 : 1,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={!newSectionName.trim() || sectionCreating}
+                    onClick={() => { void createSection(); }}
+                    style={{
+                      padding: "4px 12px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      fontFamily: "inherit",
+                      background: !newSectionName.trim() || sectionCreating ? "var(--ink-mute)" : "var(--royal)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 6,
+                      cursor: !newSectionName.trim() || sectionCreating ? "default" : "pointer",
+                      flexShrink: 0,
+                      transition: "background 0.12s",
+                    }}
+                  >
+                    {sectionCreating ? "…" : "追加"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={sectionCreating}
+                    onClick={() => { setAddingSection(false); setNewSectionName(""); }}
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      fontFamily: "inherit",
+                      background: "transparent",
+                      color: "var(--ink-mute)",
+                      border: "1px solid var(--line)",
+                      borderRadius: 6,
+                      cursor: sectionCreating ? "default" : "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    取消
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
 
-      {/* Delete confirmation */}
+      {/* Story 削除確認ダイアログ */}
       <ConfirmDialog
         isOpen={!!deleteTarget}
         title="ストーリーを削除しますか？"
@@ -1114,6 +1559,28 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
         isSubmitting={deleting}
         onConfirm={() => { void confirmDelete(); }}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      {/* セクション削除確認ダイアログ (A-3 Commit C)
+          セクション削除のみ ConfirmDialog を導入している理由:
+          段階6-3-1.5 では「× ボタン即削除(確認ダイアログなし)」が確定パターンだが、
+          セクション削除は ON DELETE SET NULL により配下ストーリー全件の section_id が NULL になる。
+          「意図せずストーリーを全部バラバラにしてしまった」という後悔度が高く、
+          ストーリー1件削除より実質的な影響範囲が大きいため、このケースのみ例外とした。
+          ストーリー削除は段階6-3-1.5 の原則どおり即削除を維持する。 */}
+      <ConfirmDialog
+        isOpen={!!deleteSectionTarget}
+        title="セクションを削除しますか？"
+        message={
+          deleteSectionTarget
+            ? `「${deleteSectionTarget.name}」を削除します。このセクションに属するストーリーは「未分類」に移動します。`
+            : ""
+        }
+        confirmLabel="削除する"
+        confirmVariant="danger"
+        isSubmitting={deletingSection}
+        onConfirm={() => { void confirmDeleteSection(); }}
+        onCancel={() => setDeleteSectionTarget(null)}
       />
 
       {/* Toast */}
