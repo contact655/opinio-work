@@ -968,23 +968,12 @@ function EducationForm({
 function EducationEditor({
   educations,
   setEducations,
+  schools,
 }: {
   educations: Education[];
   setEducations: React.Dispatch<React.SetStateAction<Education[]>>;
+  schools: School[];  // 段階6-7 Phase 1: ProfileEditClient トップレベルから受け取る
 }) {
-  // Schools master for datalist（Phase 5）
-  const [schools, setSchools] = useState<School[]>([]);
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("ow_schools")
-      .select("id, name, name_kana, logo_letter, logo_gradient, logo_url, type")
-      .order("name", { ascending: true })
-      .then(({ data, error }) => {
-        if (!error && data) setSchools(data as School[]);
-      });
-  }, []);
-
   // Edit state
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editDraft,    setEditDraft]    = useState<EducationDraft>(EMPTY_EDU_DRAFT);
@@ -2090,6 +2079,21 @@ export default function ProfileEditClient({
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
 
+  // ── schools マスター（段階6-7 Phase 1: EducationEditor から hoisted） ───────
+  // EducationEditor が mount される度に fetch しないよう、ProfileEditClient
+  // トップレベルで 1 度だけ fetch して props で渡す。
+  const [schools, setSchools] = useState<School[]>([]);
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("ow_schools")
+      .select("id, name, name_kana, logo_letter, logo_gradient, logo_url, type")
+      .order("name", { ascending: true })
+      .then(({ data, error }) => {
+        if (!error && data) setSchools(data as School[]);
+      });
+  }, []);
+
   // ── アカウント設定タブの状態（明示保存方式） ────────────────────────────
   const [settings, setSettings] = useState<SettingsState>({
     avatarColor: owUser?.avatar_color ?? DEFAULT_AVATAR_COLOR,
@@ -2455,6 +2459,7 @@ export default function ProfileEditClient({
             <EducationEditor
               educations={educations}
               setEducations={setEducations}
+              schools={schools}
             />
           </div>
         )}
