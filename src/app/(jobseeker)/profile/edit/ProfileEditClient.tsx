@@ -978,6 +978,122 @@ function EducationForm({
   );
 }
 
+// ── SchoolRequestBanner ───────────────────────────────────────────────────────
+
+function SchoolRequestBanner({
+  schoolName,
+  kana,
+  onKanaChange,
+  status,
+  error,
+  onSubmit,
+  onClose,
+}: {
+  schoolName: string;
+  kana: string;
+  onKanaChange: (v: string) => void;
+  status: "idle" | "submitting" | "success" | "error";
+  error: string;
+  onSubmit: () => void;
+  onClose: () => void;
+}) {
+  const bannerBase: React.CSSProperties = {
+    marginBottom: 16,
+    padding: "14px 16px",
+    borderRadius: 10,
+    fontSize: 12,
+    lineHeight: 1.7,
+  };
+
+  if (status === "success") {
+    return (
+      <div style={{ ...bannerBase, background: "var(--success-soft)", border: "1px solid #6ee7b7", color: "var(--ink-soft)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <span style={{ color: "var(--success)", fontWeight: 600 }}>
+            ✓ 「{schoolName}」のマスター追加リクエストを送信しました
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              flexShrink: 0, padding: "3px 10px",
+              background: "transparent", border: "1px solid var(--success)",
+              borderRadius: 6, fontSize: 11, color: "var(--success)",
+              cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            閉じる
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ ...bannerBase, background: "var(--purple-soft)", border: "1px solid #c4b5fd", color: "var(--ink-soft)" }}>
+      <div style={{ marginBottom: 8 }}>
+        あなたの学校「<strong style={{ color: "var(--ink)" }}>{schoolName}</strong>」はマスターにありません。
+        運営に追加リクエストを送信できます。
+      </div>
+      <div style={{ marginBottom: error ? 6 : 10 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ flexShrink: 0, color: "var(--ink-mute)" }}>ふりがな（任意）：</span>
+          <input
+            type="text"
+            value={kana}
+            onChange={(e) => onKanaChange(e.target.value)}
+            placeholder="例: とうきょうだいがく"
+            disabled={status === "submitting"}
+            style={{
+              flex: 1, minWidth: 0, padding: "4px 8px",
+              border: "1px solid var(--line)", borderRadius: 6,
+              fontSize: 12, fontFamily: "inherit",
+              background: status === "submitting" ? "var(--bg-tint)" : "#fff",
+            }}
+          />
+        </label>
+      </div>
+      {error && (
+        <div style={{ marginBottom: 8, color: "var(--error)", fontSize: 11 }}>
+          エラー: {error}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={status === "submitting"}
+          style={{
+            padding: "5px 14px",
+            background: "var(--purple)", border: "none",
+            borderRadius: 6, fontSize: 12, fontWeight: 600,
+            color: "#fff", cursor: status === "submitting" ? "not-allowed" : "pointer",
+            opacity: status === "submitting" ? 0.6 : 1,
+            fontFamily: "inherit",
+          }}
+        >
+          {status === "submitting" ? "送信中..." : "リクエストを送る"}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={status === "submitting"}
+          style={{
+            padding: "5px 14px",
+            background: "transparent", border: "1px solid var(--line)",
+            borderRadius: 6, fontSize: 12, color: "var(--ink-mute)",
+            cursor: status === "submitting" ? "not-allowed" : "pointer",
+            opacity: status === "submitting" ? 0.6 : 1,
+            fontFamily: "inherit",
+          }}
+        >
+          今は送らない
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── EducationEditor ───────────────────────────────────────────────────────────
 
 function EducationEditor({
@@ -1005,6 +1121,11 @@ function EducationEditor({
   // Toast
   const [toastMsg,     setToastMsg]     = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
+  // School request banner state（段階6-8 Phase 3）
+  const [bannerSchoolName, setBannerSchoolName] = useState<string | null>(null);
+  const [bannerKana,       setBannerKana]       = useState<string>("");
+  const [bannerStatus,     setBannerStatus]     = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [bannerError,      setBannerError]      = useState<string>("");
 
   const showToast = useCallback(
     (msg: string, variant: "default" | "error" = "default") => {
@@ -1053,6 +1174,13 @@ function EducationEditor({
       setEditingId(null);
       setEditDraft(EMPTY_EDU_DRAFT);
       setEditJustSaved(false);
+      // 段階6-8 Phase 3: school_id が null の場合、バナー表示
+      if (updated.school_id === null && updated.school.trim().length > 0) {
+        setBannerSchoolName(updated.school);
+        setBannerKana("");
+        setBannerStatus("idle");
+        setBannerError("");
+      }
     } catch {
       showToast("保存に失敗しました。もう一度お試しください。", "error");
     } finally {
@@ -1093,6 +1221,13 @@ function EducationEditor({
       setAdding(false);
       setAddDraft(EMPTY_EDU_DRAFT);
       setAddJustSaved(false);
+      // 段階6-8 Phase 3: school_id が null の場合、バナー表示
+      if (inserted.school_id === null && inserted.school.trim().length > 0) {
+        setBannerSchoolName(inserted.school);
+        setBannerKana("");
+        setBannerStatus("idle");
+        setBannerError("");
+      }
     } catch {
       showToast("追加に失敗しました。もう一度お試しください。", "error");
     } finally {
@@ -1117,6 +1252,40 @@ function EducationEditor({
     }
   }, [deleteTarget, setEducations, showToast]);
 
+  // ── School request banner handlers（段階6-8 Phase 3）──────────────────────────
+  const handleBannerSubmit = useCallback(async () => {
+    if (!bannerSchoolName) return;
+    setBannerStatus("submitting");
+    setBannerError("");
+    try {
+      const res = await fetch("/api/jobseeker/school-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          school_name:      bannerSchoolName,
+          school_name_kana: bannerKana.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        setBannerError(body.error ?? "リクエストの送信に失敗しました");
+        setBannerStatus("error");
+        return;
+      }
+      setBannerStatus("success");
+    } catch {
+      setBannerError("ネットワークエラーが発生しました");
+      setBannerStatus("error");
+    }
+  }, [bannerSchoolName, bannerKana]);
+
+  const handleBannerClose = useCallback(() => {
+    setBannerSchoolName(null);
+    setBannerKana("");
+    setBannerStatus("idle");
+    setBannerError("");
+  }, []);
+
   return (
     <div style={{ marginTop: 32 }}>
       {/* Section header — フラット（職歴と同じ構造、白カードなし） */}
@@ -1126,6 +1295,19 @@ function EducationEditor({
       <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
         大学・大学院・専門学校・高校などを登録できます。新しい順に入力することをおすすめします。
       </div>
+      {/* School request banner（段階6-8 Phase 3）— 教育リストの上に表示 */}
+      {bannerSchoolName && (
+        <SchoolRequestBanner
+          schoolName={bannerSchoolName}
+          kana={bannerKana}
+          onKanaChange={setBannerKana}
+          status={bannerStatus}
+          error={bannerError}
+          onSubmit={() => { void handleBannerSubmit(); }}
+          onClose={handleBannerClose}
+        />
+      )}
+
       {/* Education list */}
       {educations.map((edu, idx) => (
         <div key={edu.id}>
