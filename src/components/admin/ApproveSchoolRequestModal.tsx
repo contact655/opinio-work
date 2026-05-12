@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SchoolLogoImg from "@/components/profile/SchoolLogoImg";
 import { SCHOOL_LOGO_GRADIENT_PRESETS } from "@/lib/logoPresets";
 
@@ -38,6 +38,15 @@ export default function ApproveSchoolRequestModal({
   const [logoGradient, setLogoGradient] = useState(DEFAULT_GRADIENT);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // logo_letter 候補チップ: 先頭1文字 + 先頭2文字(school_name から静的生成)
+  const letterCandidates = useMemo(() => {
+    const name = request.school_name.trim();
+    if (!name) return [];
+    const first = name.charAt(0);
+    const firstTwo = name.length >= 2 ? name.slice(0, 2) : null;
+    return firstTwo ? [first, firstTwo] : [first];
+  }, [request.school_name]);
 
   // Escape キーでキャンセル
   useEffect(() => {
@@ -183,6 +192,38 @@ export default function ApproveSchoolRequestModal({
                 outline: "none",
               }}
             />
+            {/* 候補チップ(先頭1文字 + 先頭2文字) */}
+            {letterCandidates.length > 0 && (
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                {letterCandidates.map((candidate) => {
+                  const isSelected = logoLetter === candidate;
+                  return (
+                    <button
+                      key={candidate}
+                      type="button"
+                      onClick={() => setLogoLetter(candidate)}
+                      disabled={submitting}
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        border: isSelected
+                          ? "1px solid var(--royal)"
+                          : "1px solid var(--ink-mute)",
+                        background: isSelected ? "var(--royal-50)" : "transparent",
+                        color: isSelected ? "var(--royal)" : "var(--ink-soft)",
+                        fontSize: 12,
+                        fontWeight: isSelected ? 700 : 400,
+                        cursor: submitting ? "default" : "pointer",
+                        fontFamily: "inherit",
+                        transition: "background 0.1s, color 0.1s",
+                      }}
+                    >
+                      {candidate}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* logo_gradient */}
