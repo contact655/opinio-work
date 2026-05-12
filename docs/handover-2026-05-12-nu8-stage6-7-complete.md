@@ -161,16 +161,69 @@ onChange={(e) => {
 
 ## 運用課題と反省点
 
-### 反省点なし(本セッションは順調)
+### 反省点 1: Vercel ビルドエラーの長期見逃し(段階6-3-3 〜 段階6-7 push 前まで、約 6 日間)
 
-段階6-7 は規模が小さく、段階6-6 までの運用ノウハウが熟成していたため、特に大きなつまずきはなかった。
-段階6-6 で確立した「判断点事前確定 → 指示文起草 → 実装 → 動作確認」のフローが完全に機能した。
+#### 発覚の経緯
 
-### 運用ノウハウ
+段階6-7 push 前に Vercel deployments を確認したところ、2026-05-06 以降の **すべての本番デプロイが Error** になっていることが発覚。本番(opinio.work)には段階6-4 / 6-5 / 6-6 の変更が **1 件も反映されていなかった**。
+
+#### エラー内容(計 2 件)
+
+```
+src/components/profile/MergedTimeline.tsx:825:36
+Error: 'idx' is defined but never used. 
+Allowed unused args must match /^_/u.
+@typescript-eslint/no-unused-vars
+
+src/app/(jobseeker)/profile/edit/ProfileEditClient.tsx:225
+Error: 'PlaceholderTabContent' is defined but never used.
+```
+
+両者とも段階6-3-3 以前の改修時に混入。前者は `MergedTimeline.tsx` の大規模改修中に `map((entry, idx) => ...)` の `idx` を使わずに残してしまったもの。後者は実装途中で未使用になった関数。
+
+#### 原因分析
+
+1. **ローカル `npx tsc --noEmit` のみで確認していた**: これは TypeScript の型エラーしか検出しない
+2. **ESLint Error は別ツール**: `@typescript-eslint/no-unused-vars` のような ESLint ルールは `tsc` では捕捉されない
+3. **Vercel の本番ビルドは ESLint Error を「ビルド失敗」として扱う**: ローカルで通っても Vercel で落ちる
+4. **push 後の Vercel ビルド状況確認を運用に組み込んでいなかった**: 「コミット & push したら本番反映完了」と思い込んでいた
+5. **段階6-4 / 6-5 / 6-6 完了時に「本番反映確認」をしていなかった**: handover doc も「push 済み」のままで真の状態を反映していなかった
+
+#### 影響
+
+- 約 6 日間、本番(opinio.work)はすべての段階6-4 以降の機能を欠いた状態だった
+- 「段階6-6 のクライマックス: 獨協大学ロゴ表示」は **ローカルでは見えていたが本番では見えていなかった**
+- 柴さん自身も「本番でも見られる」と認識していた段階6-6 の成果が、実は本番に届いていなかった
+
+#### 解決(段階6-7 hotfix コミット `6703a40`)
+
+- `idx` → `_idx` リネーム(`_` プレフィックスで意図的未使用を明示)
+- `PlaceholderTabContent` → `_PlaceholderTabContent` リネーム
+- 修正後 `npm run build` で 72 ページ全静的生成完了を確認
+- push 後 Vercel デプロイ `8PvLf7XFD` が ● Ready に
+- 段階6-4 / 6-5 / 6-6 / 6-7 のすべてが初めて本番反映
+
+#### 今後の運用改善(最重要、必読)
+
+| 改善項目 | 内容 |
+|-------|------|
+| **push 前に `npm run build` 必須** | `npx tsc --noEmit` だけでは不十分。`npm run build` で Vercel と同等のフルビルドを実行し、ESLint + 全ビルド工程を検証する |
+| **push 後に Vercel deployments 目視確認** | push してから 2-3 分後、Vercel deployments 画面で最新 deployment が ● Ready になっているかを確認する |
+| **handover doc 作成時に「本番反映済み」を確認** | handover doc の状態欄を「push 済み」ではなく「本番反映 ● Ready 確認済み」とする運用に変更 |
+| **段階完了時に opinio.work で動作確認** | 「ローカルで動いた」だけでなく「本番で動いた」を段階完了の定義に組み込む |
+
+#### 教訓
+
+「TypeScript エラーゼロ ≠ ビルド成功」。これは ESLint や Webpack 等、Next.js のビルドパイプラインが TypeScript 型チェックの **外側** にあることを示している。本番デプロイを成功条件にするなら、**ローカルで本番と同じビルドコマンド(`npm run build`)を実行する** のが最も確実。
+
+これは段階6-7 で初めて発見された **運用上の最大の盲点**。今後の段階で最も重要な改善ポイントとして、handover doc / CLAUDE.md / 運用ルールに明記する。
+
+### 運用ノウハウ(段階6-7 内での発見、上記反省点とは別)
 
 - **段階6-6 の延長として小さく完結させる判断** が正解だった。新しい大物段階(段階7 等)に進むより、段階6-6 を運用品質まで完成させる意義が大きかった
 - **YAGNI 原則の実践**: 判断点 5 で「他フォームへの汎用化」を見送ったのは正解。必要になった時に展開すれば良い
 - **整理整頓を段階の開始前にやる** パターンが効果的。working tree clean な状態で本作業に集中できる
+- **「段階完走」の定義変更**: 反省点 1 で示した通り、今後は「本番反映 + 動作確認まで含めて段階完走」とする運用に変更
 
 ---
 
