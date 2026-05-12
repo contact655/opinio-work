@@ -222,7 +222,7 @@ function selectStyle(): React.CSSProperties {
 
 // ─── Placeholder Tab Content ──────────────────────────────────────────────────
 
-function PlaceholderTabContent({ label }: { label: string }) {
+function _PlaceholderTabContent({ label }: { label: string }) {
   return (
     <div style={{ maxWidth: 680 }}>
       <div

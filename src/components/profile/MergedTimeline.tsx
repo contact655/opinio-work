@@ -822,7 +822,7 @@ export default function MergedTimeline({
       `}</style>
 
       <div className="merged-timeline">
-        {renderEntries.map((entry, idx) => {
+        {renderEntries.map((entry, _idx) => {
           if (entry.kind === "future") {
             return (
               <div key="future" className="tl-row">
