@@ -44,3 +44,6 @@ scripts/.seed-external-links-output.txt
 
 # Backups (DB data exports, not for version control)
 docs/backups/
+
+# Supabase CLI cache (auto-generated)
+supabase/.temp/
