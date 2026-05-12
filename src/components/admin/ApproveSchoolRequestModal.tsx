@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import SchoolLogoImg from "@/components/profile/SchoolLogoImg";
+import { SCHOOL_LOGO_GRADIENT_PRESETS } from "@/lib/logoPresets";
 
 // デフォルトのロゴグラデーション(紺紫系、既存 ow_schools の雰囲気に合わせる)
 const DEFAULT_GRADIENT = "linear-gradient(135deg, #4A4A7A, #6A5A8A)";
@@ -199,6 +200,46 @@ export default function ApproveSchoolRequestModal({
             >
               ロゴ背景（CSS gradient）
             </label>
+            {/* プリセットスウォッチ(4列 × 2行) */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 32px)",
+                gap: 6,
+                marginBottom: 8,
+              }}
+            >
+              {SCHOOL_LOGO_GRADIENT_PRESETS.map((preset) => {
+                const isSelected = logoGradient === preset.value;
+                return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    title={preset.label}
+                    onClick={() => setLogoGradient(preset.value)}
+                    disabled={submitting}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      background: preset.value,
+                      border: isSelected
+                        ? "2px solid var(--royal)"
+                        : "2px solid transparent",
+                      boxShadow: isSelected
+                        ? "0 0 0 2px #fff, 0 0 0 4px var(--royal)"
+                        : "0 1px 3px rgba(0,0,0,0.2)",
+                      cursor: submitting ? "default" : "pointer",
+                      padding: 0,
+                      flexShrink: 0,
+                      transition: "box-shadow 0.1s",
+                    }}
+                    aria-label={preset.label}
+                    aria-pressed={isSelected}
+                  />
+                );
+              })}
+            </div>
             <input
               id="logo-gradient"
               type="text"
