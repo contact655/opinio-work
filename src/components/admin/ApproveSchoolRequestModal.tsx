@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SchoolLogoImg from "@/components/profile/SchoolLogoImg";
 
 // デフォルトのロゴグラデーション(紺紫系、既存 ow_schools の雰囲気に合わせる)
 const DEFAULT_GRADIENT = "linear-gradient(135deg, #4A4A7A, #6A5A8A)";
@@ -239,23 +240,14 @@ export default function ApproveSchoolRequestModal({
             >
               プレビュー
             </span>
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: 18,
-                background: logoGradient,
-                flexShrink: 0,
+            <SchoolLogoImg
+              schoolMaster={{
+                logo_url: null,
+                logo_letter: logoLetter,
+                logo_gradient: logoGradient,
               }}
-            >
-              {logoLetter || "？"}
-            </div>
+              size={44}
+            />
             <span
               style={{
                 fontSize: 13,
