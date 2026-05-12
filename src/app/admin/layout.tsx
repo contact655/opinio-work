@@ -10,17 +10,20 @@ import {
   Pencil,
   MessageSquare,
   Newspaper,
+  School,
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { label: "ダッシュボード",   href: "/admin",              icon: <LayoutDashboard size={16} strokeWidth={2} /> },
-  { label: "候補者管理",       href: "/admin/candidates",   icon: <Users           size={16} strokeWidth={2} /> },
-  { label: "企業審査",         href: "/admin/companies",    icon: <Building2       size={16} strokeWidth={2} /> },
-  { label: "求人審査",         href: "/admin/jobs",         icon: <FileText        size={16} strokeWidth={2} /> },
-  { label: "メンター管理",     href: "/admin/mentors",      icon: <GraduationCap   size={16} strokeWidth={2} /> },
-  { label: "記事管理",         href: "/admin/articles",     icon: <Pencil          size={16} strokeWidth={2} /> },
-  { label: "発信管理",         href: "/admin/posts",        icon: <Newspaper       size={16} strokeWidth={2} /> },
-  { label: "相談予約管理",     href: "/admin/reservations", icon: <MessageSquare   size={16} strokeWidth={2} /> },
+  { label: "ダッシュボード",           href: "/admin",                  icon: <LayoutDashboard size={16} strokeWidth={2} /> },
+  { label: "候補者管理",               href: "/admin/candidates",       icon: <Users           size={16} strokeWidth={2} /> },
+  { label: "企業審査",                 href: "/admin/companies",        icon: <Building2       size={16} strokeWidth={2} /> },
+  { label: "求人審査",                 href: "/admin/jobs",             icon: <FileText        size={16} strokeWidth={2} /> },
+  { label: "メンター管理",             href: "/admin/mentors",          icon: <GraduationCap   size={16} strokeWidth={2} /> },
+  { label: "記事管理",                 href: "/admin/articles",         icon: <Pencil          size={16} strokeWidth={2} /> },
+  { label: "発信管理",                 href: "/admin/posts",            icon: <Newspaper       size={16} strokeWidth={2} /> },
+  { label: "相談予約管理",             href: "/admin/reservations",     icon: <MessageSquare   size={16} strokeWidth={2} /> },
+  // 段階7-F: 学校マスター追加リクエスト管理（Phase 2 で実装）
+  { label: "学校追加リクエスト",       href: "/admin/school-requests",  icon: <School          size={16} strokeWidth={2} /> },
 ];
 
 export default async function AdminLayout({
