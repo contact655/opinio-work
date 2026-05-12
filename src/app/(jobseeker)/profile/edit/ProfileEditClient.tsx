@@ -824,8 +824,20 @@ function EducationForm({
           list="school-options"
           value={draft.school}
           onChange={(e) => {
-            const newSchool = e.target.value;
-            const matched = schools.find((s) => s.name === newSchool);
+            let newSchool = e.target.value;
+            // datalist の表示値は "name (name_kana)" 形式の場合があるため、
+            // その形式と一致するマスターを先に探す（カナ検索でのマッチ）
+            const displayMatched = schools.find((s) =>
+              s.name_kana
+                ? `${s.name} (${s.name_kana})` === newSchool
+                : s.name === newSchool
+            );
+            if (displayMatched) {
+              // カナ付き表示値 → クリーンな学校名に変換してから保存
+              newSchool = displayMatched.name;
+            }
+            const matched =
+              displayMatched ?? schools.find((s) => s.name === newSchool);
             onDraftChange({
               ...draft,
               school:    newSchool,
@@ -839,7 +851,10 @@ function EducationForm({
         />
         <datalist id="school-options">
           {schools.map((s) => (
-            <option key={s.id} value={s.name} />
+            <option
+              key={s.id}
+              value={s.name_kana ? `${s.name} (${s.name_kana})` : s.name}
+            />
           ))}
         </datalist>
       </div>
