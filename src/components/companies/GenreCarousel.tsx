@@ -68,7 +68,7 @@ export function GenreCarousel({ companies }: Props) {
         className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 scrollbar-hide flex-1 min-w-0"
       >
         {companies.map((company) => (
-          <div key={company.id} className="flex-shrink-0 w-[220px] snap-start">
+          <div key={company.id} className="flex-shrink-0 w-[280px] snap-start">
             <CompanyCardCompact company={company} />
           </div>
         ))}

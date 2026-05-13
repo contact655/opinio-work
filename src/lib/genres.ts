@@ -40,7 +40,7 @@ export async function fetchGenresWithCompanies(): Promise<GenreWithCompanies[]> 
           ow_companies!inner (
             id, name, industry, funding_stage, employee_count,
             description, accepting_casual_meetings, remote_work_status,
-            logo_letter, logo_gradient, updated_at
+            logo_letter, logo_gradient, logo_url, updated_at
           )
         `,
           { count: "exact" }

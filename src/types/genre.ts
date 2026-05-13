@@ -28,6 +28,7 @@ export type CompanyForCarousel = {
   remote_work_status: string | null;   // 働き方バッジ用
   logo_letter: string | null;
   logo_gradient: string | null;
+  logo_url: string | null;
   updated_at: string;
 };
 
