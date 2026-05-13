@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
+import { BusinessHeader } from "@/components/business/BusinessHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 
 export const metadata: Metadata = {
   title: "採用コスト、ゼロから。｜Opinio Work",
   description:
-    "月額費用なし、広告費なし、入社決定時のみ成果報酬。IT/SaaS業界の即戦力人材を、無料で採用開始できる「Opinio Work」。人材紹介120社・200名・早期離職ゼロの実績。",
+    "月額費用なし、広告費なし、入社決定時のみ成果報酬。IT/SaaS業界の即戦力人材を、無料で採用開始できる「Opinio Work」。メンター介在で採用ミスマッチを構造的に防ぐ。",
   openGraph: {
     title: "採用コスト、ゼロから。｜Opinio Work",
-    description: "掲載・スカウト・面談まで全て無料。成果報酬は入社決定時のみ。IT/SaaS業界専門の採用プラットフォーム。",
+    description: "掲載・スカウト・面談まで全て無料。成果報酬は入社決定時のみ。IT/SaaS業界特化の採用プラットフォーム。",
     type: "website",
   },
 };
@@ -129,7 +129,7 @@ export default function ForCompaniesPage() {
 
   return (
     <>
-      <JobseekerHeader />
+      <BusinessHeader />
       <main style={{ paddingTop: 60 }}>
 
         {/* ─── Section 1: Hero ──────────────────────────────────────────────── */}
@@ -201,7 +201,7 @@ export default function ForCompaniesPage() {
         </section>
 
         {/* ─── Section 2: Comparison Table ──────────────────────────────────── */}
-        <section style={sectionStyle("var(--bg-tint)")}>
+        <section id="pricing" style={sectionStyle("var(--bg-tint)")}>
           <div style={innerStyle}>
             <div style={{ textAlign: "center", marginBottom: 48 }}>
               <SectionLabel>料金比較</SectionLabel>
@@ -409,81 +409,145 @@ export default function ForCompaniesPage() {
           </div>
         </section>
 
-        {/* ─── Section 4: Stats + Quality ───────────────────────────────────── */}
-        <section style={sectionStyle("var(--ink)")}>
+        {/* ─── Section 4: Why No Mismatch ────────────────────────────────────── */}
+        <section id="features" style={sectionStyle("var(--ink)")}>
           <div style={{ ...innerStyle, textAlign: "center" }}>
-            <SectionLabel>実績</SectionLabel>
+            <SectionLabel>差別化</SectionLabel>
             <h2 style={{
               fontFamily: "var(--font-noto-serif)",
-              fontSize: "clamp(22px, 3.5vw, 30px)",
+              fontSize: "clamp(22px, 3.5vw, 32px)",
               fontWeight: 500,
               color: "#fff",
-              marginBottom: 48,
+              marginBottom: 16,
             }}>
-              人材紹介事業の実績
+              なぜ採用ミスマッチが起きないのか？
             </h2>
+            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.6)", marginBottom: 56, lineHeight: 1.7 }}>
+              Opinio には、他の求人媒体にはない2つの仕組みがあります。
+            </p>
 
-            {/* 3 stats */}
+            {/* 2 sub-sections side by side */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 1,
-              marginBottom: 56,
-              background: "rgba(255,255,255,0.08)",
-              borderRadius: 14,
-              overflow: "hidden",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: 20,
+              marginBottom: 64,
+              textAlign: "left",
             }}>
-              {[
-                { num: "120社+", label: "取引企業" },
-                { num: "200名+", label: "マッチング実績" },
-                { num: "ゼロ", label: "早期離職（創業以来）" },
-              ].map(({ num, label }) => (
-                <div key={label} style={{
-                  padding: "40px 24px",
-                  background: "rgba(255,255,255,0.04)",
+              {/* Mentor sub-section */}
+              <div style={{
+                padding: "32px 28px",
+                background: "rgba(255,255,255,0.06)",
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: "var(--royal)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 22,
+                  marginBottom: 20,
                 }}>
-                  <div style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: "clamp(36px, 5vw, 52px)",
-                    fontWeight: 800,
-                    color: "#fff",
-                    letterSpacing: "-0.03em",
-                    marginBottom: 8,
-                  }}>
-                    {num}
-                  </div>
-                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>
-                    {label}
-                  </div>
+                  🤝
                 </div>
-              ))}
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 12, lineHeight: 1.4 }}>
+                  メンターが間に立つから
+                </h3>
+                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.9 }}>
+                  Opinio には、IT 業界で経験を積んだメンターが在籍しています。
+                  候補者は応募前に必ずメンターと面談し、企業の文化や働き方、
+                  キャリアの方向性を擦り合わせた上で応募してきます。
+                  <br /><br />
+                  「軽い気持ちでの応募」がなく、企業側には
+                  <strong style={{ color: "#fff" }}>本気度の高い候補者だけが届く</strong>構造です。
+                </p>
+              </div>
+
+              {/* User quality sub-section */}
+              <div style={{
+                padding: "32px 28px",
+                background: "rgba(255,255,255,0.06)",
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: "rgba(59,95,217,0.8)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 22,
+                  marginBottom: 20,
+                }}>
+                  💼
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 12, lineHeight: 1.4 }}>
+                  IT 業界職経ありユーザーが中心
+                </h3>
+                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.9 }}>
+                  Opinio に登録しているユーザーの大多数が、
+                  IT 業界で実務経験を持つ即戦力人材です。
+                  <br /><br />
+                  業界知識ゼロから教育する必要がなく、
+                  <strong style={{ color: "#fff" }}>入社後すぐに戦力として活躍できる人材</strong>と
+                  出会えます。
+                </p>
+              </div>
             </div>
 
-            {/* Quality explanation */}
-            <div style={{
-              maxWidth: 640,
-              margin: "0 auto",
-              textAlign: "left",
-              padding: "32px 36px",
-              background: "rgba(255,255,255,0.06)",
-              borderRadius: 14,
-              border: "1px solid rgba(255,255,255,0.1)",
-            }}>
-              <h3 style={{
-                fontSize: 16,
+            {/* Stats: "Opinio が選ばれる理由" */}
+            <div id="results" style={{ marginTop: 8 }}>
+              <p style={{
+                fontSize: 12,
                 fontWeight: 700,
-                color: "#fff",
-                marginBottom: 14,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.4)",
+                marginBottom: 28,
               }}>
-                なぜ早期離職ゼロを実現できているのか？
-              </h3>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.9 }}>
-                Opinio は単なる求人媒体ではありません。
-                キャリアコンサルタント国家資格と ICF 国際コーチング認定を持つ
-                代表自身が、一人ひとりの候補者を深く理解した上で企業に紹介しています。
-                <br /><br />
-                AI と人間のハイブリッドで、構造的にミスマッチを防ぐ仕組み。
-                それが「キャリア意思決定インフラ」としての Opinio です。
+                Opinio が選ばれる理由
+              </p>
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 1,
+                background: "rgba(255,255,255,0.08)",
+                borderRadius: 14,
+                overflow: "hidden",
+              }}>
+                {[
+                  { num: "120社+", label: "IT/SaaS企業が活用中" },
+                  { num: "200名+", label: "キャリア意思決定をサポート" },
+                  { num: "99%+", label: "早期離職率を業界平均より大幅に下回る※" },
+                ].map(({ num, label }) => (
+                  <div key={label} style={{
+                    padding: "40px 24px",
+                    background: "rgba(255,255,255,0.04)",
+                  }}>
+                    <div style={{
+                      fontFamily: "'Inter', sans-serif",
+                      fontSize: "clamp(36px, 5vw, 52px)",
+                      fontWeight: 800,
+                      color: "#fff",
+                      letterSpacing: "-0.03em",
+                      marginBottom: 8,
+                    }}>
+                      {num}
+                    </div>
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", fontWeight: 500, lineHeight: 1.5 }}>
+                      {label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ marginTop: 12, fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "right" }}>
+                ※自社調べ
               </p>
             </div>
           </div>
@@ -606,7 +670,7 @@ export default function ForCompaniesPage() {
         </section>
 
         {/* ─── Section 7: FAQ ───────────────────────────────────────────────── */}
-        <section style={sectionStyle("#fff")}>
+        <section id="faq" style={sectionStyle("#fff")}>
           <div style={innerStyle}>
             <div style={{ textAlign: "center", marginBottom: 48 }}>
               <SectionLabel>よくある質問</SectionLabel>
@@ -631,7 +695,7 @@ export default function ForCompaniesPage() {
               />
               <FaqItem
                 q="自社で採用したい場合は？"
-                a="求人公開、スカウト、面談まで全て無料でご利用いただけます。人材紹介サービスのご利用は任意です。自社の採用力で完結する企業様にも、無料の掲載基盤としてご活用いただけます。"
+                a="求人公開、スカウト、面談まで全て無料でご利用いただけます。自社の採用力で完結する企業様にも、無料の掲載基盤としてご活用いただけます。"
               />
               <FaqItem
                 q="営業電話はかかってきますか？"
@@ -644,6 +708,10 @@ export default function ForCompaniesPage() {
               <FaqItem
                 q="登録に審査はありますか？"
                 a="ございません。セルフサーブ型で、登録後すぐに求人を公開できます。※ 明らかにスパムや偽情報と判断される場合のみ、運営側で削除する場合があります（事後巡回方式）。"
+              />
+              <FaqItem
+                q="メンターとはどんな存在ですか？"
+                a="IT 業界で経験を積んだプロフェッショナルです。候補者の方々は応募前にメンターと面談し、キャリアの方向性や企業選びについてアドバイスを受けます。これにより「本気度の高い応募」だけが企業に届きます。"
               />
             </div>
 
