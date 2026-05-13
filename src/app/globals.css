@@ -218,3 +218,12 @@ p, .description, .desc {
   opacity: 0.8;
   transform: scale(0.94);
 }
+
+/* ── genres-feature: カルーセルスクロールバー非表示 ── */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}

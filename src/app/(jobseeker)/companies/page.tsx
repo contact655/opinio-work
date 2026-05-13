@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import { getCompaniesForList } from "@/lib/supabase/queries";
-import CompaniesClient from "./CompaniesClient";
+import { fetchGenresWithCompanies } from "@/lib/genres";
+import { GenreSection } from "@/components/companies/GenreSection";
 
 export const metadata: Metadata = {
   title: "IT/SaaS企業を知る — Opinio",
@@ -10,15 +9,28 @@ export const metadata: Metadata = {
 };
 
 export default async function CompaniesPage() {
-  const companies = await getCompaniesForList();
+  const genresWithCompanies = await fetchGenresWithCompanies();
 
   return (
-    <Suspense fallback={
-      <div style={{ padding: "80px 0", textAlign: "center", color: "var(--ink-mute)", fontSize: 15 }}>
-        読み込み中...
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="mb-6">
+        <p className="text-xs text-gray-400 mb-1">Opinio / 企業を知る</p>
+        <h1
+          className="text-2xl font-medium mb-1"
+          style={{ fontFamily: "serif" }}
+        >
+          企業を、知る。
+        </h1>
+        <p className="text-sm text-gray-500">
+          IT/SaaS業界をジャンル別に。気になる1社が必ず見つかる。
+        </p>
       </div>
-    }>
-      <CompaniesClient companies={companies} />
-    </Suspense>
+
+      <div className="mt-6">
+        {genresWithCompanies.map((genre) => (
+          <GenreSection key={genre.id} genre={genre} />
+        ))}
+      </div>
+    </div>
   );
 }
