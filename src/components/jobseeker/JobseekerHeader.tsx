@@ -232,7 +232,7 @@ export function JobseekerHeader() {
               /* ── Logged-out: ログイン + 無料登録 ── */
               <>
                 <Link
-                  href="/for-companies"
+                  href="/business"
                   style={{
                     fontSize: 12,
                     fontWeight: 500,
@@ -242,7 +242,7 @@ export function JobseekerHeader() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  採用担当の方はこちら →
+                  企業の方へ →
                 </Link>
                 <Link
                   href="/auth"

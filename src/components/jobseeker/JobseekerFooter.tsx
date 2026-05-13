@@ -62,7 +62,7 @@ export function JobseekerFooter() {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
               { href: "/biz/auth", label: "企業登録" },
-              { href: "/for-companies", label: "掲載について" },
+              { href: "/business", label: "掲載について" },
             ].map(({ href, label }) => (
               <Link key={href} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", textDecoration: "none" }}>
                 {label}

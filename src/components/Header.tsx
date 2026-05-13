@@ -221,7 +221,7 @@ export default function Header() {
       return (
         <>
           <Link
-            href="/for-companies"
+            href="/business"
             className="transition-colors"
             style={{ fontSize: 12, fontWeight: 500, color: "#6b7280" }}
             onMouseEnter={(e) => { e.currentTarget.style.color = "#0f172a"; }}
