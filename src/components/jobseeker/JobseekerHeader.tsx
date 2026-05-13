@@ -232,6 +232,19 @@ export function JobseekerHeader() {
               /* ── Logged-out: ログイン + 無料登録 ── */
               <>
                 <Link
+                  href="/for-companies"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "var(--ink-mute)",
+                    textDecoration: "none",
+                    padding: "8px 10px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  採用担当の方はこちら →
+                </Link>
+                <Link
                   href="/auth"
                   style={{
                     fontSize: 13,
