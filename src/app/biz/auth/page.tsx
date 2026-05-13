@@ -152,6 +152,7 @@ function BrandPanel() {
           fontWeight: 700,
           fontSize: 24,
           letterSpacing: "-0.02em",
+          color: "#fff",
         }}>Opinio</span>
         <span style={{
           fontFamily: "'Inter', sans-serif",
@@ -177,6 +178,7 @@ function BrandPanel() {
             lineHeight: 1.35,
             letterSpacing: "0.02em",
             marginBottom: 18,
+            color: "#fff",
           }}
         >
           スカウトしない、<br />採用を。
@@ -186,7 +188,7 @@ function BrandPanel() {
           style={{
             fontSize: 14,
             lineHeight: 1.9,
-            opacity: 0.9,
+            color: "rgba(255,255,255,0.9)",
             maxWidth: 460,
             marginBottom: 36,
           }}
@@ -276,10 +278,10 @@ function BrandPanel() {
               >
                 {card.icon}
               </div>
-              <div className="biz-feature-title" style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
+              <div className="biz-feature-title" style={{ fontWeight: 700, fontSize: 13, marginBottom: 4, color: "#fff" }}>
                 {card.title}
               </div>
-              <div className="biz-feature-desc" style={{ fontSize: 11, opacity: 0.75, lineHeight: 1.6 }}>
+              <div className="biz-feature-desc" style={{ fontSize: 11, color: "rgba(255,255,255,0.72)", lineHeight: 1.6 }}>
                 {card.desc}
               </div>
             </div>
@@ -290,7 +292,7 @@ function BrandPanel() {
       {/* フッター */}
       <div
         className="biz-brand-foot"
-        style={{ marginTop: "auto", fontSize: 11, opacity: 0.55, paddingTop: 32 }}
+        style={{ marginTop: "auto", fontSize: 11, color: "rgba(255,255,255,0.55)", paddingTop: 32 }}
       >
         © 2026 Opinio Business · 企業向け採用プラットフォーム
       </div>
