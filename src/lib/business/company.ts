@@ -5,7 +5,10 @@ export type DbCompany = {
   id: string;
   user_id: string | null;
   name: string;
+  tagline: string | null;
   mission: string | null;
+  why_join: string | null;
+  company_features: string[] | null;
   industry: string | null;
   phase: string | null;
   business_stage: string | null;
@@ -38,7 +41,8 @@ export type DbCompany = {
 };
 
 const SELECT_COLUMNS = [
-  "id", "user_id", "name", "mission", "industry", "phase", "business_stage", "url",
+  "id", "user_id", "name", "tagline", "mission", "why_join", "company_features",
+  "industry", "phase", "business_stage", "url",
   "logo_gradient", "logo_letter", "logo_url", "about_markdown", "employee_count", "established_at",
   "avg_age", "avg_salary", "funding_total", "gender_ratio", "evaluation_system", "benefits", "location", "nearest_station",
   "remote_work_status", "work_time_system", "avg_overtime_hours", "paid_leave_rate",
@@ -68,7 +72,10 @@ function formatPublishedAgo(iso: string | null): string {
 export function transformDbToForm(row: DbCompany): BizCompany {
   return {
     name: row.name ?? "",
+    tagline: row.tagline ?? "",
     mission: row.mission ?? "",
+    whyJoin: row.why_join ?? "",
+    companyFeatures: Array.isArray(row.company_features) ? row.company_features : [],
     industry: row.industry ?? "",
     phase: row.phase ?? row.business_stage ?? "",
     url: row.url ?? "",
@@ -109,7 +116,10 @@ export function transformFormToDb(form: BizCompany): Record<string, unknown> {
   const paidLeave = parseInt(form.paidLeaveRate.replace(/[^\d]/g, ""), 10);
   return {
     name: form.name,
+    tagline: form.tagline || null,
     mission: form.mission || null,
+    why_join: form.whyJoin || null,
+    company_features: form.companyFeatures.length > 0 ? form.companyFeatures : null,
     industry: form.industry || null,
     phase: form.phase || null,
     url: form.url || null,

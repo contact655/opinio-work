@@ -472,6 +472,11 @@ export function CompanyEditClient({
                 <FormTextarea serif value={form.mission} onChange={(v) => update("mission", v)} rows={2} placeholder="企業のミッションやビジョン" />
                 <FormHint>企業詳細ページのヒーローエリアに大きく表示される、企業の核となるメッセージです。短く、印象的に。</FormHint>
               </FormGroup>
+              <FormGroup>
+                <FormLabel>タグライン</FormLabel>
+                <FormInput value={form.tagline} onChange={(v) => update("tagline", v)} placeholder="例: MA領域でシリーズCのスタートアップ" />
+                <FormHint>企業詳細ページのミッション直下に表示される短いサブテキストです。SEOの meta description にも使用されます。</FormHint>
+              </FormGroup>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup>
                   <FormLabel required>業種</FormLabel>
@@ -509,6 +514,74 @@ export function CompanyEditClient({
                 placeholder="## 私たちについて&#10;&#10;事業の特徴や組織カルチャーを記述してください..."
                 minHeight={300}
               />
+            </SectionCard>
+
+            <SectionCard
+              title="入社する理由・魅力"
+              desc="求職者が「なぜこの会社を選ぶのか」を伝えるテキストです。企業一覧での About テキストとして参照されます。"
+            >
+              <FormTextarea
+                value={form.whyJoin}
+                onChange={(v) => update("whyJoin", v)}
+                rows={4}
+                placeholder="例: 日本のSaaS市場の最前線で、プロダクトの本質的な価値を追求できる環境です。..."
+              />
+            </SectionCard>
+
+            <SectionCard
+              title="企業の特徴"
+              desc="求職者向けページの「特徴」セクションとして1件ずつカード表示されます。最大5件まで登録できます。"
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {form.companyFeatures.map((feature, i) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <div style={{ flex: 1 }}>
+                      <FormTextarea
+                        value={feature}
+                        onChange={(v) => {
+                          const next = [...form.companyFeatures];
+                          next[i] = v;
+                          update("companyFeatures", next);
+                        }}
+                        rows={3}
+                        placeholder={`特徴 ${i + 1}: 候補者の視点から見た、この会社ならではの魅力を記述してください`}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = form.companyFeatures.filter((_, j) => j !== i);
+                        update("companyFeatures", next);
+                      }}
+                      style={{
+                        marginTop: 2, padding: "8px", background: "#fff", border: "1px solid var(--line)",
+                        borderRadius: 6, cursor: "pointer", color: "var(--ink-mute)", flexShrink: 0,
+                        display: "flex", alignItems: "center",
+                      }}
+                      title="削除"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+                ))}
+                {form.companyFeatures.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={() => update("companyFeatures", [...form.companyFeatures, ""])}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "8px 14px", background: "#fff", color: "var(--ink)",
+                      border: "1px dashed var(--line)", borderRadius: 8,
+                      fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                      alignSelf: "flex-start",
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                    特徴を追加（{form.companyFeatures.length}/5）
+                  </button>
+                )}
+              </div>
+              <FormHint>1件目が「Opinio のコメント」として強調表示されます。もっとも伝えたい特徴を1番目に書いてください。</FormHint>
             </SectionCard>
           </>
         );

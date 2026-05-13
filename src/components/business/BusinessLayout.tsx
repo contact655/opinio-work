@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, MessageSquare, MessageCircle, ClipboardList, Users, Newspaper, ChevronDown } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, MessageSquare, MessageCircle, ClipboardList, Users, Newspaper, ChevronDown, Layers } from "lucide-react";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
 
@@ -21,7 +21,14 @@ type Props = {
   currentTenantId?: string;
 };
 
-const NAV_ITEMS = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ReactElement;
+  children?: { href: string; label: string }[];
+};
+
+const NAV_ITEMS: NavItem[] = [
   {
     href: "/biz/dashboard",
     label: "ダッシュボード",
@@ -31,9 +38,11 @@ const NAV_ITEMS = [
     href: "/biz/company",
     label: "企業情報",
     icon: <Building2 size={16} strokeWidth={2.2} />,
-    children: [
-      { href: "/biz/company/employees/categories", label: "社員カテゴリ" },
-    ],
+  },
+  {
+    href: "/biz/company/employees/categories",
+    label: "組織体制",
+    icon: <Layers size={16} strokeWidth={2.2} />,
   },
   {
     href: "/biz/jobs",

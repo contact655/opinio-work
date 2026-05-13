@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * CategoriesEditor — 現役社員カテゴリ設定エディター
+ * CategoriesEditor — 組織体制エディター
  *
  * QB-3: 一覧表示 + ページ枠組み ✅
  * QB-4: 追加・削除機能 ✅
@@ -654,7 +654,7 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
             </div>
             <h1 style={{ margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 20,
               fontWeight: 700, color: "var(--ink)" }}>
-              現役社員カテゴリ設定
+              組織体制
             </h1>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>

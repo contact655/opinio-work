@@ -14,6 +14,7 @@ export type BizCompany = {
   // ── 基本情報 ──────────────────────────────────────────────
   name: string;
   mission: string;
+  tagline: string;          // 公開ページ ヒーロー直下に表示
   industry: string;
   phase: string;
   url: string;
@@ -23,6 +24,8 @@ export type BizCompany = {
 
   // ── About（企業説明） ──────────────────────────────────────
   descriptionMarkdown: string;
+  whyJoin: string;          // 入社理由・魅力（公開ページで参照）
+  companyFeatures: string[]; // 企業特徴リスト（公開ページ「特徴」セクション）
 
   // ── 数値データ ───────────────────────────────────────────
   employeeCount: string;
@@ -61,6 +64,7 @@ export const MOCK_COMPANY: BizCompany = {
   // 基本情報
   name: "株式会社タイミー",
   mission: "「はたらく」を通じて人生の可能性を広げるインフラをつくる",
+  tagline: "",
   industry: "IT / SaaS",
   phase: "上場(東証グロース)",
   url: "https://timee.co.jp",
@@ -69,6 +73,8 @@ export const MOCK_COMPANY: BizCompany = {
   logoUrl: "",
 
   // About
+  whyJoin: "",
+  companyFeatures: [],
   descriptionMarkdown: `## 私たちについて
 
 タイミーは、スキマ時間にすぐ働ける仕事と、人手が足りない事業者をマッチングするサービスです。「はたらく」を通じて、人生の可能性を広げることを目指しています。
