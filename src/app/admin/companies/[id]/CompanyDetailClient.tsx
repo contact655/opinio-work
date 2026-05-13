@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { buildLogoStoragePath } from '@/lib/business/photos';
 import Toast from '@/components/ui/Toast';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -23,11 +24,30 @@ type CompanyGenre = {
   is_ai_suggested: boolean;
 };
 
+type AdminUser = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  avatar_color: string | null;
+};
+
+type CompanyAdmin = {
+  id: string;
+  user_id: string;
+  permission: string;
+  role_title: string | null;
+  is_active: boolean;
+  created_at: string;
+  // Supabase の join は配列で返ってくる（多対一でも）
+  user: AdminUser[] | AdminUser | null;
+};
+
 type Props = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   company: any; // ow_companies の全カラム
   allGenres: Genre[];
   companyGenres: CompanyGenre[];
+  admins: CompanyAdmin[];
 };
 
 type FormData = {
@@ -62,7 +82,7 @@ type FormData = {
   opinio_comment: string;
 };
 
-type TabKey = 'basic' | 'recruiter' | 'opinio' | 'logo' | 'genres' | 'publish';
+type TabKey = 'basic' | 'recruiter' | 'admins' | 'opinio' | 'logo' | 'genres' | 'publish';
 
 type ToastState = { message: string; variant: 'default' | 'error' } | null;
 
@@ -74,7 +94,7 @@ function buildRecruiterAvatarPath(companyId: string, filename: string): string {
 
 // ── コンポーネント ──────────────────────────────────────────────────────────
 
-export function CompanyDetailClient({ company, allGenres, companyGenres }: Props) {
+export function CompanyDetailClient({ company, allGenres, companyGenres, admins: initialAdmins }: Props) {
   const router = useRouter();
 
   // ── フォーム state ─────────────────────────────────────────────────────
@@ -123,6 +143,11 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
+  // ── アクセス管理タブ state ───────────────────────────────────────────────
+  const [adminList, setAdminList] = useState<CompanyAdmin[]>(initialAdmins);
+  const [kickTarget, setKickTarget] = useState<CompanyAdmin | null>(null);
+  const [isKicking, setIsKicking] = useState(false);
+
   const showToast = useCallback((message: string, variant: 'default' | 'error' = 'default') => {
     setToast({ message, variant });
   }, []);
@@ -130,6 +155,32 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
   // ── フォーム更新ヘルパー ────────────────────────────────────────────────
   function update<K extends keyof FormData>(key: K, value: FormData[K]) {
     setFormData((prev) => ({ ...prev, [key]: value }));
+  }
+
+  // ── admin kick 処理 ────────────────────────────────────────────────────
+  async function handleKickConfirm() {
+    if (!kickTarget) return;
+    setIsKicking(true);
+    try {
+      const res = await fetch(
+        `/api/admin/companies/${company.id}/admins/${kickTarget.user_id}`,
+        { method: 'DELETE' }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error ?? 'kick に失敗しました', 'error');
+        return;
+      }
+      // 楽観的更新: リストから除去
+      setAdminList((prev) => prev.filter((a) => a.user_id !== kickTarget.user_id));
+      const ku = Array.isArray(kickTarget.user) ? (kickTarget.user[0] ?? null) : kickTarget.user;
+      showToast(`${ku?.name ?? ku?.email ?? 'ユーザー'} を削除しました`);
+    } catch {
+      showToast('エラーが発生しました', 'error');
+    } finally {
+      setIsKicking(false);
+      setKickTarget(null);
+    }
   }
 
   // ── ロゴアップロード ───────────────────────────────────────────────────
@@ -278,6 +329,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
   const TABS: { key: TabKey; label: string }[] = [
     { key: 'basic', label: '基本情報' },
     { key: 'recruiter', label: '採用担当者' },
+    { key: 'admins', label: `アクセス管理 (${adminList.length})` },
     { key: 'opinio', label: 'Opinio独自' },
     { key: 'logo', label: 'ロゴ' },
     { key: 'genres', label: 'ジャンル' },
@@ -843,6 +895,82 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
         </button>
       </div>
 
+      {/* ── アクセス管理タブ ──────────────────────────────────────────────── */}
+      {activeTab === 'admins' && (
+        <section className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-semibold">アクセス管理</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                /biz/ 管理画面にアクセスできる採用担当アカウントの一覧です。
+              </p>
+            </div>
+          </div>
+
+          {/* user が配列で返ってくる場合を正規化 */}
+      {adminList.length === 0 ? (
+            <div className="text-sm text-gray-400 py-8 text-center">
+              採用担当アカウントが登録されていません
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {adminList.map((a) => {
+                // Supabase join は配列で返す場合があるため正規化
+                const u: AdminUser | null = Array.isArray(a.user) ? (a.user[0] ?? null) : a.user;
+                const displayName = u?.name ?? u?.email ?? '（名前未設定）';
+                const initial = displayName.trim().charAt(0).toUpperCase();
+                const avatarColor = u?.avatar_color ?? 'linear-gradient(135deg, #002366, #3B5FD9)';
+                const joinedAt = new Date(a.created_at).toLocaleDateString('ja-JP', {
+                  year: 'numeric', month: 'long', day: 'numeric',
+                });
+
+                return (
+                  <div
+                    key={a.id}
+                    className="flex items-center gap-3 px-4 py-3 border border-gray-100 rounded-lg"
+                  >
+                    {/* アバター */}
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                      style={{ background: avatarColor }}
+                    >
+                      {initial}
+                    </div>
+
+                    {/* 名前・メール */}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-800 truncate">{displayName}</div>
+                      <div className="text-xs text-gray-400 truncate">
+                        {u?.email && <span>{u.email} · </span>}
+                        {a.role_title ?? a.permission} · {joinedAt} 参加
+                      </div>
+                    </div>
+
+                    {/* 権限バッジ */}
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      a.permission === 'admin'
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {a.permission}
+                    </span>
+
+                    {/* kick ボタン */}
+                    <button
+                      type="button"
+                      onClick={() => setKickTarget(a)}
+                      className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors flex-shrink-0"
+                    >
+                      kick
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* ── Toast ────────────────────────────────────────────────────── */}
       {toast && (
         <Toast
@@ -851,6 +979,22 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
           onDone={() => setToast(null)}
         />
       )}
+
+      {/* ── Kick 確認ダイアログ ───────────────────────────────────────── */}
+      <ConfirmDialog
+        isOpen={kickTarget !== null}
+        title="採用担当者を強制削除"
+        message={(() => {
+          const ku = kickTarget ? (Array.isArray(kickTarget.user) ? (kickTarget.user[0] ?? null) : kickTarget.user) : null;
+          const kname = ku?.name ?? ku?.email ?? 'このユーザー';
+          return `${kname} の /biz/ アクセス権を削除します。元に戻すには再度招待が必要です。`;
+        })()}
+        confirmLabel="削除する"
+        confirmVariant="danger"
+        isSubmitting={isKicking}
+        onConfirm={handleKickConfirm}
+        onCancel={() => setKickTarget(null)}
+      />
 
       {/* sticky button の余白 */}
       <div className="h-20" />

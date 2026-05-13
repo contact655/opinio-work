@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { User, LayoutGrid, LogOut, Menu, X } from "lucide-react";
+import { User, LayoutGrid, LogOut, Menu, X, Building2, ShieldCheck } from "lucide-react";
 
 // ─── Badge Component ────────────────────────────────
 
@@ -76,6 +76,7 @@ export default function Header() {
 
   const isCompany = roles.includes("company");
   const isCandidate = roles.includes("candidate");
+  const isAdminUser = roles.includes("admin");
   const hasBothRoles = isCompany && isCandidate;
   const isCompanyOnly = isCompany && !isCandidate;
 
@@ -286,6 +287,36 @@ export default function Header() {
                 <LayoutGrid size={16} strokeWidth={1.5} />
                 マイページ
               </Link>
+
+              {/* モード切替: 採用担当モード */}
+              {isCompany && (
+                <>
+                  <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
+                  <Link
+                    href="/biz/dashboard"
+                    className="flex items-center gap-2 px-4 py-2.5 text-[14px] hover:bg-gray-50 transition-colors"
+                    style={{ color: "#374151", fontWeight: 500 }}
+                    onClick={() => setProfileDropdownOpen(false)}
+                  >
+                    <Building2 size={16} strokeWidth={1.5} />
+                    採用担当として利用
+                  </Link>
+                </>
+              )}
+
+              {/* モード切替: 運営モード（admin のみ） */}
+              {isAdminUser && (
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-2 px-4 py-2.5 text-[14px] hover:bg-gray-50 transition-colors"
+                  style={{ color: "#374151", fontWeight: 500 }}
+                  onClick={() => setProfileDropdownOpen(false)}
+                >
+                  <ShieldCheck size={16} strokeWidth={1.5} />
+                  運営管理画面
+                </Link>
+              )}
+
               <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
               <button
                 onClick={handleLogout}

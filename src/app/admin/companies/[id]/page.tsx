@@ -37,11 +37,21 @@ export default async function AdminCompanyDetailPage({ params }: Props) {
     .select('genre_id, is_human_approved, is_ai_suggested')
     .eq('company_id', params.id);
 
+  // この企業の採用担当アカウント一覧（アクセス管理タブ用）
+  const { data: admins } = await supabase
+    .from('ow_company_admins')
+    .select('id, user_id, permission, role_title, is_active, created_at, user:ow_users!user_id (id, name, email, avatar_color)')
+    .eq('company_id', params.id)
+    .eq('is_active', true)
+    .not('user_id', 'is', null)
+    .order('created_at');
+
   return (
     <CompanyDetailClient
       company={company}
       allGenres={genres ?? []}
       companyGenres={companyGenres ?? []}
+      admins={admins ?? []}
     />
   );
 }
