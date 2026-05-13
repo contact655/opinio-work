@@ -398,6 +398,52 @@ export default function ForCompaniesPage() {
           </div>
         </section>
 
+        {/* ─── Logo strip — ヒーロー直後、Point1 前 ────────────────────────────── */}
+        {/*
+          TODO: 許諾済みの企業ロゴを Hisato さんに確認の上、追加する。
+          現時点ではテキストのみ表示。
+        */}
+        <section style={{
+          background: "#fff",
+          borderTop: "1px solid var(--line)",
+          borderBottom: "1px solid var(--line)",
+          padding: "36px 24px",
+        }}>
+          <div style={innerStyle}>
+            <p style={{
+              textAlign: "center",
+              fontSize: 12,
+              fontWeight: 600,
+              color: "var(--ink-mute)",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase" as const,
+              marginBottom: 20,
+            }}>
+              多くの企業様にご利用いただいています
+            </p>
+            <div style={{
+              display: "flex",
+              flexWrap: "wrap" as const,
+              gap: 10,
+              justifyContent: "center",
+            }}>
+              {["Sansan", "freee", "Money Forward", "SmartHR", "LayerX", "Ubie"].map((name) => (
+                <div key={name} style={{
+                  padding: "7px 18px",
+                  background: "var(--bg-tint)",
+                  border: "1px solid var(--line)",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--ink-soft)",
+                }}>
+                  {name}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* ─── Section 2: Point 1 — 完全無料で求人掲載 ────────────────────────── */}
         <section id="pricing" style={sectionStyle("var(--bg-tint)")}>
           <div style={innerStyle}>
@@ -545,7 +591,7 @@ export default function ForCompaniesPage() {
             </div>
 
             {/* 4 STEP cards — 4-column desktop (with arrow spacers) / 1-column mobile */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_28px_1fr_28px_1fr_28px_1fr] items-start">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_28px_1fr_28px_1fr_28px_1fr] items-stretch">
               {[
                 {
                   step: "STEP 1",
@@ -578,6 +624,9 @@ export default function ForCompaniesPage() {
                     background: "var(--bg-tint)",
                     borderRadius: 12,
                     border: "1px solid var(--line)",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
                   }}>
                     {/* Step label */}
                     <div style={{
@@ -617,7 +666,7 @@ export default function ForCompaniesPage() {
                   {/* Arrow between steps (desktop only) */}
                   {i < 3 && (
                     <div className="hidden md:flex items-center justify-center"
-                      style={{ color: "var(--ink-mute)", fontSize: 18, paddingTop: 24 }}>
+                      style={{ color: "var(--ink-mute)", fontSize: 18 }}>
                       →
                     </div>
                   )}
@@ -779,42 +828,6 @@ export default function ForCompaniesPage() {
                   ミスマッチを防ぐため、当社の強みを正直にお伝えしています。
                 </p>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ─── Section 6: Logos (placeholder) ──────────────────────────────── */}
-        {/*
-          TODO: 許諾済みの企業ロゴを Hisato さんに確認の上、追加する。
-          人材紹介事業の取引先（Sansan, freee, MoneyForward 等）。
-          現時点ではテキストのみ表示。
-        */}
-        <section style={{ ...sectionStyle("var(--bg-tint)"), paddingTop: 56, paddingBottom: 56 }}>
-          <div style={innerStyle}>
-            <div style={{ textAlign: "center", marginBottom: 32 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em" }}>
-                多くの企業様にご利用いただいています
-              </p>
-            </div>
-            <div style={{
-              display: "flex",
-              flexWrap: "wrap" as const,
-              gap: 12,
-              justifyContent: "center",
-            }}>
-              {["Sansan", "freee", "Money Forward", "SmartHR", "LayerX", "Ubie"].map((name) => (
-                <div key={name} style={{
-                  padding: "8px 20px",
-                  background: "#fff",
-                  border: "1px solid var(--line)",
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: "var(--ink-soft)",
-                }}>
-                  {name}
-                </div>
-              ))}
             </div>
           </div>
         </section>
