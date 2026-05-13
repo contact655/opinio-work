@@ -236,13 +236,12 @@ export default function ForCompaniesPage() {
               </div>
             </div>
 
-            {/* ── Point 2: メンターが間に立つ仕組み ── */}
-            <div className="grid grid-cols-1 gap-12 items-center md:grid-cols-2 md:gap-16 md:[direction:rtl]"
-              style={{ paddingTop: 80, paddingBottom: 80, borderTop: "1px solid var(--line)" }}>
-              {/* Left: copy (direction reset) */}
-              <div style={{ direction: "ltr" }}>
+            {/* ── Point 2: 届く応募の、質が違う。── */}
+            <div style={{ paddingTop: 80, paddingBottom: 80, borderTop: "1px solid var(--line)" }}>
+              {/* Header copy */}
+              <div style={{ marginBottom: 48 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", textTransform: "uppercase" as const, fontFamily: "'Inter', sans-serif" }}>
-                  02 / MENTOR
+                  02 / QUALITY
                 </span>
                 <h3 style={{
                   fontFamily: "var(--font-noto-serif)",
@@ -253,59 +252,71 @@ export default function ForCompaniesPage() {
                   marginBottom: 14,
                   lineHeight: 1.4,
                 }}>
-                  メンターが間に立つ仕組み
+                  届く応募の、質が違う。
                 </h3>
-                <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
-                  Opinio のメンターは IT 業界で実務経験を積んだプロフェッショナル。
-                  候補者は応募前にメンターと面談し、企業文化・キャリア方向性を
-                  擦り合わせた上で応募します。
+                <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, maxWidth: 560 }}>
+                  スカウトを送らず、本気度の高い応募だけを受け取る。<br />
+                  Opinio はメンター制度・編集部の取材・自然言語検索で、<br />
+                  採用ミスマッチを構造的に防ぎます。
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <CheckItem>「軽い気持ちの応募」がない構造</CheckItem>
-                  <CheckItem>本気度の高い候補者だけが届く</CheckItem>
-                  <CheckItem>ミスマッチを事前にフィルタリング</CheckItem>
-                </div>
               </div>
-              {/* Right: mentor flow diagram */}
-              <div style={{ direction: "ltr" }}>
-                <div style={{
-                  background: "var(--bg-tint)",
-                  border: "1px solid var(--line)",
-                  borderRadius: 16,
-                  padding: "28px 24px",
-                  boxShadow: "0 4px 24px rgba(0,35,102,0.06)",
-                }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: "var(--royal)", textTransform: "uppercase" as const, fontFamily: "'Inter', sans-serif", marginBottom: 20 }}>
-                    応募までの流れ
-                  </div>
-                  {[
-                    { icon: "👤", label: "候補者が求人に興味を持つ", sub: "「気になる」だけではまだ応募できない" },
-                    { icon: "🤝", label: "メンターと事前面談（30分）", sub: "IT業界メンターが動機・適性を確認", highlight: true },
-                    { icon: "✅", label: "メンターが「推薦」と判断", sub: "候補者の本気度・適合度を評価" },
-                    { icon: "📨", label: "企業へ応募が届く", sub: "メンターコメント付きで質の高い応募のみ" },
-                  ].map(({ icon, label, sub, highlight }, i, arr) => (
-                    <div key={i}>
-                      <div style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 12,
-                        padding: "12px 14px",
-                        borderRadius: 10,
-                        background: highlight ? "var(--royal-50)" : "#fff",
-                        border: highlight ? "1px solid var(--royal-100)" : "1px solid var(--line-soft)",
-                      }}>
-                        <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{icon}</span>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: highlight ? "var(--royal)" : "var(--ink)", lineHeight: 1.4 }}>{label}</div>
-                          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 3, lineHeight: 1.5 }}>{sub}</div>
-                        </div>
-                      </div>
-                      {i < arr.length - 1 && (
-                        <div style={{ textAlign: "center", color: "var(--ink-mute)", fontSize: 16, padding: "4px 0" }}>↓</div>
-                      )}
+              {/* 4-card grid */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {[
+                  {
+                    icon: "🎯",
+                    title: "スカウト不要",
+                    body: "本人から直接コンタクトが来ます。採用担当者の業務時間を奪いません。",
+                  },
+                  {
+                    icon: "💬",
+                    title: "面談を経た応募",
+                    body: "応募前にIT業界経験メンターと30分面談済み。本気度の高い応募だけが届きます。",
+                  },
+                  {
+                    icon: "📰",
+                    title: "編集部が取材した記事",
+                    body: "Opinio編集部が第三者視点で御社を取材。深い記事が対話のきっかけになります。",
+                  },
+                  {
+                    icon: "🔍",
+                    title: "自然言語で候補者検索",
+                    body: "「大企業開拓の営業経験者」など、経験ベースで自由に検索可能です。",
+                  },
+                ].map(({ icon, title, body }) => (
+                  <div key={title} style={{
+                    padding: "24px 20px",
+                    background: "var(--bg-tint)",
+                    borderRadius: 12,
+                    border: "1px solid var(--line)",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}>
+                    <div style={{
+                      width: 40, height: 40,
+                      borderRadius: 10,
+                      background: "var(--royal-50)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 20,
+                      marginBottom: 14,
+                      flexShrink: 0,
+                    }}>
+                      {icon}
                     </div>
-                  ))}
-                </div>
+                    <h4 style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: "var(--ink)",
+                      marginBottom: 8,
+                      lineHeight: 1.4,
+                    }}>
+                      {title}
+                    </h4>
+                    <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                      {body}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -666,7 +677,7 @@ export default function ForCompaniesPage() {
             </p>
 
             <Link
-              href="/biz/companies/add/new/"
+              href="/biz/auth"
               style={{
                 display: "inline-flex",
                 alignItems: "center",

@@ -112,7 +112,7 @@ export function BusinessHeader() {
             ログイン
           </Link>
           <Link
-            href="/biz/companies/add/new/"
+            href="/biz/auth"
             style={{
               fontSize: 13,
               fontWeight: 600,
@@ -196,7 +196,7 @@ export function BusinessHeader() {
               ログイン
             </Link>
             <Link
-              href="/biz/companies/add/new/"
+              href="/biz/auth"
               style={{
                 display: "block",
                 textAlign: "center",
