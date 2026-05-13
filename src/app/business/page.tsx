@@ -219,9 +219,9 @@ export default function ForCompaniesPage() {
                 lineHeight: 1.8,
                 marginBottom: 28,
               }}>
-                月額費用なし、広告費なし、
+                IT/SaaS業界の即戦力に、
                 <br />
-                入社決定時のみ成果報酬。
+                経験で絞り込んで、出会う。
               </p>
 
               {/* Check list */}
@@ -240,31 +240,39 @@ export default function ForCompaniesPage() {
               <CtaButton />
             </div>
 
-            {/* ── Right: Candidate preview mockup ── */}
+            {/* ── Right: Candidate search mockup (mirrors jobseeker LP hero) ── */}
             <div className="hidden md:flex justify-center" style={{ position: "relative" }}>
 
-              {/* Floating badge — 応募前メンター面談制度 */}
+              {/* Floating mentor bubble — mirrors 佐藤さん on jobseeker LP */}
               <div style={{
                 position: "absolute",
-                bottom: -14,
+                bottom: -16,
                 right: -8,
                 zIndex: 10,
                 background: "#fff",
-                borderRadius: 12,
+                borderRadius: 14,
                 boxShadow: "0 8px 24px rgba(0,35,102,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
-                padding: "10px 14px",
+                padding: "12px 16px",
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
+                gap: 10,
+                maxWidth: 240,
               }}>
-                <span style={{ fontSize: 16 }}>🤝</span>
+                {/* Mentor avatar */}
+                <div style={{
+                  width: 32, height: 32, borderRadius: "50%",
+                  background: "linear-gradient(135deg, #059669, #047857)",
+                  color: "#fff", fontSize: 12, fontWeight: 700,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>田</div>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>応募前メンター面談制度</div>
-                  <div style={{ fontSize: 10, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>本気度の高い応募が届く</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>田中さん（元Sansan）</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-soft)" }}>この方をご紹介できます</div>
                 </div>
               </div>
 
-              {/* Main mockup card */}
+              {/* Main search mockup card */}
               <div style={{
                 background: "#fff",
                 borderRadius: 20,
@@ -273,103 +281,99 @@ export default function ForCompaniesPage() {
                 width: "100%",
                 maxWidth: 400,
               }}>
-                {/* Mockup header */}
+                {/* Header */}
                 <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
                   marginBottom: 16,
-                  paddingBottom: 12,
-                  borderBottom: "1px solid var(--line-soft)",
                 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-                    <span style={{
-                      fontFamily: "Inter, sans-serif", fontWeight: 700,
-                      fontSize: 15, color: "var(--royal)",
-                    }}>Opinio</span>
-                    <span style={{
-                      fontFamily: "Inter, sans-serif", fontWeight: 700,
-                      fontSize: 9, color: "var(--ink-mute)",
-                      letterSpacing: "0.1em", textTransform: "uppercase" as const,
-                    }}>Business</span>
+                    <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--royal)" }}>Opinio</span>
+                    <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 9, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>Business</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <span style={{
-                      width: 6, height: 6, borderRadius: "50%",
-                      background: "var(--success)", flexShrink: 0,
-                      display: "inline-block",
-                    }} />
-                    <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-soft)" }}>新着候補者</span>
-                  </div>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--ink-soft)" }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", flexShrink: 0, display: "inline-block" }} />
+                    新着候補者
+                  </span>
                 </div>
 
-                {/* Candidate cards */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Search label */}
+                <div style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 8 }}>
+                  経験で絞り込む
+                </div>
+
+                {/* Search bar */}
+                <div style={{
+                  border: "1.5px solid var(--royal)", borderRadius: 8, padding: "10px 14px",
+                  display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                  </svg>
+                  <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>エンタープライズセールス経験者</span>
+                </div>
+
+                {/* Result count */}
+                <div style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  fontSize: 12, marginBottom: 12, color: "var(--ink-soft)",
+                }}>
+                  <span><strong style={{ color: "var(--ink)", fontSize: 14 }}>47</strong> 件が該当</span>
+                  <span style={{ color: "var(--success)", fontSize: 11 }}>今日更新</span>
+                </div>
+
+                {/* Candidate list — compact rows like jobseeker LP job cards */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {MOCK_CANDIDATES.map((c, i) => (
                     <div key={i} style={{
-                      background: "var(--bg-tint)",
-                      borderRadius: 12,
-                      padding: "12px 14px",
-                      border: "1px solid var(--line)",
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px", borderRadius: 8, background: "var(--line-soft)",
                     }}>
-                      {/* Top row: avatar + name + badge */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                        <div style={{
-                          width: 34, height: 34, borderRadius: 8,
-                          background: c.color, color: "#fff",
-                          fontSize: 13, fontWeight: 700,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          flexShrink: 0,
-                        }}>
-                          {c.init}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{c.name}</div>
-                          <div style={{ fontSize: 10, color: "var(--ink-soft)" }}>
-                            {c.role} · {c.tenure} · {c.company}
-                          </div>
-                        </div>
-                        {/* ★ メンター面談済みバッジ */}
-                        <div style={{
-                          display: "flex", alignItems: "center", gap: 2,
-                          padding: "3px 7px",
-                          background: "var(--success-soft)", color: "var(--success)",
-                          borderRadius: 100, fontSize: 9, fontWeight: 700,
-                          flexShrink: 0, whiteSpace: "nowrap",
-                        }}>
-                          ★ 面談済
-                        </div>
-                      </div>
-
-                      {/* Skill tags */}
-                      <div style={{ display: "flex", gap: 4, marginBottom: 7 }}>
-                        {c.tags.map((t) => (
-                          <span key={t} style={{
-                            fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 3,
-                            background: "var(--royal-50)", color: "var(--royal)",
-                          }}>{t}</span>
-                        ))}
-                      </div>
-
-                      {/* Mentor comment */}
+                      {/* Avatar */}
                       <div style={{
-                        fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6,
-                        fontStyle: "italic",
-                        borderLeft: "2px solid var(--royal-100)",
-                        paddingLeft: 8,
+                        width: 32, height: 32, borderRadius: 8, background: c.color,
+                        color: "#fff", fontSize: 13, fontWeight: 700,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        flexShrink: 0,
                       }}>
-                        「{c.mentorNote}」
+                        {c.init}
+                      </div>
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{c.company}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{c.name} · {c.role}</div>
+                        <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
+                          {c.tags.map((t) => (
+                            <span key={t} style={{
+                              fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 3,
+                              background: "var(--royal-50)", color: "var(--royal)",
+                            }}>{t}</span>
+                          ))}
+                        </div>
+                      </div>
+                      {/* 面談済バッジ — mirrors salary column */}
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 2,
+                        padding: "3px 7px",
+                        background: "var(--success-soft)", color: "var(--success)",
+                        borderRadius: 100, fontSize: 9, fontWeight: 700,
+                        flexShrink: 0, whiteSpace: "nowrap",
+                      }}>
+                        ★ 面談済
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Footer */}
+                {/* Footer — mirrors "すべての求人に Opinio編集部の見解付き" */}
                 <div style={{
-                  marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--line)",
-                  fontSize: 10, color: "var(--ink-mute)", textAlign: "center",
+                  marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)",
+                  fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 6,
                 }}>
-                  ※ 架空の候補者イメージです
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  すべての候補者に「Opinio編集部の推薦コメント」付き
                 </div>
               </div>
             </div>
