@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronDown } from "lucide-react";
@@ -17,7 +17,6 @@ const NAV_LINKS = [
 
 export function JobseekerHeader() {
   const pathname = usePathname();
-  const router = useRouter();
   const [user, setUser] = useState<{ email: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -70,7 +69,8 @@ export function JobseekerHeader() {
     const supabase = createClient();
     await supabase.auth.signOut();
     setDropdownOpen(false);
-    router.push("/");
+    setUser(null);
+    window.location.href = "/";
   }
 
   return (
