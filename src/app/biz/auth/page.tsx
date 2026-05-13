@@ -78,7 +78,11 @@ function BizAuthInner() {
           .biz-feature-title { font-size: 12px !important; }
           .biz-feature-desc { font-size: 10px !important; }
           .biz-brand-foot { display: none !important; }
-          .biz-form-side { padding: 28px 20px !important; }
+          .biz-form-side {
+            position: static !important;  /* undo sticky on mobile */
+            height: auto !important;
+            padding: 28px 20px !important;
+          }
           .biz-to-jobseeker { top: 14px !important; right: 14px !important; }
         }
         @media (max-width: 500px) {
@@ -322,11 +326,16 @@ function FormSide({ mode, setMode, next, router }: FormSideProps) {
         padding: "64px 48px 40px",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "flex-start",  // always start from top; length diff is absorbed below the tab
+        justifyContent: "flex-start",
         background: "#fff",
-        overflowX: "hidden",  // clip horizontal; prevents select min-content from expanding column
+        position: "sticky",   // mirror BrandPanel: decouple from grid row height
+        top: 0,
+        height: "100vh",      // always exactly 100vh — grid row stays at 100vh; no page scrollbar
+        alignSelf: "start",
+        overflowX: "hidden",
         overflowY: "auto",
-        minWidth: 0,           // belt + suspenders: 0 min prevents fr unit blowout
+        scrollbarGutter: "stable",   // reserve scrollbar space even when hidden → no layout shift
+        minWidth: 0,
       }}
     >
       <div style={{ maxWidth: 440, margin: "0 auto", width: "100%" }}>
