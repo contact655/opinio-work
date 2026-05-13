@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
+import { notify } from "@/lib/notify/email";
+import { newCompanyAdminTemplate } from "@/lib/notify/templates";
 
 export async function POST(req: Request) {
   // --- 認証チェック（通常のサーバークライアントで） ---
@@ -49,7 +51,7 @@ export async function POST(req: Request) {
       plan: body.plan || "free",
       status: "active",
     })
-    .select("id, name")
+    .select("id, name, created_at")
     .single();
 
   if (companyError) {
@@ -82,7 +84,7 @@ export async function POST(req: Request) {
   // 3. ow_users.id を auth_id から取得して ow_company_admins に INSERT
   const { data: owUser, error: owUserError } = await admin
     .from("ow_users")
-    .select("id")
+    .select("id, name")
     .eq("auth_id", user.id)
     .single();
 
@@ -108,6 +110,18 @@ export async function POST(req: Request) {
   }
 
   console.log("[company/register] SUCCESS");
+
+  // 運営への新規企業通知（best-effort: 失敗してもメインフローを止めない）
+  await notify(
+    newCompanyAdminTemplate({
+      companyName: company.name,
+      companyId: company.id,
+      creatorName: owUser?.name ?? user.email ?? "不明",
+      creatorEmail: user.email ?? "",
+      createdAt: company.created_at ?? new Date().toISOString(),
+      isDuplicate: false,
+    })
+  );
 
   const res = NextResponse.json({
     success: true,
