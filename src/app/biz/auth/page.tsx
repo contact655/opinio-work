@@ -319,10 +319,10 @@ function FormSide({ mode, setMode, next, router }: FormSideProps) {
     <div
       className="biz-form-side"
       style={{
-        padding: "40px 48px",
+        padding: "64px 48px 40px",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "center",
+        justifyContent: "flex-start",  // always start from top; length diff is absorbed below the tab
         background: "#fff",
         overflowX: "hidden",  // clip horizontal; prevents select min-content from expanding column
         overflowY: "auto",
