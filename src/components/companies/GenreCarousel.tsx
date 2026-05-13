@@ -51,32 +51,34 @@ export function GenreCarousel({ companies }: Props) {
   }
 
   return (
-    <div className="relative">
-      <div className="px-10">
-        <div
-          ref={scrollRef}
-          className="flex gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 scrollbar-hide"
-        >
-          {companies.map((company) => (
-            <div key={company.id} className="flex-shrink-0 w-[200px] snap-start">
-              <CompanyCardCompact company={company} />
-            </div>
-          ))}
-        </div>
-      </div>
-
+    <div className="flex items-center gap-2">
+      {/* 左矢印（カードの外側） */}
       <button
         onClick={() => scroll('left')}
         disabled={!canScrollLeft}
-        className="absolute left-0 top-1/2 -translate-y-1/2 w-9 h-9 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all z-10"
+        className="flex-shrink-0 w-9 h-9 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         aria-label="前へ"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
+
+      {/* スクロール領域 */}
+      <div
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 scrollbar-hide flex-1 min-w-0"
+      >
+        {companies.map((company) => (
+          <div key={company.id} className="flex-shrink-0 w-[220px] snap-start">
+            <CompanyCardCompact company={company} />
+          </div>
+        ))}
+      </div>
+
+      {/* 右矢印（カードの外側） */}
       <button
         onClick={() => scroll('right')}
         disabled={!canScrollRight}
-        className="absolute right-0 top-1/2 -translate-y-1/2 w-9 h-9 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all z-10"
+        className="flex-shrink-0 w-9 h-9 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         aria-label="次へ"
       >
         <ChevronRight className="w-5 h-5" />
