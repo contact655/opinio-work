@@ -431,7 +431,7 @@ export default function ForCompaniesPage() {
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
               gap: 20,
-              marginBottom: 64,
+              marginBottom: 0,
               textAlign: "left",
             }}>
               {/* Mentor sub-section */}
@@ -501,55 +501,7 @@ export default function ForCompaniesPage() {
               </div>
             </div>
 
-            {/* Stats: "Opinio が選ばれる理由" */}
-            <div id="results" style={{ marginTop: 8 }}>
-              <p style={{
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "rgba(255,255,255,0.4)",
-                marginBottom: 28,
-              }}>
-                Opinio が選ばれる理由
-              </p>
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                gap: 1,
-                background: "rgba(255,255,255,0.08)",
-                borderRadius: 14,
-                overflow: "hidden",
-              }}>
-                {[
-                  { num: "120社+", label: "IT/SaaS企業が活用中" },
-                  { num: "200名+", label: "キャリア意思決定をサポート" },
-                  { num: "99%+", label: "早期離職率を業界平均より大幅に下回る※" },
-                ].map(({ num, label }) => (
-                  <div key={label} style={{
-                    padding: "40px 24px",
-                    background: "rgba(255,255,255,0.04)",
-                  }}>
-                    <div style={{
-                      fontFamily: "'Inter', sans-serif",
-                      fontSize: "clamp(36px, 5vw, 52px)",
-                      fontWeight: 800,
-                      color: "#fff",
-                      letterSpacing: "-0.03em",
-                      marginBottom: 8,
-                    }}>
-                      {num}
-                    </div>
-                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", fontWeight: 500, lineHeight: 1.5 }}>
-                      {label}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p style={{ marginTop: 12, fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "right" }}>
-                ※自社調べ
-              </p>
-            </div>
+            {/* Stats block removed — figures were from 人材紹介 business, not applicable to media LP */}
           </div>
         </section>
 

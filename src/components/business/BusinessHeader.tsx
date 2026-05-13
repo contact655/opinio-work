@@ -7,7 +7,6 @@ import { Menu, X } from "lucide-react";
 const NAV_LINKS = [
   { href: "#features", label: "サービス" },
   { href: "#pricing",  label: "料金" },
-  { href: "#results",  label: "実績" },
   { href: "#faq",      label: "FAQ" },
 ];
 
