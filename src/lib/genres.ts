@@ -50,10 +50,28 @@ export async function fetchGenresWithCompanies(): Promise<GenreWithCompanies[]> 
         .order("created_at", { ascending: false })
         .limit(CAROUSEL_LIMIT);
 
+      // 企業IDリストを抽出し、募集中求人数を一括取得
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const companyIds = (links ?? []).map((link: any) => link.ow_companies.id);
+
+      const jobCountMap: Record<string, number> = {};
+      if (companyIds.length > 0) {
+        const { data: jobRows } = await supabase
+          .from("ow_jobs")
+          .select("company_id")
+          .in("company_id", companyIds)
+          .eq("status", "active");
+
+        (jobRows ?? []).forEach((row: { company_id: string }) => {
+          jobCountMap[row.company_id] = (jobCountMap[row.company_id] || 0) + 1;
+        });
+      }
+
       const companies: CompanyForCarousel[] = (links ?? []).map(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (link: any) => ({
           ...(link.ow_companies as CompanyForCarousel),
+          job_count: jobCountMap[link.ow_companies.id] || 0,
         })
       );
 

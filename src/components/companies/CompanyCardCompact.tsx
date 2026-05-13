@@ -42,7 +42,7 @@ export function CompanyCardCompact({ company }: Props) {
       className="block bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition-all h-full"
     >
       {/* ロゴエリア（正方形） */}
-      <div className="w-full aspect-[4/3] bg-gray-50 rounded-lg flex items-center justify-center mb-3 overflow-hidden">
+      <div className="w-full aspect-[3/2] bg-gray-50 rounded-lg flex items-center justify-center mb-3 overflow-hidden">
         {company.logo_url ? (
           <div className="relative w-full h-full bg-white flex items-center justify-center">
             <Image
@@ -71,9 +71,20 @@ export function CompanyCardCompact({ company }: Props) {
       </p>
 
       {/* 説明文（2行省略） */}
-      <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed">
+      <p className="text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed">
         {company.description || '—'}
       </p>
+
+      {/* 求人情報 */}
+      {company.job_count > 0 && (
+        <div className="flex items-center gap-1.5 text-xs text-gray-700 mb-3">
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" />
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          </svg>
+          <span className="font-medium">募集中 {company.job_count}職種</span>
+        </div>
+      )}
 
       {/* タグ */}
       <div className="flex gap-1.5 flex-wrap">

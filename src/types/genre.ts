@@ -30,6 +30,7 @@ export type CompanyForCarousel = {
   logo_gradient: string | null;
   logo_url: string | null;
   updated_at: string;
+  job_count: number;            // ow_jobs.status='active' のCOUNT（実数）
 };
 
 export type GenreWithCompanies = Genre & {
