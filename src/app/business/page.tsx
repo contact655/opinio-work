@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import React from "react";
 import Link from "next/link";
 import { BusinessHeader } from "@/components/business/BusinessHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
@@ -79,6 +80,27 @@ function CrossItem({ children }: { children: React.ReactNode }) {
     <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
       <span style={{ color: "var(--ink-mute)", marginTop: 1, flexShrink: 0 }}>✕</span>
       <span style={{ fontSize: 14, color: "var(--ink-mute)", lineHeight: 1.6 }}>{children}</span>
+    </div>
+  );
+}
+
+// ── PointLabel ────────────────────────────────────────────────────────────────
+function PointLabel({ n, dark = false }: { n: number; dark?: boolean }) {
+  return (
+    <div style={{
+      display: "inline-flex",
+      alignItems: "center",
+      padding: "4px 14px",
+      background: dark ? "rgba(255,255,255,0.15)" : "var(--royal)",
+      color: dark ? "#fff" : "#fff",
+      borderRadius: 100,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: "0.08em",
+      marginBottom: 12,
+      fontFamily: "'Inter', sans-serif",
+    }}>
+      Point {n}
     </div>
   );
 }
@@ -376,24 +398,24 @@ export default function ForCompaniesPage() {
           </div>
         </section>
 
-        {/* ─── Section 2: Comparison Table ──────────────────────────────────── */}
+        {/* ─── Section 2: Point 1 — 完全無料で求人掲載 ────────────────────────── */}
         <section id="pricing" style={sectionStyle("var(--bg-tint)")}>
           <div style={innerStyle}>
             <div style={{ textAlign: "center", marginBottom: 48 }}>
-              <SectionLabel>料金比較</SectionLabel>
+              <PointLabel n={1} />
               <h2 style={{
                 fontFamily: "var(--font-noto-serif)",
                 fontSize: "clamp(22px, 3.5vw, 32px)",
                 fontWeight: 500,
                 color: "var(--ink)",
                 lineHeight: 1.4,
-                marginBottom: 16,
+                marginBottom: 14,
               }}>
-                他社が「掲載で稼ぐ」のに対し、<br />
-                Opinio は「採用が成功したときだけ」収益を得ます。
+                完全無料で求人掲載
               </h2>
-              <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-                だから、企業も求職者も質の高いマッチングしか追求できない構造。
+              <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.8, maxWidth: 560, margin: "0 auto" }}>
+                月額費用なし、広告費なし。<br />
+                お金が発生するのは<strong style={{ color: "var(--ink)" }}>「入社決定」の一点のみ</strong>。
               </p>
             </div>
 
@@ -484,200 +506,200 @@ export default function ForCompaniesPage() {
             <p style={{ marginTop: 14, fontSize: 11, color: "var(--ink-mute)", textAlign: "right" }}>
               ※ 他社例は業界一般的な料金モデルを参考に記載。実際のサービス名・条件は各社により異なります。
             </p>
+
+            {/* Emphasis */}
+            <div style={{
+              marginTop: 28,
+              padding: "18px 28px",
+              background: "#fff",
+              border: "1px solid var(--royal-100)",
+              borderRadius: 12,
+              display: "flex",
+              flexWrap: "wrap" as const,
+              gap: "10px 32px",
+              justifyContent: "center",
+            }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>
+                ⭐ 応募・スカウト・面談まで全て無料
+              </span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>
+                ⭐ 採用が決まるまで一切請求なし
+              </span>
+            </div>
           </div>
         </section>
 
-        {/* ─── Section 3: 3 Steps ───────────────────────────────────────────── */}
-        <section style={sectionStyle("#fff")}>
+        {/* ─── Section 3: 導入の流れ ────────────────────────────────────────────── */}
+        <section id="flow" style={sectionStyle("#fff")}>
           <div style={innerStyle}>
             <div style={{ textAlign: "center", marginBottom: 52 }}>
-              <SectionLabel>はじめ方</SectionLabel>
+              <SectionLabel>導入の流れ</SectionLabel>
               <h2 style={{
                 fontFamily: "var(--font-noto-serif)",
                 fontSize: "clamp(22px, 3.5vw, 32px)",
                 fontWeight: 500,
                 color: "var(--ink)",
               }}>
-                3ステップで採用を開始
+                4ステップで採用開始
               </h2>
             </div>
 
-            {/* Steps grid */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-              gap: 20,
-              marginBottom: 32,
-            }}>
+            {/* 4 STEP cards — 4-column desktop (with arrow spacers) / 1-column mobile */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_28px_1fr_28px_1fr_28px_1fr] items-start">
               {[
                 {
-                  step: "1",
-                  title: "企業を登録（1分）",
-                  body: "無料。メールアドレスだけで開始できます。クレジットカード登録不要。",
+                  step: "STEP 1",
+                  icon: "🏢",
+                  title: "企業を新規登録",
+                  body: "無料。メールアドレスだけで1分。クレジットカード登録不要。",
                 },
                 {
-                  step: "2",
-                  title: "求人を作成・公開（無料）",
-                  body: "何件でも、何ヶ月でも、無料。スカウト機能も無料でご利用いただけます。",
+                  step: "STEP 2",
+                  icon: "📋",
+                  title: "求人を作成・公開",
+                  body: "何件でも、何ヶ月でも無料。下書きから「公開」ボタンで即反映。",
                 },
                 {
-                  step: "3",
+                  step: "STEP 3",
+                  icon: "👤",
+                  title: "候補者から応募が届く",
+                  body: "応募前メンター面談を経た、本気度の高い候補者から応募が届きます。",
+                },
+                {
+                  step: "STEP 4",
+                  icon: "✅",
                   title: "入社決定時のみ成果報酬",
-                  body: "採用が決まるまで一切請求なし。ご納得いただけた採用のみ費用が発生します。",
+                  body: "採用が決まるまで一切請求なし。年収の30〜35%。",
                 },
-              ].map(({ step, title, body }) => (
-                <div key={step} style={{
-                  padding: "28px 24px",
-                  background: "var(--bg-tint)",
-                  borderRadius: 12,
-                  border: "1px solid var(--line)",
-                }}>
+              ].map(({ step, icon, title, body }, i) => (
+                <React.Fragment key={step}>
                   <div style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
-                    background: "var(--royal)",
-                    color: "#fff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontFamily: "'Inter', sans-serif",
-                    fontWeight: 700,
-                    fontSize: 16,
-                    marginBottom: 16,
-                    flexShrink: 0,
+                    padding: "24px 20px",
+                    background: "var(--bg-tint)",
+                    borderRadius: 12,
+                    border: "1px solid var(--line)",
                   }}>
-                    {step}
+                    {/* Step label */}
+                    <div style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: "0.1em",
+                      color: "var(--royal)",
+                      fontFamily: "'Inter', sans-serif",
+                      marginBottom: 12,
+                    }}>
+                      {step}
+                    </div>
+                    {/* Icon */}
+                    <div style={{
+                      width: 40, height: 40,
+                      borderRadius: 10,
+                      background: "var(--royal-50)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 20,
+                      marginBottom: 14,
+                    }}>
+                      {icon}
+                    </div>
+                    <h3 style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: "var(--ink)",
+                      marginBottom: 8,
+                      lineHeight: 1.4,
+                    }}>
+                      {title}
+                    </h3>
+                    <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                      {body}
+                    </p>
                   </div>
-                  <h3 style={{
-                    fontSize: 16,
-                    fontWeight: 700,
-                    color: "var(--ink)",
-                    marginBottom: 8,
-                    lineHeight: 1.4,
-                  }}>
-                    {title}
-                  </h3>
-                  <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                    {body}
-                  </p>
-                </div>
+                  {/* Arrow between steps (desktop only) */}
+                  {i < 3 && (
+                    <div className="hidden md:flex items-center justify-center"
+                      style={{ color: "var(--ink-mute)", fontSize: 18, paddingTop: 24 }}>
+                      →
+                    </div>
+                  )}
+                </React.Fragment>
               ))}
-            </div>
-
-            {/* Emphasis box */}
-            <div style={{
-              padding: "20px 28px",
-              background: "var(--royal-50)",
-              border: "1px solid var(--royal-100)",
-              borderRadius: 12,
-              display: "flex",
-              flexWrap: "wrap" as const,
-              gap: "10px 32px",
-            }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>
-                ⭐ 応募・スカウト・面談まで全て無料
-              </span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>
-                ⭐ お金が発生するのは「入社決定」の一点のみ
-              </span>
             </div>
           </div>
         </section>
 
-        {/* ─── Section 4: Why No Mismatch ────────────────────────────────────── */}
+        {/* ─── Section 4: Point 2 + Point 3 ──────────────────────────────────── */}
         <section id="mentor" style={sectionStyle("var(--ink)")}>
-          <div style={{ ...innerStyle, textAlign: "center" }}>
-            <SectionLabel>差別化</SectionLabel>
-            <h2 style={{
-              fontFamily: "var(--font-noto-serif)",
-              fontSize: "clamp(22px, 3.5vw, 32px)",
-              fontWeight: 500,
-              color: "#fff",
-              marginBottom: 16,
-            }}>
-              なぜ採用ミスマッチが起きないのか？
-            </h2>
-            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.6)", marginBottom: 56, lineHeight: 1.7 }}>
-              Opinio には、他の求人媒体にはない2つの仕組みがあります。
+          <div style={{ ...innerStyle, textAlign: "center", marginBottom: 40 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>
+              Opinio Work の差別化
             </p>
+          </div>
 
-            {/* 2 sub-sections side by side */}
+          {/* Point 2 + Point 3 side by side */}
+          <div style={{
+            ...innerStyle,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: 20,
+            textAlign: "left",
+          }}>
+            {/* ── Point 2: メンター制度 ── */}
             <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: 20,
-              marginBottom: 0,
-              textAlign: "left",
+              padding: "32px 28px",
+              background: "rgba(255,255,255,0.06)",
+              borderRadius: 14,
+              border: "1px solid rgba(255,255,255,0.1)",
             }}>
-              {/* Mentor sub-section */}
+              <PointLabel n={2} dark />
               <div style={{
-                padding: "32px 28px",
-                background: "rgba(255,255,255,0.06)",
-                borderRadius: 14,
-                border: "1px solid rgba(255,255,255,0.1)",
+                width: 44, height: 44, borderRadius: 12,
+                background: "var(--royal)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22, marginBottom: 16,
               }}>
-                <div style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: "var(--royal)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 22,
-                  marginBottom: 20,
-                }}>
-                  🤝
-                </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 12, lineHeight: 1.4 }}>
-                  メンターが間に立つから
-                </h3>
-                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.9 }}>
-                  Opinio には、IT 業界で経験を積んだメンターが在籍しています。
-                  候補者は応募前に必ずメンターと面談し、企業の文化や働き方、
-                  キャリアの方向性を擦り合わせた上で応募してきます。
-                  <br /><br />
-                  「軽い気持ちでの応募」がなく、企業側には
-                  <strong style={{ color: "#fff" }}>本気度の高い候補者だけが届く</strong>構造です。
-                </p>
+                🤝
               </div>
-
-              {/* User quality sub-section */}
-              <div style={{
-                padding: "32px 28px",
-                background: "rgba(255,255,255,0.06)",
-                borderRadius: 14,
-                border: "1px solid rgba(255,255,255,0.1)",
-              }}>
-                <div style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: "rgba(59,95,217,0.8)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 22,
-                  marginBottom: 20,
-                }}>
-                  💼
-                </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 12, lineHeight: 1.4 }}>
-                  IT 業界職経ありユーザーが中心
-                </h3>
-                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.9 }}>
-                  Opinio に登録しているユーザーの大多数が、
-                  IT 業界で実務経験を持つ即戦力人材です。
-                  <br /><br />
-                  業界知識ゼロから教育する必要がなく、
-                  <strong style={{ color: "#fff" }}>入社後すぐに戦力として活躍できる人材</strong>と
-                  出会えます。
-                </p>
-              </div>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 12, lineHeight: 1.4 }}>
+                メンターが間に立つ仕組み
+              </h3>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.9 }}>
+                Opinio には、IT 業界で経験を積んだメンターが在籍しています。
+                候補者は応募前にメンターと面談し、企業文化や働き方、
+                キャリアの方向性を擦り合わせた上で応募してきます。
+                <br /><br />
+                「軽い気持ちでの応募」がなく、企業側には
+                <strong style={{ color: "#fff" }}>本気度の高い候補者だけが届く</strong>構造です。
+              </p>
             </div>
 
-            {/* Stats block removed — figures were from 人材紹介 business, not applicable to media LP */}
+            {/* ── Point 3: ユーザー層の質 ── */}
+            <div style={{
+              padding: "32px 28px",
+              background: "rgba(255,255,255,0.06)",
+              borderRadius: 14,
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}>
+              <PointLabel n={3} dark />
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: "rgba(59,95,217,0.8)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22, marginBottom: 16,
+              }}>
+                💼
+              </div>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 12, lineHeight: 1.4 }}>
+                IT 業界職経ありユーザーが中心
+              </h3>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.9 }}>
+                Opinio に登録しているユーザーの大多数が、
+                IT 業界で実務経験を持つ即戦力人材です。
+                <br /><br />
+                業界知識ゼロから教育する必要がなく、
+                <strong style={{ color: "#fff" }}>入社後すぐに戦力として活躍できる人材</strong>と
+                出会えます。
+              </p>
+            </div>
           </div>
         </section>
 
