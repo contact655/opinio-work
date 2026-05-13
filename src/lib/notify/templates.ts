@@ -214,3 +214,105 @@ export function applicationStatusTemplate(params: {
     `),
   };
 }
+
+// ── T6: 企業採用担当者への招待メール ──────────────────────────────────────────
+
+export function companyInviteTemplate(params: {
+  recipientEmail: string;
+  inviterName: string;       // 招待した人の名前
+  companyName: string;       // 招待先企業名
+  companyLogoUrl?: string;   // 任意
+  inviteUrl: string;         // 招待リンク（トークン付き）
+  roleLabel?: string;        // 任意（例: "採用担当として"）
+}) {
+  const roleText = params.roleLabel ?? "採用担当として";
+
+  return {
+    to: params.recipientEmail,
+    subject: `${params.companyName} の採用担当として招待されました - Opinio Work`,
+    html: htmlWrap(`
+      <h2>${params.companyName} の採用担当チームに招待されました</h2>
+      <p>${params.recipientEmail} 様</p>
+      <p>
+        <strong>${params.inviterName}</strong> さんから、Opinio Work で
+        <strong>${params.companyName}</strong> の${roleText}招待されました。
+      </p>
+      <p>下記ボタンから招待を受諾してください。</p>
+      <p style="margin: 28px 0;">
+        <a
+          href="${params.inviteUrl}"
+          style="
+            display: inline-block;
+            background: #002366;
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+          "
+        >招待を受諾する →</a>
+      </p>
+      <p style="font-size: 12px; color: #888;">
+        このリンクは7日間有効です。<br/>
+        このメールに心当たりがない場合は、そのまま破棄してください。
+      </p>
+    `),
+  };
+}
+
+// ── T7: 新規企業作成の運営通知 ────────────────────────────────────────────────
+
+export function newCompanyAdminTemplate(params: {
+  companyName: string;
+  companyId: string;
+  creatorName: string;
+  creatorEmail: string;
+  createdAt: string;
+  isDuplicate?: boolean;     // force_create=true で同名企業が既存だった場合
+}) {
+  const subjectPrefix = params.isDuplicate ? "[Opinio Work] [重複承知] " : "[Opinio Work] ";
+  const duplicateNote = params.isDuplicate
+    ? `<p style="color: #92400E; background: #FEF3C7; padding: 10px 14px; border-radius: 6px; font-size: 13px;">
+        ⚠️ 同名企業が既に存在する状態で、ユーザーが意図的に別法人として作成しました。
+        表記ゆれの統合が必要かどうか確認してください。
+       </p>`
+    : "";
+
+  return {
+    to: ADMIN_EMAIL,
+    subject: `${subjectPrefix}新規企業が登録されました: ${params.companyName}`,
+    html: htmlWrap(`
+      <h2>新しい企業が Opinio Work に登録されました</h2>
+      ${duplicateNote}
+      <table style="border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 16px;">
+        <tr>
+          <td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600; width: 120px;">企業名</td>
+          <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">${params.companyName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600;">作成者</td>
+          <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">${params.creatorName}（${params.creatorEmail}）</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600;">ステータス</td>
+          <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">draft（未公開）</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600;">登録日時</td>
+          <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">${new Date(params.createdAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600;">企業 ID</td>
+          <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 11px;">${params.companyId}</td>
+        </tr>
+      </table>
+      <p style="margin-top: 20px;">
+        <a href="https://opinio.jp/admin/companies/${params.companyId}">管理画面で確認する →</a>
+      </p>
+      <p style="font-size: 12px; color: #888; margin-top: 4px;">
+        不審な登録の場合は管理画面から kick または非公開化してください。
+      </p>
+    `),
+  };
+}

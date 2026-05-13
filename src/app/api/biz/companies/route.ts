@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
+import { sendEmail } from "@/lib/notify/email";
+import { newCompanyAdminTemplate } from "@/lib/notify/templates";
 
 /**
  * POST /api/biz/companies
@@ -117,7 +119,7 @@ export async function POST(req: Request) {
   // 5. ow_company_admins INSERT（作成者を最初の admin として登録）
   const { data: owUser, error: owUserError } = await admin
     .from("ow_users")
-    .select("id")
+    .select("id, name")
     .eq("auth_id", user.id)
     .maybeSingle();
 
@@ -141,6 +143,22 @@ export async function POST(req: Request) {
   }
 
   console.log("[POST /api/biz/companies] SUCCESS:", company.id, name);
+
+  // 5.5 運営への新規企業通知（best-effort）
+  try {
+    await sendEmail(
+      newCompanyAdminTemplate({
+        companyName: company.name,
+        companyId: company.id,
+        creatorName: owUser?.name ?? user.email ?? "不明",
+        creatorEmail: user.email ?? "",
+        createdAt: company.created_at,
+        isDuplicate: body.force_create ?? false,
+      })
+    );
+  } catch (err) {
+    console.error("[POST /api/biz/companies] admin notify failed:", err);
+  }
 
   // 6. Cookie + Response
   const res = NextResponse.json(

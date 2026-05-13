@@ -521,7 +521,7 @@ function AddMemberDialog({
           メンバーを追加
         </h2>
         <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-          Opinio に登録済みのメールアドレスを入力してください。
+          メールアドレスを入力してください。登録済みの場合はすぐに追加、未登録の場合は招待メールを送信します。
         </p>
 
         {/* email */}
@@ -947,19 +947,23 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
     setIsAdding(true);
     setAddError(null);
     try {
-      const res = await fetch("/api/biz/members", {
+      const res = await fetch("/api/biz/members/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, permission }),
       });
-      const json = await res.json() as { error?: string; member?: { name?: string } };
+      const json = await res.json() as { error?: string; already_registered?: boolean; member?: { name?: string } };
       if (!res.ok) {
         setAddError(json.error ?? "エラーが発生しました");
         return;
       }
       const name = json.member?.name ?? email;
       setShowAddDialog(false);
-      setToastMessage(`${name}さんをメンバーに追加しました`);
+      setToastMessage(
+        json.already_registered
+          ? `${name}さんをメンバーに追加しました`
+          : `${email} に招待メールを送信しました`
+      );
       router.refresh();
     } catch {
       setAddError("通信エラーが発生しました");

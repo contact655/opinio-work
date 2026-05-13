@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { addExistingUserToCompany } from "../_lib";
+import { sendEmail } from "@/lib/notify/email";
+import { companyInviteTemplate } from "@/lib/notify/templates";
 
 function getBaseUrl(req: Request): string {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
@@ -107,6 +109,26 @@ export async function POST(req: Request) {
   const baseUrl = getBaseUrl(req);
   const inviteUrl = `${baseUrl}/biz/auth/accept-invite?token=${inviteToken}`;
 
+  // メール送信
+  let emailSent = false;
+  try {
+    const [{ data: inviterUser }, { data: company }] = await Promise.all([
+      supabase.from("ow_users").select("name").eq("id", actorOwUserId).maybeSingle(),
+      supabase.from("ow_companies").select("name").eq("id", companyId).maybeSingle(),
+    ]);
+    await sendEmail(
+      companyInviteTemplate({
+        recipientEmail: email,
+        inviterName: inviterUser?.name ?? "採用担当者",
+        companyName: company?.name ?? "",
+        inviteUrl,
+      })
+    );
+    emailSent = true;
+  } catch (err) {
+    console.error("[invite POST email]", err);
+  }
+
   return NextResponse.json(
     {
       success: true,
@@ -114,6 +136,7 @@ export async function POST(req: Request) {
       invite_token: inviteToken,
       invite_url: inviteUrl,
       expires_at: expiresAt.toISOString(),
+      email_sent: emailSent,
     },
     { status: 201 }
   );
