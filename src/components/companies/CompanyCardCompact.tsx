@@ -42,14 +42,14 @@ export function CompanyCardCompact({ company }: Props) {
       className="block bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition-all h-full"
     >
       {/* ロゴエリア（正方形） */}
-      <div className="w-full aspect-square bg-gray-50 rounded-lg flex items-center justify-center mb-3 overflow-hidden">
+      <div className="w-full aspect-[4/3] bg-gray-50 rounded-lg flex items-center justify-center mb-3 overflow-hidden">
         {company.logo_url ? (
-          <div className="relative w-full h-full bg-white flex items-center justify-center p-6">
+          <div className="relative w-full h-full bg-white flex items-center justify-center">
             <Image
               src={company.logo_url}
               alt={`${company.name}のロゴ`}
               fill
-              className="object-contain p-6"
+              className="object-contain p-4"
               sizes="280px"
             />
           </div>
