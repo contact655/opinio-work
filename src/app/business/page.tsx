@@ -242,7 +242,7 @@ export default function ForCompaniesPage() {
             {/* ── Right: Candidate preview mockup ── */}
             <div className="hidden md:flex justify-center" style={{ position: "relative" }}>
 
-              {/* Floating badge — "全員メンター面談済み" */}
+              {/* Floating badge — 応募前メンター面談制度 */}
               <div style={{
                 position: "absolute",
                 bottom: -14,
@@ -258,8 +258,8 @@ export default function ForCompaniesPage() {
               }}>
                 <span style={{ fontSize: 16 }}>🤝</span>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>全員メンター面談済み</div>
-                  <div style={{ fontSize: 10, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>本気度確認 · ミスマッチ防止</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>応募前メンター面談制度</div>
+                  <div style={{ fontSize: 10, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>本気度の高い応募が届く</div>
                 </div>
               </div>
 
@@ -586,7 +586,7 @@ export default function ForCompaniesPage() {
         </section>
 
         {/* ─── Section 4: Why No Mismatch ────────────────────────────────────── */}
-        <section id="features" style={sectionStyle("var(--ink)")}>
+        <section id="mentor" style={sectionStyle("var(--ink)")}>
           <div style={{ ...innerStyle, textAlign: "center" }}>
             <SectionLabel>差別化</SectionLabel>
             <h2 style={{
