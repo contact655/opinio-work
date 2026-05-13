@@ -11,7 +11,6 @@ export type MatchCandidate = {
 
 type Props = {
   candidates: MatchCandidate[];
-  planType: string | null;
 };
 
 function CandidateCard({ c }: { c: MatchCandidate }) {
@@ -52,7 +51,7 @@ function CandidateCard({ c }: { c: MatchCandidate }) {
   );
 }
 
-export function MatchCandidates({ candidates, planType }: Props) {
+export function MatchCandidates({ candidates }: Props) {
   return (
     <section style={{
       background: "#fff",
@@ -72,47 +71,16 @@ export function MatchCandidates({ candidates, planType }: Props) {
           fontSize: 9, fontWeight: 700,
           color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
         }}>Match Candidates</span>
-        {!planType && (
-          <span style={{
-            fontSize: 10, fontWeight: 700,
-            padding: "2px 8px", borderRadius: 100,
-            background: "var(--warm-soft)", color: "#92400E",
-            marginLeft: 4,
-          }}>有料プランのみ</span>
-        )}
       </div>
 
-      {!planType ? (
-        <div style={{ position: "relative" }}>
-          <div style={{ filter: "blur(5px)", pointerEvents: "none", userSelect: "none" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-              {candidates.slice(0, 3).map((c) => (
-                <CandidateCard key={c.id} c={c} />
-              ))}
-            </div>
-          </div>
-          <div style={{
-            position: "absolute", inset: 0,
-            display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center",
-            gap: 10,
-          }}>
-            <div style={{ fontSize: 28 }}>🔒</div>
-            <div style={{
-              fontFamily: "var(--font-noto-serif)",
-              fontSize: 14, fontWeight: 700, color: "var(--ink)",
-            }}>有料プランで解放</div>
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", textAlign: "center", maxWidth: 220, lineHeight: 1.5 }}>
-              あなたの求人にマッチする候補者を確認できます
-            </div>
-            <a href="/biz/upgrade" style={{
-              display: "inline-block", padding: "8px 20px", borderRadius: 8,
-              background: "var(--royal)", color: "#fff",
-              fontSize: 12, fontWeight: 700, textDecoration: "none",
-            }}>
-              アップグレード →
-            </a>
-          </div>
+      {candidates.length === 0 ? (
+        <div style={{
+          padding: "32px 0",
+          textAlign: "center",
+          color: "var(--ink-mute)",
+          fontSize: 13,
+        }}>
+          マッチ候補者は現在表示されていません
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>

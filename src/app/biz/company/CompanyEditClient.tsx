@@ -34,7 +34,6 @@ type Props = {
   tenantName: string;
   tenantLogoGradient?: string | null;
   tenantLogoLetter?: string | null;
-  planType: string | null;
   memberships?: import("@/lib/business/dashboard").TenantCompany[];
 };
 
@@ -246,7 +245,6 @@ export function CompanyEditClient({
   tenantName,
   tenantLogoGradient,
   tenantLogoLetter,
-  planType,
   memberships,
 }: Props) {
   const router = useRouter();
@@ -698,7 +696,6 @@ export function CompanyEditClient({
       tenantName={tenantName}
       tenantLogoGradient={tenantLogoGradient ?? undefined}
       tenantLogoLetter={tenantLogoLetter ?? undefined}
-      planType={planType as any}
       variant="fullBleed"
       memberships={memberships}
       currentTenantId={companyId}

@@ -9,7 +9,7 @@ import type { RecruiterProfileData } from "@/components/business/RecruiterProfil
 export const mockTenantContext: TenantContext = {
   tenantId: "mock-tenant-opinio",
   tenantName: "株式会社Opinio",
-  planType: null, // 無料プラン（プランゲート UX 確認用）
+  planType: null,
   planLabel: "未設定",
   userName: "柴 尚人",
   logoGradient: "linear-gradient(135deg, var(--royal), var(--accent))",
@@ -28,7 +28,7 @@ export const mockTodoCounts: TodoCounts = {
 export const mockMonthlyStats: MonthlyStatsWithDelta = {
   current: {
     applications: 18,
-    scouts: 0,     // 無料プランはスカウトなし
+    scouts: 0,
     interviews: 12,
     offers: 0,
   },

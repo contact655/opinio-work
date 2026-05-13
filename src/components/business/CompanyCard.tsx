@@ -9,13 +9,6 @@ type Props = {
   industry?: string | null;
   employeeCount?: number | null;
   memberCount?: number | null;
-  planType?: string | null;
-};
-
-const PLAN_LABELS: Record<string, string> = {
-  performance: "成果報酬プラン",
-  saas_monthly: "SaaS月額プラン",
-  saas_yearly: "SaaS年額プラン",
 };
 
 export function CompanyCard({
@@ -26,11 +19,9 @@ export function CompanyCard({
   industry,
   employeeCount,
   memberCount,
-  planType,
 }: Props) {
   const gradient = logoGradient || "linear-gradient(135deg, #F97316, #EA580C)";
   const letter = logoLetter || tenantName.trim().charAt(0).toUpperCase();
-  const isPaid = !!planType;
 
   return (
     <div style={{
@@ -64,27 +55,6 @@ export function CompanyCard({
           display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
         }}>
           {tenantName}
-          {isPaid ? (
-            <span style={{
-              padding: "3px 10px", borderRadius: 100,
-              fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 700,
-              letterSpacing: "0.1em",
-              background: "linear-gradient(135deg, var(--gold), #B45309)",
-              color: "#fff",
-            }}>
-              {PLAN_LABELS[planType!] ?? "有料プラン"}
-            </span>
-          ) : (
-            <span style={{
-              padding: "3px 10px", borderRadius: 100,
-              fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 700,
-              letterSpacing: "0.1em",
-              background: "var(--line-soft)", color: "var(--ink-soft)",
-              border: "1px solid var(--line)",
-            }}>
-              無料プラン
-            </span>
-          )}
         </div>
         <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
           {[

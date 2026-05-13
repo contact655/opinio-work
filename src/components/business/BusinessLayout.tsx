@@ -15,7 +15,6 @@ type Props = {
   tenantName?: string;
   tenantLogoGradient?: string | null;
   tenantLogoLetter?: string | null;
-  planType?: string | null;
   variant?: BusinessLayoutVariant;
   children: React.ReactNode;
   memberships?: TenantCompany[];
@@ -68,44 +67,12 @@ const NAV_ITEMS = [
   },
 ];
 
-function PlanPill({ planType }: { planType?: string | null }) {
-  if (!planType) {
-    return (
-      <span style={{
-        padding: "2px 8px", borderRadius: 100,
-        fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700,
-        letterSpacing: "0.1em",
-        background: "var(--line-soft)", color: "var(--ink-soft)",
-        border: "1px solid var(--line)",
-        marginLeft: 6,
-      }}>FREE</span>
-    );
-  }
-  const labelMap: Record<string, string> = {
-    performance: "成果報酬",
-    saas_monthly: "SaaS月額",
-    saas_yearly: "SaaS年額",
-  };
-  return (
-    <span style={{
-      padding: "2px 8px", borderRadius: 100,
-      fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700,
-      letterSpacing: "0.1em",
-      background: "linear-gradient(135deg, var(--gold), #B45309)",
-      color: "#fff",
-      marginLeft: 6,
-    }}>
-      {labelMap[planType] ?? "有料"}
-    </span>
-  );
-}
 
 export function BusinessLayout({
   userName,
   tenantName,
   tenantLogoGradient,
   tenantLogoLetter,
-  planType,
   variant = "default",
   children,
   memberships,
@@ -187,7 +154,6 @@ export function BusinessLayout({
                 currentCompany={{ id: currentTenantId, name: tenantName, logoGradient: tenantLogoGradient, logoLetter: tenantLogoLetter }}
                 memberships={memberships}
               />
-              <PlanPill planType={planType} />
             </div>
           ) : (
             <div style={{
@@ -208,7 +174,6 @@ export function BusinessLayout({
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
                 {tenantName}
               </span>
-              <PlanPill planType={planType} />
             </div>
           )
         )}
@@ -411,38 +376,6 @@ export function BusinessLayout({
             })}
           </nav>
 
-          {/* Plan widget */}
-          <div style={{ margin: "20px 16px 0" }}>
-            {planType ? (
-              <div style={{
-                padding: 14, borderRadius: 10, textAlign: "center",
-                background: "linear-gradient(135deg, var(--success-soft) 0%, #D1FAE5 100%)",
-                border: "1px solid #A7F3D0",
-              }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", marginBottom: 4 }}>有料プラン利用中</div>
-                <div style={{ fontSize: 10, color: "var(--ink-soft)", lineHeight: 1.6 }}>すべての機能が利用可能です</div>
-              </div>
-            ) : (
-              <div style={{
-                padding: 14, borderRadius: 10, textAlign: "center",
-                background: "linear-gradient(135deg, var(--gold-soft) 0%, #FEF3C7 100%)",
-                border: "1px solid #FDE68A",
-              }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)", marginBottom: 4 }}>無料プラン</div>
-                <div style={{ fontSize: 10, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 10 }}>
-                  有料プランで求人掲載・候補者の可視化が可能に
-                </div>
-                <button style={{
-                  padding: "6px 14px", width: "100%",
-                  background: "var(--royal)", color: "#fff",
-                  border: "none", borderRadius: 6,
-                  fontFamily: "inherit", fontSize: 11, fontWeight: 700, cursor: "pointer",
-                }}>
-                  有料プランを見る
-                </button>
-              </div>
-            )}
-          </div>
         </aside>
 
         {/* Main content */}

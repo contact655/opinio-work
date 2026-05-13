@@ -23,13 +23,10 @@ const PERM_STYLES: Record<TeamMember["permission"], { bg: string; color: string 
 
 type Props = {
   members: TeamMember[];
-  planType: string | null;
 };
 
-export function TeamMembers({ members, planType }: Props) {
-  const maxFree = 1;
-  const visible = planType ? members : members.slice(0, maxFree);
-  const locked = !planType && members.length > maxFree;
+export function TeamMembers({ members }: Props) {
+  const visible = members;
 
   return (
     <section style={{
@@ -94,23 +91,6 @@ export function TeamMembers({ members, planType }: Props) {
         })}
       </div>
 
-      {locked && (
-        <div style={{
-          marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--line)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          gap: 12,
-        }}>
-          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-            他 {members.length - maxFree} 名 — 有料プランで管理
-          </span>
-          <a href="/biz/upgrade" style={{
-            fontSize: 11, fontWeight: 700,
-            color: "var(--royal)", textDecoration: "none",
-          }}>
-            アップグレード →
-          </a>
-        </div>
-      )}
     </section>
   );
 }

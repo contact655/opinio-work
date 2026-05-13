@@ -4,7 +4,6 @@ import type { TodoCounts, MonthlyStatsWithDelta } from "@/lib/business/dashboard
 type Props = {
   todoCounts: TodoCounts;
   monthlyStats: MonthlyStatsWithDelta;
-  planType?: string | null;
   activeJobCount?: number;
 };
 
@@ -80,15 +79,7 @@ function StatCard({ icon, iconVariant, value, label, trend, urgent }: StatCardPr
   );
 }
 
-const LockIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-  </svg>
-);
-
-export function DashboardStatCards({ todoCounts, monthlyStats, planType, activeJobCount = 0 }: Props) {
-  const isPaid = !!planType;
+export function DashboardStatCards({ todoCounts, monthlyStats, activeJobCount = 0 }: Props) {
   const pendingCount = todoCounts.new_applications;
   const completedInterviews = monthlyStats.current.interviews;
   const interviewDelta = monthlyStats.delta.interviews;
@@ -100,7 +91,7 @@ export function DashboardStatCards({ todoCounts, monthlyStats, planType, activeJ
       gap: 12,
       marginBottom: 20,
     }}>
-      {/* Card 1: 未対応カジュアル面談（urgent） */}
+      {/* Card 1: 未対応カジュアル面談 */}
       <StatCard
         urgent={pendingCount > 0}
         iconVariant="urgent"
@@ -119,39 +110,38 @@ export function DashboardStatCards({ todoCounts, monthlyStats, planType, activeJ
         }
       />
 
-      {/* Card 2: 公開中の求人（plan-gated） */}
+      {/* Card 2: 公開中の求人 */}
       <StatCard
         iconVariant="amber"
-        icon={isPaid
-          ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>
-          : <LockIcon />
+        icon={
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
+          </svg>
         }
-        value={isPaid ? activeJobCount : "—"}
+        value={activeJobCount}
         label="公開中の求人"
-        trend={
-          isPaid
-            ? <span style={{ color: "var(--success)" }}>↑ 先月比 +1</span>
-            : <span style={{ color: "var(--ink-mute)" }}>有料プランで解放</span>
-        }
+        trend={<span style={{ color: "var(--success)" }}>↑ 先月比 +1</span>}
       />
 
-      {/* Card 3: マッチ候補者（plan-gated） */}
+      {/* Card 3: マッチ候補者 */}
       <StatCard
         iconVariant="purple"
-        icon={isPaid
-          ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
-          : <LockIcon />
+        icon={
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+            <circle cx="17" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          </svg>
         }
-        value={isPaid ? monthlyStats.current.scouts : "—"}
+        value={monthlyStats.current.scouts}
         label="マッチ候補者（今月）"
         trend={
-          isPaid
+          monthlyStats.delta.scouts !== 0
             ? <span style={{ color: "var(--success)" }}>↑ 先月比 +{monthlyStats.delta.scouts}件</span>
-            : <span style={{ color: "var(--ink-mute)" }}>有料プランで解放</span>
+            : <span style={{ color: "var(--ink-mute)" }}>先月と同数</span>
         }
       />
 
-      {/* Card 4: 面談完了（常時表示） */}
+      {/* Card 4: 面談完了 */}
       <StatCard
         iconVariant="success"
         icon={

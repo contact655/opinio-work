@@ -47,7 +47,6 @@ export function DashboardMockView() {
       tenantName={ctx.tenantName}
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
-      planType={ctx.planType}
     >
       {/* ── Dev mock banner ── */}
       <div style={{
@@ -113,17 +112,15 @@ export function DashboardMockView() {
         tenantName={ctx.tenantName}
         logoGradient={ctx.logoGradient}
         logoLetter={ctx.logoLetter}
-        planType={ctx.planType}
       />
 
-      {/* ── Upgrade banner (free plan only) ── */}
-      <UpgradeBanner planType={ctx.planType} />
+      {/* ── Upgrade banner ── */}
+      <UpgradeBanner />
 
       {/* ── Stat cards (4枚) ── */}
       <DashboardStatCards
         todoCounts={mockTodoCounts}
         monthlyStats={mockMonthlyStats}
-        planType={ctx.planType}
         activeJobCount={mockJobStatusCounts.active}
       />
 
@@ -143,7 +140,7 @@ export function DashboardMockView() {
 
       {/* ── Match candidates ── */}
       <div style={{ marginTop: 16 }}>
-        <MatchCandidates candidates={mockMatchCandidates} planType={ctx.planType} />
+        <MatchCandidates candidates={mockMatchCandidates} />
       </div>
 
       {/* ── 2-col: JobStatusCards + TeamMembers ── */}
@@ -154,7 +151,7 @@ export function DashboardMockView() {
         marginTop: 16,
       }}>
         <JobStatusCards counts={mockJobStatusCounts} />
-        <TeamMembers members={mockTeamMembers} planType={ctx.planType} />
+        <TeamMembers members={mockTeamMembers} />
       </div>
 
       {/* ── Recruiter profile widget ── */}

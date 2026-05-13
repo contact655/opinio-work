@@ -21,7 +21,6 @@ export default async function JobNewPage() {
         tenantName={ctx.tenantName}
         tenantLogoGradient={ctx.logoGradient}
         tenantLogoLetter={ctx.logoLetter}
-        planType={ctx.planType}
         variant="fullBleed"
       >
         <JobEditForm mode="new" />
@@ -53,7 +52,6 @@ export default async function JobNewPage() {
       tenantName={ctx.tenantName}
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
-      planType={ctx.planType}
       variant="fullBleed"
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}

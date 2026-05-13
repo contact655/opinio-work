@@ -11,7 +11,6 @@ export function JobsMockView() {
       tenantName={ctx.tenantName}
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
-      planType={ctx.planType}
     >
       {/* Dev mock banner */}
       <div style={{

@@ -11,7 +11,6 @@ export function MeetingsMockView() {
       tenantName={ctx.tenantName}
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
-      planType={ctx.planType}
       variant="fullBleed"
     >
       {/* Dev mock banner */}

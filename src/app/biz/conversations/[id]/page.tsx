@@ -193,7 +193,6 @@ export default async function BizConversationDetailPage({
       tenantName={ctx.tenantName}
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
-      planType={ctx.planType}
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >

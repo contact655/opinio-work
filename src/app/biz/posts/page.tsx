@@ -41,7 +41,6 @@ export default async function BizPostsPage() {
       tenantName={ctx.tenantName}
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
-      planType={ctx.planType}
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >

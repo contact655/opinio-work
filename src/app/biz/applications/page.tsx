@@ -36,7 +36,6 @@ export default async function BizApplicationsPage() {
       tenantName={ctx.tenantName}
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
-      planType={ctx.planType}
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >

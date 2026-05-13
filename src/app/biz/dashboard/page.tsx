@@ -116,7 +116,6 @@ export default async function BizDashboardPage() {
       tenantName={ctx.tenantName}
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
-      planType={ctx.planType}
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
@@ -147,17 +146,15 @@ export default async function BizDashboardPage() {
         tenantName={ctx.tenantName}
         logoGradient={ctx.logoGradient}
         logoLetter={ctx.logoLetter}
-        planType={ctx.planType}
       />
 
-      {/* ── Upgrade banner (free plan only) ── */}
-      <UpgradeBanner planType={ctx.planType} />
+      {/* ── Upgrade banner ── */}
+      <UpgradeBanner />
 
       {/* ── Stat cards (4枚) ── */}
       <DashboardStatCards
         todoCounts={todoCounts}
         monthlyStats={monthlyStats}
-        planType={ctx.planType}
         activeJobCount={jobStatusCounts.active}
       />
 
@@ -177,7 +174,7 @@ export default async function BizDashboardPage() {
 
       {/* ── Match candidates (Supabase なし → 空ロック状態) ── */}
       <div style={{ marginTop: 16 }}>
-        <MatchCandidates candidates={[]} planType={ctx.planType} />
+        <MatchCandidates candidates={[]} />
       </div>
 
       {/* ── 2-col: JobStatusCards + TeamMembers ── */}
@@ -188,7 +185,7 @@ export default async function BizDashboardPage() {
         marginTop: 16,
       }}>
         <JobStatusCards counts={jobStatusCounts} />
-        <TeamMembers members={teamMembers} planType={ctx.planType} />
+        <TeamMembers members={teamMembers} />
       </div>
 
       {/* ── Recruiter profile widget ── */}
