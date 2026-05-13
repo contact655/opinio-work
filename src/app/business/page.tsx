@@ -115,6 +115,40 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
+// ── Mock Candidates (右側プレビュー用) ──────────────────────────────────────
+const MOCK_CANDIDATES = [
+  {
+    init: "山",
+    color: "linear-gradient(135deg, #002366, #3B5FD9)",
+    name: "山田 健太郎",
+    role: "フィールドセールス",
+    tenure: "5年",
+    company: "SmartHR 出身",
+    tags: ["SaaS営業", "エンタープライズ"],
+    mentorNote: "SaaS商談の引き出しが多く、即戦力と判断しました。",
+  },
+  {
+    init: "中",
+    color: "linear-gradient(135deg, #059669, #047857)",
+    name: "中村 さやか",
+    role: "カスタマーサクセス",
+    tenure: "3年",
+    company: "Salesforce Japan 出身",
+    tags: ["CS", "オンボーディング"],
+    mentorNote: "CS立ち上げ経験あり。スタートアップでも活躍できます。",
+  },
+  {
+    init: "佐",
+    color: "linear-gradient(135deg, #7C3AED, #6D28D9)",
+    name: "佐々木 拓也",
+    role: "プロダクトマネージャー",
+    tenure: "4年",
+    company: "Money Forward 出身",
+    tags: ["BtoB SaaS", "PM"],
+    mentorNote: "プロダクト組織構築の経験豊富。高い貢献が期待できます。",
+  },
+];
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ForCompaniesPage() {
   const sectionStyle = (bg = "#fff"): React.CSSProperties => ({
@@ -133,70 +167,212 @@ export default function ForCompaniesPage() {
       <main style={{ paddingTop: 60 }}>
 
         {/* ─── Section 1: Hero ──────────────────────────────────────────────── */}
-        <section style={{ ...sectionStyle("#fff"), paddingTop: 100, paddingBottom: 100 }}>
-          <div style={{ ...innerStyle, maxWidth: 720, textAlign: "center" }}>
+        <section style={{
+          background: `
+            radial-gradient(ellipse 60% 50% at 85% 30%, rgba(30,64,175,0.07) 0%, transparent 60%),
+            radial-gradient(ellipse 50% 40% at 15% 80%, rgba(0,35,102,0.05) 0%, transparent 60%),
+            linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)
+          `,
+        }} className="px-6 pt-20 pb-24 md:px-12 md:pt-24 md:pb-28">
+          <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
+            className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16 items-center">
 
-            {/* Badge */}
-            <div style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "5px 14px",
-              background: "var(--royal-50)",
-              border: "1px solid var(--royal-100)",
-              borderRadius: 100,
-              fontSize: 12,
-              fontWeight: 600,
-              color: "var(--royal)",
-              marginBottom: 28,
-              letterSpacing: "0.04em",
-            }}>
-              IT/SaaS業界 採用担当者の方へ
-            </div>
-
-            {/* Main Copy */}
-            <h1 style={{
-              fontFamily: "var(--font-noto-serif)",
-              fontSize: "clamp(36px, 6vw, 60px)",
-              fontWeight: 500,
-              lineHeight: 1.2,
-              color: "var(--ink)",
-              letterSpacing: "-0.02em",
-              marginBottom: 20,
-            }}>
-              採用コスト、
-              <br />
-              ゼロから。
-            </h1>
-
-            <p style={{
-              fontSize: 18,
-              color: "var(--ink-soft)",
-              lineHeight: 1.8,
-              marginBottom: 36,
-            }}>
-              月額費用なし、広告費なし、
-              <br />
-              入社決定時のみ成果報酬。
-            </p>
-
-            {/* Check list */}
-            <div style={{
-              display: "inline-flex",
-              flexDirection: "column",
-              gap: 10,
-              textAlign: "left",
-              marginBottom: 44,
-            }}>
-              <CheckItem>完全無料で求人掲載</CheckItem>
-              <CheckItem>営業電話なし</CheckItem>
-              <CheckItem>入社まで一切請求なし</CheckItem>
-            </div>
-
-            {/* CTA */}
+            {/* ── Left: Copy ── */}
             <div>
-              <CtaButton center />
+              {/* Badge */}
+              <div style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "5px 14px",
+                background: "var(--royal-50)",
+                border: "1px solid var(--royal-100)",
+                borderRadius: 100,
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--royal)",
+                marginBottom: 28,
+                letterSpacing: "0.04em",
+              }}>
+                IT/SaaS業界 採用担当者の方へ
+              </div>
+
+              {/* Main Copy */}
+              <h1 style={{
+                fontFamily: "var(--font-noto-serif)",
+                fontSize: "clamp(36px, 5vw, 56px)",
+                fontWeight: 500,
+                lineHeight: 1.2,
+                color: "var(--ink)",
+                letterSpacing: "-0.02em",
+                marginBottom: 20,
+              }}>
+                採用コスト、
+                <br />
+                ゼロから。
+              </h1>
+
+              <p style={{
+                fontSize: 17,
+                color: "var(--ink-soft)",
+                lineHeight: 1.8,
+                marginBottom: 28,
+              }}>
+                月額費用なし、広告費なし、
+                <br />
+                入社決定時のみ成果報酬。
+              </p>
+
+              {/* Check list */}
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                marginBottom: 40,
+              }}>
+                <CheckItem>完全無料で求人掲載</CheckItem>
+                <CheckItem>営業電話なし</CheckItem>
+                <CheckItem>入社まで一切請求なし</CheckItem>
+              </div>
+
+              {/* CTA */}
+              <CtaButton />
             </div>
+
+            {/* ── Right: Candidate preview mockup ── */}
+            <div className="hidden md:flex justify-center" style={{ position: "relative" }}>
+
+              {/* Floating badge — "全員メンター面談済み" */}
+              <div style={{
+                position: "absolute",
+                bottom: -14,
+                right: -8,
+                zIndex: 10,
+                background: "#fff",
+                borderRadius: 12,
+                boxShadow: "0 8px 24px rgba(0,35,102,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
+                padding: "10px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}>
+                <span style={{ fontSize: 16 }}>🤝</span>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>全員メンター面談済み</div>
+                  <div style={{ fontSize: 10, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>本気度確認 · ミスマッチ防止</div>
+                </div>
+              </div>
+
+              {/* Main mockup card */}
+              <div style={{
+                background: "#fff",
+                borderRadius: 20,
+                boxShadow: "0 30px 60px rgba(0,35,102,0.12), 0 8px 24px rgba(15,23,42,0.06)",
+                padding: 24,
+                width: "100%",
+                maxWidth: 400,
+              }}>
+                {/* Mockup header */}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 16,
+                  paddingBottom: 12,
+                  borderBottom: "1px solid var(--line-soft)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                    <span style={{
+                      fontFamily: "Inter, sans-serif", fontWeight: 700,
+                      fontSize: 15, color: "var(--royal)",
+                    }}>Opinio</span>
+                    <span style={{
+                      fontFamily: "Inter, sans-serif", fontWeight: 700,
+                      fontSize: 9, color: "var(--ink-mute)",
+                      letterSpacing: "0.1em", textTransform: "uppercase" as const,
+                    }}>Business</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{
+                      width: 6, height: 6, borderRadius: "50%",
+                      background: "var(--success)", flexShrink: 0,
+                      display: "inline-block",
+                    }} />
+                    <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-soft)" }}>新着候補者</span>
+                  </div>
+                </div>
+
+                {/* Candidate cards */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {MOCK_CANDIDATES.map((c, i) => (
+                    <div key={i} style={{
+                      background: "var(--bg-tint)",
+                      borderRadius: 12,
+                      padding: "12px 14px",
+                      border: "1px solid var(--line)",
+                    }}>
+                      {/* Top row: avatar + name + badge */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                        <div style={{
+                          width: 34, height: 34, borderRadius: 8,
+                          background: c.color, color: "#fff",
+                          fontSize: 13, fontWeight: 700,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          flexShrink: 0,
+                        }}>
+                          {c.init}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{c.name}</div>
+                          <div style={{ fontSize: 10, color: "var(--ink-soft)" }}>
+                            {c.role} · {c.tenure} · {c.company}
+                          </div>
+                        </div>
+                        {/* ★ メンター面談済みバッジ */}
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 2,
+                          padding: "3px 7px",
+                          background: "var(--success-soft)", color: "var(--success)",
+                          borderRadius: 100, fontSize: 9, fontWeight: 700,
+                          flexShrink: 0, whiteSpace: "nowrap",
+                        }}>
+                          ★ 面談済
+                        </div>
+                      </div>
+
+                      {/* Skill tags */}
+                      <div style={{ display: "flex", gap: 4, marginBottom: 7 }}>
+                        {c.tags.map((t) => (
+                          <span key={t} style={{
+                            fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 3,
+                            background: "var(--royal-50)", color: "var(--royal)",
+                          }}>{t}</span>
+                        ))}
+                      </div>
+
+                      {/* Mentor comment */}
+                      <div style={{
+                        fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6,
+                        fontStyle: "italic",
+                        borderLeft: "2px solid var(--royal-100)",
+                        paddingLeft: 8,
+                      }}>
+                        「{c.mentorNote}」
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer */}
+                <div style={{
+                  marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--line)",
+                  fontSize: 10, color: "var(--ink-mute)", textAlign: "center",
+                }}>
+                  ※ 架空の候補者イメージです
+                </div>
+              </div>
+            </div>
+
           </div>
         </section>
 
