@@ -54,7 +54,7 @@ function CtaButton() {
   return (
     <div>
       <Link
-        href="/biz/companies/add/new/"
+        href="/biz/auth"
         style={{
           display: "inline-flex",
           alignItems: "center",

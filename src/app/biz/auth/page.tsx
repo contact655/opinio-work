@@ -467,7 +467,9 @@ function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
         return;
       }
 
-      router.push(next);
+      // 新規登録時は会社が inline で作成済みのため、next（/biz/companies/add/new など）を
+      // 無視してダッシュボードへ直行する。二重会社作成バグを防ぐ。
+      router.push("/biz/dashboard");
     } catch {
       setError("エラーが発生しました。時間をおいて再度お試しください。");
     } finally {
