@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import React from "react";
 import Link from "next/link";
 import { BusinessHeader } from "@/components/business/BusinessHeader";
+import { BusinessHero } from "@/components/business/BusinessHero";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 
 export const metadata: Metadata = {
@@ -15,37 +16,6 @@ export const metadata: Metadata = {
   },
 };
 
-// ── CTA Button ────────────────────────────────────────────────────────────────
-function CtaButton({ center = false }: { center?: boolean }) {
-  return (
-    <div style={center ? { textAlign: "center" } : {}}>
-      <Link
-        href="/biz/companies/add/new/"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "16px 36px",
-          background: "var(--royal)",
-          color: "#fff",
-          borderRadius: 10,
-          fontSize: 15,
-          fontWeight: 700,
-          textDecoration: "none",
-          letterSpacing: "0.01em",
-        }}
-      >
-        企業を新規登録（無料）
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M5 12h14M13 5l7 7-7 7" />
-        </svg>
-      </Link>
-      <p style={{ marginTop: 10, fontSize: 12, color: "var(--ink-mute)", textAlign: "center" }}>
-        クレジットカード登録不要 · 自動課金なし
-      </p>
-    </div>
-  );
-}
 
 // ── SectionLabel ──────────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -116,40 +86,6 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-// ── Mock Candidates (右側プレビュー用) ──────────────────────────────────────
-const MOCK_CANDIDATES = [
-  {
-    init: "山",
-    color: "linear-gradient(135deg, #002366, #3B5FD9)",
-    name: "山田 健太郎",
-    role: "フィールドセールス",
-    tenure: "5年",
-    company: "SmartHR 出身",
-    tags: ["SaaS営業", "エンタープライズ"],
-    mentorNote: "SaaS商談の引き出しが多く、即戦力と判断しました。",
-  },
-  {
-    init: "中",
-    color: "linear-gradient(135deg, #059669, #047857)",
-    name: "中村 さやか",
-    role: "カスタマーサクセス",
-    tenure: "3年",
-    company: "Salesforce Japan 出身",
-    tags: ["CS", "オンボーディング"],
-    mentorNote: "CS立ち上げ経験あり。スタートアップでも活躍できます。",
-  },
-  {
-    init: "佐",
-    color: "linear-gradient(135deg, #7C3AED, #6D28D9)",
-    name: "佐々木 拓也",
-    role: "プロダクトマネージャー",
-    tenure: "4年",
-    company: "Money Forward 出身",
-    tags: ["BtoB SaaS", "PM"],
-    mentorNote: "プロダクト組織構築の経験豊富。高い貢献が期待できます。",
-  },
-];
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ForCompaniesPage() {
   const sectionStyle = (bg = "#fff"): React.CSSProperties => ({
@@ -167,220 +103,8 @@ export default function ForCompaniesPage() {
       <BusinessHeader />
       <main style={{ paddingTop: 60 }}>
 
-        {/* ─── Section 1: Hero ──────────────────────────────────────────────── */}
-        <section style={{
-          background: `
-            radial-gradient(ellipse 60% 50% at 85% 30%, rgba(30,64,175,0.07) 0%, transparent 60%),
-            radial-gradient(ellipse 50% 40% at 15% 80%, rgba(0,35,102,0.05) 0%, transparent 60%),
-            linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)
-          `,
-        }} className="px-6 pt-20 pb-24 md:px-12 md:pt-24 md:pb-28">
-          <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
-            className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16 items-center">
-
-            {/* ── Left: Copy ── */}
-            <div>
-              {/* Badge */}
-              <div style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "5px 14px",
-                background: "var(--royal-50)",
-                border: "1px solid var(--royal-100)",
-                borderRadius: 100,
-                fontSize: 12,
-                fontWeight: 600,
-                color: "var(--royal)",
-                marginBottom: 28,
-                letterSpacing: "0.04em",
-              }}>
-                IT/SaaS業界 採用担当者の方へ
-              </div>
-
-              {/* Main Copy */}
-              <h1 style={{
-                fontFamily: "var(--font-noto-serif)",
-                fontSize: "clamp(36px, 5vw, 56px)",
-                fontWeight: 500,
-                lineHeight: 1.2,
-                color: "var(--ink)",
-                letterSpacing: "-0.02em",
-                marginBottom: 20,
-              }}>
-                採用コスト、
-                <br />
-                ゼロから。
-              </h1>
-
-              <p style={{
-                fontSize: 17,
-                color: "var(--ink-soft)",
-                lineHeight: 1.8,
-                marginBottom: 28,
-              }}>
-                IT/SaaS業界の即戦力に、
-                <br />
-                経験で絞り込んで、出会う。
-              </p>
-
-              {/* Check list */}
-              <div style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                marginBottom: 40,
-              }}>
-                <CheckItem>完全無料で求人掲載</CheckItem>
-                <CheckItem>営業電話なし</CheckItem>
-                <CheckItem>入社まで一切請求なし</CheckItem>
-              </div>
-
-              {/* CTA */}
-              <CtaButton />
-            </div>
-
-            {/* ── Right: Candidate search mockup (mirrors jobseeker LP hero) ── */}
-            <div className="hidden md:flex justify-center" style={{ position: "relative" }}>
-
-              {/* Floating mentor bubble — mirrors 佐藤さん on jobseeker LP */}
-              <div style={{
-                position: "absolute",
-                bottom: -16,
-                right: -8,
-                zIndex: 10,
-                background: "#fff",
-                borderRadius: 14,
-                boxShadow: "0 8px 24px rgba(0,35,102,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
-                padding: "12px 16px",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                maxWidth: 240,
-              }}>
-                {/* Mentor avatar */}
-                <div style={{
-                  width: 32, height: 32, borderRadius: "50%",
-                  background: "linear-gradient(135deg, #059669, #047857)",
-                  color: "#fff", fontSize: 12, fontWeight: 700,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
-                }}>田</div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>田中さん（元Sansan）</div>
-                  <div style={{ fontSize: 11, color: "var(--ink-soft)" }}>この方をご紹介できます</div>
-                </div>
-              </div>
-
-              {/* Main search mockup card */}
-              <div style={{
-                background: "#fff",
-                borderRadius: 20,
-                boxShadow: "0 30px 60px rgba(0,35,102,0.12), 0 8px 24px rgba(15,23,42,0.06)",
-                padding: 24,
-                width: "100%",
-                maxWidth: 400,
-              }}>
-                {/* Header */}
-                <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  marginBottom: 16,
-                }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-                    <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--royal)" }}>Opinio</span>
-                    <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 9, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>Business</span>
-                  </div>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--ink-soft)" }}>
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", flexShrink: 0, display: "inline-block" }} />
-                    新着候補者
-                  </span>
-                </div>
-
-                {/* Search label */}
-                <div style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 8 }}>
-                  経験で絞り込む
-                </div>
-
-                {/* Search bar */}
-                <div style={{
-                  border: "1.5px solid var(--royal)", borderRadius: 8, padding: "10px 14px",
-                  display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
-                }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.35-4.35" />
-                  </svg>
-                  <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>エンタープライズセールス経験者</span>
-                </div>
-
-                {/* Result count */}
-                <div style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  fontSize: 12, marginBottom: 12, color: "var(--ink-soft)",
-                }}>
-                  <span><strong style={{ color: "var(--ink)", fontSize: 14 }}>47</strong> 件が該当</span>
-                  <span style={{ color: "var(--success)", fontSize: 11 }}>今日更新</span>
-                </div>
-
-                {/* Candidate list — compact rows like jobseeker LP job cards */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {MOCK_CANDIDATES.map((c, i) => (
-                    <div key={i} style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "10px 12px", borderRadius: 8, background: "var(--line-soft)",
-                    }}>
-                      {/* Avatar */}
-                      <div style={{
-                        width: 32, height: 32, borderRadius: 8, background: c.color,
-                        color: "#fff", fontSize: 13, fontWeight: 700,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        flexShrink: 0,
-                      }}>
-                        {c.init}
-                      </div>
-                      {/* Info */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{c.company}</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{c.name} · {c.role}</div>
-                        <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
-                          {c.tags.map((t) => (
-                            <span key={t} style={{
-                              fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 3,
-                              background: "var(--royal-50)", color: "var(--royal)",
-                            }}>{t}</span>
-                          ))}
-                        </div>
-                      </div>
-                      {/* 面談済バッジ — mirrors salary column */}
-                      <div style={{
-                        display: "flex", alignItems: "center", gap: 2,
-                        padding: "3px 7px",
-                        background: "var(--success-soft)", color: "var(--success)",
-                        borderRadius: 100, fontSize: 9, fontWeight: 700,
-                        flexShrink: 0, whiteSpace: "nowrap",
-                      }}>
-                        ★ 面談済
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Footer — mirrors "すべての求人に Opinio編集部の見解付き" */}
-                <div style={{
-                  marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)",
-                  fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 6,
-                }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                  すべての候補者に「Opinio編集部の推薦コメント」付き
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </section>
-
+        {/* ─── Section 1: Hero (BusinessHero client component) ─────────────── */}
+        <BusinessHero />
         {/* ─── Logo strip — ヒーロー直後、Point1 前 ────────────────────────────── */}
         {/*
           TODO: 許諾済みの企業ロゴを Hisato さんに確認の上、追加する。
