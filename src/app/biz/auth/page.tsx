@@ -58,7 +58,7 @@ function BizAuthInner() {
     <div style={{
       minHeight: "100vh",
       display: "grid",
-      gridTemplateColumns: "1.1fr 1fr",
+      gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1fr)",
       fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
     }}>
       <style>{`
@@ -107,6 +107,7 @@ function BrandPanel() {
         flexDirection: "column",
         position: "relative",
         overflow: "hidden",
+        minWidth: 0,  // ensure left column also respects fr boundary
       }}
     >
       {/* 背景グロー */}
@@ -318,7 +319,9 @@ function FormSide({ mode, setMode, next, router }: FormSideProps) {
         flexDirection: "column",
         justifyContent: "center",
         background: "#fff",
+        overflowX: "hidden",  // clip horizontal; prevents select min-content from expanding column
         overflowY: "auto",
+        minWidth: 0,           // belt + suspenders: 0 min prevents fr unit blowout
       }}
     >
       <div style={{ maxWidth: 440, margin: "0 auto", width: "100%" }}>
@@ -1116,6 +1119,7 @@ const selectStyle: React.CSSProperties = {
   appearance: "none",
   cursor: "pointer",
   paddingRight: 32,
+  minWidth: 0,  // override browser default min-size based on option text
   backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
   backgroundRepeat: "no-repeat",
   backgroundPosition: "right 10px center",
