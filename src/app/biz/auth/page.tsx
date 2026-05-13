@@ -65,6 +65,8 @@ function BizAuthInner() {
         @media (max-width: 1000px) {
           .biz-auth-layout { grid-template-columns: 1fr !important; }
           .biz-brand-side {
+            position: static !important;  /* undo sticky on mobile (single-column layout) */
+            height: auto !important;
             min-height: 360px !important;
             padding: 28px 24px !important;
           }
@@ -105,9 +107,12 @@ function BrandPanel() {
         padding: "44px 56px",
         display: "flex",
         flexDirection: "column",
-        position: "relative",
+        position: "sticky",  // decouple from right-pane height: always 100vh
+        top: 0,
+        height: "100vh",
+        alignSelf: "start",  // grid: don't stretch to row height
         overflow: "hidden",
-        minWidth: 0,  // ensure left column also respects fr boundary
+        minWidth: 0,
       }}
     >
       {/* 背景グロー */}
