@@ -84,27 +84,6 @@ function CrossItem({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── PointLabel ────────────────────────────────────────────────────────────────
-function PointLabel({ n, dark = false }: { n: number; dark?: boolean }) {
-  return (
-    <div style={{
-      display: "inline-flex",
-      alignItems: "center",
-      padding: "4px 14px",
-      background: dark ? "rgba(255,255,255,0.15)" : "var(--royal)",
-      color: dark ? "#fff" : "#fff",
-      borderRadius: 100,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: "0.08em",
-      marginBottom: 12,
-      fontFamily: "'Inter', sans-serif",
-    }}>
-      Point {n}
-    </div>
-  );
-}
-
 // ── FaqItem ───────────────────────────────────────────────────────────────────
 function FaqItem({ q, a }: { q: string; a: string }) {
   return (
@@ -444,134 +423,248 @@ export default function ForCompaniesPage() {
           </div>
         </section>
 
-        {/* ─── Section 2: Point 1 — 完全無料で求人掲載 ────────────────────────── */}
-        <section id="pricing" style={sectionStyle("var(--bg-tint)")}>
-          <div style={innerStyle}>
-            <div style={{ textAlign: "center", marginBottom: 48 }}>
-              <PointLabel n={1} />
-              <h2 style={{
-                fontFamily: "var(--font-noto-serif)",
-                fontSize: "clamp(22px, 3.5vw, 32px)",
-                fontWeight: 500,
-                color: "var(--ink)",
-                lineHeight: 1.4,
-                marginBottom: 14,
-              }}>
-                完全無料で求人掲載
-              </h2>
-              <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.8, maxWidth: 560, margin: "0 auto" }}>
-                月額費用なし、広告費なし。<br />
-                お金が発生するのは<strong style={{ color: "var(--ink)" }}>「入社決定」の一点のみ</strong>。
-              </p>
+        {/* ─── Section 2–4: Point 1 / 2 / 3 — InfraBlock 左右レイアウト ────────── */}
+        <section id="pricing" style={{ background: "#fff" }}>
+          <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "0 48px" }}>
+
+            {/* ── Point 1: 完全無料で求人掲載 ── */}
+            <div className="grid grid-cols-1 gap-12 items-center md:grid-cols-2 md:gap-16"
+              style={{ paddingTop: 80, paddingBottom: 80, borderTop: "1px solid var(--line)" }}>
+              {/* Left: copy */}
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", textTransform: "uppercase" as const, fontFamily: "'Inter', sans-serif" }}>
+                  01 / FREE
+                </span>
+                <h3 style={{
+                  fontFamily: "var(--font-noto-serif)",
+                  fontSize: "clamp(20px, 3vw, 28px)",
+                  fontWeight: 500,
+                  color: "var(--ink)",
+                  marginTop: 12,
+                  marginBottom: 14,
+                  lineHeight: 1.4,
+                }}>
+                  完全無料で求人掲載
+                </h3>
+                <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
+                  月額費用なし、広告費なし。<br />
+                  お金が発生するのは<strong style={{ color: "var(--ink)" }}>「入社決定」の一点のみ</strong>。
+                  掲載件数・掲載期間に制限はありません。
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <CheckItem>求人掲載・スカウト・面談まで完全無料</CheckItem>
+                  <CheckItem>掲載件数・期間 無制限</CheckItem>
+                  <CheckItem>採用決定まで一切請求なし</CheckItem>
+                  <CheckItem>クレジットカード登録不要</CheckItem>
+                </div>
+              </div>
+              {/* Right: job creation UI mockup */}
+              <div style={{ direction: "ltr" }}>
+                <div style={{
+                  background: "var(--bg-tint)",
+                  border: "1px solid var(--line)",
+                  borderRadius: 16,
+                  padding: "24px",
+                  boxShadow: "0 4px 24px rgba(0,35,102,0.06)",
+                }}>
+                  {/* Window chrome */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#fbbf24" }} />
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#34d399" }} />
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#60a5fa" }} />
+                    <span style={{ marginLeft: 8, fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>求人管理 — Opinio Work</span>
+                  </div>
+                  {/* Mock job form */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ background: "#fff", borderRadius: 8, padding: "10px 14px", border: "1px solid var(--line)" }}>
+                      <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, fontFamily: "'Inter', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>職種</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>カスタマーサクセス（エンタープライズ）</div>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div style={{ background: "#fff", borderRadius: 8, padding: "10px 14px", border: "1px solid var(--line)" }}>
+                        <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, fontFamily: "'Inter', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>雇用形態</div>
+                        <div style={{ fontSize: 13, color: "var(--ink)" }}>正社員</div>
+                      </div>
+                      <div style={{ background: "#fff", borderRadius: 8, padding: "10px 14px", border: "1px solid var(--line)" }}>
+                        <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, fontFamily: "'Inter', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>勤務地</div>
+                        <div style={{ fontSize: 13, color: "var(--ink)" }}>東京（リモート可）</div>
+                      </div>
+                    </div>
+                    <div style={{ background: "#fff", borderRadius: 8, padding: "10px 14px", border: "1px solid var(--line)" }}>
+                      <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, fontFamily: "'Inter', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>想定年収</div>
+                      <div style={{ fontSize: 13, color: "var(--ink)" }}>600万円 〜 900万円</div>
+                    </div>
+                    {/* Publish button */}
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+                      <div style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, color: "var(--ink-mute)", background: "#fff" }}>下書き保存</div>
+                      <div style={{ padding: "8px 20px", borderRadius: 8, background: "var(--royal)", fontSize: 13, fontWeight: 600, color: "#fff" }}>公開する</div>
+                    </div>
+                    {/* Free badge */}
+                    <div style={{ textAlign: "center", padding: "8px", background: "var(--royal-50)", borderRadius: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)" }}>✓ 掲載無料 · 件数・期間制限なし</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Table — horizontal scroll on mobile */}
-            <div style={{ overflowX: "auto", borderRadius: 12, border: "1px solid var(--line)" }}>
-              <table style={{
-                width: "100%",
-                minWidth: 600,
-                borderCollapse: "collapse",
-                background: "#fff",
-                fontSize: 14,
-              }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--line)" }}>
-                    {["サービス", "月額費用", "求人掲載", "成果報酬", "コスト発生タイミング"].map((h, i) => (
-                      <th key={i} style={{
-                        padding: "14px 18px",
-                        textAlign: "left",
-                        fontWeight: 700,
-                        fontSize: 12,
-                        color: "var(--ink-mute)",
-                        letterSpacing: "0.04em",
-                        textTransform: "uppercase",
-                        whiteSpace: "nowrap",
-                        background: "var(--bg-tint)",
-                      }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Opinio row — highlighted */}
-                  <tr style={{ background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)" }}>
-                    <td style={{ padding: "16px 18px", fontWeight: 700, color: "var(--royal)", whiteSpace: "nowrap" }}>
-                      Opinio Work
-                    </td>
-                    <td style={{ padding: "16px 18px", fontWeight: 700, color: "var(--ink)" }}>
-                      <strong>無料</strong>
-                    </td>
-                    <td style={{ padding: "16px 18px", fontWeight: 700, color: "var(--ink)" }}>
-                      <strong>無料</strong>（件数・期間無制限）
-                    </td>
-                    <td style={{ padding: "16px 18px", color: "var(--ink)" }}>
-                      年収 30〜35%
-                    </td>
-                    <td style={{ padding: "16px 18px", fontWeight: 700, color: "var(--royal)" }}>
-                      入社決定時のみ
-                    </td>
-                  </tr>
-
-                  {/* Competitors — anonymous */}
+            {/* ── Point 2: メンターが間に立つ仕組み ── */}
+            <div className="grid grid-cols-1 gap-12 items-center md:grid-cols-2 md:gap-16 md:[direction:rtl]"
+              style={{ paddingTop: 80, paddingBottom: 80, borderTop: "1px solid var(--line)" }}>
+              {/* Left: copy (direction reset) */}
+              <div style={{ direction: "ltr" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", textTransform: "uppercase" as const, fontFamily: "'Inter', sans-serif" }}>
+                  02 / MENTOR
+                </span>
+                <h3 style={{
+                  fontFamily: "var(--font-noto-serif)",
+                  fontSize: "clamp(20px, 3vw, 28px)",
+                  fontWeight: 500,
+                  color: "var(--ink)",
+                  marginTop: 12,
+                  marginBottom: 14,
+                  lineHeight: 1.4,
+                }}>
+                  メンターが間に立つ仕組み
+                </h3>
+                <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
+                  Opinio のメンターは IT 業界で実務経験を積んだプロフェッショナル。
+                  候補者は応募前にメンターと面談し、企業文化・キャリア方向性を
+                  擦り合わせた上で応募します。
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <CheckItem>「軽い気持ちの応募」がない構造</CheckItem>
+                  <CheckItem>本気度の高い候補者だけが届く</CheckItem>
+                  <CheckItem>ミスマッチを事前にフィルタリング</CheckItem>
+                </div>
+              </div>
+              {/* Right: mentor flow diagram */}
+              <div style={{ direction: "ltr" }}>
+                <div style={{
+                  background: "var(--bg-tint)",
+                  border: "1px solid var(--line)",
+                  borderRadius: 16,
+                  padding: "28px 24px",
+                  boxShadow: "0 4px 24px rgba(0,35,102,0.06)",
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: "var(--royal)", textTransform: "uppercase" as const, fontFamily: "'Inter', sans-serif", marginBottom: 20 }}>
+                    応募までの流れ
+                  </div>
                   {[
-                    {
-                      name: "他社例 A（スカウト型）",
-                      monthly: "約20万円〜",
-                      posting: "含まれる",
-                      commission: "なし",
-                      timing: "採用ゼロでも月額発生",
-                    },
-                    {
-                      name: "他社例 B（媒体型）",
-                      monthly: "媒体課金あり",
-                      posting: "別途課金",
-                      commission: "なし",
-                      timing: "掲載期間中は常時発生",
-                    },
-                    {
-                      name: "他社例 C（紹介型）",
-                      monthly: "無料",
-                      posting: "別途課金",
-                      commission: "年収 30〜35%",
-                      timing: "入社決定時 + 掲載費",
-                    },
-                  ].map((row, i) => (
-                    <tr key={i} style={{ borderBottom: i < 2 ? "1px solid var(--line-soft)" : "none" }}>
-                      <td style={{ padding: "16px 18px", color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{row.name}</td>
-                      <td style={{ padding: "16px 18px", color: "var(--ink-soft)" }}>{row.monthly}</td>
-                      <td style={{ padding: "16px 18px", color: "var(--ink-soft)" }}>{row.posting}</td>
-                      <td style={{ padding: "16px 18px", color: "var(--ink-soft)" }}>{row.commission}</td>
-                      <td style={{ padding: "16px 18px", color: "var(--ink-soft)" }}>{row.timing}</td>
-                    </tr>
+                    { icon: "👤", label: "候補者が求人に興味を持つ", sub: "「気になる」だけではまだ応募できない" },
+                    { icon: "🤝", label: "メンターと事前面談（30分）", sub: "IT業界メンターが動機・適性を確認", highlight: true },
+                    { icon: "✅", label: "メンターが「推薦」と判断", sub: "候補者の本気度・適合度を評価" },
+                    { icon: "📨", label: "企業へ応募が届く", sub: "メンターコメント付きで質の高い応募のみ" },
+                  ].map(({ icon, label, sub, highlight }, i, arr) => (
+                    <div key={i}>
+                      <div style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        padding: "12px 14px",
+                        borderRadius: 10,
+                        background: highlight ? "var(--royal-50)" : "#fff",
+                        border: highlight ? "1px solid var(--royal-100)" : "1px solid var(--line-soft)",
+                      }}>
+                        <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: highlight ? "var(--royal)" : "var(--ink)", lineHeight: 1.4 }}>{label}</div>
+                          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 3, lineHeight: 1.5 }}>{sub}</div>
+                        </div>
+                      </div>
+                      {i < arr.length - 1 && (
+                        <div style={{ textAlign: "center", color: "var(--ink-mute)", fontSize: 16, padding: "4px 0" }}>↓</div>
+                      )}
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
             </div>
 
-            <p style={{ marginTop: 14, fontSize: 11, color: "var(--ink-mute)", textAlign: "right" }}>
-              ※ 他社例は業界一般的な料金モデルを参考に記載。実際のサービス名・条件は各社により異なります。
-            </p>
-
-            {/* Emphasis */}
-            <div style={{
-              marginTop: 28,
-              padding: "18px 28px",
-              background: "#fff",
-              border: "1px solid var(--royal-100)",
-              borderRadius: 12,
-              display: "flex",
-              flexWrap: "wrap" as const,
-              gap: "10px 32px",
-              justifyContent: "center",
-            }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>
-                ⭐ 応募・スカウト・面談まで全て無料
-              </span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>
-                ⭐ 採用が決まるまで一切請求なし
-              </span>
+            {/* ── Point 3: IT業界職経ありユーザーが中心 ── */}
+            <div className="grid grid-cols-1 gap-12 items-center md:grid-cols-2 md:gap-16"
+              style={{ paddingTop: 80, paddingBottom: 80, borderTop: "1px solid var(--line)" }}>
+              {/* Left: copy */}
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", textTransform: "uppercase" as const, fontFamily: "'Inter', sans-serif" }}>
+                  03 / TALENT
+                </span>
+                <h3 style={{
+                  fontFamily: "var(--font-noto-serif)",
+                  fontSize: "clamp(20px, 3vw, 28px)",
+                  fontWeight: 500,
+                  color: "var(--ink)",
+                  marginTop: 12,
+                  marginBottom: 14,
+                  lineHeight: 1.4,
+                }}>
+                  IT業界職経ありユーザーが中心
+                </h3>
+                <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
+                  Opinio に登録しているユーザーの大多数が、
+                  IT/SaaS 業界で実務経験を持つ即戦力人材。
+                  業界知識ゼロから教育する必要がありません。
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <CheckItem>SaaS営業・CS・PMなど即戦力層が中心</CheckItem>
+                  <CheckItem>入社後すぐに戦力として活躍できる</CheckItem>
+                  <CheckItem>IT業界外の応募は自然にフィルタされる</CheckItem>
+                </div>
+              </div>
+              {/* Right: user attribute tag cloud */}
+              <div style={{ direction: "ltr" }}>
+                <div style={{
+                  background: "var(--bg-tint)",
+                  border: "1px solid var(--line)",
+                  borderRadius: 16,
+                  padding: "28px 24px",
+                  boxShadow: "0 4px 24px rgba(0,35,102,0.06)",
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: "var(--royal)", textTransform: "uppercase" as const, fontFamily: "'Inter', sans-serif", marginBottom: 16 }}>
+                    登録ユーザーの属性
+                  </div>
+                  {/* Tag cloud */}
+                  <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8, marginBottom: 20 }}>
+                    {[
+                      { label: "SaaS営業", weight: 700 },
+                      { label: "カスタマーサクセス", weight: 700 },
+                      { label: "プロダクトマネージャー", weight: 600 },
+                      { label: "エンジニア", weight: 600 },
+                      { label: "マーケター", weight: 500 },
+                      { label: "インサイドセールス", weight: 500 },
+                      { label: "コンサルタント", weight: 400 },
+                      { label: "データアナリスト", weight: 400 },
+                      { label: "デザイナー", weight: 400 },
+                    ].map(({ label, weight }) => (
+                      <span key={label} style={{
+                        padding: "5px 12px",
+                        borderRadius: 100,
+                        background: weight >= 700 ? "var(--royal)" : weight >= 600 ? "var(--royal-100)" : weight >= 500 ? "var(--royal-50)" : "#fff",
+                        color: weight >= 700 ? "#fff" : weight >= 600 ? "var(--royal)" : "var(--ink-soft)",
+                        border: weight < 600 ? "1px solid var(--line)" : "none",
+                        fontSize: weight >= 700 ? 13 : weight >= 600 ? 12 : 11,
+                        fontWeight: 600,
+                      }}>
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                  {/* Mini stats row */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
+                    {[
+                      { label: "IT業界実務経験", value: "多数在籍" },
+                      { label: "対象業界", value: "IT / SaaS" },
+                    ].map(({ label, value }) => (
+                      <div key={label} style={{ background: "#fff", borderRadius: 8, padding: "10px 12px", border: "1px solid var(--line-soft)" }}>
+                        <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, letterSpacing: "0.04em" }}>{label}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)" }}>{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
+
           </div>
         </section>
 
@@ -615,7 +708,7 @@ export default function ForCompaniesPage() {
                   step: "STEP 4",
                   icon: "✅",
                   title: "入社決定時のみ成果報酬",
-                  body: "採用が決まるまで一切請求なし。年収の30〜35%。",
+                  body: "採用が決まるまで一切請求なし。シンプルな料金体系でわかりやすい。",
                 },
               ].map(({ step, icon, title, body }, i) => (
                 <React.Fragment key={step}>
@@ -676,81 +769,8 @@ export default function ForCompaniesPage() {
           </div>
         </section>
 
-        {/* ─── Section 4: Point 2 + Point 3 ──────────────────────────────────── */}
-        <section id="mentor" style={sectionStyle("var(--ink)")}>
-          <div style={{ ...innerStyle, textAlign: "center", marginBottom: 40 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>
-              Opinio Work の差別化
-            </p>
-          </div>
-
-          {/* Point 2 + Point 3 side by side */}
-          <div style={{
-            ...innerStyle,
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: 20,
-            textAlign: "left",
-          }}>
-            {/* ── Point 2: メンター制度 ── */}
-            <div style={{
-              padding: "32px 28px",
-              background: "rgba(255,255,255,0.06)",
-              borderRadius: 14,
-              border: "1px solid rgba(255,255,255,0.1)",
-            }}>
-              <PointLabel n={2} dark />
-              <div style={{
-                width: 44, height: 44, borderRadius: 12,
-                background: "var(--royal)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 22, marginBottom: 16,
-              }}>
-                🤝
-              </div>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 12, lineHeight: 1.4 }}>
-                メンターが間に立つ仕組み
-              </h3>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.9 }}>
-                Opinio には、IT 業界で経験を積んだメンターが在籍しています。
-                候補者は応募前にメンターと面談し、企業文化や働き方、
-                キャリアの方向性を擦り合わせた上で応募してきます。
-                <br /><br />
-                「軽い気持ちでの応募」がなく、企業側には
-                <strong style={{ color: "#fff" }}>本気度の高い候補者だけが届く</strong>構造です。
-              </p>
-            </div>
-
-            {/* ── Point 3: ユーザー層の質 ── */}
-            <div style={{
-              padding: "32px 28px",
-              background: "rgba(255,255,255,0.06)",
-              borderRadius: 14,
-              border: "1px solid rgba(255,255,255,0.1)",
-            }}>
-              <PointLabel n={3} dark />
-              <div style={{
-                width: 44, height: 44, borderRadius: 12,
-                background: "rgba(59,95,217,0.8)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 22, marginBottom: 16,
-              }}>
-                💼
-              </div>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 12, lineHeight: 1.4 }}>
-                IT 業界職経ありユーザーが中心
-              </h3>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.9 }}>
-                Opinio に登録しているユーザーの大多数が、
-                IT 業界で実務経験を持つ即戦力人材です。
-                <br /><br />
-                業界知識ゼロから教育する必要がなく、
-                <strong style={{ color: "#fff" }}>入社後すぐに戦力として活躍できる人材</strong>と
-                出会えます。
-              </p>
-            </div>
-          </div>
-        </section>
+        {/* ─── id="mentor" anchor (invisible, for nav link) ──────────────────── */}
+        <div id="mentor" style={{ position: "relative", top: -60 }} aria-hidden="true" />
 
         {/* ─── Section 5: Target ────────────────────────────────────────────── */}
         <section style={sectionStyle("#fff")}>
@@ -854,7 +874,7 @@ export default function ForCompaniesPage() {
               />
               <FaqItem
                 q="成果報酬の発生条件は？"
-                a="候補者の入社が確定した時点で、内定後の年収の30〜35%をご請求します。それまでは一切請求が発生しません。"
+                a="候補者の入社が確定した時点でご請求します。それまでは一切請求が発生しません。シンプルな料金体系です。詳細はお問い合わせください。"
               />
               <FaqItem
                 q="自社で採用したい場合は？"
