@@ -31,6 +31,7 @@ type Props = {
 };
 
 type FormData = {
+  // 既存フィールド
   name: string;
   description: string;
   industry: string;
@@ -41,9 +42,35 @@ type FormData = {
   logo_url: string;
   is_published: boolean;
   status: string;
+  // 基本情報タブ追加フィールド
+  mission: string;
+  tagline: string;
+  why_join: string;
+  culture_description: string;
+  founded_year: string; // 入力は文字列、保存時に Number() 変換
+  url: string;
+  ceo_name: string;
+  headquarters_address: string;
+  nearest_station: string;
+  // 採用担当者タブ
+  recruiter_name: string;
+  recruiter_role: string;
+  recruiter_message: string;
+  recruiter_avatar_url: string;
+  casual_interview_url: string;
+  // Opinio独自タブ
+  opinio_comment: string;
 };
 
+type TabKey = 'basic' | 'recruiter' | 'opinio' | 'logo' | 'genres' | 'publish';
+
 type ToastState = { message: string; variant: 'default' | 'error' } | null;
+
+// ── 採用担当者アバター Storage パス ──────────────────────────────────────────
+function buildRecruiterAvatarPath(companyId: string, filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase() ?? 'png';
+  return `companies/recruiter-avatars/${companyId}/${Date.now()}.${ext}`;
+}
 
 // ── コンポーネント ──────────────────────────────────────────────────────────
 
@@ -52,6 +79,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
 
   // ── フォーム state ─────────────────────────────────────────────────────
   const [formData, setFormData] = useState<FormData>({
+    // 既存
     name: company.name ?? '',
     description: company.description ?? '',
     industry: company.industry ?? '',
@@ -62,6 +90,24 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
     logo_url: company.logo_url ?? '',
     is_published: company.is_published ?? false,
     status: company.status ?? 'pending',
+    // 基本情報追加
+    mission: company.mission ?? '',
+    tagline: company.tagline ?? '',
+    why_join: company.why_join ?? '',
+    culture_description: company.culture_description ?? '',
+    founded_year: company.founded_year != null ? String(company.founded_year) : '',
+    url: company.url ?? '',
+    ceo_name: company.ceo_name ?? '',
+    headquarters_address: company.headquarters_address ?? '',
+    nearest_station: company.nearest_station ?? '',
+    // 採用担当者
+    recruiter_name: company.recruiter_name ?? '',
+    recruiter_role: company.recruiter_role ?? '',
+    recruiter_message: company.recruiter_message ?? '',
+    recruiter_avatar_url: company.recruiter_avatar_url ?? '',
+    casual_interview_url: company.casual_interview_url ?? '',
+    // Opinio独自
+    opinio_comment: company.opinio_comment ?? '',
   });
 
   // ── ジャンル state ─────────────────────────────────────────────────────
@@ -71,8 +117,10 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
   const [selectedGenres, setSelectedGenres] = useState<Set<string>>(initialApproved);
 
   // ── UI state ──────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<TabKey>('basic');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
   const showToast = useCallback((message: string, variant: 'default' | 'error' = 'default') => {
@@ -122,6 +170,44 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
     }
   }
 
+  // ── 採用担当者アバターアップロード ────────────────────────────────────
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      showToast('JPG・PNG・WebP のみ対応しています', 'error');
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      showToast('3MB 以内のファイルを選択してください', 'error');
+      return;
+    }
+
+    setIsAvatarUploading(true);
+    try {
+      const supabase = createClient();
+      const path = buildRecruiterAvatarPath(company.id, file.name);
+      const { error: uploadError } = await supabase.storage
+        .from('ow-uploads')
+        .upload(path, file, { cacheControl: '3600', upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('ow-uploads')
+        .getPublicUrl(path);
+
+      update('recruiter_avatar_url', publicUrl);
+      showToast('アバターをアップロードしました');
+    } catch (err) {
+      console.error('[CompanyDetailClient] avatar upload failed:', err);
+      showToast('アップロードに失敗しました', 'error');
+    } finally {
+      setIsAvatarUploading(false);
+    }
+  }
+
   // ── ジャンルトグル ─────────────────────────────────────────────────────
   function toggleGenre(genreId: string) {
     setSelectedGenres((prev) => {
@@ -139,11 +225,17 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
   async function handleSave() {
     setIsSaving(true);
     try {
+      // founded_year は数値に変換
+      const payload = {
+        ...formData,
+        founded_year: formData.founded_year !== '' ? Number(formData.founded_year) : null,
+      };
+
       // 1. 企業情報を PUT
       const companyRes = await fetch(`/api/admin/companies/${company.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       if (!companyRes.ok) {
         const err = await companyRes.json().catch(() => ({}));
@@ -182,6 +274,20 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
     }
   }
 
+  // ── タブ定義 ──────────────────────────────────────────────────────────
+  const TABS: { key: TabKey; label: string }[] = [
+    { key: 'basic', label: '基本情報' },
+    { key: 'recruiter', label: '採用担当者' },
+    { key: 'opinio', label: 'Opinio独自' },
+    { key: 'logo', label: 'ロゴ' },
+    { key: 'genres', label: 'ジャンル' },
+    { key: 'publish', label: '公開設定' },
+  ];
+
+  // ── 入力スタイル ──────────────────────────────────────────────────────
+  const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+  const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
+
   // ── レンダー ──────────────────────────────────────────────────────────
   return (
     <div className="max-w-4xl mx-auto px-6 py-6">
@@ -194,223 +300,533 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
         <span className="text-gray-800">{company.name}</span>
       </nav>
 
-      <h1 className="text-2xl font-bold mb-1">{company.name}</h1>
-      <p className="text-sm text-gray-500 mb-6">
-        ID: {company.id}
-        {company.status && (
-          <span className={`ml-3 px-2 py-0.5 rounded-full text-xs font-medium ${
-            company.status === 'active' ? 'bg-green-100 text-green-800' :
-            company.status === 'pending' ? 'bg-amber-100 text-amber-800' :
-            'bg-red-100 text-red-800'
-          }`}>
-            {company.status}
-          </span>
-        )}
-      </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">{company.name}</h1>
+          <p className="text-xs text-gray-400 font-mono">
+            ID: {company.id}
+            {company.status && (
+              <span className={`ml-3 px-2 py-0.5 rounded-full text-xs font-medium ${
+                company.status === 'active' ? 'bg-green-100 text-green-800' :
+                company.status === 'pending' ? 'bg-amber-100 text-amber-800' :
+                'bg-red-100 text-red-800'
+              }`}>
+                {company.status}
+              </span>
+            )}
+          </p>
+        </div>
+        <Link
+          href={`/companies/${company.id}`}
+          target="_blank"
+          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+        >
+          求職者画面で確認する
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </Link>
+      </div>
 
-      {/* ── 基本情報 ─────────────────────────────────────────────────── */}
-      <section className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h2 className="text-base font-semibold mb-4">基本情報</h2>
+      {/* ── タブバー ─────────────────────────────────────────────────────── */}
+      <div className="flex border-b border-gray-200 mb-6 gap-0">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === tab.key
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              企業名 <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => update('name', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-            />
-          </div>
+      {/* ── 基本情報タブ ─────────────────────────────────────────────────── */}
+      {activeTab === 'basic' && (
+        <div className="space-y-6">
+          <section className="bg-white border border-gray-200 rounded-lg p-6">
+            <h2 className="text-base font-semibold mb-4">会社基本情報</h2>
+            <div className="space-y-4">
+              <div>
+                <label className={labelCls}>
+                  企業名 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => update('name', e.target.value)}
+                  className={inputCls}
+                />
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">企業説明</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => update('description', e.target.value)}
-              rows={4}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-            />
-          </div>
+              <div>
+                <label className={labelCls}>タグライン</label>
+                <input
+                  type="text"
+                  value={formData.tagline}
+                  onChange={(e) => update('tagline', e.target.value)}
+                  placeholder="例: テクノロジーで日本の働き方を変える"
+                  className={inputCls}
+                />
+              </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">業界</label>
-              <input
-                type="text"
-                value={formData.industry}
-                onChange={(e) => update('industry', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">資金調達ステージ</label>
-              <input
-                type="text"
-                value={formData.funding_stage}
-                onChange={(e) => update('funding_stage', e.target.value)}
-                placeholder="例: Series A"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">従業員数</label>
-              <input
-                type="text"
-                value={formData.employee_count}
-                onChange={(e) => update('employee_count', e.target.value)}
-                placeholder="例: 50-100"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
+              <div>
+                <label className={labelCls}>ミッション</label>
+                <textarea
+                  value={formData.mission}
+                  onChange={(e) => update('mission', e.target.value)}
+                  rows={3}
+                  placeholder="企業のミッション・ビジョンを記入してください"
+                  className={inputCls}
+                />
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">リモートワーク状況</label>
-              <select
-                value={formData.remote_work_status}
-                onChange={(e) => update('remote_work_status', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              >
-                <option value="">選択してください</option>
-                <option value="フルリモート">フルリモート</option>
-                <option value="ハイブリッド">ハイブリッド</option>
-                <option value="出社">出社</option>
-                <option value="一部リモート">一部リモート</option>
-              </select>
-            </div>
-            <div className="flex items-end pb-1">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <div>
+                <label className={labelCls}>企業説明</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => update('description', e.target.value)}
+                  rows={4}
+                  className={inputCls}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className={labelCls}>業界</label>
+                  <input
+                    type="text"
+                    value={formData.industry}
+                    onChange={(e) => update('industry', e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>資金調達ステージ</label>
+                  <input
+                    type="text"
+                    value={formData.funding_stage}
+                    onChange={(e) => update('funding_stage', e.target.value)}
+                    placeholder="例: Series A"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>従業員数</label>
+                  <input
+                    type="text"
+                    value={formData.employee_count}
+                    onChange={(e) => update('employee_count', e.target.value)}
+                    placeholder="例: 50-100"
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className={labelCls}>設立年</label>
+                  <input
+                    type="number"
+                    value={formData.founded_year}
+                    onChange={(e) => update('founded_year', e.target.value)}
+                    placeholder="例: 2018"
+                    min={1900}
+                    max={2099}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>代表者名</label>
+                  <input
+                    type="text"
+                    value={formData.ceo_name}
+                    onChange={(e) => update('ceo_name', e.target.value)}
+                    placeholder="例: 山田 太郎"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>企業 URL</label>
+                  <input
+                    type="url"
+                    value={formData.url}
+                    onChange={(e) => update('url', e.target.value)}
+                    placeholder="https://example.com"
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>本社所在地</label>
+                  <input
+                    type="text"
+                    value={formData.headquarters_address}
+                    onChange={(e) => update('headquarters_address', e.target.value)}
+                    placeholder="例: 東京都渋谷区〇〇 1-2-3"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>最寄り駅</label>
+                  <input
+                    type="text"
+                    value={formData.nearest_station}
+                    onChange={(e) => update('nearest_station', e.target.value)}
+                    placeholder="例: 渋谷駅 徒歩5分"
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={labelCls}>リモートワーク状況</label>
+                <select
+                  value={formData.remote_work_status}
+                  onChange={(e) => update('remote_work_status', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">選択してください</option>
+                  <option value="フルリモート">フルリモート</option>
+                  <option value="ハイブリッド">ハイブリッド</option>
+                  <option value="出社">出社</option>
+                  <option value="一部リモート">一部リモート</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
+                  id="accepting_casual"
                   checked={formData.accepting_casual_meetings}
                   onChange={(e) => update('accepting_casual_meetings', e.target.checked)}
                   className="w-4 h-4"
                 />
-                <span className="text-sm">カジュアル面談を受け付ける</span>
-              </label>
+                <label htmlFor="accepting_casual" className="text-sm cursor-pointer">
+                  カジュアル面談を受け付ける
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white border border-gray-200 rounded-lg p-6">
+            <h2 className="text-base font-semibold mb-4">カルチャー・採用メッセージ</h2>
+            <div className="space-y-4">
+              <div>
+                <label className={labelCls}>なぜ入社するか（why_join）</label>
+                <textarea
+                  value={formData.why_join}
+                  onChange={(e) => update('why_join', e.target.value)}
+                  rows={4}
+                  placeholder="この企業に入社する理由・魅力を記入してください"
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls}>カルチャー説明</label>
+                <textarea
+                  value={formData.culture_description}
+                  onChange={(e) => update('culture_description', e.target.value)}
+                  rows={4}
+                  placeholder="チームの雰囲気・文化・バリューなどを記入してください"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* ── 採用担当者タブ ───────────────────────────────────────────────── */}
+      {activeTab === 'recruiter' && (
+        <section className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-base font-semibold mb-4">採用担当者</h2>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>担当者名</label>
+                <input
+                  type="text"
+                  value={formData.recruiter_name}
+                  onChange={(e) => update('recruiter_name', e.target.value)}
+                  placeholder="例: 鈴木 花子"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>役職・部署</label>
+                <input
+                  type="text"
+                  value={formData.recruiter_role}
+                  onChange={(e) => update('recruiter_role', e.target.value)}
+                  placeholder="例: HR・採用担当"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>担当者メッセージ</label>
+              <textarea
+                value={formData.recruiter_message}
+                onChange={(e) => update('recruiter_message', e.target.value)}
+                rows={5}
+                placeholder="求職者へのメッセージを記入してください"
+                className={inputCls}
+              />
+            </div>
+
+            <div>
+              <label className={labelCls}>担当者アバター</label>
+              <div className="flex gap-4 items-start">
+                {/* プレビュー */}
+                <div className="flex-shrink-0">
+                  <div className="w-20 h-20 rounded-full bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
+                    {formData.recruiter_avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={formData.recruiter_avatar_url}
+                        alt="採用担当者アバター"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-gray-400 text-xs text-center px-2">未設定</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-2">
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={handleAvatarUpload}
+                      disabled={isAvatarUploading}
+                      className="block w-full text-sm text-gray-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                    />
+                    {isAvatarUploading && (
+                      <p className="text-xs text-gray-500 mt-1">アップロード中...</p>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      value={formData.recruiter_avatar_url}
+                      onChange={(e) => update('recruiter_avatar_url', e.target.value)}
+                      placeholder="または URL を直接入力"
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>カジュアル面談 URL</label>
+              <input
+                type="url"
+                value={formData.casual_interview_url}
+                onChange={(e) => update('casual_interview_url', e.target.value)}
+                placeholder="https://calendly.com/..."
+                className={inputCls}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Calendly や Meety など、カジュアル面談の予約 URL を入力してください
+              </p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* ── ロゴ ─────────────────────────────────────────────────────── */}
-      <section className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h2 className="text-base font-semibold mb-4">ロゴ</h2>
-
-        <div className="flex gap-6">
-          {/* プレビュー */}
-          <div className="w-40 h-28 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-            {formData.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={formData.logo_url}
-                alt={`${formData.name}のロゴ`}
-                className="w-full h-full object-contain p-3"
-              />
-            ) : (
-              <span className="text-gray-400 text-xs">ロゴ未設定</span>
-            )}
+      {/* ── Opinio独自タブ ────────────────────────────────────────────────── */}
+      {activeTab === 'opinio' && (
+        <section className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-base font-semibold mb-1">Opinio 編集部コメント</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            編集部独自の企業評価・コメントです。求職者には非公開の内部メモとしても活用できます。
+          </p>
+          <div>
+            <label className={labelCls}>コメント</label>
+            <textarea
+              value={formData.opinio_comment}
+              onChange={(e) => update('opinio_comment', e.target.value)}
+              rows={10}
+              placeholder="この企業の特徴、編集部の評価、取材メモなどを記入してください..."
+              className={inputCls}
+            />
           </div>
+        </section>
+      )}
 
-          {/* アップロード + URL 入力 */}
-          <div className="flex-1 space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">ファイルアップロード</label>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                onChange={handleLogoUpload}
-                disabled={isUploading}
-                className="block w-full text-sm text-gray-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-              />
-              {isUploading && (
-                <p className="text-xs text-gray-500 mt-1">アップロード中...</p>
+      {/* ── ロゴタブ ─────────────────────────────────────────────────────── */}
+      {activeTab === 'logo' && (
+        <section className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-base font-semibold mb-4">ロゴ</h2>
+
+          <div className="flex gap-6">
+            {/* プレビュー */}
+            <div className="w-48 h-32 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+              {formData.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={formData.logo_url}
+                  alt={`${formData.name}のロゴ`}
+                  className="w-full h-full object-contain p-3"
+                />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center text-white text-3xl font-bold"
+                  style={{ background: company.logo_gradient || 'linear-gradient(135deg, #002366, #3B5FD9)' }}
+                >
+                  {company.logo_letter || (company.name?.[0] ?? '?')}
+                </div>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">または URL を直接入力</label>
-              <input
-                type="text"
-                value={formData.logo_url}
-                onChange={(e) => update('logo_url', e.target.value)}
-                placeholder="/logos/sansan.png または https://..."
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono"
-              />
+            {/* アップロード + URL 入力 */}
+            <div className="flex-1 space-y-3">
+              <div>
+                <label className={labelCls}>ファイルアップロード</label>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  onChange={handleLogoUpload}
+                  disabled={isUploading}
+                  className="block w-full text-sm text-gray-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                />
+                {isUploading && (
+                  <p className="text-xs text-gray-500 mt-1">アップロード中...</p>
+                )}
+                <p className="text-xs text-gray-400 mt-1">JPG・PNG・SVG・WebP、5MB 以内</p>
+              </div>
+
+              <div>
+                <label className={labelCls}>または URL を直接入力</label>
+                <input
+                  type="text"
+                  value={formData.logo_url}
+                  onChange={(e) => update('logo_url', e.target.value)}
+                  placeholder="/logos/example.png または https://..."
+                  className={`${inputCls} font-mono`}
+                />
+              </div>
+
+              {formData.logo_url && (
+                <button
+                  type="button"
+                  onClick={() => update('logo_url', '')}
+                  className="text-xs text-red-500 hover:text-red-700"
+                >
+                  ロゴを削除（グラデーション表示に戻す）
+                </button>
+              )}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* ── ジャンルタグ ──────────────────────────────────────────────── */}
-      <section className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h2 className="text-base font-semibold mb-1">ジャンルタグ</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          この企業を表すジャンルを選択してください。複数選択可能です。
-        </p>
+      {/* ── ジャンルタブ ─────────────────────────────────────────────────── */}
+      {activeTab === 'genres' && (
+        <section className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-base font-semibold mb-1">ジャンルタグ</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            この企業を表すジャンルを選択してください。複数選択可能です。
+          </p>
 
-        <div className="grid grid-cols-2 gap-3">
-          {allGenres.map((genre) => (
-            <label
-              key={genre.id}
-              className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                selectedGenres.has(genre.id)
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              }`}
-            >
+          <div className="grid grid-cols-2 gap-3">
+            {allGenres.map((genre) => (
+              <label
+                key={genre.id}
+                className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                  selectedGenres.has(genre.id)
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedGenres.has(genre.id)}
+                  onChange={() => toggleGenre(genre.id)}
+                  className="mt-0.5 w-4 h-4"
+                />
+                <div>
+                  <p className="font-medium text-sm">{genre.name}</p>
+                  {genre.description && (
+                    <p className="text-xs text-gray-500 mt-0.5">{genre.description}</p>
+                  )}
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {allGenres.length === 0 && (
+            <p className="text-sm text-gray-400">ジャンルが登録されていません</p>
+          )}
+
+          {selectedGenres.size > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-500">
+                選択中: {selectedGenres.size} ジャンル
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── 公開設定タブ ─────────────────────────────────────────────────── */}
+      {activeTab === 'publish' && (
+        <section className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-base font-semibold mb-4">公開設定</h2>
+
+          <div className="space-y-4">
+            <label className="flex items-center gap-3 cursor-pointer p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
               <input
                 type="checkbox"
-                checked={selectedGenres.has(genre.id)}
-                onChange={() => toggleGenre(genre.id)}
-                className="mt-0.5 w-4 h-4"
+                checked={formData.is_published}
+                onChange={(e) => update('is_published', e.target.checked)}
+                className="w-4 h-4"
               />
               <div>
-                <p className="font-medium text-sm">{genre.name}</p>
-                {genre.description && (
-                  <p className="text-xs text-gray-500 mt-0.5">{genre.description}</p>
-                )}
+                <p className="text-sm font-medium">公開する</p>
+                <p className="text-xs text-gray-500">求職者画面（/companies）に表示されます</p>
               </div>
             </label>
-          ))}
-        </div>
 
-        {allGenres.length === 0 && (
-          <p className="text-sm text-gray-400">ジャンルが登録されていません</p>
-        )}
-      </section>
+            <div>
+              <label className={labelCls}>審査ステータス</label>
+              <select
+                value={formData.status}
+                onChange={(e) => update('status', e.target.value)}
+                className={inputCls}
+              >
+                <option value="pending">pending（審査中）</option>
+                <option value="active">active（承認済み）</option>
+                <option value="rejected">rejected（却下）</option>
+                <option value="suspended">suspended（停止）</option>
+              </select>
+            </div>
 
-      {/* ── 公開設定 ─────────────────────────────────────────────────── */}
-      <section className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h2 className="text-base font-semibold mb-4">公開設定</h2>
+            <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4 space-y-1">
+              <p>
+                <span className="font-medium">公開フラグ:</span>{' '}
+                {formData.is_published ? '✅ 公開中' : '⚫ 非公開'}
+              </p>
+              <p>
+                <span className="font-medium">ステータス:</span> {formData.status}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={formData.is_published}
-            onChange={(e) => update('is_published', e.target.checked)}
-            className="w-4 h-4"
-          />
-          <span className="text-sm">公開する（求職者画面に表示する）</span>
-        </label>
-      </section>
-
-      {/* ── 求職者画面リンク ──────────────────────────────────────────── */}
-      <div className="mb-24 text-right">
-        <Link
-          href={`/companies/${company.id}`}
-          target="_blank"
-          className="text-sm text-blue-600 hover:underline"
-        >
-          求職者画面で確認する →
-        </Link>
-      </div>
-
-      {/* ── 保存ボタン（sticky） ──────────────────────────────────────── */}
+      {/* ── 保存ボタン（sticky） ──────────────────────────────────────────── */}
       <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 px-8 py-4 flex justify-end gap-3 z-10">
         <button
           onClick={() => router.push('/admin/companies')}
@@ -420,7 +836,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
         </button>
         <button
           onClick={handleSave}
-          disabled={isSaving || isUploading}
+          disabled={isSaving || isUploading || isAvatarUploading}
           className="px-6 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? '保存中...' : '保存する'}
@@ -435,6 +851,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres }: Props
           onDone={() => setToast(null)}
         />
       )}
+
+      {/* sticky button の余白 */}
+      <div className="h-20" />
     </div>
   );
 }

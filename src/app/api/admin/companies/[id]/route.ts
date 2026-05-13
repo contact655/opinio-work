@@ -23,6 +23,7 @@ export async function PUT(
 
   // ホワイトリスト：更新を許可するカラムのみ抽出
   const allowedFields = [
+    // 既存フィールド
     'name',
     'description',
     'industry',
@@ -33,6 +34,24 @@ export async function PUT(
     'logo_url',
     'is_published',
     'status',
+    // 基本情報追加フィールド
+    'mission',
+    'tagline',
+    'why_join',
+    'culture_description',
+    'founded_year',
+    'url',
+    'ceo_name',
+    'headquarters_address',
+    'nearest_station',
+    // 採用担当者フィールド
+    'recruiter_name',
+    'recruiter_role',
+    'recruiter_message',
+    'recruiter_avatar_url',
+    'casual_interview_url',
+    // Opinio独自フィールド
+    'opinio_comment',
   ];
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
