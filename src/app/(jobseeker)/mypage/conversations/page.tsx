@@ -154,9 +154,37 @@ export default function ConversationsPage() {
       {conversations.length === 0 ? (
         <div className="bg-white rounded-card border border-card-border p-8 text-center">
           <p className="text-gray-600 text-lg mb-4">まだ対話がありません</p>
-          <Link href="/jobs" className="text-primary hover:underline text-sm">
-            求人を探す →
-          </Link>
+          <p style={{ color: "var(--ink-soft)", fontSize: 14, lineHeight: 1.75, marginBottom: 24 }}>
+            気になる企業のカジュアル面談や、メンターへの相談から<br />
+            対話を始めてみましょう。
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link
+              href="/companies"
+              style={{
+                display: "inline-flex", alignItems: "center",
+                padding: "10px 20px",
+                background: "var(--royal)", color: "#fff",
+                borderRadius: 8, fontSize: 13, fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              カジュアル面談を申し込む
+            </Link>
+            <Link
+              href="/mentors"
+              style={{
+                display: "inline-flex", alignItems: "center",
+                padding: "10px 20px",
+                background: "var(--bg-tint)", color: "var(--ink-soft)",
+                border: "1px solid var(--line)",
+                borderRadius: 8, fontSize: 13, fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              メンターに相談する
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
