@@ -383,11 +383,14 @@ export async function getCompanyById(
 ): Promise<{ company: Company; detail: CompanyDetail; employeeCategories: CompanyEmployeeCategoryItem[] } | null> {
   const supabase = createClient();
 
-  const { data, error } = await supabase
+  let companyQuery = supabase
     .from("ow_companies")
     .select(COMPANY_DETAIL_COLS)
-    .eq("id", id)
-    .single();
+    .eq("id", id);
+  if (process.env.NODE_ENV !== "development") {
+    companyQuery = companyQuery.eq("is_published", true);
+  }
+  const { data, error } = await companyQuery.single();
 
   if (error || !data) {
     if (error?.code !== "PGRST116") console.error("[getCompanyById]", error?.message);

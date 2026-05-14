@@ -13,11 +13,14 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = createClient();
-  const { data: company } = await supabase
+  let metaQuery = supabase
     .from("ow_companies")
     .select("name")
-    .eq("id", params.id)
-    .single();
+    .eq("id", params.id);
+  if (process.env.NODE_ENV !== "development") {
+    metaQuery = metaQuery.eq("is_published", true);
+  }
+  const { data: company } = await metaQuery.single();
 
   if (!company) return { title: "企業が見つかりません" };
   return {
@@ -29,12 +32,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CompanyPostsPage({ params }: Props) {
   const supabase = createClient();
 
+  let pageCompanyQuery = supabase
+    .from("ow_companies")
+    .select("id, name, logo_gradient, logo_letter")
+    .eq("id", params.id);
+  if (process.env.NODE_ENV !== "development") {
+    pageCompanyQuery = pageCompanyQuery.eq("is_published", true);
+  }
   const [companyRes, postsRes] = await Promise.all([
-    supabase
-      .from("ow_companies")
-      .select("id, name, logo_gradient, logo_letter")
-      .eq("id", params.id)
-      .single(),
+    pageCompanyQuery.single(),
     supabase
       .from("ow_company_external_links")
       .select("*")
