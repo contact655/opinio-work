@@ -227,3 +227,9 @@ p, .description, .desc {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
+/* ── autosave スピナー ── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

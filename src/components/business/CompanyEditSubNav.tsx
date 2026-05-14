@@ -51,7 +51,7 @@ export function CompanyEditSubNav({
           企業情報
         </div>
         <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-          編集すると下書きに保存されます。「公開する」で求職者側に反映されます。
+          編集すると自動的に下書き保存されます。「変更を公開する」で求職者側に反映されます。
         </div>
       </div>
 

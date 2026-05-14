@@ -254,8 +254,28 @@ export function CompanyEditClient({
   const [photos, setPhotos] = useState<OfficePhoto[]>(initialPhotos);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [isPublishing, setIsPublishing] = useState(false);
+  // draft_data の有無を独立 state で管理（form に含めると autosave ループが起きる）
+  const [hasDraftChanges, setHasDraftChanges] = useState(initialCompany.hasDraftChanges);
+  // 今セッションで最後に自動保存した時刻
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [saveAgoText, setSaveAgoText] = useState("");
   const hasInteracted = useRef(false);
   const logoFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 相対時刻を30秒ごとに更新
+  useEffect(() => {
+    function calcAgo() {
+      if (!lastSavedAt) return;
+      const diffSec = Math.floor((Date.now() - lastSavedAt.getTime()) / 1000);
+      if (diffSec < 10) setSaveAgoText("今");
+      else if (diffSec < 60) setSaveAgoText(`${diffSec}秒前`);
+      else if (diffSec < 3600) setSaveAgoText(`${Math.floor(diffSec / 60)}分前`);
+      else setSaveAgoText(`${Math.floor(diffSec / 3600)}時間前`);
+    }
+    calcAgo();
+    const timer = setInterval(calcAgo, 30000);
+    return () => clearInterval(timer);
+  }, [lastSavedAt]);
 
   // ── 自動保存（700ms debounce）──────────────────────────────────────────────
   useEffect(() => {
@@ -270,6 +290,8 @@ export function CompanyEditClient({
         });
         if (!res.ok) throw new Error(await res.text());
         setSaveState("saved");
+        setHasDraftChanges(true);
+        setLastSavedAt(new Date());
         setTimeout(() => setSaveState("idle"), 2000);
       } catch (err) {
         console.error("[company autosave]", err);
@@ -341,13 +363,16 @@ export function CompanyEditClient({
       const { publishedAt } = await res.json() as { publishedAt: string };
       const now = new Date(publishedAt);
       const lastPublishedAt = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      // 公開後に form 変化が autosave を再トリガーして draft_data が即座に再投入されるのを防ぐ
+      hasInteracted.current = false;
       setForm((prev) => ({
         ...prev,
         isPublished: true,
         lastPublishedAt,
         lastPublishedAgo: "今",
-        hasDraftChanges: false,
       }));
+      setHasDraftChanges(false);
+      setLastSavedAt(null);
     } catch {
       alert("公開に失敗しました。再度お試しください。");
     } finally {
@@ -369,7 +394,7 @@ export function CompanyEditClient({
 
   const subNavSections: CompanySubNavSection[] = COMPANY_SECTIONS.map((s) => ({
     ...s,
-    hasDraft: form.hasDraftChanges && s.showStatus,
+    hasDraft: hasDraftChanges && s.showStatus,
   }));
 
   const saveStatusStyle: React.CSSProperties = {
@@ -377,18 +402,38 @@ export function CompanyEditClient({
     fontSize: 11, padding: "4px 10px", borderRadius: 100,
     transition: "all 0.3s", flexShrink: 0,
     ...(saveState === "saving"
-      ? { color: "var(--warm)", background: "var(--warm-soft)" }
+      ? { color: "var(--ink-mute)", background: "var(--bg-tint)" }
       : saveState === "saved"
         ? { color: "var(--success)", background: "var(--success-soft)" }
         : saveState === "error"
           ? { color: "var(--error)", background: "var(--error-soft)" }
-          : { color: "var(--ink-mute)", background: "var(--bg-tint)" }),
+          : { color: "var(--ink-mute)", background: "transparent" }),
   };
   const saveStatusText =
-    saveState === "saving" ? "下書きに保存中..."
-    : saveState === "saved"  ? "下書きを自動保存しました"
-    : saveState === "error"  ? "保存に失敗しました"
-    : "編集中";
+    saveState === "saving" ? "保存中..."
+    : saveState === "saved"  ? "保存しました"
+    : saveState === "error"  ? "保存できませんでした"
+    : lastSavedAt           ? `最終保存: ${saveAgoText}`
+    : "";
+
+  async function handleRetrySave() {
+    setSaveState("saving");
+    try {
+      const res = await fetch("/api/biz/company", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setSaveState("saved");
+      setHasDraftChanges(true);
+      setLastSavedAt(new Date());
+      setTimeout(() => setSaveState("idle"), 2000);
+    } catch (err) {
+      console.error("[company retry]", err);
+      setSaveState("error");
+    }
+  }
 
   // ── セクションレンダラー ──────────────────────────────────────────────────
 
@@ -405,7 +450,7 @@ export function CompanyEditClient({
               企業ロゴ、企業名、ミッション、業種など、求職者側のヒーローエリアに表示される情報を編集します。
             </p>
             <CompanyPublishStatusBar
-              hasDraftChanges={form.hasDraftChanges}
+              hasDraftChanges={hasDraftChanges}
               draftSections="基本情報"
             />
 
@@ -796,14 +841,30 @@ export function CompanyEditClient({
             <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
               企業情報を編集
             </span>
-            <span style={saveStatusStyle}>
-              {saveState === "saving" ? (
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              ) : saveState === "saved" ? (
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-              ) : null}
-              {saveStatusText}
-            </span>
+            {saveState === "error" ? (
+              <span style={saveStatusStyle}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {saveStatusText}
+                <button
+                  type="button"
+                  onClick={handleRetrySave}
+                  style={{ marginLeft: 4, fontSize: 11, fontWeight: 600, color: "var(--error)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}
+                >
+                  再試行
+                </button>
+              </span>
+            ) : (
+              <span style={saveStatusStyle}>
+                {saveState === "saving" ? (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}>
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                ) : saveState === "saved" ? (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                ) : null}
+                {saveStatusText}
+              </span>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>

@@ -5,7 +5,7 @@ import { transformFormToDb, getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
 import type { BizCompany } from "@/lib/business/mockCompany";
 
-// PUT /api/biz/company — 全フィールド更新（自動保存トリガー）
+// PUT /api/biz/company — 自動保存（draft_data に書き込み。本番カラムは触らない）
 export async function PUT(req: Request) {
   const supabase = createClient();
 
@@ -24,11 +24,16 @@ export async function PUT(req: Request) {
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
   const { companyId, owUserId } = ctx;
 
+  // フォーム値を DB カラム形式に変換して draft_data に保存
+  // 本番カラム（name, mission など）は一切変更しない
   const record = transformFormToDb(body as BizCompany);
 
   const { error } = await supabase
     .from("ow_companies")
-    .update(record)
+    .update({
+      draft_data: record,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", companyId);
 
   if (error) {
@@ -40,7 +45,7 @@ export async function PUT(req: Request) {
     company_id: companyId,
     actor_user_id: owUserId,
     type: "company_info_updated",
-    description: "企業情報を更新しました",
+    description: "企業情報を下書き保存しました",
     target_type: "company",
     target_id: companyId,
   });
@@ -48,7 +53,7 @@ export async function PUT(req: Request) {
   return NextResponse.json({ ok: true });
 }
 
-// PATCH /api/biz/company — is_published トグル（公開/非公開）
+// PATCH /api/biz/company — 「変更を公開する」（draft_data → 本番カラム展開 + is_published=true）
 export async function PATCH(req: Request) {
   const supabase = createClient();
 
@@ -68,13 +73,32 @@ export async function PATCH(req: Request) {
   const { companyId } = ctx;
 
   const now = new Date().toISOString();
+
+  // draft_data を取得
+  const { data: currentRow, error: fetchError } = await supabase
+    .from("ow_companies")
+    .select("draft_data")
+    .eq("id", companyId)
+    .single();
+
+  if (fetchError) {
+    console.error("[company PATCH fetch]", fetchError.message);
+    return NextResponse.json({ error: fetchError.message }, { status: 500 });
+  }
+
+  // draft_data があれば本番カラムに展開。なければ is_published のみ更新
+  // ※ spread 後に is_published / published_at / updated_at / draft_data を上書きする順序に注意
+  const updatePayload: Record<string, unknown> = {
+    ...(currentRow?.draft_data ?? {}),
+    is_published: body.isPublished,
+    published_at: body.isPublished ? now : undefined,
+    updated_at: now,
+    draft_data: null,
+  };
+
   const { error } = await supabase
     .from("ow_companies")
-    .update({
-      is_published: body.isPublished,
-      published_at: body.isPublished ? now : undefined,
-      updated_at: now,
-    })
+    .update(updatePayload)
     .eq("id", companyId);
 
   if (error) {
