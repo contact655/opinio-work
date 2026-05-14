@@ -7,6 +7,16 @@ const nextConfig = {
         destination: "/business",
         permanent: true, // 301
       },
+      {
+        source: "/biz/company/employees/categories",
+        destination: "/biz/organization",
+        permanent: true, // 301
+      },
+      {
+        source: "/biz/company/employees/categories/:path*",
+        destination: "/biz/organization/:path*",
+        permanent: true, // 301
+      },
     ];
   },
 };

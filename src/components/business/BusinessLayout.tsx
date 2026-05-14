@@ -40,7 +40,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <Building2 size={16} strokeWidth={2.2} />,
   },
   {
-    href: "/biz/company/employees/categories",
+    href: "/biz/organization",
     label: "組織体制",
     icon: <Layers size={16} strokeWidth={2.2} />,
   },
