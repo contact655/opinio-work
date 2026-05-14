@@ -260,6 +260,8 @@ export function CompanyEditClient({
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [saveAgoText, setSaveAgoText] = useState("");
   const hasInteracted = useRef(false);
+  // PATCH (publish) が in-flight 中に autosave PUT コールバックが hasDraftChanges を上書きするのを防ぐ
+  const isPublishingRef = useRef(false);
   const logoFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // 相対時刻を30秒ごとに更新
@@ -290,8 +292,11 @@ export function CompanyEditClient({
         });
         if (!res.ok) throw new Error(await res.text());
         setSaveState("saved");
-        setHasDraftChanges(true);
-        setLastSavedAt(new Date());
+        // PATCH (publish) が concurrent に走っている間は上書きしない（race condition 防止）
+        if (!isPublishingRef.current) {
+          setHasDraftChanges(true);
+          setLastSavedAt(new Date());
+        }
         setTimeout(() => setSaveState("idle"), 2000);
       } catch (err) {
         console.error("[company autosave]", err);
@@ -350,6 +355,7 @@ export function CompanyEditClient({
   async function handlePublish() {
     if (isPublishing) return;
     setIsPublishing(true);
+    isPublishingRef.current = true;
     try {
       const res = await fetch("/api/biz/company", {
         method: "PATCH",
@@ -376,6 +382,7 @@ export function CompanyEditClient({
     } catch {
       alert("公開に失敗しました。再度お試しください。");
     } finally {
+      isPublishingRef.current = false;
       setIsPublishing(false);
     }
   }
@@ -899,32 +906,36 @@ export function CompanyEditClient({
             <button
               type="button"
               onClick={handlePublish}
-              disabled={isPublishing}
+              disabled={isPublishing || !hasDraftChanges}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 16px",
                 fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-                borderRadius: 8, cursor: isPublishing ? "wait" : "pointer",
-                background: "var(--success)", color: "#fff",
-                border: "1px solid var(--success)",
+                borderRadius: 8,
+                cursor: (isPublishing || !hasDraftChanges) ? "not-allowed" : "pointer",
+                background: hasDraftChanges ? "var(--success)" : "var(--line)",
+                color: hasDraftChanges ? "#fff" : "var(--ink-mute)",
+                border: `1px solid ${hasDraftChanges ? "var(--success)" : "var(--line)"}`,
                 transition: "all 0.2s",
                 opacity: isPublishing ? 0.7 : 1,
               }}
               onMouseEnter={(e) => {
-                if (!isPublishing) {
+                if (!isPublishing && hasDraftChanges) {
                   (e.currentTarget as HTMLButtonElement).style.background = "#047857";
                   (e.currentTarget as HTMLButtonElement).style.borderColor = "#047857";
                 }
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "var(--success)";
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--success)";
+                if (hasDraftChanges) {
+                  (e.currentTarget as HTMLButtonElement).style.background = "var(--success)";
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--success)";
+                }
               }}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
-              {isPublishing ? "公開中..." : "変更を公開する"}
+              {isPublishing ? "公開中..." : hasDraftChanges ? "変更を公開する" : "公開済み"}
             </button>
           </div>
         </div>
