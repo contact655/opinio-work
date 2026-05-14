@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 export async function PATCH(
   request: Request,
@@ -21,6 +22,8 @@ export async function PATCH(
       return Response.json({ error: "Company context not found" }, { status: 404 });
     }
     const { companyId } = ctx;
+
+    try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
     const body = await request.json();
     const updates: Record<string, unknown> = {};
@@ -67,6 +70,8 @@ export async function DELETE(
       return Response.json({ error: "Company context not found" }, { status: 404 });
     }
     const { companyId } = ctx;
+
+    try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
     // 1. DB から該当行を取得して image_url を取り出す（Storage パス推定用）
     const { data: photo, error: fetchError } = await supabase

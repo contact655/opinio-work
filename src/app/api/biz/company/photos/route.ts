@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { MAX_PHOTOS_PER_CATEGORY, type PhotoCategory } from "@/lib/business/photos";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 const VALID_CATEGORIES: PhotoCategory[] = ["workspace", "meeting", "welfare", "event"];
 
@@ -20,6 +21,8 @@ export async function POST(request: Request) {
       return Response.json({ error: "Company context not found" }, { status: 404 });
     }
     const { companyId } = ctx;
+
+    try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
     const body = await request.json();
     const { category, image_url, caption, display_order } = body;

@@ -35,6 +35,7 @@ type Props = {
   tenantLogoGradient?: string | null;
   tenantLogoLetter?: string | null;
   memberships?: import("@/lib/business/dashboard").TenantCompany[];
+  isAdmin?: boolean;
 };
 
 // ── 小コンポーネント ────────────────────────────────────────────────────────
@@ -246,6 +247,7 @@ export function CompanyEditClient({
   tenantLogoGradient,
   tenantLogoLetter,
   memberships,
+  isAdmin = true,
 }: Props) {
   const router = useRouter();
 
@@ -903,6 +905,7 @@ export function CompanyEditClient({
               </svg>
               プレビュー
             </button>
+            {isAdmin && (
             <button
               type="button"
               onClick={handlePublish}
@@ -937,6 +940,7 @@ export function CompanyEditClient({
               </svg>
               {isPublishing ? "公開中..." : hasDraftChanges ? "変更を公開する" : "公開済み"}
             </button>
+            )}
           </div>
         </div>
 

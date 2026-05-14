@@ -44,7 +44,7 @@ export default async function BizJobsPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <JobsClient jobs={jobs} />
+      <JobsClient jobs={jobs} isAdmin={ctx.currentPermission === "admin"} />
     </BusinessLayout>
   );
 }

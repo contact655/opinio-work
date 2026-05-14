@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 // ─── POST: カテゴリ追加 ───────────────────────────────────────────────────────
 
@@ -43,6 +44,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Company context not found" }, { status: 404 });
   }
   const { companyId } = ctx;
+
+  try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
   const { data, error } = await supabase
     .from("ow_company_employee_categories")

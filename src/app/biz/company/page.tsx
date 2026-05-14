@@ -32,6 +32,7 @@ export default async function BizCompanyPage() {
       tenantLogoGradient={ctx.logoGradient ?? undefined}
       tenantLogoLetter={ctx.logoLetter ?? undefined}
       memberships={ctx.allCompanies}
+      isAdmin={ctx.currentPermission === "admin"}
     />
   );
 }

@@ -47,6 +47,7 @@ export default async function MembersPage() {
         initialMembers={members}
         initialPendingInvites={pendingInvites}
         currentUserId={ctx.currentOwnId}
+        isAdmin={ctx.currentPermission === "admin"}
       />
     </BusinessLayout>
   );

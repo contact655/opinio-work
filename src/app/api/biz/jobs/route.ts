@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 function buildJobRecord(body: Record<string, unknown>, companyId: string) {
   const salaryMin = body.salaryMin ? parseInt(String(body.salaryMin)) : null;
@@ -109,6 +110,8 @@ export async function POST(req: Request) {
     // ログインユーザーが指定 companyId の管理者でない
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
 
   const record = buildJobRecord(body, companyId);
   const { data: newJob, error: insertErr } = await supabase

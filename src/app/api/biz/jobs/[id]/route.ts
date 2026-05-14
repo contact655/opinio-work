@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 const VALID_STATUSES = new Set(["draft", "pending_review", "published", "rejected", "private"]);
 
@@ -22,6 +23,12 @@ export async function PUT(
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  // 権限チェック: admin のみ求人を編集できる
+  const cookieCompanyId0 = cookies().get("biz_current_company_id")?.value;
+  const ctx0 = await getCompanyContext(supabase, user.id, cookieCompanyId0);
+  if (!ctx0) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  try { requireAdmin(ctx0.allMemberships, ctx0.companyId); } catch { return permissionDeniedResponse(); }
 
   const salaryMin = body.salaryMin ? parseInt(String(body.salaryMin)) : null;
   const salaryMax = body.salaryMax ? parseInt(String(body.salaryMax)) : null;
@@ -66,17 +73,12 @@ export async function PUT(
       .insert(assigneeIds.map((uid) => ({ job_id: jobId, user_id: uid })));
   }
 
-  // Activity: job_updated (best-effort)
-  const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
-  const [ctx, jobRow] = await Promise.all([
-    getCompanyContext(supabase, user.id, cookieCompanyId),
-    supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle(),
-  ]);
-  const owUserId = ctx?.owUserId ?? null;
+  // Activity: job_updated (best-effort) — ctx0 を再利用
+  const jobRow = await supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle();
   if (jobRow.data?.company_id) {
     await insertActivity(supabase, {
       company_id: jobRow.data.company_id,
-      actor_user_id: owUserId,
+      actor_user_id: ctx0.owUserId,
       type: "job_updated",
       description: `求人「${jobRow.data.title ?? "—"}」の内容を更新しました`,
       target_type: "job",
@@ -108,6 +110,12 @@ export async function PATCH(
     return NextResponse.json({ error: "unknown action" }, { status: 400 });
   }
 
+  // 権限チェック: admin のみステータス変更できる
+  const cookieCompanyId1 = cookies().get("biz_current_company_id")?.value;
+  const ctx1 = await getCompanyContext(supabase, user.id, cookieCompanyId1);
+  if (!ctx1) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  try { requireAdmin(ctx1.allMemberships, ctx1.companyId); } catch { return permissionDeniedResponse(); }
+
   const newStatus = body.value ?? "";
   if (!VALID_STATUSES.has(newStatus)) {
     return NextResponse.json({ error: "invalid status" }, { status: 400 });
@@ -135,20 +143,15 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Activity: job_published (best-effort, only on publish)
+  // Activity: job_published (best-effort, only on publish) — ctx1 を再利用
   if (newStatus === "published") {
-    const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
-    const [ctx, jobRow] = await Promise.all([
-      getCompanyContext(supabase, user.id, cookieCompanyId),
-      supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle(),
-    ]);
-    const owUserId = ctx?.owUserId ?? null;
-    if (jobRow.data?.company_id) {
+    const jobRow1 = await supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle();
+    if (jobRow1.data?.company_id) {
       await insertActivity(supabase, {
-        company_id: jobRow.data.company_id,
-        actor_user_id: owUserId,
+        company_id: jobRow1.data.company_id,
+        actor_user_id: ctx1.owUserId,
         type: "job_published",
-        description: `求人「${jobRow.data.title ?? "—"}」を公開しました`,
+        description: `求人「${jobRow1.data.title ?? "—"}」を公開しました`,
         target_type: "job",
         target_id: jobId,
       });
@@ -167,6 +170,12 @@ export async function DELETE(
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // 権限チェック: admin のみ求人を削除できる
+  const cookieCompanyId2 = cookies().get("biz_current_company_id")?.value;
+  const ctx2 = await getCompanyContext(supabase, user.id, cookieCompanyId2);
+  if (!ctx2) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  try { requireAdmin(ctx2.allMemberships, ctx2.companyId); } catch { return permissionDeniedResponse(); }
 
   const { error } = await supabase
     .from("ow_jobs")

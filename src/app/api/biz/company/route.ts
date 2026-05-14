@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { transformFormToDb, getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import type { BizCompany } from "@/lib/business/mockCompany";
 
 // PUT /api/biz/company — 自動保存（draft_data に書き込み。本番カラムは触らない）
@@ -23,6 +24,8 @@ export async function PUT(req: Request) {
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
   const { companyId, owUserId } = ctx;
+
+  try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
   // フォーム値を DB カラム形式に変換して draft_data に保存
   // 本番カラム（name, mission など）は一切変更しない
@@ -71,6 +74,8 @@ export async function PATCH(req: Request) {
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
   const { companyId } = ctx;
+
+  try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
   const now = new Date().toISOString();
 

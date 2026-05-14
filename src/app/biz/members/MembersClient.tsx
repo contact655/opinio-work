@@ -13,6 +13,7 @@ type Props = {
   initialMembers: MemberRecord[];
   initialPendingInvites: PendingInviteRecord[];
   currentUserId: string;
+  isAdmin?: boolean;
 };
 
 const PERM_LABELS: Record<MemberRecord["permission"], string> = {
@@ -885,7 +886,7 @@ function PendingInvitesSection({
 }
 
 // ── MembersClient ───────────────────────────────────────────────────
-export function MembersClient({ initialMembers, initialPendingInvites, currentUserId }: Props) {
+export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true }: Props) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("active");
 
@@ -1047,6 +1048,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             自社の採用担当メンバーを管理します。
           </p>
         </div>
+        {isAdmin && (
         <button
           onClick={() => { setAddError(null); setShowAddDialog(true); }}
           style={{
@@ -1071,6 +1073,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           </svg>
           メンバーを追加
         </button>
+        )}
       </div>
 
       {/* タブ */}
@@ -1228,12 +1231,14 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                   }}>
                     {PERM_LABELS[member.permission]}
                   </span>
+                  {isAdmin && (
                   <DropdownMenu
                     member={member}
                     isSelf={isSelf}
                     onAction={openDialog}
                     onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }}
                   />
+                  )}
                 </div>
               </div>
             );

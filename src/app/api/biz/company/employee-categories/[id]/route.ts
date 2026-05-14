@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 export async function DELETE(
   _req: Request,
@@ -32,6 +33,8 @@ export async function DELETE(
     return NextResponse.json({ error: "Company context not found" }, { status: 404 });
   }
   const { companyId } = ctx;
+
+  try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
   // company_id を条件に含めて他社データの削除を防止
   const { error, count } = await supabase

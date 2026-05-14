@@ -17,6 +17,7 @@ export const mockTenantContext: TenantContext = {
   currentOwnId: "mock-user-id",
   currentOwnerGradient: "linear-gradient(135deg, var(--royal), var(--accent))",
   allCompanies: [{ id: "mock-tenant-opinio", name: "株式会社Opinio", isDefault: true }],
+  currentPermission: "admin",
 };
 
 export const mockTodoCounts: TodoCounts = {

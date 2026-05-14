@@ -11,9 +11,10 @@ import { JobsEmptyState } from "@/components/business/JobsEmptyState";
 
 type Props = {
   jobs: BizJob[];
+  isAdmin?: boolean;
 };
 
-export function JobsClient({ jobs: initialJobs }: Props) {
+export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
   const router = useRouter();
   const [jobs, setJobs] = useState<BizJob[]>(initialJobs);
   const [activeStatus, setActiveStatus] = useState<JobStatus | "all">("all");
@@ -108,6 +109,7 @@ export function JobsClient({ jobs: initialJobs }: Props) {
             求人の作成・編集・公開状態を管理します。新規求人は「公開申請」後にOpinio運営の審査（2-3営業日）を経て公開されます。
           </p>
         </div>
+        {isAdmin && (
         <Link
           href="/biz/jobs/new"
           style={{
@@ -132,6 +134,7 @@ export function JobsClient({ jobs: initialJobs }: Props) {
           </svg>
           新規求人を作成
         </Link>
+        )}
       </div>
 
       {/* ステータスサマリー */}

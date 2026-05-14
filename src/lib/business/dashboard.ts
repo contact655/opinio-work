@@ -32,6 +32,7 @@ export type TenantContext = {
   currentOwnId: string;          // ow_users.id (UUID) — assignee resolution
   currentOwnerGradient: string;  // avatar_color or royal fallback
   allCompanies: TenantCompany[]; // all active memberships (for CompanySwitcher)
+  currentPermission: "admin" | "member"; // Phase 12: current user's permission in the active tenant
 };
 
 export type JobStatusCounts = {
@@ -163,6 +164,10 @@ export async function getTenantContext(): Promise<TenantContext | null> {
         ? owUser.avatar_color
         : "linear-gradient(135deg, var(--royal), var(--accent))";
 
+    // Phase 12: derive current user's permission from allMemberships
+    const currentPermission: "admin" | "member" =
+      ctx.allMemberships.find((m) => m.companyId === tenantId)?.permission ?? "member";
+
     return {
       tenantId,
       tenantName: companyRow.name || "—",
@@ -174,6 +179,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       currentOwnId: owUserId,
       currentOwnerGradient,
       allCompanies,
+      currentPermission,
     };
   } catch (e) {
     if (isRedirectError(e)) throw e;
