@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 type Action = "permission" | "deactivate" | "reactivate" | "update_profile";
 
@@ -30,6 +31,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Company context not found" }, { status: 403 });
   }
   const { owUserId: actorOwUserId, companyId, allMemberships } = ctx;
+
+  // 全アクション共通: admin 権限チェック（B-1 hotfix）
+  try { requireAdmin(allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
   // 対象の ow_company_admins row を取得
   const { data: target, error: fetchErr } = await supabase
@@ -144,11 +148,7 @@ export async function PATCH(
 
   // ── action: update_profile ────────────────────────────────────────
   else if (body.action === "update_profile") {
-    // actor が admin であることを確認（自分自身の編集も可）
-    const actorMembership = allMemberships.find((m) => m.companyId === companyId);
-    if (actorMembership?.permission !== "admin") {
-      return NextResponse.json({ error: "役職・部署の変更は管理者のみ可能です" }, { status: 403 });
-    }
+    // admin チェックは PATCH 冒頭で一元実施済み
 
     // 空文字は null に正規化、最大 100 文字
     const roleTitle = (body.role_title?.trim() || null);
