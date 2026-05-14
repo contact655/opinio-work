@@ -14,6 +14,18 @@ type PendingCompany = {
 };
 const PENDING_COMPANY_KEY = "opinio_biz_pending_company";
 
+// 招待フロー用 sessionStorage キー (AcceptInviteClient と同じ値を使う)
+const INVITE_TOKEN_KEY = "opinio_biz_invite_token";
+const INVITED_EMAIL_KEY = "opinio_biz_invited_email";
+const INVITED_COMPANY_NAME_KEY = "opinio_biz_invited_company_name";
+
+// 招待コンテキスト（AcceptInviteClient から引き継がれる）
+type InviteContext = {
+  token: string;
+  email: string;
+  companyName: string;
+};
+
 const MOCK_EXISTING_USERS = ["taro@example.com", "yamada@test.com"];
 const PERSONAL_DOMAINS = ["gmail.com", "yahoo.co.jp", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com"];
 
@@ -51,12 +63,17 @@ function BizAuthInner() {
   const rawNext = searchParams.get("next") ?? "";
   const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/biz/dashboard";
   const modeParam = searchParams.get("mode");
+  // context=invite の場合、招待フロー専用モードで動作する
+  const isInviteContext = searchParams.get("context") === "invite";
 
   const [mode, setMode] = useState<Mode>(modeParam === "login" ? "login" : "signup");
 
   // Phase 1: メアド重複時にサインアップ→ログインへ切り替える際の引き継ぎ状態
   const [prefillEmail, setPrefillEmail] = useState("");
   const [pendingCompany, setPendingCompany] = useState<PendingCompany | null>(null);
+
+  // Phase 6-7: 招待フロー context
+  const [inviteContext, setInviteContext] = useState<InviteContext | null>(null);
 
   // Phase 1: ページマウント時に sessionStorage の残留データを確認
   useEffect(() => {
@@ -72,6 +89,24 @@ function BizAuthInner() {
       // ignore
     }
   }, []);
+
+  // Phase 6-7: context=invite の場合に sessionStorage から招待情報を読み込む
+  useEffect(() => {
+    if (!isInviteContext) return;
+    try {
+      const token = sessionStorage.getItem(INVITE_TOKEN_KEY) ?? "";
+      const email = sessionStorage.getItem(INVITED_EMAIL_KEY) ?? "";
+      const companyName = sessionStorage.getItem(INVITED_COMPANY_NAME_KEY) ?? "";
+      if (token && email) {
+        setInviteContext({ token, email, companyName });
+        // ログインモードで来た場合は login タブを開く
+        if (modeParam === "login") setMode("login");
+      }
+    } catch {
+      // ignore
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInviteContext]);
 
   // Phase 1: サインアップ→ログイン切り替えハンドラー（企業情報を sessionStorage に保存済み前提）
   function handleSwitchToLogin(email?: string) {
@@ -143,7 +178,7 @@ function BizAuthInner() {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      <BrandPanel />
+      <BrandPanel inviteCompanyName={inviteContext?.companyName ?? null} />
       <FormSide
         mode={mode}
         setMode={setMode}
@@ -152,13 +187,14 @@ function BizAuthInner() {
         onSwitchToLogin={handleSwitchToLogin}
         next={next}
         router={router}
+        inviteContext={inviteContext}
       />
     </div>
   );
 }
 
 // ── ブランドパネル（左） ────────────────────────────────────────────
-function BrandPanel() {
+function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null }) {
   return (
     <div
       className="biz-brand-side"
@@ -248,7 +284,10 @@ function BrandPanel() {
             color: "#fff",
           }}
         >
-          スカウトしない、<br />採用を。
+          {inviteCompanyName
+            ? <>{inviteCompanyName}<br />への参加。</>
+            : <>スカウトしない、<br />採用を。</>
+          }
         </h1>
         <p
           className="biz-brand-subtitle"
@@ -260,14 +299,25 @@ function BrandPanel() {
             marginBottom: 36,
           }}
         >
-          Opinioは、企業と個人が対等に対話する場所。<br />
-          <strong style={{ color: "#fff", fontWeight: 600 }}>スカウトを送らなくても、本当にフィットする人材が来る採用</strong>を実現します。<br />
-          まずは企業情報を登録して、Opinioの世界を体験してください。<br /><br />
-          <span style={{ opacity: 0.8, fontSize: 13 }}>※ 既に個人アカウントをお持ちの方も、同じメールでご利用いただけます。</span>
+          {inviteCompanyName ? (
+            <>
+              招待されたメンバーとして Opinio Work を始めましょう。<br />
+              <span style={{ opacity: 0.8, fontSize: 13 }}>
+                ※ 招待されたメールアドレスと同じアドレスでご登録ください。
+              </span>
+            </>
+          ) : (
+            <>
+              Opinioは、企業と個人が対等に対話する場所。<br />
+              <strong style={{ color: "#fff", fontWeight: 600 }}>スカウトを送らなくても、本当にフィットする人材が来る採用</strong>を実現します。<br />
+              まずは企業情報を登録して、Opinioの世界を体験してください。<br /><br />
+              <span style={{ opacity: 0.8, fontSize: 13 }}>※ 既に個人アカウントをお持ちの方も、同じメールでご利用いただけます。</span>
+            </>
+          )}
         </p>
 
-        {/* 4特徴カード */}
-        <div
+        {/* 4特徴カード（招待モードでは非表示） */}
+        {!inviteCompanyName && <div
           className="biz-features-grid"
           style={{
             display: "grid",
@@ -353,7 +403,7 @@ function BrandPanel() {
               </div>
             </div>
           ))}
-        </div>
+        </div>}
       </div>
 
       {/* フッター */}
@@ -376,9 +426,10 @@ type FormSideProps = {
   onSwitchToLogin: (email?: string) => void;
   next: string;
   router: ReturnType<typeof useRouter>;
+  inviteContext: InviteContext | null;
 };
 
-function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin, next, router }: FormSideProps) {
+function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin, next, router, inviteContext }: FormSideProps) {
   return (
     <div
       className="biz-form-side"
@@ -401,7 +452,7 @@ function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin
       <div style={{ maxWidth: 440, margin: "0 auto", width: "100%" }}>
         <ModeTabBar mode={mode} onChange={setMode} />
         {mode === "signup" ? (
-          <SignupForm onSwitchToLogin={onSwitchToLogin} next={next} router={router} />
+          <SignupForm onSwitchToLogin={onSwitchToLogin} next={next} router={router} inviteContext={inviteContext} />
         ) : (
           <LoginForm
             onSwitchToSignup={() => setMode("signup")}
@@ -409,6 +460,7 @@ function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin
             pendingCompany={pendingCompany}
             next={next}
             router={router}
+            inviteContext={inviteContext}
           />
         )}
       </div>
@@ -462,9 +514,11 @@ type SignupFormProps = {
   onSwitchToLogin: (email?: string) => void;
   next: string;
   router: ReturnType<typeof useRouter>;
+  inviteContext: InviteContext | null;
 };
 
-function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
+function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupFormProps) {
+  const isInviteMode = inviteContext !== null;
   const isMockMode = process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true";
 
   const [companyName, setCompanyName] = useState("");
@@ -472,7 +526,8 @@ function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
   const [employeeCount, setEmployeeCount] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactTitle, setContactTitle] = useState("");
-  const [email, setEmail] = useState("");
+  // 招待モードではメアドをプリフィル（編集不可）
+  const [email, setEmail] = useState(inviteContext?.email ?? "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -524,21 +579,52 @@ function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
 
       if (authError) {
         if (authError.message.includes("already registered") || authError.message.includes("User already registered")) {
-          // Phase 1: 既存メアド検出 → 企業情報を sessionStorage に退避してログインタブへ
-          try {
-            const pending: PendingCompany = { name: companyName, industry, employeeCount };
-            sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify(pending));
-          } catch {
-            // sessionStorage 書き込み失敗は無視（プライベートモード等）
+          if (isInviteMode) {
+            // 招待モード: 既存メアド → ログインタブへ（inviteContext は state で保持）
+            onSwitchToLogin(email);
+          } else {
+            // 通常モード: 企業情報を sessionStorage に退避してログインタブへ
+            try {
+              const pending: PendingCompany = { name: companyName, industry, employeeCount };
+              sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify(pending));
+            } catch {
+              // sessionStorage 書き込み失敗は無視（プライベートモード等）
+            }
+            onSwitchToLogin(email);
           }
-          onSwitchToLogin(email);
           return;
         }
         setError(authError.message);
         return;
       }
 
-      // 2. ow_companies + ow_company_admins 登録
+      // 2a. 招待モード: 招待トークンを自動受諾して dashboard へ
+      if (isInviteMode && inviteContext) {
+        try {
+          const acceptRes = await fetch("/api/biz/members/accept", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ invitation_token: inviteContext.token }),
+          });
+          if (!acceptRes.ok) {
+            const errData = await acceptRes.json();
+            setError(errData.error ?? "招待の受諾に失敗しました。招待リンクから再度お試しください。");
+            return;
+          }
+        } catch {
+          setError("招待の受諾処理中にエラーが発生しました。");
+          return;
+        }
+        try {
+          sessionStorage.removeItem(INVITE_TOKEN_KEY);
+          sessionStorage.removeItem(INVITED_EMAIL_KEY);
+          sessionStorage.removeItem(INVITED_COMPANY_NAME_KEY);
+        } catch { /* ignore */ }
+        window.location.replace("/biz/dashboard");
+        return;
+      }
+
+      // 2b. 通常モード: ow_companies + ow_company_admins 登録
       const res = await fetch("/api/company/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -580,67 +666,103 @@ function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
           color: "var(--ink)",
           marginBottom: 6,
           letterSpacing: "0.02em",
-        }}>始める。</h2>
+        }}>{isInviteMode ? "参加する。" : "始める。"}</h2>
         <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-          企業情報を登録し、Opinioで人材との対話を始めましょう。<br />
-          登録後、すぐに企業情報の編集やカジュアル面談の受信が可能です。
+          {isInviteMode ? (
+            <>招待されたアカウントとして Opinio Work に参加します。<br />お名前とパスワードを設定してください。</>
+          ) : (
+            <>企業情報を登録し、Opinioで人材との対話を始めましょう。<br />
+            登録後、すぐに企業情報の編集やカジュアル面談の受信が可能です。</>
+          )}
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-        {/* 企業名 */}
-        <div style={{ marginBottom: 16 }}>
-          <FieldLabel label="企業名" required />
-          <input
-            type="text"
-            required
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            placeholder="株式会社〇〇"
-            style={inputStyle}
-            onFocus={(e) => applyFocusStyle(e.currentTarget)}
-            onBlur={(e) => removeFocusStyle(e.currentTarget)}
-          />
+      {/* 招待モード: 招待元企業バナー */}
+      {isInviteMode && inviteContext?.companyName && (
+        <div style={{
+          display: "flex",
+          gap: 10,
+          padding: "12px 14px",
+          background: "var(--royal-50)",
+          border: "1px solid var(--royal-100)",
+          borderRadius: 9,
+          marginBottom: 16,
+        }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: 7,
+            background: "var(--royal)", color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div style={{ flex: 1, fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+            <strong style={{ color: "var(--ink)", fontWeight: 700, display: "block", marginBottom: 2 }}>
+              {inviteContext.companyName} から招待されています
+            </strong>
+            登録後、自動的に {inviteContext.companyName} のチームに参加します。
+          </div>
         </div>
+      )}
 
-        {/* 業種 + 従業員数 */}
-        <div
-          className="biz-form-row"
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}
-        >
-          <div>
-            <FieldLabel label="業種" required />
-            <select
-              required
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              style={selectStyle}
-              onFocus={(e) => applyFocusStyle(e.currentTarget)}
-              onBlur={(e) => removeFocusStyle(e.currentTarget)}
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        {/* 企業名・業種・従業員数: 招待モードでは非表示 */}
+        {!isInviteMode && (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <FieldLabel label="企業名" required />
+              <input
+                type="text"
+                required
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="株式会社〇〇"
+                style={inputStyle}
+                onFocus={(e) => applyFocusStyle(e.currentTarget)}
+                onBlur={(e) => removeFocusStyle(e.currentTarget)}
+              />
+            </div>
+            <div
+              className="biz-form-row"
+              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}
             >
-              <option value="">選択してください</option>
-              {INDUSTRY_OPTIONS.map((o) => (
-                <option key={o} value={o}>{o}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <FieldLabel label="従業員数" required />
-            <select
-              required
-              value={employeeCount}
-              onChange={(e) => setEmployeeCount(e.target.value)}
-              style={selectStyle}
-              onFocus={(e) => applyFocusStyle(e.currentTarget)}
-              onBlur={(e) => removeFocusStyle(e.currentTarget)}
-            >
-              <option value="">選択してください</option>
-              {EMPLOYEE_COUNT_OPTIONS.map((o) => (
-                <option key={o} value={o}>{o}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+              <div>
+                <FieldLabel label="業種" required />
+                <select
+                  required
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  style={selectStyle}
+                  onFocus={(e) => applyFocusStyle(e.currentTarget)}
+                  onBlur={(e) => removeFocusStyle(e.currentTarget)}
+                >
+                  <option value="">選択してください</option>
+                  {INDUSTRY_OPTIONS.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <FieldLabel label="従業員数" required />
+                <select
+                  required
+                  value={employeeCount}
+                  onChange={(e) => setEmployeeCount(e.target.value)}
+                  style={selectStyle}
+                  onFocus={(e) => applyFocusStyle(e.currentTarget)}
+                  onBlur={(e) => removeFocusStyle(e.currentTarget)}
+                >
+                  <option value="">選択してください</option>
+                  {EMPLOYEE_COUNT_OPTIONS.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* 担当者名 */}
         <div style={{ marginBottom: 16 }}>
@@ -673,18 +795,22 @@ function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
           />
         </div>
 
-        {/* 企業メールアドレス */}
+        {/* 企業メールアドレス: 招待モードではプリフィル＋readOnly */}
         <div style={{ marginBottom: 16 }}>
-          <FieldLabel label="企業メールアドレス" required />
+          <FieldLabel label={isInviteMode ? "メールアドレス（招待先）" : "企業メールアドレス"} required />
           <input
             type="email"
             required
+            readOnly={isInviteMode}
             value={email}
-            onChange={(e) => handleEmailChange(e.target.value)}
-            onBlur={handleEmailBlur}
+            onChange={(e) => !isInviteMode && handleEmailChange(e.target.value)}
+            onBlur={!isInviteMode ? handleEmailBlur : undefined}
             placeholder="yamada@your-company.co.jp"
-            style={inputStyle}
-            onFocus={(e) => applyFocusStyle(e.currentTarget)}
+            style={{
+              ...inputStyle,
+              ...(isInviteMode ? { background: "var(--bg-tint)", color: "var(--ink-soft)", cursor: "not-allowed" } : {}),
+            }}
+            onFocus={(e) => !isInviteMode && applyFocusStyle(e.currentTarget)}
           />
           {showPersonalWarning && (
             <div style={{ ...hintStyle, color: "var(--warm)" }}>
@@ -726,8 +852,8 @@ function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
           <div style={hintStyle}>8文字以上。英数字を組み合わせてください。</div>
         </div>
 
-        {/* unified-account-notice */}
-        <UnifiedAccountNotice />
+        {/* unified-account-notice: 招待モードでは不要 */}
+        {!isInviteMode && <UnifiedAccountNotice />}
 
         {/* 利用規約 */}
         <div style={{
@@ -840,12 +966,13 @@ type LoginFormProps = {
   pendingCompany: PendingCompany | null;
   next: string;
   router: ReturnType<typeof useRouter>;
+  inviteContext: InviteContext | null;
 };
 
-function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, router }: LoginFormProps) {
+function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, router, inviteContext }: LoginFormProps) {
   const isMockMode = process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true";
 
-  const [email, setEmail] = useState(prefillEmail);
+  const [email, setEmail] = useState(inviteContext?.email || prefillEmail);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -871,7 +998,37 @@ function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, route
         return;
       }
 
-      // Phase 2: ログイン成功後 — sessionStorage に pending company があれば企業を作成してからリダイレクト
+      // Phase 7: ログイン成功後 — 招待トークンがあれば自動受諾（最優先）
+      const inviteToken = inviteContext?.token ?? (() => {
+        try { return sessionStorage.getItem(INVITE_TOKEN_KEY) ?? ""; } catch { return ""; }
+      })();
+
+      if (inviteToken) {
+        try {
+          const acceptRes = await fetch("/api/biz/members/accept", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ invitation_token: inviteToken }),
+          });
+          if (!acceptRes.ok) {
+            const errData = await acceptRes.json();
+            setError(errData.error ?? "招待の受諾に失敗しました。招待リンクから再度お試しください。");
+            return;
+          }
+        } catch {
+          setError("招待の受諾処理中にエラーが発生しました。");
+          return;
+        }
+        try {
+          sessionStorage.removeItem(INVITE_TOKEN_KEY);
+          sessionStorage.removeItem(INVITED_EMAIL_KEY);
+          sessionStorage.removeItem(INVITED_COMPANY_NAME_KEY);
+        } catch { /* ignore */ }
+        window.location.replace("/biz/dashboard");
+        return;
+      }
+
+      // Phase 2: 招待なし — sessionStorage に pending company があれば企業を作成してからリダイレクト
       let stored: PendingCompany | null = pendingCompany;
       if (!stored) {
         try {
@@ -928,6 +1085,38 @@ function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, route
           企業メールアドレスとパスワードでログインしてください。
         </p>
       </div>
+
+      {/* Phase 7: invite バナー（招待フロー専用） */}
+      {inviteContext && (
+        <div style={{
+          display: "flex",
+          gap: 10,
+          padding: "12px 14px",
+          background: "var(--royal-50)",
+          border: "1px solid var(--royal-100)",
+          borderRadius: 9,
+          marginBottom: 16,
+          animation: "bizSlideIn 0.3s ease-out",
+        }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: 7,
+            background: "var(--royal)", color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div style={{ flex: 1, fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+            <strong style={{ color: "var(--ink)", fontWeight: 700, display: "block", marginBottom: 2 }}>
+              {inviteContext.companyName || "企業"} への招待
+            </strong>
+            ログインすると、自動的にチームに参加します。
+            招待先のメールアドレス（{inviteContext.email}）でログインしてください。
+          </div>
+        </div>
+      )}
 
       {/* Phase 2: pending company バナー */}
       {pendingCompany && (

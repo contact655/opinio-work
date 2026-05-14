@@ -116,6 +116,10 @@ function ExpiredState() {
 
 // ── Unauthenticated ────────────────────────────────────────────────
 
+const INVITE_TOKEN_KEY = "opinio_biz_invite_token";
+const INVITED_EMAIL_KEY = "opinio_biz_invited_email";
+const INVITED_COMPANY_NAME_KEY = "opinio_biz_invited_company_name";
+
 function UnauthenticatedState({
   token,
   invitedEmail,
@@ -125,9 +129,20 @@ function UnauthenticatedState({
   invitedEmail: string;
   companyName: string;
 }) {
-  const encodedNext = encodeURIComponent(`/biz/auth/accept-invite?token=${token}`);
-  const loginHref = `/biz/auth?mode=login&next=${encodedNext}`;
-  const signupHref = `/biz/auth?next=${encodedNext}`;
+  // sessionStorage に招待情報を保存してから auth ページへ遷移する
+  function saveInviteAndNavigate(mode: "signup" | "login") {
+    try {
+      sessionStorage.setItem(INVITE_TOKEN_KEY, token);
+      sessionStorage.setItem(INVITED_EMAIL_KEY, invitedEmail);
+      sessionStorage.setItem(INVITED_COMPANY_NAME_KEY, companyName);
+    } catch {
+      // sessionStorage 不可（プライベートモード等）でも遷移は継続
+    }
+    const params = mode === "login"
+      ? "?mode=login&context=invite"
+      : "?context=invite";
+    window.location.href = `/biz/auth${params}`;
+  }
 
   return (
     <div>
@@ -139,16 +154,24 @@ function UnauthenticatedState({
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 24 }}>
-        <a href={loginHref} style={primaryButtonStyle}>
+        <button
+          type="button"
+          onClick={() => saveInviteAndNavigate("signup")}
+          style={{ ...primaryButtonStyle, border: "none", cursor: "pointer" } as React.CSSProperties}
+        >
+          Opinio に登録して参加
+        </button>
+        <button
+          type="button"
+          onClick={() => saveInviteAndNavigate("login")}
+          style={{ ...secondaryButtonStyle, cursor: "pointer" } as React.CSSProperties}
+        >
           ログインして受諾
-        </a>
-        <a href={signupHref} style={secondaryButtonStyle}>
-          新規登録して受諾
-        </a>
+        </button>
       </div>
 
       <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 16, lineHeight: 1.7 }}>
-        ※ 登録・ログイン後、自動的にこのページに戻ります。
+        ※ 招待されたメールアドレスと同じアドレスでご登録・ログインください。
       </p>
     </div>
   );
