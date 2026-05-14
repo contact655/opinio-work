@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
+
+type UserBadge = {
+  name: string;
+  email: string;
+};
 
 type SearchResult = {
   id: string;
@@ -66,12 +72,16 @@ const labelStyle: React.CSSProperties = {
 
 // ── コンポーネント ──────────────────────────────────────────────────────────
 
-export function CreateCompanyClient() {
+export function CreateCompanyClient({ userBadge }: { userBadge?: UserBadge | null }) {
   const [name, setName] = useState("");
   const [industry, setIndustry] = useState("");
   const [website, setWebsite] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Phase 3: 「別のアカウントを使う」確認モーダル
+  const [showSwitchModal, setShowSwitchModal] = useState(false);
+  const [switchingOut, setSwitchingOut] = useState(false);
 
   // サジェスト
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
@@ -187,6 +197,19 @@ export function CreateCompanyClient() {
     }
   }
 
+  // Phase 3: 別アカウントへ切替（ログアウト → /biz/auth）
+  async function handleSwitchAccount() {
+    setSwitchingOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      window.location.replace("/biz/auth");
+    } catch {
+      setSwitchingOut(false);
+      setShowSwitchModal(false);
+    }
+  }
+
   const canSubmit = name.trim() !== "" && !loading;
 
   return (
@@ -205,6 +228,117 @@ export function CreateCompanyClient() {
         </svg>
         追加方法を選ぶ
       </a>
+
+      {/* Phase 3: ログイン中アカウントバッジ */}
+      {userBadge && (
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "12px 16px",
+          background: "var(--bg-tint)",
+          border: "1px solid var(--line)",
+          borderRadius: 10,
+          marginBottom: 28,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+              background: "var(--royal-50)", color: "var(--royal)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+              </svg>
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", lineHeight: 1.3 }}>
+                {userBadge.name}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {userBadge.email} のアカウントで企業を作成します
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSwitchModal(true)}
+            style={{
+              flexShrink: 0,
+              fontSize: 11, color: "var(--ink-mute)",
+              background: "transparent", border: "none",
+              cursor: "pointer", textDecoration: "underline",
+              fontFamily: "'Noto Sans JP', sans-serif",
+              padding: 0,
+            }}
+          >
+            別のアカウントを使う
+          </button>
+        </div>
+      )}
+
+      {/* Phase 3: 別アカウント切替確認モーダル */}
+      {showSwitchModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(0,0,0,0.45)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSwitchModal(false); }}
+        >
+          <div style={{
+            background: "#fff", borderRadius: 14, padding: "28px 28px 24px",
+            maxWidth: 400, width: "calc(100% - 40px)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.16)",
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+              別のアカウントで企業を作成しますか？
+            </div>
+            <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 22 }}>
+              別のアカウントで企業を作成するには、一度ログアウトする必要があります。
+              入力中の企業情報は失われます。
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setShowSwitchModal(false)}
+                disabled={switchingOut}
+                style={{
+                  padding: "9px 16px",
+                  background: "transparent",
+                  border: "1.5px solid var(--line)",
+                  borderRadius: 8,
+                  fontSize: 13, fontWeight: 600,
+                  color: "var(--ink-soft)",
+                  cursor: switchingOut ? "not-allowed" : "pointer",
+                  fontFamily: "'Noto Sans JP', sans-serif",
+                }}
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleSwitchAccount}
+                disabled={switchingOut}
+                style={{
+                  padding: "9px 16px",
+                  background: switchingOut ? "var(--ink-mute)" : "var(--error)",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 13, fontWeight: 600,
+                  color: "#fff",
+                  cursor: switchingOut ? "not-allowed" : "pointer",
+                  fontFamily: "'Noto Sans JP', sans-serif",
+                }}
+              >
+                {switchingOut ? "ログアウト中..." : "ログアウトして新規登録へ"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* アイコン */}
       <div style={{

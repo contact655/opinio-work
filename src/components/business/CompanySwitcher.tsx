@@ -55,26 +55,7 @@ export function CompanySwitcher({ currentCompany, memberships }: Props) {
   const logoLetter = currentCompany.logoLetter || currentCompany.name.charAt(0).toUpperCase();
   const logoGradient = currentCompany.logoGradient || "linear-gradient(135deg, #F97316, #EA580C)";
 
-  // 1 社のみ: ドロップダウンなし
-  if (memberships.length <= 1) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 20, borderLeft: "1px solid var(--line)" }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 6,
-          background: logoGradient, color: "#fff",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 13, flexShrink: 0,
-        }}>
-          {logoLetter}
-        </div>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
-          {currentCompany.name}
-        </span>
-      </div>
-    );
-  }
-
-  // 複数社: Notion 風ドロップダウン
+  // Phase 4: 1 社でもドロップダウンを表示（「新しい企業を作成」のため）
   return (
     <div ref={ref} style={{ position: "relative", paddingLeft: 20, borderLeft: "1px solid var(--line)" }}>
       <button
@@ -184,6 +165,27 @@ export function CompanySwitcher({ currentCompany, memberships }: Props) {
 
           {/* フッターアクション */}
           <div style={{ padding: "6px 0" }}>
+            {/* Phase 4: 新しい企業を作成 */}
+            <a
+              href="/biz/companies/add/new"
+              onClick={() => setOpen(false)}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "8px 14px",
+                fontSize: 13, color: "var(--royal)", fontWeight: 600,
+                textDecoration: "none",
+                transition: "background 0.1s",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--royal-50)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
+            >
+              <span style={{ width: 16, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </span>
+              新しい企業を作成
+            </a>
             <a
               href="/biz/companies/add"
               onClick={() => setOpen(false)}

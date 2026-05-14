@@ -9,22 +9,29 @@ export const metadata = {
   title: "新しい会社を作成 | Opinio Business",
 };
 
-async function NoTenantPage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const userName = user?.email ? user.email.split("@")[0] : "ご担当者";
-  return (
-    <BusinessLayout userName={userName}>
-      <div style={{ textAlign: "center", padding: "80px 20px", color: "var(--ink-mute)" }}>
-        企業アカウントが必要です
-      </div>
-    </BusinessLayout>
-  );
-}
-
 export default async function CreateCompanyPage() {
   const ctx = await getTenantContext();
-  if (!ctx) return <NoTenantPage />;
+
+  // ログインユーザー情報（テナントの有無に関わらず取得）
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userBadge = user
+    ? {
+        name: (user.user_metadata?.name as string | undefined) || user.email?.split("@")[0] || "ご担当者",
+        email: user.email ?? "",
+      }
+    : null;
+
+  // テナントなし（初回登録 or 企業未所属）でもフォームを表示する
+  // Phase 3: ヘッダーバッジで「○○さんのアカウントで企業を作成」を表示
+  if (!ctx) {
+    const userName = userBadge?.name ?? "ご担当者";
+    return (
+      <BusinessLayout userName={userName}>
+        <CreateCompanyClient userBadge={userBadge} />
+      </BusinessLayout>
+    );
+  }
 
   return (
     <BusinessLayout
@@ -35,7 +42,7 @@ export default async function CreateCompanyPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <CreateCompanyClient />
+      <CreateCompanyClient userBadge={userBadge} />
     </BusinessLayout>
   );
 }

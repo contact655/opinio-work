@@ -4,6 +4,9 @@ import Link from "next/link";
 import { BusinessHeader } from "@/components/business/BusinessHeader";
 import { BusinessHero } from "@/components/business/BusinessHero";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
+import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "採用コスト、ゼロから。｜Opinio Work",
@@ -87,7 +90,18 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default function ForCompaniesPage() {
+export default async function ForCompaniesPage() {
+  // Phase 5: ログイン状態により CTA の遷移先を変える
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  let bizCtaHref = "/biz/auth";
+  if (user) {
+    const { data: memberships } = await supabase
+      .from("ow_company_admins")
+      .select("id")
+      .limit(1);
+    bizCtaHref = (memberships?.length ?? 0) > 0 ? "/biz/dashboard" : "/biz/companies/add/new";
+  }
   const sectionStyle = (bg = "#fff"): React.CSSProperties => ({
     background: bg,
     padding: "80px 24px",
@@ -677,7 +691,7 @@ export default function ForCompaniesPage() {
             </p>
 
             <Link
-              href="/biz/auth"
+              href={bizCtaHref}
               style={{
                 display: "inline-flex",
                 alignItems: "center",

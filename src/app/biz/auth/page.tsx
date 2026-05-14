@@ -6,6 +6,14 @@ import { createClient } from "@/lib/supabase/client";
 
 type Mode = "signup" | "login";
 
+// sessionStorage に一時保存する「登録フロー引き継ぎ企業情報」の型
+type PendingCompany = {
+  name: string;
+  industry: string;
+  employeeCount: string;
+};
+const PENDING_COMPANY_KEY = "opinio_biz_pending_company";
+
 const MOCK_EXISTING_USERS = ["taro@example.com", "yamada@test.com"];
 const PERSONAL_DOMAINS = ["gmail.com", "yahoo.co.jp", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com"];
 
@@ -46,11 +54,52 @@ function BizAuthInner() {
 
   const [mode, setMode] = useState<Mode>(modeParam === "login" ? "login" : "signup");
 
-  // ログイン済みチェック
+  // Phase 1: メアド重複時にサインアップ→ログインへ切り替える際の引き継ぎ状態
+  const [prefillEmail, setPrefillEmail] = useState("");
+  const [pendingCompany, setPendingCompany] = useState<PendingCompany | null>(null);
+
+  // Phase 1: ページマウント時に sessionStorage の残留データを確認
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(PENDING_COMPANY_KEY);
+      if (stored) {
+        const parsed: PendingCompany = JSON.parse(stored);
+        setPendingCompany(parsed);
+        // 未ログイン状態で pending が残っている場合はログインタブへ誘導
+        setMode("login");
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Phase 1: サインアップ→ログイン切り替えハンドラー（企業情報を sessionStorage に保存済み前提）
+  function handleSwitchToLogin(email?: string) {
+    try {
+      const stored = sessionStorage.getItem(PENDING_COMPANY_KEY);
+      if (stored) setPendingCompany(JSON.parse(stored));
+    } catch {
+      // ignore
+    }
+    if (email) setPrefillEmail(email);
+    setMode("login");
+  }
+
+  // Phase 5: ログイン済みチェック — 企業所属の有無でリダイレクト先を分岐
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) router.replace(next);
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      // 企業所属確認（RLS により自分の所属のみ返る）
+      const { data: memberships } = await supabase
+        .from("ow_company_admins")
+        .select("id")
+        .limit(1);
+      if ((memberships?.length ?? 0) > 0) {
+        router.replace(next);
+      } else {
+        router.replace("/biz/companies/add/new");
+      }
     });
   }, [next, router]);
 
@@ -95,7 +144,15 @@ function BizAuthInner() {
         }
       `}</style>
       <BrandPanel />
-      <FormSide mode={mode} setMode={setMode} next={next} router={router} />
+      <FormSide
+        mode={mode}
+        setMode={setMode}
+        prefillEmail={prefillEmail}
+        pendingCompany={pendingCompany}
+        onSwitchToLogin={handleSwitchToLogin}
+        next={next}
+        router={router}
+      />
     </div>
   );
 }
@@ -314,11 +371,14 @@ function BrandPanel() {
 type FormSideProps = {
   mode: Mode;
   setMode: (m: Mode) => void;
+  prefillEmail: string;
+  pendingCompany: PendingCompany | null;
+  onSwitchToLogin: (email?: string) => void;
   next: string;
   router: ReturnType<typeof useRouter>;
 };
 
-function FormSide({ mode, setMode, next, router }: FormSideProps) {
+function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin, next, router }: FormSideProps) {
   return (
     <div
       className="biz-form-side"
@@ -341,9 +401,15 @@ function FormSide({ mode, setMode, next, router }: FormSideProps) {
       <div style={{ maxWidth: 440, margin: "0 auto", width: "100%" }}>
         <ModeTabBar mode={mode} onChange={setMode} />
         {mode === "signup" ? (
-          <SignupForm onSwitchToLogin={() => setMode("login")} next={next} router={router} />
+          <SignupForm onSwitchToLogin={onSwitchToLogin} next={next} router={router} />
         ) : (
-          <LoginForm onSwitchToSignup={() => setMode("signup")} next={next} router={router} />
+          <LoginForm
+            onSwitchToSignup={() => setMode("signup")}
+            prefillEmail={prefillEmail}
+            pendingCompany={pendingCompany}
+            next={next}
+            router={router}
+          />
         )}
       </div>
     </div>
@@ -393,7 +459,7 @@ function ModeTabBar({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => voi
 
 // ── サインアップフォーム ──────────────────────────────────────────
 type SignupFormProps = {
-  onSwitchToLogin: () => void;
+  onSwitchToLogin: (email?: string) => void;
   next: string;
   router: ReturnType<typeof useRouter>;
 };
@@ -457,11 +523,18 @@ function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
       });
 
       if (authError) {
-        if (authError.message.includes("already registered")) {
-          setError("このメールアドレスはすでに登録されています。ログインしてください。");
-        } else {
-          setError(authError.message);
+        if (authError.message.includes("already registered") || authError.message.includes("User already registered")) {
+          // Phase 1: 既存メアド検出 → 企業情報を sessionStorage に退避してログインタブへ
+          try {
+            const pending: PendingCompany = { name: companyName, industry, employeeCount };
+            sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify(pending));
+          } catch {
+            // sessionStorage 書き込み失敗は無視（プライベートモード等）
+          }
+          onSwitchToLogin(email);
+          return;
         }
+        setError(authError.message);
         return;
       }
 
@@ -484,10 +557,10 @@ function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
         return;
       }
 
-      // 新規登録時は会社が inline で作成済みのため、next を無視してダッシュボードへ直行する。
+      // 新規登録時は会社が inline で作成済みのため、next を尊重してリダイレクト。
       // window.location.replace でフルページリロード → App Router クライアントキャッシュを
       // バイパスし NoTenantPage のチラ見えを防ぐ。replace で auth ページを履歴から除去。
-      window.location.replace("/biz/dashboard");
+      window.location.replace(next || "/biz/dashboard");
     } catch {
       setError("エラーが発生しました。時間をおいて再度お試しください。");
     } finally {
@@ -740,7 +813,7 @@ function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
         すでにアカウントをお持ちの方は
         <button
           type="button"
-          onClick={onSwitchToLogin}
+          onClick={() => onSwitchToLogin()}
           style={{
             background: "none",
             border: "none",
@@ -763,14 +836,16 @@ function SignupForm({ onSwitchToLogin, next, router }: SignupFormProps) {
 // ── ログインフォーム ──────────────────────────────────────────────
 type LoginFormProps = {
   onSwitchToSignup: () => void;
+  prefillEmail: string;
+  pendingCompany: PendingCompany | null;
   next: string;
   router: ReturnType<typeof useRouter>;
 };
 
-function LoginForm({ onSwitchToSignup, next, router }: LoginFormProps) {
+function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, router }: LoginFormProps) {
   const isMockMode = process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true";
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -793,6 +868,40 @@ function LoginForm({ onSwitchToSignup, next, router }: LoginFormProps) {
 
       if (signInError) {
         setError("メールアドレスまたはパスワードが間違っています");
+        return;
+      }
+
+      // Phase 2: ログイン成功後 — sessionStorage に pending company があれば企業を作成してからリダイレクト
+      let stored: PendingCompany | null = pendingCompany;
+      if (!stored) {
+        try {
+          const raw = sessionStorage.getItem(PENDING_COMPANY_KEY);
+          if (raw) stored = JSON.parse(raw);
+        } catch {
+          // ignore
+        }
+      }
+
+      if (stored) {
+        // 企業作成（/api/biz/companies は認証済みユーザー前提）
+        try {
+          await fetch("/api/biz/companies", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: stored.name,
+              industry: stored.industry || null,
+            }),
+          });
+        } catch {
+          // 企業作成失敗はログのみ — ダッシュボードで再試行できる
+        }
+        try {
+          sessionStorage.removeItem(PENDING_COMPANY_KEY);
+        } catch {
+          // ignore
+        }
+        window.location.replace(next || "/biz/dashboard");
         return;
       }
 
@@ -819,6 +928,39 @@ function LoginForm({ onSwitchToSignup, next, router }: LoginFormProps) {
           企業メールアドレスとパスワードでログインしてください。
         </p>
       </div>
+
+      {/* Phase 2: pending company バナー */}
+      {pendingCompany && (
+        <div style={{
+          display: "flex",
+          gap: 10,
+          padding: "12px 14px",
+          background: "var(--royal-50)",
+          border: "1px solid var(--royal-100)",
+          borderRadius: 9,
+          marginBottom: 16,
+          animation: "bizSlideIn 0.3s ease-out",
+        }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: 7,
+            background: "var(--royal)", color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </div>
+          <div style={{ flex: 1, fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+            <strong style={{ color: "var(--ink)", fontWeight: 700, display: "block", marginBottom: 2 }}>
+              ログインして「{pendingCompany.name}」を作成します
+            </strong>
+            このメールアドレスはすでに Opinio に登録されています。
+            ログインすると、入力済みの企業情報で企業アカウントを作成します。
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
         {/* メール */}
@@ -898,7 +1040,9 @@ function LoginForm({ onSwitchToSignup, next, router }: LoginFormProps) {
             opacity: loading ? 0.7 : 1,
           }}
         >
-          {loading ? "ログイン中..." : "ログイン"}
+          {loading
+            ? (pendingCompany ? "企業を作成中..." : "ログイン中...")
+            : (pendingCompany ? "ログインして企業を作成" : "ログイン")}
         </button>
       </form>
 
@@ -1019,7 +1163,7 @@ function ExistingUserNotice({ email, onSwitchToLogin, onChangeEmail }: ExistingU
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
           <button
             type="button"
-            onClick={onSwitchToLogin}
+            onClick={() => onSwitchToLogin()}
             style={{
               padding: "7px 12px",
               background: "var(--royal)",
