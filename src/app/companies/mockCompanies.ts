@@ -1,6 +1,11 @@
 export type WorkStyle =
   | "フルリモート" | "副業OK" | "フレックス" | "週4日勤務" | "時短勤務" | "裁量労働" | "ハイブリッド";
 
+export type CompanyGenre = {
+  id: string;
+  name: string;
+};
+
 export type Company = {
   id: string;
   name: string;
@@ -15,6 +20,7 @@ export type Company = {
   accepting_casual_meetings: boolean;
   updated_days_ago: number;
   gradient: string;
+  genres: CompanyGenre[]; // ow_company_genres 由来、空配列の可能性あり
   is_editors_pick?: boolean;
   is_dimmed?: boolean; // 非公開・休止中
 };
@@ -34,6 +40,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: true,
     updated_days_ago: 1,
     gradient: "linear-gradient(135deg, #002366, #3B5FD9)",
+    genres: [],
     is_editors_pick: true,
   },
   {
@@ -50,6 +57,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: true,
     updated_days_ago: 4,
     gradient: "linear-gradient(135deg, #059669, #047857)",
+    genres: [],
     is_editors_pick: false,
   },
   {
@@ -66,6 +74,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: true,
     updated_days_ago: 3,
     gradient: "linear-gradient(135deg, #F97316, #EA580C)",
+    genres: [],
     is_editors_pick: false,
   },
   {
@@ -82,6 +91,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: true,
     updated_days_ago: 20,
     gradient: "linear-gradient(135deg, #22D3EE, #0891B2)",
+    genres: [],
     is_editors_pick: false,
   },
   {
@@ -98,6 +108,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: true,
     updated_days_ago: 7,
     gradient: "linear-gradient(135deg, #DB2777, #BE185D)",
+    genres: [],
     is_editors_pick: false,
   },
   {
@@ -114,6 +125,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: true,
     updated_days_ago: 10,
     gradient: "linear-gradient(135deg, #4F46E5, #3730A3)",
+    genres: [],
     is_editors_pick: false,
   },
   {
@@ -130,6 +142,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: true,
     updated_days_ago: 18,
     gradient: "linear-gradient(135deg, #DC2626, #B91C1C)",
+    genres: [],
     is_editors_pick: false,
   },
   {
@@ -146,6 +159,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: false,
     updated_days_ago: 14,
     gradient: "linear-gradient(135deg, #475569, #1E293B)",
+    genres: [],
     is_editors_pick: false,
   },
   {
@@ -162,6 +176,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: false,
     updated_days_ago: 32,
     gradient: "linear-gradient(135deg, #7C3AED, #6D28D9)",
+    genres: [],
     is_dimmed: true,
   },
   {
@@ -178,6 +193,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: true,
     updated_days_ago: 5,
     gradient: "linear-gradient(135deg, #A78BFA, #7C3AED)",
+    genres: [],
     is_editors_pick: false,
   },
   {
@@ -194,6 +210,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: true,
     updated_days_ago: 8,
     gradient: "linear-gradient(135deg, #0EA5E9, #0284C7)",
+    genres: [],
     is_editors_pick: false,
   },
   {
@@ -210,6 +227,7 @@ export const MOCK_COMPANIES: Company[] = [
     accepting_casual_meetings: true,
     updated_days_ago: 2,
     gradient: "linear-gradient(135deg, #1E293B, #0F172A)",
+    genres: [],
     is_editors_pick: false,
   },
 ];

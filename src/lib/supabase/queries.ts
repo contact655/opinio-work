@@ -7,7 +7,7 @@
  */
 
 import { createClient } from "./server";
-import type { Company, WorkStyle } from "@/app/companies/mockCompanies";
+import type { Company, CompanyGenre, WorkStyle } from "@/app/companies/mockCompanies";
 import type { Job } from "@/app/jobs/mockJobData";
 import type {
   CompanyDetail,
@@ -50,7 +50,7 @@ function deriveWorkStyles(row: {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapCompany(row: Record<string, any>, jobCount = 0): Company {
+function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre[] = []): Company {
   return {
     id: row.id as string,
     name: (row.name as string) ?? "",
@@ -65,6 +65,7 @@ function mapCompany(row: Record<string, any>, jobCount = 0): Company {
     accepting_casual_meetings: (row.accepting_casual_meetings as boolean) ?? false,
     updated_days_ago: daysSince(row.updated_at as string),
     gradient: (row.logo_gradient as string) ?? FALLBACK_GRADIENT,
+    genres,
     is_editors_pick: false,
     is_dimmed: false,
   };
@@ -397,8 +398,8 @@ export async function getCompanyById(
     return null;
   }
 
-  // Fetch jobs + roles + employee categories in parallel
-  const [{ data: jobRows }, { data: roleRows }, employeeCategories] = await Promise.all([
+  // Fetch jobs + roles + employee categories + genres in parallel
+  const [{ data: jobRows }, { data: roleRows }, employeeCategories, { data: genreRows }] = await Promise.all([
     supabase
       .from("ow_jobs")
       .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at")
@@ -407,9 +408,23 @@ export async function getCompanyById(
       .from("ow_roles")
       .select("id, name, parent_id"),
     getCompanyEmployeeCategories(id),
+    supabase
+      .from("ow_company_genres")
+      .select("ow_genres(id, name, display_order)")
+      .eq("company_id", id)
+      .eq("is_human_approved", true),
   ]);
 
-  const company = mapCompany(data, jobRows?.length ?? 0);
+  // ジャンルを display_order 順に並べて { id, name } に正規化
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const genres: CompanyGenre[] = ((genreRows ?? []) as Record<string, any>[])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((row) => row.ow_genres as Record<string, any> | null)
+    .filter((g): g is Record<string, any> => g !== null)
+    .sort((a, b) => ((a.display_order as number) ?? 0) - ((b.display_order as number) ?? 0))
+    .map((g) => ({ id: g.id as string, name: g.name as string }));
+
+  const company = mapCompany(data, jobRows?.length ?? 0, genres);
   const detail = buildCompanyDetail(data, jobRows ?? [], roleRows ?? []);
 
   return { company, detail, employeeCategories };

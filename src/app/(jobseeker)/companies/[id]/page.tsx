@@ -2585,6 +2585,38 @@ function Sidebar({
           Company Info
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* ジャンルチップ: 登録済み企業のみ表示、未登録は行ごと非表示 */}
+          {company.genres.length > 0 && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "85px 1fr",
+                gap: 12,
+                fontSize: 13,
+                alignItems: "flex-start",
+              }}
+            >
+              <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>ジャンル</span>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {company.genres.map((g) => (
+                  <span
+                    key={g.id}
+                    style={{
+                      padding: "4px 12px",
+                      borderRadius: 14,
+                      fontSize: 12,
+                      background: "var(--bg-tint)",
+                      color: "var(--ink-soft)",
+                      border: "1px solid var(--line)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {g.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {(
             [
               { key: "業界", value: company.industry },
