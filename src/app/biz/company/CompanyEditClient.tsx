@@ -967,6 +967,113 @@ export function CompanyEditClient({
             maxWidth: 900,
           }}>
             {renderSection()}
+
+            {/* ── 編集部 CTA バナー ─────────────────────────────────────── */}
+            <div style={{
+              marginTop: 48,
+              borderTop: "1px solid var(--line)",
+              paddingTop: 32,
+            }}>
+              <div style={{
+                background: "var(--purple-soft)",
+                border: "1px solid #DDD6FE",
+                borderRadius: 12,
+                padding: "24px 28px",
+              }}>
+                {/* Row 1: アイコン + タイトル */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <span style={{
+                    width: 32, height: 32,
+                    borderRadius: 8,
+                    background: "#EDE9FE",
+                    border: "1px solid #DDD6FE",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9"/>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                  </span>
+                  <p style={{
+                    fontFamily: "var(--font-noto-serif)",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: "#4C1D95",
+                    margin: 0,
+                    letterSpacing: "0.01em",
+                  }}>
+                    Opinio 編集部が取材に伺います
+                  </p>
+                </div>
+
+                {/* Row 2: サブテキスト */}
+                <p style={{
+                  fontSize: 13,
+                  color: "#5B21B6",
+                  lineHeight: 1.75,
+                  margin: "0 0 16px",
+                }}>
+                  会社の雰囲気・文化・働き方を記事にしませんか？<br />
+                  求職者が「ここで働きたい」と感じるストーリーを、編集部が第三者の視点で届けます。
+                </p>
+
+                {/* Row 3: 数字強調 + CTA */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                    <span style={{
+                      fontFamily: "'Inter', sans-serif",
+                      fontSize: 22,
+                      fontWeight: 700,
+                      color: "#7C3AED",
+                      lineHeight: 1,
+                    }}>3.2×</span>
+                    <span style={{ fontSize: 12, color: "#6D28D9", fontWeight: 500 }}>
+                      取材記事掲載後の閲覧数増加（平均）
+                    </span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2, flexShrink: 0 }}>
+                      <line x1="12" y1="19" x2="12" y2="5"/>
+                      <polyline points="5 12 12 5 19 12"/>
+                    </svg>
+                  </div>
+
+                  <a
+                    href="mailto:editorial@opinio.co.jp?subject=取材のお申し込み"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "9px 18px",
+                      background: "#7C3AED",
+                      color: "#fff",
+                      border: "1px solid #7C3AED",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      fontFamily: "inherit",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.background = "#6D28D9";
+                      (e.currentTarget as HTMLAnchorElement).style.borderColor = "#6D28D9";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.background = "#7C3AED";
+                      (e.currentTarget as HTMLAnchorElement).style.borderColor = "#7C3AED";
+                    }}
+                  >
+                    申し込む
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+            {/* ─────────────────────────────────────────────────────────── */}
           </main>
         </div>
       </div>
