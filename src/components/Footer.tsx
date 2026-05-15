@@ -95,6 +95,11 @@ export default function Footer() {
                   利用規約
                 </Link>
               </li>
+              <li>
+                <Link href="/mentor-terms" className="hover:text-white">
+                  メンター向け利用規約
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

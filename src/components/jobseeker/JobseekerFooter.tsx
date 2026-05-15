@@ -83,6 +83,7 @@ export function JobseekerFooter() {
               { href: "/industries", label: "対象業界" },
               { href: "/privacy", label: "プライバシーポリシー" },
               { href: "/terms", label: "利用規約" },
+              { href: "/mentor-terms", label: "メンター向け利用規約" },
             ].map(({ href, label }) => (
               <Link key={href} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", textDecoration: "none" }}>
                 {label}
