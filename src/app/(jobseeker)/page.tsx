@@ -114,48 +114,62 @@ function ArrowIcon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>;
 }
 
-// ─── Hero Typewriter ──────────────────────────────────────────────────────────
+// ─── Hero Role Rotator ────────────────────────────────────────────────────────
 
-const TYPEWRITER_WORDS = [
-  "SaaS営業への転職",
-  "フルリモート勤務",
-  "外資ITへのチャレンジ",
-  "カスタマーサクセスへの転向",
-  "スタートアップの選び方",
+const ROLE_LIST = [
+  "エンタープライズセールス",
+  "カスタマーサクセス",
+  "プロダクトマーケティング",
+  "インサイドセールス",
+  "プロダクトマネージャー",
+  "フィールドセールス",
+  "ビジネス開発",
+  "マーケティング",
 ];
 
-function HeroTypewriter() {
-  const [wordIndex, setWordIndex] = useState(0);
-  const [displayed, setDisplayed] = useState("");
-  const [deleting, setDeleting] = useState(false);
+// 最長職種名（レイアウトシフト防止の基準）
+const LONGEST_ROLE = "プロダクトマーケティング";
+
+function HeroRoleRotator() {
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const prefersReducedMotion =
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false;
 
   useEffect(() => {
-    const target = TYPEWRITER_WORDS[wordIndex];
-    let timeout: ReturnType<typeof setTimeout>;
+    if (prefersReducedMotion) return;
 
-    if (!deleting && displayed.length < target.length) {
-      timeout = setTimeout(() => setDisplayed(target.slice(0, displayed.length + 1)), 60);
-    } else if (!deleting && displayed.length === target.length) {
-      timeout = setTimeout(() => setDeleting(true), 1800);
-    } else if (deleting && displayed.length > 0) {
-      timeout = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 35);
-    } else if (deleting && displayed.length === 0) {
-      setDeleting(false);
-      setWordIndex((i) => (i + 1) % TYPEWRITER_WORDS.length);
-    }
+    const interval = setInterval(() => {
+      // フェードアウト
+      setVisible(false);
+      setTimeout(() => {
+        setIndex((i) => (i + 1) % ROLE_LIST.length);
+        // フェードイン
+        setVisible(true);
+      }, 400);
+    }, 2800);
 
-    return () => clearTimeout(timeout);
-  }, [displayed, deleting, wordIndex]);
+    return () => clearInterval(interval);
+  }, [prefersReducedMotion]);
 
   return (
-    <span style={{ color: "var(--royal)" }}>
-      {displayed}
+    <span style={{ position: "relative", display: "inline-block" }}>
+      {/* 最長職種名で幅を確保（レイアウトシフト防止） */}
+      <span aria-hidden style={{ visibility: "hidden", display: "inline-block" }}>
+        {LONGEST_ROLE}
+      </span>
       <span style={{
-        display: "inline-block", width: 2, height: "0.9em",
-        background: "var(--royal)", marginLeft: 2, verticalAlign: "middle",
-        animation: "blink 1s step-end infinite",
-      }} />
-      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
+        position: "absolute", left: 0, top: 0,
+        color: "var(--royal)",
+        opacity: visible ? 1 : 0,
+        transition: "opacity 400ms ease-in-out",
+        whiteSpace: "nowrap",
+      }}>
+        {ROLE_LIST[index]}
+      </span>
+      <style>{`@media (prefers-reduced-motion: reduce) { .hero-role-rotator { transition: none !important; } }`}</style>
     </span>
   );
 }
@@ -194,16 +208,16 @@ function Hero() {
             IT・SaaS業界のキャリアインフラ
           </div>
 
-          {/* Title with typewriter */}
+          {/* Title with role rotator */}
           <h1 style={{
             fontSize: "clamp(32px,4.5vw,54px)",
             fontWeight: 500, lineHeight: 1.4, letterSpacing: "0.01em",
             color: "var(--ink)", marginBottom: 24,
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            <HeroTypewriter />
+            <HeroRoleRotator />
             <br />
-            <span style={{ color: "var(--ink)" }}>について、先輩に話を聞く。</span>
+            <span style={{ color: "var(--ink)" }}>の求人と企業を、先輩と話しながら選ぶ。</span>
           </h1>
 
           {/* Lead */}

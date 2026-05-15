@@ -1,0 +1,120 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Opinioについて | Opinio",
+  description:
+    "IT/SaaS業界に特化したキャリアインフラ「Opinio」の運営理念・コンセプトについて。",
+};
+
+export default function AboutPage() {
+  return (
+    <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
+      <div style={{ maxWidth: 820, margin: "0 auto", padding: "64px 24px 96px" }}>
+        {/* Breadcrumb */}
+        <nav style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--ink-mute)", marginBottom: 40 }}>
+          <Link href="/" style={{ color: "var(--royal)", textDecoration: "none" }}>ホーム</Link>
+          <span>›</span>
+          <span>Opinioについて</span>
+        </nav>
+
+        {/* Header */}
+        <div style={{ marginBottom: 56 }}>
+          <div style={{
+            display: "inline-block",
+            fontSize: 11, fontWeight: 700, letterSpacing: "0.12em",
+            color: "var(--royal)", textTransform: "uppercase",
+            marginBottom: 16,
+          }}>
+            ABOUT
+          </div>
+          <h1 style={{
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: "clamp(28px, 4vw, 40px)",
+            fontWeight: 700, lineHeight: 1.4,
+            color: "var(--ink)", marginBottom: 20,
+          }}>
+            Opinioについて
+          </h1>
+          <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: 600 }}>
+            IT/SaaS業界に特化したキャリアインフラ。<br />
+            企業の「今」を知り、先輩と話し、自分で決める。
+          </p>
+        </div>
+
+        {/* Mission */}
+        <div style={{
+          background: "#fff", borderRadius: 16, padding: "40px 40px",
+          border: "1px solid var(--line)",
+          boxShadow: "0 2px 12px rgba(0,35,102,0.06)",
+          marginBottom: 32,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase", marginBottom: 12 }}>
+            MISSION
+          </div>
+          <h2 style={{
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: "clamp(20px, 2.5vw, 26px)",
+            fontWeight: 700, color: "var(--ink)", marginBottom: 16, lineHeight: 1.5,
+          }}>
+            対話の、産業を作る。
+          </h2>
+          <p style={{ fontSize: 15, lineHeight: 1.9, color: "var(--ink-soft)" }}>
+            私たちは、採用を「スカウト」で済ませる時代に疑問を持っています。<br />
+            Opinioは「対話から始まる採用」を産業として確立することを目指します。<br />
+            求職者が能動的に情報を集め、先輩に相談し、納得して動く。そんなキャリアの作り方を支えるインフラでありたい。
+          </p>
+        </div>
+
+        {/* Values */}
+        <div style={{
+          background: "#fff", borderRadius: 16, padding: "40px 40px",
+          border: "1px solid var(--line)",
+          boxShadow: "0 2px 12px rgba(0,35,102,0.06)",
+          marginBottom: 32,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase", marginBottom: 20 }}>
+            VALUES
+          </div>
+          {[
+            { title: "電話しない", desc: "登録してもエージェントから電話がかかってくることはありません。すべてオンライン・テキストで完結します。" },
+            { title: "スカウトしない", desc: "企業から求職者へのスカウト送信機能はありません。対話は求職者側から始まります。" },
+            { title: "キャリアを考え続ける人のために", desc: "「転職活動中」かどうかに関係なく使えます。情報収集・先輩相談だけでも大歓迎です。" },
+            { title: "運営の丁寧な介在", desc: "メンター登録は個別声がけ、相談は編集部が精査してから転送します。品質を担保するために、量より質を選びます。" },
+          ].map((v, i) => (
+            <div key={i} style={{
+              display: "flex", gap: 16, alignItems: "flex-start",
+              paddingBottom: i < 3 ? 20 : 0,
+              marginBottom: i < 3 ? 20 : 0,
+              borderBottom: i < 3 ? "1px solid var(--line-soft)" : "none",
+            }}>
+              <div style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: "var(--royal)", flexShrink: 0, marginTop: 8,
+              }} />
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>{v.title}</div>
+                <div style={{ fontSize: 14, lineHeight: 1.8, color: "var(--ink-soft)" }}>{v.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Preparing notice */}
+        <div style={{
+          background: "var(--royal-50)", borderRadius: 12, padding: "24px 28px",
+          border: "1px solid var(--royal-100)",
+          textAlign: "center",
+        }}>
+          <p style={{ fontSize: 14, color: "var(--royal)", fontWeight: 500 }}>
+            詳細なAboutページは準備中です。最新情報は
+            <Link href="/articles" style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none", margin: "0 4px" }}>
+              記事ページ
+            </Link>
+            でご覧いただけます。
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
