@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -72,9 +73,16 @@ const labelStyle: React.CSSProperties = {
 
 // ── コンポーネント ──────────────────────────────────────────────────────────
 
-export function CreateCompanyClient({ userBadge }: { userBadge?: UserBadge | null }) {
+export function CreateCompanyClient({
+  userBadge,
+  availableGenres = [],
+}: {
+  userBadge?: UserBadge | null;
+  availableGenres?: Genre[];
+}) {
   const [name, setName] = useState("");
   const [industry, setIndustry] = useState("");
+  const [genres, setGenres] = useState<string[]>([]);
   const [website, setWebsite] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +180,7 @@ export function CreateCompanyClient({ userBadge }: { userBadge?: UserBadge | nul
           industry: industry || null,
           website: website.trim() || null,
           force_create: forceCreate,
+          genres,
         }),
       });
       const data = await res.json();
@@ -512,6 +521,27 @@ export function CreateCompanyClient({ userBadge }: { userBadge?: UserBadge | nul
             ))}
           </select>
         </div>
+
+        {/* 企業ジャンル */}
+        {availableGenres.length > 0 && (
+          <div>
+            <label style={labelStyle}>
+              企業ジャンル
+              <span style={{ fontWeight: 400, color: "var(--ink-mute)", marginLeft: 6, fontSize: 11 }}>
+                任意・複数選択可
+              </span>
+            </label>
+            <GenreChipSelector
+              genres={availableGenres}
+              selected={genres}
+              onChange={setGenres}
+              disabled={loading}
+            />
+            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.6 }}>
+              該当するジャンルを選択してください。検索や一覧表示で活用されます。
+            </div>
+          </div>
+        )}
 
         {/* 企業サイト URL */}
         <div>
