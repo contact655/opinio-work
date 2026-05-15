@@ -91,10 +91,18 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
 
+  // draft_data.genres を取り出して ow_company_genres 反映用に保持
+  const draftData = currentRow?.draft_data as Record<string, unknown> | null;
+  const genreSlugs: string[] = Array.isArray(draftData?.genres)
+    ? (draftData!.genres as string[])
+    : [];
+
   // draft_data があれば本番カラムに展開。なければ is_published のみ更新
   // ※ spread 後に is_published / published_at / updated_at / draft_data を上書きする順序に注意
+  // ※ genres は ow_companies カラムに存在しない（関係テーブル管理）ため、spread 前に除去
+  const { genres: _genresField, ...draftWithoutGenres } = (draftData ?? {}) as Record<string, unknown> & { genres?: unknown };
   const updatePayload: Record<string, unknown> = {
-    ...(currentRow?.draft_data ?? {}),
+    ...draftWithoutGenres,
     is_published: body.isPublished,
     published_at: body.isPublished ? now : undefined,
     updated_at: now,
@@ -109,6 +117,54 @@ export async function PATCH(req: Request) {
   if (error) {
     console.error("[company PATCH]", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // ── ow_company_genres の反映（パターンX: 全置換）─────────────────────────
+  try {
+    // 1. slug → genre_id の解決
+    const { data: genreRecords, error: genreQueryErr } = await supabase
+      .from("ow_genres")
+      .select("id, slug")
+      .in("slug", genreSlugs.length > 0 ? genreSlugs : ["__no_match__"]);
+
+    if (genreQueryErr) throw genreQueryErr;
+
+    // 不正な slug が混じっていた場合はログに出して無視
+    const resolvedSlugs = new Set((genreRecords ?? []).map((r) => r.slug));
+    const missingSlugs = genreSlugs.filter((s) => !resolvedSlugs.has(s));
+    if (missingSlugs.length > 0) {
+      console.warn(`[biz/company PATCH] Invalid genre slugs ignored: ${missingSlugs.join(", ")}`);
+    }
+
+    const genreIds = (genreRecords ?? []).map((r) => r.id);
+
+    // 2. 既存レコードを全 DELETE
+    const { error: deleteErr } = await supabase
+      .from("ow_company_genres")
+      .delete()
+      .eq("company_id", companyId);
+
+    if (deleteErr) throw deleteErr;
+
+    // 3. 新しい配列を全 INSERT（slug 配列が空の場合は INSERT スキップ → 全解除）
+    if (genreIds.length > 0) {
+      const { error: insertErr } = await supabase
+        .from("ow_company_genres")
+        .insert(
+          genreIds.map((genre_id) => ({
+            company_id: companyId,
+            genre_id,
+            is_human_approved: true,
+            is_ai_suggested: false,
+          }))
+        );
+
+      if (insertErr) throw insertErr;
+    }
+  } catch (genreErr) {
+    // ジャンル同期失敗はログに記録するが、公開処理自体は成功扱い（best-effort）
+    // 本番カラムへの展開は完了しているため、ユーザー操作はブロックしない
+    console.error("[company PATCH] ow_company_genres sync failed:", genreErr);
   }
 
   return NextResponse.json({ ok: true, publishedAt: body.isPublished ? now : null });

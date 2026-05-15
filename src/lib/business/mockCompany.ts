@@ -16,6 +16,7 @@ export type BizCompany = {
   mission: string;
   tagline: string;          // 公開ページ ヒーロー直下に表示
   industry: string;
+  genres: string[];         // slug 配列。ow_company_genres と同期。空配列を許容
   phase: string;
   url: string;
   logoGradient: string;
@@ -66,6 +67,7 @@ export const MOCK_COMPANY: BizCompany = {
   mission: "「はたらく」を通じて人生の可能性を広げるインフラをつくる",
   tagline: "",
   industry: "IT / SaaS",
+  genres: [],
   phase: "上場(東証グロース)",
   url: "https://timee.co.jp",
   logoGradient: "linear-gradient(135deg, #F97316, #EA580C)",

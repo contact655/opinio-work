@@ -19,6 +19,7 @@ import {
 } from "@/lib/business/mockCompany";
 import { createClient } from "@/lib/supabase/client";
 import { buildLogoStoragePath, type OfficePhoto } from "@/lib/business/photos";
+import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
 
 // ── SaveState ──────────────────────────────────────────────────────────────
 
@@ -36,6 +37,8 @@ type Props = {
   tenantLogoLetter?: string | null;
   memberships?: import("@/lib/business/dashboard").TenantCompany[];
   isAdmin?: boolean;
+  /** ow_genres 全件（display_order 昇順ソート済み）。GenreChipSelector に渡す。 */
+  availableGenres?: Genre[];
 };
 
 // ── 小コンポーネント ────────────────────────────────────────────────────────
@@ -248,6 +251,7 @@ export function CompanyEditClient({
   tenantLogoLetter,
   memberships,
   isAdmin = true,
+  availableGenres = [],
 }: Props) {
   const router = useRouter();
 
@@ -541,6 +545,18 @@ export function CompanyEditClient({
                   <FormSelect value={form.phase} onChange={(v) => update("phase", v)} options={PHASE_OPTIONS} />
                 </FormGroup>
               </div>
+              {availableGenres.length > 0 && (
+                <FormGroup>
+                  <FormLabel optional>企業ジャンル</FormLabel>
+                  <GenreChipSelector
+                    genres={availableGenres}
+                    selected={form.genres ?? []}
+                    onChange={(newSlugs) => update("genres", newSlugs)}
+                    disabled={isPublishing}
+                  />
+                  <FormHint>該当するジャンルを選択してください（複数可）。企業一覧・検索での絞り込みに活用されます。</FormHint>
+                </FormGroup>
+              )}
               <FormGroup>
                 <FormLabel>公式サイトURL</FormLabel>
                 <FormInput type="url" value={form.url} onChange={(v) => update("url", v)} placeholder="https://example.co.jp" />

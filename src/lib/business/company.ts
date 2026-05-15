@@ -69,7 +69,11 @@ function formatPublishedAgo(iso: string | null): string {
   return `${Math.floor(days / 30)}ヶ月前`;
 }
 
-export function transformDbToForm(row: DbCompany): BizCompany {
+export function transformDbToForm(row: DbCompany, currentPublishedGenres: string[] = []): BizCompany {
+  // genres の優先順位: draft_data.genres > 現在公開中の genres > 空配列
+  const draftGenres = row.draft_data?.genres;
+  const genres: string[] = Array.isArray(draftGenres) ? (draftGenres as string[]) : currentPublishedGenres;
+
   return {
     name: row.name ?? "",
     tagline: row.tagline ?? "",
@@ -77,6 +81,7 @@ export function transformDbToForm(row: DbCompany): BizCompany {
     whyJoin: row.why_join ?? "",
     companyFeatures: Array.isArray(row.company_features) ? row.company_features : [],
     industry: row.industry ?? "",
+    genres,
     phase: row.phase ?? row.business_stage ?? "",
     url: row.url ?? "",
     logoGradient: row.logo_gradient ?? "linear-gradient(135deg, var(--royal), var(--accent))",
@@ -121,6 +126,7 @@ export function transformFormToDb(form: BizCompany): Record<string, unknown> {
     why_join: form.whyJoin || null,
     company_features: form.companyFeatures.length > 0 ? form.companyFeatures : null,
     industry: form.industry || null,
+    genres: form.genres ?? [],
     phase: form.phase || null,
     url: form.url || null,
     logo_gradient: form.logoGradient || null,
@@ -229,6 +235,7 @@ export async function getCompanyContext(
 export async function fetchCompanyForTenant(
   supabase: SupabaseClient,
   tenantId: string,
+  currentPublishedGenres: string[] = [],
 ): Promise<BizCompany | null> {
   const { data, error } = await supabase
     .from("ow_companies")
@@ -242,5 +249,5 @@ export async function fetchCompanyForTenant(
   }
   if (!data) return null;
 
-  return transformDbToForm(data as unknown as DbCompany);
+  return transformDbToForm(data as unknown as DbCompany, currentPublishedGenres);
 }
