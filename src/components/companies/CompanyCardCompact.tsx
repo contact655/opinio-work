@@ -6,98 +6,118 @@ type Props = {
   company: CompanyForCarousel;
 };
 
-const LOGO_BG_COLORS = [
-  'bg-blue-100 text-blue-800',
-  'bg-purple-100 text-purple-800',
-  'bg-teal-100 text-teal-800',
-  'bg-amber-100 text-amber-800',
-  'bg-pink-100 text-pink-800',
-  'bg-rose-100 text-rose-800',
-  'bg-emerald-100 text-emerald-800',
-  'bg-indigo-100 text-indigo-800',
+// モックと同じ6色パステル（企業名のハッシュで決定論的に選択）
+const PLACEHOLDER_COLORS = [
+  { bg: '#d4f0e3', text: '#1f7a48' }, // green
+  { bg: '#fce8b8', text: '#8b5e0f' }, // yellow
+  { bg: '#fcd5dc', text: '#a8324a' }, // pink
+  { bg: '#d8e6ff', text: '#1e63d8' }, // blue
+  { bg: '#e8dcf5', text: '#6b3b9e' }, // purple
+  { bg: '#f5f7fa', text: '#5b6471' }, // gray
 ];
 
-function getLogoColor(name: string): string {
+function getPlaceholderColor(name: string) {
   const hash = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return LOGO_BG_COLORS[hash % LOGO_BG_COLORS.length];
-}
-
-function getInitials(name: string): string {
-  // 全角文字なら先頭2文字、半角なら先頭2文字
-  return name.slice(0, 2);
+  return PLACEHOLDER_COLORS[hash % PLACEHOLDER_COLORS.length];
 }
 
 export function CompanyCardCompact({ company }: Props) {
-  const logoColorClass = getLogoColor(company.name);
-  const initials = getInitials(company.name);
-  const meta = [
-    company.industry,
-    company.funding_stage,
-    company.employee_count ? `${company.employee_count}名` : null,
-  ].filter(Boolean).join('・');
+  const ph = getPlaceholderColor(company.name);
+  const initial = company.logo_letter ?? company.name.slice(0, 1);
+
+  // メタ: 業種 ・ 従業員数 ・ 募集中N
+  const metaParts: string[] = [];
+  if (company.industry) metaParts.push(company.industry);
+  if (company.employee_count) metaParts.push(company.employee_count);
+  if (company.job_count > 0) metaParts.push(`募集中${company.job_count}`);
 
   return (
-    <Link
-      href={`/companies/${company.id}`}
-      className="block bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition-all h-full"
-    >
-      {/* ロゴエリア（正方形） */}
-      <div className="w-full aspect-[3/2] bg-gray-50 rounded-lg flex items-center justify-center mb-3 overflow-hidden">
+    <Link href={`/companies/${company.id}`} className="genre-card">
+      {/* ロゴエリア — 16:10 アスペクト比 */}
+      <div style={{
+        aspectRatio: '16 / 10',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: company.logo_url ? '#f5f7fa' : ph.bg,
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
         {company.logo_url ? (
-          <div className="relative w-full h-full bg-white flex items-center justify-center">
-            <Image
-              src={company.logo_url}
-              alt={`${company.name}のロゴ`}
-              fill
-              className="object-contain p-4"
-              sizes="280px"
-            />
-          </div>
+          <Image
+            src={company.logo_url}
+            alt={`${company.name}のロゴ`}
+            fill
+            style={{ objectFit: 'contain', padding: '12%' }}
+            sizes="(max-width: 640px) 80vw, (max-width: 1024px) 40vw, (max-width: 1280px) 33vw, 20vw"
+          />
         ) : (
-          <div className={`w-full h-full flex items-center justify-center text-2xl font-bold ${logoColorClass}`}>
-            {initials}
-          </div>
+          <span style={{
+            fontSize: 22,
+            fontWeight: 700,
+            color: ph.text,
+            letterSpacing: '-0.02em',
+          }}>
+            {initial}
+          </span>
         )}
       </div>
 
-      {/* 社名 */}
-      <h3 className="text-base font-semibold mb-1 line-clamp-1">
-        {company.name}
-      </h3>
-
-      {/* メタ情報 */}
-      <p className="text-xs text-gray-500 mb-3 line-clamp-1">
-        {meta || '—'}
-      </p>
-
-      {/* 説明文（2行省略） */}
-      <p className="text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed">
-        {company.description || '—'}
-      </p>
-
-      {/* 求人情報 */}
-      {company.job_count > 0 && (
-        <div className="flex items-center gap-1.5 text-xs text-gray-700 mb-3">
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="2" y="7" width="20" height="14" rx="2" />
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-          </svg>
-          <span className="font-medium">募集中 {company.job_count}職種</span>
+      {/* カード本体 */}
+      <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* 社名 */}
+        <div style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: '#1a1d24',
+          lineHeight: 1.35,
+          overflow: 'hidden',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical' as const,
+        }}>
+          {company.name}
         </div>
-      )}
 
-      {/* タグ */}
-      <div className="flex gap-1.5 flex-wrap">
-        {company.accepting_casual_meetings && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 font-medium">
-            面談OK
-          </span>
+        {/* メタ情報 */}
+        {metaParts.length > 0 && (
+          <div style={{ fontSize: 12, color: '#5b6471', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
+            {metaParts.map((part, i) => (
+              <span key={i}>
+                {i > 0 && <span style={{ color: '#8b95a3', margin: '0 3px' }}>・</span>}
+                {part}
+              </span>
+            ))}
+          </div>
         )}
-        {company.remote_work_status && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-            {company.remote_work_status}
-          </span>
-        )}
+
+        {/* タグ */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
+          {company.accepting_casual_meetings && (
+            <span style={{
+              fontSize: 11,
+              padding: '2px 8px',
+              borderRadius: 4,
+              background: '#e6f5ed',
+              color: '#1f7a48',
+              fontWeight: 500,
+            }}>
+              面談OK
+            </span>
+          )}
+          {company.remote_work_status && (
+            <span style={{
+              fontSize: 11,
+              padding: '2px 8px',
+              borderRadius: 4,
+              background: '#f3f5f9',
+              color: '#4a5260',
+              fontWeight: 500,
+            }}>
+              {company.remote_work_status}
+            </span>
+          )}
+        </div>
       </div>
     </Link>
   );

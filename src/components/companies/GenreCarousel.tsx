@@ -1,7 +1,6 @@
-'use client';
+// CSS grid + scroll-snap カルーセル（矢印ボタン廃止、peek デザイン）
+// 状態管理不要のため Server Component として実装
 
-import { useRef, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CompanyCardCompact } from './CompanyCardCompact';
 import type { CompanyForCarousel } from '@/types/genre';
 
@@ -10,79 +9,104 @@ type Props = {
 };
 
 export function GenreCarousel({ companies }: Props) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateScrollButtons = () => {
-    if (!scrollRef.current) return;
-    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-    setCanScrollLeft(scrollLeft > 0);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
-  };
-
-  useEffect(() => {
-    updateScrollButtons();
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', updateScrollButtons);
-    window.addEventListener('resize', updateScrollButtons);
-    return () => {
-      el.removeEventListener('scroll', updateScrollButtons);
-      window.removeEventListener('resize', updateScrollButtons);
-    };
-  }, [companies]);
-
-  const scroll = (direction: 'left' | 'right') => {
-    if (!scrollRef.current) return;
-    const scrollAmount = scrollRef.current.clientWidth * 0.8;
-    scrollRef.current.scrollBy({
-      left: direction === 'left' ? -scrollAmount : scrollAmount,
-      behavior: 'smooth',
-    });
-  };
-
   if (companies.length === 0) {
     return (
-      <div className="bg-gray-50 rounded-lg p-3 text-center">
-        <p className="text-xs text-gray-500">このジャンルの企業は準備中です</p>
+      <div style={{
+        background: '#f8fafc',
+        borderRadius: 8,
+        padding: '12px 16px',
+        textAlign: 'center',
+      }}>
+        <p style={{ fontSize: 12, color: '#94a3b8' }}>このジャンルの企業は準備中です</p>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {/* 左矢印（カードの外側） */}
-      <button
-        onClick={() => scroll('left')}
-        disabled={!canScrollLeft}
-        className="flex-shrink-0 w-9 h-9 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-        aria-label="前へ"
-      >
-        <ChevronLeft className="w-5 h-5" />
-      </button>
+    <>
+      {/*
+        .genre-carousel: CSS grid によるカルーセル
+          - grid-auto-flow: column で横並びアイテムを grid で管理
+          - grid-auto-columns: 5列分の幅計算（gap 14px × 4 + peek 32px を除いた残りの 1/5）
+          - padding-right: 32px → 右端で次カードが覗く「peek」効果
+          - scroll-snap-type: x mandatory で 1 カードずつスナップ
 
-      {/* スクロール領域 */}
-      <div
-        ref={scrollRef}
-        className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 scrollbar-hide flex-1 min-w-0"
-      >
+        .genre-card: カード全体にホバーアニメーション
+          - transform: translateY(-2px) + shadow 強調
+          - GenreCarousel 内で定義し、CompanyCardCompact から className="genre-card" で参照
+
+        レスポンシブ (media query):
+          - < 640px:        1.2 列（次のカードを少し覗かせる）
+          - 641–1024px:     2.5 列
+          - 1025–1280px:    3 列
+          - ≥ 1281px:       5 列（デスクトップ基準）
+      */}
+      <style>{`
+        .genre-carousel {
+          display: grid;
+          grid-auto-flow: column;
+          grid-auto-columns: calc((100% - 14px * 4 - 32px) / 5);
+          gap: 14px;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          padding-right: 32px;
+          padding-bottom: 8px;
+          scrollbar-width: thin;
+          scrollbar-color: #e6e9ef transparent;
+        }
+        .genre-carousel::-webkit-scrollbar { height: 6px; }
+        .genre-carousel::-webkit-scrollbar-thumb {
+          background: #e6e9ef;
+          border-radius: 3px;
+        }
+        .genre-carousel > * { scroll-snap-align: start; }
+
+        @media (max-width: 640px) {
+          .genre-carousel {
+            grid-auto-columns: calc((100% - 14px - 32px) / 1.2);
+          }
+        }
+        @media (min-width: 641px) and (max-width: 1024px) {
+          .genre-carousel {
+            grid-auto-columns: calc((100% - 14px * 2 - 32px) / 2.5);
+          }
+        }
+        @media (min-width: 1025px) and (max-width: 1280px) {
+          .genre-carousel {
+            grid-auto-columns: calc((100% - 14px * 2 - 32px) / 3);
+          }
+        }
+        @media (min-width: 1281px) {
+          .genre-carousel {
+            grid-auto-columns: calc((100% - 14px * 4 - 32px) / 5);
+          }
+        }
+
+        /* カードスタイル（CompanyCardCompact から className="genre-card" で参照） */
+        .genre-card {
+          display: flex;
+          flex-direction: column;
+          background: #ffffff;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(15, 23, 42, 0.04);
+          text-decoration: none;
+          color: inherit;
+          transition: box-shadow 0.18s ease, transform 0.18s ease;
+          cursor: pointer;
+          height: 100%;
+        }
+        .genre-card:hover {
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.06);
+          transform: translateY(-2px);
+        }
+      `}</style>
+
+      <div className="genre-carousel">
         {companies.map((company) => (
-          <div key={company.id} className="flex-shrink-0 w-[280px] snap-start">
-            <CompanyCardCompact company={company} />
-          </div>
+          <CompanyCardCompact key={company.id} company={company} />
         ))}
       </div>
-
-      {/* 右矢印（カードの外側） */}
-      <button
-        onClick={() => scroll('right')}
-        disabled={!canScrollRight}
-        className="flex-shrink-0 w-9 h-9 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-        aria-label="次へ"
-      >
-        <ChevronRight className="w-5 h-5" />
-      </button>
-    </div>
+    </>
   );
 }

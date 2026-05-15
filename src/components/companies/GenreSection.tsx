@@ -1,6 +1,6 @@
 // src/components/companies/GenreSection.tsx
 // ジャンルセクション（ヘッダー + カルーセル）
-// 段階：genres-feature Phase C
+// モック companies-carousel-mock.html のセクションヘッダーに合わせて更新
 
 import Link from "next/link";
 import { GenreCarousel } from "./GenreCarousel";
@@ -12,26 +12,42 @@ type Props = {
 
 export function GenreSection({ genre }: Props) {
   return (
-    <section className="mb-8">
-      <div className="flex justify-between items-baseline mb-2">
+    <section style={{ marginBottom: 56 }}>
+      {/* セクションヘッダー */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        marginBottom: 20,
+      }}>
         <div>
-          <h2 className="text-base font-medium inline">{genre.name}</h2>
-          {genre.description && (
-            <span className="text-xs text-gray-500 ml-2">
-              {genre.description}
-              {genre.total_count > 0 && ` ・ ${genre.total_count}社`}
+          <span style={{ fontSize: 18, fontWeight: 700, color: '#1a1d24' }}>
+            {genre.name}
+          </span>
+          {(genre.description || genre.total_count > 0) && (
+            <span style={{ fontSize: 13, color: '#8b95a3', fontWeight: 400, marginLeft: 12 }}>
+              {genre.description && genre.description}
+              {genre.description && genre.total_count > 0 && ' ・ '}
+              {genre.total_count > 0 && `${genre.total_count}社`}
             </span>
           )}
         </div>
         {genre.total_count > 0 && (
           <Link
             href={`/companies?genre=${genre.slug}`}
-            className="text-xs text-blue-600 hover:underline flex-shrink-0"
+            style={{
+              fontSize: 13,
+              color: '#1e63d8',
+              textDecoration: 'none',
+              flexShrink: 0,
+            }}
           >
             すべて見る →
           </Link>
         )}
       </div>
+
+      {/* カルーセル */}
       <GenreCarousel companies={genre.companies} />
     </section>
   );
