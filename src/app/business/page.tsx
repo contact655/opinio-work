@@ -377,7 +377,7 @@ export default async function ForCompaniesPage() {
                     登録ユーザーの属性
                   </div>
                   {/* Tag cloud */}
-                  <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8, marginBottom: 20 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
                     {[
                       { label: "SaaS営業", weight: 700 },
                       { label: "カスタマーサクセス", weight: 700 },
@@ -400,18 +400,6 @@ export default async function ForCompaniesPage() {
                       }}>
                         {label}
                       </span>
-                    ))}
-                  </div>
-                  {/* Mini stats row */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
-                    {[
-                      { label: "IT業界実務経験", value: "多数在籍" },
-                      { label: "対象業界", value: "IT / SaaS" },
-                    ].map(({ label, value }) => (
-                      <div key={label} style={{ background: "#fff", borderRadius: 8, padding: "10px 12px", border: "1px solid var(--line-soft)" }}>
-                        <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, letterSpacing: "0.04em" }}>{label}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)" }}>{value}</div>
-                      </div>
                     ))}
                   </div>
                 </div>
