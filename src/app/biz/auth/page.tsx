@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
 
 type Mode = "signup" | "login";
 
@@ -11,6 +12,7 @@ type PendingCompany = {
   name: string;
   industry: string;
   employeeCount: string;
+  genres: string[];  // slug 配列（PR-β Phase 4 で追加）
 };
 const PENDING_COMPANY_KEY = "opinio_biz_pending_company";
 
@@ -524,6 +526,20 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
   const [companyName, setCompanyName] = useState("");
   const [industry, setIndustry] = useState("");
   const [employeeCount, setEmployeeCount] = useState("");
+  const [genres, setGenres] = useState<string[]>([]);
+
+  // ow_genres をクライアントサイドで取得（全体が "use client" のため useEffect パターンを採用）
+  const [availableGenres, setAvailableGenres] = useState<Genre[]>([]);
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("ow_genres")
+      .select("slug, name, display_order")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then(({ data }) => setAvailableGenres((data ?? []) as any[]));
+  }, []);
   const [contactName, setContactName] = useState("");
   const [contactTitle, setContactTitle] = useState("");
   // 招待モードではメアドをプリフィル（編集不可）
@@ -585,7 +601,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
           } else {
             // 通常モード: 企業情報を sessionStorage に退避してログインタブへ
             try {
-              const pending: PendingCompany = { name: companyName, industry, employeeCount };
+              const pending: PendingCompany = { name: companyName, industry, employeeCount, genres };
               sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify(pending));
             } catch {
               // sessionStorage 書き込み失敗は無視（プライベートモード等）
@@ -634,6 +650,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
           employee_count: employeeCount,
           department: contactTitle,
           role_title: contactTitle,
+          genres,
         }),
       });
 
@@ -760,6 +777,22 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* 企業ジャンル（任意）*/}
+            <div style={{ marginBottom: 16 }}>
+              <FieldLabel label="企業ジャンル" />
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
+                該当するジャンルを選択してください（任意・複数選択可）。
+              </div>
+              {/* ロード完了後にチップ群が現れる（方式X: チップ取得前は非表示） */}
+              {availableGenres.length > 0 && (
+                <GenreChipSelector
+                  genres={availableGenres}
+                  selected={genres}
+                  onChange={setGenres}
+                />
+              )}
             </div>
           </>
         )}
@@ -1048,6 +1081,7 @@ function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, route
             body: JSON.stringify({
               name: stored.name,
               industry: stored.industry || null,
+              genres: stored.genres ?? [],
             }),
           });
         } catch {

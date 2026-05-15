@@ -25,6 +25,9 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const body = await req.json();
 
+  // genres は ow_companies のカラムではないため分離（best-effort で ow_company_genres に INSERT）
+  const genreSlugs: string[] = Array.isArray(body.genres) ? body.genres : [];
+
   if (!body.name || body.name.trim() === "") {
     return NextResponse.json(
       { error: "会社名は必須です" },
@@ -78,6 +81,47 @@ export async function POST(req: Request) {
       );
     if (tagError) {
       console.error("[company/register] tags INSERT failed:", tagError.message);
+    }
+  }
+
+  // 2.5 ow_company_genres INSERT（best-effort: 失敗しても company 作成成功として扱う）
+  if (genreSlugs.length > 0) {
+    try {
+      // slug → genre_id の解決
+      const { data: genreRecords } = await admin
+        .from("ow_genres")
+        .select("id, slug")
+        .in("slug", genreSlugs);
+
+      // 不正な slug の警告ログ
+      const resolvedSlugs = new Set((genreRecords ?? []).map((r: { slug: string }) => r.slug));
+      const missingSlugs = genreSlugs.filter((s) => !resolvedSlugs.has(s));
+      if (missingSlugs.length > 0) {
+        console.warn(`[company/register POST] Invalid genre slugs ignored: ${missingSlugs.join(", ")}`);
+      }
+
+      const genreIds = (genreRecords ?? []).map((r: { id: string }) => r.id);
+      if (genreIds.length > 0) {
+        const { error: genresError } = await admin
+          .from("ow_company_genres")
+          .insert(
+            genreIds.map((genre_id: string) => ({
+              company_id: company.id,
+              genre_id,
+              is_human_approved: true,
+              is_ai_suggested: false,
+            }))
+          );
+
+        if (genresError) {
+          console.error(
+            `[company/register POST] ow_company_genres INSERT failed for ${company.id}:`,
+            genresError.message
+          );
+        }
+      }
+    } catch (genreErr) {
+      console.error("[company/register POST] ow_company_genres sync error:", genreErr);
     }
   }
 
