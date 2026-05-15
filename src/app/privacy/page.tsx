@@ -1,0 +1,17 @@
+import fs from "fs";
+import path from "path";
+import type { Metadata } from "next";
+import { LegalDocument } from "@/components/legal/LegalDocument";
+
+export const metadata: Metadata = {
+  title: "プライバシーポリシー | Opinio Work",
+  description: "Opinio Work のプライバシーポリシーです。個人情報の取扱いについて定めています。",
+  robots: { index: true, follow: true },
+};
+
+export default function PrivacyPage() {
+  const filePath = path.join(process.cwd(), "content/legal/privacy-policy.md");
+  const content = fs.readFileSync(filePath, "utf-8");
+
+  return <LegalDocument content={content} />;
+}
