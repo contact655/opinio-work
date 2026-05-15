@@ -255,10 +255,10 @@ export default function MentorPage() {
             >
               これは Opinio Work のメンター制度の前提です。詳細は{" "}
               <Link
-                href="/terms/mentor"
+                href="/mentor-terms"
                 style={{ color: "var(--royal)", textDecoration: "underline" }}
               >
-                利用規約（/terms/mentor）
+                メンター向け利用規約
               </Link>
               をご確認ください。
             </p>
