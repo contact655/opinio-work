@@ -45,7 +45,7 @@ export function GenreCarousel({ companies }: Props) {
         .genre-carousel {
           display: grid;
           grid-auto-flow: column;
-          grid-auto-columns: calc((100% - 14px * 4 - 32px) / 5);
+          grid-auto-columns: calc((100% - 14px * 3 - 32px) / 4);
           gap: 14px;
           overflow-x: auto;
           scroll-snap-type: x mandatory;
@@ -78,7 +78,7 @@ export function GenreCarousel({ companies }: Props) {
         }
         @media (min-width: 1281px) {
           .genre-carousel {
-            grid-auto-columns: calc((100% - 14px * 4 - 32px) / 5);
+            grid-auto-columns: calc((100% - 14px * 3 - 32px) / 4);
           }
         }
 
@@ -87,7 +87,7 @@ export function GenreCarousel({ companies }: Props) {
           display: flex;
           flex-direction: column;
           background: #ffffff;
-          border-radius: 12px;
+          border-radius: 16px;
           overflow: hidden;
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(15, 23, 42, 0.04);
           text-decoration: none;
