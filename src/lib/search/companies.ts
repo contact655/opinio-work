@@ -28,6 +28,7 @@ export type CompanySearchParams = {
   size?: SizeRange;
   workStyle?: WorkStyleValue;
   hiring?: boolean;
+  location?: string;  // 都道府県フィルタ（例: "東京都", "大阪府"）
 };
 
 export type CompanySearchResult = {
@@ -83,7 +84,7 @@ export async function searchCompanies(
     .from("ow_companies")
     .select(
       "id, name, industry, funding_stage, employee_count, description, " +
-      "accepting_casual_meetings, remote_work_status, logo_letter, logo_gradient, logo_url, updated_at"
+      "accepting_casual_meetings, remote_work_status, location, logo_letter, logo_gradient, logo_url, updated_at"
     )
     .eq("is_published", true);
 
@@ -103,6 +104,11 @@ export async function searchCompanies(
   // 勤務形態フィルタ（ow_companies.remote_work_status）
   if (params.workStyle) {
     query = query.eq("remote_work_status", params.workStyle);
+  }
+
+  // 所在地フィルタ（都道府県）
+  if (params.location) {
+    query = query.eq("location", params.location);
   }
 
   const { data: rawCompanies, error } = await query.order("name");
@@ -166,6 +172,27 @@ export async function fetchDistinctIndustries(): Promise<string[]> {
     if (row.industry && !seen.has(row.industry)) {
       seen.add(row.industry);
       result.push(row.industry);
+    }
+  }
+  return result;
+}
+
+/** 公開企業の distinct location リスト（都道府県フィルタ選択肢） */
+export async function fetchDistinctLocations(): Promise<string[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("ow_companies")
+    .select("location")
+    .eq("is_published", true)
+    .not("location", "is", null)
+    .order("location");
+
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const row of data ?? []) {
+    if (row.location && !seen.has(row.location)) {
+      seen.add(row.location);
+      result.push(row.location);
     }
   }
   return result;

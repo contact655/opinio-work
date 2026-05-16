@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 type Props = {
   industries: string[];
+  locations: string[];
 };
 
 const SIZE_OPTIONS = [
@@ -20,7 +21,7 @@ const WORK_STYLE_OPTIONS = [
   { value: "full_remote", label: "フルリモート" },
 ] as const;
 
-export function CompanySearchBar({ industries }: Props) {
+export function CompanySearchBar({ industries, locations }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -64,7 +65,8 @@ export function CompanySearchBar({ industries }: Props) {
     searchParams.get("industry") ||
     searchParams.get("size") ||
     searchParams.get("workStyle") ||
-    searchParams.get("hiring")
+    searchParams.get("hiring") ||
+    searchParams.get("location")
   );
 
   const activeSelect: React.CSSProperties = {
@@ -197,6 +199,22 @@ export function CompanySearchBar({ industries }: Props) {
               <option key={ind} value={ind}>{ind}</option>
             ))}
           </select>
+
+          {/* 都道府県 */}
+          {locations.length > 0 && (
+            <select
+              className="filter-select"
+              style={searchParams.get("location") ? activeSelect : undefined}
+              value={searchParams.get("location") ?? ""}
+              onChange={(e) => updateParam("location", e.target.value || null)}
+              aria-label="都道府県フィルタ"
+            >
+              <option value="">都道府県</option>
+              {locations.map((loc) => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
+            </select>
+          )}
 
           {/* 従業員規模 */}
           <select

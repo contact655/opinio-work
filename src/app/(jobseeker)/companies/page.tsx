@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { fetchGenresWithCompanies } from "@/lib/genres";
-import { fetchDistinctIndustries } from "@/lib/search/companies";
+import { fetchDistinctIndustries, fetchDistinctLocations } from "@/lib/search/companies";
 import { GenreSection } from "@/components/companies/GenreSection";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
@@ -18,6 +18,7 @@ type SearchParams = {
   size?: string;
   workStyle?: string;
   hiring?: string;
+  location?: string;
 };
 
 type Props = {
@@ -25,11 +26,14 @@ type Props = {
 };
 
 export default async function CompaniesPage({ searchParams }: Props) {
-  const { q, industry, size, workStyle, hiring } = searchParams;
-  const hasFilter = Boolean(q || industry || size || workStyle || hiring);
+  const { q, industry, size, workStyle, hiring, location } = searchParams;
+  const hasFilter = Boolean(q || industry || size || workStyle || hiring || location);
 
-  // 業種一覧は常に取得（検索バーのドロップダウン用）
-  const industries = await fetchDistinctIndustries();
+  // 業種・都道府県一覧は常に取得（検索バーのドロップダウン用）
+  const [industries, locations] = await Promise.all([
+    fetchDistinctIndustries(),
+    fetchDistinctLocations(),
+  ]);
 
   // カルーセル用ジャンルデータはフィルタなしの場合のみ取得
   const genresWithCompanies = hasFilter ? [] : await fetchGenresWithCompanies();
@@ -51,7 +55,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
       {/* 検索バー（常に表示） */}
       <Suspense>
-        <CompanySearchBar industries={industries} />
+        <CompanySearchBar industries={industries} locations={locations} />
       </Suspense>
 
       {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル */}
@@ -62,6 +66,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
           size={size}
           workStyle={workStyle}
           hiring={hiring}
+          location={location}
         />
       ) : (
         <div className="mt-6">

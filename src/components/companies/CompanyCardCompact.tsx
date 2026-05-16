@@ -21,13 +21,19 @@ function getPlaceholderColor(name: string) {
   return PLACEHOLDER_COLORS[hash % PLACEHOLDER_COLORS.length];
 }
 
+const REMOTE_STATUS_LABEL: Record<string, string> = {
+  full_remote: 'フルリモート',
+  hybrid: 'ハイブリッド',
+  on_site: '出社',
+};
+
 export function CompanyCardCompact({ company }: Props) {
   const ph = getPlaceholderColor(company.name);
   const initial = company.logo_letter ?? company.name.slice(0, 1);
 
-  // メタ: 業種 ・ 従業員数 ・ 募集中N
+  // メタ: 所在地 ・ 従業員数 ・ 募集中N
   const metaParts: string[] = [];
-  if (company.industry) metaParts.push(company.industry);
+  if (company.location) metaParts.push(company.location);
   if (company.employee_count) metaParts.push(company.employee_count);
   if (company.job_count > 0) metaParts.push(`募集中${company.job_count}`);
 
@@ -105,7 +111,7 @@ export function CompanyCardCompact({ company }: Props) {
               面談OK
             </span>
           )}
-          {company.remote_work_status && (
+          {company.remote_work_status && REMOTE_STATUS_LABEL[company.remote_work_status] && (
             <span style={{
               fontSize: 11,
               padding: '2px 8px',
@@ -114,7 +120,7 @@ export function CompanyCardCompact({ company }: Props) {
               color: '#4a5260',
               fontWeight: 500,
             }}>
-              {company.remote_work_status}
+              {REMOTE_STATUS_LABEL[company.remote_work_status]}
             </span>
           )}
         </div>
