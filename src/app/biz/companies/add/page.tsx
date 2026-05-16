@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "会社を追加 | Opinio Business",
+  title: "会社を追加 | OPINIO Business",
 };
 
 async function NoTenantPage() {

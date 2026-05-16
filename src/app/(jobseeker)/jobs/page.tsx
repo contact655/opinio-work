@@ -4,7 +4,7 @@ import { getJobs, getParentRoles } from "@/lib/supabase/queries";
 import JobsClient from "./JobsClient";
 
 export const metadata: Metadata = {
-  title: "求人を見つける — Opinio",
+  title: "求人を見つける — OPINIO",
   description:
     "LayerX・SmartHR・HubSpot・Salesforceなど、IT/SaaS業界の最新求人情報。フルリモート・高年収・PdM・エンジニア求人を検索。",
 };

@@ -8,7 +8,7 @@ import { fetchTeamMembers } from "@/lib/business/jobs";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "求人を作成 | Opinio Business",
+  title: "求人を作成 | OPINIO Business",
 };
 
 export default async function JobNewPage() {

@@ -5,7 +5,7 @@ import { getMentors, type MentorData } from "@/lib/supabase/queries";
 import MentorFilterBar from "./MentorFilterBar";
 
 export const metadata: Metadata = {
-  title: "先輩に相談する — Opinio",
+  title: "先輩に相談する — OPINIO",
   description:
     "LayerX・SmartHR・Ubie・Notionなど、IT/SaaS業界の先輩社員・元社員に直接キャリア相談。PdM・エンジニア・営業・CSのメンターが揃っています。",
 };
@@ -142,7 +142,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
       <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
-            <Link href="/" style={{ color: "var(--ink-mute)" }}>Opinio</Link>
+            <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
             <span style={{ color: "var(--ink-soft)" }}>先輩に相談</span>
           </div>

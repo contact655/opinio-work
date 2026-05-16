@@ -23,9 +23,9 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   const article = await getArticleBySlug(params.slug);
-  if (!article) return { title: "記事 — Opinio" };
+  if (!article) return { title: "記事 — OPINIO" };
   return {
-    title: `${article.title} — Opinio`,
+    title: `${article.title} — OPINIO`,
     description: article.subtitle,
   };
 }
@@ -522,7 +522,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
       <div style={{ background: "var(--bg-tint)", borderBottom: `1px solid ${LINE}`, padding: "10px 0" }}>
         <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: INK_MUTE, display: "flex", alignItems: "center", gap: 5 }}>
-            <Link href="/" style={{ color: INK_MUTE }}>Opinio</Link>
+            <Link href="/" style={{ color: INK_MUTE }}>OPINIO</Link>
             <span>/</span>
             <Link href="/articles" style={{ color: INK_MUTE }}>取材記事</Link>
             <span>/</span>

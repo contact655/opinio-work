@@ -289,7 +289,7 @@ function Hero() {
           }}>
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 16, color: "var(--royal)" }}>Opinio</span>
+              <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 16, color: "var(--royal)" }}>OPINIO</span>
               <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--ink-soft)" }}>
                 <span className="animate-blink-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", flexShrink: 0 }} />
                 最新情報

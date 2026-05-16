@@ -143,7 +143,7 @@ export function BusinessLayout({
             fontWeight: 700, fontSize: 20,
             color: "var(--royal)",
             letterSpacing: "-0.02em",
-          }}>Opinio</span>
+          }}>OPINIO</span>
           <span style={{
             fontFamily: "'Inter', sans-serif",
             fontSize: 9, fontWeight: 700,

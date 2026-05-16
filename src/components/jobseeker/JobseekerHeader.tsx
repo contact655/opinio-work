@@ -101,7 +101,7 @@ export function JobseekerHeader() {
             color: "var(--royal)",
             letterSpacing: "-0.02em",
           }}>
-            Opinio
+            OPINIO
           </span>
         </Link>
 

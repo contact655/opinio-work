@@ -7,7 +7,7 @@ import { fetchApplicationsForCompany } from "@/lib/business/applications";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "応募管理 | Opinio Business",
+  title: "応募管理 | OPINIO Business",
 };
 
 async function NoTenantPage() {

@@ -7,9 +7,9 @@ type Props = { params: { id: string } };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const mentor = await getMentorById(params.id);
-  if (!mentor) return { title: "メンターが見つかりません — Opinio" };
+  if (!mentor) return { title: "メンターが見つかりません — OPINIO" };
   return {
-    title: `${mentor.name}さんのプロフィール — Opinio`,
+    title: `${mentor.name}さんのプロフィール — OPINIO`,
     description: mentor.catchphrase || mentor.bio.slice(0, 120),
   };
 }
@@ -62,7 +62,7 @@ export default async function MentorDetailPage({ params }: Props) {
       <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
-            <Link href="/" style={{ color: "var(--ink-mute)" }}>Opinio</Link>
+            <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
             <Link href="/mentors" style={{ color: "var(--ink-mute)" }}>先輩に相談</Link>
             <span>/</span>

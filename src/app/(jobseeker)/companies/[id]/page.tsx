@@ -36,10 +36,10 @@ export async function generateMetadata({
   if (!result) return { title: "企業が見つかりません" };
   const { company } = result;
   return {
-    title: `${company.name} — 企業情報 | Opinio`,
+    title: `${company.name} — 企業情報 | OPINIO`,
     description: company.tagline,
     openGraph: {
-      title: `${company.name} | Opinio`,
+      title: `${company.name} | OPINIO`,
       description: company.tagline,
     },
   };

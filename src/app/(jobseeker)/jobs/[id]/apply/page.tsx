@@ -26,7 +26,7 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: 960, margin: "0 auto" }} className="px-5 md:px-10">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-            <Link href="/" style={{ color: "var(--ink-mute)" }}>Opinio</Link>
+            <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
             <Link href="/jobs" style={{ color: "var(--ink-mute)" }}>求人を探す</Link>
             <span>/</span>

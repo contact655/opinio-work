@@ -63,7 +63,7 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
     .select("name")
     .eq("id", params.id)
     .maybeSingle();
-  return { title: data ? `${data.name} — Opinio` : "プロフィール — Opinio" };
+  return { title: data ? `${data.name} — OPINIO` : "プロフィール — OPINIO" };
 }
 
 export default async function UserProfilePage({ params }: { params: { id: string } }) {

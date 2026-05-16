@@ -12,10 +12,10 @@ export async function generateMetadata({
   params: { id: string };
 }): Promise<Metadata> {
   const result = await fetchJobById(params.id);
-  if (!result) return { title: "求人 — Opinio" };
+  if (!result) return { title: "求人 — OPINIO" };
   const { job, company } = result;
   return {
-    title: `${job.role} — ${company.name} — Opinio`,
+    title: `${job.role} — ${company.name} — OPINIO`,
     description: job.highlight,
   };
 }
@@ -83,7 +83,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-            <Link href="/" style={{ color: "var(--ink-mute)" }}>Opinio</Link>
+            <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
             <Link href="/jobs" style={{ color: "var(--ink-mute)" }}>求人を探す</Link>
             <span>/</span>

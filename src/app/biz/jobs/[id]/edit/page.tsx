@@ -8,7 +8,7 @@ import { fetchJobById, fetchTeamMembers } from "@/lib/business/jobs";
 export const dynamic = "force-dynamic";
 
 export function generateMetadata() {
-  return { title: `求人編集 | Opinio Business` };
+  return { title: `求人編集 | OPINIO Business` };
 }
 
 async function NoTenantPage() {

@@ -7,7 +7,7 @@ import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 
 export const metadata: Metadata = {
-  title: "IT/SaaS企業を知る — Opinio",
+  title: "IT/SaaS企業を知る — OPINIO",
   description:
     "LayerX・SmartHR・HubSpot・Salesforceなど、IT/SaaS業界の企業の最新求人・組織文化・カジュアル面談情報をまとめて確認。",
 };
@@ -41,7 +41,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="mb-6">
-        <p className="text-xs text-gray-400 mb-1">Opinio / 企業を知る</p>
+        <p className="text-xs text-gray-400 mb-1">OPINIO / 企業を知る</p>
         <h1
           className="text-2xl font-medium mb-1"
           style={{ fontFamily: "serif" }}

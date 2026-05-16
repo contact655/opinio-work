@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "対話管理 | Opinio Business",
+  title: "対話管理 | OPINIO Business",
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────

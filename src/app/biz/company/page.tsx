@@ -9,7 +9,7 @@ import type { Genre } from "@/components/ui/GenreChipSelector";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "企業情報編集 | Opinio Business",
+  title: "企業情報編集 | OPINIO Business",
 };
 
 export default async function BizCompanyPage() {

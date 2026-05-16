@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ProfileEditClient from "./ProfileEditClient";
 
-export const metadata = { title: "設定 — Opinio" };
+export const metadata = { title: "設定 — OPINIO" };
 
 export default async function ProfileEditPage() {
   const supabase = createClient();

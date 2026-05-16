@@ -247,7 +247,7 @@ export default function ReserveForm({
         background: "var(--bg-tint)", padding: "13px 48px",
         borderBottom: "1px solid var(--line)", fontSize: 12, color: "var(--ink-mute)",
       }}>
-        <Link href="/" style={{ color: "var(--ink-mute)" }}>Opinio</Link>
+        <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
         <span style={{ margin: "0 6px" }}>/</span>
         <Link href="/mentors" style={{ color: "var(--ink-mute)" }}>先輩に相談</Link>
         <span style={{ margin: "0 6px" }}>/</span>

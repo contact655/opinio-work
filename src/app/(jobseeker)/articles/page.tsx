@@ -10,7 +10,7 @@ import { getArticles } from "@/lib/supabase/queries";
 import ArticleFilterBar from "./ArticleFilterBar";
 
 export const metadata: Metadata = {
-  title: "取材記事 — Opinio",
+  title: "取材記事 — OPINIO",
   description:
     "LayerX・SmartHR・Ubie・Salesforceなど、IT/SaaS業界のリアルな働き方を取材。社員インタビュー・メンターの声・CEO取材・組織レポートの4カテゴリで届けます。",
 };
@@ -174,7 +174,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
       <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
-            <Link href="/" style={{ color: "var(--ink-mute)" }}>Opinio</Link>
+            <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
             <span style={{ color: "var(--ink-soft)" }}>取材記事</span>
           </div>

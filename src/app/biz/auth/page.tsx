@@ -258,7 +258,7 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
           fontSize: 24,
           letterSpacing: "-0.02em",
           color: "#fff",
-        }}>Opinio</span>
+        }}>OPINIO</span>
         <span style={{
           fontFamily: "'Inter', sans-serif",
           fontSize: 10,

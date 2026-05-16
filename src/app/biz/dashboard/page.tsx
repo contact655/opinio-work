@@ -27,7 +27,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "ダッシュボード | Opinio Business",
+  title: "ダッシュボード | OPINIO Business",
 };
 
 function getGreeting(hour: number): string {

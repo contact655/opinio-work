@@ -451,7 +451,7 @@ export default function AuthPage() {
 function BrandSide() {
   return (
     <div style={styles.brandSide}>
-      <a href="/" style={styles.brandLogo}>Opinio</a>
+      <a href="/" style={styles.brandLogo}>OPINIO</a>
 
       <div style={styles.brandMain}>
         <h2 style={styles.brandTitle}>

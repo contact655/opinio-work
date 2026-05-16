@@ -8,7 +8,7 @@ import { fetchJobsForCompany } from "@/lib/business/jobs";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "求人管理 | Opinio Business",
+  title: "求人管理 | OPINIO Business",
 };
 
 async function NoTenantPage() {

@@ -6,7 +6,7 @@ import { AddByTokenClient } from "./AddByTokenClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "招待コードを入力 | Opinio Business",
+  title: "招待コードを入力 | OPINIO Business",
 };
 
 async function NoTenantPage() {

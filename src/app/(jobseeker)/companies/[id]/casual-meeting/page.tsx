@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCompanyById } from "@/lib/supabase/queries";
 import CasualMeetingForm from "./CasualMeetingForm";
 
-export const metadata = { title: "カジュアル面談申し込み — Opinio" };
+export const metadata = { title: "カジュアル面談申し込み — OPINIO" };
 
 export default async function CasualMeetingPage({
   params,

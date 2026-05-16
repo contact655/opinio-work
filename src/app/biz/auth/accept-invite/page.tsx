@@ -5,7 +5,7 @@ import { AcceptInviteClient } from "./AcceptInviteClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "招待を受諾 | Opinio Business",
+  title: "招待を受諾 | OPINIO Business",
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

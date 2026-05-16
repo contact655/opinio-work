@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "対象業界 | Opinio",
+  title: "対象業界 | OPINIO",
   description:
     "Opinioが対象とするIT/SaaS業界の定義について。B2B SaaS・外資IT・AIスタートアップなどを網羅。",
 };

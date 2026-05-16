@@ -6,7 +6,7 @@ import { PostsClient } from "./PostsClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "発信リンク管理 | Opinio Business",
+  title: "発信リンク管理 | OPINIO Business",
 };
 
 async function NoTenantPage() {

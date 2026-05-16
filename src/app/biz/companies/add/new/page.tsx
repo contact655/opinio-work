@@ -7,7 +7,7 @@ import type { Genre } from "@/components/ui/GenreChipSelector";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "新しい会社を作成 | Opinio Business",
+  title: "新しい会社を作成 | OPINIO Business",
 };
 
 export default async function CreateCompanyPage() {

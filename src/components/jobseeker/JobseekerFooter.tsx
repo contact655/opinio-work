@@ -26,7 +26,7 @@ export function JobseekerFooter() {
             color: "#fff",
             marginBottom: 10,
           }}>
-            Opinio
+            OPINIO
           </div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.8 }}>
             Truth to Careers<br />
@@ -79,7 +79,7 @@ export function JobseekerFooter() {
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
-              { href: "/about", label: "Opinioについて" },
+              { href: "/about", label: "OPINIOについて" },
               { href: "/industries", label: "対象業界" },
               { href: "/privacy", label: "プライバシーポリシー" },
               { href: "/terms", label: "利用規約" },

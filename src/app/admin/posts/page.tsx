@@ -4,7 +4,7 @@ import PostsAdminClient from "./PostsAdminClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "発信管理 | Opinio Admin",
+  title: "発信管理 | OPINIO Admin",
 };
 
 export default async function AdminPostsPage() {

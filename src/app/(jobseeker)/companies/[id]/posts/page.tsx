@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!company) return { title: "企業が見つかりません" };
   return {
-    title: `${company.name} の発信 | Opinio`,
+    title: `${company.name} の発信 | OPINIO`,
     description: `${company.name} の記事・動画・イベントなど外部発信コンテンツ一覧`,
   };
 }

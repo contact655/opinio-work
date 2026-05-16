@@ -8,7 +8,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px" }}>
-              Opinio
+              OPINIO
             </span>
             <p className="mt-3 text-sm text-gray-400">
               Truth to Careers
@@ -72,7 +72,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
                 <Link href="/about" className="hover:text-white">
-                  Opinioについて
+                  OPINIOについて
                 </Link>
               </li>
               <li>

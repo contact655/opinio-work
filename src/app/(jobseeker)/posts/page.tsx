@@ -7,7 +7,7 @@ import type { Database } from "@/lib/supabase/types";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "企業の発信 — Opinio",
+  title: "企業の発信 — OPINIO",
   description:
     "LayerX・SmartHR・HubSpotなど、IT/SaaS企業が発信する記事・動画・SNS投稿をまとめてお届けします。",
 };
@@ -181,7 +181,7 @@ export default async function PostsPage({ searchParams }: Props) {
       }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
-            <Link href="/" style={{ color: "var(--ink-mute)" }}>Opinio</Link>
+            <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
             <span style={{ color: "var(--ink-soft)" }}>発信</span>
           </div>
