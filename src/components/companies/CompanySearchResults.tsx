@@ -64,13 +64,13 @@ export async function CompanySearchResults({ q, industry, size, workStyle, hirin
           will-change: transform;
         }
         .genre-card:hover {
-          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.08);
-          transform: translateY(-4px) scale(1.01);
+          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.10);
+          transform: translateY(-6px) scale(1.02);
         }
         .genre-card:active {
-          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.06);
-          transform: translateY(-1px) scale(0.99);
-          transition-duration: 0.08s;
+          box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10), 0 0 0 1px rgba(15, 23, 42, 0.08);
+          transform: translateY(-2px) scale(0.98);
+          transition-duration: 0.06s;
         }
       `}</style>
 
