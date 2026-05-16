@@ -106,7 +106,7 @@
   --max-w-form-sm:  480px;   /* 認証・小フォーム (置換は Phase γ) */
 
   /* === Legacy (ページ互換) === */
-  --background: #F5F4F0;
+  --background: #FFFFFF;
   --foreground: #1a1a1a;
   --color-text-primary: #111111;
 }

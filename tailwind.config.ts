@@ -12,7 +12,7 @@ const config: Config = {
         primary: "#002366",       // --royal (旧 #1D9E75 緑 → royal blue に統一)
         "primary-dark": "#001A4D", // --royal-deep
         "primary-light": "#EFF3FC", // --royal-50
-        background: "#F5F4F0",
+        background: "#FFFFFF",
         foreground: "#1a1a1a",
         "card-border": "rgba(0,0,0,0.08)",
       },
