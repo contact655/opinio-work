@@ -58,13 +58,19 @@ export async function CompanySearchResults({ q, industry, size, workStyle, hirin
           box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.06);
           text-decoration: none;
           color: inherit;
-          transition: box-shadow 0.18s ease, transform 0.18s ease;
+          transition: box-shadow 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
           cursor: pointer;
           height: 100%;
+          will-change: transform;
         }
         .genre-card:hover {
-          box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.08);
-          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.08);
+          transform: translateY(-4px) scale(1.01);
+        }
+        .genre-card:active {
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.06);
+          transform: translateY(-1px) scale(0.99);
+          transition-duration: 0.08s;
         }
       `}</style>
 
