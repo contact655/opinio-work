@@ -39,7 +39,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const genresWithCompanies = hasFilter ? [] : await fetchGenresWithCompanies();
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="mb-6">
         <p className="text-xs text-gray-400 mb-1">Opinio / 企業を知る</p>
         <h1
