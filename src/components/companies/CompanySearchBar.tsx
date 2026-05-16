@@ -88,7 +88,6 @@ export function CompanySearchBar({ industries, locations }: Props) {
           border-radius: 10px;
           padding: 0 16px;
           transition: border-color 0.15s;
-          max-width: 720px;
           width: 100%;
         }
         .search-input-wrap:focus-within {
