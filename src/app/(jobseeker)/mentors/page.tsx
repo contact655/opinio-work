@@ -20,6 +20,7 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
       border: "1px solid var(--line)",
       borderRadius: 16,
       padding: "22px 22px 20px",
+      boxShadow: "0 2px 8px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)",
       transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
     }}
       className="mentor-card"
@@ -267,7 +268,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
       <style>{`
         .mentor-card:hover {
           border-color: var(--royal-100) !important;
-          box-shadow: 0 16px 40px rgba(15,23,42,0.08) !important;
+          box-shadow: 0 6px 16px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.08) !important;
           transform: translateY(-2px) !important;
         }
         .mentor-cta:hover {
