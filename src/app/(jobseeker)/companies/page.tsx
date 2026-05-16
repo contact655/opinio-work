@@ -39,20 +39,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const genresWithCompanies = hasFilter ? [] : await fetchGenresWithCompanies();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <p className="text-xs text-gray-400 mb-1">OPINIO / 企業を知る</p>
-        <h1
-          className="text-2xl font-medium mb-1"
-          style={{ fontFamily: "serif" }}
-        >
-          企業を、知る。
-        </h1>
-        <p className="text-sm text-gray-500">
-          IT/SaaS業界をジャンル別に。気になる1社が必ず見つかる。
-        </p>
-      </div>
-
+    <div className="max-w-7xl mx-auto px-4 pt-5 pb-6">
       {/* 検索バー（常に表示） */}
       <Suspense>
         <CompanySearchBar industries={industries} locations={locations} />
