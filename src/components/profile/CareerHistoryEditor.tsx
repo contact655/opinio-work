@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import StoryAccordion from "./StoryAccordion";
@@ -64,6 +64,7 @@ type Stint = {
 
 type StintDraft = {
   companyName: string;
+  companyId: string | null;  // 候補選択時のみ非null、＋登録・自由入力時は null
   isAnon: boolean;
   roleCategoryId: string;
   roleTitle: string;
@@ -76,6 +77,7 @@ type StintDraft = {
 
 const EMPTY_DRAFT: StintDraft = {
   companyName: "",
+  companyId: null,
   isAnon: false,
   roleCategoryId: "",
   roleTitle: "",
@@ -85,6 +87,53 @@ const EMPTY_DRAFT: StintDraft = {
   why: "",
   description: "",
 };
+
+// ── Company body helpers ──────────────────────────────────────────────────────
+
+/** 保存 body 用: company_id / company_text / company_anonymized の3者排他を保証 */
+function buildCompanyBody(
+  draft: Pick<StintDraft, "isAnon" | "companyId" | "companyName">
+): Record<string, string> {
+  if (draft.isAnon) {
+    return { company_anonymized: draft.companyName || "非公開企業" };
+  } else if (draft.companyId) {
+    // null も "" も falsy → company_text 経路へ
+    return { company_id: draft.companyId };
+  } else {
+    return { company_text: draft.companyName };
+  }
+}
+
+/** 楽観的更新用: StintDraft から Stint の会社名フィールドを組み立てる */
+function optimisticCompanyFields(
+  draft: Pick<StintDraft, "isAnon" | "companyId" | "companyName">
+): Pick<Stint, "displayCompanyName" | "companyType" | "companyId" | "companyText" | "companyAnonymized"> {
+  if (draft.isAnon) {
+    return {
+      displayCompanyName: draft.companyName || "非公開企業",
+      companyType: "anon",
+      companyId: undefined,
+      companyText: undefined,
+      companyAnonymized: draft.companyName || "非公開企業",
+    };
+  } else if (draft.companyId) {
+    return {
+      displayCompanyName: draft.companyName,
+      companyType: "master",
+      companyId: draft.companyId,
+      companyText: undefined,
+      companyAnonymized: undefined,
+    };
+  } else {
+    return {
+      displayCompanyName: draft.companyName,
+      companyType: "custom",
+      companyId: undefined,
+      companyText: draft.companyName,
+      companyAnonymized: undefined,
+    };
+  }
+}
 
 // ── Sort helper: isCurrent first, then startedAt DESC ────────────────────────
 
@@ -178,6 +227,188 @@ function IconButton({
   );
 }
 
+// ── CompanySearch ─────────────────────────────────────────────────────────────
+
+type CompanySuggestion = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  industry: string | null;
+  employee_count: string | null;
+};
+
+const AVATAR_COLORS = ["#4F46E5", "#059669", "#DC2626", "#D97706", "#0891B2", "#7C3AED"];
+function getAvatarColor(name: string): string {
+  const hash = name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+function CompanySearch({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  disabled: boolean;
+  onChange: (companyId: string | null, companyName: string) => void;
+}) {
+  const [results, setResults] = useState<CompanySuggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Click outside → close dropdown
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const q = e.target.value;
+    onChange(null, q); // companyId をキーストローク毎にリセット
+    setOpen(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (q.trim().length === 0) {
+      setResults([]);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `/api/companies/search?q=${encodeURIComponent(q.trim())}&limit=10`
+        );
+        if (res.ok) {
+          const data = (await res.json()) as { results?: CompanySuggestion[] };
+          setResults(data.results ?? []);
+        }
+      } catch {
+        // fetch 失敗時も ＋新規登録行は維持するため results を空のままにする
+      } finally {
+        setLoading(false);
+      }
+    }, 250);
+  }
+
+  function handleSelect(c: CompanySuggestion) {
+    onChange(c.id, c.name);
+    setResults([]);
+    setOpen(false);
+  }
+
+  function handleNew() {
+    onChange(null, value); // companyId=null、companyName=入力テキストで確定
+    setResults([]);
+    setOpen(false);
+  }
+
+  const showDropdown = open && value.trim().length > 0;
+
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      <style>{`
+        .ched-suggest-row:hover { background: var(--royal-50) !important; }
+        .ched-suggest-new:hover { background: var(--royal-50) !important; }
+      `}</style>
+      <input
+        type="text"
+        value={value}
+        onChange={handleInput}
+        onFocus={() => { if (value.trim().length > 0) setOpen(true); }}
+        placeholder="株式会社〇〇"
+        disabled={disabled}
+        style={fieldStyle()}
+      />
+      {showDropdown && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+          background: "#fff", border: "1px solid var(--line)", borderRadius: 8,
+          boxShadow: "0 8px 24px rgba(15,23,42,0.1)", zIndex: 30,
+          maxHeight: 260, overflowY: "auto",
+        }}>
+          {/* ローディング表示（結果0件かつロード中のみ） */}
+          {loading && results.length === 0 && (
+            <div style={{ padding: "10px 14px", fontSize: 12, color: "var(--ink-mute)" }}>
+              検索中…
+            </div>
+          )}
+
+          {/* 候補リスト */}
+          {results.map((c) => {
+            const avatarColor = getAvatarColor(c.name);
+            return (
+              <div
+                key={c.id}
+                onMouseDown={(e) => { e.preventDefault(); handleSelect(c); }}
+                style={{
+                  padding: "9px 12px", display: "flex", alignItems: "center", gap: 10,
+                  cursor: "pointer", borderBottom: "1px solid var(--line-soft)",
+                }}
+                className="ched-suggest-row"
+              >
+                {/* アバター: logo_url があれば画像、無ければイニシャル+固定色 */}
+                <div style={{
+                  width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                  overflow: "hidden",
+                  background: c.logo_url ? "#f5f7fa" : avatarColor,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {c.logo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                  ) : (
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", fontFamily: "Inter, sans-serif" }}>
+                      {c.name.charAt(0)}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{c.name}</div>
+                  {(c.industry || c.employee_count) && (
+                    <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 1 }}>
+                      {[c.industry, c.employee_count ? `${c.employee_count}名` : null].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* ＋ 新規登録 — 入力がある限り常時表示 */}
+          <div
+            onMouseDown={(e) => { e.preventDefault(); handleNew(); }}
+            style={{
+              padding: "9px 12px", display: "flex", alignItems: "center", gap: 10,
+              cursor: "pointer",
+              borderTop: results.length > 0 ? "1px solid var(--line-soft)" : "none",
+            }}
+            className="ched-suggest-new"
+          >
+            <div style={{
+              width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+              background: "var(--royal-50)", border: "1.5px dashed var(--royal)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
+              「{value}」を新規登録
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── StintForm ─────────────────────────────────────────────────────────────────
 
 function StintForm({
@@ -233,20 +464,35 @@ function StintForm({
             <input
               type="checkbox"
               checked={draft.isAnon}
-              onChange={(e) => set("isAnon", e.target.checked)}
+              onChange={(e) =>
+                // isAnon 切替時に companyId もリセット（XOR整合のため）
+                onDraftChange({ ...draft, isAnon: e.target.checked, companyId: null })
+              }
               style={{ accentColor: "var(--royal)" }}
             />
             非公開にする
           </label>
         </div>
-        <input
-          type="text"
-          value={draft.companyName}
-          onChange={(e) => set("companyName", e.target.value)}
-          placeholder={draft.isAnon ? "非公開企業（任意）" : "株式会社〇〇"}
-          disabled={isSaving}
-          style={fieldStyle()}
-        />
+        {draft.isAnon ? (
+          /* 匿名経路: company_anonymized に保存 → プレーン input のまま */
+          <input
+            type="text"
+            value={draft.companyName}
+            onChange={(e) => set("companyName", e.target.value)}
+            placeholder="非公開企業（任意）"
+            disabled={isSaving}
+            style={fieldStyle()}
+          />
+        ) : (
+          /* マスタ/カスタム経路: company_id or company_text に保存 */
+          <CompanySearch
+            value={draft.companyName}
+            disabled={isSaving}
+            onChange={(id, name) =>
+              onDraftChange({ ...draft, companyId: id, companyName: name })
+            }
+          />
+        )}
       </div>
 
       {/* Role category */}
@@ -539,6 +785,7 @@ export default function CareerHistoryEditor() {
   // ── Draft from stint ─────────────────────────────────────────────────────────
   const draftFromStint = useCallback((s: Stint): StintDraft => ({
     companyName: s.companyType === "anon" ? (s.companyAnonymized ?? "非公開企業") : s.displayCompanyName,
+    companyId: s.companyType === "master" ? (s.companyId ?? null) : null,
     isAnon: s.companyType === "anon",
     roleCategoryId: s.roleCategoryId,
     roleTitle: s.roleTitle ?? "",
@@ -573,11 +820,7 @@ export default function CareerHistoryEditor() {
         why: editDraft.why || undefined,
         description: editDraft.description || undefined,
       };
-      if (editDraft.isAnon) {
-        body.company_anonymized = editDraft.companyName || "非公開企業";
-      } else {
-        body.company_text = editDraft.companyName;
-      }
+      Object.assign(body, buildCompanyBody(editDraft));
 
       const res = await fetch(`/api/jobseeker/experiences/${editingId}`, {
         method: "PUT",
@@ -592,14 +835,7 @@ export default function CareerHistoryEditor() {
           s.id === editingId
             ? {
                 ...s,
-                displayCompanyName: editDraft.isAnon
-                  ? editDraft.companyName || "非公開企業"
-                  : editDraft.companyName,
-                companyType: editDraft.isAnon ? "anon" : "custom",
-                companyText: editDraft.isAnon ? undefined : editDraft.companyName,
-                companyAnonymized: editDraft.isAnon
-                  ? editDraft.companyName || "非公開企業"
-                  : undefined,
+                ...optimisticCompanyFields(editDraft),
                 roleCategoryId: editDraft.roleCategoryId,
                 roleLabel: ROLE_LABEL[editDraft.roleCategoryId] ?? editDraft.roleCategoryId,
                 roleTitle: editDraft.roleTitle || undefined,
@@ -643,11 +879,7 @@ export default function CareerHistoryEditor() {
         description: addDraft.description || undefined,
         display_order: stints.length,
       };
-      if (addDraft.isAnon) {
-        body.company_anonymized = addDraft.companyName || "非公開企業";
-      } else {
-        body.company_text = addDraft.companyName;
-      }
+      Object.assign(body, buildCompanyBody(addDraft));
 
       const res = await fetch("/api/jobseeker/experiences", {
         method: "POST",
@@ -659,14 +891,7 @@ export default function CareerHistoryEditor() {
 
       const newStint: Stint = {
         id,
-        displayCompanyName: addDraft.isAnon
-          ? addDraft.companyName || "非公開企業"
-          : addDraft.companyName,
-        companyType: addDraft.isAnon ? "anon" : "custom",
-        companyText: addDraft.isAnon ? undefined : addDraft.companyName,
-        companyAnonymized: addDraft.isAnon
-          ? addDraft.companyName || "非公開企業"
-          : undefined,
+        ...optimisticCompanyFields(addDraft),
         roleCategoryId: addDraft.roleCategoryId,
         roleLabel: ROLE_LABEL[addDraft.roleCategoryId] ?? addDraft.roleCategoryId,
         roleTitle: addDraft.roleTitle || undefined,
