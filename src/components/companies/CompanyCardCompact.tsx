@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { MapPin, Users } from 'lucide-react';
 import type { CompanyForCarousel } from '@/types/genre';
 
 type Props = {
@@ -32,10 +33,14 @@ export function CompanyCardCompact({ company }: Props) {
   const initial = company.logo_letter ?? company.name.slice(0, 1);
 
   // メタ: 所在地 ・ 従業員数 ・ 募集中N
-  const metaParts: string[] = [];
-  if (company.location) metaParts.push(company.location);
-  if (company.employee_count) metaParts.push(company.employee_count);
-  if (company.job_count > 0) metaParts.push(`募集中${company.job_count}`);
+  type MetaItem = { icon?: React.ReactNode; label: string };
+  const metaItems: MetaItem[] = [];
+  if (company.location)
+    metaItems.push({ icon: <MapPin size={11} strokeWidth={1.5} color="#8b95a3" />, label: company.location });
+  if (company.employee_count)
+    metaItems.push({ icon: <Users size={11} strokeWidth={1.5} color="#8b95a3" />, label: company.employee_count });
+  if (company.job_count > 0)
+    metaItems.push({ label: `募集中${company.job_count}` });
 
   return (
     <Link href={`/companies/${company.id}`} className="genre-card">
@@ -86,12 +91,13 @@ export function CompanyCardCompact({ company }: Props) {
         </div>
 
         {/* メタ情報 */}
-        {metaParts.length > 0 && (
+        {metaItems.length > 0 && (
           <div style={{ fontSize: 12, color: '#5b6471', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
-            {metaParts.map((part, i) => (
-              <span key={i}>
+            {metaItems.map((item, i) => (
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 {i > 0 && <span style={{ color: '#8b95a3', margin: '0 3px' }}>・</span>}
-                {part}
+                {item.icon}
+                {item.label}
               </span>
             ))}
           </div>
