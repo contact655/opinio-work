@@ -88,9 +88,11 @@ function CompanyTypeOption({
 // ─── Sub: Company master suggest ──────────────────────────────────────────────
 
 function CompanyMasterSearch({
-  value, onChange,
+  value, onChange, onRegisterNew,
 }: {
-  value: string; onChange: (id: string, name: string) => void;
+  value: string;
+  onChange: (id: string, name: string) => void;
+  onRegisterNew?: (name: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -147,7 +149,7 @@ function CompanyMasterSearch({
           }}
         />
       </div>
-      {open && results.length > 0 && (
+      {open && query.length > 0 && (
         <div style={{
           position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
           background: "#fff", border: "1px solid var(--line)", borderRadius: 8,
@@ -184,6 +186,34 @@ function CompanyMasterSearch({
               </div>
             </div>
           ))}
+          {/* ＋ 新規登録 — 入力がある限り常時表示 */}
+          <div
+            onClick={() => {
+              onRegisterNew?.(query);
+              setQuery("");
+              setOpen(false);
+            }}
+            style={{
+              padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
+              cursor: "pointer",
+              borderTop: results.length > 0 ? "1px solid var(--line-soft)" : "none",
+            }}
+            className="company-suggest-new"
+          >
+            <div style={{
+              width: 28, height: 28, borderRadius: 6,
+              background: "var(--royal-50)", border: "1.5px dashed var(--royal)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
+              「{query}」を新規登録
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -449,6 +479,10 @@ export default function CareerModal({ open, editTarget, onClose, onSave }: Props
               <CompanyMasterSearch
                 value={form.companyId}
                 onChange={(id, _name) => { set("companyId", id); }}
+                onRegisterNew={(name) => {
+                  set("companyType", "custom");
+                  set("companyText", name);
+                }}
               />
               <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6, lineHeight: 1.6 }}>
                 マスタにない企業は「登録されていない企業を自由入力」を選んでください。
@@ -649,6 +683,7 @@ export default function CareerModal({ open, editTarget, onClose, onSave }: Props
 
       <style>{`
         .company-suggest-row:hover { background: var(--royal-50) !important; }
+        .company-suggest-new:hover { background: var(--royal-50) !important; }
         .role-suggest-row:hover { background: var(--royal-50) !important; color: var(--royal) !important; }
       `}</style>
     </div>
