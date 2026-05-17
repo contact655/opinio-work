@@ -36,9 +36,9 @@ export function CompanyCardCompact({ company }: Props) {
   type MetaItem = { icon?: React.ReactNode; label: string };
   const metaItems: MetaItem[] = [];
   if (company.location)
-    metaItems.push({ icon: <MapPin size={11} strokeWidth={1.5} color="#8b95a3" />, label: company.location });
+    metaItems.push({ icon: <MapPin size={14} strokeWidth={1.5} color="#8b95a3" />, label: company.location });
   if (company.employee_count)
-    metaItems.push({ icon: <Users size={11} strokeWidth={1.5} color="#8b95a3" />, label: company.employee_count });
+    metaItems.push({ icon: <Users size={14} strokeWidth={1.5} color="#8b95a3" />, label: company.employee_count });
   if (company.job_count > 0)
     metaItems.push({ label: `募集中${company.job_count}` });
 
@@ -94,8 +94,8 @@ export function CompanyCardCompact({ company }: Props) {
         {metaItems.length > 0 && (
           <div style={{ fontSize: 12, color: '#5b6471', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
             {metaItems.map((item, i) => (
-              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                {i > 0 && <span style={{ color: '#8b95a3', margin: '0 3px' }}>・</span>}
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                {i > 0 && <span style={{ color: '#8b95a3', margin: '0 6px' }}>・</span>}
                 {item.icon}
                 {item.label}
               </span>
