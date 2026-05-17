@@ -212,12 +212,11 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
 // ─── VIEW: Dashboard ──────────────────────────────────────────────────────────
 
 function DashboardView({
-  userId, isMentor, onNavigate, userName, userInitial, userAvatar,
+  userId, isMentor, userName, userInitial, userAvatar,
   userLocation, userAboutMe, userBirthDate, userFutureAspirations, userSocialLinks,
   userSkillTags, userEducations, userCertifications, timelineCareers,
-  companyBookmarks, casualMeetings, mentorReservations,
 }: {
-  userId: string; isMentor: boolean; onNavigate: (v: ActiveView) => void;
+  userId: string; isMentor: boolean;
   userName: string; userInitial: string; userAvatar: string;
   userLocation?: string | null; userAboutMe?: string | null;
   userBirthDate?: string | null; userFutureAspirations?: string | null;
@@ -231,21 +230,7 @@ function DashboardView({
   }[];
   userCertifications?: { id: string; name: string; sort_order: number }[];
   timelineCareers?: CareerEntry[];
-  companyBookmarks: Bookmark[];
-  casualMeetings: CasualMeeting[];
-  mentorReservations: MentorReservation[];
 }) {
-  const pendingCasual = casualMeetings.filter(
-    (m) => m.status === "pending" || m.status === "scheduled"
-  ).length;
-  const pendingMentor = mentorReservations.filter(
-    (r) => r.status === "pending_review"
-  ).length;
-  const totalBookmarks =
-    MOCK_BOOKMARKS_ARTICLES.length +
-    companyBookmarks.length +
-    MOCK_BOOKMARKS_MENTORS.length;
-
   // MergedTimeline 用データ整形（/mypage は常に本人なので viewerIsOwner = true）
   const timelineEdus = toTimelineEducationEntries((userEducations ?? []) as RawEducation[]);
   const futureData = buildFutureData(
@@ -254,65 +239,6 @@ function DashboardView({
   );
   const hasMergedTimeline =
     (timelineCareers?.length ?? 0) > 0 || timelineEdus.length > 0 || futureData != null;
-
-  const recentActivity: {
-    id: string;
-    avatar: React.ReactNode;
-    title: string;
-    meta: string;
-    statusKey: string;
-    isMentorRow?: boolean;
-  }[] = [
-    {
-      id: "cm-1",
-      avatar: <CompanyAvatar initial="L" gradient="linear-gradient(135deg,#1E40AF,#002366)" />,
-      title: "株式会社LayerX · Bakuraku事業 PdM",
-      meta: "カジュアル面談 · 2026.04.18 申込",
-      statusKey: "pending",
-    },
-    {
-      id: "mr-1",
-      avatar: <PersonAvatar initial="渡" gradient="linear-gradient(135deg,#A78BFA,#7C3AED)" hasMentorBadge />,
-      title: "渡辺 美穂さん · AIスタートアップA社 CPO",
-      meta: "メンター相談 · 2026.04.16 申込",
-      statusKey: "pending_review",
-      isMentorRow: true,
-    },
-    {
-      id: "cm-2",
-      avatar: <CompanyAvatar initial="S" gradient="linear-gradient(135deg,#00B4D8,#0077B6)" />,
-      title: "SmartHR株式会社 · プロダクト企画",
-      meta: "カジュアル面談 · 2026.04.12 申込 · 2026.04.28(火) 14:00〜",
-      statusKey: "scheduled",
-    },
-  ];
-
-  const statCards = [
-    {
-      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>,
-      iconBg: "var(--warm-soft)", iconColor: "#B45309",
-      value: pendingCasual, label: "カジュアル面談\n申込中",
-      onClick: () => onNavigate("casual"),
-    },
-    {
-      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-      iconBg: "var(--royal-50)", iconColor: "var(--royal)",
-      value: pendingMentor, label: "メンター相談\n審査中",
-      onClick: () => onNavigate("mentor-reserve"),
-    },
-    {
-      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
-      iconBg: "var(--pink-soft, #FCE7F3)", iconColor: "var(--pink)",
-      value: totalBookmarks, label: "ブックマーク\n合計",
-      onClick: () => onNavigate("bookmarks"),
-    },
-    {
-      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
-      iconBg: "var(--purple-soft)", iconColor: "var(--purple)",
-      value: 8, label: "閲覧した\n記事数",
-      onClick: undefined as (() => void) | undefined,
-    },
-  ];
 
   return (
     <div>
@@ -345,119 +271,6 @@ function DashboardView({
         </SectionBlock>
       )}
 
-      {/* Recent activity */}
-      <SectionBlock
-        title="最近の申込"
-        titleEn="Recent Applications"
-        right={
-          <button
-            onClick={() => onNavigate("casual")}
-            style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, border: "none", background: "none", cursor: "pointer" }}
-          >
-            すべて見る →
-          </button>
-        }
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {recentActivity.map((item) => (
-            <RequestItem
-              key={item.id}
-              avatar={item.avatar}
-              title={item.title}
-              meta={<span style={{ color: "var(--ink-soft)" }}>{item.meta}</span>}
-              statusKey={item.statusKey}
-            />
-          ))}
-        </div>
-      </SectionBlock>
-
-      {/* Bookmarks preview */}
-      <SectionBlock
-        title="ブックマーク"
-        titleEn="Bookmarks"
-        right={
-          <button
-            onClick={() => onNavigate("bookmarks")}
-            style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, border: "none", background: "none", cursor: "pointer" }}
-          >
-            すべて見る →
-          </button>
-        }
-      >
-        {companyBookmarks.length === 0 ? (
-          <div style={{ padding: "20px 0", textAlign: "center", color: "var(--ink-mute)", fontSize: 13 }}>
-            ブックマークした企業がここに表示されます
-          </div>
-        ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
-          {companyBookmarks.slice(0, 3).map((bk) => (
-            <Link key={bk.id} href={bk.href} style={{ textDecoration: "none" }}>
-            <div
-              style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 10, padding: "14px 16px", cursor: "pointer",
-                transition: "all 0.2s", height: "100%",
-              }}
-              className="bookmark-card-hover"
-            >
-              <div style={{
-                fontFamily: "Inter, sans-serif", fontSize: 9, fontWeight: 700,
-                color: "var(--ink-mute)", letterSpacing: "0.1em",
-                textTransform: "uppercase", marginBottom: 6,
-              }}>
-                {bk.badge_label}
-              </div>
-              <div style={{
-                fontSize: 12, fontWeight: 600, color: "var(--ink)",
-                lineHeight: 1.5, marginBottom: 8,
-                display: "-webkit-box",
-                WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-              } as React.CSSProperties}>
-                {bk.title}
-              </div>
-              <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.5 }}>{bk.meta}</div>
-            </div>
-            </Link>
-          ))}
-        </div>
-        )}
-      </SectionBlock>
-
-      {/* マイアクティビティ（数字カード）— 格下げ: ページ下部 */}
-      <SectionBlock title="マイアクティビティ" titleEn="Activity">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          {statCards.map((card, i) => (
-            <div
-              key={i}
-              onClick={card.onClick}
-              style={{
-                background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-                padding: "16px 18px", cursor: card.onClick ? "pointer" : "default",
-                transition: "all 0.2s",
-              }}
-              className={card.onClick ? "stat-card-hover" : ""}
-            >
-              <div style={{
-                width: 30, height: 30, borderRadius: 8,
-                background: card.iconBg, color: card.iconColor,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                marginBottom: 8,
-              }}>
-                {card.icon}
-              </div>
-              <div style={{
-                fontFamily: "Inter, sans-serif", fontSize: 22, fontWeight: 700,
-                color: "var(--ink)", marginBottom: 2,
-              }}>
-                {card.value}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 500, lineHeight: 1.5, whiteSpace: "pre-line" }}>
-                {card.label}
-              </div>
-            </div>
-          ))}
-        </div>
-      </SectionBlock>
     </div>
   );
 }
@@ -843,6 +656,184 @@ export default function MypageClient({
   ).length;
   const pendingReceivedCount = receivedRequests.filter((r) => r.status === "pending").length;
 
+  const totalBookmarks =
+    MOCK_BOOKMARKS_ARTICLES.length +
+    companyBookmarks.length +
+    MOCK_BOOKMARKS_MENTORS.length;
+
+  const recentActivity: {
+    id: string;
+    avatar: React.ReactNode;
+    title: string;
+    meta: string;
+    statusKey: string;
+  }[] = [
+    {
+      id: "cm-1",
+      avatar: <CompanyAvatar initial="L" gradient="linear-gradient(135deg,#1E40AF,#002366)" />,
+      title: "株式会社LayerX · Bakuraku事業 PdM",
+      meta: "カジュアル面談 · 2026.04.18 申込",
+      statusKey: "pending",
+    },
+    {
+      id: "mr-1",
+      avatar: <PersonAvatar initial="渡" gradient="linear-gradient(135deg,#A78BFA,#7C3AED)" hasMentorBadge />,
+      title: "渡辺 美穂さん · AIスタートアップA社 CPO",
+      meta: "メンター相談 · 2026.04.16 申込",
+      statusKey: "pending_review",
+    },
+    {
+      id: "cm-2",
+      avatar: <CompanyAvatar initial="S" gradient="linear-gradient(135deg,#00B4D8,#0077B6)" />,
+      title: "SmartHR株式会社 · プロダクト企画",
+      meta: "カジュアル面談 · 2026.04.12 申込 · 2026.04.28(火) 14:00〜",
+      statusKey: "scheduled",
+    },
+  ];
+
+  const statCards = [
+    {
+      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>,
+      iconBg: "var(--warm-soft)", iconColor: "#B45309",
+      value: pendingCasualCount, label: "カジュアル面談\n申込中",
+      onClick: () => navigate("casual"),
+    },
+    {
+      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+      iconBg: "var(--royal-50)", iconColor: "var(--royal)",
+      value: pendingMentorCount, label: "メンター相談\n審査中",
+      onClick: () => navigate("mentor-reserve"),
+    },
+    {
+      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
+      iconBg: "var(--pink-soft, #FCE7F3)", iconColor: "var(--pink)",
+      value: totalBookmarks, label: "ブックマーク\n合計",
+      onClick: () => navigate("bookmarks"),
+    },
+    {
+      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+      iconBg: "var(--purple-soft)", iconColor: "var(--purple)",
+      value: 8, label: "閲覧した\n記事数",
+      onClick: undefined as (() => void) | undefined,
+    },
+  ];
+
+  const dashboardRightColumn = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* 最近の申込 */}
+      <div>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+          <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>最近の申込</span>
+          <button
+            onClick={() => navigate("casual")}
+            style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, border: "none", background: "none", cursor: "pointer" }}
+          >
+            すべて見る →
+          </button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {recentActivity.map((item) => (
+            <RequestItem
+              key={item.id}
+              avatar={item.avatar}
+              title={item.title}
+              meta={<span style={{ color: "var(--ink-soft)" }}>{item.meta}</span>}
+              statusKey={item.statusKey}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ブックマーク */}
+      <div>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+          <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>ブックマーク</span>
+          <button
+            onClick={() => navigate("bookmarks")}
+            style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, border: "none", background: "none", cursor: "pointer" }}
+          >
+            すべて見る →
+          </button>
+        </div>
+        {companyBookmarks.length === 0 ? (
+          <div style={{ padding: "16px 0", textAlign: "center", color: "var(--ink-mute)", fontSize: 12 }}>
+            ブックマークした企業がここに表示されます
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {companyBookmarks.slice(0, 3).map((bk) => (
+              <Link key={bk.id} href={bk.href} style={{ textDecoration: "none" }}>
+                <div
+                  style={{
+                    background: "#fff", border: "1px solid var(--line)",
+                    borderRadius: 10, padding: "10px 14px", cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                  className="bookmark-card-hover"
+                >
+                  <div style={{
+                    fontFamily: "Inter, sans-serif", fontSize: 9, fontWeight: 700,
+                    color: "var(--ink-mute)", letterSpacing: "0.1em",
+                    textTransform: "uppercase", marginBottom: 4,
+                  }}>
+                    {bk.badge_label}
+                  </div>
+                  <div style={{
+                    fontSize: 12, fontWeight: 600, color: "var(--ink)",
+                    lineHeight: 1.5,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                  } as React.CSSProperties}>
+                    {bk.title}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* マイアクティビティ */}
+      <div>
+        <div style={{ marginBottom: 12 }}>
+          <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>マイアクティビティ</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+          {statCards.map((card, i) => (
+            <div
+              key={i}
+              onClick={card.onClick}
+              style={{
+                background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
+                padding: "14px", cursor: card.onClick ? "pointer" : "default",
+                transition: "all 0.2s",
+              }}
+              className={card.onClick ? "stat-card-hover" : ""}
+            >
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: card.iconBg, color: card.iconColor,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                marginBottom: 8,
+              }}>
+                {card.icon}
+              </div>
+              <div style={{
+                fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 700,
+                color: "var(--ink)", marginBottom: 2,
+              }}>
+                {card.value}
+              </div>
+              <div style={{ fontSize: 10, color: "var(--ink-soft)", fontWeight: 500, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                {card.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   const handleApprove = (id: string) => {
     setReceivedRequests((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: "approved" as const } : r))
@@ -867,12 +858,12 @@ export default function MypageClient({
       pendingCasualCount={pendingCasualCount}
       pendingMentorCount={pendingMentorCount}
       pendingReceivedCount={pendingReceivedCount}
+      rightColumn={activeView === "dashboard" ? dashboardRightColumn : undefined}
     >
       {activeView === "dashboard" && (
         <DashboardView
           userId={owUser?.id ?? ""}
           isMentor={isMentor}
-          onNavigate={navigate}
           userName={userName}
           userInitial={userInitial}
           userAvatar={userAvatar}
@@ -885,9 +876,6 @@ export default function MypageClient({
           userEducations={educations}
           userCertifications={certifications}
           timelineCareers={timelineCareers}
-          companyBookmarks={companyBookmarks}
-          casualMeetings={casualMeetings}
-          mentorReservations={mentorReservations}
         />
       )}
       {activeView === "casual" && <CasualView casualMeetings={casualMeetings} />}

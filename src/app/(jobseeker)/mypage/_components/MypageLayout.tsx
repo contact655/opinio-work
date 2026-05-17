@@ -86,6 +86,7 @@ export default function MypageLayout({
   pendingMentorCount = 0,
   pendingReceivedCount = 0,
   children,
+  rightColumn,
 }: {
   activeKey: MypageActiveKey;
   /** SPA ビュー切替ハンドラ。/mypage でのみ使用。サブページでは未指定。 */
@@ -96,6 +97,7 @@ export default function MypageLayout({
   pendingMentorCount?: number;
   pendingReceivedCount?: number;
   children: React.ReactNode;
+  rightColumn?: React.ReactNode;
 }) {
   const { isMentor, setIsMentor } = useMypageMock();
 
@@ -151,7 +153,7 @@ export default function MypageLayout({
       </div>
 
       {/* グリッドレイアウト */}
-      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", minHeight: `calc(100vh - ${topOffset}px)` }}>
+      <div style={{ display: "grid", gridTemplateColumns: rightColumn ? "260px 1fr 320px" : "260px 1fr", minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: 1440, margin: "0 auto" }}>
 
         {/* 左サイドバー */}
         <aside style={{
@@ -205,9 +207,21 @@ export default function MypageLayout({
         </aside>
 
         {/* メインコンテンツ */}
-        <main style={{ padding: "36px 40px 60px", maxWidth: 1000 }}>
+        <main style={{ padding: "36px 40px 60px" }}>
           {children}
         </main>
+
+        {/* 右サイドバー（rightColumn がある場合のみ描画） */}
+        {rightColumn && (
+          <aside style={{
+            padding: "36px 24px 60px",
+            position: "sticky", top: topOffset, alignSelf: "start",
+            height: `calc(100vh - ${topOffset}px)`, overflowY: "auto",
+            borderLeft: "1px solid var(--line)",
+          }}>
+            {rightColumn}
+          </aside>
+        )}
       </div>
 
       <style>{`
