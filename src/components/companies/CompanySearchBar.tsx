@@ -157,31 +157,6 @@ export function CompanySearchBar({ industries, locations }: Props) {
       `}</style>
 
       <div style={{ marginBottom: 20 }}>
-        {/* 検索ボックス */}
-        <div className="search-input-wrap" style={{ marginBottom: 12 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            type="text"
-            className="search-input"
-            placeholder="キーワードで企業を探す（例: SaaS, セールス, AI）"
-            value={inputValue}
-            onChange={handleInputChange}
-            aria-label="企業を検索"
-          />
-          {inputValue && (
-            <button
-              onClick={() => { setInputValue(""); updateParam("q", null); }}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", color: "#8b95a3", lineHeight: 1 }}
-              aria-label="クリア"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
         {/* フィルタバー */}
         <div className="filter-bar" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
 
@@ -259,6 +234,31 @@ export function CompanySearchBar({ industries, locations }: Props) {
           {hasAnyFilter && (
             <button className="clear-btn" onClick={handleClear}>
               ✕ フィルタをクリア
+            </button>
+          )}
+        </div>
+
+        {/* 検索ボックス */}
+        <div className="search-input-wrap" style={{ marginTop: 12 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="キーワードで企業を探す（例: SaaS, セールス, AI）"
+            value={inputValue}
+            onChange={handleInputChange}
+            aria-label="企業を検索"
+          />
+          {inputValue && (
+            <button
+              onClick={() => { setInputValue(""); updateParam("q", null); }}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", color: "#8b95a3", lineHeight: 1 }}
+              aria-label="クリア"
+            >
+              ✕
             </button>
           )}
         </div>
