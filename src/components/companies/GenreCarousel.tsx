@@ -111,8 +111,8 @@ export function GenreCarousel({ companies }: Props) {
           will-change: transform;
         }
         .genre-card:hover {
-          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.10);
-          transform: translateY(-6px) scale(1.02);
+          box-shadow: 0 20px 40px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(15, 23, 42, 0.12);
+          transform: translateY(-10px) scale(1.01);
         }
         .genre-card:active {
           box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10), 0 0 0 1px rgba(15, 23, 42, 0.08);
