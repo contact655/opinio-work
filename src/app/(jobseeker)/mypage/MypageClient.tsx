@@ -193,6 +193,54 @@ function PersonAvatar({
   );
 }
 
+// ─── Right column: Recent activity card ──────────────────────────────────────
+
+function RecentActivityItem({
+  avatar, companyName, jobTitle, kind, appliedAt, statusKey,
+}: {
+  avatar: React.ReactNode;
+  companyName: string;
+  jobTitle: string;
+  kind: string;
+  appliedAt: string;
+  statusKey: string;
+}) {
+  const truncStyle: React.CSSProperties = {
+    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+  };
+  return (
+    <div
+      style={{
+        display: "flex", flexDirection: "column", gap: 6,
+        padding: "12px 14px",
+        background: "var(--bg-tint)", border: "1px solid var(--line)",
+        borderRadius: 10, transition: "all 0.2s",
+      }}
+      className="request-item-row"
+    >
+      {/* アバター + テキスト列 */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minWidth: 0 }}>
+        <div style={{ flexShrink: 0 }}>{avatar}</div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ ...truncStyle, fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+            {companyName}
+          </div>
+          <div style={{ ...truncStyle, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 2 }}>
+            {jobTitle}
+          </div>
+          <div style={{ ...truncStyle, fontSize: 11, color: "var(--ink-mute)" }}>
+            {kind} · {appliedAt}
+          </div>
+        </div>
+      </div>
+      {/* ステータスバッジ: 独立行 */}
+      <div>
+        <StatusPill statusKey={statusKey} />
+      </div>
+    </div>
+  );
+}
+
 function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: string; desc?: string }) {
   return (
     <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13 }}>
@@ -664,29 +712,37 @@ export default function MypageClient({
   const recentActivity: {
     id: string;
     avatar: React.ReactNode;
-    title: string;
-    meta: string;
+    companyName: string;
+    jobTitle: string;
+    kind: string;
+    appliedAt: string;
     statusKey: string;
   }[] = [
     {
       id: "cm-1",
       avatar: <CompanyAvatar initial="L" gradient="linear-gradient(135deg,#1E40AF,#002366)" />,
-      title: "株式会社LayerX · Bakuraku事業 PdM",
-      meta: "カジュアル面談 · 2026.04.18 申込",
+      companyName: "株式会社LayerX",
+      jobTitle: "Bakuraku事業 PdM",
+      kind: "カジュアル面談",
+      appliedAt: "2026.04.18 申込",
       statusKey: "pending",
     },
     {
       id: "mr-1",
       avatar: <PersonAvatar initial="渡" gradient="linear-gradient(135deg,#A78BFA,#7C3AED)" hasMentorBadge />,
-      title: "渡辺 美穂さん · AIスタートアップA社 CPO",
-      meta: "メンター相談 · 2026.04.16 申込",
+      companyName: "渡辺 美穂さん",
+      jobTitle: "AIスタートアップA社 CPO",
+      kind: "メンター相談",
+      appliedAt: "2026.04.16 申込",
       statusKey: "pending_review",
     },
     {
       id: "cm-2",
       avatar: <CompanyAvatar initial="S" gradient="linear-gradient(135deg,#00B4D8,#0077B6)" />,
-      title: "SmartHR株式会社 · プロダクト企画",
-      meta: "カジュアル面談 · 2026.04.12 申込 · 2026.04.28(火) 14:00〜",
+      companyName: "SmartHR株式会社",
+      jobTitle: "プロダクト企画",
+      kind: "カジュアル面談",
+      appliedAt: "2026.04.12 申込 · 2026.04.28(火) 14:00〜",
       statusKey: "scheduled",
     },
   ];
@@ -733,11 +789,13 @@ export default function MypageClient({
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {recentActivity.map((item) => (
-            <RequestItem
+            <RecentActivityItem
               key={item.id}
               avatar={item.avatar}
-              title={item.title}
-              meta={<span style={{ color: "var(--ink-soft)" }}>{item.meta}</span>}
+              companyName={item.companyName}
+              jobTitle={item.jobTitle}
+              kind={item.kind}
+              appliedAt={item.appliedAt}
               statusKey={item.statusKey}
             />
           ))}
