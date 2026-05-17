@@ -36,9 +36,9 @@ export function CompanyCardCompact({ company }: Props) {
   type MetaItem = { icon?: React.ReactNode; label: string };
   const metaItems: MetaItem[] = [];
   if (company.location)
-    metaItems.push({ icon: <MapPin size={14} strokeWidth={1.5} color="#8b95a3" />, label: company.location });
+    metaItems.push({ icon: <MapPin size={14} strokeWidth={1.5} color="#E24B4A" />, label: company.location });
   if (company.employee_count)
-    metaItems.push({ icon: <Users size={14} strokeWidth={1.5} color="#8b95a3" />, label: company.employee_count });
+    metaItems.push({ icon: <Users size={14} strokeWidth={1.5} color="#639922" />, label: company.employee_count });
   if (company.job_count > 0)
     metaItems.push({ label: `募集中${company.job_count}` });
 
