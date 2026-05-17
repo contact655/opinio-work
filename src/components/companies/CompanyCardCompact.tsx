@@ -92,7 +92,7 @@ export function CompanyCardCompact({ company }: Props) {
 
         {/* メタ情報 */}
         {metaItems.length > 0 && (
-          <div style={{ fontSize: 12, color: '#5b6471', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
+          <div style={{ fontSize: 13, color: '#374151', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
             {metaItems.map((item, i) => (
               <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 {i > 0 && <span style={{ color: '#8b95a3', margin: '0 6px' }}>・</span>}
