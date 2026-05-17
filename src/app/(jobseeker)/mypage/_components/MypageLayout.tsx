@@ -167,7 +167,7 @@ export default function MypageLayout({
             color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase",
             padding: "0 24px 10px",
           }}>
-            マイアクティビティ
+            マイページ
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <SidebarItem icon={Icons.dashboard} label="ホーム"  active={activeKey === "dashboard"}      onClick={() => nav("dashboard")} />
