@@ -2471,7 +2471,7 @@ export default function ProfileEditClient({
       <MypageLayout activeKey="profile">
 
         {/* ── ヘッダー行: タイトル + 保存状態 + ← マイページ ───────────────── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: -16, marginBottom: 12 }}>
           <h1 style={{
             fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
             color: "var(--ink)", margin: 0,
