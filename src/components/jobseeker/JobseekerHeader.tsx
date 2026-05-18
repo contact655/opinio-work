@@ -24,28 +24,46 @@ export function JobseekerHeader() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession()
-      .then(async ({ data: { session } }) => {
-        const authUser = session?.user;
-        if (!authUser) return;
-        // Fetch display name from ow_users for initial
-        const { data: owUser } = await supabase
-          .from("ow_users")
-          .select("name")
-          .eq("auth_id", authUser.id)
-          .maybeSingle();
+    let active = true; // アンマウント後の setState 防止（二重発火・競合ガード）
 
-        setUser({
-          email: authUser.email ?? "",
-          name: owUser?.name ?? authUser.email?.split("@")[0] ?? "",
-        });
-      })
+    async function resolveUser(authUser: { id: string; email?: string } | null | undefined) {
+      if (!authUser) {
+        if (active) setUser(null);
+        return;
+      }
+      const { data: owUser } = await supabase
+        .from("ow_users")
+        .select("name")
+        .eq("auth_id", authUser.id)
+        .maybeSingle();
+
+      if (!active) return;
+      setUser({
+        email: authUser.email ?? "",
+        name: owUser?.name ?? authUser.email?.split("@")[0] ?? "",
+      });
+    }
+
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => resolveUser(session?.user))
       .catch(() => {
         // getSession 失敗時も loading を解除してボタンを表示する
       })
       .finally(() => {
-        setLoading(false);
+        if (active) setLoading(false);
       });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        resolveUser(session?.user);
+        if (active) setLoading(false);
+      }
+    );
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Click-outside to close dropdown
