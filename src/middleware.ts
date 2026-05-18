@@ -48,7 +48,7 @@ export async function middleware(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       const url = request.nextUrl.clone();
-      url.pathname = "/biz/auth";
+      url.pathname = pathname.startsWith("/admin") ? "/auth" : "/biz/auth";
       url.searchParams.set("next", pathname);
       return NextResponse.redirect(url);
     }

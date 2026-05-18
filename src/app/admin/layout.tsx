@@ -35,7 +35,7 @@ export default async function AdminLayout({
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    redirect("/biz/auth?next=/admin");
+    redirect("/auth?next=/admin");
   }
 
   // auth_is_admin() RPC — ow_user_roles に role='admin' の行があるか確認
