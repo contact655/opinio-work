@@ -70,8 +70,8 @@ export default function AdminCompaniesPage() {
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6">
+      {/* Tabs + count */}
+      <div className="flex items-center gap-2 mb-6">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.key}
@@ -85,6 +85,9 @@ export default function AdminCompaniesPage() {
             {tab.label}
           </button>
         ))}
+        <span className="ml-2 text-sm text-gray-400">
+          {activeTab === "all" ? `全 ${filtered.length} 社` : `${STATUS_TABS.find((t) => t.key === activeTab)?.label ?? activeTab} ${filtered.length} 社`}
+        </span>
       </div>
 
       {/* Table */}
