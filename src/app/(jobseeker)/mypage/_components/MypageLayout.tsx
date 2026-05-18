@@ -168,7 +168,7 @@ export default function MypageLayout({
             マイページ
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
-            <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      onClick={() => nav("dashboard")} />
+            <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      onClick={() => { window.location.href = "/mypage"; }} />
             <SidebarItem icon={Icons.application} label="応募管理"      active={activeKey === "applications"}                               onClick={() => { window.location.href = "/mypage/applications"; }} />
             <SidebarItem icon={Icons.message}     label="対話"          active={activeKey === "conversations"}                              onClick={() => { window.location.href = "/mypage/conversations"; }} />
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}       onClick={() => nav("bookmarks")} />
