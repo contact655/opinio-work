@@ -913,8 +913,6 @@ export default function MypageClient({
           setActiveView("dashboard");
         }
       }}
-      pendingCasualCount={pendingCasualCount}
-      pendingMentorCount={pendingMentorCount}
       pendingReceivedCount={pendingReceivedCount}
       rightColumn={activeView === "dashboard" ? dashboardRightColumn : undefined}
     >

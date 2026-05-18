@@ -82,8 +82,6 @@ export default function MypageLayout({
   activeKey,
   onNavigate,
   onIsMentorChange,
-  pendingCasualCount = 0,
-  pendingMentorCount = 0,
   pendingReceivedCount = 0,
   children,
   rightColumn,
@@ -93,8 +91,6 @@ export default function MypageLayout({
   onNavigate?: (key: MypageActiveKey) => void;
   /** isMentor が変化したときに呼ばれるコールバック（例: activeView のリセット）。 */
   onIsMentorChange?: (v: boolean) => void;
-  pendingCasualCount?: number;
-  pendingMentorCount?: number;
   pendingReceivedCount?: number;
   children: React.ReactNode;
   rightColumn?: React.ReactNode;
@@ -170,12 +166,10 @@ export default function MypageLayout({
             マイページ
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
-            <SidebarItem icon={Icons.dashboard} label="ホーム"  active={activeKey === "dashboard"}      onClick={() => nav("dashboard")} />
-            <SidebarItem icon={Icons.briefcase}   label="カジュアル面談"  active={activeKey === "casual"}         badge={pendingCasualCount}  onClick={() => nav("casual")} />
-            <SidebarItem icon={Icons.application} label="応募管理"        active={activeKey === "applications"}                               onClick={() => { window.location.href = "/mypage/applications"; }} />
-            <SidebarItem icon={Icons.message}     label="メンター相談"    active={activeKey === "mentor-reserve"} badge={pendingMentorCount}  onClick={() => nav("mentor-reserve")} />
-            <SidebarItem icon={Icons.message}   label="対話"            active={activeKey === "conversations"}   onClick={() => { window.location.href = "/mypage/conversations"; }} />
-            <SidebarItem icon={Icons.bookmark}  label="ブックマーク"    active={activeKey === "bookmarks"}       onClick={() => nav("bookmarks")} />
+            <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      onClick={() => nav("dashboard")} />
+            <SidebarItem icon={Icons.application} label="応募管理"      active={activeKey === "applications"}                               onClick={() => { window.location.href = "/mypage/applications"; }} />
+            <SidebarItem icon={Icons.message}     label="対話"          active={activeKey === "conversations"}                              onClick={() => { window.location.href = "/mypage/conversations"; }} />
+            <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}       onClick={() => nav("bookmarks")} />
           </nav>
 
           {isMentor && (
