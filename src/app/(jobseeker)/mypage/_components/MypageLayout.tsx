@@ -110,43 +110,45 @@ export default function MypageLayout({
 
   return (
     <>
-      {/* MOCK バナー: メンター切替 */}
-      <div style={{
-        background: "var(--bg-tint)", padding: "10px 32px",
-        borderBottom: "1px solid var(--line)",
-        display: "flex", alignItems: "center", gap: 10,
-        position: "sticky", top: 65, zIndex: 50,
-      }}>
-        <span style={{
-          fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
-          letterSpacing: "0.1em", textTransform: "uppercase",
-          fontFamily: "Inter, sans-serif",
+      {/* MOCK バナー: メンター切替（開発環境のみ表示） */}
+      {process.env.NODE_ENV === "development" && (
+        <div style={{
+          background: "var(--bg-tint)", padding: "10px 32px",
+          borderBottom: "1px solid var(--line)",
+          display: "flex", alignItems: "center", gap: 10,
+          position: "sticky", top: 65, zIndex: 50,
         }}>
-          MOCK:
-        </span>
-        {[
-          { label: "通常ユーザー", value: false },
-          { label: "メンター登録済み", value: true },
-        ].map((opt) => (
-          <button
-            key={String(opt.value)}
-            onClick={() => handleSetIsMentor(opt.value)}
-            style={{
-              padding: "5px 12px",
-              background: isMentor === opt.value ? "var(--royal)" : "#fff",
-              color: isMentor === opt.value ? "#fff" : "var(--ink-soft)",
-              border: `1px solid ${isMentor === opt.value ? "var(--royal)" : "var(--line)"}`,
-              borderRadius: 100, fontFamily: "inherit", fontSize: 11,
-              fontWeight: 600, cursor: "pointer",
-            }}
-          >
-            {opt.label}
-          </button>
-        ))}
-        <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-mute)" }}>
-          ※ モック用の切替。本番ではユーザーの役割に応じて動的に表示
-        </span>
-      </div>
+          <span style={{
+            fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
+            letterSpacing: "0.1em", textTransform: "uppercase",
+            fontFamily: "Inter, sans-serif",
+          }}>
+            MOCK:
+          </span>
+          {[
+            { label: "通常ユーザー", value: false },
+            { label: "メンター登録済み", value: true },
+          ].map((opt) => (
+            <button
+              key={String(opt.value)}
+              onClick={() => handleSetIsMentor(opt.value)}
+              style={{
+                padding: "5px 12px",
+                background: isMentor === opt.value ? "var(--royal)" : "#fff",
+                color: isMentor === opt.value ? "#fff" : "var(--ink-soft)",
+                border: `1px solid ${isMentor === opt.value ? "var(--royal)" : "var(--line)"}`,
+                borderRadius: 100, fontFamily: "inherit", fontSize: 11,
+                fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+          <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-mute)" }}>
+            ※ モック用の切替。本番ではユーザーの役割に応じて動的に表示
+          </span>
+        </div>
+      )}
 
       {/* グリッドレイアウト */}
       <div style={{ display: "grid", gridTemplateColumns: rightColumn ? "260px 1fr 320px" : "260px 1fr", minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: 1440, margin: "0 auto" }}>
