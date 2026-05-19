@@ -151,7 +151,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
           fontFamily: "var(--font-noto-serif)",
           fontSize: 22, fontWeight: 700, color: "var(--royal)", margin: "0 0 4px",
         }}>
-          応募管理
+          選考管理
         </h1>
         <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>
           自社求人への応募を確認し、選考状況を管理します。

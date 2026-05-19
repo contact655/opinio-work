@@ -211,7 +211,7 @@ function ReadyState({ token, companyName }: { token: string; companyName: string
       <h1 style={headingStyle}>{companyName} に参加しますか？</h1>
       <p style={bodyStyle}>
         招待を受諾すると、{companyName} の管理チームに参加できます。
-        ダッシュボードから企業情報の編集や求人管理が行えるようになります。
+        ホームから企業情報の編集や求人管理が行えるようになります。
       </p>
 
       {error && (
