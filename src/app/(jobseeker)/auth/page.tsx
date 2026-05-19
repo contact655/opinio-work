@@ -356,7 +356,8 @@ function AuthPageInner() {
               <div style={styles.formHead}>
                 <h1 style={styles.formTitle}>おかえりなさい。</h1>
                 <p style={styles.formSubtitle}>
-                  メールアドレスとパスワードでログインしてください。
+                  メールアドレスとパスワードでログインしてください。<br />
+                  <span aria-hidden="true" style={{ visibility: "hidden" }}>登録後、プロフィールの詳細を設定できます。</span>
                 </p>
               </div>
 
@@ -369,23 +370,6 @@ function AuthPageInner() {
               <div style={styles.divider}><span>OR</span></div>
 
               <form onSubmit={handleLogin}>
-                {/* ── 可変部スペーサー: signup のお名前 formGroup と物理同一DOM構造
-                     visibility:hidden でレイアウト空間を確保しつつ非表示にする ── */}
-                <div aria-hidden="true" style={{ visibility: "hidden" }}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>お名前<span style={styles.required}>*</span></label>
-                    <input
-                      type="text"
-                      style={styles.input}
-                      tabIndex={-1}
-                      disabled
-                      readOnly
-                      defaultValue=""
-                    />
-                    <p style={styles.hint}>本名でもニックネームでもOK。後から変更できます。</p>
-                  </div>
-                </div>
-
                 {/* ── 共通部: メールアドレス ── */}
                 <div style={styles.formGroup}>
                   <label style={styles.label} htmlFor="login-email">メールアドレス</label>
@@ -400,6 +384,7 @@ function AuthPageInner() {
                     required
                     autoComplete="email"
                   />
+                  <p aria-hidden="true" style={{ ...styles.hint, visibility: "hidden" }}>本名でもニックネームでもOK。後から変更できます。</p>
                 </div>
 
                 {/* パスワード */}
