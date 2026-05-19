@@ -320,7 +320,7 @@ function CompanyLogoIcon({
   const wrapStyle: React.CSSProperties = {
     width: 36,
     height: 36,
-    borderRadius: "50%",
+    borderRadius: 7,
     flexShrink: 0,
     margin: "0 auto",
     position: "relative",
@@ -373,7 +373,7 @@ function CareerIcon({ isCurrent }: { isCurrent: boolean }) {
       style={{
         width: 36,
         height: 36,
-        borderRadius: "50%",
+        borderRadius: 7,
         background: isCurrent ? "var(--royal)" : "var(--ink-mute)",
         display: "flex",
         alignItems: "center",
@@ -497,7 +497,7 @@ function CareerContent({
         <span
           style={{
             fontFamily: "'Noto Serif JP', serif",
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: 700,
             color: "var(--ink)",
           }}
@@ -578,7 +578,7 @@ function EducationContent({ data }: { data: EducationEntry }) {
         <span
           style={{
             fontFamily: "'Noto Serif JP', serif",
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: 700,
             color: "var(--ink)",
           }}
@@ -658,7 +658,7 @@ function ParallelCareerCard({ data }: { data: CareerEntry }) {
         <span
           style={{
             fontFamily: "'Noto Serif JP', serif",
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: 700,
             color: "var(--ink)",
           }}

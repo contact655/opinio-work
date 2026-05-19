@@ -46,7 +46,7 @@ export default function CompanyLogoImg({
       style={{
         width: size,
         height: size,
-        borderRadius: "50%",
+        borderRadius: size * 0.2,
         overflow: "hidden",
         flexShrink: 0,
         background: logoGradient ?? "var(--ink-mute)",
@@ -103,7 +103,7 @@ export function LetterCircle({
       style={{
         width: size,
         height: size,
-        borderRadius: "50%",
+        borderRadius: size * 0.2,
         background: gradient ?? "var(--ink-mute)",
         display: "flex",
         alignItems: "center",
