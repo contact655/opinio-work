@@ -581,8 +581,13 @@ const styles = {
     padding: "48px",
     display: "flex",
     flexDirection: "column",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     background: "#fff",
+    position: "sticky",
+    top: 0,
+    height: "100vh",
+    overflowY: "auto",
+    scrollbarGutter: "stable",
   } as React.CSSProperties,
 
   formWrap: {
