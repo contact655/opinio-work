@@ -1515,9 +1515,10 @@ function CurrentEmployeesSection({
   );
 }
 
-// ─── AlumniCard ── γ-5 修正④: OBOG 専用ダーク背景カード ────────────────────
+// ─── AlumniCard ──────────────────────────────────────────────────────────────
 
 function AlumniCard({ employee }: { employee: CompanyEmployee }) {
+  const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
   // "2022-11" → "2022.11" フォーマット変換
   const formattedEndedAt = employee.endedAt
     ? employee.endedAt.replace(/-/g, ".")
@@ -1532,18 +1533,19 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         alignItems: "center",
         gap: 12,
         padding: "12px 14px",
-        background: "#042C53",
-        border: "1px solid rgba(181,212,244,0.18)",
+        background: "var(--bg-tint)",
+        border: "1px solid var(--line)",
         borderRadius: 12,
         textDecoration: "none",
       }}
     >
-      {/* アバター: 固定「卒」・薄ブルー背景 (γ-7: モバイル 40px / sm+ 48px) */}
+      {/* アバター — EmployeeCard と同一スタイル */}
       <div
-        className="w-10 h-10 sm:w-12 sm:h-12"
         style={{
+          width: 48,
+          height: 48,
           borderRadius: 6,
-          background: "#B5D4F4",
+          background: avatarColor.bg,
           flexShrink: 0,
           display: "flex",
           alignItems: "center",
@@ -1551,41 +1553,25 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
           fontFamily: "var(--font-noto-serif)",
           fontWeight: 700,
           fontSize: 19,
-          color: "#042C53",
+          color: avatarColor.text,
         }}
       >
-        卒
+        {employee.avatarInitial}
       </div>
 
       {/* 情報エリア */}
-      <div style={{ minWidth: 0, flex: 1 }}>
-        {/* 名前 + ALUMNI バッジ */}
+      <div style={{ minWidth: 0 }}>
+        {/* 名前 */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <span
             style={{
               fontSize: 13,
               fontWeight: 600,
-              color: "#fff",
+              color: "var(--ink)",
               whiteSpace: "nowrap",
             }}
           >
             {employee.name}
-          </span>
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              fontFamily: "Inter, sans-serif",
-              letterSpacing: "0.1em",
-              color: "#B5D4F4",
-              background: "rgba(181,212,244,0.14)",
-              border: "1px solid rgba(181,212,244,0.28)",
-              borderRadius: 100,
-              padding: "1px 7px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            ALUMNI
           </span>
         </div>
 
@@ -1593,9 +1579,10 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         {employee.roleTitle && (
           <p
             style={{
-              margin: "3px 0 0",
+              margin: 0,
               fontSize: 12,
-              color: "#B5D4F4",
+              color: "var(--ink-soft)",
+              marginTop: 2,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -1609,9 +1596,10 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         {formattedEndedAt && (
           <p
             style={{
-              margin: "3px 0 0",
+              margin: 0,
               fontSize: 11,
-              color: "rgba(181,212,244,0.55)",
+              color: "var(--ink-mute)",
+              marginTop: 2,
             }}
           >
             退職: {formattedEndedAt}
