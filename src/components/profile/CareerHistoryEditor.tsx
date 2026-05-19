@@ -59,7 +59,6 @@ type Stint = {
   endedAt?: string;    // YYYY-MM
   isCurrent: boolean;
   description?: string;
-  why?: string;
 };
 
 type StintDraft = {
@@ -71,7 +70,6 @@ type StintDraft = {
   startedAt: string;
   endedAt: string;
   isCurrent: boolean;
-  why: string;
   description: string;
 };
 
@@ -84,7 +82,6 @@ const EMPTY_DRAFT: StintDraft = {
   startedAt: "",
   endedAt: "",
   isCurrent: false,
-  why: "",
   description: "",
 };
 
@@ -434,13 +431,11 @@ function StintForm({
 
   const descLen = draft.description.length;
   const descOver = descLen > 500;
-  const whyLen = draft.why.length;
-  const whyOver = whyLen > 500;
   // 期間バリデーション: ended_at が入力済みかつ現職フラグなし の場合のみ started_at <= ended_at を検証
   // YYYY-MM 文字列の辞書順比較で正しく動作（例: "2024-04" > "2023-04"）
   const periodInvalid = !draft.isCurrent && !!draft.endedAt && draft.startedAt > draft.endedAt;
   const isValid = !!draft.companyName.trim() && !!draft.roleCategoryId && !!draft.startedAt;
-  const canSave = isValid && !descOver && !whyOver && !periodInvalid && !isSaving;
+  const canSave = isValid && !descOver && !periodInvalid && !isSaving;
   const effectivelyDisabled = !canSave || !!justSaved;
 
   return (
@@ -576,22 +571,6 @@ function StintForm({
         </div>
       </div>
 
-      {/* Why (narrative field) */}
-      <div>
-        <label style={labelStyle()}>この時期に目指していたこと（任意）</label>
-        <textarea
-          value={draft.why}
-          onChange={(e) => set("why", e.target.value)}
-          placeholder="どんな気持ちでその仕事をしていたか、何を目指していたか…"
-          disabled={isSaving}
-          rows={3}
-          style={{ ...fieldStyle(), resize: "vertical", lineHeight: 1.7 }}
-        />
-        <div style={{ fontSize: 11, color: whyOver ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
-          {whyOver ? `${whyLen - 500} 文字超過` : `残り ${500 - whyLen} 文字`}
-        </div>
-      </div>
-
       {/* Action buttons */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
         <button
@@ -684,26 +663,6 @@ function StintCard({
             </div>
           )}
 
-          {/* Why snippet (narrative) */}
-          {stint.why && (
-            <div
-              style={{
-                fontSize: 11,
-                color: "var(--ink-soft)",
-                marginTop: 4,
-                paddingLeft: 8,
-                borderLeft: "2px solid var(--line)",
-                lineHeight: 1.65,
-                fontStyle: "italic",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }}
-            >
-              {stint.why}
-            </div>
-          )}
         </div>
 
         {/* Controls: ✎ and × only (hover reveal) */}
@@ -765,7 +724,6 @@ export default function CareerHistoryEditor() {
           endedAt: e.endedAt as string | undefined,
           isCurrent: e.isCurrent as boolean,
           description: e.description as string | undefined,
-          why: e.why as string | undefined,
         }));
         setStints(sortStints(mapped));
       })
@@ -792,7 +750,6 @@ export default function CareerHistoryEditor() {
     startedAt: s.startedAt,
     endedAt: s.endedAt ?? "",
     isCurrent: s.isCurrent,
-    why: s.why ?? "",
     description: s.description ?? "",
   }), []);
 
@@ -817,7 +774,6 @@ export default function CareerHistoryEditor() {
         started_at: editDraft.startedAt,
         ended_at: editDraft.isCurrent ? undefined : editDraft.endedAt || undefined,
         is_current: editDraft.isCurrent,
-        why: editDraft.why || undefined,
         description: editDraft.description || undefined,
       };
       Object.assign(body, buildCompanyBody(editDraft));
@@ -842,7 +798,6 @@ export default function CareerHistoryEditor() {
                 startedAt: editDraft.startedAt,
                 endedAt: editDraft.isCurrent ? undefined : editDraft.endedAt || undefined,
                 isCurrent: editDraft.isCurrent,
-                why: editDraft.why || undefined,
                 description: editDraft.description || undefined,
               }
             : s
@@ -875,7 +830,6 @@ export default function CareerHistoryEditor() {
         started_at: addDraft.startedAt,
         ended_at: addDraft.isCurrent ? undefined : addDraft.endedAt || undefined,
         is_current: addDraft.isCurrent,
-        why: addDraft.why || undefined,
         description: addDraft.description || undefined,
         display_order: stints.length,
       };
@@ -898,7 +852,6 @@ export default function CareerHistoryEditor() {
         startedAt: addDraft.startedAt,
         endedAt: addDraft.isCurrent ? undefined : addDraft.endedAt || undefined,
         isCurrent: addDraft.isCurrent,
-        why: addDraft.why || undefined,
         description: addDraft.description || undefined,
       };
 

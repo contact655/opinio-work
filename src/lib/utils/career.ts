@@ -31,7 +31,6 @@ export type CareerEntry = {
   endedAt: string | null;
   isCurrent: boolean;
   description: string | null;
-  why: string | null;
 };
 
 // ─── calculateTenure ──────────────────────────────────────────────────────────

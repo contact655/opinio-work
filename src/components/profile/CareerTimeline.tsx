@@ -130,23 +130,6 @@ function CareerCard({ entry, flex }: { entry: CareerEntry; flex?: boolean }) {
         </div>
       )}
 
-      {/* Why — italic, 2-line clamp */}
-      {entry.why && (
-        <div
-          style={{
-            fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.75,
-            fontStyle: "italic",
-            overflow: "hidden",
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            borderTop: entry.description ? "1px dashed var(--line)" : undefined,
-            paddingTop: entry.description ? 8 : 0,
-          } as React.CSSProperties}
-        >
-          「{entry.why}」
-        </div>
-      )}
     </div>
   );
 }
