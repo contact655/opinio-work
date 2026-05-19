@@ -1386,8 +1386,8 @@ function CurrentEmployeesSection({
           公開準備中 — Opinio で取材した社員プロフィールが順次公開されます
         </p>
       ) : categories.length === 0 ? (
-        // カテゴリ設定なし → フラット 5 列
-        <div style={EMPLOYEE_GRID_STYLE}>
+        // カテゴリ設定なし → レスポンシブ列
+        <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
           {employees.map((emp) => (
             <EmployeeCard key={emp.userId} employee={emp} />
           ))}
@@ -1432,7 +1432,7 @@ function CurrentEmployeesSection({
 
                 {group.isParentDirect ? (
                   // 親直: 子見出しなしでグリッドを直接表示
-                  <div style={EMPLOYEE_GRID_STYLE}>
+                  <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
                     {(empsByCategory.get(group.children[0].roleId) ?? []).map((emp) => (
                       <EmployeeCard key={emp.userId} employee={emp} />
                     ))}
@@ -1473,7 +1473,7 @@ function CurrentEmployeesSection({
                               {empsInCat.length}名
                             </span>
                           </div>
-                          <div style={EMPLOYEE_GRID_STYLE}>
+                          <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
                             {empsInCat.map((emp) => (
                               <EmployeeCard key={emp.userId} employee={emp} />
                             ))}
@@ -1502,7 +1502,7 @@ function CurrentEmployeesSection({
               >
                 その他
               </div>
-              <div style={EMPLOYEE_GRID_STYLE}>
+              <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
                 {uncategorized.map((emp) => (
                   <EmployeeCard key={emp.userId} employee={emp} />
                 ))}
