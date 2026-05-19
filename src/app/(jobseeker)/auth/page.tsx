@@ -253,7 +253,7 @@ function AuthPageInner() {
               <div style={styles.divider}><span>OR</span></div>
 
               <form onSubmit={handleSignup}>
-                {/* お名前 */}
+                {/* ── 可変部: お名前（signup のみ）── */}
                 <div style={styles.formGroup}>
                   <label style={styles.label} htmlFor="signup-name">
                     お名前<span style={styles.required}>*</span>
@@ -272,7 +272,7 @@ function AuthPageInner() {
                   <p style={styles.hint}>本名でもニックネームでもOK。後から変更できます。</p>
                 </div>
 
-                {/* メールアドレス */}
+                {/* ── 共通部: メールアドレス ── */}
                 <div style={styles.formGroup}>
                   <label style={styles.label} htmlFor="signup-email">
                     メールアドレス<span style={styles.required}>*</span>
@@ -369,7 +369,17 @@ function AuthPageInner() {
               <div style={styles.divider}><span>OR</span></div>
 
               <form onSubmit={handleLogin}>
-                {/* メールアドレス */}
+                {/* ── 可変部スペーサー: signup のお名前 formGroup 分の高さを確保し
+                     メール以降の縦位置を signup と一致させる ── */}
+                <div aria-hidden="true" style={{ visibility: "hidden" }}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>&nbsp;</label>
+                    <div style={{ ...styles.input, display: "block" }}>&nbsp;</div>
+                    <p style={styles.hint}>&nbsp;</p>
+                  </div>
+                </div>
+
+                {/* ── 共通部: メールアドレス ── */}
                 <div style={styles.formGroup}>
                   <label style={styles.label} htmlFor="login-email">メールアドレス</label>
                   <input
@@ -417,7 +427,7 @@ function AuthPageInner() {
 
                 <button
                   type="submit"
-                  style={{ ...styles.submitBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}
+                  style={{ ...styles.submitBtn, opacity: loading ? 0.7 : 1 }}
                   disabled={loading}
                 >
                   {loading ? "ログイン中..." : "ログイン"}
