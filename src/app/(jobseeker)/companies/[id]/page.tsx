@@ -1313,8 +1313,14 @@ function CurrentEmployeesSection({
   const empsByCategory = new Map<string, CompanyEmployee[]>();
   for (const emp of employees) {
     if (!emp.roleCategoryId) continue;
+    // 既存: 子UUID（または子なし親UUID）→ 社員
     if (!empsByCategory.has(emp.roleCategoryId)) empsByCategory.set(emp.roleCategoryId, []);
     empsByCategory.get(emp.roleCategoryId)!.push(emp);
+    // 追加: 親UUID → 社員（親カテゴリ登録時の集約用）
+    if (emp.roleParentId) {
+      if (!empsByCategory.has(emp.roleParentId)) empsByCategory.set(emp.roleParentId, []);
+      empsByCategory.get(emp.roleParentId)!.push(emp);
+    }
   }
 
   // ── 親グループ化 (display_order 順を保持) ─────────────────────────────────
