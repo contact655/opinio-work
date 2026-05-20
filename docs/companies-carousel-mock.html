@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Opinio Work /companies カルーセル列数比較モック</title>
+<style>
+  :root {
+    --bg: #fafbfc;
+    --surface: #ffffff;
+    --text-primary: #1a1d24;
+    --text-secondary: #5b6471;
+    --text-tertiary: #8b95a3;
+    --border: #e6e9ef;
+    --border-hover: #c8cfdb;
+    --accent: #1e63d8;
+    --accent-soft: #eaf1fc;
+    --tag-bg: #f3f5f9;
+    --tag-text: #4a5260;
+    --tag-success-bg: #e6f5ed;
+    --tag-success-text: #1f7a48;
+    --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(15, 23, 42, 0.04);
+    --shadow-card-hover: 0 4px 12px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1280px; margin: 0 auto; padding: 48px 24px; }
+  .mock-header { margin-bottom: 24px; }
+  .mock-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .mock-header p { color: var(--text-secondary); font-size: 13px; }
+  .section { margin-bottom: 56px; }
+  .section-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+  .section-title { font-size: 18px; font-weight: 700; }
+  .section-title .meta { font-size: 13px; color: var(--text-tertiary); font-weight: 400; margin-left: 12px; }
+  .see-all { color: var(--accent); font-size: 13px; text-decoration: none; }
+  .see-all:hover { text-decoration: underline; }
+
+  /* ==== カード共通 ==== */
+  .card {
+    background: var(--surface);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.18s ease, transform 0.18s ease;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+  }
+  .card:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-2px); }
+  .card-logo {
+    aspect-ratio: 16 / 10;
+    display: flex; align-items: center; justify-content: center;
+    background: #f5f7fa;
+    overflow: hidden;
+    position: relative;
+  }
+  .card-logo img { max-width: 70%; max-height: 60%; object-fit: contain; }
+  .card-logo.placeholder {
+    background: var(--ph-bg, #f0f3f7);
+    color: var(--ph-text, #5b6471);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .card-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .card-name { font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1.35; }
+  .card-meta {
+    font-size: 12px; color: var(--text-secondary);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  }
+  .card-meta .sep { color: var(--text-tertiary); }
+  .card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+  .tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font-weight: 500;
+  }
+  .tag.success {
+    background: var(--tag-success-bg);
+    color: var(--tag-success-text);
+  }
+
+  /* ==== カルーセル ==== */
+  .carousel-wrapper { position: relative; }
+  .carousel {
+    display: grid;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+    /* peekデザイン: 最後のカードを少し見切れさせて「続きあり」を示唆 */
+    padding-right: 32px;
+  }
+  .carousel::-webkit-scrollbar { height: 6px; }
+  .carousel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .carousel > .card { scroll-snap-align: start; }
+
+  /* 5列 */
+  .carousel.cols-5 {
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 14px * 4 - 32px) / 5);
+  }
+  /* 6列 */
+  .carousel.cols-6 {
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 14px * 5 - 32px) / 6);
+  }
+  /* 現状 (3.5列、参考用) */
+  .carousel.cols-3half {
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 14px * 3 - 32px) / 3.5);
+  }
+
+  .toggle-bar {
+    display: flex; gap: 8px; margin-bottom: 24px;
+    background: var(--surface);
+    padding: 6px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-card);
+    width: fit-content;
+  }
+  .toggle-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .toggle-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+  .toggle-btn:hover:not(.active) { background: var(--tag-bg); }
+
+  .comparison-note {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 32px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .comparison-note strong { color: var(--text-primary); }
+
+  .view-label {
+    display: inline-block;
+    background: var(--text-primary);
+    color: white;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="mock-header">
+    <h1>/companies カルーセル列数比較モック</h1>
+    <p>方向1（探索と詳細の二段構え）。カードはB1ロゴ + B2情報密度のみ。説明文・アクションボタンは削除。</p>
+  </div>
+
+  <div class="toggle-bar">
+    <button class="toggle-btn active" data-view="5">5列表示</button>
+    <button class="toggle-btn" data-view="6">6列表示</button>
+    <button class="toggle-btn" data-view="3half">現状参考(3.5列)</button>
+  </div>
+
+  <div class="comparison-note">
+    <strong>確認ポイント:</strong> カード幅・ロゴの見え方・情報の読み取りやすさ・「次のカードがちょっと見える」peek効果。横スクロールも試してください。
+  </div>
+
+  <!-- ===== 外資系 ===== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">外資系 <span class="meta">グローバル基盤で働く ・ 10社</span></div>
+      <a href="#" class="see-all">すべて見る →</a>
+    </div>
+    <div class="carousel-wrapper">
+      <div class="carousel cols-5" data-section="gaishikei">
+        <!-- カード×10 (外資系) -->
+        <div class="card">
+          <div class="card-logo">
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='100' y='35' text-anchor='middle' font-family='sans-serif' font-size='28' font-weight='800' fill='%231e63d8'%3Esansan%3C/text%3E%3Crect x='40' y='42' width='120' height='2' fill='%23dc2626'/%3E%3C/svg%3E" alt="Sansan">
+          </div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_023</div>
+            <div class="card-meta">IT <span class="sep">・</span> 300名 <span class="sep">・</span> 募集中1</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">hybrid</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #d4f0e3; --ph-text: #1f7a48;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_003</div>
+            <div class="card-meta">SaaS <span class="sep">・</span> 80名 <span class="sep">・</span> 募集中1</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">on_site</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #fce8b8; --ph-text: #8b5e0f;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_004</div>
+            <div class="card-meta">SaaS <span class="sep">・</span> 150名 <span class="sep">・</span> 募集中1</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">full_remote</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #fcd5dc; --ph-text: #a8324a;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_006</div>
+            <div class="card-meta">SaaS <span class="sep">・</span> 500名 <span class="sep">・</span> 募集中1</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">on_site</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #d8e6ff; --ph-text: #1e63d8;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_008</div>
+            <div class="card-meta">IT <span class="sep">・</span> 1200名 <span class="sep">・</span> 募集中2</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">hybrid</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #e8dcf5; --ph-text: #6b3b9e;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_012</div>
+            <div class="card-meta">SaaS <span class="sep">・</span> 220名 <span class="sep">・</span> 募集中3</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">full_remote</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #d4f0e3; --ph-text: #1f7a48;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_015</div>
+            <div class="card-meta">FinTech <span class="sep">・</span> 90名 <span class="sep">・</span> 募集中1</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">on_site</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #fce8b8; --ph-text: #8b5e0f;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_018</div>
+            <div class="card-meta">IT <span class="sep">・</span> 800名 <span class="sep">・</span> 募集中5</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">hybrid</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #fcd5dc; --ph-text: #a8324a;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_021</div>
+            <div class="card-meta">SaaS <span class="sep">・</span> 60名 <span class="sep">・</span> 募集中2</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">full_remote</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #d8e6ff; --ph-text: #1e63d8;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_024</div>
+            <div class="card-meta">AI <span class="sep">・</span> 40名 <span class="sep">・</span> 募集中1</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">hybrid</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ホリゾンタルSaaS ===== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">ホリゾンタルSaaS <span class="meta">業界横断のプロダクト ・ 3社</span></div>
+      <a href="#" class="see-all">すべて見る →</a>
+    </div>
+    <div class="carousel-wrapper">
+      <div class="carousel cols-5" data-section="horizontal">
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #fcd5dc; --ph-text: #a8324a;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_005</div>
+            <div class="card-meta">SaaS <span class="sep">・</span> 300名 <span class="sep">・</span> 募集中3</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">hybrid</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #e8dcf5; --ph-text: #6b3b9e;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_011</div>
+            <div class="card-meta">HRTech <span class="sep">・</span> 300名 <span class="sep">・</span> 募集中2</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">full_remote</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #d4f0e3; --ph-text: #1f7a48;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_016</div>
+            <div class="card-meta">FinTech <span class="sep">・</span> 150名 <span class="sep">・</span> 募集中1</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">on_site</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== バーティカルSaaS ===== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">バーティカルSaaS <span class="meta">業界特化型のプロダクト ・ 10社</span></div>
+      <a href="#" class="see-all">すべて見る →</a>
+    </div>
+    <div class="carousel-wrapper">
+      <div class="carousel cols-5" data-section="vertical">
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #fce8b8; --ph-text: #8b5e0f;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_027</div>
+            <div class="card-meta">SaaS <span class="sep">・</span> 180名 <span class="sep">・</span> 募集中2</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">hybrid</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #d8e6ff; --ph-text: #1e63d8;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_029</div>
+            <div class="card-meta">HealthTech <span class="sep">・</span> 75名 <span class="sep">・</span> 募集中1</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">on_site</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #fcd5dc; --ph-text: #a8324a;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_031</div>
+            <div class="card-meta">EdTech <span class="sep">・</span> 120名 <span class="sep">・</span> 募集中3</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">full_remote</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #e8dcf5; --ph-text: #6b3b9e;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_033</div>
+            <div class="card-meta">LegalTech <span class="sep">・</span> 60名 <span class="sep">・</span> 募集中1</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">hybrid</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #d4f0e3; --ph-text: #1f7a48;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_035</div>
+            <div class="card-meta">RetailTech <span class="sep">・</span> 200名 <span class="sep">・</span> 募集中4</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">on_site</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #fce8b8; --ph-text: #8b5e0f;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_037</div>
+            <div class="card-meta">PropTech <span class="sep">・</span> 95名 <span class="sep">・</span> 募集中2</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">full_remote</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #d8e6ff; --ph-text: #1e63d8;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_039</div>
+            <div class="card-meta">FoodTech <span class="sep">・</span> 50名 <span class="sep">・</span> 募集中1</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">hybrid</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #fcd5dc; --ph-text: #a8324a;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_041</div>
+            <div class="card-meta">ConstructionTech <span class="sep">・</span> 140名 <span class="sep">・</span> 募集中3</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">on_site</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #e8dcf5; --ph-text: #6b3b9e;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_043</div>
+            <div class="card-meta">AgriTech <span class="sep">・</span> 70名 <span class="sep">・</span> 募集中2</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">full_remote</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-logo placeholder" style="--ph-bg: #d4f0e3; --ph-text: #1f7a48;">テ</div>
+          <div class="card-body">
+            <div class="card-name">テスト株式会社_045</div>
+            <div class="card-meta">SaaS <span class="sep">・</span> 110名 <span class="sep">・</span> 募集中1</div>
+            <div class="card-tags">
+              <span class="tag success">面談OK</span>
+              <span class="tag">hybrid</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.toggle-btn');
+  const carousels = document.querySelectorAll('.carousel');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.dataset.view;
+      carousels.forEach(c => {
+        c.classList.remove('cols-5', 'cols-6', 'cols-3half');
+        c.classList.add('cols-' + view);
+      });
+    });
+  });
+</script>
+
+</body>
+</html>
