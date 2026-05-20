@@ -991,18 +991,18 @@ export default function CareerHistoryEditor({
             }}
           >
             {/* グループヘッダー: アバター + 会社名 + 期間 */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
               <div
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 6,
                   background: avatarColor,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontWeight: 700,
-                  fontSize: 14,
+                  fontSize: 13,
                   color: "#fff",
                   fontFamily: "Inter, sans-serif",
                   flexShrink: 0,
@@ -1023,7 +1023,7 @@ export default function CareerHistoryEditor({
             {/* ポジション群（白カード） */}
             <div>
               {group.positions.map((s, pIdx) => (
-                <div key={s.id} style={{ marginBottom: pIdx < group.positions.length - 1 ? 6 : 0 }}>
+                <div key={s.id} style={{ marginBottom: pIdx < group.positions.length - 1 ? 8 : 0 }}>
                   {editingId === s.id ? (
                     <StintForm
                       draft={editDraft}
