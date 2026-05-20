@@ -700,7 +700,7 @@ function StintCard({
   onEdit,
   onDelete,
 }: {
-  stint: Stint;
+  stint: Stint & { showCurrentBadge?: boolean };
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -710,29 +710,31 @@ function StintCard({
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ padding: "10px 0", position: "relative" }}
+      style={{
+        padding: "10px 12px",
+        background: "#fff",
+        borderRadius: 8,
+        position: "relative",
+      }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-        {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Role + "現在" badge */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 1 }}>
-            <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+          {/* Role + 現在 badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
               {stint.roleTitle || stint.roleLabel}
             </span>
-            {stint.isCurrent && (
+            {stint.showCurrentBadge && (
               <span style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.04em", flexShrink: 0 }}>
                 現在
               </span>
             )}
           </div>
-
           {/* Period */}
           <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
             {formatPeriod(stint.startedAt, stint.endedAt, stint.isCurrent)}
           </div>
-
-          {/* Description snippet (業務内容) */}
+          {/* Description snippet */}
           {stint.description && (
             <div
               style={{
@@ -751,16 +753,13 @@ function StintCard({
               {stint.description}
             </div>
           )}
-
         </div>
-
-        {/* Controls: ✎ and × only (hover reveal) */}
+        {/* Controls */}
         <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
           <IconButton onClick={onEdit} title="編集">✎</IconButton>
           <IconButton onClick={onDelete} title="削除" danger>×</IconButton>
         </div>
       </div>
-
       {/* ストーリーアコーディオン */}
       <StoryAccordion experienceId={stint.id} />
     </div>
@@ -976,101 +975,122 @@ export default function CareerHistoryEditor({
   return (
     <div>
       {/* グループ一覧 */}
-      {groups.map((group, gIdx) => (
-        <div key={group.key} style={{ marginBottom: gIdx < groups.length - 1 ? 20 : 12 }}>
-          {/* グループヘッダー（会社名 + 在籍期間） */}
-          <div style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 8,
-            marginBottom: 8,
-            paddingBottom: 8,
-            borderBottom: "1px solid var(--line-soft)",
-          }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-                {group.displayCompanyName}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginTop: 2 }}>
-                {formatGroupPeriod(group)}
-              </div>
-            </div>
-          </div>
+      {groups.map((group, gIdx) => {
+        const showBadgeId = group.positions[0]?.isCurrent ? group.positions[0].id : null;
+        const avatarColor = getAvatarColor(group.displayCompanyName);
+        const avatarInitial = group.displayCompanyName.charAt(0);
 
-          {/* グループ内のポジション */}
-          <div style={{ paddingLeft: 12 }}>
-            {group.positions.map((s, pIdx) => (
-              <div key={s.id}>
-                {editingId === s.id ? (
-                  <StintForm
-                    draft={editDraft}
-                    onDraftChange={setEditDraft}
-                    isSaving={editSaving}
-                    justSaved={editJustSaved}
-                    onSave={() => { void saveEdit(); }}
-                    onCancel={cancelEdit}
-                    roles={roles}
-                  />
-                ) : (
-                  <StintCard
-                    stint={s}
-                    onEdit={() => startEdit(s)}
-                    onDelete={() => setDeleteTarget(s)}
-                  />
-                )}
-                {pIdx < group.positions.length - 1 && editingId !== s.id && (
-                  <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
-                )}
-              </div>
-            ))}
-
-            {/* グループ内追加フォーム */}
-            {addingForCompanyKey === group.key && (
-              <div style={{ marginTop: 12 }}>
-                <StintForm
-                  draft={addDraft}
-                  onDraftChange={setAddDraft}
-                  isSaving={addSaving}
-                  justSaved={addJustSaved}
-                  onSave={() => { void saveAdd(); }}
-                  onCancel={cancelAdd}
-                  roles={roles}
-                  companyLocked={true}
-                />
-              </div>
-            )}
-
-            {/* 「+ このポジションに役割を追加」ボタン */}
-            {addingForCompanyKey !== group.key && (
-              <button
-                type="button"
-                onClick={() => {
-                  setAddDraft(draftFromGroup(group));
-                  setAddingForCompanyKey(group.key);
-                }}
+        return (
+          <div
+            key={group.key}
+            style={{
+              background: "var(--bg-tint)",
+              borderRadius: 10,
+              padding: 16,
+              marginBottom: gIdx < groups.length - 1 ? 12 : 16,
+            }}
+          >
+            {/* グループヘッダー: アバター + 会社名 + 期間 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+              <div
                 style={{
-                  marginTop: 8,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: avatarColor,
                   display: "flex",
                   alignItems: "center",
-                  gap: 5,
-                  padding: "6px 10px",
-                  background: "transparent",
-                  border: "1px dashed var(--line)",
-                  borderRadius: 6,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "var(--ink-mute)",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  color: "#fff",
+                  fontFamily: "Inter, sans-serif",
+                  flexShrink: 0,
                 }}
               >
-                <span style={{ fontSize: 13, lineHeight: 1 }}>+</span>
-                このポジションに役割を追加
-              </button>
-            )}
+                {avatarInitial}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+                  {group.displayCompanyName}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginTop: 1 }}>
+                  {formatGroupPeriod(group)}
+                </div>
+              </div>
+            </div>
+
+            {/* ポジション群（白カード） */}
+            <div>
+              {group.positions.map((s, pIdx) => (
+                <div key={s.id} style={{ marginBottom: pIdx < group.positions.length - 1 ? 6 : 0 }}>
+                  {editingId === s.id ? (
+                    <StintForm
+                      draft={editDraft}
+                      onDraftChange={setEditDraft}
+                      isSaving={editSaving}
+                      justSaved={editJustSaved}
+                      onSave={() => { void saveEdit(); }}
+                      onCancel={cancelEdit}
+                      roles={roles}
+                    />
+                  ) : (
+                    <StintCard
+                      stint={{ ...s, showCurrentBadge: s.id === showBadgeId }}
+                      onEdit={() => startEdit(s)}
+                      onDelete={() => setDeleteTarget(s)}
+                    />
+                  )}
+                </div>
+              ))}
+
+              {/* グループ内追加フォーム */}
+              {addingForCompanyKey === group.key && (
+                <div style={{ marginTop: 10 }}>
+                  <StintForm
+                    draft={addDraft}
+                    onDraftChange={setAddDraft}
+                    isSaving={addSaving}
+                    justSaved={addJustSaved}
+                    onSave={() => { void saveAdd(); }}
+                    onCancel={cancelAdd}
+                    roles={roles}
+                    companyLocked={true}
+                  />
+                </div>
+              )}
+
+              {/* 「+ このポジションに役割を追加」テキストリンク */}
+              {addingForCompanyKey !== group.key && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddDraft(draftFromGroup(group));
+                    setAddingForCompanyKey(group.key);
+                  }}
+                  style={{
+                    marginTop: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "4px 0",
+                    background: "transparent",
+                    border: "none",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "var(--ink-mute)",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <span style={{ fontSize: 13, lineHeight: 1 }}>+</span>
+                  このポジションに役割を追加
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* Empty state */}
       {stints.length === 0 && addingForCompanyKey === null && (
