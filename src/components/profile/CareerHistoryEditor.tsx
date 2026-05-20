@@ -985,17 +985,17 @@ export default function CareerHistoryEditor({
           <div
             key={group.key}
             style={{
-              background: "var(--bg-tint)",
+              background: `${avatarColor}0F`,
+              borderLeft: `4px solid ${avatarColor}`,
               borderRadius: 10,
               marginBottom: gIdx < groups.length - 1 ? 12 : 16,
               overflow: "hidden",
             }}
           >
-            {/* グループヘッダー: 会社色背景 + 白文字 */}
+            {/* グループヘッダー: アバター + 会社名 + 期間（通常の黒文字） */}
             <div
               style={{
-                background: avatarColor,
-                padding: "14px 16px",
+                padding: "14px 16px 10px",
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
@@ -1006,8 +1006,7 @@ export default function CareerHistoryEditor({
                   width: 32,
                   height: 32,
                   borderRadius: 6,
-                  background: "rgba(255,255,255,0.18)",
-                  border: "1.5px solid rgba(255,255,255,0.3)",
+                  background: avatarColor,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1021,17 +1020,17 @@ export default function CareerHistoryEditor({
                 {avatarInitial}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
                   {group.displayCompanyName}
                 </div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", marginTop: 1 }}>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginTop: 1 }}>
                   {formatGroupPeriod(group)}
                 </div>
               </div>
             </div>
 
             {/* ポジション群（白カード） */}
-            <div style={{ padding: "14px 16px", background: "#F1F5F9" }}>
+            <div style={{ padding: "0 16px 14px" }}>
               {group.positions.map((s, pIdx) => (
                 <div key={s.id} style={{ marginBottom: pIdx < group.positions.length - 1 ? 8 : 0 }}>
                   {editingId === s.id ? (
