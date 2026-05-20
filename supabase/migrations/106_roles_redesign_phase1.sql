@@ -25,6 +25,9 @@
 
 BEGIN;
 
+-- FK制約を一時的に解除（Step 5 の UPDATE ow_experiences を可能にするため）
+ALTER TABLE ow_experiences DROP CONSTRAINT ow_experiences_role_category_id_fkey;
+
 DO $$
 DECLARE
   -- 新ロールの UUID（INSERT 後に取得）
@@ -206,5 +209,9 @@ BEGIN
     v_post_cat_count, v_pre_cat_count, v_post_cat_count;
 
 END $$;
+
+-- FK制約を新マスタ（ow_roles）に対して再設定
+ALTER TABLE ow_experiences ADD CONSTRAINT ow_experiences_role_category_id_fkey
+  FOREIGN KEY (role_category_id) REFERENCES ow_roles(id);
 
 COMMIT;
