@@ -714,6 +714,7 @@ function StintCard({
         padding: "10px 12px",
         background: "#fff",
         borderRadius: 8,
+        border: "1px solid var(--line-soft)",
         position: "relative",
       }}
     >
@@ -1030,7 +1031,7 @@ export default function CareerHistoryEditor({
             </div>
 
             {/* ポジション群（白カード） */}
-            <div style={{ padding: "14px 16px" }}>
+            <div style={{ padding: "14px 16px", background: "#F1F5F9" }}>
               {group.positions.map((s, pIdx) => (
                 <div key={s.id} style={{ marginBottom: pIdx < group.positions.length - 1 ? 8 : 0 }}>
                   {editingId === s.id ? (
