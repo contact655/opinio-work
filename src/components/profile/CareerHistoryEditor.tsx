@@ -986,18 +986,27 @@ export default function CareerHistoryEditor({
             style={{
               background: "var(--bg-tint)",
               borderRadius: 10,
-              padding: 16,
               marginBottom: gIdx < groups.length - 1 ? 12 : 16,
+              overflow: "hidden",
             }}
           >
-            {/* グループヘッダー: アバター + 会社名 + 期間 */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+            {/* グループヘッダー: 会社色背景 + 白文字 */}
+            <div
+              style={{
+                background: avatarColor,
+                padding: "14px 16px",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
               <div
                 style={{
                   width: 32,
                   height: 32,
                   borderRadius: 6,
-                  background: avatarColor,
+                  background: "rgba(255,255,255,0.18)",
+                  border: "1.5px solid rgba(255,255,255,0.3)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1011,17 +1020,17 @@ export default function CareerHistoryEditor({
                 {avatarInitial}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>
                   {group.displayCompanyName}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginTop: 1 }}>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", marginTop: 1 }}>
                   {formatGroupPeriod(group)}
                 </div>
               </div>
             </div>
 
             {/* ポジション群（白カード） */}
-            <div>
+            <div style={{ padding: "14px 16px" }}>
               {group.positions.map((s, pIdx) => (
                 <div key={s.id} style={{ marginBottom: pIdx < group.positions.length - 1 ? 8 : 0 }}>
                   {editingId === s.id ? (
