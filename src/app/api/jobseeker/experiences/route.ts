@@ -3,37 +3,6 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// ow_roles.name (DB) → slug (client)
-const DB_NAME_TO_SLUG: Record<string, string> = {
-  "営業": "sales", "PdM / PM": "pm", "カスタマーサクセス": "cs",
-  "エンジニア": "engineer", "マーケティング": "marketing", "経営・CxO": "exec", "その他": "other",
-  "フィールドセールス": "field_sales", "エンタープライズ営業": "enterprise_sales",
-  "インサイドセールス": "inside_sales", "SDR / BDR": "sdr_bdr",
-  "プロダクトマネージャー": "product_manager", "プロダクトオーナー": "product_owner", "PMM": "pmm",
-  "バックエンド": "backend", "フロントエンド": "frontend", "フルスタック": "fullstack",
-  "SRE / インフラ": "sre", "iOS / Android": "ios_android",
-  "CEO": "ceo", "COO": "coo", "CPO": "cpo", "CTO": "cto", "CFO": "cfo",
-  "デザイナー": "designer", "事業開発": "biz_dev", "HRBP": "hrbp",
-  "コーポレート": "corporate", "データサイエンティスト": "data_scientist",
-};
-
-// slug (client) → ow_roles.name (DB)
-const SLUG_TO_DB_NAME: Record<string, string> = {
-  sales: "営業", pm: "PdM / PM", cs: "カスタマーサクセス",
-  engineer: "エンジニア", marketing: "マーケティング", exec: "経営・CxO", other: "その他",
-  field_sales: "フィールドセールス", enterprise_sales: "エンタープライズ営業",
-  inside_sales: "インサイドセールス", sdr_bdr: "SDR / BDR",
-  product_manager: "プロダクトマネージャー", product_owner: "プロダクトオーナー", pmm: "PMM",
-  backend: "バックエンド", frontend: "フロントエンド", fullstack: "フルスタック",
-  sre: "SRE / インフラ", ios_android: "iOS / Android",
-  ceo: "CEO", coo: "COO", cpo: "CPO", cto: "CTO", cfo: "CFO",
-  designer: "デザイナー", biz_dev: "事業開発", hrbp: "HRBP",
-  corporate: "コーポレート", data_scientist: "データサイエンティスト",
-  // CS/Marketing children not seeded as rows → map to parent
-  customer_success: "カスタマーサクセス", customer_support: "カスタマーサクセス",
-  digital_mkt: "マーケティング", content_mkt: "マーケティング", event_mkt: "マーケティング",
-};
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function resolveOwUserId(
@@ -48,21 +17,6 @@ async function resolveOwUserId(
   return data?.id ?? null;
 }
 
-async function resolveRoleId(
-  supabase: ReturnType<typeof createClient>,
-  slugOrUuid: string
-): Promise<string | null> {
-  if (UUID_RE.test(slugOrUuid)) return slugOrUuid;
-  const dbName = SLUG_TO_DB_NAME[slugOrUuid];
-  if (!dbName) return null;
-  const { data } = await supabase
-    .from("ow_roles")
-    .select("id")
-    .eq("name", dbName)
-    .maybeSingle();
-  return data?.id ?? null;
-}
-
 // GET /api/jobseeker/experiences — 自分の職歴一覧を返す
 export async function GET() {
   const supabase = createClient();
@@ -72,26 +26,16 @@ export async function GET() {
   const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ experiences: [] });
 
-  const [{ data: rows, error: rowsErr }, { data: allRoles }] = await Promise.all([
-    supabase
-      .from("ow_experiences")
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, display_order")
-      .eq("user_id", owUserId)
-      .order("is_current", { ascending: false })
-      .order("started_at", { ascending: false }),
-    supabase.from("ow_roles").select("id, name"),
-  ]);
+  const { data: rows, error: rowsErr } = await supabase
+    .from("ow_experiences")
+    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, display_order")
+    .eq("user_id", owUserId)
+    .order("is_current", { ascending: false })
+    .order("started_at", { ascending: false });
 
   if (rowsErr) {
     console.error("[GET /api/jobseeker/experiences]", rowsErr.message);
     return NextResponse.json({ error: rowsErr.message }, { status: 500 });
-  }
-
-  // Build UUID → slug map from DB roles
-  const uuidToSlug = new Map<string, string>();
-  for (const role of allRoles ?? []) {
-    const slug = DB_NAME_TO_SLUG[role.name as string];
-    if (slug) uuidToSlug.set(role.id as string, slug);
   }
 
   // Resolve company names for master entries
@@ -131,7 +75,7 @@ export async function GET() {
       companyText: r.company_text as string | undefined || undefined,
       companyAnonymized: r.company_anonymized as string | undefined || undefined,
       displayCompanyName,
-      roleCategoryId: uuidToSlug.get(roleUuid) ?? roleUuid,
+      roleCategoryId: roleUuid,
       roleTitle: r.role_title as string | undefined || undefined,
       startedAt: (r.started_at as string).slice(0, 7),
       endedAt: r.ended_at ? (r.ended_at as string).slice(0, 7) : undefined,
@@ -171,7 +115,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "role_category_id and started_at required" }, { status: 400 });
   }
 
-  const roleId = await resolveRoleId(supabase, body.role_category_id as string);
+  const roleId = UUID_RE.test(body.role_category_id as string) ? (body.role_category_id as string) : null;
   if (!roleId) {
     return NextResponse.json({ error: `Unknown role: ${body.role_category_id}` }, { status: 400 });
   }

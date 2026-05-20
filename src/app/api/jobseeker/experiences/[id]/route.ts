@@ -3,37 +3,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const SLUG_TO_DB_NAME: Record<string, string> = {
-  sales: "営業", pm: "PdM / PM", cs: "カスタマーサクセス",
-  engineer: "エンジニア", marketing: "マーケティング", exec: "経営・CxO", other: "その他",
-  field_sales: "フィールドセールス", enterprise_sales: "エンタープライズ営業",
-  inside_sales: "インサイドセールス", sdr_bdr: "SDR / BDR",
-  product_manager: "プロダクトマネージャー", product_owner: "プロダクトオーナー", pmm: "PMM",
-  backend: "バックエンド", frontend: "フロントエンド", fullstack: "フルスタック",
-  sre: "SRE / インフラ", ios_android: "iOS / Android",
-  ceo: "CEO", coo: "COO", cpo: "CPO", cto: "CTO", cfo: "CFO",
-  designer: "デザイナー", biz_dev: "事業開発", hrbp: "HRBP",
-  corporate: "コーポレート", data_scientist: "データサイエンティスト",
-  customer_success: "カスタマーサクセス", customer_support: "カスタマーサクセス",
-  digital_mkt: "マーケティング", content_mkt: "マーケティング", event_mkt: "マーケティング",
-};
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-async function resolveRoleId(
-  supabase: ReturnType<typeof createClient>,
-  slugOrUuid: string
-): Promise<string | null> {
-  if (UUID_RE.test(slugOrUuid)) return slugOrUuid;
-  const dbName = SLUG_TO_DB_NAME[slugOrUuid];
-  if (!dbName) return null;
-  const { data } = await supabase
-    .from("ow_roles")
-    .select("id")
-    .eq("name", dbName)
-    .maybeSingle();
-  return data?.id ?? null;
-}
 
 // PUT /api/jobseeker/experiences/[id] — 職歴更新（RLS が本人チェック）
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
@@ -59,7 +29,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "role_category_id and started_at required" }, { status: 400 });
   }
 
-  const roleId = await resolveRoleId(supabase, body.role_category_id as string);
+  const roleId = UUID_RE.test(body.role_category_id as string) ? (body.role_category_id as string) : null;
   if (!roleId) {
     return NextResponse.json({ error: `Unknown role: ${body.role_category_id}` }, { status: 400 });
   }
