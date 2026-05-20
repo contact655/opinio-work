@@ -2253,6 +2253,13 @@ function MediaAppearanceEditor({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+export type RoleItem = {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  display_order: number;
+};
+
 export default function ProfileEditClient({
   owUser,
   authEmail,
@@ -2264,6 +2271,7 @@ export default function ProfileEditClient({
   initialAwards,
   initialMediaAppearances,
   initialExperiences,
+  roles: _roles, // Phase 2-A-2 で CareerHistoryEditor に渡す予定
 }: {
   owUser: OwUser;
   authEmail: string;
@@ -2275,6 +2283,7 @@ export default function ProfileEditClient({
   initialAwards: Award[];
   initialMediaAppearances: MediaAppearance[];
   initialExperiences: Stint[];
+  roles: RoleItem[];
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
 

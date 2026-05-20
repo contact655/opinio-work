@@ -94,8 +94,17 @@ export default async function ProfileEditPage() {
           .order("is_current", { ascending: false })
           .order("started_at", { ascending: false })
       : Promise.resolve({ data: [] }),
-    supabase.from("ow_roles").select("id, name"),
+    supabase.from("ow_roles").select("id, name, parent_id, display_order").order("display_order"),
   ]);
+
+  // Build typed roles array for dynamic dropdown (Phase 2-A)
+  const roles: { id: string; name: string; parent_id: string | null; display_order: number }[] =
+    (allRoles ?? []).map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      parent_id: (r.parent_id as string | null) ?? null,
+      display_order: (r.display_order as number) ?? 0,
+    }));
 
   // Build UUID → { slug, label } map from ow_roles
   const roleInfoById = new Map<string, { slug: string; label: string }>();
@@ -165,6 +174,7 @@ export default async function ProfileEditPage() {
       initialAwards={awardsRaw ?? []}
       initialMediaAppearances={mediaAppearancesRaw ?? []}
       initialExperiences={initialExperiences}
+      roles={roles}
     />
   );
 }
