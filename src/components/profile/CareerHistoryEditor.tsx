@@ -24,6 +24,108 @@ export type Stint = {
   description?: string;
 };
 
+// ── Group types and helpers ───────────────────────────────────────────────────
+
+type StintGroup = {
+  key: string;
+  companyType: "master" | "custom" | "anon";
+  companyId?: string;
+  companyText?: string;
+  companyAnonymized?: string;
+  displayCompanyName: string;
+  positions: Stint[];
+  earliestStart: string;
+  latestEnd: string | null;
+  totalMonths: number;
+};
+
+function diffInMonths(startYM: string, endYM: string): number {
+  const [sy, sm] = startYM.split("-").map(Number);
+  const [ey, em] = endYM.split("-").map(Number);
+  return Math.max(1, (ey - sy) * 12 + (em - sm) + 1);
+}
+
+function formatDuration(months: number): string {
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  if (years === 0) return `${remainingMonths}ヶ月`;
+  if (remainingMonths === 0) return `${years}年`;
+  return `${years}年${remainingMonths}ヶ月`;
+}
+
+function groupKey(s: Stint): string {
+  if (s.companyType === "master" && s.companyId) return `m:${s.companyId}`;
+  if (s.companyType === "custom" && s.companyText) return `c:${s.companyText}`;
+  return `a:${s.companyAnonymized ?? s.displayCompanyName}`;
+}
+
+function groupStints(stints: Stint[]): StintGroup[] {
+  const map = new Map<string, Stint[]>();
+  for (const s of stints) {
+    const k = groupKey(s);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k)!.push(s);
+  }
+
+  const groups: StintGroup[] = [];
+  for (const [key, positions] of Array.from(map)) {
+    const sortedPositions = [...positions].sort((a, b) => {
+      if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
+      return b.startedAt.localeCompare(a.startedAt);
+    });
+    const first = sortedPositions[0];
+    const earliestStart = positions.reduce(
+      (acc, p) => (p.startedAt < acc ? p.startedAt : acc),
+      positions[0].startedAt
+    );
+    const hasCurrent = positions.some((p) => p.isCurrent);
+    let latestEnd: string | null;
+    if (hasCurrent) {
+      latestEnd = null;
+    } else {
+      latestEnd = positions.reduce<string>((acc, p) => {
+        const end = p.endedAt ?? p.startedAt;
+        return end > acc ? end : acc;
+      }, positions[0].endedAt ?? positions[0].startedAt);
+    }
+    const endForCalc = latestEnd ?? (() => {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      return `${yyyy}-${mm}`;
+    })();
+    const totalMonths = diffInMonths(earliestStart, endForCalc);
+
+    groups.push({
+      key,
+      companyType: first.companyType,
+      companyId: first.companyId,
+      companyText: first.companyText,
+      companyAnonymized: first.companyAnonymized,
+      displayCompanyName: first.displayCompanyName,
+      positions: sortedPositions,
+      earliestStart,
+      latestEnd,
+      totalMonths,
+    });
+  }
+
+  return groups.sort((a, b) => {
+    const aHasCurrent = a.latestEnd === null;
+    const bHasCurrent = b.latestEnd === null;
+    if (aHasCurrent !== bHasCurrent) return aHasCurrent ? -1 : 1;
+    return b.earliestStart.localeCompare(a.earliestStart);
+  });
+}
+
+function formatGroupPeriod(group: StintGroup): string {
+  const fmt = (ym: string) => ym.replace("-", ".");
+  const start = fmt(group.earliestStart);
+  const end = group.latestEnd === null ? "現在" : fmt(group.latestEnd);
+  const duration = formatDuration(group.totalMonths);
+  return `${start} 〜 ${end} · ${duration}`;
+}
+
 type StintDraft = {
   companyName: string;
   companyId: string | null;  // 候補選択時のみ非null、＋登録・自由入力時は null
@@ -379,6 +481,7 @@ function StintForm({
   onSave,
   onCancel,
   roles,
+  companyLocked = false,
 }: {
   draft: StintDraft;
   onDraftChange: (d: StintDraft) => void;
@@ -387,6 +490,7 @@ function StintForm({
   onSave: () => void;
   onCancel: () => void;
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
+  companyLocked?: boolean;
 }) {
   const set = useCallback(
     (key: keyof StintDraft, val: string | boolean) =>
@@ -420,10 +524,11 @@ function StintForm({
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <label style={labelStyle()}>会社名 *</label>
-          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--ink-soft)", cursor: "pointer", userSelect: "none" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: companyLocked ? "var(--ink-mute)" : "var(--ink-soft)", cursor: companyLocked ? "default" : "pointer", userSelect: "none" }}>
             <input
               type="checkbox"
               checked={draft.isAnon}
+              disabled={companyLocked}
               onChange={(e) =>
                 // isAnon 切替時に companyId もリセット（XOR整合のため）
                 onDraftChange({ ...draft, isAnon: e.target.checked, companyId: null })
@@ -440,14 +545,14 @@ function StintForm({
             value={draft.companyName}
             onChange={(e) => set("companyName", e.target.value)}
             placeholder="非公開企業（任意）"
-            disabled={isSaving}
+            disabled={isSaving || companyLocked}
             style={fieldStyle()}
           />
         ) : (
           /* マスタ/カスタム経路: company_id or company_text に保存 */
           <CompanySearch
             value={draft.companyName}
-            disabled={isSaving}
+            disabled={isSaving || companyLocked}
             onChange={(id, name) =>
               onDraftChange({ ...draft, companyId: id, companyName: name })
             }
@@ -610,21 +715,16 @@ function StintCard({
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Company name + "現在" badge */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
-              {stint.displayCompanyName}
+          {/* Role + "現在" badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 1 }}>
+            <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+              {stint.roleTitle || stint.roleLabel}
             </span>
             {stint.isCurrent && (
               <span style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.04em", flexShrink: 0 }}>
                 現在
               </span>
             )}
-          </div>
-
-          {/* Role */}
-          <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 1 }}>
-            {stint.roleTitle || stint.roleLabel}
           </div>
 
           {/* Period */}
@@ -685,7 +785,7 @@ export default function CareerHistoryEditor({
   const [editJustSaved, setEditJustSaved] = useState(false);
 
   // Add state
-  const [adding,       setAdding]       = useState(false);
+  const [addingForCompanyKey, setAddingForCompanyKey] = useState<string | null>(null);
   const [addDraft,     setAddDraft]     = useState<StintDraft>(EMPTY_DRAFT);
   const [addSaving,    setAddSaving]    = useState(false);
   const [addJustSaved, setAddJustSaved] = useState(false);
@@ -719,6 +819,20 @@ export default function CareerHistoryEditor({
     endedAt: s.endedAt ?? "",
     isCurrent: s.isCurrent,
     description: s.description ?? "",
+  }), []);
+
+  const draftFromGroup = useCallback((group: StintGroup): StintDraft => ({
+    companyName: group.companyType === "anon"
+      ? (group.companyAnonymized ?? "非公開企業")
+      : group.displayCompanyName,
+    companyId: group.companyType === "master" ? (group.companyId ?? null) : null,
+    isAnon: group.companyType === "anon",
+    roleCategoryId: "",
+    roleTitle: "",
+    startedAt: "",
+    endedAt: "",
+    isCurrent: false,
+    description: "",
   }), []);
 
   // ── Edit handlers ────────────────────────────────────────────────────────────
@@ -785,7 +899,7 @@ export default function CareerHistoryEditor({
 
   // ── Add handlers ─────────────────────────────────────────────────────────────
   const cancelAdd = useCallback(() => {
-    setAdding(false);
+    setAddingForCompanyKey(null);
     setAddDraft(EMPTY_DRAFT);
   }, []);
 
@@ -857,44 +971,116 @@ export default function CareerHistoryEditor({
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
+  const groups = groupStints(stints);
+
   return (
     <div>
-      {/* Stint list */}
-      {stints.map((s, idx) => (
-        <div key={s.id}>
-          {editingId === s.id ? (
-            <StintForm
-              draft={editDraft}
-              onDraftChange={setEditDraft}
-              isSaving={editSaving}
-              justSaved={editJustSaved}
-              onSave={() => { void saveEdit(); }}
-              onCancel={cancelEdit}
-              roles={roles}
-            />
-          ) : (
-            <StintCard
-              stint={s}
-              onEdit={() => startEdit(s)}
-              onDelete={() => setDeleteTarget(s)}
-            />
-          )}
-          {/* Divider */}
-          {idx < stints.length - 1 && editingId !== s.id && (
-            <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
-          )}
+      {/* グループ一覧 */}
+      {groups.map((group, gIdx) => (
+        <div key={group.key} style={{ marginBottom: gIdx < groups.length - 1 ? 20 : 12 }}>
+          {/* グループヘッダー（会社名 + 在籍期間） */}
+          <div style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 8,
+            marginBottom: 8,
+            paddingBottom: 8,
+            borderBottom: "1px solid var(--line-soft)",
+          }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+                {group.displayCompanyName}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginTop: 2 }}>
+                {formatGroupPeriod(group)}
+              </div>
+            </div>
+          </div>
+
+          {/* グループ内のポジション */}
+          <div style={{ paddingLeft: 12 }}>
+            {group.positions.map((s, pIdx) => (
+              <div key={s.id}>
+                {editingId === s.id ? (
+                  <StintForm
+                    draft={editDraft}
+                    onDraftChange={setEditDraft}
+                    isSaving={editSaving}
+                    justSaved={editJustSaved}
+                    onSave={() => { void saveEdit(); }}
+                    onCancel={cancelEdit}
+                    roles={roles}
+                  />
+                ) : (
+                  <StintCard
+                    stint={s}
+                    onEdit={() => startEdit(s)}
+                    onDelete={() => setDeleteTarget(s)}
+                  />
+                )}
+                {pIdx < group.positions.length - 1 && editingId !== s.id && (
+                  <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
+                )}
+              </div>
+            ))}
+
+            {/* グループ内追加フォーム */}
+            {addingForCompanyKey === group.key && (
+              <div style={{ marginTop: 12 }}>
+                <StintForm
+                  draft={addDraft}
+                  onDraftChange={setAddDraft}
+                  isSaving={addSaving}
+                  justSaved={addJustSaved}
+                  onSave={() => { void saveAdd(); }}
+                  onCancel={cancelAdd}
+                  roles={roles}
+                  companyLocked={true}
+                />
+              </div>
+            )}
+
+            {/* 「+ このポジションに役割を追加」ボタン */}
+            {addingForCompanyKey !== group.key && (
+              <button
+                type="button"
+                onClick={() => {
+                  setAddDraft(draftFromGroup(group));
+                  setAddingForCompanyKey(group.key);
+                }}
+                style={{
+                  marginTop: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "6px 10px",
+                  background: "transparent",
+                  border: "1px dashed var(--line)",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "var(--ink-mute)",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                <span style={{ fontSize: 13, lineHeight: 1 }}>+</span>
+                このポジションに役割を追加
+              </button>
+            )}
+          </div>
         </div>
       ))}
 
       {/* Empty state */}
-      {stints.length === 0 && !adding && (
+      {stints.length === 0 && addingForCompanyKey === null && (
         <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
           職歴はまだ登録されていません
         </div>
       )}
 
-      {/* Add form */}
-      {adding && (
+      {/* 新規会社の追加フォーム */}
+      {addingForCompanyKey === "__new__" && (
         <div style={{ marginTop: stints.length > 0 ? 12 : 0 }}>
           <StintForm
             draft={addDraft}
@@ -904,15 +1090,19 @@ export default function CareerHistoryEditor({
             onSave={() => { void saveAdd(); }}
             onCancel={cancelAdd}
             roles={roles}
+            companyLocked={false}
           />
         </div>
       )}
 
-      {/* "+ 経歴を追加" button */}
-      {!adding && (
+      {/* 新規会社用「+ 経歴を追加」ボタン */}
+      {addingForCompanyKey === null && (
         <button
           type="button"
-          onClick={() => setAdding(true)}
+          onClick={() => {
+            setAddDraft(EMPTY_DRAFT);
+            setAddingForCompanyKey("__new__");
+          }}
           style={{
             marginTop: stints.length > 0 ? 10 : 4,
             display: "flex",
@@ -929,7 +1119,6 @@ export default function CareerHistoryEditor({
             color: "var(--ink-soft)",
             cursor: "pointer",
             fontFamily: "inherit",
-            transition: "border-color 0.15s, color 0.15s",
           }}
         >
           <span style={{ fontSize: 15, lineHeight: 1 }}>+</span>
