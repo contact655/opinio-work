@@ -8,7 +8,7 @@ import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
 import Tabs, { type TabItem } from "./Tabs";
-import CareerHistoryEditor from "@/components/profile/CareerHistoryEditor";
+import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
 import {
   SocialIcon,
@@ -2263,6 +2263,7 @@ export default function ProfileEditClient({
   initialAchievements,
   initialAwards,
   initialMediaAppearances,
+  initialExperiences,
 }: {
   owUser: OwUser;
   authEmail: string;
@@ -2273,6 +2274,7 @@ export default function ProfileEditClient({
   initialAchievements: Achievement[];
   initialAwards: Award[];
   initialMediaAppearances: MediaAppearance[];
+  initialExperiences: Stint[];
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
 
@@ -2652,7 +2654,7 @@ export default function ProfileEditClient({
         {/* 職歴・学歴タブ */}
         {activeTab === "career" && (
           <div style={{ maxWidth: 680 }}>
-            <CareerHistoryEditor />
+            <CareerHistoryEditor initialExperiences={initialExperiences} />
             <EducationEditor
               educations={educations}
               setEducations={setEducations}

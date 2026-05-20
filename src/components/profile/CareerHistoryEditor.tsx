@@ -45,7 +45,7 @@ const ROLE_LABEL: Record<string, string> = Object.fromEntries(
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Stint = {
+export type Stint = {
   id: string;
   displayCompanyName: string;
   companyType: "master" | "custom" | "anon";
@@ -680,9 +680,12 @@ function StintCard({
 
 // ── Main: CareerHistoryEditor ─────────────────────────────────────────────────
 
-export default function CareerHistoryEditor() {
-  const [stints, setStints] = useState<Stint[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function CareerHistoryEditor({
+  initialExperiences = [],
+}: {
+  initialExperiences?: Stint[];
+}) {
+  const [stints, setStints] = useState<Stint[]>(() => sortStints(initialExperiences));
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -704,32 +707,6 @@ export default function CareerHistoryEditor() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
 
-  // ── Fetch on mount ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    fetch("/api/jobseeker/experiences")
-      .then((r) => r.json())
-      .then((data: { experiences?: Record<string, unknown>[] }) => {
-        const rows = data.experiences ?? [];
-        const mapped: Stint[] = rows.map((e) => ({
-          id: e.id as string,
-          displayCompanyName: e.displayCompanyName as string,
-          companyType: (e.companyType ?? "custom") as Stint["companyType"],
-          companyId: e.companyId as string | undefined,
-          companyText: e.companyText as string | undefined,
-          companyAnonymized: e.companyAnonymized as string | undefined,
-          roleCategoryId: e.roleCategoryId as string,
-          roleLabel: ROLE_LABEL[e.roleCategoryId as string] ?? (e.roleCategoryId as string),
-          roleTitle: e.roleTitle as string | undefined,
-          startedAt: e.startedAt as string,
-          endedAt: e.endedAt as string | undefined,
-          isCurrent: e.isCurrent as boolean,
-          description: e.description as string | undefined,
-        }));
-        setStints(sortStints(mapped));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
 
   // ── Toast helper ────────────────────────────────────────────────────────────
   const showToast = useCallback(
@@ -888,14 +865,6 @@ export default function CareerHistoryEditor() {
   }, [deleteTarget, showToast]);
 
   // ── Render ───────────────────────────────────────────────────────────────────
-
-  if (loading) {
-    return (
-      <div style={{ fontSize: 12, color: "var(--ink-mute)", padding: "6px 0" }}>
-        読み込み中…
-      </div>
-    );
-  }
 
   return (
     <div>
