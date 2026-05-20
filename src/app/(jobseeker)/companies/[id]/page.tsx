@@ -1207,7 +1207,6 @@ function EmployeeCard({
 
 const EMPLOYEE_GRID_STYLE: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(5, 1fr)",
   gap: 10,
 };
 
