@@ -25,8 +25,11 @@
 
 BEGIN;
 
--- FK制約を一時的に解除（Step 5 の UPDATE ow_experiences を可能にするため）
-ALTER TABLE ow_experiences DROP CONSTRAINT ow_experiences_role_category_id_fkey;
+-- ow_roles を参照する全FK制約を一時的に解除
+ALTER TABLE ow_roles                    DROP CONSTRAINT ow_roles_parent_id_fkey;
+ALTER TABLE ow_experiences              DROP CONSTRAINT ow_experiences_role_category_id_fkey;
+ALTER TABLE ow_jobs                     DROP CONSTRAINT ow_jobs_role_category_id_fkey;
+ALTER TABLE ow_company_employee_categories DROP CONSTRAINT ow_company_employee_categories_role_id_fkey;
 
 DO $$
 DECLARE
@@ -54,15 +57,17 @@ DECLARE
   v_qa_id       uuid;  -- QA/テストエンジニア
 
   v_pre_exp_count  int;
+  v_pre_job_count  int;
   v_pre_cat_count  int;
   v_post_cat_count int;
 BEGIN
 
   -- ══ 事前カウント ════════════════════════════════════════════════════
   SELECT COUNT(*) INTO v_pre_exp_count FROM ow_experiences;
+  SELECT COUNT(*) INTO v_pre_job_count FROM ow_jobs WHERE role_category_id IS NOT NULL;
   SELECT COUNT(*) INTO v_pre_cat_count FROM ow_company_employee_categories;
-  RAISE NOTICE '【事前】ow_roles=% 行, ow_experiences=% 行, ow_company_employee_categories=% 行',
-    (SELECT COUNT(*) FROM ow_roles), v_pre_exp_count, v_pre_cat_count;
+  RAISE NOTICE '【事前】ow_roles=% 行, ow_experiences=% 行, ow_jobs(role非NULL)=% 行, ow_company_employee_categories=% 行',
+    (SELECT COUNT(*) FROM ow_roles), v_pre_exp_count, v_pre_job_count, v_pre_cat_count;
 
   -- ══ Step 0: 旧データを退避 ══════════════════════════════════════════
   -- 旧 ow_roles（name → old_id の逆引き用）
@@ -76,7 +81,7 @@ BEGIN
 
   -- ══ Step 1: 参照元テーブルをクリア ═════════════════════════════════
   DELETE FROM ow_company_employee_categories;
-  -- ow_experiences は Step 5 で UPDATE するので触らない
+  -- ow_experiences・ow_jobs は Step 5 で UPDATE するので触らない
 
   -- ══ Step 2: 旧 ow_roles を全削除 ═══════════════════════════════════
   DELETE FROM ow_roles;
@@ -173,10 +178,23 @@ BEGIN
   FROM _role_map m
   WHERE e.role_category_id = m.old_id;
 
-  -- fallback: マッピング未解決（ow_roles に存在しない UUID が残っている場合）→ その他
+  -- fallback: マッピング未解決の UUID → その他
   UPDATE ow_experiences
   SET role_category_id = v_sonota_id
   WHERE role_category_id NOT IN (SELECT id FROM ow_roles);
+
+  -- ══ Step 5b: ow_jobs を旧→新 UUID で更新 ══════════════════════════
+  -- マッピング一致分を新 UUID に変換
+  UPDATE ow_jobs j
+  SET role_category_id = m.new_id
+  FROM _role_map m
+  WHERE j.role_category_id = m.old_id;
+
+  -- fallback: マッピング未解決の UUID → その他（NULL は触らない）
+  UPDATE ow_jobs
+  SET role_category_id = v_sonota_id
+  WHERE role_category_id IS NOT NULL
+    AND role_category_id NOT IN (SELECT id FROM ow_roles);
 
   -- ══ Step 6: ow_company_employee_categories を再構築 ════════════════
   -- 旧 role_id を新 role_id にマッピングし、DISTINCT ON で重複を排除して挿入
@@ -203,15 +221,22 @@ BEGIN
 
   -- ══ 事後カウント ════════════════════════════════════════════════════
   SELECT COUNT(*) INTO v_post_cat_count FROM ow_company_employee_categories;
-  RAISE NOTICE '【事後】ow_roles=% 行（期待21）, ow_experiences=% 行（変化なし・期待%）, ow_company_employee_categories=% 行（旧%→新%）',
+  RAISE NOTICE '【事後】ow_roles=% 行（期待21）, ow_experiences=% 行（期待%）, ow_jobs(role非NULL)=% 行（期待%）, ow_company_employee_categories=% 行（旧%→新%）',
     (SELECT COUNT(*) FROM ow_roles),
     (SELECT COUNT(*) FROM ow_experiences), v_pre_exp_count,
+    (SELECT COUNT(*) FROM ow_jobs WHERE role_category_id IS NOT NULL), v_pre_job_count,
     v_post_cat_count, v_pre_cat_count, v_post_cat_count;
 
 END $$;
 
--- FK制約を新マスタ（ow_roles）に対して再設定
+-- ow_roles を参照する全FK制約を新マスタに対して再設定
+ALTER TABLE ow_roles ADD CONSTRAINT ow_roles_parent_id_fkey
+  FOREIGN KEY (parent_id) REFERENCES ow_roles(id);
 ALTER TABLE ow_experiences ADD CONSTRAINT ow_experiences_role_category_id_fkey
   FOREIGN KEY (role_category_id) REFERENCES ow_roles(id);
+ALTER TABLE ow_jobs ADD CONSTRAINT ow_jobs_role_category_id_fkey
+  FOREIGN KEY (role_category_id) REFERENCES ow_roles(id);
+ALTER TABLE ow_company_employee_categories ADD CONSTRAINT ow_company_employee_categories_role_id_fkey
+  FOREIGN KEY (role_id) REFERENCES ow_roles(id);
 
 COMMIT;
