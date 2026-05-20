@@ -122,9 +122,22 @@ function AddCategoryModal({
   }
 
   function toggle(id: string) {
+    const role = allRoles.find((r) => r.id === id);
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        if (role?.parentId === null) {
+          // 親を選択 → その子をすべて除去
+          const children = childrenByParent.get(id) ?? [];
+          for (const child of children) next.delete(child.id);
+        } else if (role?.parentId) {
+          // 子を選択 → その親を除去
+          next.delete(role.parentId);
+        }
+      }
       return next;
     });
   }
@@ -159,32 +172,36 @@ function AddCategoryModal({
             const children = childrenByParent.get(parent.id) ?? [];
             const isParentAdded = currentRoleIds.has(parent.id);
             const isParentSelected = selected.has(parent.id);
+            const isParentDisabledByChildren = children.length > 0 && children.some(
+              (child) => selected.has(child.id) || currentRoleIds.has(child.id)
+            );
+            const isParentDisabled = isParentAdded || isParentDisabledByChildren;
             return (
               <div key={parent.id}>
                 {/* 親カテゴリ行 */}
                 <label
                   style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 24px",
-                    cursor: isParentAdded ? "default" : "pointer",
+                    cursor: isParentDisabled ? "default" : "pointer",
                     background: isParentSelected ? "var(--royal-50)" : "transparent" }}
                   onMouseEnter={(e) => {
-                    if (!isParentAdded && !isParentSelected)
+                    if (!isParentDisabled && !isParentSelected)
                       (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!isParentAdded && !isParentSelected)
+                    if (!isParentDisabled && !isParentSelected)
                       (e.currentTarget as HTMLElement).style.background = "transparent";
                   }}
                 >
                   <input type="checkbox" checked={isParentAdded || isParentSelected}
-                    disabled={isParentAdded}
-                    onChange={() => !isParentAdded && toggle(parent.id)}
-                    style={{ width: 15, height: 15, cursor: isParentAdded ? "default" : "pointer", flexShrink: 0 }}
+                    disabled={isParentDisabled}
+                    onChange={() => !isParentDisabled && toggle(parent.id)}
+                    style={{ width: 15, height: 15, cursor: isParentDisabled ? "default" : "pointer", flexShrink: 0 }}
                   />
                   <span style={{ fontSize: 13, fontWeight: 700,
-                    color: isParentAdded ? "var(--ink-mute)" : "var(--ink)" }}>
+                    color: isParentDisabled ? "var(--ink-mute)" : "var(--ink)" }}>
                     {parent.name}
                   </span>
-                  {children.length > 0 && !isParentAdded && (
+                  {children.length > 0 && !isParentAdded && !isParentDisabledByChildren && (
                     <span style={{ fontSize: 10, color: "var(--ink-mute)", background: "var(--line-soft)",
                       border: "1px solid var(--line)", borderRadius: 4, padding: "1px 6px", marginLeft: "auto" }}>
                       親直として追加
@@ -201,27 +218,29 @@ function AddCategoryModal({
                 {children.map((child) => {
                   const isChildAdded = currentRoleIds.has(child.id);
                   const isChildSelected = selected.has(child.id);
+                  const isChildDisabledByParent = selected.has(child.parentId!) || currentRoleIds.has(child.parentId!);
+                  const isChildDisabled = isChildAdded || isChildDisabledByParent;
                   return (
                     <label key={child.id}
                       style={{ display: "flex", alignItems: "center", gap: 10,
                         padding: "7px 24px 7px 52px",
-                        cursor: isChildAdded ? "default" : "pointer",
+                        cursor: isChildDisabled ? "default" : "pointer",
                         background: isChildSelected ? "var(--royal-50)" : "transparent" }}
                       onMouseEnter={(e) => {
-                        if (!isChildAdded && !isChildSelected)
+                        if (!isChildDisabled && !isChildSelected)
                           (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)";
                       }}
                       onMouseLeave={(e) => {
-                        if (!isChildAdded && !isChildSelected)
+                        if (!isChildDisabled && !isChildSelected)
                           (e.currentTarget as HTMLElement).style.background = "transparent";
                       }}
                     >
                       <input type="checkbox" checked={isChildAdded || isChildSelected}
-                        disabled={isChildAdded}
-                        onChange={() => !isChildAdded && toggle(child.id)}
-                        style={{ width: 14, height: 14, cursor: isChildAdded ? "default" : "pointer", flexShrink: 0 }}
+                        disabled={isChildDisabled}
+                        onChange={() => !isChildDisabled && toggle(child.id)}
+                        style={{ width: 14, height: 14, cursor: isChildDisabled ? "default" : "pointer", flexShrink: 0 }}
                       />
-                      <span style={{ fontSize: 13, color: isChildAdded ? "var(--ink-mute)" : "var(--ink)" }}>
+                      <span style={{ fontSize: 13, color: isChildDisabled ? "var(--ink-mute)" : "var(--ink)" }}>
                         {child.name}
                       </span>
                       {isChildAdded && (
