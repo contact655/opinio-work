@@ -3,20 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import ProfileEditClient from "./ProfileEditClient";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
 
-// ow_roles.name (DB) → slug (client) — same mapping as /api/jobseeker/experiences/route.ts
-const DB_NAME_TO_SLUG: Record<string, string> = {
-  "営業": "sales", "PdM / PM": "pm", "カスタマーサクセス": "cs",
-  "エンジニア": "engineer", "マーケティング": "marketing", "経営・CxO": "exec", "その他": "other",
-  "フィールドセールス": "field_sales", "エンタープライズ営業": "enterprise_sales",
-  "インサイドセールス": "inside_sales", "SDR / BDR": "sdr_bdr",
-  "プロダクトマネージャー": "product_manager", "プロダクトオーナー": "product_owner", "PMM": "pmm",
-  "バックエンド": "backend", "フロントエンド": "frontend", "フルスタック": "fullstack",
-  "SRE / インフラ": "sre", "iOS / Android": "ios_android",
-  "CEO": "ceo", "COO": "coo", "CPO": "cpo", "CTO": "cto", "CFO": "cfo",
-  "デザイナー": "designer", "事業開発": "biz_dev", "HRBP": "hrbp",
-  "コーポレート": "corporate", "データサイエンティスト": "data_scientist",
-};
-
 export const metadata = { title: "設定 — OPINIO" };
 
 export default async function ProfileEditPage() {
@@ -106,11 +92,10 @@ export default async function ProfileEditPage() {
       display_order: (r.display_order as number) ?? 0,
     }));
 
-  // Build UUID → { slug, label } map from ow_roles
-  const roleInfoById = new Map<string, { slug: string; label: string }>();
+  // Build UUID → name map from ow_roles
+  const roleNameById = new Map<string, string>();
   for (const role of allRoles ?? []) {
-    const slug = DB_NAME_TO_SLUG[role.name as string];
-    if (slug) roleInfoById.set(role.id as string, { slug, label: role.name as string });
+    roleNameById.set(role.id as string, role.name as string);
   }
 
   // Resolve company display names for master entries (SSR: name only, no logo needed here)
@@ -143,7 +128,6 @@ export default async function ProfileEditPage() {
       displayCompanyName = (r.company_anonymized as string) ?? "非公開企業";
     }
     const roleUuid = r.role_category_id as string;
-    const roleInfo = roleInfoById.get(roleUuid);
     return {
       id: r.id as string,
       displayCompanyName,
@@ -151,8 +135,8 @@ export default async function ProfileEditPage() {
       companyId: (r.company_id as string | null) ?? undefined,
       companyText: (r.company_text as string | null) ?? undefined,
       companyAnonymized: (r.company_anonymized as string | null) ?? undefined,
-      roleCategoryId: roleInfo?.slug ?? roleUuid,
-      roleLabel: roleInfo?.label ?? roleUuid,
+      roleCategoryId: roleUuid,
+      roleLabel: roleNameById.get(roleUuid) ?? roleUuid,
       roleTitle: (r.role_title as string | null) ?? undefined,
       startedAt: (r.started_at as string).slice(0, 7),
       endedAt: r.ended_at ? (r.ended_at as string).slice(0, 7) : undefined,

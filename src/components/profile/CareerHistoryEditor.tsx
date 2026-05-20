@@ -1,47 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import StoryAccordion from "./StoryAccordion";
 
-// ── Role options (seeded in ow_roles) ──────────────────────────────────────────
-
-const ROLE_OPTIONS: { slug: string; label: string }[] = [
-  { slug: "product_manager", label: "プロダクトマネージャー" },
-  { slug: "product_owner", label: "プロダクトオーナー" },
-  { slug: "pmm", label: "PMM" },
-  { slug: "pm", label: "PdM / PM" },
-  { slug: "sales", label: "営業" },
-  { slug: "field_sales", label: "フィールドセールス" },
-  { slug: "enterprise_sales", label: "エンタープライズ営業" },
-  { slug: "inside_sales", label: "インサイドセールス" },
-  { slug: "sdr_bdr", label: "SDR / BDR" },
-  { slug: "cs", label: "カスタマーサクセス" },
-  { slug: "marketing", label: "マーケティング" },
-  { slug: "engineer", label: "エンジニア" },
-  { slug: "backend", label: "バックエンド" },
-  { slug: "frontend", label: "フロントエンド" },
-  { slug: "fullstack", label: "フルスタック" },
-  { slug: "sre", label: "SRE / インフラ" },
-  { slug: "ios_android", label: "iOS / Android" },
-  { slug: "data_scientist", label: "データサイエンティスト" },
-  { slug: "designer", label: "デザイナー" },
-  { slug: "biz_dev", label: "事業開発" },
-  { slug: "hrbp", label: "HRBP" },
-  { slug: "corporate", label: "コーポレート" },
-  { slug: "exec", label: "経営・CxO" },
-  { slug: "ceo", label: "CEO" },
-  { slug: "coo", label: "COO" },
-  { slug: "cpo", label: "CPO" },
-  { slug: "cto", label: "CTO" },
-  { slug: "cfo", label: "CFO" },
-  { slug: "other", label: "その他" },
-];
-
-const ROLE_LABEL: Record<string, string> = Object.fromEntries(
-  ROLE_OPTIONS.map((r) => [r.slug, r.label])
-);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -415,6 +378,7 @@ function StintForm({
   justSaved,
   onSave,
   onCancel,
+  roles,
 }: {
   draft: StintDraft;
   onDraftChange: (d: StintDraft) => void;
@@ -422,6 +386,7 @@ function StintForm({
   justSaved?: boolean;
   onSave: () => void;
   onCancel: () => void;
+  roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
 }) {
   const set = useCallback(
     (key: keyof StintDraft, val: string | boolean) =>
@@ -500,9 +465,33 @@ function StintForm({
           style={fieldStyle()}
         >
           <option value="">選択してください</option>
-          {ROLE_OPTIONS.map((r) => (
-            <option key={r.slug} value={r.slug}>{r.label}</option>
-          ))}
+          {roles
+            .filter((r) => r.parent_id === null)
+            .sort((a, b) => a.display_order - b.display_order)
+            .map((parent) => {
+              const children = roles
+                .filter((r) => r.parent_id === parent.id)
+                .sort((a, b) => a.display_order - b.display_order);
+              if (children.length === 0) {
+                // 子なし → 親を選択可
+                return (
+                  <option key={parent.id} value={parent.id}>
+                    {parent.name}
+                  </option>
+                );
+              }
+              // 子あり → 親は見出し（選択不可）+ 子のみ選択可
+              return (
+                <Fragment key={parent.id}>
+                  <option value="" disabled>── {parent.name} ──</option>
+                  {children.map((child) => (
+                    <option key={child.id} value={child.id}>
+                      {child.name}
+                    </option>
+                  ))}
+                </Fragment>
+              );
+            })}
         </select>
       </div>
 
@@ -682,8 +671,10 @@ function StintCard({
 
 export default function CareerHistoryEditor({
   initialExperiences = [],
+  roles = [],
 }: {
   initialExperiences?: Stint[];
+  roles?: { id: string; name: string; parent_id: string | null; display_order: number }[];
 }) {
   const [stints, setStints] = useState<Stint[]>(() => sortStints(initialExperiences));
 
@@ -770,7 +761,7 @@ export default function CareerHistoryEditor({
                 ...s,
                 ...optimisticCompanyFields(editDraft),
                 roleCategoryId: editDraft.roleCategoryId,
-                roleLabel: ROLE_LABEL[editDraft.roleCategoryId] ?? editDraft.roleCategoryId,
+                roleLabel: roles.find((r) => r.id === editDraft.roleCategoryId)?.name ?? editDraft.roleCategoryId,
                 roleTitle: editDraft.roleTitle || undefined,
                 startedAt: editDraft.startedAt,
                 endedAt: editDraft.isCurrent ? undefined : editDraft.endedAt || undefined,
@@ -824,7 +815,7 @@ export default function CareerHistoryEditor({
         id,
         ...optimisticCompanyFields(addDraft),
         roleCategoryId: addDraft.roleCategoryId,
-        roleLabel: ROLE_LABEL[addDraft.roleCategoryId] ?? addDraft.roleCategoryId,
+        roleLabel: roles.find((r) => r.id === addDraft.roleCategoryId)?.name ?? addDraft.roleCategoryId,
         roleTitle: addDraft.roleTitle || undefined,
         startedAt: addDraft.startedAt,
         endedAt: addDraft.isCurrent ? undefined : addDraft.endedAt || undefined,
@@ -879,6 +870,7 @@ export default function CareerHistoryEditor({
               justSaved={editJustSaved}
               onSave={() => { void saveEdit(); }}
               onCancel={cancelEdit}
+              roles={roles}
             />
           ) : (
             <StintCard
@@ -911,6 +903,7 @@ export default function CareerHistoryEditor({
             justSaved={addJustSaved}
             onSave={() => { void saveAdd(); }}
             onCancel={cancelAdd}
+            roles={roles}
           />
         </div>
       )}

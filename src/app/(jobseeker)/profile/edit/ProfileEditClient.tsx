@@ -2271,7 +2271,7 @@ export default function ProfileEditClient({
   initialAwards,
   initialMediaAppearances,
   initialExperiences,
-  roles: _roles, // Phase 2-A-2 で CareerHistoryEditor に渡す予定
+  roles,
 }: {
   owUser: OwUser;
   authEmail: string;
@@ -2663,7 +2663,7 @@ export default function ProfileEditClient({
         {/* 職歴・学歴タブ */}
         {activeTab === "career" && (
           <div style={{ maxWidth: 680 }}>
-            <CareerHistoryEditor initialExperiences={initialExperiences} />
+            <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} />
             <EducationEditor
               educations={educations}
               setEducations={setEducations}
