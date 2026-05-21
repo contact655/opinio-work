@@ -144,6 +144,8 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
   ]);
 
   const hasMentors = allMentors.length > 0;
+  // アバタープレビューは 5 名以上いるときのみ表示（1〜2名の重なりデザイン崩れ防止）
+  const hasEnoughMentorsForPreview = allMentors.length >= 5;
 
   // カテゴリ中、メンターが 1 名以上いるものだけ表示（0名カテゴリは ConsultationSection 内で null）
   const hasAnyCategory = categoriesWithMentors.some((c) => c.mentors.length > 0);
@@ -181,8 +183,8 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
             30分の無料相談 · Opinio 編集部が最適な先輩をご紹介します
           </p>
 
-          {/* アバタープレビュー（メンターが 1 名以上いる場合のみ表示） */}
-          {hasMentors && (
+          {/* アバタープレビュー（5 名以上いる場合のみ表示） */}
+          {hasEnoughMentorsForPreview && (
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 0, marginBottom: 20 }}>
               {allMentors.slice(0, 8).map((m, i) => (
                 <div key={m.id} style={{
