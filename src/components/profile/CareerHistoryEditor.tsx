@@ -60,20 +60,30 @@ function groupKey(s: Stint): string {
 }
 
 function groupStints(stints: Stint[]): StintGroup[] {
-  const map = new Map<string, Stint[]>();
-  for (const s of stints) {
-    const k = groupKey(s);
-    if (!map.has(k)) map.set(k, []);
-    map.get(k)!.push(s);
-  }
+  if (stints.length === 0) return [];
 
   const groups: StintGroup[] = [];
-  for (const [key, positions] of Array.from(map)) {
-    const sortedPositions = [...positions].sort((a, b) => {
-      if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
-      return b.startedAt.localeCompare(a.startedAt);
-    });
-    const first = sortedPositions[0];
+  // 出戻りパターン対応: 同一 baseKey が複数グループになる場合に key を一意化するカウンタ
+  const keyCount = new Map<string, number>();
+  let i = 0;
+
+  while (i < stints.length) {
+    const first = stints[i];
+    const baseKey = groupKey(first);
+    // 連続する同一会社エントリを積む（非連続 = 出戻りは別ループで別グループになる）
+    const positions: Stint[] = [first];
+    let j = i + 1;
+    while (j < stints.length && groupKey(stints[j]) === baseKey) {
+      positions.push(stints[j]);
+      j++;
+    }
+
+    // key 一意化: 出戻りで同一 baseKey が2度目以降に現れる場合は "#1", "#2" を付与
+    const count = keyCount.get(baseKey) ?? 0;
+    const uniqueKey = count === 0 ? baseKey : `${baseKey}#${count}`;
+    keyCount.set(baseKey, count + 1);
+
+    // positions は sortStints() 済みの順序をそのまま維持（追加ソート不要）
     const earliestStart = positions.reduce(
       (acc, p) => (p.startedAt < acc ? p.startedAt : acc),
       positions[0].startedAt
@@ -97,19 +107,22 @@ function groupStints(stints: Stint[]): StintGroup[] {
     const totalMonths = diffInMonths(earliestStart, endForCalc);
 
     groups.push({
-      key,
+      key: uniqueKey,
       companyType: first.companyType,
       companyId: first.companyId,
       companyText: first.companyText,
       companyAnonymized: first.companyAnonymized,
       displayCompanyName: first.displayCompanyName,
-      positions: sortedPositions,
+      positions,
       earliestStart,
       latestEnd,
       totalMonths,
     });
+
+    i = j;
   }
 
+  // 現職グループを先頭、以降は earliestStart DESC（連続走査後の念のためソート）
   return groups.sort((a, b) => {
     const aHasCurrent = a.latestEnd === null;
     const bHasCurrent = b.latestEnd === null;
@@ -829,8 +842,8 @@ export default function CareerHistoryEditor({
     isAnon: group.companyType === "anon",
     roleCategoryId: "",
     roleTitle: "",
-    startedAt: "",
-    endedAt: "",
+    startedAt: group.earliestStart,       // そのグループの開始年月をプリフィル
+    endedAt: group.latestEnd ?? "",        // 現職グループは "" (isCurrent チェックで制御)
     isCurrent: false,
     description: "",
   }), []);
