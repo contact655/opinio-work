@@ -2,27 +2,30 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { getMentors, type MentorData } from "@/lib/supabase/queries";
+import { fetchCategoriesWithMentors } from "@/lib/mentors";
+import { ConsultationSection } from "@/components/mentors/ConsultationSection";
 import MentorFilterBar from "./MentorFilterBar";
 
 export const metadata: Metadata = {
   title: "先輩に相談する — OPINIO",
   description:
-    "LayerX・SmartHR・Ubie・Notionなど、IT/SaaS業界の先輩社員・元社員に直接キャリア相談。PdM・エンジニア・営業・CSのメンターが揃っています。",
+    "IT/SaaS業界の先輩社員・元社員に30分の無料キャリア相談。Opinio編集部が最適なメンターをご紹介します。",
 };
 
-// ─── Mentor Card ──────────────────────────────────────────────────────────────
+// ─── Mentor Card（全一覧グリッド用・既存デザイン維持） ────────────────────────
 
 function MentorCard({ mentor }: { mentor: MentorData }) {
   return (
-    <article style={{
-      display: "flex", flexDirection: "column",
-      background: "#fff",
-      border: "1px solid var(--line)",
-      borderRadius: 16,
-      padding: "22px 22px 20px",
-      boxShadow: "0 2px 8px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)",
-      transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
-    }}
+    <article
+      style={{
+        display: "flex", flexDirection: "column",
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 16,
+        padding: "22px 22px 20px",
+        boxShadow: "0 2px 8px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)",
+        transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
+      }}
       className="mentor-card"
     >
       {/* Head: avatar + name/role */}
@@ -134,7 +137,16 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
   const dept  = typeof searchParams.dept  === "string" ? searchParams.dept  : undefined;
   const theme = typeof searchParams.theme === "string" ? searchParams.theme : undefined;
 
-  const allMentors = await getMentors({ dept, theme });
+  // 全メンター（フィルタ付き） + カテゴリ別（フィルタなし）を並列取得
+  const [allMentors, categoriesWithMentors] = await Promise.all([
+    getMentors({ dept, theme }),
+    fetchCategoriesWithMentors(),
+  ]);
+
+  const hasMentors = allMentors.length > 0;
+
+  // カテゴリ中、メンターが 1 名以上いるものだけ表示（0名カテゴリは ConsultationSection 内で null）
+  const hasAnyCategory = categoriesWithMentors.some((c) => c.mentors.length > 0);
 
   return (
     <>
@@ -149,121 +161,107 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
         </div>
       </div>
 
-      {/* Page top — centered hero */}
+      {/* ヒーロー */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "48px 0 40px" }}>
         <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto", textAlign: "center" }} className="px-5">
-          {/* Stats row */}
-          <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
-            {[
-              { value: allMentors.length, label: "名のメンター" },
-              { value: "12", label: "社の掲載企業" },
-              { value: "30", label: "分の無料相談" },
-            ].map(({ value, label }) => (
-              <div key={label} style={{
-                display: "flex", alignItems: "baseline", gap: 3,
-                fontSize: 12, color: "var(--ink-mute)",
-              }}>
-                <span style={{
-                  fontFamily: "Inter, sans-serif", fontSize: 22, fontWeight: 700, color: "var(--royal)",
-                }}>
-                  {value}
-                </span>
-                {label}
-              </div>
-            ))}
-          </div>
 
           <h1 style={{
-            fontFamily: 'var(--font-noto-serif)',
+            fontFamily: "var(--font-noto-serif)",
             fontSize: "clamp(26px, 4vw, 36px)", fontWeight: 500,
             color: "var(--ink)", letterSpacing: "0.04em",
-            marginBottom: 24, lineHeight: 1.4,
+            marginBottom: 16, lineHeight: 1.4,
           }}>
             先輩に、相談する。
           </h1>
 
-          {/* Avatar preview row */}
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 0, marginBottom: 20 }}>
-            {allMentors.slice(0, 8).map((m, i) => (
-              <div key={m.id} style={{
-                width: 40, height: 40, borderRadius: "50%",
-                background: m.gradient,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontSize: 13, fontWeight: 700,
-                border: "2.5px solid #fff",
-                marginLeft: i === 0 ? 0 : -10,
-                boxShadow: "0 0 0 2px var(--royal), 0 0 0 4px rgba(0,35,102,0.1)",
-                position: "relative", zIndex: 10 - i,
-              }}>
-                {m.initial}
-              </div>
-            ))}
-            {allMentors.length > 8 && (
-              <div style={{
-                width: 40, height: 40, borderRadius: "50%",
-                background: "var(--bg-tint)", border: "2px solid var(--line)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
-                marginLeft: -10, position: "relative", zIndex: 1,
-              }}>
-                +{allMentors.length - 8}
-              </div>
-            )}
-          </div>
-
-          {/* Static search bar (display only) */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12,
-            background: "var(--bg-tint)", border: "1.5px solid var(--line)",
-            borderRadius: 12, padding: "14px 18px",
-            boxShadow: "0 2px 12px rgba(15,23,42,0.04)",
+          <p style={{
+            fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8,
+            marginBottom: hasMentors ? 24 : 16,
           }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
-              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
-            </svg>
-            <span style={{ flex: 1, fontSize: 14, color: "var(--ink-mute)", textAlign: "left" as const }}>
-              PdMからCPOになった人に話を聞きたい
-            </span>
-            <button style={{
-              padding: "7px 16px", background: "var(--royal)", color: "#fff",
-              border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600,
-              cursor: "pointer", flexShrink: 0,
-            }}>
-              検索
-            </button>
-          </div>
+            30分の無料相談 · Opinio 編集部が最適な先輩をご紹介します
+          </p>
 
-          <p style={{ marginTop: 14, fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+          {/* アバタープレビュー（メンターが 1 名以上いる場合のみ表示） */}
+          {hasMentors && (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 0, marginBottom: 20 }}>
+              {allMentors.slice(0, 8).map((m, i) => (
+                <div key={m.id} style={{
+                  width: 40, height: 40, borderRadius: "50%",
+                  background: m.gradient,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontSize: 13, fontWeight: 700,
+                  border: "2.5px solid #fff",
+                  marginLeft: i === 0 ? 0 : -10,
+                  boxShadow: "0 0 0 2px var(--royal), 0 0 0 4px rgba(0,35,102,0.1)",
+                  position: "relative", zIndex: 10 - i,
+                }}>
+                  {m.initial}
+                </div>
+              ))}
+              {allMentors.length > 8 && (
+                <div style={{
+                  width: 40, height: 40, borderRadius: "50%",
+                  background: "var(--bg-tint)", border: "2px solid var(--line)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
+                  marginLeft: -10, position: "relative", zIndex: 1,
+                }}>
+                  +{allMentors.length - 8}
+                </div>
+              )}
+            </div>
+          )}
+
+          <p style={{ fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
             メンターは Opinio 編集部が個別に声がけした方々です。申請フォームはありません。
           </p>
         </div>
       </div>
 
-      {/* Filter bar */}
-      <Suspense fallback={<div style={{ height: 52, background: "#fff", borderBottom: "1px solid var(--line)" }} />}>
-        <MentorFilterBar total={allMentors.length} />
-      </Suspense>
-
-      {/* Grid */}
-      <main style={{ background: "var(--bg-tint)" }}>
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
-          {allMentors.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "80px 0", color: "var(--ink-mute)" }}>
-              <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
-              <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--ink-soft)" }}>
-                条件に合うメンターが見つかりませんでした
-              </p>
-              <p style={{ fontSize: 14 }}>フィルターを変更してみてください</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {allMentors.map((mentor) => (
-                <MentorCard key={mentor.id} mentor={mentor} />
-              ))}
+      {/* メンターが 1 名以上いる場合のみ [2][3] を表示 */}
+      {hasMentors && (
+        <>
+          {/* [2] 悩みカテゴリ別カルーセル */}
+          {hasAnyCategory && (
+            <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
+              <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
+                {categoriesWithMentors.map((category) => (
+                  <ConsultationSection key={category.id} category={category} />
+                ))}
+              </div>
             </div>
           )}
-        </div>
-      </main>
+
+          {/* [3] 全メンター一覧 */}
+          <>
+            {/* フィルタバー */}
+            <Suspense fallback={<div style={{ height: 52, background: "#fff", borderBottom: "1px solid var(--line)" }} />}>
+              <MentorFilterBar total={allMentors.length} />
+            </Suspense>
+
+            {/* グリッド */}
+            <main style={{ background: "var(--bg-tint)" }}>
+              <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
+                {allMentors.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "80px 0", color: "var(--ink-mute)" }}>
+                    <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
+                    <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--ink-soft)" }}>
+                      条件に合うメンターが見つかりませんでした
+                    </p>
+                    <p style={{ fontSize: 14 }}>フィルターを変更してみてください</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {allMentors.map((mentor) => (
+                      <MentorCard key={mentor.id} mentor={mentor} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </main>
+          </>
+        </>
+      )}
 
       <style>{`
         .mentor-card:hover {
@@ -275,6 +273,32 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
           background: var(--royal) !important;
           color: #fff !important;
         }
+        /* carousel-arrow は GenreCarousel の CSS を流用 */
+        .carousel-arrow {
+          position: absolute;
+          top: 50%;
+          transform: translateY(calc(-50% - 4px));
+          z-index: 10;
+          width: 36px; height: 36px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.96);
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 2px 8px rgba(15,23,42,0.12);
+          cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          color: #1a1d24;
+          font-size: 18px; line-height: 1; padding: 0;
+          transition: opacity 0.18s ease, box-shadow 0.18s ease;
+          pointer-events: auto; user-select: none;
+        }
+        .carousel-arrow:hover {
+          box-shadow: 0 4px 14px rgba(15,23,42,0.16);
+          border-color: #cbd5e1;
+        }
+        .carousel-arrow-left  { left: 8px; }
+        .carousel-arrow-right { right: 8px; }
+        .carousel-arrow-hidden { opacity: 0; pointer-events: none; }
+        @media (max-width: 640px) { .carousel-arrow { display: none; } }
       `}</style>
     </>
   );

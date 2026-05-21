@@ -786,6 +786,7 @@ export async function getAllRolesForCategoryEditor(): Promise<RoleForEditor[]> {
 
 export type MentorData = {
   id: string;
+  user_id: string | null;  // ow_mentors.user_id（カテゴリ紐付けに使用）
   name: string;
   initial: string;
   gradient: string;
@@ -804,7 +805,7 @@ export type MentorData = {
 };
 
 const MENTOR_COLS = [
-  "id", "name", "avatar_initial", "avatar_color",
+  "id", "user_id", "name", "avatar_initial", "avatar_color",
   "current_company", "current_role", "previous_career", "current_career",
   "roles", "question_tags", "bio", "catchphrase", "concerns",
   "calendly_url", "is_available", "display_order", "success_count", "total_sessions",
@@ -826,6 +827,7 @@ function mapMentor(row: Record<string, any>): MentorData {
 
   return {
     id: row.id as string,
+    user_id: (row.user_id as string | null) ?? null,
     name,
     initial: (row.avatar_initial as string | null) ?? name.charAt(0),
     gradient: hexToMentorGradient(row.avatar_color as string | null),
