@@ -222,28 +222,83 @@ export default async function MentorDetailPage({ params }: Props) {
               </div>
             )}
 
+            {/* Trust bar */}
+            <div style={{
+              display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px 20px",
+              padding: "14px 16px",
+              background: "var(--bg-tint)", borderRadius: 10,
+              marginBottom: 16,
+            }}>
+              {[
+                { icon: "✓", text: "完全無料" },
+                { icon: "✓", text: "30分から" },
+                { icon: "✓", text: "営業なし" },
+                { icon: "✓", text: "編集部が事前確認" },
+              ].map(({ text }) => (
+                <span key={text} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--ink-soft)", fontWeight: 500 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={3} strokeLinecap="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  {text}
+                </span>
+              ))}
+            </div>
+
             {/* CTA */}
             <Link
               href={`/mentors/${mentor.id}/request`}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                width: "100%", padding: "14px",
-                background: "var(--royal)", color: "#fff",
+                width: "100%", padding: "16px",
+                background: "linear-gradient(135deg, var(--royal) 0%, #1a3a8f 100%)",
+                color: "#fff",
                 border: "none", borderRadius: 10, textDecoration: "none",
-                fontSize: 15, fontWeight: 700,
-                transition: "opacity 0.2s",
+                fontSize: 16, fontWeight: 700,
+                boxShadow: "0 4px 14px rgba(0,35,102,0.3)",
+                transition: "opacity 0.2s, transform 0.15s",
               }}
               className="mentor-detail-cta"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
-              Opinio に相談する
+              {mentor.name}さんに相談する
             </Link>
-            <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--ink-mute)", marginTop: 8 }}>
-              編集部が内容を確認の上、メンターに転送します
+            <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--ink-mute)", marginTop: 10 }}>
+              Opinio編集部が内容を確認・{mentor.name}さんに転送します
             </p>
           </div>
+
+          {/* 相談の進め方 */}
+          <Section title="相談の進め方">
+            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              {[
+                { step: "01", label: "相談内容を送る", desc: "フォームに相談したいことを入力（3分で完了）" },
+                { step: "02", label: "編集部が確認", desc: "Opinio編集部がメンターに適切か確認します" },
+                { step: "03", label: "メンターが承認", desc: "メンターが相談を受け付けると通知が届きます" },
+                { step: "04", label: "日程を調整", desc: "メンターとチャットで日時を確定します" },
+                { step: "05", label: "30分のオンライン対話", desc: "Zoom/Teamsでフランクにお話しします。完全無料" },
+              ].map(({ step, label, desc }, i, arr) => (
+                <div key={step} style={{ display: "flex", gap: 14, paddingBottom: i < arr.length - 1 ? 16 : 0 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                      background: i === arr.length - 1 ? "var(--success)" : "var(--royal)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontSize: 10, fontWeight: 800, fontFamily: "Inter, sans-serif",
+                    }}>{step}</div>
+                    {i < arr.length - 1 && (
+                      <div style={{ width: 2, flex: 1, background: "var(--line)", marginTop: 4 }} />
+                    )}
+                  </div>
+                  <div style={{ paddingTop: 4, paddingBottom: i < arr.length - 1 ? 4 : 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{label}</div>
+                    <div style={{ fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.6 }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Section>
 
           {/* Bio */}
           {mentor.bio && (

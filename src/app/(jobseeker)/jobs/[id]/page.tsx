@@ -161,6 +161,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
               {/* Overview */}
+              {job.overview && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -172,8 +173,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </SecTitle>
                 <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8 }}>{job.overview}</p>
               </section>
+              )}
 
               {/* Main tasks */}
+              {job.main_tasks.length > 0 && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
                 <SecTitle color="#0891B2" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -198,8 +201,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   ))}
                 </ul>
               </section>
+              )}
 
               {/* Skills */}
+              {(job.required_skills.length > 0 || job.preferred_skills.length > 0) && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
                 <SecTitle color="var(--gold)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -254,7 +259,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </div>
               </section>
 
+              )}
+
               {/* Benefits */}
+              {job.benefits.length > 0 && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
                 <SecTitle color="var(--success)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -284,8 +292,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   ))}
                 </div>
               </section>
+              )}
 
               {/* Selection flow */}
+              {job.selection_flow.length > 0 && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
                 <SecTitle color="var(--purple)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -331,6 +341,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   {job.selection_note}
                 </p>
               </section>
+              )}
 
               {/* Position members */}
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>

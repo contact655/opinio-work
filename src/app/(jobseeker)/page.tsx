@@ -407,6 +407,49 @@ function LogoMarquee() {
   );
 }
 
+// ─── Stats Strip ──────────────────────────────────────────────────────────────
+
+function StatsStrip() {
+  const STATS = [
+    { value: "13", unit: "社", label: "掲載企業" },
+    { value: "25", unit: "件", label: "公開求人" },
+    { value: "10", unit: "名", label: "相談できるメンター" },
+    { value: "30", unit: "分", label: "初回相談・完全無料" },
+  ];
+  return (
+    <section style={{
+      background: "var(--royal)",
+      padding: "36px 48px",
+    }} className="px-5 md:px-12">
+      <div style={{
+        maxWidth: 900, margin: "0 auto",
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "28px 0",
+      }} className="sm:[grid-template-columns:repeat(4,1fr)]">
+        {STATS.map(({ value, unit, label }) => (
+          <div key={label} style={{ textAlign: "center" }}>
+            <div style={{
+              display: "flex", alignItems: "baseline", justifyContent: "center", gap: 2,
+              marginBottom: 6,
+            }}>
+              <span style={{
+                fontSize: "clamp(36px,5vw,52px)", fontWeight: 700,
+                fontFamily: "Inter, sans-serif", color: "#fff",
+                lineHeight: 1,
+              }}>{value}</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>{unit}</span>
+            </div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", fontWeight: 500, letterSpacing: "0.04em" }}>
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ─── Infrastructure Section ───────────────────────────────────────────────────
 
 function InfraBlock({
@@ -961,6 +1004,7 @@ export default function HomePage() {
     <>
       <Hero />
       <LogoMarquee />
+      <StatsStrip />
       <InfraSection />
       <HowItWorks />
       <PainPoints />

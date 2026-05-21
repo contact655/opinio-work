@@ -15,7 +15,7 @@ import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail, CompanyNumbers } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
-import BookmarkButton from "./CompanyDetailClient";
+import BookmarkButton, { CompanyStickyNav } from "./CompanyDetailClient";
 import EvaluationText from "./EvaluationText";
 import { createClient } from "@/lib/supabase/server";
 import PostCard from "@/components/jobseeker/PostCard";
@@ -380,60 +380,7 @@ function Hero({
   );
 }
 
-function TabsBar({ company }: { company: Company }) {
-  const tabs = [
-    { label: "概要", href: "#about" },
-    { label: "特徴", href: "#opinion" },
-    { label: "働き方", href: "#work-style" },
-    {
-      label: `求人${company.job_count > 0 ? ` ${company.job_count}件` : ""}`,
-      href: "#jobs",
-    },
-  ];
-
-  return (
-    <nav
-      style={{
-        position: "sticky",
-        top: 64,
-        zIndex: 50,
-        background: "rgba(255,255,255,0.92)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "1px solid var(--line)",
-      }}
-    >
-      <div
-        style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto", overflowX: "auto" }}
-        className="px-5 md:px-12"
-      >
-        <div style={{ display: "flex", gap: 4 }}>
-          {tabs.map(({ label, href }) => (
-            <a
-              key={label}
-              href={href}
-              style={{
-                padding: "14px 18px",
-                background: "none",
-                border: "none",
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: 500,
-                color: "var(--ink-mute)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                borderBottom: "2px solid transparent",
-                textDecoration: "none",
-                transition: "color 0.2s",
-              }}
-            >
-              {label}
-            </a>
-          ))}
-        </div>
-      </div>
-    </nav>
-  );
-}
+// TabsBar removed — replaced by CompanyStickyNav (scroll-spy version)
 
 function SecTitle({
   icon,
@@ -2785,7 +2732,14 @@ export default async function CompanyDetailPage({
     <>
       <Breadcrumb company={company} />
       <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} isAuthenticated={isAuthenticated} />
-      <TabsBar company={company} />
+      <CompanyStickyNav items={[
+        { id: "about",            label: "企業概要" },
+        { id: "opinion",          label: "特徴・評判" },
+        { id: "benefits",         label: "福利厚生" },
+        { id: "work-style",       label: "働き方" },
+        { id: "current-employees",label: "社員" },
+        { id: "jobs",             label: company.job_count > 0 ? `求人 ${company.job_count}件` : "求人" },
+      ]} />
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <div
