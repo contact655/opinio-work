@@ -353,11 +353,13 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       </span>
                     </h2>
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-                    うち <strong style={{ color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
-                      {job.position_members.filter((m) => m.is_mentor).length}
-                    </strong> 名メンター登録
-                  </div>
+                  {job.position_members.filter((m) => m.is_mentor).length > 0 && (
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                      うち <strong style={{ color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
+                        {job.position_members.filter((m) => m.is_mentor).length}
+                      </strong> 名メンター登録
+                    </div>
+                  )}
                 </div>
 
                 <p style={{ fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: 16 }}>

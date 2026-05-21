@@ -227,30 +227,33 @@ function Hero() {
           </p>
 
           {/* CTAs */}
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const, marginBottom: 40 }}>
-            <Link href="/auth" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "16px 28px", background: "var(--royal)", color: "#fff",
-              fontWeight: 600, fontSize: 15, borderRadius: 8, textDecoration: "none",
-              boxShadow: "0 4px 14px rgba(0,35,102,0.25)",
-            }}>
-              無料登録する <ArrowIcon />
-            </Link>
-            <Link href="/career-consultation" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "16px 28px", background: "#fff", color: "var(--royal)",
-              fontWeight: 600, fontSize: 15, borderRadius: 8, textDecoration: "none",
-              border: "1.5px solid var(--royal)",
-            }}>
-              先輩に相談する
-            </Link>
+          <div style={{ marginBottom: 40 }}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const, marginBottom: 14 }}>
+              <Link href="/auth" style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "16px 28px", background: "var(--royal)", color: "#fff",
+                fontWeight: 600, fontSize: 15, borderRadius: 8, textDecoration: "none",
+                boxShadow: "0 4px 14px rgba(0,35,102,0.25)",
+              }}>
+                無料登録する <ArrowIcon />
+              </Link>
+              <Link href="/career-consultation" style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "16px 28px", background: "#fff", color: "var(--royal)",
+                fontWeight: 600, fontSize: 15, borderRadius: 8, textDecoration: "none",
+                border: "1.5px solid var(--royal)",
+              }}>
+                先輩に相談する
+              </Link>
+            </div>
             <Link href="/companies" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "16px 28px", background: "#fff", color: "var(--ink)",
-              fontWeight: 600, fontSize: 15, borderRadius: 8, textDecoration: "none",
-              border: "1.5px solid var(--line)",
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 13, color: "var(--ink-mute)", textDecoration: "none",
             }}>
-              企業を探す
+              まず企業・求人を見てみる
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
             </Link>
           </div>
 

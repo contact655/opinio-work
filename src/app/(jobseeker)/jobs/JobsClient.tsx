@@ -559,32 +559,34 @@ export default function JobsClient({
                 件
               </span>
             </div>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: 12,
-                  color: "var(--ink-mute)",
-                }}
-              >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="var(--success)"
-                  strokeWidth={2.5}
-                  strokeLinecap="round"
+            {newThisWeek > 0 && (
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: 12,
+                    color: "var(--ink-mute)",
+                  }}
                 >
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 6v6l4 2" />
-                </svg>
-                今週新着{" "}
-                <strong style={{ color: "var(--ink)" }}>{newThisWeek}件</strong>
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--success)"
+                    strokeWidth={2.5}
+                    strokeLinecap="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" />
+                  </svg>
+                  今週新着{" "}
+                  <strong style={{ color: "var(--ink)" }}>{newThisWeek}件</strong>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
