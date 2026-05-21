@@ -214,9 +214,21 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
             </div>
           )}
 
-          <p style={{ fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-            メンターは Opinio 編集部が個別に声がけした方々です。申請フォームはありません。
-          </p>
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+            {["編集部が個別に声がけした厳選メンター", "申請フォームなし", "完全無料"].map((label) => (
+              <span key={label} style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
+                padding: "5px 12px", borderRadius: 100,
+                background: "var(--bg-tint)", border: "1px solid var(--line)",
+              }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 

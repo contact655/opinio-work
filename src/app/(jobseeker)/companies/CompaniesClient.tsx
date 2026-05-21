@@ -263,6 +263,11 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
   // Layout toggle (grid = 3 列, list = 1 列)
   const [layout, setLayout] = useState<"grid" | "list">("grid");
 
+  // Secondary filter visibility — auto-open when a secondary filter is active
+  const hasSecondaryFilter = !!(remote || prefecture);
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const secondaryVisible = showMoreFilters || hasSecondaryFilter;
+
   function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
@@ -412,29 +417,54 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             ))}
           </select>
 
-          {/* 都道府県 dropdown */}
-          <select
-            value={prefecture}
-            onChange={(e) => setParam("prefecture", e.target.value)}
-            style={filterSelectStyle(!!prefecture)}
-            aria-label="都道府県で絞り込み"
+          {/* 詳細フィルター toggle */}
+          <button
+            onClick={() => setShowMoreFilters((v) => !v)}
+            style={{
+              height: 38, padding: "0 12px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+              border: `1px solid ${hasSecondaryFilter ? "var(--royal)" : "var(--line)"}`,
+              background: hasSecondaryFilter ? "var(--royal-50)" : "#fff",
+              color: hasSecondaryFilter ? "var(--royal)" : "var(--ink-mute)",
+              cursor: "pointer", whiteSpace: "nowrap",
+              display: "flex", alignItems: "center", gap: 5,
+            }}
           >
-            <option value="">すべての都道府県</option>
-            {availablePrefectures.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
+            詳細
+            <svg
+              width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth={2.5}
+              style={{ transition: "transform 0.2s", transform: secondaryVisible ? "rotate(180deg)" : "none" }}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
 
-          {/* 働き方 dropdown */}
-          <select
-            value={remote}
-            onChange={(e) => setParam("remote", e.target.value)}
-            style={filterSelectStyle(!!remote)}
-          >
-            {REMOTE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+          {/* Secondary filters: 都道府県 + 働き方 */}
+          {secondaryVisible && (
+            <>
+              <select
+                value={prefecture}
+                onChange={(e) => setParam("prefecture", e.target.value)}
+                style={filterSelectStyle(!!prefecture)}
+                aria-label="都道府県で絞り込み"
+              >
+                <option value="">すべての都道府県</option>
+                {availablePrefectures.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+
+              <select
+                value={remote}
+                onChange={(e) => setParam("remote", e.target.value)}
+                style={filterSelectStyle(!!remote)}
+              >
+                {REMOTE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </>
+          )}
 
           {/* Sort + Layout toggle — pushed to the right */}
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>

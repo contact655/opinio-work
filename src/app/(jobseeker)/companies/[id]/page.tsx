@@ -1386,6 +1386,44 @@ function CurrentEmployeesSection({
         </SecTitle>
       </div>
 
+      {/* ── Role composition bar (3名以上 + カテゴリあり) ───────────────────── */}
+      {employees.length >= 3 && categories.length > 0 && (() => {
+        const catCounts = new Map<string, number>();
+        for (const emp of employees) {
+          const label = emp.roleParentName ?? emp.roleCategoryName ?? "その他";
+          catCounts.set(label, (catCounts.get(label) ?? 0) + 1);
+        }
+        const entries = Array.from(catCounts.entries()).sort((a, b) => b[1] - a[1]);
+        const total = employees.length;
+        const COLORS = ["#002366", "#3B5FD9", "#7C3AED", "#059669", "#F59E0B", "#DC2626", "#64748B"];
+        return (
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ display: "flex", height: 8, borderRadius: 100, overflow: "hidden", marginBottom: 10, gap: 2 }}>
+              {entries.map(([name, count], i) => (
+                <div
+                  key={name}
+                  title={`${name}: ${count}名 (${Math.round((count / total) * 100)}%)`}
+                  style={{
+                    flex: `${count} 0 0`,
+                    background: COLORS[i % COLORS.length],
+                    borderRadius: 100,
+                  }}
+                />
+              ))}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "5px 16px" }}>
+              {entries.map(([name, count], i) => (
+                <div key={name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "var(--ink-soft)" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0, display: "inline-block" }} />
+                  {name}
+                  <span style={{ fontWeight: 700, color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{count}</span>名
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {employees.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8, margin: 0 }}>
           公開準備中 — Opinio で取材した社員プロフィールが順次公開されます
@@ -2259,76 +2297,95 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
         </span>
       </div>
 
-      {/* 3-column grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 12,
-        }}
-        className="sm:grid-cols-3 grid-cols-2"
-      >
-        {NUMBER_ITEMS.map(({ label, key, format }) => {
-          const raw = numbers[key];
-          const hasValue = raw !== null && raw !== undefined && String(raw).trim() !== "";
-          const display = hasValue ? format(raw as string | number) : "—";
+      {/* 全項目が未入力の場合は収集中メッセージ、一部でも入力済みならグリッド表示 */}
+      {NUMBER_ITEMS.every(({ key }) => {
+        const raw = numbers[key];
+        return raw === null || raw === undefined || String(raw).trim() === "";
+      }) ? (
+        <div style={{
+          padding: "20px 0 4px",
+          fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8,
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+          </svg>
+          この企業の数値情報は現在収集中です。カジュアル面談や企業ページで直接確認いただけます。
+        </div>
+      ) : (
+        <>
+          {/* 3-column grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: 12,
+            }}
+            className="sm:grid-cols-3 grid-cols-2"
+          >
+            {NUMBER_ITEMS.map(({ label, key, format }) => {
+              const raw = numbers[key];
+              const hasValue = raw !== null && raw !== undefined && String(raw).trim() !== "";
+              const display = hasValue ? format(raw as string | number) : "—";
 
-          return (
-            <div
-              key={key}
-              style={{
-                background: hasValue ? "var(--bg-tint)" : "#fafafa",
-                border: `1px solid ${hasValue ? "var(--line)" : "#efefef"}`,
-                borderRadius: 10,
-                padding: "14px 16px 16px",
-                minHeight: 80,
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-              }}
-            >
-              {/* Label */}
-              <span
-                style={{
-                  fontSize: 11,
-                  fontFamily: "Inter, sans-serif",
-                  fontWeight: 600,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  color: hasValue ? "var(--ink-soft)" : "var(--ink-mute)",
-                }}
-              >
-                {label}
-              </span>
-              {/* Value */}
-              <span
-                style={{
-                  fontSize: hasValue ? 18 : 14,
-                  fontWeight: hasValue ? 700 : 400,
-                  fontFamily: hasValue ? "Inter, 'Noto Sans JP', sans-serif" : "'Noto Sans JP', sans-serif",
-                  color: hasValue ? "var(--ink)" : "var(--ink-mute)",
-                  lineHeight: 1.25,
-                }}
-              >
-                {display}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+              return (
+                <div
+                  key={key}
+                  style={{
+                    background: hasValue ? "var(--bg-tint)" : "#fafafa",
+                    border: `1px solid ${hasValue ? "var(--line)" : "#efefef"}`,
+                    borderRadius: 10,
+                    padding: "14px 16px 16px",
+                    minHeight: 80,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                  }}
+                >
+                  {/* Label */}
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontFamily: "Inter, sans-serif",
+                      fontWeight: 600,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      color: hasValue ? "var(--ink-soft)" : "var(--ink-mute)",
+                    }}
+                  >
+                    {label}
+                  </span>
+                  {/* Value */}
+                  <span
+                    style={{
+                      fontSize: hasValue ? 18 : 14,
+                      fontWeight: hasValue ? 700 : 400,
+                      fontFamily: hasValue ? "Inter, 'Noto Sans JP', sans-serif" : "'Noto Sans JP', sans-serif",
+                      color: hasValue ? "var(--ink)" : "var(--ink-mute)",
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {display}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
 
-      {/* Disclaimer */}
-      <p
-        style={{
-          marginTop: 14,
-          fontSize: 11,
-          color: "var(--ink-mute)",
-          lineHeight: 1.6,
-        }}
-      >
-        企業が自己申告した値です。実態は求人ページ・カジュアル面談でご確認ください。
-        「—」は企業が情報を公開していない項目です。
-      </p>
+          {/* Disclaimer */}
+          <p
+            style={{
+              marginTop: 14,
+              fontSize: 11,
+              color: "var(--ink-mute)",
+              lineHeight: 1.6,
+            }}
+          >
+            企業が自己申告した値です。実態は求人ページ・カジュアル面談でご確認ください。
+            「—」は企業が情報を公開していない項目です。
+          </p>
+        </>
+      )}
     </section>
   );
 }

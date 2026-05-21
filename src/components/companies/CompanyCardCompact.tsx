@@ -27,15 +27,13 @@ export function CompanyCardCompact({ company }: Props) {
   const ph = getPlaceholderColor(company.name);
   const initial = company.logo_letter ?? company.name.slice(0, 1);
 
-  // メタ: 所在地 ・ 従業員数 ・ 募集中N
+  // メタ: 所在地 ・ 従業員数
   type MetaItem = { icon?: React.ReactNode; label: string };
   const metaItems: MetaItem[] = [];
   if (company.location)
     metaItems.push({ icon: <MapPin size={14} strokeWidth={1.5} color="#E24B4A" />, label: company.location });
   if (company.employee_count)
     metaItems.push({ icon: <Users size={14} strokeWidth={1.5} color="#639922" />, label: company.employee_count });
-  if (company.job_count > 0)
-    metaItems.push({ label: `募集中${company.job_count}` });
 
   return (
     <Link href={`/companies/${company.id}`} className="genre-card">
@@ -98,12 +96,27 @@ export function CompanyCardCompact({ company }: Props) {
           </div>
         )}
 
-        {/* Opinio 登録者数 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#4a5260', marginTop: 2 }}>
-          <Users size={13} strokeWidth={1.5} color="#8b95a3" />
-          <span>現役 {company.current_member_count}名</span>
-          <span style={{ color: '#c4cad4' }}>/</span>
-          <span>OBOG {company.obog_count}名</span>
+        {/* Opinio 登録者数 + 募集中バッジ */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginTop: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#4a5260' }}>
+            <Users size={13} strokeWidth={1.5} color="#8b95a3" />
+            <span>現役 {company.current_member_count}名</span>
+            <span style={{ color: '#c4cad4' }}>/</span>
+            <span>OBOG {company.obog_count}名</span>
+          </div>
+          {company.job_count > 0 && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 11, fontWeight: 700,
+              padding: '2px 8px', borderRadius: 100,
+              background: 'var(--royal-50)', color: 'var(--royal)',
+              border: '1px solid var(--royal-100)',
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--royal)', display: 'inline-block' }} />
+              募集中 {company.job_count}
+            </span>
+          )}
         </div>
       </div>
     </Link>
