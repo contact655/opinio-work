@@ -90,6 +90,7 @@ export function buildTimelineCareerEntriesFromRaw(
 
     return {
       id:            r.id,
+      company_id:    r.company_id,
       company_name,
       logo_url:      companyInfo?.logoUrl ?? null,
       logo_letter:   companyInfo?.logoLetter ?? null,

@@ -7,6 +7,8 @@ import SchoolLogoImg from "./SchoolLogoImg";
 
 export interface CareerEntry {
   id: string;
+  /** 企業マスタID（master 企業の場合のみ存在、custom/anon は null） */
+  company_id?: string | null;
   /** 表示用企業名（匿名化済みの場合は "非公開" 等） */
   company_name: string;
   /** 企業ロゴ画像 URL（ow_companies.logo_url）。null = 未登録 */
@@ -78,9 +80,10 @@ type TimelineEntry =
  */
 type RenderEntry =
   | { kind: "future" }
-  | { kind: "career";       data: CareerEntry;    isParallel: boolean }
-  | { kind: "career-group"; items: CareerEntry[] }
-  | { kind: "education";    data: EducationEntry };
+  | { kind: "career";              data: CareerEntry;    isParallel: boolean }
+  | { kind: "career-group";        items: CareerEntry[] }
+  | { kind: "career-same-company"; items: CareerEntry[]; companyKey: string }
+  | { kind: "education";           data: EducationEntry };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -218,6 +221,71 @@ function groupParallelEntries(entries: TimelineEntry[]): RenderEntry[] {
       result.push(entry as RenderEntry);
       i++;
     }
+  }
+  return result;
+}
+
+/**
+ * 同社グループ化のためのキー生成。
+ *
+ * - master 企業（company_id あり）: `m:${company_id}` で確実に同一企業を識別
+ * - custom 企業（company_id なし、company_text あり）: `c:${company_name}` で文字列一致
+ * - anon 企業（company_anonymized）: `a:${id}` で個別扱い（"非公開企業"の誤統合を防ぐ）
+ *
+ * CareerHistoryEditor の groupStints と同じ規約。
+ */
+function getCompanyKey(c: CareerEntry): string {
+  if (c.company_id) return `m:${c.company_id}`;
+  // company_id なし & "非公開企業" 表記 = 匿名企業（XOR 制約により company_anonymized が NOT NULL）
+  if (c.company_name === "非公開企業") return `a:${c.id}`;
+  return `c:${c.company_name}`;
+}
+
+/**
+ * RenderEntry[] を走査し、連続する同一会社の単独 career エントリを
+ * "career-same-company" バリアントにまとめた RenderEntry[] を返す。
+ *
+ * 設計:
+ * - 入力は groupParallelEntries の出力（並行グループ化済み）
+ * - "career-group" バリアント（並行職）はそのまま通過（同社グループ化の対象外）
+ * - 単独 "career" エントリのうち、ソート順で連続する同社のものをグループ化
+ * - 2件以上が連続する場合のみ "career-same-company" に集約、1件のみは "career" のまま
+ * - 出戻りパターン（連続しない同社）は自然に別グループになる（意図通り）
+ *
+ * 注意: ソート順を変えない走査のため、is_current DESC → started_at DESC が維持される。
+ */
+function groupSameCompanyEntries(entries: RenderEntry[]): RenderEntry[] {
+  const result: RenderEntry[] = [];
+  let i = 0;
+  while (i < entries.length) {
+    const entry = entries[i];
+
+    // career-group / education / future は対象外、そのまま通過
+    if (entry.kind !== "career") {
+      result.push(entry);
+      i++;
+      continue;
+    }
+
+    const key = getCompanyKey(entry.data);
+    const group: CareerEntry[] = [entry.data];
+    let j = i + 1;
+    while (j < entries.length) {
+      const next = entries[j];
+      if (next.kind === "career" && getCompanyKey(next.data) === key) {
+        group.push(next.data);
+        j++;
+      } else {
+        break;
+      }
+    }
+
+    if (group.length >= 2) {
+      result.push({ kind: "career-same-company", items: group, companyKey: key });
+    } else {
+      result.push(entry);
+    }
+    i = j;
   }
   return result;
 }
@@ -736,7 +804,7 @@ export default function MergedTimeline({
   const hasFuture = future != null && (!!(future.text?.trim()) || viewerIsOwner);
   const parallelIds = buildParallelMap(careers);
   const entries = buildTimeline(careers, educations, hasFuture, parallelIds);
-  const renderEntries = groupParallelEntries(entries);
+  const renderEntries = groupSameCompanyEntries(groupParallelEntries(entries));
 
   if (renderEntries.length === 0) return null;
 
@@ -925,6 +993,156 @@ export default function MergedTimeline({
                     {items.map((c) => (
                       <ParallelCareerCard key={c.id} data={c} />
                     ))}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (entry.kind === "career-same-company") {
+            const items = entry.items;
+            // ソートは is_current DESC → started_at DESC で来ているため、items[0] が「最新ポジション」
+            // グループ全体の代表として items[0] の会社情報を使う
+            const head = items[0];
+            const anyIsCurrent = items.some((c) => c.is_current);
+
+            // グループ全体の期間: 最古 started_at 〜 最新 ended_at（any is_current なら null）
+            const earliestStart = items.reduce((earliest, c) =>
+              c.started_at < earliest ? c.started_at : earliest, items[0].started_at);
+            const latestEnd = anyIsCurrent
+              ? null
+              : items.reduce<string | null>((latest, c) => {
+                  if (!c.ended_at) return latest;
+                  return !latest || c.ended_at > latest ? c.ended_at : latest;
+                }, null);
+
+            const startLabel = formatYM(earliestStart);
+            const endLabel = anyIsCurrent ? "現在" : latestEnd ? formatYM(latestEnd) : "";
+            const duration = formatDuration(earliestStart, latestEnd);
+
+            // 会社色（logo_gradient の最初の色を抽出。フォールバックは royal 系）
+            const accentColor = head.logo_gradient
+              ? (head.logo_gradient.match(/#[0-9a-fA-F]{3,6}/)?.[0] ?? "var(--royal)")
+              : "var(--royal)";
+            // 背景: 会社色 6% 透過
+            const bgTint = head.logo_gradient
+              ? `${accentColor}0F`
+              : "var(--bg-tint)";
+
+            return (
+              <div key={`same-company-${entry.companyKey}`} className="tl-row">
+                <div className="tl-date-col">
+                  <DateCol startLabel={startLabel} endLabel={endLabel} duration={duration} />
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "center",
+                    paddingTop: 8,
+                  }}
+                >
+                  <CompanyLogoIcon
+                    isCurrent={anyIsCurrent}
+                    logo_url={head.logo_url}
+                    logo_letter={head.logo_letter}
+                    logo_gradient={head.logo_gradient}
+                  />
+                </div>
+                <div style={{ paddingTop: 8, paddingBottom: 20, paddingLeft: 12 }}>
+                  <div
+                    style={{
+                      background: bgTint,
+                      borderLeft: `4px solid ${accentColor}`,
+                      borderRadius: 8,
+                      padding: "12px 14px",
+                    }}
+                  >
+                    {/* 会社名ヘッダー */}
+                    <div style={{ marginBottom: 10 }}>
+                      <span
+                        style={{
+                          fontFamily: "'Noto Serif JP', serif",
+                          fontSize: 16,
+                          fontWeight: 700,
+                          color: "var(--ink)",
+                        }}
+                      >
+                        {head.company_name}
+                      </span>
+                      {anyIsCurrent && <CurrentBadge />}
+                    </div>
+
+                    {/* ポジションカード群 */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {items.map((c) => {
+                        const posDuration = formatDuration(c.started_at, c.ended_at);
+                        return (
+                          <div
+                            key={c.id}
+                            style={{
+                              background: "#fff",
+                              border: "1px solid var(--line)",
+                              borderRadius: 6,
+                              padding: "10px 12px",
+                            }}
+                          >
+                            {/* role label + role title */}
+                            <div
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: "var(--ink)",
+                                marginBottom: c.role_title ? 2 : 0,
+                              }}
+                            >
+                              {c.role_label}
+                            </div>
+                            {c.role_title && (
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: "var(--ink-mute)",
+                                  marginBottom: 4,
+                                }}
+                              >
+                                {c.role_title}
+                              </div>
+                            )}
+                            {/* 期間 */}
+                            {posDuration && (
+                              <div
+                                style={{
+                                  fontFamily: "Inter, sans-serif",
+                                  fontSize: 11,
+                                  color: "var(--ink-mute)",
+                                  marginBottom: c.description ? 4 : 0,
+                                }}
+                              >
+                                {formatYM(c.started_at)}
+                                {" — "}
+                                {c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
+                                {" "}（{posDuration}）
+                              </div>
+                            )}
+                            {/* description */}
+                            {c.description && (
+                              <p
+                                style={{
+                                  fontSize: 13,
+                                  color: "var(--ink-soft)",
+                                  lineHeight: 1.75,
+                                  margin: "6px 0 0",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {c.description}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
