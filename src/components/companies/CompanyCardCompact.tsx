@@ -22,11 +22,6 @@ function getPlaceholderColor(name: string) {
   return PLACEHOLDER_COLORS[hash % PLACEHOLDER_COLORS.length];
 }
 
-const REMOTE_STATUS_LABEL: Record<string, string> = {
-  full_remote: 'フルリモート',
-  hybrid: 'ハイブリッド',
-  on_site: '出社',
-};
 
 export function CompanyCardCompact({ company }: Props) {
   const ph = getPlaceholderColor(company.name);
@@ -103,32 +98,12 @@ export function CompanyCardCompact({ company }: Props) {
           </div>
         )}
 
-        {/* タグ */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
-          {company.accepting_casual_meetings && (
-            <span style={{
-              fontSize: 11,
-              padding: '2px 8px',
-              borderRadius: 4,
-              background: '#e6f5ed',
-              color: '#1f7a48',
-              fontWeight: 500,
-            }}>
-              面談OK
-            </span>
-          )}
-          {company.remote_work_status && REMOTE_STATUS_LABEL[company.remote_work_status] && (
-            <span style={{
-              fontSize: 11,
-              padding: '2px 8px',
-              borderRadius: 4,
-              background: '#f3f5f9',
-              color: '#4a5260',
-              fontWeight: 500,
-            }}>
-              {REMOTE_STATUS_LABEL[company.remote_work_status]}
-            </span>
-          )}
+        {/* Opinio 登録者数 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#4a5260', marginTop: 2 }}>
+          <Users size={13} strokeWidth={1.5} color="#8b95a3" />
+          <span>現役 {company.current_member_count}名</span>
+          <span style={{ color: '#c4cad4' }}>/</span>
+          <span>OBOG {company.obog_count}名</span>
         </div>
       </div>
     </Link>

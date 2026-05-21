@@ -32,6 +32,8 @@ export type CompanyForCarousel = {
   logo_url: string | null;
   updated_at: string;
   job_count: number;            // ow_jobs.status='active' のCOUNT（実数）
+  current_member_count: number; // Opinio 登録現役社員数
+  obog_count: number;           // Opinio 登録OBOG社員数
 };
 
 export type GenreWithCompanies = Genre & {
