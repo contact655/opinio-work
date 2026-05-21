@@ -2,6 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMentorById, type MentorData } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
+import MergedTimeline from "@/components/profile/MergedTimeline";
+import {
+  buildTimelineCareerEntriesFromRaw,
+  type RawExperienceRow,
+  type CompanyLogoInfo,
+} from "@/lib/utils/timeline";
 
 type Props = { params: { id: string } };
 
@@ -56,6 +63,57 @@ export default async function MentorDetailPage({ params }: Props) {
   const mentor = await getMentorById(params.id);
   if (!mentor) notFound();
 
+  // ─── 経歴タイムライン取得（mentor.user_id で ow_experiences を引く） ────────
+  const supabase = createClient();
+  const timelineCareers = await (async () => {
+    if (!mentor.user_id) return [];
+
+    const [
+      { data: expRows },
+      { data: allRoles },
+    ] = await Promise.all([
+      supabase
+        .from("ow_experiences")
+        .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description")
+        .eq("user_id", mentor.user_id)
+        .order("is_current", { ascending: false })
+        .order("started_at", { ascending: false }),
+      supabase.from("ow_roles").select("id, name"),
+    ]);
+
+    const roleNameById = new Map<string, string>();
+    for (const role of allRoles ?? []) {
+      roleNameById.set(role.id as string, role.name as string);
+    }
+
+    // master 企業のロゴ情報を一括解決
+    const expCompanyIds = (expRows ?? [])
+      .filter((r) => r.company_id)
+      .map((r) => r.company_id as string);
+
+    const companyInfoById = new Map<string, CompanyLogoInfo>();
+    if (expCompanyIds.length > 0) {
+      const { data: expCompanies } = await supabase
+        .from("ow_companies")
+        .select("id, name, logo_url, logo_letter, logo_gradient")
+        .in("id", expCompanyIds);
+      for (const c of expCompanies ?? []) {
+        companyInfoById.set(c.id as string, {
+          name: c.name as string,
+          logoUrl: (c.logo_url as string | null) ?? null,
+          logoLetter: (c.logo_letter as string | null) ?? null,
+          logoGradient: (c.logo_gradient as string | null) ?? null,
+        });
+      }
+    }
+
+    return buildTimelineCareerEntriesFromRaw(
+      (expRows ?? []) as RawExperienceRow[],
+      roleNameById,
+      companyInfoById,
+    );
+  })();
+
   return (
     <>
       {/* Breadcrumb */}
@@ -107,14 +165,6 @@ export default async function MentorDetailPage({ params }: Props) {
                   <strong style={{ color: "var(--ink)" }}>{mentor.current_company || "（非公開）"}</strong>
                   {mentor.current_role && ` · ${mentor.current_role}`}
                 </div>
-                {mentor.total_sessions > 0 && (
-                  <div style={{ marginTop: 8, fontSize: 12, color: "var(--ink-mute)" }}>
-                    相談実績 <strong style={{ color: "var(--royal)" }}>{mentor.total_sessions}</strong> 件
-                    {mentor.success_count > 0 && (
-                      <> · 転職成功 <strong style={{ color: "var(--success)" }}>{mentor.success_count}</strong> 件</>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -174,7 +224,7 @@ export default async function MentorDetailPage({ params }: Props) {
 
             {/* CTA */}
             <Link
-              href={`/mentors/${mentor.id}/reserve`}
+              href={`/mentors/${mentor.id}/request`}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 width: "100%", padding: "14px",
@@ -188,7 +238,7 @@ export default async function MentorDetailPage({ params }: Props) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
-              相談を申し込む（無料）
+              Opinio に相談する
             </Link>
             <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--ink-mute)", marginTop: 8 }}>
               編集部が内容を確認の上、メンターに転送します
@@ -202,6 +252,32 @@ export default async function MentorDetailPage({ params }: Props) {
                 {mentor.bio}
               </p>
             </Section>
+          )}
+
+          {/* 経歴タイムライン */}
+          {timelineCareers.length > 0 && (
+            <section style={{
+              background: "#fff", border: "1px solid var(--line)",
+              borderRadius: 16, padding: "24px 28px", marginBottom: 16,
+            }}>
+              <div style={{
+                display: "flex", alignItems: "baseline", gap: 10, marginBottom: 20,
+                paddingBottom: 14, borderBottom: "1px solid var(--line)",
+              }}>
+                <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
+                  経歴
+                </span>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+                  TIMELINE
+                </span>
+              </div>
+              <MergedTimeline
+                careers={timelineCareers}
+                educations={[]}
+                future={null}
+                viewerIsOwner={false}
+              />
+            </section>
           )}
 
           {/* Concerns FAQ */}
