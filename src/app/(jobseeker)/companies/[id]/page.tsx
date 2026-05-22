@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -152,11 +153,12 @@ function Hero({
               }}
             >
               {company.logo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={company.logo_url}
                   alt={company.name}
-                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                  width={88}
+                  height={88}
+                  style={{ objectFit: "contain" }}
                 />
               ) : (
                 company.logo_letter ?? initial

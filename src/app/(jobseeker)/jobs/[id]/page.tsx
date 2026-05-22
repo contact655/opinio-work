@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { type PositionMember } from "@/app/jobs/mockJobData";
@@ -110,8 +111,7 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
         {jobs.map((rj) => (
           <Link key={rj.id} href={`/jobs/${rj.id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
             <div style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: rj.logoGradient || "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 15, fontWeight: 700, overflow: "hidden" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {rj.logoUrl ? <img src={rj.logoUrl} alt={rj.companyName} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : rj.logoLetter}
+              {rj.logoUrl ? <Image src={rj.logoUrl} alt={rj.companyName} width={40} height={40} style={{ objectFit: "contain" }} /> : rj.logoLetter}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rj.title}</div>
@@ -281,8 +281,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               overflow: "hidden",
             }}>
               {company.logo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={company.logo_url} alt={company.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                <Image src={company.logo_url} alt={company.name} width={72} height={72} style={{ objectFit: "contain" }} />
               ) : (
                 company.logo_letter ?? initial
               )}
@@ -734,8 +733,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     overflow: "hidden",
                   }}>
                     {company.logo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={company.logo_url} alt={company.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                      <Image src={company.logo_url} alt={company.name} width={56} height={56} style={{ objectFit: "contain" }} />
                     ) : (
                       company.logo_letter ?? initial
                     )}

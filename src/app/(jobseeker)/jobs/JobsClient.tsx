@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import type { Job } from "@/app/jobs/mockJobData";
 import { SALARY_PRESETS } from "@/app/jobs/mockJobData";
@@ -136,11 +137,12 @@ function JobCard({
           }}
         >
           {company.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={company.logo_url}
               alt={company.name}
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              width={48}
+              height={48}
+              style={{ objectFit: "contain" }}
             />
           ) : (
             logoLetter

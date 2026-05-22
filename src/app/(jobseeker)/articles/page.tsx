@@ -195,9 +195,12 @@ function ArticleCard({ article }: { article: Article }) {
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
+const PER_PAGE = 9;
+
 export default async function ArticlesPage({ searchParams }: { searchParams: SearchParams }) {
   const typeParam = typeof searchParams.type === "string" ? searchParams.type : undefined;
   const sortParam = typeof searchParams.sort === "string" ? searchParams.sort : undefined;
+  const pageParam  = typeof searchParams.page === "string" ? Math.max(1, parseInt(searchParams.page, 10)) : 1;
 
   const [allArticles, filteredArticles] = await Promise.all([
     getArticles(),
@@ -211,6 +214,12 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
     ceo:      allArticles.filter((a) => a.type === "ceo").length,
     report:   allArticles.filter((a) => a.type === "report").length,
   };
+
+  // Pagination (フィーチャー記事を除いたグリッド分を対象)
+  const gridArticles = typeParam ? filteredArticles : filteredArticles.slice(1);
+  const totalPages   = Math.max(1, Math.ceil(gridArticles.length / PER_PAGE));
+  const safePage     = Math.min(pageParam, totalPages);
+  const pagedGridArticles = gridArticles.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
   return (
     <>
@@ -432,10 +441,62 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
 
               {/* Rest of articles */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {(typeParam ? filteredArticles : filteredArticles.slice(1)).map((article) => (
+                {pagedGridArticles.map((article) => (
                   <ArticleCard key={article.slug} article={article} />
                 ))}
               </div>
+
+              {/* ── Pagination ── */}
+              {totalPages > 1 && (
+                <div style={{
+                  display: "flex", justifyContent: "center", alignItems: "center",
+                  gap: 8, marginTop: 40,
+                }}>
+                  {safePage > 1 && (
+                    <Link
+                      href={`/articles?${new URLSearchParams({ ...(typeParam ? { type: typeParam } : {}), ...(sortParam ? { sort: sortParam } : {}), page: String(safePage - 1) })}`}
+                      style={{
+                        padding: "8px 16px", borderRadius: 8, fontSize: 13,
+                        border: "1px solid var(--line)", background: "#fff",
+                        color: "var(--ink-soft)", textDecoration: "none",
+                        fontWeight: 500,
+                      }}
+                    >
+                      ← 前へ
+                    </Link>
+                  )}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <Link
+                      key={p}
+                      href={`/articles?${new URLSearchParams({ ...(typeParam ? { type: typeParam } : {}), ...(sortParam ? { sort: sortParam } : {}), page: String(p) })}`}
+                      style={{
+                        width: 36, height: 36, borderRadius: 8,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 13, fontWeight: p === safePage ? 700 : 400,
+                        background: p === safePage ? "var(--royal)" : "#fff",
+                        color: p === safePage ? "#fff" : "var(--ink-soft)",
+                        border: `1px solid ${p === safePage ? "var(--royal)" : "var(--line)"}`,
+                        textDecoration: "none",
+                      }}
+                    >
+                      {p}
+                    </Link>
+                  ))}
+                  {safePage < totalPages && (
+                    <Link
+                      href={`/articles?${new URLSearchParams({ ...(typeParam ? { type: typeParam } : {}), ...(sortParam ? { sort: sortParam } : {}), page: String(safePage + 1) })}`}
+                      style={{
+                        padding: "8px 16px", borderRadius: 8, fontSize: 13,
+                        border: "1px solid var(--line)", background: "#fff",
+                        color: "var(--ink-soft)", textDecoration: "none",
+                        fontWeight: 500,
+                      }}
+                    >
+                      次へ →
+                    </Link>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/common";
@@ -490,7 +491,7 @@ function Hero() {
                           flexShrink: 0, overflow: "hidden",
                         }}>
                           {job.logoUrl
-                            ? <img src={job.logoUrl} alt={job.companyName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            ? <Image src={job.logoUrl} alt={job.companyName} width={36} height={36} style={{ objectFit: "contain" }} />
                             : job.logoLetter}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>

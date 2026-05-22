@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import Image from "next/image";
 import type { CompanyPhoto } from "@/lib/supabase/queries";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -23,12 +24,12 @@ function PhotoCard({ photo }: { photo: CompanyPhoto }) {
         aspectRatio: "4/3",
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={photo.image_url}
         alt={photo.caption ?? "オフィス写真"}
-        loading="lazy"
-        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        style={{ objectFit: "cover" }}
       />
       {photo.caption && (
         <div

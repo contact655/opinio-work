@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, MessageSquare, ClipboardList, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, MessageSquare, ClipboardList, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, Search } from "lucide-react";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
 
@@ -79,6 +79,11 @@ const NAV_ITEMS: NavItem[] = [
     label: "分析",
     icon: <BarChart2 size={16} strokeWidth={2.2} />,
   },
+  {
+    href: "/biz/candidates",
+    label: "求職者を探す",
+    icon: <Search size={16} strokeWidth={2.2} />,
+  },
 ];
 
 
@@ -96,6 +101,24 @@ export function BusinessLayout({
   const router = useRouter();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const avatarRef = useRef<HTMLDivElement>(null);
+  const [pendingMeetings, setPendingMeetings] = useState(0);
+  const [pendingApplications, setPendingApplications] = useState(0);
+
+  useEffect(() => {
+    async function fetchBadgeCounts() {
+      try {
+        const res = await fetch("/api/biz/badge-counts", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          setPendingMeetings(data.pendingMeetings ?? 0);
+          setPendingApplications(data.pendingApplications ?? 0);
+        }
+      } catch {
+        // best-effort — silently ignore
+      }
+    }
+    fetchBadgeCounts();
+  }, [pathname]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -310,6 +333,11 @@ export function BusinessLayout({
               // 子が active な時は親をサブデュード表示 (背景なし・テキストのみ royal)
               const showFullActive = active && !childActive;
 
+              // バッジカウント
+              const badgeCount =
+                item.href === "/biz/meetings" ? pendingMeetings :
+                item.href === "/biz/applications" ? pendingApplications : 0;
+
               return (
                 <div key={item.href}>
                   <Link
@@ -343,6 +371,17 @@ export function BusinessLayout({
                       </span>
                       {item.label}
                     </span>
+                    {badgeCount > 0 && (
+                      <span style={{
+                        minWidth: 18, height: 18, borderRadius: 100,
+                        background: "var(--error)", color: "#fff",
+                        fontSize: 10, fontWeight: 700, fontFamily: "Inter, sans-serif",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        padding: "0 5px", flexShrink: 0,
+                      }}>
+                        {badgeCount > 99 ? "99+" : badgeCount}
+                      </span>
+                    )}
                   </Link>
 
                   {/* サブリンク: 親が active な時だけ展開 */}
