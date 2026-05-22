@@ -642,6 +642,7 @@ export type CompanyEmployee = {
   avatarGradient: string;
   roleTitle: string | null;
   isMentor: boolean;
+  mentorId: string | null; // ow_mentors.id（isMentor=true かつ is_available=true の場合のみ非 null）
   endedAt: string | null; // "YYYY-MM" 形式、OB のみ使用
   // === Phase Q-5 追加: カテゴリ情報 ===
   roleCategoryId: string | null;
@@ -711,6 +712,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
         : "linear-gradient(135deg, #002366, #3B5FD9)",
       roleTitle: (row.role_title as string | null) ?? null,
       isMentor: (u?.is_mentor as boolean) ?? false,
+      mentorId: null,
       endedAt: endedAt ? (endedAt as string).slice(0, 7) : null,
       roleCategoryId,
       roleCategoryName: (role?.name as string | null) ?? null,
@@ -719,10 +721,30 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     };
   }
 
-  return {
+  const result = {
     current: (currentRows ?? []).map((r) => mapEmp(r)),
     alumni: (alumniRows ?? []).map((r) => mapEmp(r, r.ended_at)),
   };
+
+  // Resolve mentorId for is_mentor users
+  const allEmps = [...result.current, ...result.alumni];
+  const mentorUserIds = allEmps.filter((e) => e.isMentor).map((e) => e.userId);
+  if (mentorUserIds.length > 0) {
+    const { data: mentorRows } = await supabase
+      .from("ow_mentors")
+      .select("id, user_id")
+      .in("user_id", mentorUserIds)
+      .eq("is_available", true);
+    const mentorIdByUserId = new Map<string, string>(
+      (mentorRows ?? [])
+        .filter((m) => m.user_id)
+        .map((m) => [m.user_id as string, m.id as string])
+    );
+    for (const e of result.current) e.mentorId = mentorIdByUserId.get(e.userId) ?? null;
+    for (const e of result.alumni) e.mentorId = mentorIdByUserId.get(e.userId) ?? null;
+  }
+
+  return result;
 }
 
 // ─── Company employee categories (ow_company_employee_categories) ─────────────

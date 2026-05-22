@@ -233,15 +233,20 @@ function Hero() {
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 10,
             padding: "8px 16px", background: "var(--royal-50)", color: "var(--royal)",
-            borderRadius: 100, fontSize: 13, fontWeight: 500, marginBottom: 32,
+            borderRadius: 100, fontSize: 13, fontWeight: 600, marginBottom: 32,
+            border: "1px solid var(--royal-100)",
+            letterSpacing: "0.01em",
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
-            IT・SaaS業界のキャリアインフラ
+            <span style={{
+              width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", flexShrink: 0,
+              animation: "pulseDot 2.5s ease-in-out infinite",
+            }} />
+            IT / SaaS 業界に、特化している。
           </div>
 
           {/* Title with role rotator */}
           <h1 style={{
-            fontSize: "clamp(32px,4.5vw,54px)",
+            fontSize: "clamp(30px,4.5vw,52px)",
             fontWeight: 500, lineHeight: 1.4, letterSpacing: "0.01em",
             color: "var(--ink)", marginBottom: 24,
             fontFamily: 'var(--font-noto-serif)',
@@ -253,8 +258,8 @@ function Hero() {
 
           {/* Lead */}
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 40, maxWidth: "var(--max-w-form)" }}>
-            企業の<strong style={{ color: "var(--royal)" }}>今</strong>を知り、先輩と<strong style={{ color: "var(--royal)" }}>話し</strong>、自分で決める。<br />
-            IT/SaaS業界に特化した、対話から始まる新しいキャリアの作り方。
+            転職を検討していなくても、使えるキャリアサービスを目指しています。<br />
+            企業の<strong style={{ color: "var(--royal)" }}>今</strong>を知り、現役先輩に<strong style={{ color: "var(--royal)" }}>相談</strong>し、自分のペースで選ぶ。
           </p>
 
           {/* CTAs */}
@@ -294,6 +299,32 @@ function Hero() {
               <span key={t} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <CheckMark /> {t}
               </span>
+            ))}
+          </div>
+
+          {/* Mobile-only key stats strip */}
+          <div className="flex md:hidden" style={{
+            marginTop: 28, gap: 0,
+            background: "var(--royal-50)", borderRadius: 12,
+            border: "1px solid var(--royal-100)", overflow: "hidden",
+          }}>
+            {[
+              { value: "36", unit: "社", label: "掲載企業" },
+              { value: "30", unit: "件", label: "公開求人" },
+              { value: "10", unit: "名", label: "相談できる先輩" },
+            ].map((s, i) => (
+              <div key={s.label} style={{
+                flex: 1, textAlign: "center", padding: "14px 8px",
+                borderRight: i < 2 ? "1px solid var(--royal-100)" : "none",
+              }}>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 2 }}>
+                  <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--royal)" }}>
+                    {s.value}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)" }}>{s.unit}</span>
+                </div>
+                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 2, fontWeight: 500 }}>{s.label}</div>
+              </div>
             ))}
           </div>
 
@@ -512,7 +543,7 @@ function LogoMarquee() {
         color: "var(--ink-mute)", textTransform: "uppercase",
         marginBottom: 20,
       }}>
-        IT/SaaS業界の求人情報を、網羅的に集めています
+        IT / SaaS 業界を代表する企業が、Opinio に集まっています
       </p>
       <div style={{ position: "relative", overflow: "hidden" }}>
         {/* fade masks */}
@@ -623,11 +654,11 @@ function InfraSection() {
         <div style={{ textAlign: "center", padding: "80px 0 0" }}>
           <SectionTag>WHAT MAKES OPINIO DIFFERENT</SectionTag>
           <h2 style={{ fontSize: "clamp(26px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: 16 }}>
-            Opinioが、キャリアインフラになる理由
+            他のキャリアサービスと、ここが違う。
           </h2>
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: 600, margin: "0 auto" }}>
-            私たちは企業の<strong>「今」</strong>を知り続け、<br />
-            あなたの<strong>「これから」</strong>に必要な情報を、抜け漏れなく揃えます。
+            求人の<strong>鮮度</strong>、検索の<strong>網羅性</strong>、相談できる<strong>先輩の存在</strong>。<br />
+            キャリア判断に必要な 3 つを、ひとつの場所に揃えました。
           </p>
         </div>
 
@@ -1087,12 +1118,14 @@ function FinalCta() {
 
       <h2 style={{
         fontSize: "clamp(28px,3.5vw,44px)", fontWeight: 700, color: "#fff",
-        marginBottom: 16, fontFamily: 'var(--font-noto-serif)', lineHeight: 1.35,
+        marginBottom: 12, fontFamily: 'var(--font-noto-serif)', lineHeight: 1.35,
       }}>
-        キャリアに、第三者の目を。
+        今のキャリアを変えなくてもいい。<br />
+        <span style={{ opacity: 0.85, fontSize: "0.75em" }}>ただ、知ることから始めよう。</span>
       </h2>
-      <p style={{ fontSize: 16, color: "rgba(255,255,255,0.8)", marginBottom: 40 }}>
-        完全無料・メールアドレスのみで登録
+      <p style={{ fontSize: 15, color: "rgba(255,255,255,0.75)", marginBottom: 40, lineHeight: 1.8 }}>
+        IT/SaaS業界の企業情報・求人・先輩メンターが、ひとつの場所に。<br />
+        完全無料・メールアドレスのみで登録。
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" as const }}>
         <Link href="/auth" style={{

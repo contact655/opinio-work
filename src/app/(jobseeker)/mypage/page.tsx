@@ -390,5 +390,26 @@ export default async function MypagePage() {
     }
   }
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} mentorBookmarks={mentorBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} receivedRequests={receivedRequests} />;
+  // Fetch notification badge counts
+  let conversationsBadge = 0;
+  let applicationsBadge = 0;
+  if (owUser) {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const [{ count: convCount }, { count: appCount }] = await Promise.all([
+      supabase
+        .from("ow_conversations")
+        .select("id", { count: "exact", head: true })
+        .or(`candidate_user_id.eq.${owUser.id},company_user_id.eq.${owUser.id}`)
+        .gt("updated_at", sevenDaysAgo),
+      supabase
+        .from("ow_job_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", owUser.id)
+        .neq("status", "pending"),
+    ]);
+    conversationsBadge = convCount ?? 0;
+    applicationsBadge = appCount ?? 0;
+  }
+
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} mentorBookmarks={mentorBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} receivedRequests={receivedRequests} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} />;
 }

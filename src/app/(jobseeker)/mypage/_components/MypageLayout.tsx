@@ -83,6 +83,8 @@ export default function MypageLayout({
   onNavigate,
   onIsMentorChange,
   pendingReceivedCount = 0,
+  conversationsBadge,
+  applicationsBadge,
   children,
   rightColumn,
 }: {
@@ -92,6 +94,8 @@ export default function MypageLayout({
   /** isMentor が変化したときに呼ばれるコールバック（例: activeView のリセット）。 */
   onIsMentorChange?: (v: boolean) => void;
   pendingReceivedCount?: number;
+  conversationsBadge?: number;
+  applicationsBadge?: number;
   children: React.ReactNode;
   rightColumn?: React.ReactNode;
 }) {
@@ -169,8 +173,8 @@ export default function MypageLayout({
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      onClick={() => { window.location.href = "/mypage"; }} />
-            <SidebarItem icon={Icons.application} label="応募管理"      active={activeKey === "applications"}                               onClick={() => { window.location.href = "/mypage/applications"; }} />
-            <SidebarItem icon={Icons.message}     label="対話"          active={activeKey === "conversations"}                              onClick={() => { window.location.href = "/mypage/conversations"; }} />
+            <SidebarItem icon={Icons.application} label="応募管理"      active={activeKey === "applications"}   badge={applicationsBadge}   onClick={() => { window.location.href = "/mypage/applications"; }} />
+            <SidebarItem icon={Icons.message}     label="対話"          active={activeKey === "conversations"}  badge={conversationsBadge}  onClick={() => { window.location.href = "/mypage/conversations"; }} />
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}       onClick={() => nav("bookmarks")} />
           </nav>
 

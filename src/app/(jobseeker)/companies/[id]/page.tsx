@@ -1147,6 +1147,117 @@ function EmployeeCard({
 }) {
   // γ-3 修正②: 職種カテゴリ（親カテゴリ優先）でアバター色を統一
   const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
+  const hasMentorCTA = employee.isMentor && employee.mentorId;
+
+  const avatar = (
+    <div
+      style={{
+        width: 48,
+        height: 48,
+        borderRadius: 6,
+        background: avatarColor.bg,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "var(--font-noto-serif)",
+        fontWeight: 700,
+        fontSize: 19,
+        color: avatarColor.text,
+      }}
+    >
+      {employee.avatarInitial}
+    </div>
+  );
+
+  const nameAndRole = (
+    <div style={{ minWidth: 0, flex: 1 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap" }}>
+          {employee.name}
+        </span>
+        {employee.isMentor && (
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: "var(--purple)",
+              background: "var(--purple-soft)",
+              border: "1px solid #DDD6FE",
+              borderRadius: 100,
+              padding: "2px 8px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            メンター
+          </span>
+        )}
+      </div>
+      {employee.roleTitle && (
+        <p
+          style={{
+            margin: 0,
+            fontSize: 12,
+            color: "var(--ink-soft)",
+            marginTop: 2,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {employee.roleTitle}
+        </p>
+      )}
+      {showEndedAt && employee.endedAt && (
+        <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+          退職: {employee.endedAt}
+        </p>
+      )}
+    </div>
+  );
+
+  if (hasMentorCTA) {
+    // <a> を入れ子にできないため、div ラッパー + 2 つの別 <a> に分割
+    return (
+      <div
+        className="employee-card-link"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "12px 14px",
+          background: "var(--bg-tint)",
+          border: "1px solid var(--line)",
+          borderRadius: 12,
+        }}
+      >
+        <a
+          href={`/u/${employee.userId}`}
+          style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, textDecoration: "none", minWidth: 0 }}
+        >
+          {avatar}
+          {nameAndRole}
+        </a>
+        <a
+          href={`/mentors/${employee.mentorId}/reserve`}
+          style={{
+            flexShrink: 0,
+            fontSize: 11,
+            fontWeight: 600,
+            color: "var(--royal)",
+            background: "var(--royal-50)",
+            border: "1px solid var(--royal-100)",
+            textDecoration: "none",
+            padding: "5px 10px",
+            borderRadius: 6,
+            whiteSpace: "nowrap",
+          }}
+        >
+          相談する →
+        </a>
+      </div>
+    );
+  }
 
   return (
     <a
@@ -1163,84 +1274,8 @@ function EmployeeCard({
         textDecoration: "none",
       }}
     >
-      {/* Avatar — γ-3: 職種カテゴリ色 + rounded-md (6px) */}
-      <div
-        style={{
-          width: 48,
-          height: 48,
-          borderRadius: 6,
-          background: avatarColor.bg,
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "var(--font-noto-serif)",
-          fontWeight: 700,
-          fontSize: 19,
-          color: avatarColor.text,
-        }}
-      >
-        {employee.avatarInitial}
-      </div>
-
-      {/* Info */}
-      <div style={{ minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--ink)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {employee.name}
-          </span>
-          {employee.isMentor && (
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: "var(--purple)",
-                background: "var(--purple-soft)",
-                border: "1px solid #DDD6FE",
-                borderRadius: 100,
-                padding: "2px 8px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              メンター
-            </span>
-          )}
-        </div>
-        {employee.roleTitle && (
-          <p
-            style={{
-              margin: 0,
-              fontSize: 12,
-              color: "var(--ink-soft)",
-              marginTop: 2,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {employee.roleTitle}
-          </p>
-        )}
-        {showEndedAt && employee.endedAt && (
-          <p
-            style={{
-              margin: 0,
-              fontSize: 11,
-              color: "var(--ink-mute)",
-              marginTop: 2,
-            }}
-          >
-            退職: {employee.endedAt}
-          </p>
-        )}
-      </div>
+      {avatar}
+      {nameAndRole}
     </a>
   );
 }
@@ -2923,9 +2958,14 @@ export default async function CompanyDetailPage({
           border-color: var(--royal) !important;
           background: var(--royal-50) !important;
         }
+        .employee-card-link {
+          transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+        }
         .employee-card-link:hover {
           border-color: var(--royal-100) !important;
           background: #fff !important;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(0,35,102,0.08) !important;
         }
         .post-card-link:hover {
           border-color: var(--royal) !important;

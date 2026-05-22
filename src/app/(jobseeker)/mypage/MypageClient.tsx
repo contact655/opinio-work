@@ -906,6 +906,8 @@ export default function MypageClient({
   casualMeetings,
   mentorReservations,
   receivedRequests: receivedRequestsProp = [],
+  conversationsBadge,
+  applicationsBadge,
 }: {
   owUser: OwUser;
   skillTags?: { id: string; label: string; sort_order: number }[];
@@ -923,6 +925,8 @@ export default function MypageClient({
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
   receivedRequests?: ReceivedRequest[];
+  conversationsBadge?: number;
+  applicationsBadge?: number;
 }) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
@@ -1174,6 +1178,8 @@ export default function MypageClient({
         }
       }}
       pendingReceivedCount={pendingReceivedCount}
+      conversationsBadge={conversationsBadge}
+      applicationsBadge={applicationsBadge}
       rightColumn={activeView === "dashboard" ? dashboardRightColumn : undefined}
     >
       {activeView === "dashboard" && (

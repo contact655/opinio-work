@@ -3,13 +3,26 @@ import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 
 export const metadata: Metadata = {
-  title: "OPINIO | 対話の、産業を作る。IT/SaaS業界のキャリアインフラ",
+  title: {
+    default: "OPINIO | IT/SaaS転職・キャリア相談。先輩と話して選ぶ。",
+    template: "%s | OPINIO",
+  },
   description:
-    "IT/SaaS業界に特化したキャリアプラットフォーム。企業の今を知り、先輩と話し、自分で決める。完全無料・営業電話なし。",
+    "IT/SaaS業界特化のキャリアプラットフォーム。36社の企業情報・求人を掲載し、現役先輩メンターに無料で相談できます。完全無料・営業電話なし・メール登録のみ。",
   openGraph: {
-    title: "OPINIO | 対話の、産業を作る。",
-    description: "IT/SaaS業界に特化。求人・企業情報・先輩相談が揃うキャリアインフラ。",
+    title: "OPINIO | IT/SaaS転職・キャリア相談。先輩と話して選ぶ。",
+    description: "IT/SaaS業界特化。36社の企業情報・求人と、現役先輩メンターへの無料相談が揃うキャリアプラットフォーム。",
     type: "website",
+    url: "https://www.opinio.co.jp",
+    siteName: "OPINIO",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "OPINIO | IT/SaaS転職・キャリア相談",
+    description: "IT/SaaS業界特化。企業情報・求人・先輩メンター相談が揃うキャリアプラットフォーム。完全無料。",
+  },
+  alternates: {
+    canonical: "https://www.opinio.co.jp",
   },
 };
 
