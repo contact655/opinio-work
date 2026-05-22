@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import type { BizApplication, ApplicationStatus, ApplicationStatusTab } from "@/lib/business/applications";
 import { APPLICATION_STATUS_TABS, countByStatus, VALID_APPLICATION_STATUSES } from "@/lib/business/applications";
 
@@ -408,6 +409,28 @@ function DetailPanel({ app, isUpdating, onStatusChange }: DetailProps) {
             {app.message}
           </p>
         </Section>
+      )}
+
+      {/* 対話ボタン */}
+      {app.conversationId && (
+        <div style={{ paddingTop: 4 }}>
+          <Link
+            href={`/biz/conversations/${app.conversationId}`}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "10px 20px",
+              background: "var(--royal)", color: "#fff",
+              borderRadius: 8, fontSize: 13, fontWeight: 600,
+              textDecoration: "none",
+              transition: "opacity 0.15s",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            対話を見る →
+          </Link>
+        </div>
       )}
     </div>
   );

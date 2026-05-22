@@ -30,6 +30,28 @@ export default async function BizApplicationsPage() {
   const supabase = createClient();
   const applications = await fetchApplicationsForCompany(supabase, ctx.tenantId);
 
+  // 候補者ごとの conversation ID を一括取得してマッピング
+  const userIds = Array.from(new Set(applications.map((a) => a.userId).filter(Boolean)));
+  const convMap = new Map<string, string>(); // userId → conversationId
+  if (userIds.length > 0) {
+    const { data: convs } = await supabase
+      .from("ow_conversations")
+      .select("id, candidate_user_id")
+      .eq("company_id", ctx.tenantId)
+      .in("candidate_user_id", userIds);
+    for (const c of convs ?? []) {
+      if (c.candidate_user_id) {
+        convMap.set(c.candidate_user_id as string, c.id as string);
+      }
+    }
+  }
+
+  // conversationId を applications に付与
+  const appsWithConv = applications.map((a) => ({
+    ...a,
+    conversationId: convMap.get(a.userId) ?? undefined,
+  }));
+
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -39,7 +61,7 @@ export default async function BizApplicationsPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <ApplicationsClient applications={applications} />
+      <ApplicationsClient applications={appsWithConv} />
     </BusinessLayout>
   );
 }

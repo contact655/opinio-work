@@ -66,10 +66,19 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
   - `/biz/applications/` — 企業側応募管理
   - `/biz/conversations/` + `/biz/conversations/[id]/` — 企業側メッセージ管理
 
-### 🟢 次の優先候補
-- **ActivityList 残り 5 イベント** (casual_meeting_applied/offer_sent 等) — 機能実装時に add
-- **`/api/applications` → `insertActivity` への activity 種別追加**（application_submitted等）
-- **新機能検討**（メンター機能強化、管理画面の残り機能など）
+### ✅ 完了 2026-05-22 セッション3: biz 側機能完成度向上
+  - BusinessLayout に `/biz/conversations`（対話管理）をナビ追加（Inbox アイコン）
+  - `BizApplication` 型に `userId` + `conversationId` フィールド追加
+  - `biz/applications/page.tsx`: ow_conversations を照合して conversationId を付与
+  - `ApplicationsClient`: `conversationId` がある場合に「対話を見る →」ボタン表示
+  - ActivityList 全 9 イベント既実装を確認:
+    casual_meeting_applied / application_received / message_sent / message_received /
+    candidate_status_changed / offer_sent / meeting_scheduled / meeting_completed / job_published
+
+### 🟢 次の優先候補（実質完成、残タスクは新機能のみ）
+- **実ユーザー招待・オンボーディング** — DB・機能共に準備完了。企業担当者を招待してテスト可能
+- **mentor-reservations → insertActivity 追加**（メンター予約時に biz ダッシュボードへ流す、現在未対応）
+- **新機能検討**（求職者プロフィールの公開設定・企業からの候補者サーチなど）
 
 ### DB 現状（2026-05-22 セッション3 更新確認）
 | テーブル | 件数 | 備考 |

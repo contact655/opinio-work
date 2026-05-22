@@ -35,6 +35,7 @@ export type BizApplication = {
   id: string;
   jobId: string;
   jobTitle: string;
+  userId: string;           // ow_job_applications.user_id → conversation 照合に使用
   name: string;
   email: string;
   phone: string | null;
@@ -42,6 +43,7 @@ export type BizApplication = {
   status: ApplicationStatus;
   createdAt: string;        // ISO string
   appliedAtLabel: string;   // 相対表示 ("今日", "3日前" 等)
+  conversationId?: string;  // 対応する ow_conversations.id（biz/applications/page.tsx で付与）
 };
 
 // ─── DB row types ─────────────────────────────────────────────────────────
@@ -49,6 +51,7 @@ export type BizApplication = {
 type DbApplication = {
   id: string;
   job_id: string;
+  user_id: string;
   name: string;
   email: string;
   phone: string | null;
@@ -81,6 +84,7 @@ function transformApplication(row: DbApplication): BizApplication {
   return {
     id: row.id,
     jobId: row.job_id,
+    userId: row.user_id,
     jobTitle: row.ow_jobs?.title ?? "(求人情報なし)",
     name: row.name,
     email: row.email,
@@ -104,7 +108,7 @@ export async function fetchApplicationsForCompany(
   const { data, error } = await supabase
     .from("ow_job_applications")
     .select(
-      "id, job_id, name, email, phone, message, status, created_at, ow_jobs!inner(id, title)"
+      "id, job_id, user_id, name, email, phone, message, status, created_at, ow_jobs!inner(id, title)"
     )
     .eq("ow_jobs.company_id", tenantId)
     .order("created_at", { ascending: false });
