@@ -57,10 +57,19 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 ### ✅ 完了 2026-05-22: biz/auth MOCK_EXISTING_USERS バグ修正
 ### ✅ 完了 2026-05-22: 外部サービス接続・env var 整備（Resend / CRON_SECRET / SITE_URL）
 
+### ✅ 完了（セッション3 調査発見・既実装）: 求人応募フロー＋メッセージ機能
+  - `/jobs/[id]/apply` + `ApplicationForm.tsx` — フォーム実装済み
+  - `/api/applications/route.ts` — POST: ow_applications 書込・Resend・insertActivity
+  - `/mypage/applications/page.tsx` — 応募一覧（Supabase接続・319行）
+  - `/mypage/conversations/page.tsx` — 会話一覧（Supabase接続）
+  - `/mypage/conversations/[id]/page.tsx` — リアルタイムメッセージ（Supabase接続・419行）
+  - `/biz/applications/` — 企業側応募管理
+  - `/biz/conversations/` + `/biz/conversations/[id]/` — 企業側メッセージ管理
+
 ### 🟢 次の優先候補
 - **ActivityList 残り 5 イベント** (casual_meeting_applied/offer_sent 等) — 機能実装時に add
-- **ホームページ ArticlesPreview の Supabase 接続**（現在 MOCK_ARTICLES 使用。ページが "use client" なので API Route 経由が必要）
-- **新機能検討**（求職者→企業メッセージ、メンター機能強化、求人申込フローなど）
+- **`/api/applications` → `insertActivity` への activity 種別追加**（application_submitted等）
+- **新機能検討**（メンター機能強化、管理画面の残り機能など）
 
 ### DB 現状（2026-05-22 セッション3 更新確認）
 | テーブル | 件数 | 備考 |
@@ -70,6 +79,8 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 | ow_mentors | 10件 | 全件 is_available=true、全件 user_id 設定済み |
 | ow_articles | 10件 | 全件 is_published=true、Supabase 接続済み |
 | ow_bookmarks | 1件 | RLS・ユニーク制約・API 正常 |
+| ow_conversations | 4件 | 会話データあり |
+| ow_applications | 0件 | 求人応募データなし |
 | ow_users | 23件+ | ow_profiles 20件 |
 | ow_casual_meetings | 0件 | 申込データなし |
 | ow_mentor_reservations | 0件 | 予約データなし |
