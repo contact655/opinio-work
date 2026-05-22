@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       .select(
         "id, title, job_category, salary_min, salary_max, work_style, location, ow_companies(name, url)"
       )
-      .eq("status", "active")
+      .eq("status", "published")
       .gte("created_at", sevenDaysAgo)
       .order("created_at", { ascending: false });
 
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
 
       try {
         await getResend().emails.send({
-          from: "opinio.jp <noreply@opinio.jp>",
+          from: process.env.RESEND_FROM_EMAIL ?? "contact@opinio.co.jp",
           to: email,
           subject: `【opinio.jp】今週の新着求人 ${totalCount}件をお届けします`,
           html,

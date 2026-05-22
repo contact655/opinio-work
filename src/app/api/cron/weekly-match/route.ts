@@ -1,9 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "${BASE_URL}";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://opinio.co.jp";
+
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 export async function GET(request: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -12,6 +17,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: "Supabase env vars not configured" }, { status: 503 });
   }
   const supabase = createClient(url, key);
+
   // Cron認証
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -19,34 +25,53 @@ export async function GET(request: Request) {
   }
 
   try {
-    // 全登録ユーザーを取得
-    const {
-      data: { users },
-    } = await supabase.auth.admin.listUsers();
-
-    // アクティブな求人を取得（マッチ用）
-    const { data: activeJobs } = await supabase
+    // 公開中の求人を取得（マッチ用）
+    const { data: publishedJobs } = await supabase
       .from("ow_jobs")
       .select(
         "id, title, job_category, salary_min, salary_max, work_style, location, company_id, ow_companies(name, url, brand_color)"
       )
-      .eq("status", "active")
+      .eq("status", "published")
       .order("created_at", { ascending: false })
       .limit(20);
 
-    if (!activeJobs || activeJobs.length === 0) {
-      return NextResponse.json({ success: true, sent: 0, reason: "no active jobs" });
+    if (!publishedJobs || publishedJobs.length === 0) {
+      return NextResponse.json({ success: true, sent: 0, reason: "no published jobs" });
+    }
+
+    // メール通知を許可しているユーザーのプロフィールを取得
+    // notify_email が true または null（デフォルト許可）のユーザー
+    const { data: profiles } = await supabase
+      .from("ow_profiles")
+      .select("user_id")
+      .or("notify_email.eq.true,notify_email.is.null");
+
+    if (!profiles || profiles.length === 0) {
+      return NextResponse.json({ success: true, sent: 0, reason: "no eligible users" });
+    }
+
+    // ユーザーのメールアドレスを取得
+    const {
+      data: { users },
+    } = await supabase.auth.admin.listUsers();
+
+    const userEmailMap = new Map<string, string>();
+    for (const u of users ?? []) {
+      if (u.email) userEmailMap.set(u.id, u.email);
     }
 
     let sent = 0;
-    for (const user of users ?? []) {
-      if (!user.email) continue;
+    const errors: string[] = [];
+
+    for (const profile of profiles) {
+      const email = userEmailMap.get(profile.user_id);
+      if (!email) continue;
 
       // ユーザーごとのマッチスコアを取得
       const { data: matchScores } = await supabase
         .from("ow_match_scores")
         .select("company_id, overall_score, match_reasons")
-        .eq("user_id", user.id)
+        .eq("user_id", profile.user_id)
         .order("overall_score", { ascending: false })
         .limit(3);
 
@@ -54,7 +79,7 @@ export async function GET(request: Request) {
       let topJobs: any[] = [];
       if (matchScores && matchScores.length > 0) {
         const companyIds = matchScores.map((m) => m.company_id);
-        const matchedJobs = activeJobs.filter((j: any) =>
+        const matchedJobs = publishedJobs.filter((j: any) =>
           companyIds.includes(j.company_id)
         );
         topJobs = matchedJobs.slice(0, 3).map((j: any) => {
@@ -70,7 +95,7 @@ export async function GET(request: Request) {
       // マッチ求人が足りない場合は最新求人で補完
       if (topJobs.length < 3) {
         const existingIds = new Set(topJobs.map((j) => j.id));
-        const fill = activeJobs
+        const fill = publishedJobs
           .filter((j: any) => !existingIds.has(j.id))
           .slice(0, 3 - topJobs.length)
           .map((j: any) => ({
@@ -83,20 +108,27 @@ export async function GET(request: Request) {
 
       if (topJobs.length === 0) continue;
 
-      // メール送信（Resend未導入の場合はログのみ）
-      console.log(
-        `[weekly-match] Would send email to ${user.email} with ${topJobs.length} jobs`
-      );
-
-      // TODO: Resend導入後にメール送信を有効化
-      // メールテンプレートは generateWeeklyEmail(topJobs) で生成可能
-      const _html = generateWeeklyEmail(topJobs);
-      void _html; // Resend導入後に使用
-
-      sent++;
+      // メール送信
+      try {
+        await getResend().emails.send({
+          from: process.env.RESEND_FROM_EMAIL ?? "contact@opinio.co.jp",
+          to: email,
+          subject: "【opinio.jp】今週のあなたへのおすすめ求人",
+          html: generateWeeklyEmail(topJobs),
+        });
+        sent++;
+      } catch (err: any) {
+        console.error(`[weekly-match] Failed to send to ${email}:`, err.message);
+        errors.push(`${email}: ${err.message}`);
+      }
     }
 
-    return NextResponse.json({ success: true, sent });
+    return NextResponse.json({
+      success: true,
+      sent,
+      total: profiles.length,
+      errors: errors.length > 0 ? errors : undefined,
+    });
   } catch (error: any) {
     console.error("[weekly-match] Error:", error);
     return NextResponse.json(
@@ -117,7 +149,6 @@ function getDefaultReason(job: any): string {
   return "あなたのスキルセットにマッチする求人です";
 }
 
-// Resend導入後に使用するメールテンプレート
 function generateWeeklyEmail(topJobs: any[]): string {
   const jobsHtml = topJobs
     .map((j) => {
@@ -172,7 +203,7 @@ function generateWeeklyEmail(topJobs: any[]): string {
       </div>
       <p style="font-size:11px;color:#9ca3af;margin-top:20px">
         opinio.jp &middot; Truth to Careers<br>
-        配信停止は<a href="${BASE_URL}/dashboard" style="color:#9ca3af">こちら</a>
+        配信停止は<a href="${BASE_URL}/dashboard" style="color:#9ca3af">マイページ</a>から設定できます
       </p>
     </body>
     </html>
