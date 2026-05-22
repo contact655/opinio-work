@@ -12,7 +12,6 @@ import {
   type RawEducation,
 } from "@/lib/utils/timeline";
 import {
-  MOCK_USER,
   MOCK_BOOKMARKS_ARTICLES,
   MOCK_RECEIVED_REQUESTS,
   PILL_STYLES,
@@ -260,11 +259,13 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
 
 function DashboardView({
   userId, isMentor, userName, userInitial, userAvatar,
+  currentRole,
   userLocation, userAboutMe, userBirthDate, userFutureAspirations, userSocialLinks,
   userSkillTags, userEducations, userCertifications, timelineCareers,
 }: {
   userId: string; isMentor: boolean;
   userName: string; userInitial: string; userAvatar: string;
+  currentRole?: string | null;
   userLocation?: string | null; userAboutMe?: string | null;
   userBirthDate?: string | null; userFutureAspirations?: string | null;
   userSocialLinks?: Record<string, string> | null;
@@ -295,7 +296,7 @@ function DashboardView({
         userName={userName}
         userInitial={userInitial}
         userAvatar={userAvatar}
-        currentRole={MOCK_USER.currentRole}
+        currentRole={currentRole}
         userLocation={userLocation}
         userAboutMe={userAboutMe}
         userBirthDate={userBirthDate}
@@ -777,6 +778,12 @@ export default function MypageClient({
   const userInitial = userName.charAt(0);
   const userAvatar = owUser?.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)";
 
+  // currentRole: 現職の careerEntry から動的に生成（MOCK_USER.currentRole を置き換え）
+  const currentCareer = timelineCareers.find((c) => c.is_current);
+  const currentRole = currentCareer
+    ? `${currentCareer.company_name} · ${currentCareer.role_title ?? currentCareer.role_label}`
+    : null;
+
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
   const { isMentor } = useMypageMock();
   const [receivedRequests, setReceivedRequests] = useState(MOCK_RECEIVED_REQUESTS);
@@ -1014,6 +1021,7 @@ export default function MypageClient({
           userName={userName}
           userInitial={userInitial}
           userAvatar={userAvatar}
+          currentRole={currentRole}
           userLocation={owUser?.location}
           userAboutMe={owUser?.about_me}
           userBirthDate={owUser?.birth_date}
