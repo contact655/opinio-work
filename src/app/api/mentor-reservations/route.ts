@@ -5,6 +5,7 @@ import {
   mentorReservationAdminTemplate,
   mentorReservationUserTemplate,
 } from "@/lib/notify/templates";
+import { insertActivity } from "@/lib/business/activities";
 
 export const dynamic = "force-dynamic";
 
@@ -122,6 +123,32 @@ export async function POST(req: Request) {
         mentorName: mentorForNotify.name,
       })
     );
+  }
+
+  // ── insertActivity (best-effort) ─────────────────────────────────────────
+  // メンターの user_id → ow_user_roles.tenant_id を辿り、企業の biz ダッシュボードへ流す
+  try {
+    if (mentor.user_id) {
+      const { data: role } = await supabase
+        .from("ow_user_roles")
+        .select("tenant_id")
+        .eq("user_id", mentor.user_id)
+        .maybeSingle();
+
+      if (role?.tenant_id) {
+        const mentorName = mentorForNotify?.name ?? "メンター";
+        await insertActivity(supabase, {
+          company_id: role.tenant_id as string,
+          actor_user_id: owUserId,
+          type: "mentor_reservation_received",
+          description: `${mentorName} へのメンター相談リクエストが届きました`,
+          target_type: "mentor_reservation",
+          target_id: data.id,
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("[mentor-reservations] insertActivity failed:", e);
   }
 
   return NextResponse.json({ id: data.id }, { status: 201 });

@@ -13,7 +13,7 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🎯 次のセッションでやること（2026-05-22 更新）
+## 🎯 次のセッションでやること（2026-05-23 更新）
 
 ### ✅ 完了 2026-05-22 セッション3: Supabase 接続完成度チェック＋在籍企業チェック実装
   - `/mypage` が完全 Supabase 接続済みであることを確認（casual_meetings / mentor_reservations / bookmarks / timeline 全件）
@@ -75,10 +75,34 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
     casual_meeting_applied / application_received / message_sent / message_received /
     candidate_status_changed / offer_sent / meeting_scheduled / meeting_completed / job_published
 
-### 🟢 次の優先候補（実質完成、残タスクは新機能のみ）
-- **実ユーザー招待・オンボーディング** — DB・機能共に準備完了。企業担当者を招待してテスト可能
-- **mentor-reservations → insertActivity 追加**（メンター予約時に biz ダッシュボードへ流す、現在未対応）
-- **新機能検討**（求職者プロフィールの公開設定・企業からの候補者サーチなど）
+### ✅ 完了 2026-05-23: UIUX 全面刷新（30ファイル +1277行）
+  求職者向け:
+  - ホームページ: Hero に機能する検索バー＋クイックタグ追加、Stats を実データ（36社/30件）に更新
+  - グローバルヘッダー: 🔍 アイコンクリックで全幅検索オーバーレイ（Escape 閉じ対応）
+  - 企業一覧: 面談受付中バッジにパルスアニメーション、受付中企業カードに緑ボーダー
+  - 求人一覧: 🏠/🏢 勤務形態アイコン、📍場所タグ、給与を success グリーンで強調表示
+  - 求人詳細: NEW バッジ（7日以内）、給与大きく表示、モバイル sticky CTA バー
+  - メンター: 受付中パルスドット、相談件数バッジ、warm orange CTA
+  - マイページ: プロフィール完成度ウィジェット（ダッシュボード最上部）、空状態 icon+CTA 化
+  - プロフィール編集: グローバル保存状態インジケーター（✓ 保存済み）、タブ補完ドット
+  - 記事: 読了時間日本語表記、バッジ色 type 別統一
+  企業向け (/biz):
+  - 選考管理バッジ 5色統一、求人管理空状態 3ステップガイドに刷新
+  - 面談タブ ステータス別カラー、面談/Activity/JobStatus 空状態 CTA 改善
+  管理者 (/admin): 赤い ADMIN バッジ、KPI 4枚化（累計応募数追加）
+  グローバル CSS: pulseDot / fadeInUp / card-hover / skeleton-shimmer 追加
+
+### ✅ 完了 2026-05-23: mentor-reservations → insertActivity 追加
+  - `/api/mentor-reservations/route.ts`: INSERT 成功後に best-effort で insertActivity
+  - ow_mentors.user_id → ow_user_roles.tenant_id を辿り、メンターの所属企業の biz ダッシュボードへ流す
+  - type: "mentor_reservation_received"、description: "{メンター名} へのメンター相談リクエストが届きました"
+  - activities.ts TYPE_MAP に mentor_reservation_received → "meeting_scheduled" を追加
+  - admin/page.tsx の ow_applications → ow_job_applications テーブル名バグ修正
+
+### 🟢 次の優先候補
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了。企業担当者＋求職者を招待してテスト可能
+- **SEO / OGP 強化** — 企業詳細・求人詳細ページの動的 `<title>` / `og:description` / `og:image`、`/sitemap.xml` 生成
+- **新機能検討** — 求職者プロフィールの公開設定・企業からの候補者サーチなど
 
 ### DB 現状（2026-05-22 セッション3 更新確認）
 | テーブル | 件数 | 備考 |

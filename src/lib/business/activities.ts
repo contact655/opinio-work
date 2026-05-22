@@ -57,6 +57,8 @@ const TYPE_MAP: Record<string, ActivityType> = {
   // メッセージ
   message_sent:              "message",
   message_received:          "message",
+  // メンター相談
+  mentor_reservation_received: "meeting_scheduled",
   // その他
   profile_updated:           "message",
 };
