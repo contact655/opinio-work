@@ -31,6 +31,27 @@ function formatSalary(min: number, max: number): string {
   return `¥${min}万〜`;
 }
 
+// ─── Dept color map ───────────────────────────────────────────────────────────
+
+const DEPT_COLORS: Record<string, { bg: string; color: string; border: string }> = {
+  "エンジニア":         { bg: "#EFF6FF", color: "#1D4ED8", border: "#BFDBFE" },
+  "デザイン":           { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE" },
+  "PdM / PM":           { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE" },
+  "プロダクト":         { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE" },
+  "営業":               { bg: "#ECFDF5", color: "#059669", border: "#A7F3D0" },
+  "カスタマーサクセス": { bg: "#ECFDF5", color: "#059669", border: "#A7F3D0" },
+  "マーケティング":     { bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
+  "コーポレート":       { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" },
+  "経営":               { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA" },
+};
+
+function getDeptStyle(dept: string) {
+  for (const [key, style] of Object.entries(DEPT_COLORS)) {
+    if (dept.includes(key)) return style;
+  }
+  return { bg: "var(--royal-50)", color: "var(--royal)", border: "var(--royal-100)" };
+}
+
 // ─── Job Card ─────────────────────────────────────────────────────────────────
 
 function JobCard({
@@ -43,9 +64,10 @@ function JobCard({
   const company = companyMap.get(job.company_id);
   if (!company) return null;
 
-  const initial = company.name.charAt(0).toUpperCase();
+  const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
   const isFresh = job.updated_days_ago <= 7;
   const label = freshLabel(job.updated_days_ago);
+  const deptStyle = getDeptStyle(job.dept);
 
   return (
     <Link
@@ -102,16 +124,27 @@ function JobCard({
             height: 44,
             borderRadius: 10,
             flexShrink: 0,
-            background: company.gradient,
+            background: company.logo_url ? "#f8fafc" : company.gradient,
+            border: company.logo_url ? "1px solid var(--line)" : "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             color: "#fff",
             fontSize: 17,
             fontWeight: 700,
+            overflow: "hidden",
           }}
         >
-          {initial}
+          {company.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={company.logo_url}
+              alt={company.name}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          ) : (
+            logoLetter
+          )}
         </div>
         <div style={{ minWidth: 0 }}>
           <div
@@ -249,27 +282,31 @@ function JobCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: 8,
         }}
       >
-        <div>
-          <div
-            style={{
-              fontSize: 10,
-              color: "var(--ink-mute)",
-              marginBottom: 1,
-            }}
-          >
-            想定年収
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {/* Dept badge */}
+          {job.dept && (
+            <span style={{
+              display: "inline-flex", alignItems: "center",
+              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
+              background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
+              letterSpacing: "0.02em", width: "fit-content",
+            }}>
+              {job.dept}
+            </span>
+          )}
           <div
             style={{
               fontFamily: "Inter, sans-serif",
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: 700,
               color: "var(--royal)",
             }}
           >
             {formatSalary(job.salary_min, job.salary_max)}
+            <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400, marginLeft: 2 }}>万円</span>
           </div>
         </div>
         <span
@@ -280,6 +317,7 @@ function JobCard({
             display: "flex",
             alignItems: "center",
             gap: 3,
+            flexShrink: 0,
           }}
         >
           詳細を見る
@@ -513,22 +551,8 @@ export default function JobsClient({
           style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
           className="px-5 py-6 md:px-12"
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 20,
-              flexWrap: "wrap",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                gap: 12,
-                flexShrink: 0,
-              }}
-            >
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexShrink: 0 }}>
               <h1
                 style={{
                   fontFamily: 'var(--font-noto-serif)',
@@ -540,52 +564,62 @@ export default function JobsClient({
               >
                 求人を、見つける。
               </h1>
-              <span
-                style={{
-                  fontFamily: "Inter, sans-serif",
-                  fontSize: 13,
-                  color: "var(--ink-mute)",
-                }}
-              >
-                <strong
-                  style={{
-                    color: "var(--royal)",
-                    fontSize: 18,
-                    fontWeight: 700,
-                  }}
-                >
+              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "var(--ink-mute)" }}>
+                <strong style={{ color: "var(--royal)", fontSize: 18, fontWeight: 700 }}>
                   {allJobs.length.toLocaleString()}
                 </strong>
                 件
               </span>
             </div>
             {newThisWeek > 0 && (
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                    fontSize: 12,
-                    color: "var(--ink-mute)",
-                  }}
-                >
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="var(--success)"
-                    strokeWidth={2.5}
-                    strokeLinecap="round"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 6v6l4 2" />
-                  </svg>
-                  今週新着{" "}
-                  <strong style={{ color: "var(--ink)" }}>{newThisWeek}件</strong>
-                </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--ink-mute)" }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
+                  <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                </svg>
+                今週新着 <strong style={{ color: "var(--ink)" }}>{newThisWeek}件</strong>
               </div>
+            )}
+          </div>
+
+          {/* ── Search bar ── */}
+          <div style={{ position: "relative", maxWidth: 520 }}>
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="var(--ink-mute)" strokeWidth={2.2} strokeLinecap="round"
+              style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+            >
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="職種・企業名・スキルで検索…"
+              style={{
+                width: "100%",
+                padding: "10px 14px 10px 40px",
+                fontSize: 14,
+                border: "1.5px solid var(--line)",
+                borderRadius: 10,
+                outline: "none",
+                background: "#fff",
+                color: "var(--ink)",
+                boxSizing: "border-box",
+                transition: "border-color 0.15s",
+              }}
+              className="job-search-input"
+            />
+            {q && (
+              <button
+                onClick={() => setQ("")}
+                style={{
+                  position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                  background: "none", border: "none", cursor: "pointer",
+                  color: "var(--ink-mute)", fontSize: 16, padding: "4px",
+                }}
+              >
+                ×
+              </button>
             )}
           </div>
         </div>
@@ -868,25 +902,19 @@ export default function JobsClient({
           className="px-5 py-8 md:px-12 md:py-10"
         >
           {paged.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "80px 0",
-                color: "var(--ink-mute)",
-              }}
-            >
+            <div style={{
+              textAlign: "center", padding: "64px 0", background: "#fff",
+              borderRadius: 16, border: "1px solid var(--line)", marginTop: 20,
+            }}>
               <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
-              <p
-                style={{
-                  fontSize: 16,
-                  fontWeight: 600,
-                  marginBottom: 8,
-                  color: "var(--ink-soft)",
-                }}
-              >
-                条件に合う求人が見つかりませんでした
-              </p>
-              <p style={{ fontSize: 14 }}>フィルターを変更してみてください</p>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う求人が見つかりませんでした</h3>
+              <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えてみてください</p>
+              <button onClick={() => router.replace("/jobs")} style={{
+                padding: "10px 24px", borderRadius: 8, background: "var(--royal)",
+                color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer",
+              }}>
+                すべてリセット
+              </button>
             </div>
           ) : (
             <>

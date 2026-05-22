@@ -20,6 +20,8 @@ export type Company = {
   accepting_casual_meetings: boolean;
   updated_days_ago: number;
   gradient: string;
+  logo_url?: string | null;
+  logo_letter?: string | null;
   genres: CompanyGenre[]; // ow_company_genres 由来、空配列の可能性あり
   is_editors_pick?: boolean;
   is_dimmed?: boolean; // 非公開・休止中

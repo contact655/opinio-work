@@ -36,14 +36,17 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
             background: mentor.gradient,
             display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", fontSize: 18, fontWeight: 700,
-            boxShadow: "0 0 0 2.5px var(--royal), 0 0 0 5px rgba(0,35,102,0.12)",
+            boxShadow: mentor.is_available
+              ? "0 0 0 2.5px var(--royal), 0 0 0 5px rgba(0,35,102,0.12)"
+              : "0 0 0 2.5px var(--line), 0 0 0 5px rgba(0,0,0,0.04)",
+            opacity: mentor.is_available ? 1 : 0.7,
           }}>
             {mentor.initial}
           </div>
           <div style={{
             position: "absolute", bottom: -2, right: -2,
             width: 18, height: 18, borderRadius: "50%",
-            background: "var(--royal)",
+            background: mentor.is_available ? "var(--royal)" : "var(--ink-mute)",
             border: "2px solid #fff",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
@@ -54,8 +57,24 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>
-            {mentor.name}さん
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: mentor.is_available ? "var(--ink)" : "var(--ink-mute)" }}>
+              {mentor.name}さん
+            </span>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+              background: mentor.is_available ? "var(--success-soft)" : "var(--bg-tint)",
+              color: mentor.is_available ? "var(--success)" : "var(--ink-mute)",
+              border: `1px solid ${mentor.is_available ? "#A7F3D0" : "var(--line)"}`,
+              letterSpacing: "0.04em",
+            }}>
+              <span style={{
+                width: 5, height: 5, borderRadius: "50%", flexShrink: 0,
+                background: mentor.is_available ? "var(--success)" : "var(--ink-mute)",
+              }} />
+              {mentor.is_available ? "相談受付中" : "一時停止中"}
+            </span>
           </div>
           <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
             <strong style={{ color: "var(--ink)" }}>{mentor.current_company || "（非公開）"}</strong>
@@ -101,6 +120,17 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
               {theme}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Session count badge */}
+      {(mentor.total_sessions ?? 0) > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, fontSize: 11.5, color: "var(--ink-mute)" }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5}>
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span><strong style={{ color: "var(--success)", fontFamily: "Inter, sans-serif" }}>{mentor.total_sessions}</strong> 名が相談済み</span>
         </div>
       )}
 

@@ -80,18 +80,25 @@ function Hero({
   detail,
   initialBookmarked,
   isAuthenticated,
+  recruiters,
 }: {
   company: Company;
   detail: CompanyDetail;
   initialBookmarked: boolean;
   isAuthenticated: boolean;
+  recruiters: CompanyRecruiter[];
 }) {
   const initial = company.name.charAt(0).toUpperCase();
   const freshLabel = formatUpdated(company.updated_days_ago);
   const isFresh = company.updated_days_ago <= 30;
 
   return (
-    <section style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
+    <section style={{ background: "#fff", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
+      {/* Gradient accent band */}
+      <div style={{
+        position: "absolute", top: 0, left: 0, right: 0, height: 4,
+        background: company.gradient,
+      }} />
       <div
         style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
         className="px-5 py-8 md:px-12"
@@ -113,7 +120,8 @@ function Hero({
                 height: 88,
                 borderRadius: 16,
                 flexShrink: 0,
-                background: company.gradient,
+                background: company.logo_url ? "#f8fafc" : company.gradient,
+                border: company.logo_url ? "1px solid var(--line)" : "none",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -122,9 +130,19 @@ function Hero({
                 fontWeight: 700,
                 fontFamily: "Inter, sans-serif",
                 boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                overflow: "hidden",
               }}
             >
-              {initial}
+              {company.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={company.logo_url}
+                  alt={company.name}
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                />
+              ) : (
+                company.logo_letter ?? initial
+              )}
             </div>
             <div>
               <div
@@ -255,14 +273,26 @@ function Hero({
             </div>
           </div>
 
-          {/* Right: bookmark */}
-          <div style={{ display: "flex", gap: 8, flexShrink: 0, alignSelf: "flex-start" }}>
+          {/* Right: bookmark + share */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, alignSelf: "flex-start" }}>
             <BookmarkButton
               companyName={company.name}
               companyId={company.id}
               initialBookmarked={initialBookmarked}
               isAuthenticated={isAuthenticated}
             />
+            <div style={{ display: "flex", gap: 6 }}>
+              <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(company.name + ' — ' + company.tagline)}&url=${encodeURIComponent('https://opinio.jp/companies/' + company.id)}`}
+                 target="_blank" rel="noopener noreferrer"
+                 style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 8, background: "#000", color: "#fff", textDecoration: "none", fontSize: 11, fontWeight: 700 }}>
+                X
+              </a>
+              <a href={`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent('https://opinio.jp/companies/' + company.id)}`}
+                 target="_blank" rel="noopener noreferrer"
+                 style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 8, background: "#00B900", color: "#fff", textDecoration: "none", fontSize: 11, fontWeight: 700 }}>
+                L
+              </a>
+            </div>
           </div>
         </div>
 
@@ -375,6 +405,35 @@ function Hero({
             </div>
           ))}
         </div>
+
+        {/* Recruiter strip */}
+        {recruiters.length > 0 && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            paddingTop: 16, marginTop: 16, borderTop: "1px solid var(--line-soft)",
+          }}>
+            <div style={{ display: "flex" }}>
+              {recruiters.slice(0, 3).map((r, i) => (
+                <div key={r.id} style={{
+                  width: 32, height: 32, borderRadius: "50%",
+                  background: r.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)",
+                  border: "2.5px solid #fff",
+                  marginLeft: i === 0 ? 0 : -10,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontSize: 11, fontWeight: 700,
+                  boxShadow: "0 0 0 1px var(--line)",
+                  position: "relative", zIndex: 3 - i,
+                }}>
+                  {r.avatar_initial || (r.name ?? "採").charAt(0)}
+                </div>
+              ))}
+            </div>
+            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+              採用担当: <strong style={{ color: "var(--ink)" }}>{recruiters.slice(0, 2).map(r => r.name ?? "担当者").join(" · ")}</strong>
+              {recruiters.length > 2 && ` 他${recruiters.length - 2}名`}
+            </span>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -736,11 +795,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
     letterSpacing: "0.1em",
     textTransform: "uppercase",
   };
-  const UNSET_STYLE: React.CSSProperties = {
-    fontSize: 13,
-    color: "var(--ink-mute)",
-    margin: 0,
-  };
+  // UNSET_STYLE removed — replaced by inline "カジュアル面談でご確認ください" badges
 
   return (
     <section
@@ -790,7 +845,17 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
             ))}
           </div>
         ) : (
-          <p style={UNSET_STYLE}>—</p>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "8px 14px", borderRadius: 8,
+            background: "var(--bg-tint)", border: "1px solid var(--line)",
+            fontSize: 12, color: "var(--ink-mute)",
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+            カジュアル面談でご確認ください
+          </div>
         )}
       </div>
 
@@ -800,7 +865,17 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
         {detail.evaluationSystem ? (
           <EvaluationText text={detail.evaluationSystem} />
         ) : (
-          <p style={UNSET_STYLE}>—</p>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "8px 14px", borderRadius: 8,
+            background: "var(--bg-tint)", border: "1px solid var(--line)",
+            fontSize: 12, color: "var(--ink-mute)",
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+            カジュアル面談でご確認ください
+          </div>
         )}
       </div>
     </section>
@@ -2731,7 +2806,7 @@ export default async function CompanyDetailPage({
   return (
     <>
       <Breadcrumb company={company} />
-      <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} isAuthenticated={isAuthenticated} />
+      <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} isAuthenticated={isAuthenticated} recruiters={recruiters} />
       <CompanyStickyNav items={[
         { id: "about",            label: "企業概要" },
         { id: "opinion",          label: "特徴・評判" },

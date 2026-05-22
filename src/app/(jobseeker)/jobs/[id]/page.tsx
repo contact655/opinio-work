@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { type Job, type PositionMember } from "@/app/jobs/mockJobData";
+import { type PositionMember } from "@/app/jobs/mockJobData";
 import { getJobById as fetchJobById } from "@/lib/supabase/queries";
+import { FloatingCTA } from "@/components/jobseeker/FloatingCTA";
+import { createClient } from "@/lib/supabase/server";
+import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
@@ -72,10 +75,32 @@ export default async function JobDetailPage({ params }: { params: { id: string }
   const result = await fetchJobById(params.id);
   if (!result) notFound();
 
-  const { job, company } = result;
+  const { job, company, relatedJobs } = result;
 
   const initial = company.name.charAt(0).toUpperCase();
-  const relatedJobs: Job[] = [];
+
+  // Auth + bookmark state
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isAuthenticated = !!user;
+  let initialBookmarked = false;
+  if (user) {
+    const { data: owUser } = await supabase
+      .from("ow_users")
+      .select("id")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+    if (owUser) {
+      const { data: bmark } = await supabase
+        .from("ow_bookmarks")
+        .select("id")
+        .eq("user_id", owUser.id)
+        .eq("target_type", "job")
+        .eq("target_id", job.id)
+        .maybeSingle();
+      initialBookmarked = !!bmark;
+    }
+  }
 
   return (
     <>
@@ -98,12 +123,19 @@ export default async function JobDetailPage({ params }: { params: { id: string }
           <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
             <div style={{
               width: 64, height: 64, borderRadius: 14, flexShrink: 0,
-              background: company.gradient,
+              background: company.logo_url ? "#f8fafc" : company.gradient,
+              border: company.logo_url ? "1px solid var(--line)" : "none",
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "#fff", fontSize: 26, fontWeight: 700,
               boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
+              overflow: "hidden",
             }}>
-              {initial}
+              {company.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={company.logo_url} alt={company.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              ) : (
+                company.logo_letter ?? initial
+              )}
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -343,8 +375,8 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               </section>
               )}
 
-              {/* Position members */}
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
+              {/* Position members — 0件のときは非表示 */}
+              {job.position_members.length > 0 && <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{
@@ -463,7 +495,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     メンター登録（相談可能）
                   </span>
                 </div>
-              </section>
+              </section>}
 
               {/* Related article */}
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
@@ -529,11 +561,18 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 }}>
                   <div style={{
                     width: 52, height: 52, borderRadius: 12, flexShrink: 0,
-                    background: company.gradient,
+                    background: company.logo_url ? "#f8fafc" : company.gradient,
+                    border: company.logo_url ? "1px solid var(--line)" : "none",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     color: "#fff", fontSize: 20, fontWeight: 700,
+                    overflow: "hidden",
                   }}>
-                    {initial}
+                    {company.logo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={company.logo_url} alt={company.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                    ) : (
+                      company.logo_letter ?? initial
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
@@ -650,18 +689,14 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </svg>
                   正式に応募する
                 </Link>
-                <button style={{
-                  width: "100%", padding: "11px 0",
-                  background: "var(--bg-tint)", color: "var(--ink-soft)",
-                  border: "1px solid var(--line)", borderRadius: 8,
-                  fontSize: 13, fontWeight: 600, cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                  </svg>
-                  気になるに追加
-                </button>
+                <BookmarkButton
+                  targetType="job"
+                  targetId={job.id}
+                  label="気になるに追加"
+                  initialBookmarked={initialBookmarked}
+                  isAuthenticated={isAuthenticated}
+                  variant="with-text"
+                />
               </div>
 
               {/* Job summary */}
@@ -685,6 +720,23 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", textAlign: "right" as const }}>{value}</span>
                   </div>
                 ))}
+              </div>
+
+              {/* Share buttons */}
+              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "18px 22px" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 12, letterSpacing: "0.08em" }}>SHARE</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(job.role + ' — ' + company.name)}&url=${encodeURIComponent('https://opinio.jp/jobs/' + job.id)}`}
+                     target="_blank" rel="noopener noreferrer"
+                     style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 8, background: "#000", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>
+                    X
+                  </a>
+                  <a href={`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent('https://opinio.jp/jobs/' + job.id)}`}
+                     target="_blank" rel="noopener noreferrer"
+                     style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 8, background: "#00B900", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>
+                    LINE
+                  </a>
+                </div>
               </div>
 
               {/* Mentor preview */}
@@ -725,6 +777,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
           transform: translateY(-1px) !important;
         }
       `}</style>
+      <FloatingCTA href={`/companies/${company.id}/casual-meeting`} label="カジュアル面談を申し込む" subLabel="完全無料 · 30分から" />
     </>
   );
 }

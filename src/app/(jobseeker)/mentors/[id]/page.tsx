@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMentorById, type MentorData } from "@/lib/supabase/queries";
+import { FloatingCTA } from "@/components/jobseeker/FloatingCTA";
 import { createClient } from "@/lib/supabase/server";
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import {
@@ -9,6 +10,7 @@ import {
   type RawExperienceRow,
   type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
+import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 
 type Props = { params: { id: string } };
 
@@ -65,6 +67,28 @@ export default async function MentorDetailPage({ params }: Props) {
 
   // ─── 経歴タイムライン取得（mentor.user_id で ow_experiences を引く） ────────
   const supabase = createClient();
+
+  // Auth + bookmark state
+  const { data: { user } } = await supabase.auth.getUser();
+  const isAuthenticated = !!user;
+  let initialBookmarked = false;
+  if (user) {
+    const { data: owUser } = await supabase
+      .from("ow_users")
+      .select("id")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+    if (owUser) {
+      const { data: bmark } = await supabase
+        .from("ow_bookmarks")
+        .select("id")
+        .eq("user_id", owUser.id)
+        .eq("target_type", "mentor")
+        .eq("target_id", mentor.id)
+        .maybeSingle();
+      initialBookmarked = !!bmark;
+    }
+  }
   const timelineCareers = await (async () => {
     if (!mentor.user_id) return [];
 
@@ -267,6 +291,18 @@ export default async function MentorDetailPage({ params }: Props) {
             <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--ink-mute)", marginTop: 10 }}>
               Opinio編集部が内容を確認・{mentor.name}さんに転送します
             </p>
+
+            {/* Bookmark button */}
+            <div style={{ marginTop: 12 }}>
+              <BookmarkButton
+                targetType="mentor"
+                targetId={mentor.id}
+                label="気になるに追加"
+                initialBookmarked={initialBookmarked}
+                isAuthenticated={isAuthenticated}
+                variant="with-text"
+              />
+            </div>
           </div>
 
           {/* 相談の進め方 */}
@@ -380,6 +416,7 @@ export default async function MentorDetailPage({ params }: Props) {
       <style>{`
         .mentor-detail-cta:hover { opacity: 0.88; }
       `}</style>
+      <FloatingCTA href={`/mentors/${mentor.id}/reserve`} label={`${mentor.name}さんに相談する`} subLabel="完全無料 · 編集部が事前確認" />
     </>
   );
 }

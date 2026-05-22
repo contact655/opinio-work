@@ -541,12 +541,18 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
         {/* Company grid */}
         {paged.length === 0 ? (
           <div style={{
-            textAlign: "center", padding: "80px 0",
-            color: "var(--ink-mute)", fontSize: 15,
+            textAlign: "center", padding: "64px 0", background: "#fff",
+            borderRadius: 16, border: "1px solid var(--line)", marginTop: 20,
           }}>
-            <div style={{ fontSize: 32, marginBottom: 16 }}>🔍</div>
-            <div>該当する企業が見つかりませんでした</div>
-            <div style={{ fontSize: 13, marginTop: 8 }}>検索条件を変えてお試しください</div>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う企業が見つかりませんでした</h3>
+            <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えてみてください</p>
+            <button onClick={() => { setQ(""); router.replace("/companies"); }} style={{
+              padding: "10px 24px", borderRadius: 8, background: "var(--royal)",
+              color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer",
+            }}>
+              すべてリセット
+            </button>
           </div>
         ) : (
           <div className={`grid gap-5 grid-cols-1${layout === "grid" ? " sm:grid-cols-2 lg:grid-cols-3" : ""}`}>

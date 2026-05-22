@@ -3,6 +3,25 @@ import Image from 'next/image';
 import { MapPin, Users } from 'lucide-react';
 import type { CompanyForCarousel } from '@/types/genre';
 
+// Funding stage → display label + color
+const STAGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  "pre-seed":  { label: "Pre-Seed",   color: "#6b5b2e", bg: "#fef9e7" },
+  seed:        { label: "Seed",       color: "#6b5b2e", bg: "#fef9e7" },
+  "series-a":  { label: "Series A",   color: "#1e63d8", bg: "#dbeafe" },
+  "series-b":  { label: "Series B",   color: "#6b3b9e", bg: "#ede9fe" },
+  "series-c":  { label: "Series C",   color: "#0f766e", bg: "#d1fae5" },
+  "series-d":  { label: "Series D+",  color: "#0f766e", bg: "#d1fae5" },
+  growth:      { label: "成長期",     color: "#0f766e", bg: "#d1fae5" },
+  listed:      { label: "上場",       color: "#1f7a48", bg: "#d4f0e3" },
+  ipo:         { label: "IPO準備",    color: "#b45309", bg: "#fef3c7" },
+};
+
+function getStageCfg(stage: string | null) {
+  if (!stage) return null;
+  const key = stage.toLowerCase().replace(/\s+/g, "-");
+  return STAGE_CONFIG[key] ?? { label: stage, color: "#4a5260", bg: "#f1f5f9" };
+}
+
 type Props = {
   company: CompanyForCarousel;
 };
@@ -63,6 +82,46 @@ export function CompanyCardCompact({ company }: Props) {
             letterSpacing: '-0.02em',
           }}>
             {initial}
+          </span>
+        )}
+        {/* Funding stage badge */}
+        {(() => {
+          const cfg = getStageCfg(company.funding_stage);
+          if (!cfg) return null;
+          return (
+            <span style={{
+              position: 'absolute',
+              top: 8,
+              left: 8,
+              fontSize: 9.5,
+              fontWeight: 700,
+              padding: '2px 7px',
+              borderRadius: 100,
+              background: cfg.bg,
+              color: cfg.color,
+              letterSpacing: '0.03em',
+              fontFamily: 'Inter, sans-serif',
+            }}>
+              {cfg.label}
+            </span>
+          );
+        })()}
+        {/* Casual meeting badge */}
+        {company.accepting_casual_meetings && (
+          <span style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            fontSize: 9.5,
+            fontWeight: 700,
+            padding: '2px 7px',
+            borderRadius: 100,
+            background: 'rgba(255,255,255,0.9)',
+            color: '#d97706',
+            border: '1px solid rgba(217,119,6,0.3)',
+            whiteSpace: 'nowrap',
+          }}>
+            面談OK
           </span>
         )}
       </div>
