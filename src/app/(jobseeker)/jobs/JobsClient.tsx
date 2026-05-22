@@ -254,34 +254,6 @@ function JobCard({
         </div>
       )}
 
-      {/* Work style + location row */}
-      {(job.work_style || job.location) && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-          {job.work_style && (
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 6,
-              background: job.work_style.includes("リモート") || job.work_style.includes("remote")
-                ? "#ECFDF5" : "#F0F4FF",
-              color: job.work_style.includes("リモート") || job.work_style.includes("remote")
-                ? "#059669" : "#3B5FD9",
-              border: job.work_style.includes("リモート") || job.work_style.includes("remote")
-                ? "1px solid #A7F3D0" : "1px solid #C7D7F9",
-            }}>
-              {job.work_style.includes("リモート") || job.work_style.includes("remote") ? "🏠" : "🏢"} {job.work_style}
-            </span>
-          )}
-          {job.location && job.location !== "全国" && (
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              fontSize: 10, fontWeight: 500, padding: "3px 9px", borderRadius: 6,
-              background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)",
-            }}>
-              📍 {job.location}
-            </span>
-          )}
-        </div>
-      )}
 
       {/* Highlight */}
       {job.highlight && (
