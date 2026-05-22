@@ -317,10 +317,11 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
   }
 
   // Fetch active job counts for all companies in one round trip
+  // "active" は旧来の値、"published" は新しい値 (migration 113 適用後に "active" は消える)
   const { data: jobRows } = await supabase
     .from("ow_jobs")
     .select("company_id")
-    .eq("status", "active");
+    .in("status", ["active", "published"]);
 
   const jobCountMap = new Map<string, number>();
   for (const j of jobRows ?? []) {
@@ -516,7 +517,7 @@ export async function getJobById(
     .from("ow_jobs")
     .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at, updated_at")
     .eq("company_id", jobRow.company_id)
-    .eq("status", "active")
+    .in("status", ["active", "published"])
     .neq("id", jobRow.id)
     .limit(3);
   const relatedJobs: Job[] = (relatedRows ?? []).map((r) => mapJob(r as Record<string, unknown>));

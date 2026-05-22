@@ -195,6 +195,7 @@ function MultiBarChart({ data }: { data: MonthRow[] }) {
 function StatusBadge({ status }: { status: string | null }) {
   const map: Record<string, { label: string; bg: string; color: string }> = {
     published: { label: "公開中", bg: "var(--success-soft)", color: "var(--success)" },
+    active:    { label: "公開中", bg: "var(--success-soft)", color: "var(--success)" }, // 旧ステータス
     pending_review: { label: "審査中", bg: "var(--warm-soft)", color: "var(--warm)" },
     draft: { label: "下書き", bg: "var(--line-soft)", color: "var(--ink-mute)" },
     private: { label: "非公開", bg: "var(--line-soft)", color: "var(--ink-mute)" },
@@ -260,9 +261,10 @@ export default async function AnalyticsPage() {
   const { current: cur, delta } = monthly;
 
   // 求人ステータス集計 (jobPerf より)
+  // migration 113 適用前は "active" が旧来の "published" 相当
   const jobStats = {
     total: jobPerf.length,
-    published: jobPerf.filter((j) => j.status === "published").length,
+    published: jobPerf.filter((j) => j.status === "published" || j.status === "active").length,
     pending: jobPerf.filter((j) => j.status === "pending_review").length,
     draft: jobPerf.filter((j) => j.status === "draft").length,
   };
