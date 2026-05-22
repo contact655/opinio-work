@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 // DB status values (migration 113 適用前は "active"、適用後は "published")
@@ -271,7 +272,9 @@ export default function AdminJobsPage() {
                     {/* タイトル */}
                     <td style={{ padding: "12px 14px", fontWeight: 600, color: "#0F172A", maxWidth: 220 }}>
                       <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {j.title || "—"}
+                        <Link href={`/admin/jobs/${j.id}`} style={{ color: "#002366", textDecoration: "none" }}>
+                          {j.title || "—"}
+                        </Link>
                       </div>
                       {j.status === "rejected" && j.rejection_reason && (
                         <div style={{
