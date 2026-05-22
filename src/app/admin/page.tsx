@@ -67,6 +67,27 @@ export default async function AdminDashboard() {
 
       {/* Action Tasks + Recent Users */}
       <div className="grid grid-cols-2 gap-6 mb-8">
+        {/* Quick Actions */}
+        <div className="bg-white rounded-card p-5 border border-card-border">
+          <h2 className="text-sm font-bold mb-4">クイックアクション</h2>
+          <div className="space-y-2">
+            <Link href="/admin/invite" className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors">
+              <span className="text-base">✉</span>
+              <div>
+                <p className="text-sm font-medium text-blue-700">ユーザーを招待する</p>
+                <p className="text-xs text-blue-600">求職者・企業担当者をメール招待</p>
+              </div>
+            </Link>
+            <Link href="/api/admin/test-email?type=casual_meeting" target="_blank" className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
+              <span className="text-base">🧪</span>
+              <div>
+                <p className="text-sm font-medium text-gray-700">メール送信テスト</p>
+                <p className="text-xs text-gray-500">/api/admin/test-email でメールテンプレートを確認</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+
         {/* Tasks */}
         <div className="bg-white rounded-card p-5 border border-card-border">
           <h2 className="text-sm font-bold mb-4">要対応タスク</h2>
