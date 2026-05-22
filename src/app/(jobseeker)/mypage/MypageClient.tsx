@@ -14,7 +14,6 @@ import {
 import {
   MOCK_USER,
   MOCK_BOOKMARKS_ARTICLES,
-  MOCK_BOOKMARKS_MENTORS,
   MOCK_RECEIVED_REQUESTS,
   PILL_STYLES,
   STATUS_LABEL,
@@ -319,6 +318,93 @@ function DashboardView({
         </SectionBlock>
       )}
 
+      {/* ── Quick Actions ── */}
+      <section style={{
+        background: "#fff", border: "1px solid var(--line)",
+        borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+      }}>
+        <div style={{
+          display: "flex", alignItems: "baseline", gap: 10,
+          marginBottom: 18, paddingBottom: 14, borderBottom: "1px solid var(--line)",
+        }}>
+          <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
+            次にやること
+          </span>
+          <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase" as const }}>
+            QUICK ACTIONS
+          </span>
+        </div>
+        <div style={{ display: "grid", gap: 10 }} className="grid-cols-1 sm:grid-cols-3">
+          {[
+            {
+              href: "/companies",
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                </svg>
+              ),
+              color: "var(--royal)",
+              bg: "var(--royal-50)",
+              border: "var(--royal-100)",
+              title: "企業を探す",
+              desc: "IT/SaaS業界の13社を見る",
+            },
+            {
+              href: "/mentors",
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              ),
+              color: "var(--purple)",
+              bg: "var(--purple-soft, #F3E8FF)",
+              border: "#DDD6FE",
+              title: "先輩に相談する",
+              desc: "30分の無料キャリア相談",
+            },
+            {
+              href: "/profile/edit",
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+              ),
+              color: "var(--success)",
+              bg: "var(--success-soft)",
+              border: "#A7F3D0",
+              title: "プロフィールを充実させる",
+              desc: "企業に伝えたい経歴を記録",
+            },
+          ].map(({ href, icon, color, bg, border, title, desc }) => (
+            <Link key={href} href={href} style={{
+              display: "flex", alignItems: "center", gap: 14,
+              padding: "16px 18px",
+              background: "var(--bg-tint)", border: "1px solid var(--line)",
+              borderRadius: 12, textDecoration: "none",
+              transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+            }}
+              className="request-item-row"
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: bg, border: `1px solid ${border}`,
+                color, display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                {icon}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{title}</div>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{desc}</div>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0, marginLeft: "auto" }}>
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </Link>
+          ))}
+        </div>
+      </section>
+
     </div>
   );
 }
@@ -466,12 +552,12 @@ function BookmarkGrid({ items }: { items: Bookmark[] }) {
   );
 }
 
-function BookmarksView({ companyBookmarks }: { companyBookmarks: Bookmark[] }) {
-  // target_type='company' uses real DB data; articles/mentors remain mock pending table availability
+function BookmarksView({ companyBookmarks, jobBookmarks, mentorBookmarks }: { companyBookmarks: Bookmark[]; jobBookmarks: Bookmark[]; mentorBookmarks: Bookmark[] }) {
   const sections = [
     { title: "記事", titleEn: "Articles", items: MOCK_BOOKMARKS_ARTICLES },
     { title: "企業", titleEn: "Companies", items: companyBookmarks },
-    { title: "メンター", titleEn: "Mentors", items: MOCK_BOOKMARKS_MENTORS },
+    { title: "求人", titleEn: "Jobs", items: jobBookmarks },
+    { title: "メンター", titleEn: "Mentors", items: mentorBookmarks },
   ];
   return (
     <div>
@@ -666,6 +752,8 @@ export default function MypageClient({
   certifications = [],
   timelineCareers = [],
   companyBookmarks,
+  jobBookmarks,
+  mentorBookmarks,
   casualMeetings,
   mentorReservations,
 }: {
@@ -680,6 +768,8 @@ export default function MypageClient({
   certifications?: { id: string; name: string; sort_order: number }[];
   timelineCareers?: CareerEntry[];
   companyBookmarks: Bookmark[];
+  jobBookmarks: Bookmark[];
+  mentorBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
 }) {
@@ -707,7 +797,8 @@ export default function MypageClient({
   const totalBookmarks =
     MOCK_BOOKMARKS_ARTICLES.length +
     companyBookmarks.length +
-    MOCK_BOOKMARKS_MENTORS.length;
+    jobBookmarks.length +
+    mentorBookmarks.length;
 
   const recentActivity: {
     id: string;
@@ -936,7 +1027,7 @@ export default function MypageClient({
       )}
       {activeView === "casual" && <CasualView casualMeetings={casualMeetings} />}
       {activeView === "mentor-reserve" && <MentorReserveView mentorReservations={mentorReservations} />}
-      {activeView === "bookmarks" && <BookmarksView companyBookmarks={companyBookmarks} />}
+      {activeView === "bookmarks" && <BookmarksView companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} mentorBookmarks={mentorBookmarks} />}
       {activeView === "mentor-requests" && (
         <MentorRequestsView
           requests={receivedRequests}

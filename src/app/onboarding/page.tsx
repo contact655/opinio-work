@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+// ─── Steps ────────────────────────────────────────────────────────────────────
 
 const STEPS = [
   {
     id: "job_type",
+    emoji: "💼",
     question: "あなたの職種は？",
     sub: "最も近いものを選んでください",
     options: [
@@ -20,12 +23,14 @@ const STEPS = [
   },
   {
     id: "experience_years",
+    emoji: "📅",
     question: "社会人経験は何年ですか？",
     sub: "キャリアの長さを教えてください",
     options: ["1〜2年", "3〜5年", "6〜10年", "11年以上"],
   },
   {
     id: "worry",
+    emoji: "💬",
     question: "今一番の悩みは？",
     sub: "相談したいテーマに近いもの",
     options: [
@@ -39,11 +44,20 @@ const STEPS = [
   },
 ];
 
-export default function OnboardingPage() {
+// ─── Inner component (needs useSearchParams → wrapped in Suspense) ────────────
+
+function OnboardingInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextUrl = (() => {
+    const raw = searchParams.get("next") ?? "/companies";
+    return raw.startsWith("/") && !raw.startsWith("//") ? raw : "/companies";
+  })();
+
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const router = useRouter();
+  const [done, setDone] = useState(false);
   const current = STEPS[step];
 
   const select = async (value: string) => {
@@ -58,9 +72,7 @@ export default function OnboardingPage() {
     // 最終ステップ → 保存してリダイレクト
     setSaving(true);
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
       // ow_profiles に既存レコードがあるかチェック
@@ -96,42 +108,86 @@ export default function OnboardingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "candidate" }),
-      });
+      }).catch(() => {/* best-effort */});
     }
 
-    router.push("/?welcome=1");
+    setDone(true);
+    setSaving(false);
   };
 
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        background: "#FAFAF9",
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: 480 }}>
-        {/* ロゴ */}
-        <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <a
-            href="/"
-            style={{
-              fontSize: 20,
-              fontWeight: 500,
-              textDecoration: "none",
-              color: "#1a1a1a",
-            }}
-          >
-            opinio<span style={{ color: "#1D9E75" }}>.work</span>
-          </a>
+  // ── 完了画面 ──────────────────────────────────────────────────────────────
+  if (done) {
+    return (
+      <div style={pageWrap}>
+        <div style={{ width: "100%", maxWidth: 440 }}>
+          <LogoMark />
+          <div style={{
+            background: "#fff",
+            border: "1px solid var(--line)",
+            borderRadius: 20,
+            padding: "48px 36px",
+            textAlign: "center",
+            boxShadow: "var(--shadow-md)",
+          }}>
+            {/* Success icon */}
+            <div style={{
+              width: 64, height: 64, borderRadius: "50%",
+              background: "var(--royal-50)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 24px",
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <h2 style={{
+              fontFamily: "var(--font-noto-serif)",
+              fontSize: 22, fontWeight: 700,
+              color: "var(--ink)", marginBottom: 12,
+            }}>
+              ようこそ、OPINIO へ！
+            </h2>
+            <p style={{
+              fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8,
+              marginBottom: 32,
+            }}>
+              プロフィールを設定しました。<br />
+              IT/SaaS 企業の最新情報や<br />
+              メンターへの相談をご活用ください。
+            </p>
+            <button
+              onClick={() => router.push(nextUrl)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "14px 20px",
+                background: "var(--royal)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                fontFamily: "inherit",
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: "pointer",
+                letterSpacing: "0.02em",
+              }}
+            >
+              企業を探す →
+            </button>
+          </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* プログレスバー */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 32 }}>
+  // ── 質問画面 ──────────────────────────────────────────────────────────────
+  return (
+    <div style={pageWrap}>
+      <div style={{ width: "100%", maxWidth: 480 }}>
+        <LogoMark />
+
+        {/* ステップインジケーター */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 28 }}>
           {STEPS.map((_, i) => (
             <div
               key={i}
@@ -139,7 +195,7 @@ export default function OnboardingPage() {
                 flex: 1,
                 height: 4,
                 borderRadius: 2,
-                background: i <= step ? "#1D9E75" : "#e5e7eb",
+                background: i <= step ? "var(--royal)" : "var(--line)",
                 transition: "background 0.3s",
               }}
             />
@@ -147,45 +203,52 @@ export default function OnboardingPage() {
         </div>
 
         {/* 質問カード */}
-        <div
-          style={{
-            background: "#fff",
-            border: "0.5px solid #e5e7eb",
-            borderRadius: 16,
-            padding: "28px 24px",
-            marginBottom: 12,
-          }}
-        >
-          <div
-            style={{
+        <div style={{
+          background: "#fff",
+          border: "1px solid var(--line)",
+          borderRadius: 20,
+          padding: "32px 28px",
+          marginBottom: 16,
+          boxShadow: "var(--shadow-sm)",
+        }}>
+          {/* Step label */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 16,
+          }}>
+            <span style={{ fontSize: 24 }}>{current.emoji}</span>
+            <span style={{
               fontSize: 11,
-              color: "#1D9E75",
-              fontWeight: 500,
-              marginBottom: 8,
-            }}
-          >
-            {step + 1} / {STEPS.length}
+              fontWeight: 700,
+              color: "var(--royal)",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase" as const,
+              fontFamily: "'Inter', sans-serif",
+            }}>
+              Step {step + 1} / {STEPS.length}
+            </span>
           </div>
-          <h2
-            style={{
-              fontSize: 20,
-              fontWeight: 500,
-              marginBottom: 6,
-              lineHeight: 1.4,
-            }}
-          >
+
+          <h2 style={{
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: 20, fontWeight: 700,
+            color: "var(--ink)",
+            marginBottom: 6,
+            lineHeight: 1.45,
+          }}>
             {current.question}
           </h2>
-          <p
-            style={{
-              fontSize: 13,
-              color: "#9ca3af",
-              marginBottom: 20,
-            }}
-          >
+          <p style={{
+            fontSize: 13,
+            color: "var(--ink-mute)",
+            marginBottom: 22,
+          }}>
             {current.sub}
           </p>
 
+          {/* 選択肢 */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {current.options.map((opt) => (
               <button
@@ -194,43 +257,51 @@ export default function OnboardingPage() {
                 disabled={saving}
                 style={{
                   padding: "13px 16px",
-                  border: "0.5px solid #d1d5db",
+                  border: "1px solid var(--line)",
                   borderRadius: 10,
                   background: "#fff",
-                  color: "#1a1a1a",
+                  color: "var(--ink)",
                   fontSize: 14,
                   cursor: saving ? "wait" : "pointer",
                   fontFamily: "inherit",
                   textAlign: "left" as const,
                   transition: "all 0.15s",
+                  fontWeight: 500,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#1D9E75";
-                  e.currentTarget.style.background = "#E1F5EE";
-                  e.currentTarget.style.color = "#0F6E56";
+                  e.currentTarget.style.borderColor = "var(--royal)";
+                  e.currentTarget.style.background = "var(--royal-50)";
+                  e.currentTarget.style.color = "var(--royal)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#d1d5db";
+                  e.currentTarget.style.borderColor = "var(--line)";
                   e.currentTarget.style.background = "#fff";
-                  e.currentTarget.style.color = "#1a1a1a";
+                  e.currentTarget.style.color = "var(--ink)";
                 }}
               >
-                {opt}
+                {saving ? (
+                  <span style={{ opacity: 0.5 }}>{opt}</span>
+                ) : (
+                  opt
+                )}
               </button>
             ))}
           </div>
         </div>
 
+        {/* スキップ */}
         <div style={{ textAlign: "center" }}>
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push(nextUrl)}
+            disabled={saving}
             style={{
               fontSize: 12,
-              color: "#9ca3af",
+              color: "var(--ink-mute)",
               background: "none",
               border: "none",
               cursor: "pointer",
               fontFamily: "inherit",
+              padding: "8px 16px",
             }}
           >
             スキップする
@@ -238,5 +309,75 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Shared styles & sub-components ──────────────────────────────────────────
+
+const pageWrap: React.CSSProperties = {
+  minHeight: "100vh",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 24,
+  background: "var(--bg-tint)",
+};
+
+function LogoMark() {
+  return (
+    <div style={{ textAlign: "center", marginBottom: 32 }}>
+      <a
+        href="/"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          textDecoration: "none",
+        }}
+      >
+        <div style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: "var(--royal)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </div>
+        <span style={{
+          fontFamily: "var(--font-noto-serif)",
+          fontSize: 20, fontWeight: 700,
+          color: "var(--royal)",
+        }}>
+          OPINIO
+        </span>
+      </a>
+    </div>
+  );
+}
+
+// ─── Page export (Suspense boundary for useSearchParams) ─────────────────────
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--bg-tint)",
+      }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: "50%",
+          border: "3px solid var(--royal-100)",
+          borderTopColor: "var(--royal)",
+          animation: "spin 0.8s linear infinite",
+        }} />
+      </div>
+    }>
+      <OnboardingInner />
+    </Suspense>
   );
 }

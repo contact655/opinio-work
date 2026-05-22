@@ -270,17 +270,28 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {owUser.about_me}
           </p>
         </section>
-      ) : (
+      ) : viewerIsOwner ? (
         <section style={{
-          background: "var(--bg-tint)", border: "1px dashed var(--line)",
-          borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+          background: "var(--bg-tint)", border: "1.5px dashed var(--line)",
+          borderRadius: 14, padding: "28px", marginBottom: 20,
           textAlign: "center",
         }}>
-          <p style={{ fontSize: 13, color: "var(--ink-mute)", margin: 0 }}>
-            自己紹介は未設定です
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: 10 }}>
+            <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+          </svg>
+          <p style={{ fontSize: 13, color: "var(--ink-mute)", margin: "0 0 12px" }}>
+            自己紹介を書いて、あなたのことを伝えましょう
           </p>
+          <Link href="/profile/edit" style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "8px 18px", borderRadius: 8,
+            background: "var(--royal)", color: "#fff",
+            fontSize: 13, fontWeight: 600, textDecoration: "none",
+          }}>
+            プロフィールを編集する →
+          </Link>
         </section>
-      )}
+      ) : null}
 
       {/* Skills — 0件時はセクションごと非表示 */}
       {skillTags.length > 0 && (
@@ -412,6 +423,75 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 </a>
               );
             })}
+          </div>
+        </section>
+      )}
+
+      {/* CTA for non-authenticated visitors */}
+      {!authUser && !viewerIsOwner && (
+        <section style={{
+          background: "linear-gradient(135deg, var(--royal) 0%, #3B5FD9 100%)",
+          borderRadius: 16, padding: "32px 28px", marginBottom: 20,
+          textAlign: "center", position: "relative", overflow: "hidden",
+        }}>
+          {/* subtle bg pattern */}
+          <div style={{
+            position: "absolute", inset: 0, opacity: 0.06,
+            backgroundImage: "radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 20%, #fff 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }} />
+          <div style={{ position: "relative" }}>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "4px 12px", borderRadius: 100,
+              background: "rgba(255,255,255,0.15)",
+              fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.9)",
+              letterSpacing: "0.06em", marginBottom: 16,
+            }}>
+              完全無料 · メール登録のみ
+            </div>
+            <h3 style={{
+              fontFamily: 'var(--font-noto-serif)',
+              fontSize: "clamp(17px,2vw,21px)", fontWeight: 700,
+              color: "#fff", marginBottom: 10, lineHeight: 1.5,
+            }}>
+              {owUser.name}さんが働く職場の<br />リアルを知ろう
+            </h3>
+            <p style={{
+              fontSize: 13, color: "rgba(255,255,255,0.75)",
+              marginBottom: 24, lineHeight: 1.7,
+            }}>
+              企業の特徴・評判・社員インタビューを<br />
+              無料で読める。先輩に相談することもできます。
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+              <Link href="/auth" style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "12px 24px", borderRadius: 8,
+                background: "#fff", color: "var(--royal)",
+                fontSize: 14, fontWeight: 700, textDecoration: "none",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+              }}>
+                無料で登録する →
+              </Link>
+              {timelineCareers.length > 0 && (() => {
+                const current = timelineCareers.find((c) => c.is_current);
+                const companyId = current?.company_id;
+                if (!companyId) return null;
+                return (
+                  <Link href={`/companies/${companyId}`} style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "12px 24px", borderRadius: 8,
+                    background: "rgba(255,255,255,0.15)",
+                    border: "1.5px solid rgba(255,255,255,0.35)",
+                    color: "#fff",
+                    fontSize: 14, fontWeight: 600, textDecoration: "none",
+                  }}>
+                    在籍企業を見る
+                  </Link>
+                );
+              })()}
+            </div>
           </div>
         </section>
       )}

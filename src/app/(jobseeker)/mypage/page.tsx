@@ -131,46 +131,106 @@ export default async function MypagePage() {
     );
   }
 
-  // Fetch company bookmarks (target_type='company' only; articles/mentors are mock for now)
+  // Fetch bookmarks for company, job, mentor (articles table doesn't exist yet)
   let companyBookmarks: Bookmark[] = [];
+  let jobBookmarks: Bookmark[] = [];
+  let mentorBookmarks: Bookmark[] = [];
   if (owUser) {
+    // Fetch all bookmark rows for this user (company + job + mentor)
     const { data: bmarks } = await supabase
       .from("ow_bookmarks")
-      .select("id, target_id")
+      .select("id, target_id, target_type")
       .eq("user_id", owUser.id)
-      .eq("target_type", "company")
+      .in("target_type", ["company", "job", "mentor"])
       .order("created_at", { ascending: false });
 
     if (bmarks && bmarks.length > 0) {
-      const companyIds = bmarks.map((b) => b.target_id as string);
-      const { data: companies } = await supabase
-        .from("ow_companies")
-        .select("id, name, industry, employee_count, phase")
-        .in("id", companyIds);
+      const companyBmarks = bmarks.filter((b) => b.target_type === "company");
+      const jobBmarks = bmarks.filter((b) => b.target_type === "job");
+      const mentorBmarks = bmarks.filter((b) => b.target_type === "mentor");
 
-      if (companies) {
-        // Preserve bookmark order (most recently bookmarked first)
-        const companyMap = new Map(companies.map((c) => [c.id, c]));
-        companyBookmarks = bmarks
-          .map((b): Bookmark | null => {
-            const c = companyMap.get(b.target_id as string);
-            if (!c) return null;
-            const meta = [
-              c.industry,
-              c.employee_count ? `${c.employee_count}名` : null,
-            ]
-              .filter(Boolean)
-              .join(" / ");
-            return {
-              id: b.id as string,
-              type: "company",
-              title: c.name as string,
-              meta,
-              badge_label: (c.industry as string) ?? "企業",
-              href: `/companies/${c.id}`,
-            };
-          })
-          .filter((b): b is Bookmark => b !== null);
+      // ── Company bookmarks ──
+      if (companyBmarks.length > 0) {
+        const companyIds = companyBmarks.map((b) => b.target_id as string);
+        const { data: companies } = await supabase
+          .from("ow_companies")
+          .select("id, name, industry, employee_count, phase")
+          .in("id", companyIds);
+        if (companies) {
+          const companyMap = new Map(companies.map((c) => [c.id, c]));
+          companyBookmarks = companyBmarks
+            .map((b): Bookmark | null => {
+              const c = companyMap.get(b.target_id as string);
+              if (!c) return null;
+              const meta = [c.industry, c.employee_count ? `${c.employee_count}名` : null]
+                .filter(Boolean).join(" / ");
+              return {
+                id: b.id as string, type: "company",
+                title: c.name as string, meta,
+                badge_label: (c.industry as string) ?? "企業",
+                href: `/companies/${c.id}`,
+              };
+            })
+            .filter((b): b is Bookmark => b !== null);
+        }
+      }
+
+      // ── Job bookmarks ──
+      if (jobBmarks.length > 0) {
+        const jobIds = jobBmarks.map((b) => b.target_id as string);
+        const { data: jobs } = await supabase
+          .from("ow_jobs")
+          .select("id, title, job_category, company_id")
+          .in("id", jobIds);
+        if (jobs) {
+          // Also fetch company names for context
+          const jobCompanyIds = Array.from(new Set(jobs.map((j) => j.company_id as string)));
+          const { data: companies } = await supabase
+            .from("ow_companies")
+            .select("id, name")
+            .in("id", jobCompanyIds);
+          const companyNameMap = new Map((companies ?? []).map((c) => [c.id as string, c.name as string]));
+          const jobMap = new Map(jobs.map((j) => [j.id, j]));
+          jobBookmarks = jobBmarks
+            .map((b): Bookmark | null => {
+              const j = jobMap.get(b.target_id as string);
+              if (!j) return null;
+              const companyName = companyNameMap.get(j.company_id as string) ?? "";
+              return {
+                id: b.id as string, type: "job",
+                title: j.title as string,
+                meta: [companyName, j.job_category as string].filter(Boolean).join(" / "),
+                badge_label: (j.job_category as string) ?? "求人",
+                href: `/jobs/${j.id}`,
+              };
+            })
+            .filter((b): b is Bookmark => b !== null);
+        }
+      }
+
+      // ── Mentor bookmarks ──
+      if (mentorBmarks.length > 0) {
+        const mentorIds = mentorBmarks.map((b) => b.target_id as string);
+        const { data: mentors } = await supabase
+          .from("ow_mentors")
+          .select("id, name, current_role, current_company")
+          .in("id", mentorIds);
+        if (mentors) {
+          const mentorMap = new Map(mentors.map((m) => [m.id, m]));
+          mentorBookmarks = mentorBmarks
+            .map((b): Bookmark | null => {
+              const m = mentorMap.get(b.target_id as string);
+              if (!m) return null;
+              return {
+                id: b.id as string, type: "mentor",
+                title: `${m.name as string}さん`,
+                meta: [m.current_company, m.current_role].filter(Boolean).join(" / "),
+                badge_label: "メンター",
+                href: `/mentors/${m.id}`,
+              };
+            })
+            .filter((b): b is Bookmark => b !== null);
+        }
       }
     }
   }
@@ -280,5 +340,5 @@ export default async function MypagePage() {
     }
   }
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} />;
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} mentorBookmarks={mentorBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} />;
 }

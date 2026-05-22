@@ -258,11 +258,135 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
               <p style={{ fontSize: 14 }}>カテゴリを変更してみてください</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredArticles.map((article) => (
-                <ArticleCard key={article.slug} article={article} />
-              ))}
-            </div>
+            <>
+              {/* Featured article (最初の1件を大きく) */}
+              {!typeParam && filteredArticles.length > 0 && (() => {
+                const featured = filteredArticles[0];
+                const badge = TYPE_BADGE[featured.type];
+                const icon = TYPE_EYECATCH_ICON[featured.type];
+                const mainSubject = featured.subject ?? featured.subjects?.[0];
+                return (
+                  <Link href={`/articles/${featured.slug}`} style={{ textDecoration: "none", display: "block", marginBottom: 24 }}>
+                    <article
+                      className="article-card"
+                      style={{
+                        display: "flex",
+                        background: "#fff",
+                        border: "1px solid var(--line)",
+                        borderRadius: 16,
+                        overflow: "hidden",
+                        boxShadow: "0 2px 8px rgba(15,23,42,0.08)",
+                        transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
+                      }}
+                    >
+                      {/* Eyecatch — left side */}
+                      <div style={{
+                        width: 280,
+                        flexShrink: 0,
+                        background: featured.eyecatch_gradient,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        position: "relative",
+                      }}>
+                        <span style={{ fontSize: 72, opacity: 0.25 }}>{icon}</span>
+                        <div style={{
+                          position: "absolute", top: 14, left: 14,
+                          display: "inline-flex", alignItems: "center",
+                          padding: "4px 10px", borderRadius: 100,
+                          background: badge.bg, color: badge.color,
+                          fontSize: 10.5, fontWeight: 700,
+                        }}>
+                          {badge.label}
+                        </div>
+                        <div style={{
+                          position: "absolute", top: 14, right: 14,
+                          background: "rgba(255,255,255,0.9)",
+                          borderRadius: 6, padding: "3px 8px",
+                          fontSize: 10, color: "var(--ink-soft)", fontWeight: 600,
+                        }}>
+                          FEATURED
+                        </div>
+                      </div>
+                      {/* Body */}
+                      <div style={{ padding: "28px 32px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                          <div style={{
+                            width: 28, height: 28, borderRadius: 7,
+                            background: featured.company_gradient,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: "#fff", fontSize: 10, fontWeight: 700,
+                          }}>
+                            {featured.company_initial}
+                          </div>
+                          <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>
+                            {featured.company_name}
+                          </span>
+                          <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                            · {featured.date.replace(/-/g, "/").slice(2)}
+                          </span>
+                        </div>
+                        <h2 style={{
+                          fontFamily: "var(--font-noto-serif)",
+                          fontSize: 20, fontWeight: 700, lineHeight: 1.55,
+                          color: "var(--ink)", marginBottom: 10,
+                        }}>
+                          {featured.title}
+                        </h2>
+                        <p style={{
+                          fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75,
+                          marginBottom: 16,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        } as React.CSSProperties}>
+                          {featured.subtitle}
+                        </p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          {mainSubject && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <div style={{
+                                width: 24, height: 24, borderRadius: "50%",
+                                background: mainSubject.gradient, color: "#fff",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: 9, fontWeight: 700,
+                              }}>
+                                {mainSubject.initial}
+                              </div>
+                              <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{mainSubject.name}</span>
+                            </div>
+                          )}
+                          <span style={{
+                            fontSize: 11, color: "var(--ink-mute)",
+                            fontFamily: "Inter, sans-serif",
+                          }}>
+                            {featured.read_min} min read
+                          </span>
+                          <span style={{
+                            marginLeft: "auto",
+                            fontSize: 12, fontWeight: 600, color: "var(--royal)",
+                            display: "flex", alignItems: "center", gap: 4,
+                          }}>
+                            読む
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                            </svg>
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  </Link>
+                );
+              })()}
+
+              {/* Rest of articles */}
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {(typeParam ? filteredArticles : filteredArticles.slice(1)).map((article) => (
+                  <ArticleCard key={article.slug} article={article} />
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>
