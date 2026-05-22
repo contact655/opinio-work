@@ -119,6 +119,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden; /* prevent horizontal scroll on mobile */
 }
 
 body {
@@ -128,6 +129,26 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+  overflow-x: hidden; /* belt-and-suspenders against any wide child */
+}
+
+/* ─── Mobile UX hardening ────────────────────────────────── */
+
+/* Ensure tappable elements meet iOS 44px minimum touch target */
+button, [role="button"] {
+  min-height: 36px;
+}
+
+/* Prevent text size bump on iOS landscape */
+@media screen and (max-width: 768px) {
+  html { -webkit-text-size-adjust: 100%; }
+}
+
+/* Safe area insets for notch / home-bar devices */
+@supports (padding: max(0px)) {
+  .sticky-bottom-bar {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
 }
 
 /* 見出しのフォントウェイトを強化 */

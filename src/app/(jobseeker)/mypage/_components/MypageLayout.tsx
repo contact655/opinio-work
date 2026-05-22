@@ -154,10 +154,58 @@ export default function MypageLayout({
         </div>
       )}
 
-      {/* グリッドレイアウト */}
-      <div style={{ display: "grid", gridTemplateColumns: rightColumn ? "260px 1fr 320px" : "260px 1fr", minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: 1440, margin: "0 auto" }}>
+      {/* モバイル: 横スクロールタブバー */}
+      <div className="mypage-mobile-tabbar" style={{
+        background: "#fff", borderBottom: "1px solid var(--line)",
+        overflowX: "auto", WebkitOverflowScrolling: "touch" as unknown as undefined,
+        position: "sticky", top: topOffset, zIndex: 40,
+        display: "none", // hidden on desktop via CSS below
+      }}>
+        <div style={{ display: "flex", minWidth: "max-content", padding: "0 16px" }}>
+          {[
+            { key: "dashboard",      label: "ホーム",        href: "/mypage" },
+            { key: "applications",   label: "応募管理",      href: "/mypage/applications" },
+            { key: "conversations",  label: "対話",          href: "/mypage/conversations" },
+            { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks" },
+            ...(isMentor ? [
+              { key: "mentor-requests", label: "受けた相談", href: "#" },
+              { key: "mentor-schedule", label: "スケジュール", href: "#" },
+            ] : []),
+            { key: "profile",        label: "プロフィール",  href: "/profile/edit" },
+          ].map((item) => {
+            const isActive = activeKey === item.key || (item.key === "profile" && (activeKey === "settings"));
+            const badge = item.key === "applications" ? applicationsBadge : item.key === "conversations" ? conversationsBadge : undefined;
+            return (
+              <a
+                key={item.key}
+                href={item.href}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "12px 16px", fontSize: 13, fontWeight: isActive ? 700 : 500,
+                  color: isActive ? "var(--royal)" : "var(--ink-soft)",
+                  borderBottom: isActive ? "2px solid var(--royal)" : "2px solid transparent",
+                  textDecoration: "none", whiteSpace: "nowrap",
+                  transition: "color 0.15s",
+                }}
+              >
+                {item.label}
+                {badge && badge > 0 && (
+                  <span style={{
+                    background: "var(--error)", color: "#fff",
+                    borderRadius: 100, fontSize: 9, fontWeight: 700,
+                    padding: "1px 5px", fontFamily: "Inter, sans-serif",
+                  }}>{badge}</span>
+                )}
+              </a>
+            );
+          })}
+        </div>
+      </div>
 
-        {/* 左サイドバー */}
+      {/* デスクトップ: グリッドレイアウト */}
+      <div className="mypage-desktop-grid" style={{ display: "grid", gridTemplateColumns: rightColumn ? "260px 1fr 320px" : "260px 1fr", minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: 1440, margin: "0 auto" }}>
+
+        {/* 左サイドバー（デスクトップのみ） */}
         <aside style={{
           background: "#fff", borderRight: "1px solid var(--line)",
           padding: "24px 0",
@@ -207,7 +255,7 @@ export default function MypageLayout({
         </aside>
 
         {/* メインコンテンツ */}
-        <main style={{ padding: "36px 40px 60px" }}>
+        <main style={{ padding: "36px 40px 60px" }} className="mypage-main-content">
           {children}
         </main>
 
@@ -226,6 +274,14 @@ export default function MypageLayout({
 
       <style>{`
         .mypage-nav-item:hover { background: var(--bg-tint) !important; color: var(--ink) !important; }
+
+        /* Mobile: show tab bar, hide sidebar grid */
+        @media (max-width: 767px) {
+          .mypage-mobile-tabbar { display: block !important; }
+          .mypage-desktop-grid  { display: block !important; grid-template-columns: none !important; }
+          .mypage-desktop-grid > aside { display: none !important; }
+          .mypage-main-content  { padding: 20px 16px 60px !important; }
+        }
       `}</style>
     </>
   );
