@@ -26,9 +26,9 @@ function freshLabel(days: number): string {
 
 function formatSalary(min: number, max: number): string {
   if (!min && !max) return "応相談";
-  if (min && max) return `¥${min}–${max}万`;
-  if (max) return `〜¥${max}万`;
-  return `¥${min}万〜`;
+  if (min && max) return `¥${min}–${max}`;
+  if (max) return `〜¥${max}`;
+  return `¥${min}〜`;
 }
 
 // ─── Dept color map ───────────────────────────────────────────────────────────

@@ -84,9 +84,14 @@ function mapJob(row: Record<string, any>): Job {
   const salaryMax = (row.salary_max as number) ?? 0;
 
   // tags: work_style + employment_type + location から生成
+  const WORK_STYLE_LABELS: Record<string, string> = {
+    full_remote: "フルリモート可",
+    hybrid: "ハイブリッド",
+    on_site: "原則出社",
+  };
   const tags: string[] = [];
-  if (row.work_style) tags.push(row.work_style as string);
-  else if (row.remote_work_status) tags.push(row.remote_work_status as string);
+  if (row.work_style) tags.push(WORK_STYLE_LABELS[row.work_style as string] ?? row.work_style as string);
+  else if (row.remote_work_status) tags.push(WORK_STYLE_LABELS[row.remote_work_status as string] ?? row.remote_work_status as string);
   if (row.location) tags.push((row.location as string).split("・")[0]);
 
   // required_skills: string or string[]
