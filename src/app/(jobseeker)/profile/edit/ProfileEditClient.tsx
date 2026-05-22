@@ -2272,6 +2272,7 @@ export default function ProfileEditClient({
   initialMediaAppearances,
   initialExperiences,
   roles,
+  isWelcome = false,
 }: {
   owUser: OwUser;
   authEmail: string;
@@ -2284,8 +2285,10 @@ export default function ProfileEditClient({
   initialMediaAppearances: MediaAppearance[];
   initialExperiences: Stint[];
   roles: RoleItem[];
+  isWelcome?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   // ── グローバル保存ステータス（全タブ共通のインジケーター用） ─────────────
   // isSaving: いずれかのタブで保存中, justSaved: 直近3秒以内に保存完了
@@ -2517,6 +2520,68 @@ export default function ProfileEditClient({
   return (
     <MypageMockProvider>
       <MypageLayout activeKey="profile">
+
+        {/* ── ウェルカムバナー（新規登録後 ?welcome=1 のみ表示） ─────────────── */}
+        {isWelcome && !welcomeDismissed && (
+          <div style={{
+            display: "flex", alignItems: "flex-start", gap: 14,
+            background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
+            border: "1.5px solid #F59E0B",
+            borderRadius: 14,
+            padding: "16px 20px",
+            marginBottom: 24,
+            marginTop: -8,
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+              background: "#F59E0B",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <span style={{ fontSize: 20 }}>👋</span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#92400E", marginBottom: 4 }}>
+                ようこそ！まずはプロフィールを完成させましょう
+              </div>
+              <div style={{ fontSize: 12, color: "#B45309", lineHeight: 1.7 }}>
+                自己紹介・職歴・スキルを入力すると、企業のカジュアル面談やメンター相談が
+                スムーズになります。<strong>入力内容は自動保存</strong>されます。
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                {[
+                  { tab: "basic" as ProfileTab, label: "① 基本情報" },
+                  { tab: "career" as ProfileTab, label: "② 職歴" },
+                  { tab: "skills" as ProfileTab, label: "③ スキル" },
+                ].map(({ tab, label }) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    style={{
+                      padding: "4px 12px", borderRadius: 100,
+                      background: activeTab === tab ? "#F59E0B" : "rgba(245,158,11,0.15)",
+                      color: activeTab === tab ? "#fff" : "#92400E",
+                      border: `1px solid ${activeTab === tab ? "#D97706" : "transparent"}`,
+                      fontFamily: "inherit", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={() => setWelcomeDismissed(true)}
+              aria-label="バナーを閉じる"
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                color: "#B45309", padding: 4, flexShrink: 0,
+                fontSize: 18, lineHeight: 1,
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         {/* ── ヘッダー行: タイトル + 保存状態 + ← マイページ ───────────────── */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: -16, marginBottom: 12 }}>

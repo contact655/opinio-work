@@ -3,9 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import ProfileEditClient from "./ProfileEditClient";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
 
-export const metadata = { title: "設定 — OPINIO" };
+export const metadata = { title: "プロフィール設定 — OPINIO" };
 
-export default async function ProfileEditPage() {
+export default async function ProfileEditPage({
+  searchParams,
+}: {
+  searchParams: { welcome?: string };
+}) {
+  const isWelcome = searchParams.welcome === "1";
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -159,6 +164,7 @@ export default async function ProfileEditPage() {
       initialMediaAppearances={mediaAppearancesRaw ?? []}
       initialExperiences={initialExperiences}
       roles={roles}
+      isWelcome={isWelcome}
     />
   );
 }

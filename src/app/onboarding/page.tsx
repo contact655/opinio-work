@@ -119,61 +119,129 @@ function OnboardingInner() {
   if (done) {
     return (
       <div style={pageWrap}>
-        <div style={{ width: "100%", maxWidth: 440 }}>
+        <div style={{ width: "100%", maxWidth: 480 }}>
           <LogoMark />
           <div style={{
             background: "#fff",
             border: "1px solid var(--line)",
             borderRadius: 20,
-            padding: "48px 36px",
-            textAlign: "center",
+            padding: "40px 36px",
             boxShadow: "var(--shadow-md)",
           }}>
             {/* Success icon */}
-            <div style={{
-              width: 64, height: 64, borderRadius: "50%",
-              background: "var(--royal-50)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 24px",
-            }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
+              <div style={{
+                width: 60, height: 60, borderRadius: "50%",
+                background: "var(--success-soft)",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
             </div>
             <h2 style={{
               fontFamily: "var(--font-noto-serif)",
               fontSize: 22, fontWeight: 700,
-              color: "var(--ink)", marginBottom: 12,
+              color: "var(--ink)", marginBottom: 10, textAlign: "center",
             }}>
               ようこそ、OPINIO へ！
             </h2>
             <p style={{
-              fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8,
-              marginBottom: 32,
+              fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8,
+              marginBottom: 28, textAlign: "center",
             }}>
-              プロフィールを設定しました。<br />
-              IT/SaaS 企業の最新情報や<br />
-              メンターへの相談をご活用ください。
+              基本情報を登録しました。<br />
+              次はプロフィールを充実させましょう。
             </p>
-            <button
-              onClick={() => router.push(nextUrl)}
-              style={{
-                display: "block",
-                width: "100%",
-                padding: "14px 20px",
-                background: "var(--royal)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 10,
-                fontFamily: "inherit",
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: "pointer",
-                letterSpacing: "0.02em",
-              }}
-            >
-              企業を探す →
-            </button>
+
+            {/* ── 次のステップ 選択カード ── */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+              {/* Step 1: プロフィール設定（推奨） */}
+              <a
+                href="/profile/edit?welcome=1"
+                style={{
+                  display: "flex", alignItems: "center", gap: 14,
+                  padding: "16px 18px",
+                  background: "linear-gradient(135deg, #002366, #3B5FD9)",
+                  color: "#fff", borderRadius: 12, textDecoration: "none",
+                  border: "none",
+                }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                  background: "rgba(255,255,255,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>プロフィールを設定する</div>
+                  <div style={{ fontSize: 11, opacity: 0.85 }}>自己紹介・職歴・スキルを登録（5分）</div>
+                </div>
+                <div style={{ marginLeft: "auto", opacity: 0.7, fontSize: 16 }}>→</div>
+              </a>
+
+              {/* Step 2: 企業を探す */}
+              <a
+                href="/companies"
+                style={{
+                  display: "flex", alignItems: "center", gap: 14,
+                  padding: "14px 18px",
+                  background: "var(--bg-tint)",
+                  border: "1px solid var(--line)",
+                  color: "var(--ink-soft)", borderRadius: 12, textDecoration: "none",
+                }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                  background: "var(--royal-50)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "var(--royal)",
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2, color: "var(--ink)" }}>企業を見てみる</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>36社のIT/SaaS企業を探索</div>
+                </div>
+                <div style={{ marginLeft: "auto", color: "var(--ink-mute)", fontSize: 16 }}>→</div>
+              </a>
+
+              {/* Step 3: メンターに相談 */}
+              <a
+                href="/mentors"
+                style={{
+                  display: "flex", alignItems: "center", gap: 14,
+                  padding: "14px 18px",
+                  background: "var(--bg-tint)",
+                  border: "1px solid var(--line)",
+                  color: "var(--ink-soft)", borderRadius: 12, textDecoration: "none",
+                }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                  background: "var(--warm-soft)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#B45309",
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2, color: "var(--ink)" }}>先輩にキャリアを相談する</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>メンターと無料で30分対話</div>
+                </div>
+                <div style={{ marginLeft: "auto", color: "var(--ink-mute)", fontSize: 16 }}>→</div>
+              </a>
+            </div>
           </div>
         </div>
       </div>

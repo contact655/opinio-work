@@ -356,16 +356,22 @@ function ProfileCompletenessCard({
 
       {/* Next step CTA */}
       {firstMissing && (
-        <Link href="/profile/edit" style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          padding: "8px 16px", borderRadius: 8,
-          background: "var(--royal)", color: "#fff",
-          fontSize: 12, fontWeight: 700, textDecoration: "none",
-          transition: "opacity 0.15s",
-        }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14m-7-7h14"/></svg>
-          {firstMissing.hint}を追加する
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <Link href="/profile/edit" style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "9px 18px", borderRadius: 8,
+            background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff",
+            fontSize: 12, fontWeight: 700, textDecoration: "none",
+            boxShadow: "0 2px 8px rgba(245,158,11,0.3)",
+            transition: "opacity 0.15s",
+          }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14m-7-7h14"/></svg>
+            {firstMissing.hint}を追加する
+          </Link>
+          <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+            💡 入力は自動保存されます
+          </span>
+        </div>
       )}
     </section>
   );
