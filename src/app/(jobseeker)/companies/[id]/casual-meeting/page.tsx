@@ -7,8 +7,10 @@ export const metadata = { title: "カジュアル面談申し込み — OPINIO" 
 
 export default async function CasualMeetingPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams: { job_id?: string };
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -148,6 +150,7 @@ export default async function CasualMeetingPage({
       companyInitial={companyInitial}
       companyGradient={company.gradient}
       authEmail={user.email ?? ""}
+      jobId={searchParams.job_id ?? null}
     />
   );
 }

@@ -84,12 +84,14 @@ export default function CasualMeetingForm({
   companyInitial,
   companyGradient,
   authEmail,
+  jobId,
 }: {
   companyId: string;
   companyName: string;
   companyInitial: string;
   companyGradient: string;
   authEmail: string;
+  jobId: string | null;
 }) {
   const [shareProfile, setShareProfile] = useState(true);
   const [intent, setIntent] = useState<Intent>("info_gathering");
@@ -122,6 +124,7 @@ export default function CasualMeetingForm({
           interest_reason: interestReason || null,
           questions: questions || null,
           preferred_format: preferredFormat,
+          job_id: jobId || null,
         }),
       });
       if (!res.ok) {
