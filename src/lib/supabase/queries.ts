@@ -28,6 +28,12 @@ import { MOCK_ARTICLES } from "@/app/articles/mockArticleData";
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
 
+const WORK_STYLE_LABELS: Record<string, string> = {
+  full_remote: "フルリモート可",
+  hybrid: "ハイブリッド",
+  on_site: "原則出社",
+};
+
 function daysSince(iso: string | null | undefined): number {
   if (!iso) return 999;
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -84,14 +90,9 @@ function mapJob(row: Record<string, any>): Job {
   const salaryMax = (row.salary_max as number) ?? 0;
 
   // tags: work_style + employment_type + location から生成
-  const WORK_STYLE_LABELS: Record<string, string> = {
-    full_remote: "フルリモート可",
-    hybrid: "ハイブリッド",
-    on_site: "原則出社",
-  };
   const tags: string[] = [];
-  if (row.work_style) tags.push(WORK_STYLE_LABELS[row.work_style as string] ?? row.work_style as string);
-  else if (row.remote_work_status) tags.push(WORK_STYLE_LABELS[row.remote_work_status as string] ?? row.remote_work_status as string);
+  const rawWs = (row.work_style ?? row.remote_work_status) as string | null;
+  if (rawWs) tags.push(WORK_STYLE_LABELS[rawWs] ?? rawWs);
   if (row.location) tags.push((row.location as string).split("・")[0]);
 
   // required_skills: string or string[]
@@ -127,7 +128,7 @@ function mapJob(row: Record<string, any>): Job {
     role_category_id: (row.role_category_id as string) ?? undefined,
     employment_type: (row.employment_type as string) ?? "正社員",
     location: (row.location as string) ?? "",
-    work_style: (row.work_style as string) ?? (row.remote_work_status as string) ?? "",
+    work_style: (() => { const raw = (row.work_style ?? row.remote_work_status) as string | null; return raw ? (WORK_STYLE_LABELS[raw] ?? raw) : ""; })(),
     salary_min: salaryMin,
     salary_max: salaryMax,
     experience: "",
@@ -215,7 +216,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     freshness: [],
     work_location: [
       {
-        label: (row.remote_work_status as string) ?? "オフィス勤務",
+        label: (() => { const raw = row.remote_work_status as string | null; return raw ? (WORK_STYLE_LABELS[raw] ?? raw) : "オフィス勤務"; })(),
         note: "求人ページで詳細確認",
       },
     ],
