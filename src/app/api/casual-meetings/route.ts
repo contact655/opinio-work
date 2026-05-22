@@ -6,6 +6,7 @@ import {
   casualMeetingAdminTemplate,
   casualMeetingUserTemplate,
 } from "@/lib/notify/templates";
+import { insertActivity } from "@/lib/business/activities";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,16 @@ export async function POST(req: Request) {
     console.error("[POST /api/casual-meetings]", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // ── Activity: casual_meeting_applied (best-effort) ─────────────────────
+  await insertActivity(supabase, {
+    company_id: company_id as string,
+    actor_user_id: owUserId,
+    type: "casual_meeting_applied",
+    description: "カジュアル面談の申し込みがありました",
+    target_type: "casual_meeting",
+    target_id: meeting.id,
+  });
 
   // ── 対話生成 (best-effort, Y2) ───────────────────────────────────────────
   // notify より前に実行することで、notify が throw しても対話生成は実行済み。

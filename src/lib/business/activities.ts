@@ -36,12 +36,24 @@ export type DashboardActivity = {
 };
 
 const TYPE_MAP: Record<string, ActivityType> = {
-  job_published:          "job_published",
-  job_closed:             "job_published",
-  meeting_status_changed: "meeting_scheduled",
-  profile_updated:        "message",
-  offer:                  "offer",
-  application_received:   "application",
+  // 求人
+  job_published:             "job_published",
+  job_updated:               "job_published",
+  job_closed:                "job_published",
+  // 企業情報
+  company_info_updated:      "message",
+  // 面談
+  meeting_scheduled:         "meeting_scheduled",
+  meeting_completed:         "meeting_scheduled",
+  casual_meeting_applied:    "application",
+  meeting_status_changed:    "meeting_scheduled",
+  // オファー
+  offer_sent:                "offer",
+  offer:                     "offer",
+  // 応募・申込
+  application_received:      "application",
+  // その他
+  profile_updated:           "message",
 };
 
 function formatRelativeTime(iso: string): string {

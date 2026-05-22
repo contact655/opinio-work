@@ -22,6 +22,7 @@ import type {
   ThemeItem,
   Chapter,
 } from "@/app/articles/mockArticleData";
+import { MOCK_ARTICLES } from "@/app/articles/mockArticleData";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,8 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
     accepting_casual_meetings: (row.accepting_casual_meetings as boolean) ?? false,
     updated_days_ago: daysSince(row.updated_at as string),
     gradient: (row.logo_gradient as string) ?? FALLBACK_GRADIENT,
+    logo_url: (row.logo_url as string | null) ?? null,
+    logo_letter: (row.logo_letter as string | null) ?? null,
     genres,
     is_editors_pick: false,
     is_dimmed: false,
@@ -480,7 +483,7 @@ export async function getJobs(): Promise<{ jobs: Job[]; companies: Company[] }> 
 
 export async function getJobById(
   id: string
-): Promise<{ job: Job; company: Company } | null> {
+): Promise<{ job: Job; company: Company; relatedJobs: Job[] } | null> {
   const supabase = createClient();
 
   const { data, error } = await supabase
@@ -508,9 +511,20 @@ export async function getJobById(
     return null;
   }
 
+  // Fetch up to 3 other jobs from same company
+  const { data: relatedRows } = await supabase
+    .from("ow_jobs")
+    .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at, updated_at")
+    .eq("company_id", jobRow.company_id)
+    .eq("status", "active")
+    .neq("id", jobRow.id)
+    .limit(3);
+  const relatedJobs: Job[] = (relatedRows ?? []).map((r) => mapJob(r as Record<string, unknown>));
+
   return {
     job: mapJob(jobRow),
     company: mapCompany(compData),
+    relatedJobs,
   };
 }
 
@@ -967,8 +981,16 @@ export async function getArticles(filter?: ArticleFilter): Promise<Article[]> {
 
   const { data, error } = await query;
   if (error) {
-    console.error("[getArticles]", error.message);
-    return [];
+    // ow_articles テーブル未作成の場合は mock にフォールバック
+    console.warn("[getArticles] falling back to mock:", error.message);
+    let mockResult = [...MOCK_ARTICLES];
+    if (filter?.type && filter.type !== "all") {
+      mockResult = mockResult.filter((a) => a.type === filter!.type);
+    }
+    if (filter?.sort === "popular") {
+      mockResult = mockResult.sort((a, b) => b.read_min - a.read_min);
+    }
+    return mockResult;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -990,7 +1012,11 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     .single();
 
   if (error || !data) {
-    if (error?.code !== "PGRST116") console.error("[getArticleBySlug]", error?.message);
+    if (error && error.code !== "PGRST116") {
+      // ow_articles テーブル未作成の場合は mock にフォールバック
+      console.warn("[getArticleBySlug] falling back to mock:", error.message);
+      return MOCK_ARTICLES.find((a) => a.slug === slug) ?? null;
+    }
     return null;
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1013,8 +1039,9 @@ export async function getArticlesByCompany(companyId: string): Promise<Article[]
 
   const { data, error } = await query;
   if (error) {
-    console.error("[getArticlesByCompany]", error.message);
-    return [];
+    // ow_articles テーブル未作成の場合は mock にフォールバック
+    console.warn("[getArticlesByCompany] falling back to mock:", error.message);
+    return MOCK_ARTICLES.filter((a) => a.company_id === companyId);
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data ?? []).map((row: Record<string, any>) => mapDbArticle(row));
@@ -1029,8 +1056,10 @@ export async function getArticlesBySlugs(slugs: string[]): Promise<Article[]> {
     .in("slug", slugs);
 
   if (error) {
-    console.error("[getArticlesBySlugs]", error.message);
-    return [];
+    // ow_articles テーブル未作成の場合は mock にフォールバック
+    console.warn("[getArticlesBySlugs] falling back to mock:", error.message);
+    const mockMap = new Map(MOCK_ARTICLES.map((a) => [a.slug, a]));
+    return slugs.map((s) => mockMap.get(s)).filter((a): a is Article => a !== undefined);
   }
 
   // Preserve original order from slugs array
