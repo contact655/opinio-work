@@ -42,7 +42,7 @@ export function BusinessHeader() {
             color: "var(--royal)",
             letterSpacing: "-0.02em",
           }}>
-            Opinio
+            OPINIO
           </span>
           <span style={{
             fontFamily: "'Inter', sans-serif",
