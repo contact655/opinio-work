@@ -876,6 +876,7 @@ function mapMentor(row: Record<string, any>): MentorData {
 export type MentorFilter = {
   dept?: string;
   theme?: string;
+  sort?: string;
 };
 
 export async function getMentors(filter?: MentorFilter): Promise<MentorData[]> {
@@ -898,8 +899,11 @@ export async function getMentors(filter?: MentorFilter): Promise<MentorData[]> {
     rows = rows.filter((m) => m.dept === dept);
   }
   if (filter?.theme) {
-    const theme = filter.theme;
-    rows = rows.filter((m) => m.themes.includes(theme));
+    const theme = filter.theme.toLowerCase();
+    rows = rows.filter((m) => m.themes.some((t) => t.toLowerCase().includes(theme)));
+  }
+  if (filter?.sort === "sessions") {
+    rows = rows.sort((a, b) => (b.success_count ?? 0) - (a.success_count ?? 0));
   }
 
   return rows;

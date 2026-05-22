@@ -734,10 +734,28 @@ export default async function ForCompaniesPage() {
         {/* ─── Section 8: Final CTA ─────────────────────────────────────────── */}
         <section style={{
           padding: "96px 24px",
-          background: "var(--royal)",
+          background: "linear-gradient(135deg, #001F5B 0%, #002E8A 50%, #003BB5 100%)",
           textAlign: "center",
+          position: "relative",
+          overflow: "hidden",
         }}>
-          <div style={{ maxWidth: 600, margin: "0 auto" }}>
+          {/* Decorative background rings */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            backgroundImage: "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.04) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 40%)",
+          }} />
+          <div style={{ maxWidth: 600, margin: "0 auto", position: "relative" }}>
+            {/* Trust badge */}
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "6px 16px", borderRadius: 100, marginBottom: 24,
+              background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)",
+              fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.9)",
+              letterSpacing: "0.05em",
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399", flexShrink: 0 }} />
+              掲載・スカウト・面談まで完全無料
+            </div>
             <h2 style={{
               fontFamily: "var(--font-noto-serif)",
               fontSize: "clamp(28px, 4vw, 40px)",
@@ -764,7 +782,7 @@ export default async function ForCompaniesPage() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "16px 40px",
+                padding: "16px 44px",
                 background: "#fff",
                 color: "var(--royal)",
                 borderRadius: 10,
@@ -772,6 +790,7 @@ export default async function ForCompaniesPage() {
                 fontWeight: 700,
                 textDecoration: "none",
                 letterSpacing: "0.01em",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.24), 0 2px 8px rgba(0,0,0,0.16)",
               }}
             >
               企業を新規登録（無料）
@@ -780,10 +799,22 @@ export default async function ForCompaniesPage() {
               </svg>
             </Link>
 
-            <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap" as const }}>
+            <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap" as const, alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                クレジットカード不要
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                入社まで請求なし
+              </div>
               <a
                 href="mailto:contact@opinio.co.jp"
-                style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", textDecoration: "underline" }}
+                style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textDecoration: "underline" }}
               >
                 お問い合わせ
               </a>

@@ -17,9 +17,16 @@ type Props = { params: { id: string } };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const mentor = await getMentorById(params.id);
   if (!mentor) return { title: "メンターが見つかりません — OPINIO" };
+  const ogImageUrl = `/api/og?type=default&name=${encodeURIComponent(mentor.name + "さん")}&sub=${encodeURIComponent(mentor.current_company || "IT/SaaS業界")}&badge=${encodeURIComponent("先輩メンター")}`;
   return {
-    title: `${mentor.name}さんのプロフィール — OPINIO`,
+    title: `${mentor.name}さんに相談する — OPINIO`,
     description: mentor.catchphrase || mentor.bio.slice(0, 120),
+    openGraph: {
+      title: `${mentor.name}さんに相談する | OPINIO`,
+      description: mentor.catchphrase || mentor.bio.slice(0, 120),
+      images: [{ url: ogImageUrl, width: 1200, height: 630 }],
+    },
+    twitter: { card: "summary_large_image", images: [ogImageUrl] },
   };
 }
 
@@ -270,11 +277,11 @@ export default async function MentorDetailPage({ params }: Props) {
 
             {/* CTA */}
             <Link
-              href={`/mentors/${mentor.id}/request`}
+              href={`/mentors/${mentor.id}/reserve`}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 width: "100%", padding: "16px",
-                background: "linear-gradient(135deg, var(--royal) 0%, #1a3a8f 100%)",
+                background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
                 color: "#fff",
                 border: "none", borderRadius: 10, textDecoration: "none",
                 fontSize: 16, fontWeight: 700,

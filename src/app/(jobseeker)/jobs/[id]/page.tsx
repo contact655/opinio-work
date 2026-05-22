@@ -52,6 +52,19 @@ export async function generateMetadata({
   };
 }
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type RelatedJob = {
+  id: string;
+  title: string;
+  companyName: string;
+  logoUrl: string | null;
+  logoLetter: string | null;
+  logoGradient: string | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+};
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SecTitle({
@@ -77,6 +90,43 @@ function SecTitle({
         {children}
       </h2>
     </div>
+  );
+}
+
+function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
+  if (jobs.length === 0) return null;
+  return (
+    <section style={{
+      background: "#fff", border: "1px solid var(--line)",
+      borderRadius: 16, padding: "24px 28px", marginBottom: 20,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>同じ職種の求人</h2>
+        <Link href="/jobs" style={{ fontSize: 12, color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>
+          すべて見る →
+        </Link>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {jobs.map((rj) => (
+          <Link key={rj.id} href={`/jobs/${rj.id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
+            <div style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: rj.logoGradient || "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 15, fontWeight: 700, overflow: "hidden" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {rj.logoUrl ? <img src={rj.logoUrl} alt={rj.companyName} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : rj.logoLetter}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rj.title}</div>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{rj.companyName}</div>
+            </div>
+            {(rj.salaryMin || rj.salaryMax) && (
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", flexShrink: 0 }}>
+                {rj.salaryMin && rj.salaryMax ? `${rj.salaryMin}–${rj.salaryMax}万` : rj.salaryMin ? `${rj.salaryMin}万〜` : `〜${rj.salaryMax}万`}
+              </div>
+            )}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5}><path d="M9 18l6-6-6-6" /></svg>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -128,6 +178,41 @@ export default async function JobDetailPage({ params }: { params: { id: string }
         .eq("target_id", job.id)
         .maybeSingle();
       initialBookmarked = !!bmark;
+    }
+  }
+
+  // Fetch same-category jobs from other companies
+  const sameCategoryJobs: RelatedJob[] = [];
+  if (job.dept) {
+    const { data: sameCatRaw } = await supabase
+      .from("ow_jobs")
+      .select("id, title, job_category, salary_min, salary_max, company_id, updated_at, ow_companies!inner(id, name, logo_url, logo_letter, logo_gradient)")
+      .in("status", ["published", "active"])
+      .eq("job_category", job.dept)
+      .neq("id", params.id)
+      .order("updated_at", { ascending: false })
+      .limit(3);
+
+    if (sameCatRaw) {
+      for (const row of sameCatRaw as unknown as Array<{
+        id: string;
+        title: string;
+        salary_min: number | null;
+        salary_max: number | null;
+        ow_companies: { name: string; logo_url: string | null; logo_letter: string | null; logo_gradient: string | null };
+      }>) {
+        const c = row.ow_companies;
+        sameCategoryJobs.push({
+          id: row.id,
+          title: row.title,
+          companyName: c.name,
+          logoUrl: c.logo_url,
+          logoLetter: c.logo_letter,
+          logoGradient: c.logo_gradient,
+          salaryMin: row.salary_min,
+          salaryMax: row.salary_max,
+        });
+      }
     }
   }
 
@@ -735,6 +820,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                 </section>
               )}
+              {/* Same-category jobs from other companies */}
+              <RelatedJobsSection jobs={sameCategoryJobs} />
+
             </div>
 
             {/* ── Sidebar ── */}

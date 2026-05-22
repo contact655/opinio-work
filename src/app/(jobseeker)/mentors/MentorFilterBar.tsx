@@ -4,6 +4,18 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MENTOR_DEPTS, MENTOR_INDUSTRIES, MENTOR_THEMES } from "./mockMentorData";
 
+// ─── Theme pills (quick-filter shortcuts) ─────────────────────────────────────
+
+const THEME_PILLS = [
+  { label: "すべて", value: null },
+  { label: "SaaS営業", value: "SaaS営業" },
+  { label: "カスタマーサクセス", value: "カスタマーサクセス" },
+  { label: "プロダクトマネージャー", value: "プロダクトマネージャー" },
+  { label: "マーケティング", value: "マーケティング" },
+  { label: "外資IT", value: "外資IT" },
+  { label: "転職相談全般", value: "転職・転職活動" },
+];
+
 const ROYAL = "var(--royal)";
 const LINE = "var(--line)";
 const INK_SOFT = "var(--ink-soft)";
@@ -172,17 +184,57 @@ export default function MentorFilterBar({ total }: { total: number }) {
             <strong style={{ color: ROYAL, fontSize: 15, fontFamily: "Inter, sans-serif" }}>{total}</strong> 名
           </span>
 
-          <select
-            value={sort}
-            onChange={(e) => updateParam("sort", e.target.value === "default" ? null : e.target.value)}
+          {/* Sort toggle: default ↔ success_count */}
+          <button
+            onClick={() => updateParam("sort", sort === "sessions" ? null : "sessions")}
             style={{
-              padding: "7px 12px", border: `1px solid ${LINE}`, borderRadius: 8,
-              background: "#fff", fontSize: 13, color: INK_SOFT, cursor: "pointer", outline: "none",
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "7px 13px", borderRadius: 100, fontSize: 12, fontWeight: 600,
+              border: `1.5px solid ${sort === "sessions" ? ROYAL : LINE}`,
+              background: sort === "sessions" ? "var(--royal-50)" : "#fff",
+              color: sort === "sessions" ? ROYAL : INK_MUTE,
+              cursor: "pointer", whiteSpace: "nowrap",
             }}
           >
-            <option value="default">おすすめ順</option>
-            <option value="name">名前順</option>
-          </select>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            相談実績順
+          </button>
+        </div>
+
+        {/* ── Theme pill quick-filter row ─────────────────────────────── */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 7,
+          overflowX: "auto", paddingBottom: 10,
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+        } as React.CSSProperties}
+          className="mentor-theme-pills"
+        >
+          {THEME_PILLS.map(({ label, value }) => {
+            const isActive = value === null ? !theme : theme === value;
+            return (
+              <button
+                key={label}
+                onClick={() => updateParam("theme", value)}
+                style={{
+                  flexShrink: 0,
+                  padding: "6px 16px",
+                  borderRadius: 100,
+                  fontSize: 12.5, fontWeight: isActive ? 700 : 500,
+                  border: `1.5px solid ${isActive ? ROYAL : "var(--royal-100)"}`,
+                  background: isActive ? ROYAL : "#fff",
+                  color: isActive ? "#fff" : ROYAL,
+                  cursor: "pointer",
+                  transition: "background 0.15s, color 0.15s, border-color 0.15s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

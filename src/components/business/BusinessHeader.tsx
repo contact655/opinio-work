@@ -63,6 +63,11 @@ export function BusinessHeader() {
             <a
               key={href}
               href={href}
+              onClick={(e) => {
+                const id = href.replace("#", "");
+                const el = document.getElementById(id);
+                if (el) { e.preventDefault(); el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+              }}
               style={{
                 fontSize: 14,
                 fontWeight: 500,
@@ -166,7 +171,12 @@ export function BusinessHeader() {
               <a
                 key={href}
                 href={href}
-                onClick={() => setMenuOpen(false)}
+                onClick={(e) => {
+                  const id = href.replace("#", "");
+                  const el = document.getElementById(id);
+                  if (el) { e.preventDefault(); el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+                  setMenuOpen(false);
+                }}
                 style={{
                   fontSize: 15,
                   fontWeight: 500,

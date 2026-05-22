@@ -80,7 +80,7 @@ function Breadcrumb({ company }: { company: Company }) {
         className="px-5 py-3 md:px-12"
       >
         <Link href="/" style={{ color: "var(--ink-mute)" }}>
-          Opinio
+          OPINIO
         </Link>
         <span style={{ margin: "0 6px" }}>/</span>
         <Link href="/companies" style={{ color: "var(--ink-mute)" }}>

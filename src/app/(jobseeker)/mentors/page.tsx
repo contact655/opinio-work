@@ -175,10 +175,11 @@ type SearchParams = { [key: string]: string | string[] | undefined };
 export default async function MentorsPage({ searchParams }: { searchParams: SearchParams }) {
   const dept  = typeof searchParams.dept  === "string" ? searchParams.dept  : undefined;
   const theme = typeof searchParams.theme === "string" ? searchParams.theme : undefined;
+  const sort  = typeof searchParams.sort  === "string" ? searchParams.sort  : undefined;
 
   // 全メンター（フィルタ付き） + カテゴリ別（フィルタなし）を並列取得
   const [allMentors, categoriesWithMentors] = await Promise.all([
-    getMentors({ dept, theme }),
+    getMentors({ dept, theme, sort }),
     fetchCategoriesWithMentors(),
   ]);
 
@@ -352,6 +353,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
         .carousel-arrow-right { right: 8px; }
         .carousel-arrow-hidden { opacity: 0; pointer-events: none; }
         @media (max-width: 640px) { .carousel-arrow { display: none; } }
+        .mentor-theme-pills::-webkit-scrollbar { display: none; }
       `}</style>
     </>
   );
