@@ -247,10 +247,36 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </span>
                 )}
               </div>
+              {/* Social proof strip */}
+              <div style={{ display: "flex", gap: 24, marginTop: 12, flexWrap: "wrap" }}>
+                {expRows && expRows.length > 0 && (
+                  <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+                    <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{expRows.length}</strong> 件の職歴
+                  </span>
+                )}
+                {skillTags.length > 0 && (
+                  <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+                    <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{skillTags.length}</strong> スキル
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Mentor CTA */}
+      {owUser.is_mentor && (
+        <div style={{ background: "linear-gradient(135deg, var(--royal-50), #EFF3FC)", border: "1px solid var(--royal-100)", borderRadius: 14, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", marginBottom: 4 }}>このユーザーはメンターです</div>
+            <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>キャリア相談を30分から無料で受け付けています</div>
+          </div>
+          <Link href="/mentors" style={{ padding: "8px 16px", background: "var(--royal)", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
+            相談する →
+          </Link>
+        </div>
+      )}
 
       {/* About Me */}
       {owUser.about_me ? (
@@ -261,6 +287,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           <div style={{
             display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
             paddingBottom: 14, borderBottom: "1px solid var(--line)",
+            borderLeft: "3px solid var(--royal)", paddingLeft: 12,
           }}>
             <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
               About Me
@@ -302,6 +329,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           <div style={{
             display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
             paddingBottom: 14, borderBottom: "1px solid var(--line)",
+            borderLeft: "3px solid var(--royal)", paddingLeft: 12,
           }}>
             <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
               スキル
@@ -334,6 +362,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           <div style={{
             display: "flex", alignItems: "baseline", gap: 10, marginBottom: 20,
             paddingBottom: 14, borderBottom: "1px solid var(--line)",
+            borderLeft: "3px solid var(--royal)", paddingLeft: 12,
           }}>
             <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
               経歴
@@ -360,6 +389,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           <div style={{
             display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
             paddingBottom: 14, borderBottom: "1px solid var(--line)",
+            borderLeft: "3px solid var(--royal)", paddingLeft: 12,
           }}>
             <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
               資格・認定
@@ -399,6 +429,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           <div style={{
             display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
             paddingBottom: 14, borderBottom: "1px solid var(--line)",
+            borderLeft: "3px solid var(--royal)", paddingLeft: 12,
           }}>
             <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
               リンク

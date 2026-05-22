@@ -85,6 +85,42 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.opinio.co.jp/#organization",
+      name: "Opinio",
+      url: "https://www.opinio.co.jp",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://www.opinio.co.jp/opengraph-image.png",
+      },
+      description:
+        "IT/SaaS業界に特化したキャリアプラットフォーム。企業の今を知り、先輩と話し、自分で決める。完全無料・営業電話なし。",
+      sameAs: [],
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.opinio.co.jp/#website",
+      url: "https://www.opinio.co.jp",
+      name: "OPINIO",
+      description:
+        "IT/SaaS業界の転職は、情報戦。Opinio編集部が企業を取材し、先輩メンターが相談に乗る、キャリアプラットフォーム。完全無料。",
+      publisher: { "@id": "https://www.opinio.co.jp/#organization" },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: "https://www.opinio.co.jp/jobs?q={search_term_string}",
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -92,6 +128,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className={`${inter.variable} ${notoSansJP.variable} ${notoSerifJP.variable}`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className={`${inter.className} antialiased`}>
         {children}
         <Analytics />

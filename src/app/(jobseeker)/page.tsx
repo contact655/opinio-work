@@ -181,13 +181,38 @@ function HeroRoleRotator() {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
+type PreviewJob = {
+  id: string;
+  title: string;
+  dept: string | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  workStyle: string | null;
+  companyName: string;
+  logoLetter: string;
+  logoGradient: string;
+  logoUrl: string | null;
+};
+
+function formatSalary(min: number | null, max: number | null): string | null {
+  if (!min && !max) return null;
+  const fmt = (v: number) => `${Math.round(v / 10000)}`;
+  if (min && max) return `¥${fmt(min)}-${fmt(max)}万`;
+  if (min) return `¥${fmt(min)}万〜`;
+  if (max) return `〜¥${fmt(max)}万`;
+  return null;
+}
+
 function Hero() {
   const router = useRouter();
-  const MOCK_JOBS = [
-    { init: "L", color: "linear-gradient(135deg,#002366,#3B5FD9)", company: "LayerX", title: "Product Manager", tags: ["フルリモート", "副業OK"], salary: "¥700-1,200万" },
-    { init: "H", color: "linear-gradient(135deg,#059669,#047857)", company: "HubSpot Japan", title: "Customer Success", tags: ["フルリモート", "フレックス"], salary: "¥650-950万" },
-    { init: "U", color: "linear-gradient(135deg,#DB2777,#BE185D)", company: "Ubie", title: "フィールドセールス", tags: ["リモート可"], salary: "¥600-1,000万" },
-  ];
+  const [jobs, setJobs] = useState<PreviewJob[]>([]);
+
+  useEffect(() => {
+    fetch("/api/jobs/preview")
+      .then((r) => r.json())
+      .then((d) => { setJobs(Array.isArray(d.jobs) ? d.jobs : []); })
+      .catch(() => { setJobs([]); });
+  }, []);
 
   return (
     <section style={{
@@ -402,34 +427,60 @@ function Hero() {
 
             {/* Job list */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {MOCK_JOBS.map((job, i) => (
-                <div key={i} style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 12px", borderRadius: 8, background: "var(--line-soft)",
-                }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 8, background: job.color,
-                    color: "#fff", fontSize: 13, fontWeight: 700,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    {job.init}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{job.company}</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{job.title}</div>
-                    <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
-                      {job.tags.map((t) => (
-                        <span key={t} style={{
-                          fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 3,
-                          background: "var(--royal-50)", color: "var(--royal)",
-                        }}>{t}</span>
-                      ))}
+              {jobs.length === 0
+                ? [0, 1, 2].map((i) => (
+                    <div key={i} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px", borderRadius: 8, background: "var(--line-soft)",
+                    }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8, background: "var(--line)",
+                        flexShrink: 0,
+                      }} />
+                      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}>
+                        <div style={{ height: 9, width: "40%", borderRadius: 4, background: "var(--line)" }} />
+                        <div style={{ height: 11, width: "70%", borderRadius: 4, background: "var(--line)" }} />
+                      </div>
+                      <div style={{ height: 9, width: 48, borderRadius: 4, background: "var(--line)", flexShrink: 0 }} />
                     </div>
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", flexShrink: 0 }}>{job.salary}</div>
-                </div>
-              ))}
+                  ))
+                : jobs.map((job) => {
+                    const salary = formatSalary(job.salaryMin, job.salaryMax);
+                    return (
+                      <div key={job.id} style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "10px 12px", borderRadius: 8, background: "var(--line-soft)",
+                      }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: 8,
+                          background: job.logoGradient,
+                          color: "#fff", fontSize: 13, fontWeight: 700,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          flexShrink: 0, overflow: "hidden",
+                        }}>
+                          {job.logoUrl
+                            ? <img src={job.logoUrl} alt={job.companyName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            : job.logoLetter}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{job.companyName}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{job.title}</div>
+                          <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
+                            {job.workStyle && (
+                              <span style={{
+                                fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 3,
+                                background: "var(--royal-50)", color: "var(--royal)",
+                              }}>{job.workStyle}</span>
+                            )}
+                          </div>
+                        </div>
+                        {salary && (
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", flexShrink: 0 }}>{salary}</div>
+                        )}
+                      </div>
+                    );
+                  })
+              }
             </div>
 
             {/* Footer note */}
