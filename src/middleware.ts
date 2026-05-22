@@ -14,7 +14,7 @@ import { updateSession } from "@/lib/supabase/middleware";
  *   - 未ログイン: /biz/auth にリダイレクト
  *   - ロール確認は layout.tsx で行う（middleware は auth check のみ）
  */
-const BIZ_PUBLIC_PATHS = ["/biz/auth", "/biz/auth/signup", "/biz/auth/accept-invite"];
+const BIZ_PUBLIC_PATHS = ["/biz", "/biz/auth", "/biz/auth/signup", "/biz/auth/accept-invite"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
