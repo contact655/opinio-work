@@ -710,68 +710,55 @@ export default function JobsClient({
               flexWrap: "wrap",
             }}
           >
-            {/* Keyword search */}
-            <input
-              type="text"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="キーワード検索..."
-              style={{
-                padding: "7px 12px",
-                border: "1px solid var(--line)",
-                borderRadius: 8,
-                fontSize: 13,
-                width: 160,
-                outline: "none",
-                color: "var(--ink)",
-              }}
-            />
+              {/* 勤務形態ピル */}
+            {(["フルリモート", "ハイブリッド", "フレックス"] as const).map((ws) => {
+              const isActive = work_style === ws;
+              return (
+                <button
+                  key={ws}
+                  onClick={() => setParam("work_style", isActive ? "" : ws)}
+                  style={{
+                    padding: "5px 14px",
+                    borderRadius: 999,
+                    border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
+                    background: isActive ? "var(--royal)" : "#fff",
+                    color: isActive ? "#fff" : "var(--ink-soft)",
+                    fontSize: 12.5,
+                    fontWeight: isActive ? 700 : 400,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    transition: "background 0.12s, border-color 0.12s, color 0.12s",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {ws}
+                </button>
+              );
+            })}
 
-            <div
-              style={{
-                width: 1,
-                height: 20,
-                background: "var(--line)",
-                flexShrink: 0,
-              }}
-            />
-
-            {/* Work style filter */}
-            <select
-              value={work_style}
-              onChange={(e) => setParam("work_style", e.target.value)}
-              style={{
-                padding: "7px 10px",
-                border: `1px solid ${work_style ? "var(--royal)" : "var(--line)"}`,
-                borderRadius: 8,
-                background: work_style ? "var(--royal-50)" : "#fff",
-                color: work_style ? "var(--royal)" : "var(--ink-soft)",
-                fontSize: 13,
-                cursor: "pointer",
-                outline: "none",
-                fontWeight: work_style ? 600 : 400,
-              }}
-            >
-              <option value="">すべての働き方</option>
-              <option value="フルリモート">フルリモート</option>
-              <option value="ハイブリッド">ハイブリッド</option>
-              <option value="フレックス">フレックス</option>
-            </select>
+            <div style={{ width: 1, height: 18, background: "var(--line)", flexShrink: 0 }} />
 
             {/* Salary filter */}
             <select
               value={salary}
               onChange={(e) => setParam("salary", e.target.value)}
               style={{
-                padding: "7px 10px",
-                border: `1px solid ${salary ? "var(--royal)" : "var(--line)"}`,
+                padding: "5px 10px",
+                border: `1.5px solid ${salary ? "var(--royal)" : "var(--line)"}`,
                 borderRadius: 8,
                 background: salary ? "var(--royal-50)" : "#fff",
                 color: salary ? "var(--royal)" : "var(--ink-soft)",
-                fontSize: 13,
+                fontSize: 12.5,
                 cursor: "pointer",
                 outline: "none",
                 fontWeight: salary ? 600 : 400,
+                fontFamily: "inherit",
+                appearance: "none" as const,
+                WebkitAppearance: "none" as const,
+                paddingRight: 28,
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 8px center",
               }}
             >
               <option value="">年収指定なし</option>
@@ -787,15 +774,22 @@ export default function JobsClient({
               value={industry}
               onChange={(e) => setParam("industry", e.target.value)}
               style={{
-                padding: "7px 10px",
-                border: `1px solid ${industry ? "var(--royal)" : "var(--line)"}`,
+                padding: "5px 10px",
+                border: `1.5px solid ${industry ? "var(--royal)" : "var(--line)"}`,
                 borderRadius: 8,
                 background: industry ? "var(--royal-50)" : "#fff",
                 color: industry ? "var(--royal)" : "var(--ink-soft)",
-                fontSize: 13,
+                fontSize: 12.5,
                 cursor: "pointer",
                 outline: "none",
                 fontWeight: industry ? 600 : 400,
+                fontFamily: "inherit",
+                appearance: "none" as const,
+                WebkitAppearance: "none" as const,
+                paddingRight: 28,
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 8px center",
               }}
             >
               <option value="">すべての業界</option>
@@ -807,29 +801,38 @@ export default function JobsClient({
             </select>
 
             {/* 都道府県 filter */}
-            <select
-              value={prefecture}
-              onChange={(e) => setParam("prefecture", e.target.value)}
-              style={{
-                padding: "7px 10px",
-                border: `1px solid ${prefecture ? "var(--royal)" : "var(--line)"}`,
-                borderRadius: 8,
-                background: prefecture ? "var(--royal-50)" : "#fff",
-                color: prefecture ? "var(--royal)" : "var(--ink-soft)",
-                fontSize: 13,
-                cursor: "pointer",
-                outline: "none",
-                fontWeight: prefecture ? 600 : 400,
-              }}
-              aria-label="都道府県で絞り込み"
-            >
-              <option value="">すべての都道府県</option>
-              {availablePrefectures.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
+            {availablePrefectures.length > 0 && (
+              <select
+                value={prefecture}
+                onChange={(e) => setParam("prefecture", e.target.value)}
+                style={{
+                  padding: "5px 10px",
+                  border: `1.5px solid ${prefecture ? "var(--royal)" : "var(--line)"}`,
+                  borderRadius: 8,
+                  background: prefecture ? "var(--royal-50)" : "#fff",
+                  color: prefecture ? "var(--royal)" : "var(--ink-soft)",
+                  fontSize: 12.5,
+                  cursor: "pointer",
+                  outline: "none",
+                  fontWeight: prefecture ? 600 : 400,
+                  fontFamily: "inherit",
+                  appearance: "none" as const,
+                  WebkitAppearance: "none" as const,
+                  paddingRight: 28,
+                  backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right 8px center",
+                }}
+                aria-label="都道府県で絞り込み"
+              >
+                <option value="">都道府県</option>
+                {availablePrefectures.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {hasFilter && (
               <button
@@ -838,13 +841,14 @@ export default function JobsClient({
                   router.replace("/jobs");
                 }}
                 style={{
-                  padding: "7px 12px",
+                  padding: "5px 10px",
                   border: "none",
                   background: "none",
                   color: "var(--ink-mute)",
                   fontSize: 12,
                   cursor: "pointer",
                   textDecoration: "underline",
+                  fontFamily: "inherit",
                 }}
               >
                 リセット
@@ -854,20 +858,8 @@ export default function JobsClient({
             <div style={{ flex: 1 }} />
 
             {/* Result count */}
-            <span
-              style={{
-                fontSize: 13,
-                color: "var(--ink-mute)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              <strong
-                style={{
-                  color: "var(--royal)",
-                  fontSize: 15,
-                  fontFamily: "Inter, sans-serif",
-                }}
-              >
+            <span style={{ fontSize: 12.5, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+              <strong style={{ color: "var(--royal)", fontSize: 15, fontFamily: "Inter, sans-serif" }}>
                 {filtered.length}
               </strong>{" "}
               件
@@ -878,14 +870,21 @@ export default function JobsClient({
               value={sort}
               onChange={(e) => setParam("sort", e.target.value)}
               style={{
-                padding: "7px 10px",
-                border: "1px solid var(--line)",
+                padding: "5px 10px",
+                border: "1.5px solid var(--line)",
                 borderRadius: 8,
                 background: "#fff",
-                fontSize: 13,
+                fontSize: 12.5,
                 color: "var(--ink-soft)",
                 cursor: "pointer",
                 outline: "none",
+                fontFamily: "inherit",
+                appearance: "none" as const,
+                WebkitAppearance: "none" as const,
+                paddingRight: 28,
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 8px center",
               }}
             >
               <option value="updated">新着順</option>
