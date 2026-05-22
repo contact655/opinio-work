@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/common";
 import HomeFaq from "@/app/HomeFaq";
-import { MOCK_ARTICLES, TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
+import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import { CountUp } from "@/components/jobseeker/CountUp";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
@@ -930,8 +930,32 @@ function FinalCta() {
 
 // ─── Articles Preview ─────────────────────────────────────────────────────────
 
+type PreviewArticle = {
+  slug: string;
+  type: string;
+  title: string;
+  eyecatch_gradient: string;
+  read_min: number;
+  date: string;
+  company_name: string;
+  company_initial: string;
+  company_gradient: string;
+};
+
 function ArticlesPreview() {
-  const latest = MOCK_ARTICLES.slice(0, 3);
+  const [articles, setArticles] = useState<PreviewArticle[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/articles/preview")
+      .then((r) => r.json())
+      .then((d) => { setArticles(Array.isArray(d.articles) ? d.articles : []); })
+      .catch(() => { setArticles([]); });
+  }, []);
+
+  // fetch 完了前は非表示（レイアウトシフト防止）
+  if (articles === null) return null;
+
+  const latest = articles;
   return (
     <section style={{ background: "var(--bg-tint)", borderTop: "1px solid var(--line)", padding: "72px 0" }}>
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
@@ -961,8 +985,10 @@ function ArticlesPreview() {
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {latest.map((article) => {
-            const badge = TYPE_BADGE[article.type];
-            const icon  = TYPE_EYECATCH_ICON[article.type];
+            type ArticleType = "employee" | "mentor" | "ceo" | "report";
+            const type = article.type as ArticleType;
+            const badge = TYPE_BADGE[type] ?? TYPE_BADGE["employee"];
+            const icon  = TYPE_EYECATCH_ICON[type] ?? TYPE_EYECATCH_ICON["employee"];
             return (
               <Link key={article.slug} href={`/articles/${article.slug}`} style={{ textDecoration: "none" }}>
                 <article style={{

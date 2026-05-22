@@ -15,6 +15,15 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ## 🎯 次のセッションでやること（2026-05-22 更新）
 
+### ✅ 完了 2026-05-22 セッション3: Supabase 接続完成度チェック＋在籍企業チェック実装
+  - `/mypage` が完全 Supabase 接続済みであることを確認（casual_meetings / mentor_reservations / bookmarks / timeline 全件）
+  - `casual-meeting/page.tsx` に `ow_experiences` ベースの在籍企業チェックを実装
+    - `is_current=true AND company_id=params.id` の experience があればブロック画面表示
+    - warm orange アイコン + 「現在ご在籍中の企業です」メッセージ + 「他の企業を探す」ボタン
+  - `ow_articles` テーブルが既存（10件）であることを発見 → articles ページは既に Supabase 接続済みを確認
+  - `ow_bookmarks` RLS・ユニーク制約・API 全て正常動作確認
+  - ow_mentors 全件 user_id 設定済み → 受信リクエスト表示も正常
+
 ### ✅ 完了 2026-05-22 セッション2: Phase 6 デザイン統一
   - `var(--gold)` → `var(--warm)`、`var(--royal-deep)` → `#001233`（未定義CSS変数修正）
   - カジュアル面談CTA: white/royal → warm orange グラデーション（companies/[id]・jobs/[id]）
@@ -50,15 +59,17 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ### 🟢 次の優先候補
 - **ActivityList 残り 5 イベント** (casual_meeting_applied/offer_sent 等) — 機能実装時に add
-- **ow_articles テーブル作成** — 記事コンテンツを DB 管理したい場合
+- **ホームページ ArticlesPreview の Supabase 接続**（現在 MOCK_ARTICLES 使用。ページが "use client" なので API Route 経由が必要）
 - **新機能検討**（求職者→企業メッセージ、メンター機能強化、求人申込フローなど）
 
-### DB 現状（2026-05-22 セッション2 確認）
+### DB 現状（2026-05-22 セッション3 更新確認）
 | テーブル | 件数 | 備考 |
 |---------|------|------|
 | ow_companies | 36件 | 31件公開、全件 accepting_casual_meetings=true |
-| ow_jobs | 30件 | 全件 status="active"（Migration 113 待ち） |
-| ow_mentors | 10件 | 全件 is_available=true |
+| ow_jobs | 30件 | 全件 status="published"（Migration 113 適用済み） |
+| ow_mentors | 10件 | 全件 is_available=true、全件 user_id 設定済み |
+| ow_articles | 10件 | 全件 is_published=true、Supabase 接続済み |
+| ow_bookmarks | 1件 | RLS・ユニーク制約・API 正常 |
 | ow_users | 23件+ | ow_profiles 20件 |
 | ow_casual_meetings | 0件 | 申込データなし |
 | ow_mentor_reservations | 0件 | 予約データなし |
