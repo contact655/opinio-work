@@ -5,25 +5,57 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 const STATUS_TABS = [
-  { key: "all", label: "すべて" },
-  { key: "pending", label: "審査待ち" },
-  { key: "active", label: "承認済み" },
-  { key: "rejected", label: "却下" },
+  { key: "all",       label: "すべて" },
+  { key: "published", label: "公開中" },
+  { key: "private",   label: "非公開" },
 ];
 
+type Company = {
+  id: string;
+  name: string | null;
+  industry: string | null;
+  location: string | null;
+  employee_count: string | number | null;
+  is_published: boolean;
+  accepting_casual_meetings: boolean;
+  created_at: string;
+  updated_at: string;
+  job_count?: number;
+};
+
 export default function AdminCompaniesPage() {
-  const [companies, setCompanies] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const loadCompanies = useCallback(async () => {
     const supabase = createClient();
-    const { data } = await supabase
-      .from("ow_companies")
-      .select("*, ow_jobs(id)")
-      .order("created_at", { ascending: false });
-    setCompanies(data || []);
+
+    // Fetch companies + job counts in parallel
+    const [{ data: companyRows }, { data: jobRows }] = await Promise.all([
+      supabase
+        .from("ow_companies")
+        .select("id, name, industry, location, employee_count, is_published, accepting_casual_meetings, created_at, updated_at")
+        .order("updated_at", { ascending: false }),
+      supabase
+        .from("ow_jobs")
+        .select("company_id"),
+    ]);
+
+    // Build job count map
+    const jobCountMap = new Map<string, number>();
+    for (const j of jobRows ?? []) {
+      const cid = j.company_id as string;
+      jobCountMap.set(cid, (jobCountMap.get(cid) ?? 0) + 1);
+    }
+
+    const rows: Company[] = (companyRows ?? []).map((c) => ({
+      ...(c as Company),
+      job_count: jobCountMap.get(c.id as string) ?? 0,
+    }));
+
+    setCompanies(rows);
     setLoading(false);
   }, []);
 
@@ -31,154 +63,171 @@ export default function AdminCompaniesPage() {
     loadCompanies();
   }, [loadCompanies]);
 
-  async function handleStatusChange(companyId: string, newStatus: string) {
-    setActionLoading(companyId);
+  // is_published トグル
+  async function handleTogglePublish(company: Company) {
+    const newValue = !company.is_published;
+    setActionLoading(company.id);
     const supabase = createClient();
     await supabase
       .from("ow_companies")
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq("id", companyId);
+      .update({ is_published: newValue, updated_at: new Date().toISOString() })
+      .eq("id", company.id);
     setCompanies((prev) =>
-      prev.map((c) => (c.id === companyId ? { ...c, status: newStatus } : c))
+      prev.map((c) => c.id === company.id ? { ...c, is_published: newValue } : c)
     );
     setActionLoading(null);
   }
 
   const filtered = companies.filter((c) => {
     if (activeTab === "all") return true;
-    return c.status === activeTab;
+    if (activeTab === "published") return c.is_published;
+    if (activeTab === "private") return !c.is_published;
+    return true;
   });
-
-  const pendingCount = companies.filter((c) => c.status === "pending").length;
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-400">読み込み中...</p>
+      <div style={{ padding: 32, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
+        <p style={{ color: "#94A3B8" }}>読み込み中...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">企業審査</h1>
-        {pendingCount > 0 && (
-          <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm rounded-full">
-            {pendingCount}件の審査待ち
+    <div style={{ padding: 32 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", margin: 0 }}>企業管理</h1>
+          <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>
+            登録企業の公開状態と基本情報を管理します
+          </p>
+        </div>
+        <div style={{ fontSize: 13, color: "#64748B" }}>
+          全 {companies.length} 社 ·{" "}
+          <span style={{ color: "#059669", fontWeight: 600 }}>
+            {companies.filter((c) => c.is_published).length} 社公開中
           </span>
-        )}
+        </div>
       </div>
 
-      {/* Tabs + count */}
-      <div className="flex items-center gap-2 mb-6">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 text-sm rounded-full border transition-colors ${
-              activeTab === tab.key
-                ? "bg-foreground text-white border-foreground"
-                : "bg-white text-gray-600 border-card-border hover:border-gray-300"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-        <span className="ml-2 text-sm text-gray-400">
-          {activeTab === "all" ? `全 ${filtered.length} 社` : `${STATUS_TABS.find((t) => t.key === activeTab)?.label ?? activeTab} ${filtered.length} 社`}
-        </span>
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {STATUS_TABS.map((tab) => {
+          const count = tab.key === "all"
+            ? companies.length
+            : tab.key === "published"
+            ? companies.filter((c) => c.is_published).length
+            : companies.filter((c) => !c.is_published).length;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                padding: "6px 14px", borderRadius: 100,
+                border: `1px solid ${activeTab === tab.key ? "#002366" : "#E2E8F0"}`,
+                background: activeTab === tab.key ? "#002366" : "#fff",
+                color: activeTab === tab.key ? "#fff" : "#475569",
+                fontSize: 13, fontWeight: 600, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6,
+              }}
+            >
+              {tab.label}
+              <span style={{
+                fontSize: 11, padding: "1px 6px", borderRadius: 100,
+                background: activeTab === tab.key ? "rgba(255,255,255,0.2)" : "#F1F5F9",
+                color: activeTab === tab.key ? "#fff" : "#64748B",
+              }}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-card border border-card-border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">企業名</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">業界</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">所在地</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">従業員数</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">プラン</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">求人数</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">ステータス</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">登録日</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">操作</th>
+      <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+              {["企業名", "業界", "所在地", "従業員数", "求人数", "カジュアル面談", "公開状態", "更新日", "操作"].map((h) => (
+                <th key={h} style={{
+                  textAlign: "left", padding: "10px 14px",
+                  fontSize: 11, color: "#64748B", fontWeight: 600,
+                  letterSpacing: "0.04em", whiteSpace: "nowrap",
+                }}>
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-12 text-gray-400">
+                <td colSpan={9} style={{ textAlign: "center", padding: "48px 0", color: "#94A3B8", fontSize: 14 }}>
                   企業が見つかりません
                 </td>
               </tr>
             ) : (
               filtered.map((c) => (
-                <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">
-                    <Link href={`/admin/companies/${c.id}`} className="text-blue-600 hover:underline">
-                      {c.name}
+                <tr key={c.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                  {/* 企業名 */}
+                  <td style={{ padding: "12px 14px", fontWeight: 600, color: "#0F172A" }}>
+                    <Link href={`/admin/companies/${c.id}`} style={{ color: "#002366", textDecoration: "none" }}>
+                      {c.name || "—"}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{c.industry || "-"}</td>
-                  <td className="px-4 py-3 text-gray-600">{c.location || "-"}</td>
-                  <td className="px-4 py-3 text-gray-600">{c.employee_count || "-"}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      c.plan === "standard" ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-600"
-                    }`}>
-                      {c.plan === "standard" ? "スタンダード" : "フリー"}
+                  {/* 業界 */}
+                  <td style={{ padding: "12px 14px", color: "#475569" }}>{c.industry || "—"}</td>
+                  {/* 所在地 */}
+                  <td style={{ padding: "12px 14px", color: "#475569" }}>{c.location || "—"}</td>
+                  {/* 従業員数 */}
+                  <td style={{ padding: "12px 14px", color: "#475569" }}>{c.employee_count || "—"}</td>
+                  {/* 求人数 */}
+                  <td style={{ padding: "12px 14px", color: "#475569", fontFamily: "Inter, sans-serif" }}>
+                    {c.job_count ?? 0}
+                  </td>
+                  {/* カジュアル面談 */}
+                  <td style={{ padding: "12px 14px" }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
+                      background: c.accepting_casual_meetings ? "#ECFDF5" : "#F1F5F9",
+                      color: c.accepting_casual_meetings ? "#059669" : "#94A3B8",
+                    }}>
+                      {c.accepting_casual_meetings ? "受付中" : "停止中"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{c.ow_jobs?.length || 0}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      c.status === "active" ? "bg-green-100 text-green-700" :
-                      c.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                      "bg-red-100 text-red-700"
-                    }`}>
-                      {c.status === "active" ? "承認済" : c.status === "pending" ? "審査中" : "却下"}
+                  {/* 公開状態 */}
+                  <td style={{ padding: "12px 14px" }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                      background: c.is_published ? "#ECFDF5" : "#F1F5F9",
+                      color: c.is_published ? "#059669" : "#94A3B8",
+                      border: `1px solid ${c.is_published ? "#A7F3D0" : "#E2E8F0"}`,
+                    }}>
+                      {c.is_published ? "公開中" : "非公開"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">
-                    {new Date(c.created_at).toLocaleDateString("ja-JP")}
+                  {/* 更新日 */}
+                  <td style={{ padding: "12px 14px", color: "#94A3B8", fontSize: 11, whiteSpace: "nowrap" }}>
+                    {new Date(c.updated_at).toLocaleDateString("ja-JP")}
                   </td>
-                  <td className="px-4 py-3">
-                    {c.status === "pending" ? (
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => handleStatusChange(c.id, "active")}
-                          disabled={actionLoading === c.id}
-                          className="px-2.5 py-1 bg-primary text-white text-xs rounded hover:bg-primary-dark disabled:opacity-50"
-                        >
-                          承認
-                        </button>
-                        <button
-                          onClick={() => handleStatusChange(c.id, "rejected")}
-                          disabled={actionLoading === c.id}
-                          className="px-2.5 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50"
-                        >
-                          却下
-                        </button>
-                      </div>
-                    ) : c.status === "active" ? (
-                      <button
-                        onClick={() => handleStatusChange(c.id, "rejected")}
-                        disabled={actionLoading === c.id}
-                        className="px-2.5 py-1 border border-red-300 text-red-500 text-xs rounded hover:bg-red-50 disabled:opacity-50"
-                      >
-                        停止
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleStatusChange(c.id, "active")}
-                        disabled={actionLoading === c.id}
-                        className="px-2.5 py-1 border border-primary text-primary text-xs rounded hover:bg-primary-light disabled:opacity-50"
-                      >
-                        再承認
-                      </button>
-                    )}
+                  {/* 操作 */}
+                  <td style={{ padding: "12px 14px" }}>
+                    <button
+                      onClick={() => handleTogglePublish(c)}
+                      disabled={actionLoading === c.id}
+                      style={{
+                        padding: "5px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                        cursor: "pointer", whiteSpace: "nowrap",
+                        opacity: actionLoading === c.id ? 0.5 : 1,
+                        background: c.is_published ? "#FEE2E2" : "#EFF3FC",
+                        border: `1px solid ${c.is_published ? "#FCA5A5" : "#B2C4F0"}`,
+                        color: c.is_published ? "#DC2626" : "#002366",
+                      }}
+                    >
+                      {c.is_published ? "非公開にする" : "公開する"}
+                    </button>
                   </td>
                 </tr>
               ))
