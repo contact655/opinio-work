@@ -225,32 +225,44 @@ function JobCard({
             marginBottom: 10,
           }}
         >
-          {job.tags.map((tag) => (
-            <span
-              key={tag}
-              style={{
-                fontSize: 10,
-                padding: "3px 8px",
-                borderRadius: 100,
-                background:
-                  tag.includes("リモート") || tag === "全国どこでも"
+          {job.tags.map((tag) => {
+            const isRemote = tag.includes("リモート") || tag === "全国どこでも";
+            const isOffice = tag.includes("原則出社") || tag.includes("オフィス");
+            const isHybrid = tag.includes("ハイブリッド");
+            const isLocation = /都|道|府|県$/.test(tag) || tag === "全国";
+            const isWorkStyle = isRemote || isOffice || isHybrid;
+            const icon = isRemote ? "🏠 " : isOffice ? "🏢 " : isHybrid ? "🔀 " : isLocation ? "📍 " : "";
+            return (
+              <span
+                key={tag}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  fontSize: 10,
+                  padding: "3px 8px",
+                  borderRadius: 100,
+                  background: isRemote
                     ? "var(--success-soft)"
+                    : isWorkStyle
+                    ? "#F0F4FF"
+                    : isLocation
+                    ? "var(--bg-tint)"
                     : "var(--bg-tint)",
-                color:
-                  tag.includes("リモート") || tag === "全国どこでも"
+                  color: isRemote
                     ? "var(--success)"
+                    : isWorkStyle
+                    ? "#3B5FD9"
                     : "var(--ink-soft)",
-                border: `1px solid ${
-                  tag.includes("リモート") || tag === "全国どこでも"
-                    ? "#A7F3D0"
-                    : "var(--line)"
-                }`,
-                fontWeight: 500,
-              }}
-            >
-              {tag}
-            </span>
-          ))}
+                  border: `1px solid ${
+                    isRemote ? "#A7F3D0" : isWorkStyle ? "#C7D7F9" : "var(--line)"
+                  }`,
+                  fontWeight: isWorkStyle ? 600 : 500,
+                }}
+              >
+                {icon}{tag}
+              </span>
+            );
+          })}
         </div>
       )}
 

@@ -31,35 +31,63 @@ function ArticleCard({ article }: { article: Article }) {
         borderRadius: 16,
         overflow: "hidden",
         height: "100%",
-        boxShadow: "0 2px 8px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)",
+        boxShadow: "0 2px 8px rgba(15,23,42,0.06)",
         transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
       }}
         className="article-card"
       >
         {/* Eyecatch */}
         <div style={{
-          height: 140,
+          height: 150,
           background: article.eyecatch_gradient,
           display: "flex", alignItems: "center", justifyContent: "center",
-          position: "relative",
+          position: "relative", overflow: "hidden",
         }}>
-          <span style={{ fontSize: 48, opacity: 0.3 }}>{icon}</span>
+          {/* 背景デコレーション */}
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "radial-gradient(circle at 70% 30%, rgba(255,255,255,0.12) 0%, transparent 60%)",
+          }} />
+          <span style={{ fontSize: 52, opacity: 0.25, position: "relative", zIndex: 1 }}>{icon}</span>
 
           {/* Category badge */}
           <div style={{
-            position: "absolute", top: 12, left: 14,
+            position: "absolute", top: 12, left: 14, zIndex: 2,
             display: "inline-flex", alignItems: "center",
             padding: "4px 10px", borderRadius: 100,
             background: badge.bg, color: badge.color,
             fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em",
+            backdropFilter: "blur(4px)",
           }}>
             {badge.label}
           </div>
 
+          {/* 取材対象者アバター（右上） */}
+          {mainSubject && (
+            <div style={{
+              position: "absolute", top: 10, right: 12, zIndex: 2,
+              display: "flex", alignItems: "center", gap: 6,
+              background: "rgba(0,0,0,0.28)", borderRadius: 100,
+              padding: "3px 8px 3px 4px",
+            }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: "50%",
+                background: mainSubject.gradient, color: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 8, fontWeight: 700, flexShrink: 0,
+              }}>
+                {mainSubject.initial}
+              </div>
+              <span style={{ fontSize: 9.5, color: "rgba(255,255,255,0.9)", fontWeight: 600, whiteSpace: "nowrap" }}>
+                {mainSubject.name}
+              </span>
+            </div>
+          )}
+
           {/* Read time */}
           {article.read_min && (
             <div style={{
-              position: "absolute", bottom: 10, right: 12,
+              position: "absolute", bottom: 10, right: 12, zIndex: 2,
               fontSize: 10, color: "rgba(255,255,255,0.85)",
               fontFamily: "Inter, sans-serif", fontWeight: 500,
               display: "flex", alignItems: "center", gap: 3,
@@ -67,17 +95,28 @@ function ArticleCard({ article }: { article: Article }) {
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
               </svg>
-              {article.read_min}分で読めます
+              {article.read_min}分
             </div>
           )}
         </div>
 
         {/* Body */}
-        <div style={{ padding: "16px 18px 20px", flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "16px 18px 18px", flex: 1, display: "flex", flexDirection: "column" }}>
+          {/* 取材対象者の役職（社員/メンター/CEO記事のみ） */}
+          {mainSubject?.role_at_interview && (
+            <div style={{
+              fontSize: 10.5, color: "var(--ink-mute)", fontWeight: 500,
+              marginBottom: 6, lineHeight: 1.4,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {mainSubject.role_at_interview}
+            </div>
+          )}
+
           <h2 style={{
             fontFamily: 'var(--font-noto-serif)',
-            fontSize: 14, fontWeight: 700, lineHeight: 1.6,
-            color: "var(--ink)", marginBottom: 10,
+            fontSize: 14, fontWeight: 700, lineHeight: 1.65,
+            color: "var(--ink)", marginBottom: 8,
             display: "-webkit-box",
             WebkitLineClamp: 3,
             WebkitBoxOrient: "vertical",
@@ -85,6 +124,21 @@ function ArticleCard({ article }: { article: Article }) {
           } as React.CSSProperties}>
             {article.title}
           </h2>
+
+          {/* テーマタグ（あれば最大2つ） */}
+          {article.themes && article.themes.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
+              {article.themes.slice(0, 2).map((t, i) => (
+                <span key={i} style={{
+                  fontSize: 9.5, fontWeight: 600, padding: "2px 7px", borderRadius: 100,
+                  background: "var(--royal-50)", color: "var(--royal)",
+                  border: "1px solid var(--royal-100)",
+                }}>
+                  {t.title}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Subtitle */}
           <p style={{
@@ -98,52 +152,36 @@ function ArticleCard({ article }: { article: Article }) {
             {article.subtitle}
           </p>
 
-          {/* Footer: company + subject avatars + date */}
+          {/* Footer: company + mentor CTA + date */}
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
-            paddingTop: 12, borderTop: "1px solid var(--line-soft, #F1F5F9)",
+            paddingTop: 10, borderTop: "1px solid var(--line-soft, #F1F5F9)",
           }}>
             {/* Company logo */}
             <div style={{
-              width: 24, height: 24, borderRadius: 6,
+              width: 22, height: 22, borderRadius: 5,
               background: article.company_gradient,
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 9, fontWeight: 700, flexShrink: 0,
+              color: "#fff", fontSize: 8.5, fontWeight: 700, flexShrink: 0,
             }}>
               {article.company_initial}
             </div>
-
-            <span style={{ fontSize: 11, color: "var(--ink-soft)", flex: 1, fontWeight: 500 }}>
+            <span style={{ fontSize: 11, color: "var(--ink-soft)", flex: 1, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {article.company_name}
             </span>
 
-            {/* Subject avatar(s) */}
-            {article.type === "report" && article.subjects ? (
-              <div style={{ display: "flex", gap: -4 }}>
-                {article.subjects.slice(0, 2).map((s, i) => (
-                  <div key={i} style={{
-                    width: 22, height: 22, borderRadius: "50%",
-                    background: s.gradient, color: "#fff",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 8, fontWeight: 700, border: "1.5px solid #fff",
-                    marginLeft: i > 0 ? -6 : 0,
-                  }}>
-                    {s.initial}
-                  </div>
-                ))}
-              </div>
-            ) : mainSubject ? (
-              <div style={{
-                width: 22, height: 22, borderRadius: "50%",
-                background: mainSubject.gradient, color: "#fff",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 8, fontWeight: 700, border: "1.5px solid #fff",
+            {/* メンター相談ミニCTA */}
+            {mainSubject?.is_mentor && mainSubject?.mentor_id && (
+              <span style={{
+                fontSize: 9.5, fontWeight: 700, padding: "3px 8px", borderRadius: 100,
+                background: "var(--warm-soft)", color: "#B45309",
+                border: "1px solid #FDE68A", whiteSpace: "nowrap", flexShrink: 0,
               }}>
-                {mainSubject.initial}
-              </div>
-            ) : null}
+                相談可
+              </span>
+            )}
 
-            <span style={{ fontSize: 10.5, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
               {article.date.replace(/-/g, "/").slice(2)}
             </span>
           </div>
