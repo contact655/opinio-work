@@ -124,13 +124,20 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
       )}
 
       {/* Session count badge */}
-      {(mentor.total_sessions ?? 0) > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, fontSize: 11.5, color: "var(--ink-mute)" }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5}>
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+      {(mentor.success_count ?? 0) > 0 && (
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          marginBottom: 12, padding: "5px 10px", borderRadius: 8,
+          background: "var(--success-soft)", border: "1px solid #A7F3D0",
+        }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
           </svg>
-          <span><strong style={{ color: "var(--success)", fontFamily: "Inter, sans-serif" }}>{mentor.total_sessions}</strong> 名が相談済み</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success)" }}>
+            相談実績{" "}
+            <span style={{ fontFamily: "Inter, sans-serif" }}>{mentor.success_count}</span>
+            件
+          </span>
         </div>
       )}
 
@@ -141,18 +148,20 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
             width: "100%", padding: "10px",
-            background: "var(--royal-50)", color: "var(--royal)",
-            border: "1px solid var(--royal-100)",
+            background: "linear-gradient(135deg, #F59E0B, #D97706)",
+            color: "#fff",
+            border: "none",
             borderRadius: 8, textDecoration: "none",
             fontSize: 13, fontWeight: 700,
-            transition: "background 0.2s, color 0.2s",
+            transition: "opacity 0.2s, transform 0.15s",
+            boxShadow: "0 2px 8px rgba(245,158,11,0.3)",
           }}
           className="mentor-cta"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          プロフィールを見る
+          相談する
         </Link>
       </div>
     </article>
@@ -314,8 +323,8 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
           transform: translateY(-2px) !important;
         }
         .mentor-cta:hover {
-          background: var(--royal) !important;
-          color: #fff !important;
+          opacity: 0.88 !important;
+          transform: translateY(-1px) !important;
         }
         /* carousel-arrow は GenreCarousel の CSS を流用 */
         .carousel-arrow {

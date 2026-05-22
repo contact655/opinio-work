@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/common";
 import HomeFaq from "@/app/HomeFaq";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
@@ -21,6 +22,7 @@ const MENTORS = [
     tags: ["SaaS営業", "外資IT", "年収交渉"],
     msg: "SaaS営業への転職は、経験よりも思考力。面接で何を話すべきか、一緒に整理しましょう。",
     gradient: "royal" as const,
+    sessionCount: 23,
   },
   {
     name: "佐藤 美咲",
@@ -28,6 +30,7 @@ const MENTORS = [
     tags: ["カスタマーサクセス", "キャリアチェンジ", "未経験転職"],
     msg: "未経験からCSに転職したい方の相談が得意。何から始めるべきか整理します。",
     gradient: "pink" as const,
+    sessionCount: 17,
   },
   {
     name: "鈴木 健太",
@@ -35,6 +38,7 @@ const MENTORS = [
     tags: ["外資IT", "フィールドセールス", "面接対策"],
     msg: "外資IT転職の面接対策・オファー交渉まで、実体験をもとにフィードバックします。",
     gradient: "green" as const,
+    sessionCount: 31,
   },
 ];
 
@@ -178,6 +182,7 @@ function HeroRoleRotator() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function Hero() {
+  const router = useRouter();
   const MOCK_JOBS = [
     { init: "L", color: "linear-gradient(135deg,#002366,#3B5FD9)", company: "LayerX", title: "Product Manager", tags: ["フルリモート", "副業OK"], salary: "¥700-1,200万" },
     { init: "H", color: "linear-gradient(135deg,#059669,#047857)", company: "HubSpot Japan", title: "Customer Success", tags: ["フルリモート", "フレックス"], salary: "¥650-950万" },
@@ -265,6 +270,78 @@ function Hero() {
                 <CheckMark /> {t}
               </span>
             ))}
+          </div>
+
+          {/* Quick search bar */}
+          <div style={{ marginTop: 32 }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const q = (e.currentTarget.querySelector('input') as HTMLInputElement).value.trim();
+                if (q) router.push(`/jobs?q=${encodeURIComponent(q)}`);
+                else router.push('/jobs');
+              }}
+              style={{
+                display: "flex",
+                background: "#fff",
+                border: "1.5px solid var(--line)",
+                borderRadius: 12,
+                overflow: "hidden",
+                boxShadow: "0 4px 20px rgba(0,35,102,0.08)",
+                transition: "border-color 0.2s, box-shadow 0.2s",
+              }}
+              onFocus={(e) => {
+                (e.currentTarget as HTMLFormElement).style.borderColor = "var(--royal)";
+                (e.currentTarget as HTMLFormElement).style.boxShadow = "0 4px 20px rgba(0,35,102,0.15)";
+              }}
+              onBlur={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget)) {
+                  (e.currentTarget as HTMLFormElement).style.borderColor = "var(--line)";
+                  (e.currentTarget as HTMLFormElement).style.boxShadow = "0 4px 20px rgba(0,35,102,0.08)";
+                }
+              }}
+            >
+              <input
+                type="text"
+                placeholder="職種・スキル・企業名で検索..."
+                style={{
+                  flex: 1, padding: "14px 16px", fontSize: 14,
+                  border: "none", outline: "none", color: "var(--ink)",
+                  background: "transparent",
+                  fontFamily: "'Noto Sans JP', sans-serif",
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  padding: "0 20px",
+                  background: "var(--royal)", color: "#fff",
+                  border: "none", cursor: "pointer",
+                  fontSize: 13, fontWeight: 600,
+                  display: "flex", alignItems: "center", gap: 6,
+                  flexShrink: 0,
+                }}
+              >
+                <SearchIcon />
+                検索
+              </button>
+            </form>
+            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+              {["フルリモート", "カスタマーサクセス", "プロダクトマネージャー", "副業OK"].map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => router.push(`/jobs?q=${encodeURIComponent(tag)}`)}
+                  style={{
+                    fontSize: 11, padding: "4px 10px", borderRadius: 100,
+                    background: "var(--royal-50)", color: "var(--royal)",
+                    border: "1px solid var(--royal-100)", cursor: "pointer",
+                    fontWeight: 500,
+                  }}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -412,8 +489,8 @@ function LogoMarquee() {
 
 function StatsStrip() {
   const STATS = [
-    { value: "13", unit: "社", label: "掲載企業" },
-    { value: "25", unit: "件", label: "公開求人" },
+    { value: "36", unit: "社", label: "掲載企業" },
+    { value: "30", unit: "件", label: "公開求人" },
     { value: "10", unit: "名", label: "相談できるメンター" },
     { value: "30", unit: "分", label: "初回相談・完全無料" },
   ];
@@ -767,7 +844,10 @@ function PainPoints() {
               background: "#fff", borderRadius: 16, padding: 24,
               border: "1px solid var(--line)",
               boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-            }}>
+              transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+            }}
+              className="pain-card"
+            >
               <div style={{
                 width: 48, height: 48, borderRadius: 12,
                 background: "var(--royal-50)", color: "var(--royal)",
@@ -782,6 +862,13 @@ function PainPoints() {
           ))}
         </div>
       </div>
+      <style>{`
+        .pain-card:hover {
+          border-color: var(--royal-100) !important;
+          box-shadow: 0 8px 24px rgba(0,35,102,0.08) !important;
+          transform: translateY(-2px) !important;
+        }
+      `}</style>
     </section>
   );
 }
@@ -809,12 +896,31 @@ function MentorsSection() {
               background: "#fff", borderRadius: 20, padding: 28,
               border: "1px solid var(--line)",
               boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-            }}>
-              <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 16 }}>
-                <Avatar name={m.name} size="lg" gradient={m.gradient} />
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{m.name}</div>
-                  <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.5 }}>{m.path}</div>
+              transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+            }}
+              className="mentor-card"
+            >
+              {/* 受付中バッジ */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                <div style={{ display: "flex", gap: 14, alignItems: "center", flex: 1, minWidth: 0 }}>
+                  <Avatar name={m.name} size="lg" gradient={m.gradient} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{m.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.5 }}>{m.path}</div>
+                  </div>
+                </div>
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0,
+                  padding: "4px 10px", borderRadius: 100,
+                  background: "#ECFDF5", border: "1px solid #A7F3D0",
+                  fontSize: 10, fontWeight: 700, color: "var(--success)", marginLeft: 8,
+                }}>
+                  <span style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: "var(--success)", flexShrink: 0,
+                    animation: "pulse-dot 2s ease-in-out infinite",
+                  }} />
+                  受付中
                 </div>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 16 }}>
@@ -828,9 +934,29 @@ function MentorsSection() {
                 ))}
               </div>
               <p style={{ fontSize: 14, lineHeight: 1.8, color: "var(--ink-soft)", marginBottom: 16 }}>{m.msg}</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--success)", fontWeight: 600 }}>
-                <CheckMark /> 相談料 0円・何度でも無料
+              {/* 相談件数 + 無料バッジ */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                <div style={{ fontSize: 13, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                  相談件数 <span style={{ fontWeight: 700, color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{m.sessionCount}</span> 件
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--success)", fontWeight: 600 }}>
+                  <CheckMark /> 無料
+                </div>
               </div>
+              {/* 相談するボタン（warm orange） */}
+              <button style={{
+                width: "100%", padding: "11px 0", borderRadius: 8, fontSize: 14, fontWeight: 700,
+                background: "linear-gradient(135deg, #F59E0B, #D97706)",
+                color: "#fff", border: "none", cursor: "pointer",
+                boxShadow: "0 3px 10px rgba(245,158,11,0.3)",
+                transition: "opacity 0.15s, transform 0.1s",
+              }}>
+                相談する
+              </button>
             </div>
           ))}
         </div>
@@ -846,6 +972,17 @@ function MentorsSection() {
           </Link>
         </div>
       </div>
+      <style>{`
+        .mentor-card:hover {
+          border-color: #FDE68A !important;
+          box-shadow: 0 12px 32px rgba(245,158,11,0.12) !important;
+          transform: translateY(-3px) !important;
+        }
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.75); }
+        }
+      `}</style>
     </section>
   );
 }
@@ -1043,7 +1180,13 @@ function ArticlesPreview() {
                         {article.company_name}
                       </span>
                       <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>
-                        {article.date.slice(2).replace(/-/g, "/")}
+                        {(() => {
+                          try {
+                            return new Date(article.date).toLocaleDateString("ja-JP", { year: "numeric", month: "long" });
+                          } catch {
+                            return article.date.slice(2).replace(/-/g, "/");
+                          }
+                        })()}
                       </span>
                     </div>
                   </div>

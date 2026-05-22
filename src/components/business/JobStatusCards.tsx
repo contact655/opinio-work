@@ -2,6 +2,8 @@
 import Link from "next/link";
 import type { JobStatusCounts } from "@/lib/business/dashboard";
 
+const totalJobs = (counts: JobStatusCounts) => counts.active + counts.review + counts.draft;
+
 type Props = { counts: JobStatusCounts };
 
 type Card = {
@@ -62,6 +64,41 @@ export function JobStatusCards({ counts }: Props) {
         }}>Job Status</span>
       </div>
 
+      {totalJobs(counts) === 0 ? (
+        <div style={{ textAlign: "center", padding: "28px 16px" }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: "50%",
+            background: "var(--success-soft)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 12px",
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round">
+              <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
+            </svg>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
+            求人がまだありません
+          </div>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6, marginBottom: 14 }}>
+            求人を公開して応募を集めましょう
+          </div>
+          <Link
+            href="/biz/jobs/new"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "8px 16px", borderRadius: 8,
+              fontSize: 12, fontWeight: 600,
+              background: "var(--success-soft)", color: "var(--success)",
+              border: "1px solid #A7F3D0", textDecoration: "none",
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            求人を作成する →
+          </Link>
+        </div>
+      ) : (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
         {cards.map((c) => (
           <Link key={c.label} href={c.href} style={{
@@ -100,6 +137,7 @@ export function JobStatusCards({ counts }: Props) {
           </Link>
         ))}
       </div>
+      )}
     </section>
   );
 }

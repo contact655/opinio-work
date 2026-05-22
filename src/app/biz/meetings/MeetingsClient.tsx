@@ -261,7 +261,10 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
       {/* カードリスト */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         {filtered.length === 0 ? (
-          <MeetingEmptyState isSearch={!!searchQuery.trim()} />
+          <MeetingEmptyState
+            isSearch={!!searchQuery.trim()}
+            isAllEmpty={meetings.length === 0 && activeStatus === "pending"}
+          />
         ) : (
           filtered.map((m) => (
             <MeetingCard

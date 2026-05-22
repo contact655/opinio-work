@@ -72,7 +72,7 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
         className="company-card"
         style={{
           background: "#fff",
-          border: "1px solid var(--line)",
+          border: `1px solid ${company.accepting_casual_meetings ? "#A7F3D0" : "var(--line)"}`,
           borderRadius: 16,
           padding: 20,
           display: "flex",
@@ -140,10 +140,19 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
             ))}
             {company.accepting_casual_meetings && (
               <span style={{
-                fontSize: 10, fontWeight: 600,
-                padding: "2px 8px", borderRadius: 100,
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 10, fontWeight: 700,
+                padding: "3px 10px", borderRadius: 100,
                 background: "var(--success-soft)", color: "var(--success)",
-              }}>面談受付中</span>
+                border: "1px solid #A7F3D0",
+              }}>
+                <span style={{
+                  width: 5, height: 5, borderRadius: "50%",
+                  background: "var(--success)", flexShrink: 0,
+                  animation: "pulseDot 1.8s ease-in-out infinite",
+                }} />
+                面談受付中
+              </span>
             )}
           </div>
         )}
@@ -569,8 +578,12 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
       <style>{`
         .company-card:hover {
           border-color: var(--royal-100) !important;
-          box-shadow: 0 8px 24px rgba(0,35,102,0.08) !important;
+          box-shadow: 0 8px 24px rgba(0,35,102,0.10);
           transform: translateY(-2px);
+        }
+        @keyframes pulseDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.7); }
         }
       `}</style>
     </div>

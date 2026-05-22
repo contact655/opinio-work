@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback } from "react";
-import { ARTICLE_TYPES, TYPE_BADGE } from "@/app/articles/mockArticleData";
+import { ARTICLE_TYPES } from "@/app/articles/mockArticleData";
 
 const LINE = "var(--line)";
 const INK_SOFT = "var(--ink-soft)";
@@ -36,7 +36,6 @@ export default function ArticleFilterBar({ total }: { total: number }) {
           {/* Type filter pills */}
           {ARTICLE_TYPES.map(({ value, label }) => {
             const active = currentType === value;
-            const badge = value !== "all" ? TYPE_BADGE[value] : null;
             return (
               <button
                 key={value}
@@ -44,9 +43,9 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
                   padding: "7px 14px", borderRadius: 100, fontSize: 12.5, fontWeight: 500,
-                  border: `1.5px solid ${active ? (badge?.color ?? "var(--royal)") : LINE}`,
-                  background: active ? (badge?.bg ?? "var(--royal-50)") : "#fff",
-                  color: active ? (badge?.color ?? "var(--royal)") : INK_SOFT,
+                  border: active ? "1.5px solid var(--royal)" : `1.5px solid ${LINE}`,
+                  background: active ? "var(--royal)" : "#fff",
+                  color: active ? "#fff" : INK_SOFT,
                   cursor: "pointer", whiteSpace: "nowrap",
                   transition: "all 0.15s",
                 }}

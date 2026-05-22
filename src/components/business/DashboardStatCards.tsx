@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import type { TodoCounts, MonthlyStatsWithDelta } from "@/lib/business/dashboard";
 
 type Props = {
@@ -111,17 +112,23 @@ export function DashboardStatCards({ todoCounts, monthlyStats, activeJobCount = 
       />
 
       {/* Card 2: 公開中の求人 */}
-      <StatCard
-        iconVariant="amber"
-        icon={
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
-          </svg>
-        }
-        value={activeJobCount}
-        label="公開中の求人"
-        trend={<span style={{ color: "var(--success)" }}>↑ 先月比 +1</span>}
-      />
+      <Link href={activeJobCount === 0 ? "/biz/jobs/new" : "/biz/jobs"} style={{ textDecoration: "none", display: "block" }}>
+        <StatCard
+          iconVariant="amber"
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
+            </svg>
+          }
+          value={activeJobCount}
+          label="公開中の求人"
+          trend={
+            activeJobCount === 0
+              ? <span style={{ color: "var(--warm)" }}>求人を作成する →</span>
+              : <span style={{ color: "var(--success)" }}>↑ 先月比 +1</span>
+          }
+        />
+      </Link>
 
       {/* Card 3: マッチ候補者 */}
       <StatCard

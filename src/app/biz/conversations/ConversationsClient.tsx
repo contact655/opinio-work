@@ -231,13 +231,28 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
           background: "#fff",
           borderRadius: 12,
           border: "1px solid var(--line)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 16,
         }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
-            対話がありません
+          <div style={{
+            width: 64, height: 64, borderRadius: "50%",
+            background: "var(--royal-50)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+              stroke="var(--royal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
           </div>
-          <div style={{ fontSize: 13, color: "var(--ink-mute)" }}>
-            候補者からの問い合わせがここに表示されます。
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
+              対話がありません
+            </div>
+            <div style={{ fontSize: 13, color: "var(--ink-mute)" }}>
+              候補者からの問い合わせがここに表示されます。
+            </div>
           </div>
         </div>
       )}
@@ -274,8 +289,12 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
             const initial = candidateName.trim().charAt(0).toUpperCase();
             const avatarColor = candidate?.avatar_color ?? "linear-gradient(135deg, #64748b, #475569)";
             const timeLabel = formatRelativeTime(conv.last_message_at ?? conv.created_at);
-            // unread dot: show for active/non-closed stages only
-            const showUnread = conv.stage !== "closed" && conv.status !== "closed";
+            // unread dot: show when there's recent activity (last 24h) on a non-closed conversation
+            const lastActivity = conv.last_message_at ?? conv.created_at;
+            const isRecentlyActive = lastActivity
+              ? Date.now() - new Date(lastActivity).getTime() < 24 * 60 * 60 * 1000
+              : false;
+            const showUnread = conv.stage !== "closed" && conv.status !== "closed" && isRecentlyActive;
 
             return (
               <Link
@@ -331,14 +350,15 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
                   </div>
                 </div>
 
-                {/* Unread dot — conditional on stage */}
+                {/* Recent activity dot — shown for non-closed conversations with activity in last 24h */}
                 {showUnread && (
                   <div style={{
                     width: 8,
                     height: 8,
                     borderRadius: "50%",
-                    background: "var(--error)",
+                    background: "var(--accent)",
                     flexShrink: 0,
+                    boxShadow: "0 0 0 2px rgba(59, 95, 217, 0.2)",
                   }} />
                 )}
                 {!showUnread && <div style={{ width: 8, flexShrink: 0 }} />}

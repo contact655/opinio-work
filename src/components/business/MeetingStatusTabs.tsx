@@ -1,6 +1,14 @@
 import type { MeetingStatus } from "@/lib/business/mockMeetings";
 import { STATUS_TABS } from "@/lib/business/mockMeetings";
 
+const STATUS_COLORS: Record<MeetingStatus, { bg: string; border: string; color: string }> = {
+  pending:           { bg: "#FFFBEB",             border: "#FCD34D", color: "#B45309" },
+  company_contacted: { bg: "var(--royal-50)",      border: "var(--royal)", color: "var(--royal)" },
+  scheduled:         { bg: "var(--purple-soft)",   border: "var(--purple)", color: "var(--purple)" },
+  completed:         { bg: "#F1F5F9",              border: "#94A3B8", color: "#475569" },
+  declined:          { bg: "var(--error-soft)",    border: "var(--error)", color: "var(--error)" },
+};
+
 type Props = {
   counts: Record<MeetingStatus, number>;
   activeStatus: MeetingStatus;
@@ -20,6 +28,7 @@ export function MeetingStatusTabs({ counts, activeStatus, onStatusChange }: Prop
       {STATUS_TABS.map(({ status, label }) => {
         const active = status === activeStatus;
         const count = counts[status] ?? 0;
+        const cfg = STATUS_COLORS[status];
         return (
           <button
             key={status}
@@ -36,9 +45,9 @@ export function MeetingStatusTabs({ counts, activeStatus, onStatusChange }: Prop
               whiteSpace: "nowrap",
               cursor: "pointer",
               transition: "all 0.15s",
-              border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
-              background: active ? "var(--royal)" : "var(--bg-tint)",
-              color: active ? "#fff" : "var(--ink-soft)",
+              border: `1px solid ${active ? cfg.border : "var(--line)"}`,
+              background: active ? cfg.bg : "var(--bg-tint)",
+              color: active ? cfg.color : "var(--ink-soft)",
             }}
           >
             {label}

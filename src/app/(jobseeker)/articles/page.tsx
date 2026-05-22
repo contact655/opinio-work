@@ -57,13 +57,19 @@ function ArticleCard({ article }: { article: Article }) {
           </div>
 
           {/* Read time */}
-          <div style={{
-            position: "absolute", bottom: 10, right: 12,
-            fontSize: 10, color: "rgba(255,255,255,0.85)",
-            fontFamily: "Inter, sans-serif", fontWeight: 500,
-          }}>
-            {article.read_min} min read
-          </div>
+          {article.read_min && (
+            <div style={{
+              position: "absolute", bottom: 10, right: 12,
+              fontSize: 10, color: "rgba(255,255,255,0.85)",
+              fontFamily: "Inter, sans-serif", fontWeight: 500,
+              display: "flex", alignItems: "center", gap: 3,
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              {article.read_min}分で読めます
+            </div>
+          )}
         </div>
 
         {/* Body */}
@@ -357,12 +363,18 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                               <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{mainSubject.name}</span>
                             </div>
                           )}
-                          <span style={{
-                            fontSize: 11, color: "var(--ink-mute)",
-                            fontFamily: "Inter, sans-serif",
-                          }}>
-                            {featured.read_min} min read
-                          </span>
+                          {featured.read_min && (
+                            <span style={{
+                              fontSize: 11, color: "var(--ink-mute)",
+                              fontFamily: "Inter, sans-serif",
+                              display: "inline-flex", alignItems: "center", gap: 3,
+                            }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                              </svg>
+                              {featured.read_min}分で読めます
+                            </span>
+                          )}
                           <span style={{
                             marginLeft: "auto",
                             fontSize: 12, fontWeight: 600, color: "var(--royal)",
@@ -394,7 +406,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
       <style>{`
         .article-card:hover {
           border-color: var(--royal-100) !important;
-          box-shadow: 0 6px 16px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.08) !important;
+          box-shadow: 0 8px 24px rgba(0,35,102,0.10) !important;
           transform: translateY(-2px) !important;
         }
       `}</style>

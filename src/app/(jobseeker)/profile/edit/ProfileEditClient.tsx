@@ -2287,6 +2287,18 @@ export default function ProfileEditClient({
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
 
+  // ── グローバル保存ステータス（全タブ共通のインジケーター用） ─────────────
+  // isSaving: いずれかのタブで保存中, justSaved: 直近3秒以内に保存完了
+  const [globalSaveStatus, setGlobalSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+
+  // 各タブの保存アクション後にグローバルステータスを更新するヘルパー
+  const notifyGlobalSave = useCallback((status: "saving" | "saved") => {
+    setGlobalSaveStatus(status);
+    if (status === "saved") {
+      setTimeout(() => setGlobalSaveStatus("idle"), 3000);
+    }
+  }, []);
+
   // ── schools マスター（段階6-7 Phase 1: EducationEditor から hoisted） ───────
   // EducationEditor が mount される度に fetch しないよう、ProfileEditClient
   // トップレベルで 1 度だけ fetch して props で渡す。
@@ -2323,6 +2335,7 @@ export default function ProfileEditClient({
 
   const handleSaveAccount = useCallback(async () => {
     setAccountSaving(true);
+    notifyGlobalSave("saving");
     try {
       const res = await fetch("/api/jobseeker/profile", {
         method: "PUT",
@@ -2334,14 +2347,16 @@ export default function ProfileEditClient({
       setAccountToastVariant("default");
       setAccountToastMsg("アカウント設定を保存しました");
       setAccountJustSaved(true);
+      notifyGlobalSave("saved");
       setTimeout(() => setAccountJustSaved(false), 3000);
     } catch {
       setAccountToastVariant("error");
       setAccountToastMsg("保存に失敗しました。もう一度お試しください。");
+      setGlobalSaveStatus("idle");
     } finally {
       setAccountSaving(false);
     }
-  }, [settings]);
+  }, [settings, notifyGlobalSave]);
 
   const handleCancelAccount = useCallback(() => {
     setSettings(initialSettings);
@@ -2374,6 +2389,7 @@ export default function ProfileEditClient({
 
   const handleSaveSocial = useCallback(async () => {
     setSocialSaving(true);
+    notifyGlobalSave("saving");
     try {
       const res = await fetch("/api/jobseeker/profile", {
         method: "PUT",
@@ -2385,14 +2401,16 @@ export default function ProfileEditClient({
       setSocialToastVariant("default");
       setSocialToastMsg("SNS リンクを保存しました");
       setSocialJustSaved(true);
+      notifyGlobalSave("saved");
       setTimeout(() => setSocialJustSaved(false), 3000);
     } catch {
       setSocialToastVariant("error");
       setSocialToastMsg("保存に失敗しました。もう一度お試しください。");
+      setGlobalSaveStatus("idle");
     } finally {
       setSocialSaving(false);
     }
-  }, [socialLinks]);
+  }, [socialLinks, notifyGlobalSave]);
 
   const handleCancelSocial = useCallback(() => {
     setSocialLinks(savedSocialLinks);
@@ -2438,6 +2456,7 @@ export default function ProfileEditClient({
 
   const handleSaveBasic = useCallback(async () => {
     setBasicSaving(true);
+    notifyGlobalSave("saving");
     try {
       const birthDate =
         birthYear && birthMonth && birthDay
@@ -2461,14 +2480,16 @@ export default function ProfileEditClient({
       setBasicToastVariant("default");
       setBasicToastMsg("基本情報を保存しました");
       setBasicJustSaved(true);
+      notifyGlobalSave("saved");
       setTimeout(() => setBasicJustSaved(false), 3000);
     } catch {
       setBasicToastVariant("error");
       setBasicToastMsg("保存に失敗しました。もう一度お試しください。");
+      setGlobalSaveStatus("idle");
     } finally {
       setBasicSaving(false);
     }
-  }, [basicInfo, birthYear, birthMonth, birthDay]);
+  }, [basicInfo, birthYear, birthMonth, birthDay, notifyGlobalSave]);
 
   const handleCancelBasic = useCallback(() => {
     setBasicInfo(initialBasicInfo);
@@ -2476,6 +2497,22 @@ export default function ProfileEditClient({
     setBirthMonth(initialBirthMonth);
     setBirthDay(initialBirthDay);
   }, [initialBasicInfo, initialBirthYear, initialBirthMonth, initialBirthDay]);
+
+  // ── タブ完成度（各タブにデータがあれば green dot） ─────────────────────────
+  const tabCompletion: Record<ProfileTab, boolean> = {
+    basic:        !!(basicInfo.name.trim() || basicInfo.aboutMe.trim()),
+    career:       initialExperiences.length > 0 || educations.length > 0,
+    skills:       skillTags.length > 0,
+    certs:        certifications.length > 0,
+    achievements: achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0,
+    socials:      Object.values(socialLinks).some((v) => !!v),
+    account:      true, // 設定タブは常に「入力済み」とみなす
+  };
+
+  const profileTabsWithCompletion = PROFILE_TABS.map((tab) => ({
+    ...tab,
+    completed: tabCompletion[tab.key as ProfileTab],
+  }));
 
   return (
     <MypageMockProvider>
@@ -2487,6 +2524,30 @@ export default function ProfileEditClient({
             fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
             color: "var(--ink)", margin: 0,
           }}>プロフィール</h1>
+
+          {/* グローバル保存ステータスインジケーター */}
+          {globalSaveStatus !== "idle" && (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "4px 10px", borderRadius: 100, fontSize: 12, fontWeight: 600,
+              background: globalSaveStatus === "saved" ? "var(--success-soft)" : "var(--bg-tint)",
+              color: globalSaveStatus === "saved" ? "var(--success)" : "var(--ink-mute)",
+              border: `1px solid ${globalSaveStatus === "saved" ? "#6ee7b7" : "var(--line)"}`,
+              transition: "all 0.2s",
+            }}>
+              {globalSaveStatus === "saving" ? (
+                <>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="9" strokeDasharray="56" strokeDashoffset="14" />
+                  </svg>
+                  保存中…
+                </>
+              ) : (
+                <>✓ 保存済み</>
+              )}
+            </div>
+          )}
+
           <div style={{ marginLeft: "auto" }}>
             <Link
               href="/mypage"
@@ -2508,7 +2569,7 @@ export default function ProfileEditClient({
 
         {/* ── タブナビゲーション ──────────────────────────────────────────────── */}
         <Tabs
-          tabs={PROFILE_TABS}
+          tabs={profileTabsWithCompletion}
           activeTab={activeTab}
           onTabChange={(key) => setActiveTab(key as ProfileTab)}
         />

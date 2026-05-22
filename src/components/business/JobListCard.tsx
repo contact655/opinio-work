@@ -330,15 +330,26 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
       }}>
         {renderDateMeta(job)}
 
-        {/* 応募数 */}
-        {job.meetingCount > 0 && (
-          <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--royal)", fontWeight: 600 }}>
+        {/* 面談申込数 */}
+        {job.status === "published" || job.status === "active" ? (
+          <span style={{
+            display: "flex", alignItems: "center", gap: 5,
+            color: job.meetingCount > 0 ? "var(--royal)" : "var(--ink-mute)",
+            fontWeight: job.meetingCount > 0 ? 600 : 400,
+          }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
-            <strong style={{ fontFamily: "'Inter', sans-serif" }}>{job.meetingCount}</strong> 件のカジュアル面談
+            <strong style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: job.meetingCount > 0 ? 13 : 11,
+              color: job.meetingCount > 0 ? "var(--royal)" : "var(--ink-mute)",
+            }}>
+              {job.meetingCount}
+            </strong>
+            件のカジュアル面談
           </span>
-        )}
+        ) : null}
 
         {/* 下書き完成度 */}
         {job.status === "draft" && (

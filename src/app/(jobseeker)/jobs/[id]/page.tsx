@@ -148,6 +148,20 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </span>
               </div>
 
+              {/* NEW badge */}
+              {job.is_new && (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  fontSize: 11, fontWeight: 800, letterSpacing: "0.08em",
+                  padding: "4px 12px", borderRadius: 100,
+                  background: "var(--success-soft)", color: "var(--success)",
+                  border: "1px solid #A7F3D0", marginBottom: 12,
+                }}>
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--success)", animation: "pulseDot 1.8s ease infinite" }} />
+                  NEW — 7日以内に公開
+                </span>
+              )}
+
               <h1 style={{
                 fontFamily: 'var(--font-noto-serif)',
                 fontSize: "clamp(18px,2vw,24px)", fontWeight: 700,
@@ -157,7 +171,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {job.role}
               </h1>
 
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
                 {[job.employment_type, job.work_style, job.location, job.experience].map((b) => (
                   <span key={b} style={{
                     display: "inline-flex", alignItems: "center",
@@ -168,15 +182,17 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     {b}
                   </span>
                 ))}
+                {/* Salary — prominent display */}
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
-                  fontSize: 11.5, fontWeight: 700, padding: "5px 11px", borderRadius: 100,
+                  fontSize: 18, fontWeight: 700, padding: "4px 14px", borderRadius: 100,
                   background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
+                  fontFamily: "Inter, sans-serif",
                 }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                   </svg>
-                  ¥{job.salary_min}-{job.salary_max}万
+                  {job.salary_min}-{job.salary_max}万
                 </span>
               </div>
             </div>
@@ -678,16 +694,17 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </Link>
                 </div>
                 <Link href={`/jobs/${job.id}/apply`} style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  width: "100%", padding: "11px 0",
-                  background: "linear-gradient(135deg, var(--royal), var(--accent))",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  width: "100%", padding: "14px 28px",
+                  background: "linear-gradient(135deg, #002366, #3B5FD9)",
                   color: "#fff", border: "none", borderRadius: 8,
-                  fontSize: 13, fontWeight: 700, textDecoration: "none", textAlign: "center",
+                  fontSize: 15, fontWeight: 700, textDecoration: "none", textAlign: "center",
+                  boxShadow: "0 4px 14px rgba(0,35,102,0.3)",
                 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                    <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
+                  応募する
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <path d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
-                  正式に応募する
                 </Link>
                 <BookmarkButton
                   targetType="job"
@@ -704,10 +721,24 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 14 }}>
                   求人サマリー
                 </div>
+                {/* Salary — highlighted row */}
+                <div style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "10px 12px", marginBottom: 8, borderRadius: 8,
+                  background: "var(--royal-50)", border: "1px solid var(--royal-100)", gap: 8,
+                }}>
+                  <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, flexShrink: 0 }}>想定年収</span>
+                  <span style={{
+                    fontSize: 20, fontWeight: 700, color: "var(--royal)",
+                    fontFamily: "Inter, sans-serif", textAlign: "right" as const,
+                  }}>
+                    {job.salary_min}〜{job.salary_max}
+                    <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 2 }}>万円</span>
+                  </span>
+                </div>
                 {[
                   { key: "職種", value: job.dept },
                   { key: "雇用形態", value: job.employment_type },
-                  { key: "想定年収", value: `¥${job.salary_min}-${job.salary_max}万` },
                   { key: "勤務地", value: job.location },
                   { key: "働き方", value: job.work_style },
                   { key: "経験", value: job.experience },
@@ -771,10 +802,46 @@ export default async function JobDetailPage({ params }: { params: { id: string }
         </div>
       </div>
 
+      {/* Mobile sticky apply bar (shown below lg) */}
+      <div className="lg:hidden" style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
+        padding: "12px 16px",
+        background: "rgba(255,255,255,0.96)", backdropFilter: "blur(10px)",
+        borderTop: "1px solid var(--line)",
+        display: "flex", gap: 8,
+      }}>
+        <Link href={`/companies/${job.company_id}/casual-meeting?job_id=${job.id}`} style={{
+          flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "12px 0",
+          background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+          color: "#fff", borderRadius: 8, fontSize: 13, fontWeight: 700,
+          textDecoration: "none", textAlign: "center",
+        }}>
+          カジュアル面談
+        </Link>
+        <Link href={`/jobs/${job.id}/apply`} style={{
+          flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          padding: "12px 0",
+          background: "linear-gradient(135deg, #002366, #3B5FD9)",
+          color: "#fff", borderRadius: 8, fontSize: 14, fontWeight: 700,
+          textDecoration: "none", textAlign: "center",
+          boxShadow: "0 4px 12px rgba(0,35,102,0.25)",
+        }}>
+          応募する
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </Link>
+      </div>
+
       <style>{`
         .similar-job-card:hover {
           border-color: var(--royal-100) !important;
           transform: translateY(-1px) !important;
+        }
+        @keyframes pulseDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.75); }
         }
       `}</style>
       <FloatingCTA href={`/companies/${company.id}/casual-meeting`} label="カジュアル面談を申し込む" subLabel="完全無料 · 30分から" variant="warm" />

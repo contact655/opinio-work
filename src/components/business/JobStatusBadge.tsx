@@ -4,9 +4,9 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; bg: string; color: strin
   published:      { label: "公開中",     bg: "var(--success-soft)",  color: "var(--success)" },
   active:         { label: "公開中",     bg: "var(--success-soft)",  color: "var(--success)" }, // 旧ステータス
   pending_review: { label: "運営審査中", bg: "var(--purple-soft)",   color: "var(--purple)" },
-  draft:          { label: "下書き",     bg: "var(--warm-soft)",     color: "#B45309" },
+  draft:          { label: "下書き",     bg: "var(--line-soft)",     color: "var(--ink-soft)" },
   rejected:       { label: "差し戻し",   bg: "var(--error-soft)",    color: "var(--error)" },
-  private:        { label: "非公開",     bg: "var(--line-soft)",     color: "var(--ink-soft)" },
+  private:        { label: "非公開",     bg: "#F1F5F9",              color: "#64748B" },
 };
 
 type Props = {

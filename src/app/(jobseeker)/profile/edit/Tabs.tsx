@@ -5,6 +5,8 @@
 export type TabItem = {
   key: string;
   label: string;
+  /** Optional completion state: true = green dot, false = gray dot, undefined = no dot */
+  completed?: boolean;
 };
 
 // ─── Tabs Component ───────────────────────────────────────────────────────────
@@ -56,7 +58,20 @@ export default function Tabs({
               if (!active) e.currentTarget.style.color = "var(--ink-soft)";
             }}
           >
-            {tab.label}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              {tab.label}
+              {tab.completed !== undefined && (
+                <span
+                  style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: tab.completed ? "var(--success)" : "var(--ink-mute)",
+                    opacity: tab.completed ? 1 : 0.4,
+                    flexShrink: 0,
+                    display: "inline-block",
+                  }}
+                />
+              )}
+            </span>
           </button>
         );
       })}

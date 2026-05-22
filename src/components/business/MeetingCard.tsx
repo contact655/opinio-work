@@ -102,6 +102,7 @@ export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
         paddingLeft: 46,
         marginTop: 6,
         display: "flex",
+        alignItems: "center",
         gap: 5,
         flexWrap: "wrap",
       }}>
@@ -139,6 +140,25 @@ export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
             未アサイン
           </span>
         )}
+
+        {/* 詳細を見る CTA — hover時に右側に表示 */}
+        <span style={{
+          marginLeft: "auto",
+          fontSize: 10,
+          fontWeight: 600,
+          color: isSelected ? "var(--royal)" : "var(--ink-mute)",
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          whiteSpace: "nowrap",
+          opacity: isSelected ? 1 : 0.7,
+          transition: "opacity 0.15s",
+        }}>
+          詳細
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </span>
       </div>
     </div>
   );

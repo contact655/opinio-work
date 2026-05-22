@@ -253,6 +253,124 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
   );
 }
 
+// ─── Profile completeness widget ─────────────────────────────────────────────
+
+function ProfileCompletenessCard({
+  userName, userAboutMe, userLocation, userSkillTags, timelineCareers, userEducations,
+}: {
+  userName: string;
+  userAboutMe?: string | null;
+  userLocation?: string | null;
+  userSkillTags?: { id: string; label: string; sort_order: number }[];
+  timelineCareers?: CareerEntry[];
+  userEducations?: { id: string; school: string; [key: string]: unknown }[];
+}) {
+  const checks: { label: string; done: boolean; hint: string }[] = [
+    { label: "名前", done: !!userName && userName !== "ユーザー", hint: "名前を設定する" },
+    { label: "自己紹介", done: !!userAboutMe && userAboutMe.trim().length > 0, hint: "あなたの経歴や想いを一言で" },
+    { label: "居住地", done: !!userLocation && userLocation.trim().length > 0, hint: "勤務地の希望条件に使われます" },
+    { label: "スキルタグ", done: (userSkillTags?.length ?? 0) > 0, hint: "得意な技術・スキルを追加" },
+    { label: "職歴", done: (timelineCareers?.length ?? 0) > 0, hint: "これまでのキャリアを記録" },
+    { label: "学歴", done: (userEducations?.length ?? 0) > 0, hint: "学校・学部を追加" },
+  ];
+  const doneCount = checks.filter((c) => c.done).length;
+  const pct = Math.round((doneCount / checks.length) * 100);
+
+  if (pct === 100) return null; // 完成したら非表示
+
+  const firstMissing = checks.find((c) => !c.done);
+
+  return (
+    <section style={{
+      background: "#fff",
+      border: "1.5px solid var(--royal-100)",
+      borderRadius: 14,
+      padding: "20px 24px",
+      marginBottom: 20,
+    }}>
+      {/* Header row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8,
+            background: "var(--royal-50)", color: "var(--royal)",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>
+              プロフィール完成度
+            </div>
+            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>
+              充実させるほど、企業に伝わりやすくなります
+            </div>
+          </div>
+        </div>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <span style={{
+            fontFamily: "Inter, sans-serif", fontSize: 24, fontWeight: 700, color: "var(--royal)",
+          }}>
+            {pct}
+          </span>
+          <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 600, color: "var(--ink-mute)" }}>%</span>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{
+        height: 6, borderRadius: 100, background: "var(--line)",
+        overflow: "hidden", marginBottom: 14,
+      }}>
+        <div style={{
+          height: "100%", borderRadius: 100,
+          background: pct >= 80
+            ? "linear-gradient(90deg, var(--success), #34D399)"
+            : "linear-gradient(90deg, var(--royal), var(--accent))",
+          width: `${pct}%`,
+          transition: "width 0.6s cubic-bezier(0.4,0,0.2,1)",
+        }} />
+      </div>
+
+      {/* Checklist (6 pills) */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+        {checks.map((c) => (
+          <div key={c.label} style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "4px 10px", borderRadius: 100,
+            background: c.done ? "var(--success-soft)" : "var(--bg-tint)",
+            border: `1px solid ${c.done ? "#A7F3D0" : "var(--line)"}`,
+            fontSize: 11, fontWeight: 600,
+            color: c.done ? "var(--success)" : "var(--ink-mute)",
+          }}>
+            {c.done
+              ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+              : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/></svg>
+            }
+            {c.label}
+          </div>
+        ))}
+      </div>
+
+      {/* Next step CTA */}
+      {firstMissing && (
+        <Link href="/profile/edit" style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "8px 16px", borderRadius: 8,
+          background: "var(--royal)", color: "#fff",
+          fontSize: 12, fontWeight: 700, textDecoration: "none",
+          transition: "opacity 0.15s",
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14m-7-7h14"/></svg>
+          {firstMissing.hint}を追加する
+        </Link>
+      )}
+    </section>
+  );
+}
+
 // ─── VIEW: Dashboard ──────────────────────────────────────────────────────────
 
 function DashboardView({
@@ -288,6 +406,16 @@ function DashboardView({
 
   return (
     <div>
+      {/* プロフィール完成度ウィジェット */}
+      <ProfileCompletenessCard
+        userName={userName}
+        userAboutMe={userAboutMe}
+        userLocation={userLocation}
+        userSkillTags={userSkillTags}
+        timelineCareers={timelineCareers}
+        userEducations={userEducations}
+      />
+
       {/* コンパクトプロフィールカード — Phase ν-6 段階3: 全フィールドインライン編集対応 */}
       <UserProfileCard
         userId={userId}
@@ -432,9 +560,24 @@ function CasualView({ casualMeetings }: { casualMeetings: CasualMeeting[] }) {
         right={<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>全 {casualMeetings.length} 件</span>}
       >
         {casualMeetings.length === 0 ? (
-          <p style={{ fontSize: 13, color: "var(--ink-mute)", textAlign: "center", padding: "24px 0" }}>
-            申し込みはまだありません
-          </p>
+          <div style={{ padding: "8px 0" }}>
+            <EmptyState
+              icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>}
+              title="申し込みはまだありません"
+              desc="気になる企業にカジュアル面談を申し込んでみましょう"
+            />
+            <div style={{ textAlign: "center", marginTop: 12 }}>
+              <Link href="/companies" style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "9px 20px", borderRadius: 8,
+                background: "linear-gradient(135deg, var(--warm), #FBBF24)",
+                color: "#fff", fontSize: 12, fontWeight: 700,
+                textDecoration: "none", boxShadow: "0 2px 8px rgba(245,158,11,0.25)",
+              }}>
+                企業を探す →
+              </Link>
+            </div>
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {casualMeetings.map((m: CasualMeeting) => (
@@ -571,7 +714,14 @@ function BookmarksView({ companyBookmarks, jobBookmarks, mentorBookmarks }: { co
           key={sec.title} title={sec.title} titleEn={sec.titleEn}
           right={<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{sec.items.length} 件</span>}
         >
-          <BookmarkGrid items={sec.items} />
+          {sec.items.length === 0 ? (
+            <EmptyState
+              icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>}
+              title={`ブックマークした${sec.title}はありません`}
+            />
+          ) : (
+            <BookmarkGrid items={sec.items} />
+          )}
         </SectionBlock>
       ))}
     </div>
@@ -911,8 +1061,21 @@ export default function MypageClient({
           </button>
         </div>
         {companyBookmarks.length === 0 ? (
-          <div style={{ padding: "16px 0", textAlign: "center", color: "var(--ink-mute)", fontSize: 12 }}>
-            ブックマークした企業がここに表示されます
+          <div style={{ padding: "12px 0", textAlign: "center" }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: "50%",
+              background: "var(--bg-tint)", color: "var(--ink-mute)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 8px",
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 4 }}>まだブックマークがありません</div>
+            <Link href="/companies" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+              企業を見る →
+            </Link>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

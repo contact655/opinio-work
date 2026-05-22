@@ -49,10 +49,15 @@ export default async function AdminLayout({
       {/* Sidebar */}
       <aside className="w-[240px] bg-[#1a1a1a] text-white flex-shrink-0 fixed top-0 left-0 bottom-0 z-40 overflow-y-auto">
         <div className="p-5 border-b border-white/10">
-          <Link href="/admin" className="text-lg font-bold">
-            opinio<span className="text-primary">.jp</span>
-          </Link>
-          <p className="text-xs text-gray-400 mt-1">Admin Console</p>
+          <div className="flex items-center gap-2 mb-1">
+            <Link href="/admin" className="text-lg font-bold">
+              opinio<span className="text-primary">.jp</span>
+            </Link>
+            <span className="text-[10px] font-bold tracking-widest uppercase bg-red-600 text-white px-1.5 py-0.5 rounded">
+              ADMIN
+            </span>
+          </div>
+          <p className="text-xs text-gray-400">管理コンソール</p>
         </div>
         <nav className="p-3 space-y-1">
           {NAV_ITEMS.map((item) => (

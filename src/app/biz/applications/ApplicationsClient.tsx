@@ -8,19 +8,19 @@ import { APPLICATION_STATUS_TABS, countByStatus, VALID_APPLICATION_STATUSES } fr
 // ─── Status helpers ─────────────────────────────────────────────────────────
 
 const STATUS_COLOR: Record<ApplicationStatus, string> = {
-  pending:   "var(--warm)",
-  reviewing: "var(--accent)",
-  interview: "var(--purple)",
+  pending:   "#D97706",
+  reviewing: "var(--royal)",
+  interview: "#7C3AED",
   accepted:  "var(--success)",
-  rejected:  "var(--error)",
+  rejected:  "#DC2626",
 };
 
 const STATUS_BG: Record<ApplicationStatus, string> = {
-  pending:   "var(--warm-soft)",
+  pending:   "#FEF3C7",
   reviewing: "var(--royal-50)",
-  interview: "var(--purple-soft)",
+  interview: "#F5F3FF",
   accepted:  "var(--success-soft)",
-  rejected:  "var(--error-soft)",
+  rejected:  "#FEE2E2",
 };
 
 function StatusPill({ status }: { status: ApplicationStatus }) {
@@ -60,6 +60,55 @@ function avatarGradient(id: string): string {
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
+
+function EmptyStateTotal() {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", padding: "80px 40px", gap: 16,
+      background: "#fff", borderRadius: 12, border: "1px solid var(--line)",
+    }}>
+      <div style={{
+        width: 64, height: 64, borderRadius: "50%",
+        background: "var(--royal-50)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+          stroke="var(--royal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+          <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+        </svg>
+      </div>
+      <div style={{ textAlign: "center" }}>
+        <p style={{
+          margin: "0 0 6px", fontSize: 16, fontWeight: 700,
+          color: "var(--ink)", fontFamily: "'Noto Sans JP', sans-serif",
+        }}>
+          まだ応募はありません
+        </p>
+        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>
+          求人を公開すると、応募者が集まり始めます
+        </p>
+      </div>
+      <Link
+        href="/biz/jobs"
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "9px 20px", borderRadius: 8,
+          background: "var(--royal)", color: "#fff",
+          fontSize: 13, fontWeight: 600, textDecoration: "none",
+          fontFamily: "'Noto Sans JP', sans-serif",
+          marginTop: 4,
+        }}
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        </svg>
+        求人を管理する
+      </Link>
+    </div>
+  );
+}
 
 function EmptyState({ status }: { status: ApplicationStatus | "all" }) {
   const tab = APPLICATION_STATUS_TABS.find((t) => t.status === status);
@@ -145,6 +194,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
   // ─── Layout ───────────────────────────────────────────────────────────────
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0, height: "100%" }}>
+      <style>{`.app-row:hover { background: var(--bg-tint) !important; outline-color: var(--royal-100) !important; }`}</style>
 
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
@@ -205,6 +255,9 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
       </div>
 
       {/* 2-pane layout */}
+      {applications.length === 0 ? (
+        <EmptyStateTotal />
+      ) : (
       <div style={{
         display: "grid",
         gridTemplateColumns: filtered.length === 0 ? "1fr" : "340px 1fr",
@@ -225,6 +278,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
                 <button
                   key={app.id}
                   onClick={() => setSelectedId(app.id)}
+                  className={isSelected ? undefined : "app-row"}
                   style={{
                     display: "flex", gap: 12, alignItems: "flex-start",
                     padding: "12px 14px", borderRadius: 10, border: "none", cursor: "pointer",
@@ -296,6 +350,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

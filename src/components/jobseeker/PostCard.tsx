@@ -215,7 +215,7 @@ export default function PostCard({ post, companyName, companyId, variant = "defa
         borderRadius: "var(--radius-lg)",
         cursor: "pointer",
         textDecoration: "none",
-        transition: "border-color 0.15s",
+        transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
       }}
     >
       {/* サムネイル */}

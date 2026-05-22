@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronDown } from "lucide-react";
@@ -17,7 +17,11 @@ const NAV_LINKS = [
 
 export function JobseekerHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const [user, setUser] = useState<{ email: string; name: string } | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -66,6 +70,20 @@ export function JobseekerHeader() {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Search auto-focus + Escape close
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchOpen]);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { setSearchOpen(false); setSearchQuery(""); }
+    }
+    if (searchOpen) document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [searchOpen]);
 
   // Click-outside to close dropdown
   useEffect(() => {
@@ -165,6 +183,27 @@ export function JobseekerHeader() {
               );
             })}
           </nav>
+
+          {/* Search icon — desktop */}
+          <button
+            className="hidden md:flex"
+            onClick={() => setSearchOpen(true)}
+            aria-label="検索"
+            style={{
+              width: 36, height: 36,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 8, border: "1px solid var(--line)",
+              background: "#fff", cursor: "pointer",
+              color: "var(--ink-mute)",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--royal)"; e.currentTarget.style.color = "var(--royal)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.color = "var(--ink-mute)"; }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
+            </svg>
+          </button>
 
           {/* Spacer — mobile */}
           <div className="flex md:hidden" style={{ flex: 1 }} />
@@ -290,6 +329,62 @@ export function JobseekerHeader() {
           </div>
         </div>
       </header>
+
+      {/* Search overlay */}
+      {searchOpen && (
+        <>
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 199, background: "rgba(0,0,0,0.4)" }}
+            onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
+          />
+          <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, zIndex: 200,
+            background: "#fff", borderBottom: "1px solid var(--line)",
+            padding: "0 24px",
+          }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSearchOpen(false);
+                if (searchQuery.trim()) {
+                  router.push(`/jobs?q=${encodeURIComponent(searchQuery.trim())}`);
+                }
+                setSearchQuery("");
+              }}
+              style={{ maxWidth: 1200, margin: "0 auto", height: 60, display: "flex", alignItems: "center", gap: 12 }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
+                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="職種・スキル・企業名を入力..."
+                style={{
+                  flex: 1, height: "100%", border: "none", outline: "none",
+                  fontSize: 16, color: "var(--ink)",
+                  fontFamily: "'Noto Sans JP', sans-serif",
+                  background: "transparent",
+                }}
+              />
+              <button type="submit" style={{
+                padding: "8px 20px", background: "var(--royal)", color: "#fff",
+                borderRadius: 8, border: "none", cursor: "pointer",
+                fontSize: 13, fontWeight: 600, flexShrink: 0,
+              }}>検索</button>
+              <button
+                type="button"
+                onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 8, color: "var(--ink-mute)", flexShrink: 0 }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </form>
+          </div>
+        </>
+      )}
 
       {/* Mobile drawer overlay */}
       {mobileMenuOpen && (

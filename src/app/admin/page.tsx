@@ -4,12 +4,13 @@ import Link from "next/link";
 async function getStats() {
   const supabase = createClient();
 
-  const [users, activeCompanies, activeJobs, pendingJobs, pendingMeetings, pendingReservations] =
+  const [users, activeCompanies, activeJobs, totalApplications, pendingJobs, pendingMeetings, pendingReservations] =
     await Promise.all([
       supabase.from("ow_users").select("id", { count: "exact", head: true }),
       supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
       // "active" = migration 113 適用前の旧ステータス（"published" 相当）
       supabase.from("ow_jobs").select("id", { count: "exact", head: true }).in("status", ["active", "published"]),
+      supabase.from("ow_job_applications").select("id", { count: "exact", head: true }),
       supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
       supabase.from("ow_casual_meetings").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("ow_mentor_reservations").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
@@ -33,6 +34,7 @@ async function getStats() {
     usersCount: users.count ?? 0,
     activeCompaniesCount: activeCompanies.count ?? 0,
     activeJobsCount: activeJobs.count ?? 0,
+    totalApplicationsCount: totalApplications.count ?? 0,
     pendingJobsCount: pendingJobs.count ?? 0,
     pendingMeetingsCount: pendingMeetings.count ?? 0,
     pendingReservationsCount: pendingReservations.count ?? 0,
@@ -49,11 +51,12 @@ export default async function AdminDashboard() {
       <h1 className="text-2xl font-bold mb-6">ダッシュボード</h1>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-4 gap-4 mb-8">
         {[
           { label: "登録ユーザー数", value: stats.usersCount, color: "text-blue-600" },
           { label: "公開中の企業数", value: stats.activeCompaniesCount, color: "text-green-600" },
           { label: "公開中の求人数", value: stats.activeJobsCount, color: "text-purple-600" },
+          { label: "累計応募数", value: stats.totalApplicationsCount, color: "text-orange-500" },
         ].map((kpi) => (
           <div key={kpi.label} className="bg-white rounded-card p-5 border border-card-border">
             <p className="text-xs text-gray-500 mb-1">{kpi.label}</p>

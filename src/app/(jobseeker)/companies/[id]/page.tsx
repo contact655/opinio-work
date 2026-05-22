@@ -2437,19 +2437,32 @@ function MobileBottomCTA({ company }: { company: Company }) {
         <Link
           href={`/companies/${company.id}/casual-meeting`}
           style={{
-            display: "block",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
             padding: "12px 0",
-            background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+            background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
             color: "#fff",
             borderRadius: 8,
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: 700,
             textAlign: "center",
             textDecoration: "none",
             marginBottom: hasJobs ? 8 : 0,
-            boxShadow: "0 3px 10px rgba(245,158,11,0.3)",
+            boxShadow: "0 3px 12px rgba(245,158,11,0.35)",
           }}
         >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "#fff",
+              flexShrink: 0,
+              animation: "cta-pulse 1.8s ease-in-out infinite",
+            }}
+          />
           話を聞く（カジュアル面談）
         </Link>
       )}
@@ -2545,19 +2558,33 @@ function Sidebar({
                 <Link
                   href={`/companies/${company.id}/casual-meeting`}
                   style={{
-                    display: "block",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
                     width: "100%",
-                    padding: "13px 0",
-                    background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+                    padding: "14px 0",
+                    background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
                     color: "#fff",
                     borderRadius: 8,
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: 700,
                     textAlign: "center",
                     textDecoration: "none",
-                    boxShadow: "0 4px 12px rgba(245,158,11,0.35)",
+                    boxShadow: "0 4px 16px rgba(245,158,11,0.4)",
+                    boxSizing: "border-box",
                   }}
                 >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "#fff",
+                      flexShrink: 0,
+                      animation: "cta-pulse 1.8s ease-in-out infinite",
+                    }}
+                  />
                   話を聞く（カジュアル面談）
                 </Link>
                 {/* 補足テキスト: Primary ボタン直下、Primary 表示時のみ */}
@@ -2871,6 +2898,10 @@ export default async function CompanyDetailPage({
         }
         .company-posts-more-link:hover {
           background: var(--royal-50) !important;
+        }
+        @keyframes cta-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.7); }
         }
       `}</style>
     </>
