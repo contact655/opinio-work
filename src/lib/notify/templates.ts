@@ -1,17 +1,43 @@
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "hshiba@opinio.co.jp";
 
+// ── Shared inline styles ───────────────────────────────────────────────────────
+const TD_LABEL = "padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;font-weight:600;width:120px;vertical-align:top;font-size:13px";
+const TD_VALUE = "padding:8px 12px;border:1px solid #e2e8f0;font-size:13px";
+const BTN     = "display:inline-block;background:#002366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px";
+
 // ── 共通 HTML wrapper ──────────────────────────────────────────────────────────
 function htmlWrap(content: string): string {
-  return `
-    <div style="font-family: -apple-system, sans-serif; max-width: 600px;">
-      ${content}
-      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;"/>
-      <p style="color: #888; font-size: 12px;">
-        opinio.jp — 採用と転職のためのプラットフォーム<br/>
-        <a href="https://opinio.jp">https://opinio.jp</a>
-      </p>
-    </div>
-  `;
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans JP',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+        <tr>
+          <td style="background:linear-gradient(135deg,#002366,#3B5FD9);padding:28px 40px">
+            <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em">OPINIO</span>
+            <span style="font-size:11px;color:rgba(255,255,255,0.7);margin-left:12px">IT/SaaS業界のキャリアインフラ</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px 40px;color:#0f172a;line-height:1.7;font-size:14px">
+            ${content}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 40px 28px;background:#f8fafc;border-top:1px solid #e2e8f0">
+            <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.7">
+              このメールは <a href="https://opinio.jp" style="color:#3B5FD9">opinio.jp</a> から自動送信されています。<br>
+              心当たりのない場合は、このメールを無視してください。
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
 // ── T3: カジュアル面談申込 ────────────────────────────────────────────────────
@@ -27,21 +53,23 @@ export function casualMeetingAdminTemplate(params: {
   const intentLabel: Record<string, string> = {
     info_gathering: "情報収集中",
     good_opportunity: "良い機会があれば",
-    within_6: "6 ヶ月以内に転職検討",
-    within_3: "3 ヶ月以内に転職検討",
+    within_6: "6ヶ月以内に転職検討",
+    within_3: "3ヶ月以内に転職検討",
   };
 
   return {
     to: ADMIN_EMAIL,
     subject: `【新着カジュアル面談】${params.companyName} への申し込みがありました`,
     html: htmlWrap(`
-      <h2>新着カジュアル面談</h2>
-      <p><strong>${params.companyName}</strong> へのカジュアル面談申し込みがありました。</p>
-      <p><strong>申込者:</strong> ${params.contactEmail}</p>
-      <p><strong>転職意向:</strong> ${params.intent ? (intentLabel[params.intent] ?? params.intent) : "未回答"}</p>
-      <p><strong>志望理由:</strong> ${params.interestReason || "（未記入）"}</p>
-      <p><strong>質問内容:</strong> ${params.questions || "（未記入）"}</p>
-      <p><a href="https://opinio.jp/biz/meetings">/biz/meetings で確認する →</a></p>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">新着カジュアル面談</h2>
+      <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${params.companyName}</strong> へのカジュアル面談申し込みがありました。</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${params.contactEmail}</td></tr>
+        <tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${params.intent ? (intentLabel[params.intent] ?? params.intent) : "未回答"}</td></tr>
+        <tr><td style="${TD_LABEL}">志望理由</td><td style="${TD_VALUE}">${params.interestReason || "（未記入）"}</td></tr>
+        <tr><td style="${TD_LABEL}">質問内容</td><td style="${TD_VALUE}">${params.questions || "（未記入）"}</td></tr>
+      </table>
+      <a href="https://opinio.jp/biz/meetings" style="${BTN}">管理画面で確認する →</a>
     `),
   };
 }
@@ -55,11 +83,17 @@ export function casualMeetingUserTemplate(params: {
     to: params.to,
     subject: `【opinio.jp】${params.companyName} へのカジュアル面談申し込みを受け付けました`,
     html: htmlWrap(`
-      <h2>カジュアル面談申し込みを受け付けました</h2>
-      <p><strong>${params.companyName}</strong> へのカジュアル面談申し込みありがとうございます。</p>
-      <p>3 営業日以内に Opinio 編集部からご連絡いたします。</p>
-      <p>しばらくお待ちください。</p>
-      <p><a href="https://opinio.jp/mypage">マイページで状況を確認する →</a></p>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">申し込みを受け付けました</h2>
+      <p style="margin:0 0 16px;color:#475569">
+        <strong style="color:#0f172a">${params.companyName}</strong> へのカジュアル面談申し込みありがとうございます。
+      </p>
+      <div style="background:#eff3fc;border-radius:8px;padding:16px 20px;margin-bottom:24px;border-left:3px solid #002366">
+        <p style="margin:0;font-size:13px;color:#334155;line-height:1.7">
+          ✅ 編集部が内容を確認し、<strong>3営業日以内</strong>にご連絡いたします。<br>
+          しばらくお待ちください。
+        </p>
+      </div>
+      <a href="https://opinio.jp/mypage" style="${BTN}">マイページで状況を確認する →</a>
     `),
   };
 }
@@ -110,13 +144,15 @@ export function mentorReservationAdminTemplate(params: {
     to: ADMIN_EMAIL,
     subject: `【新着メンター相談】${params.mentorName} さんへの申し込みがありました`,
     html: htmlWrap(`
-      <h2>新着メンター相談</h2>
-      <p><strong>${params.mentorName}</strong> さんへの相談申し込みがありました。</p>
-      <p><strong>申込者:</strong> ${params.contactEmail}</p>
-      <p><strong>相談テーマ:</strong> ${params.themes.length > 0 ? params.themes.join(", ") : "（未選択）"}</p>
-      <p><strong>現在の状況:</strong> ${params.currentSituation}</p>
-      <p><strong>聞きたいこと:</strong> ${params.questions}</p>
-      <p>内容を確認の上、メンターに転送してください。</p>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">新着メンター相談</h2>
+      <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${params.mentorName}</strong> さんへの相談申し込みがありました。</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${params.contactEmail}</td></tr>
+        <tr><td style="${TD_LABEL}">相談テーマ</td><td style="${TD_VALUE}">${params.themes.length > 0 ? params.themes.map((t) => `<span style="display:inline-block;padding:2px 8px;background:#eff3fc;color:#002366;border-radius:4px;font-size:12px;margin:2px">${t}</span>`).join(" ") : "（未選択）"}</td></tr>
+        <tr><td style="${TD_LABEL}">現在の状況</td><td style="${TD_VALUE}">${params.currentSituation}</td></tr>
+        <tr><td style="${TD_LABEL}">聞きたいこと</td><td style="${TD_VALUE}">${params.questions}</td></tr>
+      </table>
+      <p style="font-size:13px;color:#475569;margin-bottom:20px">内容を確認の上、メンターに転送してください。</p>
     `),
   };
 }
@@ -130,11 +166,17 @@ export function mentorReservationUserTemplate(params: {
     to: params.to,
     subject: `【opinio.jp】${params.mentorName} さんへの相談申し込みを受け付けました`,
     html: htmlWrap(`
-      <h2>メンター相談申し込みを受け付けました</h2>
-      <p><strong>${params.mentorName}</strong> さんへの相談申し込みありがとうございます。</p>
-      <p>編集部が内容を確認し、メンターへ転送いたします。</p>
-      <p>メンターから直接ご連絡があるまで、しばらくお待ちください。</p>
-      <p><a href="https://opinio.jp/mypage">マイページで状況を確認する →</a></p>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">相談申し込みを受け付けました</h2>
+      <p style="margin:0 0 16px;color:#475569">
+        <strong style="color:#0f172a">${params.mentorName}</strong> さんへのメンター相談申し込みありがとうございます。
+      </p>
+      <div style="background:#eff3fc;border-radius:8px;padding:16px 20px;margin-bottom:24px;border-left:3px solid #002366">
+        <p style="margin:0;font-size:13px;color:#334155;line-height:1.7">
+          ✅ 編集部が内容を確認し、<strong>${params.mentorName}</strong> さんに転送いたします。<br>
+          メンターから承認の連絡があるまで、しばらくお待ちください。
+        </p>
+      </div>
+      <a href="https://opinio.jp/mypage" style="${BTN}">マイページで状況を確認する →</a>
     `),
   };
 }
@@ -151,13 +193,15 @@ export function applicationAdminTemplate(params: {
 }) {
   return {
     to: ADMIN_EMAIL,
-    subject: `【新着応募】${params.companyName} の ${params.jobTitle} に応募がありました`,
+    subject: `【新着応募】${params.companyName} / ${params.jobTitle} に応募がありました`,
     html: htmlWrap(`
-      <h2>新着求人応募</h2>
-      <p><strong>${params.companyName}</strong>「${params.jobTitle}」への応募がありました。</p>
-      <p><strong>応募者:</strong> ${params.applicantName}（${params.applicantEmail}）</p>
-      <p><strong>志望動機:</strong> ${params.message || "（未記入）"}</p>
-      <p><a href="https://opinio.jp/biz/applications">/biz/applications で確認する →</a></p>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">新着求人応募</h2>
+      <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${params.companyName}</strong>「${params.jobTitle}」への応募がありました。</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">応募者</td><td style="${TD_VALUE}">${params.applicantName}（${params.applicantEmail}）</td></tr>
+        <tr><td style="${TD_LABEL}">志望動機</td><td style="${TD_VALUE}">${params.message || "（未記入）"}</td></tr>
+      </table>
+      <a href="https://opinio.jp/biz/applications" style="${BTN}">応募管理で確認する →</a>
     `),
   };
 }
@@ -170,12 +214,19 @@ export function applicationUserTemplate(params: {
 }) {
   return {
     to: params.to,
-    subject: `【opinio.jp】${params.companyName} の ${params.jobTitle} への応募を受け付けました`,
+    subject: `【opinio.jp】${params.companyName}「${params.jobTitle}」への応募を受け付けました`,
     html: htmlWrap(`
-      <h2>応募を受け付けました</h2>
-      <p><strong>${params.companyName}</strong>「${params.jobTitle}」へのご応募ありがとうございます。</p>
-      <p>採用担当者があなたの応募を確認次第、ご連絡いたします。</p>
-      <p><a href="https://opinio.jp/mypage/applications">マイページで選考状況を確認する →</a></p>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">応募を受け付けました</h2>
+      <p style="margin:0 0 16px;color:#475569">
+        <strong style="color:#0f172a">${params.companyName}</strong>「${params.jobTitle}」へのご応募ありがとうございます。
+      </p>
+      <div style="background:#eff3fc;border-radius:8px;padding:16px 20px;margin-bottom:24px;border-left:3px solid #002366">
+        <p style="margin:0;font-size:13px;color:#334155;line-height:1.7">
+          ✅ 採用担当者が応募内容を確認次第、ご連絡いたします。<br>
+          選考状況はマイページでいつでも確認できます。
+        </p>
+      </div>
+      <a href="https://opinio.jp/mypage/applications" style="${BTN}">選考状況を確認する →</a>
     `),
   };
 }
