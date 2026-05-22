@@ -9,6 +9,7 @@ const LEFT_BORDER: Record<BizJob["status"], string> = {
   draft:          "4px solid var(--warm)",
   pending_review: "4px solid var(--purple)",
   published:      "4px solid var(--success)",
+  active:         "4px solid var(--success)", // 旧ステータス: "published" 相当
   private:        "none",
 };
 

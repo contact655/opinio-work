@@ -1,4 +1,5 @@
-export type JobStatus = "draft" | "pending_review" | "published" | "rejected" | "private";
+// "active" は旧来のステータス値（migration 113 適用後は "published" に統一される）
+export type JobStatus = "draft" | "pending_review" | "published" | "active" | "rejected" | "private";
 
 export type BizJob = {
   id: string;
@@ -223,11 +224,15 @@ export function countByStatus(jobs: BizJob[]): JobStatusCounts {
     draft: 0,
     pending_review: 0,
     published: 0,
+    active: 0,
     rejected: 0,
     private: 0,
   };
   for (const j of jobs) {
-    counts[j.status] = (counts[j.status] ?? 0) + 1;
+    // "active" は "published" 相当として集計（migration 113 適用前の互換対応）
+    const key = j.status === "active" ? "published" : j.status;
+    counts[key] = (counts[key] ?? 0) + 1;
+    if (j.status === "active") counts.active = (counts.active ?? 0) + 1;
   }
   return counts;
 }

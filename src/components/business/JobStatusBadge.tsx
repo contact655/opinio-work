@@ -2,6 +2,7 @@ import type { JobStatus } from "@/lib/business/mockJobs";
 
 const STATUS_CONFIG: Record<JobStatus, { label: string; bg: string; color: string }> = {
   published:      { label: "公開中",     bg: "var(--success-soft)",  color: "var(--success)" },
+  active:         { label: "公開中",     bg: "var(--success-soft)",  color: "var(--success)" }, // 旧ステータス
   pending_review: { label: "運営審査中", bg: "var(--purple-soft)",   color: "var(--purple)" },
   draft:          { label: "下書き",     bg: "var(--warm-soft)",     color: "#B45309" },
   rejected:       { label: "差し戻し",   bg: "var(--error-soft)",    color: "var(--error)" },
