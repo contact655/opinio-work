@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { MemberRecord, PendingInviteRecord } from "@/lib/business/members";
 import Toast from "@/components/ui/Toast";
@@ -911,10 +911,35 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [pendingInvites, setPendingInvites] = useState(initialPendingInvites);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
 
-  const activeMembers = initialMembers.filter((m) => m.is_active);
-  const inactiveMembers = initialMembers.filter((m) => !m.is_active);
-  const displayMembers = activeTab === "active" ? activeMembers : inactiveMembers;
+  const activeMembers = useMemo(() => initialMembers.filter((m) => m.is_active), [initialMembers]);
+  const inactiveMembers = useMemo(() => initialMembers.filter((m) => !m.is_active), [initialMembers]);
+  const adminCount = useMemo(() => activeMembers.filter((m) => m.permission === "admin").length, [activeMembers]);
+
+  const displayMembers = useMemo(() => {
+    const base = activeTab === "active" ? activeMembers : inactiveMembers;
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter((m) =>
+      m.name.toLowerCase().includes(q) ||
+      m.email.toLowerCase().includes(q) ||
+      (m.role_title ?? "").toLowerCase().includes(q) ||
+      (m.department ?? "").toLowerCase().includes(q)
+    );
+  }, [activeTab, activeMembers, inactiveMembers, searchQuery]);
+
+  async function handleCopyEmail(email: string) {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopiedEmail(email);
+      setToastMessage("メールアドレスをコピーしました");
+      setTimeout(() => setCopiedEmail((v) => v === email ? null : v), 2000);
+    } catch {
+      setToastMessage("コピーに失敗しました");
+    }
+  }
 
   const dialogMember = dialogMemberId
     ? initialMembers.find((m) => m.id === dialogMemberId) ?? null
@@ -1031,7 +1056,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         display: "flex",
         justifyContent: "space-between",
         alignItems: "flex-start",
-        marginBottom: 24,
+        marginBottom: 20,
       }}>
         <div>
           <h1 style={{
@@ -1073,6 +1098,98 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           </svg>
           メンバーを追加
         </button>
+        )}
+      </div>
+
+      {/* ── Stats strip ─────────────────────────────────────────── */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+        {[
+          { label: "アクティブ", value: activeMembers.length, color: "var(--royal)" },
+          { label: "管理者", value: adminCount, color: "var(--accent)" },
+          { label: "招待中", value: pendingInvites.length, color: "var(--warm)" },
+          { label: "無効化済み", value: inactiveMembers.length, color: "var(--ink-mute)" },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{
+            flex: 1,
+            padding: "14px 18px",
+            background: "#fff",
+            border: "1px solid var(--line)",
+            borderRadius: 10,
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}>
+            <div style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 24,
+              fontWeight: 700,
+              color,
+              lineHeight: 1,
+            }}>
+              {value}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Search bar ─────────────────────────────────────────── */}
+      <div style={{ position: "relative", marginBottom: 16 }}>
+        <span style={{
+          position: "absolute",
+          left: 12,
+          top: "50%",
+          transform: "translateY(-50%)",
+          color: "var(--ink-mute)",
+          pointerEvents: "none",
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.3-4.3"/>
+          </svg>
+        </span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="名前・メール・役職で検索..."
+          style={{
+            width: "100%",
+            padding: "10px 36px 10px 38px",
+            border: "1px solid var(--line)",
+            borderRadius: 8,
+            fontFamily: "inherit",
+            fontSize: 13,
+            background: "#fff",
+            outline: "none",
+            boxSizing: "border-box",
+          }}
+          onFocus={(e) => (e.target.style.borderColor = "var(--royal)")}
+          onBlur={(e) => (e.target.style.borderColor = "var(--line)")}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            style={{
+              position: "absolute",
+              right: 10,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--ink-mute)",
+              padding: 4,
+              lineHeight: 1,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         )}
       </div>
 
@@ -1136,7 +1253,9 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           border: "1px solid var(--line)",
           borderRadius: 12,
         }}>
-          {activeTab === "active" ? "アクティブなメンバーがいません" : "無効化済みのメンバーはいません"}
+          {searchQuery.trim()
+            ? `「${searchQuery}」に一致するメンバーが見つかりません`
+            : activeTab === "active" ? "アクティブなメンバーがいません" : "無効化済みのメンバーはいません"}
         </div>
       ) : (
         <div style={{
@@ -1198,8 +1317,30 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 2 }}>
-                    {member.email}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{member.email}</span>
+                    <button
+                      onClick={() => handleCopyEmail(member.email)}
+                      title="メールアドレスをコピー"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "2px 4px",
+                        borderRadius: 4,
+                        color: copiedEmail === member.email ? "var(--success)" : "var(--ink-mute)",
+                        lineHeight: 1,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        transition: "color 0.15s",
+                      }}
+                    >
+                      {copiedEmail === member.email ? (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                      ) : (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      )}
+                    </button>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {member.role_title && (

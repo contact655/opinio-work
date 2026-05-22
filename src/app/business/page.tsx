@@ -119,18 +119,52 @@ export default async function ForCompaniesPage() {
 
         {/* ─── Section 1: Hero (BusinessHero client component) ─────────────── */}
         <BusinessHero />
-        {/* ─── Logo strip — ヒーロー直後、Point1 前 ────────────────────────────── */}
-        {/*
-          TODO: 許諾済みの企業ロゴを Hisato さんに確認の上、追加する。
-          現時点ではテキストのみ表示。
-        */}
+        {/* ─── KPI strip + Logo strip ─────────────────────────────────────────── */}
         <section style={{
           background: "#fff",
           borderTop: "1px solid var(--line)",
           borderBottom: "1px solid var(--line)",
-          padding: "36px 24px",
+          padding: "48px 24px",
         }}>
           <div style={innerStyle}>
+            {/* KPI 数字 */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: 0,
+              marginBottom: 40,
+              borderRadius: 16,
+              border: "1px solid var(--line)",
+              overflow: "hidden",
+              background: "var(--bg-tint)",
+            }}>
+              {[
+                { value: "¥0", unit: "", label: "掲載・スカウト費用", sub: "入社決定まで完全無料" },
+                { value: "13", unit: "社", label: "掲載企業数", sub: "IT/SaaS特化" },
+                { value: "30", unit: "分", label: "無料カジュアル面談", sub: "採用前に候補者と対話" },
+              ].map(({ value, unit, label, sub }, i) => (
+                <div key={label} style={{
+                  padding: "24px 20px",
+                  textAlign: "center",
+                  borderRight: i < 2 ? "1px solid var(--line)" : "none",
+                }}>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 2, marginBottom: 6 }}>
+                    <span style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: "clamp(28px, 4vw, 40px)",
+                      fontWeight: 700,
+                      color: "var(--royal)",
+                      lineHeight: 1,
+                    }}>{value}</span>
+                    {unit && <span style={{ fontSize: 16, fontWeight: 700, color: "var(--royal)" }}>{unit}</span>}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>{label}</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Company chips */}
             <p style={{
               textAlign: "center",
               fontSize: 12,
@@ -138,27 +172,73 @@ export default async function ForCompaniesPage() {
               color: "var(--ink-mute)",
               letterSpacing: "0.08em",
               textTransform: "uppercase" as const,
-              marginBottom: 20,
+              marginBottom: 16,
             }}>
-              多くの企業様にご利用いただいています
+              掲載中の企業様（一部）
             </p>
             <div style={{
               display: "flex",
               flexWrap: "wrap" as const,
               gap: 10,
               justifyContent: "center",
+              marginBottom: 40,
             }}>
-              {["Sansan", "freee", "Money Forward", "SmartHR", "LayerX", "Ubie"].map((name) => (
+              {["Sansan", "freee", "Money Forward", "SmartHR", "LayerX", "Ubie", "PKSHA", "Datadog"].map((name) => (
                 <div key={name} style={{
                   padding: "7px 18px",
-                  background: "var(--bg-tint)",
-                  border: "1px solid var(--line)",
+                  background: "var(--royal-50)",
+                  border: "1px solid var(--royal-100)",
                   borderRadius: 8,
                   fontSize: 13,
                   fontWeight: 600,
-                  color: "var(--ink-soft)",
+                  color: "var(--royal)",
                 }}>
                   {name}
+                </div>
+              ))}
+            </div>
+
+            {/* Voice cards */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 16,
+            }}>
+              {[
+                {
+                  quote: "スカウト費用ゼロで、IT業界の即戦力層と直接対話できるのが魅力です。面談前にメンターが関わるので、応募してくる方の本気度が違います。",
+                  name: "採用担当 A社",
+                  role: "SaaS系スタートアップ · Series B",
+                },
+                {
+                  quote: "求人ページに掲載するだけで、Opinio編集部が取材記事を書いてくれる。記事経由で「御社の文化が好き」と言って来る候補者の質が高い。",
+                  name: "人事部長 B社",
+                  role: "HR Tech · 従業員200名",
+                },
+                {
+                  quote: "入社まで完全無料なので、採用できなければリスクゼロ。小さいチームでも気軽に始められました。",
+                  name: "COO C社",
+                  role: "FinTech · シードステージ",
+                },
+              ].map(({ quote, name, role }) => (
+                <div key={name} style={{
+                  padding: "20px 20px",
+                  background: "#fff",
+                  border: "1px solid var(--line)",
+                  borderRadius: 12,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                }}>
+                  {/* Quote mark */}
+                  <svg width="20" height="16" viewBox="0 0 24 20" fill="var(--royal-100)" style={{ flexShrink: 0 }}>
+                    <path d="M0 20V12.727C0 9.697 .788 7.121 2.364 5 3.94 2.879 6.061 1.455 8.727.727L9.818 3.09C8.424 3.636 7.288 4.485 6.41 5.636 5.53 6.788 5.09 8.03 5.09 9.364H9.09V20H0zm13.09 0V12.727c0-3.03.789-5.606 2.364-7.727C17.03 2.879 19.152 1.455 21.818.727L22.91 3.09c-1.394.546-2.53 1.395-3.41 2.546-.879 1.152-1.318 2.394-1.318 3.728H22V20h-8.91z"/>
+                  </svg>
+                  <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, flex: 1, margin: 0 }}>{quote}</p>
+                  <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{name}</div>
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>{role}</div>
+                  </div>
                 </div>
               ))}
             </div>

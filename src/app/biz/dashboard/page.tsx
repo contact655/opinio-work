@@ -140,6 +140,82 @@ export default async function BizDashboardPage() {
         </span>
       </div>
 
+      {/* ── Quick actions ── */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+        {[
+          {
+            href: "/biz/jobs/new",
+            icon: (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            ),
+            label: "新規求人を作成",
+            color: "var(--royal)",
+            primary: true,
+          },
+          {
+            href: "/biz/meetings",
+            icon: (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            ),
+            label: "面談を確認",
+            color: "var(--ink-soft)",
+            primary: false,
+          },
+          {
+            href: "/biz/company",
+            icon: (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            ),
+            label: "企業情報を編集",
+            color: "var(--ink-soft)",
+            primary: false,
+          },
+          {
+            href: "/biz/members",
+            icon: (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+              </svg>
+            ),
+            label: "メンバーを管理",
+            color: "var(--ink-soft)",
+            primary: false,
+          },
+        ].map(({ href, icon, label, color, primary }) => (
+          <Link
+            key={href}
+            href={href}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              padding: primary ? "10px 18px" : "10px 16px",
+              background: primary ? "var(--royal)" : "#fff",
+              border: `1px solid ${primary ? "var(--royal)" : "var(--line)"}`,
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              color: primary ? "#fff" : color,
+              textDecoration: "none",
+              flexShrink: 0,
+              transition: "opacity 0.15s",
+            }}
+          >
+            {icon}
+            {label}
+          </Link>
+        ))}
+      </div>
+
       {/* ── Company card ── */}
       <CompanyCard
         tenantId={ctx.tenantId}
