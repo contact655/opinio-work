@@ -15,66 +15,45 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ## 🎯 次のセッションでやること（2026-05-22 更新）
 
-### ✅ 完了 2026-05-22: Migration 113 — ow_jobs.status 正規化
-```sql
-UPDATE ow_jobs SET status = 'published' WHERE status = 'active';
-```
-全30件を "active" → "published" に統一完了。DB確認済み: `published: 30件`。
+### ✅ 完了 2026-05-22 セッション2: Phase 6 デザイン統一
+  - `var(--gold)` → `var(--warm)`、`var(--royal-deep)` → `#001233`（未定義CSS変数修正）
+  - カジュアル面談CTA: white/royal → warm orange グラデーション（companies/[id]・jobs/[id]）
+  - `FloatingCTA` に `variant="royal"|"warm"` prop 追加
+  - フィルターUI: `<select>` → ピルボタン（companies: workStyle + size / jobs: work_style）
+  - CompanySearchBar: 募集中トグルをピル風に、アクティブサマリーバッジ追加
 
+### ✅ 完了 2026-05-22 セッション2: QB-6 CategoriesEditor エッジケース（7項目）
+  - 保存成功後ちらつき修正（isSavedDisplayingRef で router.refresh 競合防止）
+  - AddCategoryModal: 全件追加済み空状態 / ロール0件空状態
+  - 保存中のボタン無効化（isSaving ガード）
+  - エラー時は未保存バナーを非表示（error バナーのみ + リトライ案内）
+  - 両モーダルに Escape キー対応（useModalClose フック）
+  - beforeunload 警告（isDirty かつ非保存時のページ離脱）
+
+### ✅ 完了 2026-05-22 セッション2: Cron バグ修正 + Resend 有効化
+  - weekly-jobs + weekly-match: `.eq("status", "active")` → `"published"`（Migration 113 対応）
+  - weekly-match: Resend 送信を有効化（TODO 解消）+ notify_email フィルター追加
+  - weekly-jobs: `from` アドレスを RESEND_FROM_EMAIL env var に統一
+
+### ✅ 完了 2026-05-22 セッション2: /biz/analytics 実装確認
+  - 実装済みであることを確認（KPI・ファネル・バーチャート・求人パフォーマンステーブル）
+  - DB データは現在すべて 0（ow_business_monthly_stats 0件、ow_casual_meetings 0件）→ 正常
+
+### ✅ 完了 2026-05-22: Migration 113 — ow_jobs.status 正規化
 ### ✅ 完了: Phase ε — Supabase MCP 接続 read-only（2026-05-02）
 ### ✅ 完了: photos + logo の Supabase Storage 接続（2026-04-27）
 ### ✅ 完了: dashboard placeholder 解消（2026-04-27）
 ### ✅ 完了: Phase 5 Stage 2 — 認証フロー（実装済み確認 2026-05-22）
-  - `/auth` signup/login → `/auth/callback` → `/onboarding` → `/companies`
-  - パスワードリセット: `/auth/reset-password` + `/auth/update-password`
-  - ow_profiles.onboarding_completed でフロー制御
-
-### ✅ 完了: /biz/members チーム管理画面（実装済み確認 2026-05-22）
-  - MembersClient.tsx (1442行) + members.ts + /api/biz/members/invite 招待フロー
-  - /biz/auth/accept-invite 招待受諾ページ
-
-### ✅ 完了: /biz/meetings カジュアル面談管理（実装済み確認 2026-05-22）
-  - MeetingsClient.tsx + meetings.ts + /api/biz/meetings/[id] PATCH
-  - ステータス変更・担当者アサイン・社内メモ保存 完備
-
-### ✅ 完了: /biz/jobs 求人管理（実装済み確認 2026-05-22）
-  - JobsClient.tsx + jobs.ts + /api/biz/jobs/[id] PATCH + /biz/jobs/new + /biz/jobs/[id]/edit
-  - 公開申請（pending_review）フロー完備
-
-### ✅ 完了 2026-05-22: admin/jobs/[id] 詳細・審査ページ
-  - 求人全文表示 + 承認/差し戻し/非公開化 アクション
-
-### ✅ 完了 2026-05-22: admin dashboard バグ修正
-  - ow_companies.status（存在しないカラム）→ is_published に修正
-  - 求人カウント: `"active"` のみ → `IN('active','published')` に修正
-  - 「企業審査待ち」（概念なし）→「求人審査待ち」+ 正しいリンク
-
-### ✅ 完了 2026-05-22: mypage mock解消
-  - MOCK_BOOKMARKS_ARTICLES → []（ow_articles テーブル未存在のため空）
-  - MOCK_RECEIVED_REQUESTS → ow_mentor_reservations.mentor_user_id から実データ取得
-  - MOCK_USER.currentRole → 実 CareerEntry から動的生成
-
+### ✅ 完了: /biz/members・/biz/meetings・/biz/jobs・admin/jobs/[id]（実装済み確認 2026-05-22）
 ### ✅ 完了 2026-05-22: biz/auth MOCK_EXISTING_USERS バグ修正
-  - 旧: メール入力時に hardcoded 2アドレスのみで「登録済み」判定
-  - 新: Supabase signUp の "already registered" エラーで showExistingNotice=true
-  - 本番ユーザー全員に正しく機能するよう修正
-
-### ✅ 完了 2026-05-22: 外部サービス接続・env var 整備
-  - **Resend**: RESEND_API_KEY を .env.local + Vercel に追加（opinio-local キー）
-  - **RESEND_FROM_EMAIL**: contact@opinio.co.jp（.env.local + Vercel）
-  - **NEXT_PUBLIC_SITE_URL**: https://opinio.co.jp（.env.local + Vercel）
-  - **CRON_SECRET**: ランダム生成済み（.env.local + Vercel）
-  - cron URL ハードコード修正: weekly-jobs/weekly-match の BASE_URL を env var に変更
-  - Vercel Cron Jobs 動作確認済み（weekly-jobs 日曜 23:00 UTC / weekly-match 月曜 09:00 UTC）
-  - Migration 113 実行済み（全30件 active → published）
+### ✅ 完了 2026-05-22: 外部サービス接続・env var 整備（Resend / CRON_SECRET / SITE_URL）
 
 ### 🟢 次の優先候補
 - **ActivityList 残り 5 イベント** (casual_meeting_applied/offer_sent 等) — 機能実装時に add
 - **ow_articles テーブル作成** — 記事コンテンツを DB 管理したい場合
-- **QB-6: CategoriesEditor エッジケース仕上げ**（biz/organization）
-- **求職者側 royal blue デザイン統一**（Phase 6）
+- **新機能検討**（求職者→企業メッセージ、メンター機能強化、求人申込フローなど）
 
-### DB 現状（2026-05-22 確認）
+### DB 現状（2026-05-22 セッション2 確認）
 | テーブル | 件数 | 備考 |
 |---------|------|------|
 | ow_companies | 36件 | 31件公開、全件 accepting_casual_meetings=true |
