@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { insertActivity } from "@/lib/business/activities";
 
 export async function POST(
   req: Request,
@@ -107,6 +108,31 @@ export async function POST(
     }
   } catch (e) {
     console.warn("[conversations/messages POST] last_message_at update threw:", e);
+  }
+
+  // ── Activity: message_sent / message_received (best-effort) ─────────────
+  // participant.role: "company" = biz側が送信, "candidate" = 求職者が送信
+  try {
+    const { data: conv } = await supabase
+      .from("ow_conversations")
+      .select("company_id")
+      .eq("id", conversationId)
+      .maybeSingle();
+    if (conv?.company_id) {
+      const isCompanySender = participant.role === "company";
+      await insertActivity(supabase, {
+        company_id: conv.company_id,
+        actor_user_id: owUser.id,
+        type: isCompanySender ? "message_sent" : "message_received",
+        description: isCompanySender
+          ? "候補者にメッセージを送りました"
+          : "候補者からメッセージが届きました",
+        target_type: "conversation",
+        target_id: conversationId,
+      });
+    }
+  } catch (e) {
+    console.warn("[conversations/messages] insertActivity failed:", e);
   }
 
   // ── Revalidate detail page ─────────────────────────────────────────────────
