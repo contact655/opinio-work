@@ -528,12 +528,32 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           display: "flex", alignItems: "center", justifyContent: "space-between",
           marginBottom: 20,
         }}>
-          <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: 0 }}>
-            <strong style={{ fontSize: 20, color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
-              {filtered.length}
-            </strong>
-            {" "}社が該当
-          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: hasFilters ? "5px 14px" : "0",
+              borderRadius: 100,
+              background: hasFilters ? "var(--royal-50)" : "transparent",
+              border: hasFilters ? "1px solid var(--royal-100)" : "none",
+              transition: "all 0.2s",
+            }}>
+              <strong style={{ fontSize: 20, color: "var(--royal)", fontFamily: "Inter, sans-serif", lineHeight: 1 }}>
+                {filtered.length}
+              </strong>
+              <span style={{ fontSize: 14, color: hasFilters ? "var(--royal)" : "var(--ink-soft)" }}>
+                {hasFilters ? "社 該当" : "社が該当"}
+              </span>
+            </span>
+            {hasFilters && (
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                background: "var(--royal)", color: "#fff",
+                letterSpacing: "0.03em",
+              }}>
+                フィルター適用中
+              </span>
+            )}
+          </div>
           {hasFilters && (
             <button
               onClick={() => { setQ(""); router.replace("/companies"); }}
@@ -542,7 +562,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
                 border: "none", cursor: "pointer", textDecoration: "underline", padding: 0,
               }}
             >
-              フィルターをクリア
+              クリア
             </button>
           )}
         </div>

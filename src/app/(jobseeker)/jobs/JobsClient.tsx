@@ -878,11 +878,20 @@ export default function JobsClient({
             <div style={{ flex: 1 }} />
 
             {/* Result count */}
-            <span style={{ fontSize: 12.5, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: hasFilter ? "4px 12px" : "0",
+              borderRadius: 100, whiteSpace: "nowrap",
+              background: hasFilter ? "var(--royal-50)" : "transparent",
+              border: hasFilter ? "1px solid var(--royal-100)" : "none",
+              transition: "all 0.2s",
+            }}>
               <strong style={{ color: "var(--royal)", fontSize: 15, fontFamily: "Inter, sans-serif" }}>
                 {filtered.length}
-              </strong>{" "}
-              件
+              </strong>
+              <span style={{ fontSize: 12.5, color: hasFilter ? "var(--royal)" : "var(--ink-mute)" }}>
+                {hasFilter ? "件 該当" : "件"}
+              </span>
             </span>
 
             {/* Sort */}

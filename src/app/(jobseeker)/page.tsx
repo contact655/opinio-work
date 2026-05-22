@@ -957,7 +957,56 @@ function PainPoints() {
 
 // ─── Mentors Section ──────────────────────────────────────────────────────────
 
+type PreviewMentor = {
+  id: string;
+  name: string;
+  initial: string;
+  gradient: string;
+  currentCompany: string;
+  currentRole: string;
+  path: string;
+  tags: string[];
+  successCount: number;
+  isAvailable: boolean;
+};
+
+function MentorCardSkeleton() {
+  return (
+    <div style={{
+      background: "#fff", borderRadius: 20, padding: 28,
+      border: "1px solid var(--line)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+    }}>
+      <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 16 }}>
+        <div className="skeleton-shimmer" style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div className="skeleton-shimmer" style={{ height: 14, width: "55%", marginBottom: 8 }} />
+          <div className="skeleton-shimmer" style={{ height: 11, width: "80%" }} />
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {[60, 80, 70].map((w, i) => (
+          <div key={i} className="skeleton-shimmer" style={{ height: 22, width: w, borderRadius: 100 }} />
+        ))}
+      </div>
+      <div className="skeleton-shimmer" style={{ height: 11, width: "100%", marginBottom: 6 }} />
+      <div className="skeleton-shimmer" style={{ height: 11, width: "75%", marginBottom: 20 }} />
+      <div className="skeleton-shimmer" style={{ height: 38, width: "100%", borderRadius: 8 }} />
+    </div>
+  );
+}
+
 function MentorsSection() {
+  const [mentors, setMentors] = useState<PreviewMentor[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/mentors/preview")
+      .then((r) => r.json())
+      .then((d) => { setMentors(Array.isArray(d.mentors) ? d.mentors : []); })
+      .catch(() => { setMentors([]); })
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <section style={{ background: "var(--bg-tint)", padding: "96px 48px" }} className="px-5 py-16 md:py-24 md:px-12">
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -973,78 +1022,95 @@ function MentorsSection() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {MENTORS.map((m, i) => (
-            <div key={i} style={{
-              background: "#fff", borderRadius: 20, padding: 28,
-              border: "1px solid var(--line)",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-              transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-            }}
-              className="mentor-card"
-            >
-              {/* 受付中バッジ */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                <div style={{ display: "flex", gap: 14, alignItems: "center", flex: 1, minWidth: 0 }}>
-                  <Avatar name={m.name} size="lg" gradient={m.gradient} />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{m.name}</div>
-                    <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.5 }}>{m.path}</div>
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => <MentorCardSkeleton key={i} />)
+            : mentors.map((m) => (
+            <Link key={m.id} href={`/mentors/${m.id}`} style={{ textDecoration: "none" }}>
+              <div style={{
+                background: "#fff", borderRadius: 20, padding: 28,
+                border: "1px solid var(--line)",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+                transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+                height: "100%",
+              }}
+                className="mentor-card"
+              >
+                {/* ヘッダー：アバター + 受付中バッジ */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                  <div style={{ display: "flex", gap: 14, alignItems: "center", flex: 1, minWidth: 0 }}>
+                    <Avatar name={m.name} size="lg" gradient={m.gradient} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{m.name}</div>
+                      <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.5 }}>{m.path || m.currentRole}</div>
+                    </div>
+                  </div>
+                  {m.isAvailable && (
+                    <div style={{
+                      display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0,
+                      padding: "4px 10px", borderRadius: 100,
+                      background: "#ECFDF5", border: "1px solid #A7F3D0",
+                      fontSize: 10, fontWeight: 700, color: "var(--success)", marginLeft: 8,
+                    }}>
+                      <span style={{
+                        width: 6, height: 6, borderRadius: "50%",
+                        background: "var(--success)", flexShrink: 0,
+                        animation: "pulse-dot 2s ease-in-out infinite",
+                      }} />
+                      受付中
+                    </div>
+                  )}
+                </div>
+
+                {/* テーマタグ */}
+                <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 16 }}>
+                  {m.tags.map((t) => (
+                    <span key={t} style={{
+                      display: "inline-block", padding: "3px 10px", borderRadius: 100,
+                      fontSize: 11, fontWeight: 600,
+                      background: "var(--royal-50)", color: "var(--royal)",
+                      border: "1px solid var(--royal-100)",
+                    }}>{t}</span>
+                  ))}
+                </div>
+
+                {/* 所属 */}
+                {m.currentCompany && (
+                  <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 14, lineHeight: 1.6 }}>
+                    <span style={{ color: "var(--ink-mute)" }}>現在：</span>{m.currentCompany}
+                    {m.currentRole && <span style={{ color: "var(--ink-mute)" }}> / {m.currentRole}</span>}
+                  </p>
+                )}
+
+                {/* 相談件数 + 無料バッジ */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                  <div style={{ fontSize: 13, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    相談件数 <span style={{ fontWeight: 700, color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{m.successCount}</span> 件
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--success)", fontWeight: 600 }}>
+                    <CheckMark /> 無料
                   </div>
                 </div>
+
+                {/* 相談するボタン（warm orange） */}
                 <div style={{
-                  display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0,
-                  padding: "4px 10px", borderRadius: 100,
-                  background: "#ECFDF5", border: "1px solid #A7F3D0",
-                  fontSize: 10, fontWeight: 700, color: "var(--success)", marginLeft: 8,
+                  width: "100%", padding: "11px 0", borderRadius: 8, fontSize: 14, fontWeight: 700,
+                  background: "linear-gradient(135deg, #F59E0B, #D97706)",
+                  color: "#fff", textAlign: "center" as const,
+                  boxShadow: "0 3px 10px rgba(245,158,11,0.3)",
                 }}>
-                  <span style={{
-                    width: 6, height: 6, borderRadius: "50%",
-                    background: "var(--success)", flexShrink: 0,
-                    animation: "pulse-dot 2s ease-in-out infinite",
-                  }} />
-                  受付中
+                  相談する
                 </div>
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 16 }}>
-                {m.tags.map((t) => (
-                  <span key={t} style={{
-                    display: "inline-block", padding: "3px 10px", borderRadius: 100,
-                    fontSize: 11, fontWeight: 600,
-                    background: "var(--royal-50)", color: "var(--royal)",
-                    border: "1px solid var(--royal-100)",
-                  }}>{t}</span>
-                ))}
-              </div>
-              <p style={{ fontSize: 14, lineHeight: 1.8, color: "var(--ink-soft)", marginBottom: 16 }}>{m.msg}</p>
-              {/* 相談件数 + 無料バッジ */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-                <div style={{ fontSize: 13, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                  相談件数 <span style={{ fontWeight: 700, color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{m.sessionCount}</span> 件
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--success)", fontWeight: 600 }}>
-                  <CheckMark /> 無料
-                </div>
-              </div>
-              {/* 相談するボタン（warm orange） */}
-              <button style={{
-                width: "100%", padding: "11px 0", borderRadius: 8, fontSize: 14, fontWeight: 700,
-                background: "linear-gradient(135deg, #F59E0B, #D97706)",
-                color: "#fff", border: "none", cursor: "pointer",
-                boxShadow: "0 3px 10px rgba(245,158,11,0.3)",
-                transition: "opacity 0.15s, transform 0.1s",
-              }}>
-                相談する
-              </button>
-            </div>
+            </Link>
           ))}
         </div>
 
         <div style={{ textAlign: "center", marginTop: 40 }}>
-          <Link href="/career-consultation" style={{
+          <Link href="/mentors" style={{
             display: "inline-flex", alignItems: "center", gap: 8,
             padding: "14px 28px", borderRadius: 8, fontSize: 14, fontWeight: 600,
             background: "#fff", color: "var(--royal)",
