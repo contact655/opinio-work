@@ -1,0 +1,280 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+export default function UpdatePasswordPage() {
+  const router = useRouter();
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+  const [sessionReady, setSessionReady] = useState(false);
+
+  // セッションが確立されているか確認
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        // セッションなし → リセットリンクが無効
+        router.replace("/auth/reset-password");
+      } else {
+        setSessionReady(true);
+      }
+    });
+  }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (password.length < 8) {
+      setError("パスワードは8文字以上で入力してください。");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("パスワードが一致しません。");
+      return;
+    }
+
+    setLoading(true);
+    const supabase = createClient();
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+
+    if (updateError) {
+      setError("更新に失敗しました。リンクの有効期限が切れている可能性があります。");
+      setLoading(false);
+      return;
+    }
+
+    setDone(true);
+    setLoading(false);
+
+    // 2秒後にログイン画面へ
+    setTimeout(() => router.push("/auth"), 2000);
+  };
+
+  if (!sessionReady) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--bg-tint)",
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: "50%",
+          border: "3px solid var(--royal-100)",
+          borderTopColor: "var(--royal)",
+          animation: "spin 0.8s linear infinite",
+        }} />
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "24px 16px",
+      background: "var(--bg-tint)",
+    }}>
+      <div style={{ width: "100%", maxWidth: 420 }}>
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <Link href="/" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: "var(--royal)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </div>
+            <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 20, fontWeight: 700, color: "var(--royal)" }}>
+              OPINIO
+            </span>
+          </Link>
+        </div>
+
+        <div style={{
+          background: "#fff",
+          border: "1px solid var(--line)",
+          borderRadius: 20,
+          padding: "36px 32px",
+          boxShadow: "var(--shadow-sm)",
+        }}>
+          {done ? (
+            <div style={{ textAlign: "center" }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: "50%",
+                background: "var(--success-soft)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                margin: "0 auto 20px",
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 20, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
+                パスワードを更新しました
+              </h1>
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.85 }}>
+                新しいパスワードでログインできます。<br />
+                ログイン画面に移動します…
+              </p>
+            </div>
+          ) : (
+            <>
+              <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
+                新しいパスワードを設定
+              </h1>
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.7 }}>
+                8文字以上のパスワードを入力してください。
+              </p>
+
+              <form onSubmit={handleSubmit}>
+                {/* 新パスワード */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+                    新しいパスワード
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoFocus
+                      placeholder="8文字以上"
+                      style={{
+                        width: "100%",
+                        padding: "12px 44px 12px 14px",
+                        border: "1px solid var(--line)",
+                        borderRadius: 10,
+                        fontFamily: "inherit",
+                        fontSize: 14,
+                        color: "var(--ink)",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                      onFocus={(e) => (e.target.style.borderColor = "var(--royal)")}
+                      onBlur={(e) => (e.target.style.borderColor = "var(--line)")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      style={{
+                        position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                        background: "none", border: "none", cursor: "pointer",
+                        color: "var(--ink-mute)", padding: 0, lineHeight: 1,
+                      }}
+                    >
+                      {showPassword ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                          <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  {/* Strength indicator */}
+                  {password.length > 0 && (
+                    <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+                      {[1, 2, 3].map((level) => (
+                        <div key={level} style={{
+                          flex: 1, height: 3, borderRadius: 2,
+                          background: password.length >= level * 4
+                            ? level === 1 ? "#f59e0b" : level === 2 ? "#3b82f6" : "#059669"
+                            : "var(--line)",
+                          transition: "background 0.2s",
+                        }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 確認 */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+                    パスワードを確認
+                  </label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    placeholder="もう一度入力"
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      border: `1px solid ${confirmPassword && confirmPassword !== password ? "var(--error)" : "var(--line)"}`,
+                      borderRadius: 10,
+                      fontFamily: "inherit",
+                      fontSize: 14,
+                      color: "var(--ink)",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                    onFocus={(e) => (e.target.style.borderColor = "var(--royal)")}
+                    onBlur={(e) => (e.target.style.borderColor = confirmPassword && confirmPassword !== password ? "var(--error)" : "var(--line)")}
+                  />
+                  {confirmPassword && confirmPassword !== password && (
+                    <p style={{ fontSize: 11, color: "var(--error)", marginTop: 4 }}>パスワードが一致しません</p>
+                  )}
+                </div>
+
+                {error && (
+                  <div style={{
+                    padding: "10px 14px",
+                    background: "var(--error-soft)",
+                    border: "1px solid #FCA5A5",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    color: "var(--error)",
+                    marginBottom: 16,
+                  }}>
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || password.length < 8 || password !== confirmPassword}
+                  style={{
+                    width: "100%",
+                    padding: "13px 20px",
+                    background: (loading || password.length < 8 || password !== confirmPassword) ? "var(--line)" : "var(--royal)",
+                    color: (loading || password.length < 8 || password !== confirmPassword) ? "var(--ink-mute)" : "#fff",
+                    border: "none",
+                    borderRadius: 10,
+                    fontFamily: "inherit",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: (loading || password.length < 8 || password !== confirmPassword) ? "not-allowed" : "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {loading ? "更新中..." : "パスワードを更新"}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

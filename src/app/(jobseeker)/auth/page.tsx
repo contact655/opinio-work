@@ -130,7 +130,9 @@ function AuthPageInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "candidate" }),
       }).catch(() => {/* best-effort */});
-      router.push(nextUrl || "/companies");
+      // 新規登録者はオンボーディングへ誘導
+      const dest = nextUrl || "/companies";
+      router.push(`/onboarding?next=${encodeURIComponent(dest)}`);
       return;
     }
 
