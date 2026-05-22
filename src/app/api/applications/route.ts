@@ -7,6 +7,7 @@ import {
   applicationAdminTemplate,
   applicationUserTemplate,
 } from "@/lib/notify/templates";
+import { insertActivity } from "@/lib/business/activities";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,27 @@ export async function POST(req: Request) {
     }
     console.error("[POST /api/applications]", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // ── Activity: application_received (best-effort) ─────────────────────────
+  try {
+    const { data: jobInfo } = await supabase
+      .from("ow_jobs")
+      .select("title, company_id")
+      .eq("id", job_id as string)
+      .maybeSingle();
+    if (jobInfo?.company_id) {
+      await insertActivity(supabase, {
+        company_id: jobInfo.company_id,
+        actor_user_id: owUserId,
+        type: "application_received",
+        description: `「${jobInfo.title}」への応募がありました`,
+        target_type: "job_application",
+        target_id: inserted.id,
+      });
+    }
+  } catch (e) {
+    console.warn("[applications] insertActivity failed:", e);
   }
 
   // ── Notify (best-effort, T1) ──────────────────────────────────────────────

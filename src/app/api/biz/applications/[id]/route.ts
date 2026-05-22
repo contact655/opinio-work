@@ -5,6 +5,7 @@ import { getCompanyContext } from "@/lib/business/company";
 import { VALID_APPLICATION_STATUSES } from "@/lib/business/applications";
 import { notify } from "@/lib/notify/email";
 import { applicationStatusTemplate } from "@/lib/notify/templates";
+import { insertActivity } from "@/lib/business/activities";
 
 export async function PATCH(
   req: Request,
@@ -77,6 +78,25 @@ export async function PATCH(
   if (!updated) {
     // RLS blocked the UPDATE silently
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // ── Activity: candidate_status_changed / offer_sent (best-effort) ────────
+  const STATUS_ACTIVITY_MAP: Record<string, { type: string; desc: string }> = {
+    reviewing:  { type: "candidate_status_changed", desc: "候補者を「書類選考中」に変更しました" },
+    interview:  { type: "meeting_scheduled",        desc: "候補者を「面接」ステージに進めました" },
+    accepted:   { type: "offer_sent",               desc: "候補者にオファーを送りました" },
+    rejected:   { type: "candidate_status_changed", desc: "候補者の選考を終了しました" },
+  };
+  if (STATUS_ACTIVITY_MAP[newStatus]) {
+    const { type, desc } = STATUS_ACTIVITY_MAP[newStatus];
+    await insertActivity(supabase, {
+      company_id: ctx.companyId,
+      actor_user_id: null,
+      type,
+      description: desc,
+      target_type: "job_application",
+      target_id: appId,
+    });
   }
 
   // ── Notify (best-effort, T2) ──────────────────────────────────────────────

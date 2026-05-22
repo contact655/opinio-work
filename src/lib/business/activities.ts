@@ -52,6 +52,8 @@ const TYPE_MAP: Record<string, ActivityType> = {
   offer:                     "offer",
   // 応募・申込
   application_received:      "application",
+  // 選考ステータス
+  candidate_status_changed:  "application",
   // その他
   profile_updated:           "message",
 };
