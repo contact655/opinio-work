@@ -470,20 +470,26 @@ const JOB_DETAIL_COLS = [
 export async function getJobs(): Promise<{ jobs: Job[]; companies: Company[] }> {
   const supabase = createClient();
 
+  // dev: 全件表示（テスト用）/ prod: 公開済みのみ（active は migration 113 適用前の互換値）
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let jobQuery: any = supabase
+    .from("ow_jobs")
+    .select(JOB_LIST_COLS)
+    .order("updated_at", { ascending: false });
+  if (process.env.NODE_ENV !== "development") {
+    jobQuery = jobQuery.in("status", ["active", "published"]);
+  }
+
   const [{ data: jobRows, error: jobErr }, { data: compRows }] = await Promise.all([
-    supabase
-      .from("ow_jobs")
-      .select(JOB_LIST_COLS)
-      .order("updated_at", { ascending: false }),
-    supabase
-      .from("ow_companies")
-      .select(COMPANY_LIST_COLS),
+    jobQuery,
+    supabase.from("ow_companies").select(COMPANY_LIST_COLS),
   ]);
 
   if (jobErr) console.error("[getJobs]", jobErr.message);
 
   const companies = (compRows ?? []).map((row) => mapCompany(row));
-  const jobs = (jobRows ?? []).map((row) => mapJob(row));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jobs = (jobRows ?? []).map((row: Record<string, any>) => mapJob(row));
 
   return { jobs, companies };
 }
