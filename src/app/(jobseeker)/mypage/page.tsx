@@ -7,6 +7,8 @@ import type {
   CasualMeetingStatus,
   MentorReservation,
   MentorReservationStatus,
+  ReceivedRequest,
+  ReceivedRequestStatus,
 } from "@/app/mypage/mockMypageData";
 import type { CareerEntry } from "@/components/profile/MergedTimeline";
 import {
@@ -340,5 +342,53 @@ export default async function MypagePage() {
     }
   }
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} mentorBookmarks={mentorBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} />;
+  // Fetch received mentor consultation requests (only when user is a mentor)
+  let receivedRequests: ReceivedRequest[] = [];
+  if (owUser?.is_mentor) {
+    const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
+    const { data: reqs } = await supabase
+      .from("ow_mentor_reservations")
+      .select("id, themes, current_situation, questions, status, scheduled_at, created_at, user:ow_users!user_id (id, name, avatar_color)")
+      .eq("mentor_user_id", owUser.id)
+      .order("created_at", { ascending: false });
+
+    if (reqs && reqs.length > 0) {
+      receivedRequests = reqs.map((r): ReceivedRequest => {
+        const requester = r.user as unknown as { id: string; name: string; avatar_color: string | null } | null;
+        const gradient = requester?.avatar_color?.startsWith("linear-gradient")
+          ? requester.avatar_color
+          : FALLBACK_GRADIENT;
+
+        const rawStatus = r.status as string;
+        const status: ReceivedRequestStatus =
+          rawStatus === "approved" ? "approved"
+          : rawStatus === "completed" ? "completed"
+          : "pending";
+
+        return {
+          id: r.id as string,
+          requester_name: requester?.name ?? "—",
+          requester_initial: requester?.name?.charAt(0) ?? "?",
+          requester_gradient: gradient,
+          requester_role: "—",
+          requester_company: "—",
+          requester_age: "—",
+          themes: (r.themes as string[] | null) ?? [],
+          preview_text:
+            (r.current_situation as string | null) ??
+            (r.questions as string | null) ??
+            "相談リクエストが届いています",
+          status,
+          resolved_at:
+            status === "completed" && r.scheduled_at
+              ? new Date(r.scheduled_at as string)
+                  .toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
+                  .replace(/\//g, ".")
+              : undefined,
+        };
+      });
+    }
+  }
+
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} mentorBookmarks={mentorBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} receivedRequests={receivedRequests} />;
 }

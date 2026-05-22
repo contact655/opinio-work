@@ -12,8 +12,6 @@ import {
   type RawEducation,
 } from "@/lib/utils/timeline";
 import {
-  MOCK_BOOKMARKS_ARTICLES,
-  MOCK_RECEIVED_REQUESTS,
   PILL_STYLES,
   STATUS_LABEL,
   STATUS_VARIANT,
@@ -555,7 +553,7 @@ function BookmarkGrid({ items }: { items: Bookmark[] }) {
 
 function BookmarksView({ companyBookmarks, jobBookmarks, mentorBookmarks }: { companyBookmarks: Bookmark[]; jobBookmarks: Bookmark[]; mentorBookmarks: Bookmark[] }) {
   const sections = [
-    { title: "記事", titleEn: "Articles", items: MOCK_BOOKMARKS_ARTICLES },
+    { title: "記事", titleEn: "Articles", items: [] as Bookmark[] },
     { title: "企業", titleEn: "Companies", items: companyBookmarks },
     { title: "求人", titleEn: "Jobs", items: jobBookmarks },
     { title: "メンター", titleEn: "Mentors", items: mentorBookmarks },
@@ -757,6 +755,7 @@ export default function MypageClient({
   mentorBookmarks,
   casualMeetings,
   mentorReservations,
+  receivedRequests: receivedRequestsProp = [],
 }: {
   owUser: OwUser;
   skillTags?: { id: string; label: string; sort_order: number }[];
@@ -773,6 +772,7 @@ export default function MypageClient({
   mentorBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
   mentorReservations: MentorReservation[];
+  receivedRequests?: ReceivedRequest[];
 }) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
@@ -786,7 +786,7 @@ export default function MypageClient({
 
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
   const { isMentor } = useMypageMock();
-  const [receivedRequests, setReceivedRequests] = useState(MOCK_RECEIVED_REQUESTS);
+  const [receivedRequests, setReceivedRequests] = useState<ReceivedRequest[]>(receivedRequestsProp);
 
   const navigate = useCallback((v: ActiveView) => {
     setActiveView(v);
@@ -802,7 +802,6 @@ export default function MypageClient({
   const pendingReceivedCount = receivedRequests.filter((r) => r.status === "pending").length;
 
   const totalBookmarks =
-    MOCK_BOOKMARKS_ARTICLES.length +
     companyBookmarks.length +
     jobBookmarks.length +
     mentorBookmarks.length;
