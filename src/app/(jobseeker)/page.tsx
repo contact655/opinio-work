@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/common";
 import HomeFaq from "@/app/HomeFaq";
 import { MOCK_ARTICLES, TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
+import { CountUp } from "@/components/jobseeker/CountUp";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -437,7 +438,9 @@ function StatsStrip() {
                 fontSize: "clamp(36px,5vw,52px)", fontWeight: 700,
                 fontFamily: "Inter, sans-serif", color: "#fff",
                 lineHeight: 1,
-              }}>{value}</span>
+              }}>
+                <CountUp to={parseInt(value, 10)} />
+              </span>
               <span style={{ fontSize: 18, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>{unit}</span>
             </div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", fontWeight: 500, letterSpacing: "0.04em" }}>
@@ -850,11 +853,50 @@ function MentorsSection() {
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
 function FinalCta() {
+  const MENTOR_AVATARS = [
+    { initial: "田", gradient: "linear-gradient(135deg, #002366, #3B5FD9)" },
+    { initial: "佐", gradient: "linear-gradient(135deg, #7C3AED, #A78BFA)" },
+    { initial: "鈴", gradient: "linear-gradient(135deg, #059669, #34D399)" },
+    { initial: "山", gradient: "linear-gradient(135deg, #D97706, #FBBF24)" },
+    { initial: "伊", gradient: "linear-gradient(135deg, #DC2626, #F87171)" },
+  ];
+
   return (
     <section style={{
       background: `linear-gradient(135deg, var(--royal-deep) 0%, var(--royal) 60%, var(--accent) 100%)`,
       padding: "96px 48px", textAlign: "center",
     }} className="px-5 py-16 md:py-24 md:px-12">
+      {/* Mentor avatar row + social proof */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 28 }}>
+        <div style={{ display: "flex", marginBottom: 12 }}>
+          {MENTOR_AVATARS.map((m, i) => (
+            <div key={i} style={{
+              width: 44, height: 44, borderRadius: "50%",
+              background: m.gradient,
+              border: "3px solid rgba(255,255,255,0.9)",
+              marginLeft: i === 0 ? 0 : -12,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontSize: 15, fontWeight: 700,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+              zIndex: MENTOR_AVATARS.length - i,
+              position: "relative",
+            }}>
+              {m.initial}
+            </div>
+          ))}
+        </div>
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "5px 14px", borderRadius: 100,
+          background: "rgba(255,255,255,0.12)",
+          border: "1px solid rgba(255,255,255,0.2)",
+          fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.85)",
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80", flexShrink: 0 }} />
+          10名のメンターが相談を受け付け中
+        </div>
+      </div>
+
       <h2 style={{
         fontSize: "clamp(28px,3.5vw,44px)", fontWeight: 700, color: "#fff",
         marginBottom: 16, fontFamily: 'var(--font-noto-serif)', lineHeight: 1.35,
@@ -873,7 +915,7 @@ function FinalCta() {
         }}>
           無料登録する <ArrowIcon />
         </Link>
-        <Link href="/career-consultation" style={{
+        <Link href="/mentors" style={{
           display: "inline-flex", alignItems: "center", gap: 8,
           padding: "16px 32px", background: "transparent", color: "#fff",
           fontWeight: 600, fontSize: 15, borderRadius: 8, textDecoration: "none",

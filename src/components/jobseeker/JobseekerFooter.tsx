@@ -1,8 +1,70 @@
 import Link from "next/link";
+import { MOCK_ARTICLES } from "@/app/articles/mockArticleData";
+
+const TYPE_LABEL: Record<string, string> = {
+  employee: "社員インタビュー",
+  mentor: "メンタートーク",
+  ceo: "代表インタビュー",
+  report: "取材レポート",
+};
 
 export function JobseekerFooter() {
+  const recentArticles = MOCK_ARTICLES.slice(0, 3);
   return (
     <footer style={{ background: "var(--ink)", color: "#fff", marginTop: "auto" }}>
+
+      {/* ── Recent articles strip ────────────────────────────────────────────── */}
+      <div style={{
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        padding: "32px 48px",
+      }} className="px-5 md:px-12">
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16, gap: 12 }}>
+            <span style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: "0.1em",
+              textTransform: "uppercase", color: "rgba(255,255,255,0.4)",
+            }}>
+              Latest Articles
+            </span>
+            <Link href="/articles" style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", textDecoration: "none" }}>
+              すべての記事 →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {recentArticles.map((article) => (
+              <Link
+                key={article.slug}
+                href={`/articles/${article.slug}`}
+                style={{
+                  display: "flex", alignItems: "flex-start", gap: 10,
+                  padding: "12px 14px",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 10, textDecoration: "none",
+                  transition: "background 0.15s, border-color 0.15s",
+                }}
+                className="footer-article-link"
+              >
+                <span style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
+                  padding: "3px 7px", borderRadius: 4, flexShrink: 0,
+                  background: "rgba(255,255,255,0.1)",
+                  color: "rgba(255,255,255,0.6)",
+                  marginTop: 2,
+                }}>
+                  {TYPE_LABEL[article.type] ?? article.type}
+                </span>
+                <span style={{
+                  fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.6,
+                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                } as React.CSSProperties}>
+                  {article.title}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* ── Main grid ────────────────────────────────────────────────────────── */}
       <div style={{
@@ -130,6 +192,7 @@ export function JobseekerFooter() {
       <style>{`
         .footer-link { color: rgba(255,255,255,0.6); }
         .footer-link:hover { color: #fff; }
+        .footer-article-link:hover { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.15) !important; }
       `}</style>
     </footer>
   );

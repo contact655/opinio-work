@@ -228,8 +228,48 @@ p, .description, .desc {
   -ms-overflow-style: none;
 }
 
+/* ── Skeleton loading ─────────────────────────────────────────────────────── */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.skeleton {
+  background: var(--line);
+  border-radius: 8px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
 /* ── autosave スピナー ── */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+
+/* ── Card hover effects ─────────────────────────────────────────────────────── */
+.company-card:hover {
+  border-color: var(--royal-100) !important;
+  box-shadow: 0 6px 24px rgba(0,35,102,0.10), 0 0 0 1px var(--royal-100) !important;
+  transform: translateY(-2px);
+}
+.mentor-card:hover {
+  border-color: var(--royal-100) !important;
+  box-shadow: 0 6px 24px rgba(0,35,102,0.10) !important;
+  transform: translateY(-2px);
+}
+.job-card-link:hover {
+  border-color: var(--royal-100) !important;
+  box-shadow: 0 6px 24px rgba(0,35,102,0.10) !important;
+  transform: translateY(-2px);
+}
+
+/* ── Job search input focus ── */
+.job-search-input:focus {
+  border-color: var(--royal) !important;
+  box-shadow: 0 0 0 3px rgba(0,35,102,0.08);
+}
+
+/* ── Mentor CTA button hover ── */
+.mentor-cta:hover {
+  background: var(--royal) !important;
+  color: #fff !important;
 }
