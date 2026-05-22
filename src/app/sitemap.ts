@@ -11,7 +11,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const { data: companies } = await supabase
     .from("ow_companies")
-    .select("id, updated_at");
+    .select("id, updated_at")
+    .eq("is_published", true);
 
   const { data: articles } = await supabase
     .from("ow_articles")

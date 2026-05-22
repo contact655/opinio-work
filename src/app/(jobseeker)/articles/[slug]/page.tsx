@@ -24,9 +24,38 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const article = await getArticleBySlug(params.slug);
   if (!article) return { title: "記事 — OPINIO" };
+
+  const typeLabel =
+    article.type === "employee" ? "社員インタビュー"
+    : article.type === "mentor" ? "メンターの声"
+    : article.type === "ceo" ? "CEO取材"
+    : "組織レポート";
+
+  const description = article.subtitle
+    ? article.subtitle
+    : `${article.company_name}の${typeLabel}。読了${article.read_min}分。IT/SaaS業界のリアルな働き方をOPINIOが取材。`;
+
+  const ogImageUrl = `/api/og?type=article&name=${encodeURIComponent(article.title)}&sub=${encodeURIComponent(article.company_name)}&badge=${encodeURIComponent(typeLabel)}`;
+
   return {
     title: `${article.title} — OPINIO`,
-    description: article.subtitle,
+    description,
+    alternates: { canonical: `/articles/${params.slug}` },
+    keywords: [article.company_name, typeLabel, "IT転職", "SaaS転職", "社員インタビュー"].filter(Boolean),
+    openGraph: {
+      title: `${article.title} — OPINIO`,
+      description,
+      type: "article",
+      url: `/articles/${params.slug}`,
+      publishedTime: article.date,
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: article.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${article.title} — OPINIO`,
+      description,
+      images: [ogImageUrl],
+    },
   };
 }
 
