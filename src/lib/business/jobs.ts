@@ -69,10 +69,13 @@ type DbJob = {
 
 // ─── Helpers ───────────────────────────────────────────
 
-const VALID_STATUSES = new Set<string>(["draft", "pending_review", "published", "rejected", "private"]);
+const VALID_STATUSES = new Set<string>(["draft", "pending_review", "published", "active", "rejected", "private"]);
 
 function toJobStatus(s: string | null): JobStatus {
-  if (s && VALID_STATUSES.has(s)) return s as JobStatus;
+  if (!s) return "draft";
+  // "active" は migration 113 適用前の旧ステータス。"published" 相当として扱う
+  if (s === "active") return "published";
+  if (VALID_STATUSES.has(s)) return s as JobStatus;
   return "draft";
 }
 
@@ -234,7 +237,7 @@ export async function fetchTeamMembers(
 ): Promise<TeamMember[]> {
   const { data: memberships, error } = await supabase
     .from("ow_company_admins")
-    .select("permission, ow_users!inner(id, name, avatar_color, avatar_initial)")
+    .select("permission, ow_users!inner(id, name, avatar_color)")
     .eq("company_id", tenantId)
     .eq("is_active", true);
 
@@ -242,13 +245,14 @@ export async function fetchTeamMembers(
 
   return memberships
     .map((m) => {
-      const u = m.ow_users as unknown as { id: string; name: string | null; avatar_color: string | null; avatar_initial: string | null } | null;
+      // avatar_initial は ow_users に存在しないため name[0] を使用
+      const u = m.ow_users as unknown as { id: string; name: string | null; avatar_color: string | null } | null;
       if (!u) return null;
       return {
         id: u.id,
         name: u.name ?? "ユーザー",
         gradient: u.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))",
-        initial: u.avatar_initial ?? (u.name?.[0] ?? "U"),
+        initial: u.name?.[0] ?? "U",
         role: m.permission === "admin" ? "Admin · 採用管理者" : "採用担当",
       };
     })
