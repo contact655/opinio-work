@@ -13,45 +13,63 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🎯 次のセッションでやること
+## 🎯 次のセッションでやること（2026-05-22 更新）
 
-Phase 4（Supabase 本番接続）が **完全完了（2026-04-27）**。次は以下の中から選択:
+### ⚠️ 柴さんに手動実行を依頼: Migration 113
+```sql
+UPDATE ow_jobs SET status = 'published' WHERE status = 'active';
+```
+現在 DB 内の全30件が旧ステータス "active"。UI 表示は `toJobStatus()` で吸収済みだが、
+本来は "published" に統一すべき。コードは対応済み（`normalizedStatus()`, `IN('active','published')`）。
 
 ### ✅ 完了: Phase ε — Supabase MCP 接続 read-only（2026-05-02）
-`.mcp.json` を追加。次回セッション起動時に OAuth 認証フローが走り、
-`supabase` MCP サーバー経由で DB 調査が可能になる（書き込み禁止）。
-
-### ✅ 完了: photos + logo の Supabase Storage 接続
-詳細計画 `docs/plans/photos-storage-integration.md` の通り実装、
-2026-04-27 に commit d7ce53a で本番リリース完了。
-
+### ✅ 完了: photos + logo の Supabase Storage 接続（2026-04-27）
 ### ✅ 完了: dashboard placeholder 解消（2026-04-27）
-詳細計画 `docs/plans/dashboard-activitylist.md` の通り実装、
-commit c1663a4 で本番リリース完了。
-- ActivityList: 5 イベント記録（company_info_updated, job_published, job_updated, meeting_scheduled, meeting_completed）
-- TeamMembers: ow_company_admins JOIN ow_users で実データ表示
-- PendingMeetings: 既存 fetcher + adapter で接続
-- MatchCandidates: 設計通り意図的に空（数値データ撤廃方針）
+### ✅ 完了: Phase 5 Stage 2 — 認証フロー（実装済み確認 2026-05-22）
+  - `/auth` signup/login → `/auth/callback` → `/onboarding` → `/companies`
+  - パスワードリセット: `/auth/reset-password` + `/auth/update-password`
+  - ow_profiles.onboarding_completed でフロー制御
 
-### 🟢 推奨 1: Phase 5 Stage 2 — 認証フロー強化（2〜3 時間）
-- メール認証後の onboarding フロー実装
-- パスワードリセット完全実装
-- OAuth プロバイダー追加（Google 等）の検討
+### ✅ 完了: /biz/members チーム管理画面（実装済み確認 2026-05-22）
+  - MembersClient.tsx (1442行) + members.ts + /api/biz/members/invite 招待フロー
+  - /biz/auth/accept-invite 招待受諾ページ
 
-### 🟢 推奨 2: /biz/members チーム管理画面（2〜3 時間）
-- migration 037 で整った RLS 基盤（auth_is_company_member/admin）を活用
-- ow_company_admins の admin/member 管理 UI
-- 招待フロー含む
+### ✅ 完了: /biz/meetings カジュアル面談管理（実装済み確認 2026-05-22）
+  - MeetingsClient.tsx + meetings.ts + /api/biz/meetings/[id] PATCH
+  - ステータス変更・担当者アサイン・社内メモ保存 完備
 
-### 🟢 中期: ActivityList 残り 5 イベントの追加実装
-- casual_meeting_applied: 候補者側申込フロー（ow_threads → ow_casual_meetings 移行）が必要
-- offer_sent: ow_offers テーブル + API 実装が必要
-- message_sent / message_received: 候補者向けメッセージ機能の実装が必要
-- candidate_status_changed: 候補者ステータス管理機能の実装が必要
-- **各機能を実装する時に insertActivity を追加するだけで dashboard に自動表示される**
+### ✅ 完了: /biz/jobs 求人管理（実装済み確認 2026-05-22）
+  - JobsClient.tsx + jobs.ts + /api/biz/jobs/[id] PATCH + /biz/jobs/new + /biz/jobs/[id]/edit
+  - 公開申請（pending_review）フロー完備
 
-### 🟢 中期: 求職者側 royal blue 統一（Phase 6、数セッション）
-- /companies, /jobs, /mentors, /articles, /mypage 等のデザイン統一
+### ✅ 完了 2026-05-22: admin/jobs/[id] 詳細・審査ページ
+  - 求人全文表示 + 承認/差し戻し/非公開化 アクション
+
+### ✅ 完了 2026-05-22: admin dashboard バグ修正
+  - ow_companies.status（存在しないカラム）→ is_published に修正
+  - 求人カウント: `"active"` のみ → `IN('active','published')` に修正
+  - 「企業審査待ち」（概念なし）→「求人審査待ち」+ 正しいリンク
+
+### ✅ 完了 2026-05-22: mypage mock解消
+  - MOCK_BOOKMARKS_ARTICLES → []（ow_articles テーブル未存在のため空）
+  - MOCK_RECEIVED_REQUESTS → ow_mentor_reservations.mentor_user_id から実データ取得
+  - MOCK_USER.currentRole → 実 CareerEntry から動的生成
+
+### 🟢 次の優先候補
+- **ActivityList 残り 5 イベント** (casual_meeting_applied/offer_sent 等) — 機能実装時に add
+- **ow_articles テーブル作成** — 記事コンテンツを DB 管理したい場合
+- **/biz/conversations 詳細** — 既存 API があるが UI が薄い可能性
+- **求職者側 royal blue デザイン統一**（Phase 6）
+
+### DB 現状（2026-05-22 確認）
+| テーブル | 件数 | 備考 |
+|---------|------|------|
+| ow_companies | 36件 | 31件公開、全件 accepting_casual_meetings=true |
+| ow_jobs | 30件 | 全件 status="active"（Migration 113 待ち） |
+| ow_mentors | 10件 | 全件 is_available=true |
+| ow_users | 23件+ | ow_profiles 20件 |
+| ow_casual_meetings | 0件 | 申込データなし |
+| ow_mentor_reservations | 0件 | 予約データなし |
 
 ---
 
@@ -512,8 +530,8 @@ src/app/companies/mockCompanies.ts(219,31): error TS2802
 | 企業側ログイン | `/biz/auth` | ✅ 実装済み |
 | ダッシュボード | `/biz/dashboard` | ✅ **実データ完全接続（2026-04-27）** |
 | 企業情報編集 | `/biz/company` | ✅ **READ + WRITE + Storage（photos + logo）完了** |
-| カジュアル面談管理 | `/biz/meetings` | 未着手 |
-| 求人管理 | `/biz/jobs` | 未着手 |
+| カジュアル面談管理 | `/biz/meetings` | ✅ **Supabase 接続完了** |
+| 求人管理 | `/biz/jobs` | ✅ **Supabase 接続完了** |
 | 分析 | `/biz/analytics` | 未着手 |
 
 ### /biz/company Supabase接続 詳細（2026-04-27 完了）
@@ -635,16 +653,18 @@ INSERT パターン（best-effort）:
 
 ---
 
-## コミット履歴（直近）
+## コミット履歴（直近 — 2026-05-22）
 
 ```
+d44e3f3  fix(admin/dashboard): correct stats queries and company status display
+da94ab6  feat(admin/jobs): add [id] detail page for job review workflow
+bdfa8f7  fix(mypage): replace MOCK_BOOKMARKS_ARTICLES and MOCK_RECEIVED_REQUESTS with real data
+d060965  fix(mypage): pass currentRole from real career data to DashboardView
+e555cd0  fix(queries): filter ow_jobs by published status in production
+fad589c  fix(admin/companies): use is_published boolean instead of non-existent status column
+205acb2  fix(admin/jobs): rewrite with correct status values and rejection flow
+04c0c23  fix(queries): unify work_style label mapping and deduplicate WORK_STYLE_LABELS
+f9d9a7f  fix(jobs): correct double-万 salary display and Japanese work-style labels
 c1663a4  feat(dashboard): AL-2 — insert ow_activities from 4 API routes (5 events)
 6b9789a  feat(dashboard): AL-1 — wire PendingMeetings, ActivityList, TeamMembers to Supabase
-ede624b  docs(plans): add dashboard ActivityList integration plan
-f8ce827  docs: Phase 4 fully complete - photos + logo Storage integrated
-d7ce53a  feat(biz/company): full Storage integration for photos + logo
-fb29c4f  feat(api): photos CRUD endpoints for /biz/company
-be66ebe  feat(rls): migration 038 - office photos category fix + WITH CHECK
-a576684  fix(rls): resolve ow_company_admins infinite recursion (Bug 3)
-e45d7c6  feat(biz/company): Phase 4 S5 - production READ/WRITE via Supabase
 ```
