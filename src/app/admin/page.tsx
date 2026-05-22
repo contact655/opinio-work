@@ -4,12 +4,13 @@ import Link from "next/link";
 async function getStats() {
   const supabase = createClient();
 
-  const [users, activeCompanies, activeJobs, pendingCompanies, pendingMeetings, pendingReservations] =
+  const [users, activeCompanies, activeJobs, pendingJobs, pendingMeetings, pendingReservations] =
     await Promise.all([
       supabase.from("ow_users").select("id", { count: "exact", head: true }),
       supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
-      supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "active"),
-      supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      // "active" = migration 113 適用前の旧ステータス（"published" 相当）
+      supabase.from("ow_jobs").select("id", { count: "exact", head: true }).in("status", ["active", "published"]),
+      supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
       supabase.from("ow_casual_meetings").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("ow_mentor_reservations").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
     ]);
@@ -24,7 +25,7 @@ async function getStats() {
   // Recent companies
   const { data: recentCompanies } = await supabase
     .from("ow_companies")
-    .select("id, name, industry, status, created_at")
+    .select("id, name, industry, is_published, created_at")
     .order("created_at", { ascending: false })
     .limit(5);
 
@@ -32,7 +33,7 @@ async function getStats() {
     usersCount: users.count ?? 0,
     activeCompaniesCount: activeCompanies.count ?? 0,
     activeJobsCount: activeJobs.count ?? 0,
-    pendingCompaniesCount: pendingCompanies.count ?? 0,
+    pendingJobsCount: pendingJobs.count ?? 0,
     pendingMeetingsCount: pendingMeetings.count ?? 0,
     pendingReservationsCount: pendingReservations.count ?? 0,
     recentUsers: recentUsers ?? [],
@@ -67,17 +68,17 @@ export default async function AdminDashboard() {
         <div className="bg-white rounded-card p-5 border border-card-border">
           <h2 className="text-sm font-bold mb-4">要対応タスク</h2>
           <div className="space-y-2">
-            {stats.pendingCompaniesCount > 0 && (
-              <Link href="/admin/companies" className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-100 hover:bg-yellow-100 transition-colors">
+            {stats.pendingJobsCount > 0 && (
+              <Link href="/admin/jobs" className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-100 hover:bg-yellow-100 transition-colors">
                 <span className="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-yellow-700">企業審査待ち</p>
-                  <p className="text-xs text-yellow-600">{stats.pendingCompaniesCount}社の審査が必要</p>
+                  <p className="text-sm font-medium text-yellow-700">求人審査待ち</p>
+                  <p className="text-xs text-yellow-600">{stats.pendingJobsCount}件の求人審査が必要</p>
                 </div>
               </Link>
             )}
             {stats.pendingMeetingsCount > 0 && (
-              <Link href="/admin/companies" className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors">
+              <Link href="/admin/candidates" className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors">
                 <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-blue-700">カジュアル面談 申込待ち</p>
@@ -94,7 +95,7 @@ export default async function AdminDashboard() {
                 </div>
               </Link>
             )}
-            {stats.pendingCompaniesCount === 0 && stats.pendingMeetingsCount === 0 && stats.pendingReservationsCount === 0 && (
+            {stats.pendingJobsCount === 0 && stats.pendingMeetingsCount === 0 && stats.pendingReservationsCount === 0 && (
               <p className="text-sm text-gray-400 text-center py-4">対応が必要なタスクはありません</p>
             )}
           </div>
@@ -155,10 +156,8 @@ export default async function AdminDashboard() {
                   <td className="py-2.5 text-gray-500">{c.industry || "-"}</td>
                   <td className="py-2.5">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      c.status === "active" ? "bg-green-100 text-green-700" :
-                      c.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                      "bg-red-100 text-red-700"
-                    }`}>{c.status === "active" ? "承認済" : c.status === "pending" ? "審査中" : "却下"}</span>
+                      c.is_published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                    }`}>{c.is_published ? "公開中" : "非公開"}</span>
                   </td>
                   <td className="py-2.5 text-gray-400">{new Date(c.created_at).toLocaleDateString("ja-JP")}</td>
                 </tr>
