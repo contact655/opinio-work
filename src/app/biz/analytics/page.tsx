@@ -1,118 +1,96 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
-import { getTenantContext } from "@/lib/business/dashboard";
+import { getTenantContext, getMonthlyStats, getJobPerformance, getTodoCounts } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import {
+  BarChart2, Users, Briefcase, MessageSquare, TrendingUp, TrendingDown,
+  Eye, ClipboardList, AlertCircle, CheckCircle2, Minus,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "分析 | OPINIO Business" };
 
-// ─── データ取得 ────────────────────────────────────────────────────────────────
+// ─── 6ヶ月 monthly stats 取得 ───────────────────────────────────────────────
 
-async function fetchAnalyticsData(supabase: ReturnType<typeof createClient>, companyId: string) {
-  const [
-    { data: jobs },
-    { data: meetings },
-    { data: activities },
-    { data: company },
-    { data: members },
-  ] = await Promise.all([
-    supabase
-      .from("ow_jobs")
-      .select("id, status, published_at, updated_at")
-      .eq("company_id", companyId),
-    supabase
-      .from("ow_casual_meetings")
-      .select("id, status, created_at")
-      .eq("company_id", companyId)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("ow_activities")
-      .select("id, type, description, created_at")
-      .eq("company_id", companyId)
-      .order("created_at", { ascending: false })
-      .limit(30),
-    supabase
-      .from("ow_companies")
-      .select("name, is_published, accepting_casual_meetings, fit_positives, fit_negatives, why_join, mission, tagline, description")
-      .eq("id", companyId)
-      .maybeSingle(),
-    supabase
-      .from("ow_company_admins")
-      .select("id")
-      .eq("company_id", companyId),
-  ]);
-
-  // ── 求人集計 ──
-  const allJobs = jobs ?? [];
-  const jobCounts = {
-    total: allJobs.length,
-    published: allJobs.filter((j) => j.status === "published").length,
-    pending_review: allJobs.filter((j) => j.status === "pending_review").length,
-    draft: allJobs.filter((j) => j.status === "draft").length,
-    private: allJobs.filter((j) => j.status === "private").length,
-    rejected: allJobs.filter((j) => j.status === "rejected").length,
-  };
-
-  // ── 面談集計 ──
-  const allMeetings = meetings ?? [];
-  const meetingCounts = {
-    total: allMeetings.length,
-    pending: allMeetings.filter((m) => m.status === "pending").length,
-    company_contacted: allMeetings.filter((m) => m.status === "company_contacted").length,
-    scheduled: allMeetings.filter((m) => m.status === "scheduled").length,
-    completed: allMeetings.filter((m) => m.status === "completed").length,
-    declined: allMeetings.filter((m) => m.status === "declined").length,
-  };
-
-  // ── 月次面談数（直近6ヶ月）──
+async function fetchSixMonthStats(supabase: ReturnType<typeof createClient>, tenantId: string) {
   const now = new Date();
-  const monthlyMeetings = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-    const label = `${d.getMonth() + 1}月`;
-    const count = allMeetings.filter((m) => {
-      const c = new Date(m.created_at as string);
-      return c.getFullYear() === d.getFullYear() && c.getMonth() === d.getMonth();
-    }).length;
-    return { label, count };
+  const months: string[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(d.toISOString().slice(0, 10));
+  }
+  const { data } = await supabase
+    .from("ow_business_monthly_stats")
+    .select("month, applications, scouts, interviews, offers")
+    .eq("tenant_id", tenantId)
+    .in("month", months);
+
+  return months.map((m) => {
+    const row = (data ?? []).find((r: Record<string, unknown>) => r.month === m);
+    const date = new Date(m);
+    return {
+      label: `${date.getMonth() + 1}月`,
+      applications: (row?.applications as number) ?? 0,
+      scouts: (row?.scouts as number) ?? 0,
+      interviews: (row?.interviews as number) ?? 0,
+      offers: (row?.offers as number) ?? 0,
+    };
   });
+}
 
-  // ── プロフィール完成度 ──
-  const c = company;
-  const profileFields = [
-    !!c?.mission,
-    !!c?.tagline,
-    !!c?.description,
-    !!c?.why_join,
-    !!c?.fit_positives,
-    !!c?.fit_negatives,
-  ];
-  const profileScore = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
+// ─── 面談ファネル ─────────────────────────────────────────────────────────────
 
-  // ── 面談転換率 ──
-  const conversionRate = meetingCounts.total > 0
-    ? Math.round((meetingCounts.completed / meetingCounts.total) * 100)
-    : 0;
+async function fetchMeetingFunnel(supabase: ReturnType<typeof createClient>, tenantId: string) {
+  const { data } = await supabase
+    .from("ow_casual_meetings")
+    .select("id, status, created_at")
+    .eq("company_id", tenantId);
 
+  const all = data ?? [];
   return {
-    jobCounts,
-    meetingCounts,
-    monthlyMeetings,
-    profileScore,
-    conversionRate,
-    activities: activities ?? [],
-    memberCount: (members ?? []).length,
-    isPublished: !!c?.is_published,
-    acceptingMeetings: !!c?.accepting_casual_meetings,
+    total: all.length,
+    pending: all.filter((m) => m.status === "pending").length,
+    company_contacted: all.filter((m) => m.status === "company_contacted").length,
+    scheduled: all.filter((m) => m.status === "scheduled").length,
+    completed: all.filter((m) => m.status === "completed").length,
+    declined: all.filter((m) => m.status === "declined").length,
   };
+}
+
+// ─── プロフィール完成度 ───────────────────────────────────────────────────────
+
+async function fetchCompanyProfile(supabase: ReturnType<typeof createClient>, tenantId: string) {
+  const { data } = await supabase
+    .from("ow_companies")
+    .select("mission, tagline, description, why_join, fit_positives, is_published, accepting_casual_meetings")
+    .eq("id", tenantId)
+    .maybeSingle();
+  const fields = [data?.mission, data?.tagline, data?.description, data?.why_join, data?.fit_positives];
+  const score = Math.round((fields.filter(Boolean).length / fields.length) * 100);
+  return { score, isPublished: !!data?.is_published, acceptingMeetings: !!data?.accepting_casual_meetings };
+}
+
+// ─── アクティビティログ ───────────────────────────────────────────────────────
+
+async function fetchRecentActivities(supabase: ReturnType<typeof createClient>, tenantId: string) {
+  const { data } = await supabase
+    .from("ow_activities")
+    .select("id, type, description, created_at")
+    .eq("company_id", tenantId)
+    .order("created_at", { ascending: false })
+    .limit(8);
+  return data ?? [];
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function KpiCard({
-  label, value, sub, color = "var(--royal)", icon,
+  label, value, sub, delta, color = "var(--royal)", icon,
 }: {
-  label: string; value: string | number; sub?: string;
+  label: string; value: string | number; sub?: string; delta?: number;
   color?: string; icon: React.ReactNode;
 }) {
+  const showDelta = delta !== undefined && delta !== 0;
+  const up = (delta ?? 0) > 0;
   return (
     <div style={{
       background: "#fff", border: "1px solid var(--line)",
@@ -134,7 +112,16 @@ function KpiCard({
         {value}
       </div>
       <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginTop: 4 }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{sub}</div>}
+      {showDelta && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 4,
+          fontSize: 11, color: up ? "var(--success)" : "var(--error)", fontWeight: 600,
+        }}>
+          {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+          {up ? "+" : ""}{delta} 先月比
+        </div>
+      )}
+      {!showDelta && sub && <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{sub}</div>}
     </div>
   );
 }
@@ -142,10 +129,10 @@ function KpiCard({
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2 style={{
-      fontFamily: "var(--font-noto-serif)",
-      fontSize: 15, fontWeight: 600, color: "var(--ink)",
+      fontSize: 14, fontWeight: 700, color: "var(--ink)",
       marginBottom: 14, paddingBottom: 10,
       borderBottom: "1px solid var(--line)",
+      display: "flex", alignItems: "center", gap: 8,
     }}>
       {children}
     </h2>
@@ -156,43 +143,86 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
     <div style={{ height: 6, background: "var(--line)", borderRadius: 4, overflow: "hidden" }}>
-      <div style={{
-        height: "100%", width: `${pct}%`,
-        background: color, borderRadius: 4,
-        transition: "width 0.4s ease",
-      }} />
+      <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 4 }} />
     </div>
   );
 }
 
-type MonthData = { label: string; count: number };
+type MonthRow = { label: string; applications: number; scouts: number; interviews: number; offers: number };
 
-function BarChart({ data }: { data: MonthData[] }) {
-  const max = Math.max(...data.map((d) => d.count), 1);
+function MultiBarChart({ data }: { data: MonthRow[] }) {
+  const max = Math.max(...data.flatMap((d) => [d.applications, d.scouts, d.interviews]), 1);
+  const series = [
+    { key: "applications" as const, label: "応募", color: "var(--royal)" },
+    { key: "scouts" as const, label: "スカウト", color: "var(--accent)" },
+    { key: "interviews" as const, label: "面談", color: "var(--purple)" },
+  ];
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 120 }}>
-      {data.map((d) => {
-        const pct = (d.count / max) * 100;
-        return (
+    <div>
+      {/* Legend */}
+      <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
+        {series.map((s) => (
+          <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>{s.label}</span>
+          </div>
+        ))}
+      </div>
+      {/* Chart */}
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120 }}>
+        {data.map((d) => (
           <div key={d.label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <div style={{ fontSize: 10, fontFamily: "Inter, sans-serif", color: "var(--ink-mute)", fontWeight: 700 }}>
-              {d.count > 0 ? d.count : ""}
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 2, width: "100%", height: 100, justifyContent: "center" }}>
+              {series.map((s) => {
+                const v = d[s.key];
+                const h = Math.max((v / max) * 100, v > 0 ? 6 : 1);
+                return (
+                  <div key={s.key} title={`${s.label}: ${v}`} style={{
+                    flex: 1, borderRadius: "3px 3px 0 0",
+                    height: `${h}%`, background: v > 0 ? s.color : "var(--line-soft)",
+                  }} />
+                );
+              })}
             </div>
-            <div style={{
-              width: "100%", borderRadius: "4px 4px 0 0",
-              height: `${Math.max(pct, d.count > 0 ? 8 : 2)}%`,
-              background: d.count > 0 ? "var(--royal)" : "var(--line)",
-              transition: "height 0.4s ease",
-            }} />
             <div style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{d.label}</div>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+function StatusBadge({ status }: { status: string | null }) {
+  const map: Record<string, { label: string; bg: string; color: string }> = {
+    published: { label: "公開中", bg: "var(--success-soft)", color: "var(--success)" },
+    pending_review: { label: "審査中", bg: "var(--warm-soft)", color: "var(--warm)" },
+    draft: { label: "下書き", bg: "var(--line-soft)", color: "var(--ink-mute)" },
+    private: { label: "非公開", bg: "var(--line-soft)", color: "var(--ink-mute)" },
+    rejected: { label: "差戻し", bg: "var(--error-soft)", color: "var(--error)" },
+  };
+  const s = map[status ?? ""] ?? { label: status ?? "—", bg: "var(--line-soft)", color: "var(--ink-mute)" };
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 5,
+      background: s.bg, color: s.color,
+    }}>
+      {s.label}
+    </span>
+  );
+}
+
+function formatRelative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3_600_000);
+  if (h < 1) return "今";
+  if (h < 24) return `${h}h前`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "昨日";
+  if (d < 7) return `${d}日前`;
+  return `${Math.floor(d / 7)}週間前`;
+}
+
+// ─── No-tenant fallback ───────────────────────────────────────────────────────
 
 async function NoTenantPage() {
   const supabase = createClient();
@@ -207,38 +237,39 @@ async function NoTenantPage() {
   );
 }
 
-export default async function BizAnalyticsPage() {
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function AnalyticsPage() {
   const ctx = await getTenantContext();
   if (!ctx) return <NoTenantPage />;
 
   const supabase = createClient();
-  const data = await fetchAnalyticsData(supabase, ctx.tenantId);
+  const tenantId = ctx.tenantId;
 
-  const {
-    jobCounts, meetingCounts, monthlyMeetings,
-    profileScore, conversionRate, activities,
-    memberCount, isPublished, acceptingMeetings,
-  } = data;
+  // 並列フェッチ
+  const [monthly, sixMonth, jobPerf, todos, meetings, profile] = await Promise.all([
+    getMonthlyStats(tenantId),
+    fetchSixMonthStats(supabase, tenantId),
+    getJobPerformance(tenantId, 15),
+    getTodoCounts(tenantId),
+    fetchMeetingFunnel(supabase, tenantId),
+    fetchCompanyProfile(supabase, tenantId),
+  ]);
+  const activities = await fetchRecentActivities(supabase, tenantId);
 
-  const ACTIVITY_TYPE_LABELS: Record<string, string> = {
-    job_published: "求人公開",
-    job_updated: "求人更新",
-    company_info_updated: "企業情報更新",
-    meeting_scheduled: "面談確定",
-    meeting_completed: "面談完了",
-    casual_meeting_applied: "面談申込",
-    offer_sent: "オファー送信",
+  const { current: cur, delta } = monthly;
+
+  // 求人ステータス集計 (jobPerf より)
+  const jobStats = {
+    total: jobPerf.length,
+    published: jobPerf.filter((j) => j.status === "published").length,
+    pending: jobPerf.filter((j) => j.status === "pending_review").length,
+    draft: jobPerf.filter((j) => j.status === "draft").length,
   };
 
-  const ACTIVITY_COLORS: Record<string, string> = {
-    job_published: "var(--success)",
-    job_updated: "var(--success)",
-    company_info_updated: "var(--accent)",
-    meeting_scheduled: "var(--purple)",
-    meeting_completed: "var(--purple)",
-    casual_meeting_applied: "var(--warm)",
-    offer_sent: "var(--royal)",
-  };
+  const conversionRate = meetings.total > 0
+    ? Math.round((meetings.completed / meetings.total) * 100)
+    : 0;
 
   return (
     <BusinessLayout
@@ -247,198 +278,284 @@ export default async function BizAnalyticsPage() {
       tenantLogoGradient={ctx.logoGradient}
       tenantLogoLetter={ctx.logoLetter}
       memberships={ctx.allCompanies}
-      currentTenantId={ctx.tenantId}
+      currentTenantId={tenantId}
     >
-      {/* ページヘッダー */}
-      <div style={{ marginBottom: 28 }}>
+      {/* ── ヘッダー ── */}
+      <div style={{ marginBottom: 24 }}>
         <h1 style={{
-          fontFamily: "var(--font-noto-serif)",
-          fontSize: 26, fontWeight: 500, color: "var(--ink)",
-          letterSpacing: "0.02em", marginBottom: 6,
+          fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 4,
+          display: "flex", alignItems: "center", gap: 10,
         }}>
-          分析
+          <BarChart2 size={20} color="var(--royal)" strokeWidth={2.2} />
+          採用分析
         </h1>
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-          求人・面談・プロフィールのパフォーマンスをまとめて確認できます。
+        <p style={{ fontSize: 13, color: "var(--ink-mute)" }}>
+          当月の採用活動サマリーと求人パフォーマンスを確認できます
         </p>
       </div>
 
-      {/* ── KPI カード ── */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-        gap: 14, marginBottom: 28,
-      }}>
-        <KpiCard
-          label="掲載求人"
-          value={jobCounts.published}
-          sub={`全${jobCounts.total}件`}
-          color="var(--success)"
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>}
-        />
-        <KpiCard
-          label="面談申込"
-          value={meetingCounts.total}
-          sub={`完了 ${meetingCounts.completed}件`}
-          color="var(--warm)"
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>}
-        />
-        <KpiCard
-          label="面談転換率"
-          value={`${conversionRate}%`}
-          sub="申込→完了"
-          color="var(--purple)"
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>}
-        />
-        <KpiCard
-          label="チームメンバー"
-          value={memberCount}
-          color="var(--royal)"
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
-        />
-        <KpiCard
-          label="プロフィール完成度"
-          value={`${profileScore}%`}
-          sub={profileScore >= 80 ? "良好" : "改善余地あり"}
-          color={profileScore >= 80 ? "var(--success)" : "var(--warm)"}
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}
-        />
-        <KpiCard
-          label="ステータス"
-          value={isPublished ? "公開中" : "非公開"}
-          sub={acceptingMeetings ? "面談受付中" : "面談停止中"}
-          color={isPublished ? "var(--success)" : "var(--ink-mute)"}
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-        />
+      {/* ── Todoアラート ── */}
+      {(todos.reply_overdue > 0 || todos.new_applications > 0 || todos.interviews_today > 0) && (
+        <div style={{
+          background: "var(--warm-soft)",
+          border: "1px solid #FDE68A",
+          borderRadius: 10,
+          padding: "12px 16px",
+          display: "flex", flexWrap: "wrap", gap: 16,
+          marginBottom: 24,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#92400E", fontWeight: 600 }}>
+            <AlertCircle size={14} />
+            対応が必要な項目
+          </div>
+          {todos.reply_overdue > 0 && (
+            <span style={{ fontSize: 12, color: "#92400E" }}>返信遅延: <strong>{todos.reply_overdue}件</strong></span>
+          )}
+          {todos.new_applications > 0 && (
+            <span style={{ fontSize: 12, color: "#92400E" }}>新規応募: <strong>{todos.new_applications}件</strong></span>
+          )}
+          {todos.interviews_today > 0 && (
+            <span style={{ fontSize: 12, color: "#92400E" }}>本日面談: <strong>{todos.interviews_today}件</strong></span>
+          )}
+        </div>
+      )}
+
+      {/* ── KPI カード（当月） ── */}
+      <div style={{ marginBottom: 28 }}>
+        <SectionTitle><TrendingUp size={14} color="var(--royal)" /> 当月サマリー</SectionTitle>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+          gap: 14,
+        }}>
+          <KpiCard
+            label="応募数" value={cur.applications} delta={delta.applications}
+            color="var(--royal)" icon={<ClipboardList size={16} />}
+          />
+          <KpiCard
+            label="スカウト" value={cur.scouts} delta={delta.scouts}
+            color="var(--accent)" icon={<Users size={16} />}
+          />
+          <KpiCard
+            label="面談実施" value={cur.interviews} delta={delta.interviews}
+            color="var(--purple)" icon={<MessageSquare size={16} />}
+          />
+          <KpiCard
+            label="オファー" value={cur.offers} delta={delta.offers}
+            color="var(--success)" icon={<CheckCircle2 size={16} />}
+          />
+          <KpiCard
+            label="公開求人" value={jobStats.published}
+            sub={`全${jobStats.total}件中`}
+            color="var(--royal)" icon={<Briefcase size={16} />}
+          />
+          <KpiCard
+            label="面談転換率" value={`${conversionRate}%`}
+            sub={`完了 ${meetings.completed} / 申込 ${meetings.total}`}
+            color="var(--warm)" icon={<TrendingUp size={16} />}
+          />
+        </div>
       </div>
 
-      {/* ── 2カラム ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+      {/* ── 2カラム: 求人ステータス + 面談ファネル ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
 
-        {/* 求人ステータス内訳 */}
-        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "22px 24px" }}>
-          <SectionTitle>求人ステータス</SectionTitle>
-          {jobCounts.total === 0 ? (
-            <div style={{ textAlign: "center", padding: "28px 0", color: "var(--ink-mute)", fontSize: 13 }}>
-              求人が登録されていません
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {[
-                { label: "公開中", count: jobCounts.published, color: "var(--success)" },
-                { label: "審査申請中", count: jobCounts.pending_review, color: "var(--warm)" },
-                { label: "下書き", count: jobCounts.draft, color: "var(--ink-mute)" },
-                { label: "非公開", count: jobCounts.private, color: "var(--accent)" },
-                { label: "却下", count: jobCounts.rejected, color: "var(--error)" },
-              ].filter((s) => s.count > 0).map((s) => (
-                <div key={s.label}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                    <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>{s.label}</span>
-                    <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 700, color: s.color }}>
-                      {s.count}件
-                    </span>
-                  </div>
-                  <ProgressBar value={s.count} max={jobCounts.total} color={s.color} />
+        {/* 求人ステータス */}
+        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "20px 22px" }}>
+          <SectionTitle><Briefcase size={14} color="var(--royal)" /> 求人ステータス</SectionTitle>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {[
+              { label: "公開中", count: jobStats.published, total: jobStats.total, color: "var(--success)" },
+              { label: "審査中", count: jobStats.pending, total: jobStats.total, color: "var(--warm)" },
+              { label: "下書き", count: jobStats.draft, total: jobStats.total, color: "var(--ink-mute)" },
+            ].map((row) => (
+              <div key={row.label}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{row.label}</span>
+                  <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--ink)" }}>
+                    {row.count}<span style={{ fontSize: 10, fontWeight: 400, color: "var(--ink-mute)" }}> / {row.total}</span>
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
+                <ProgressBar value={row.count} max={Math.max(row.total, 1)} color={row.color} />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* 面談ファネル */}
-        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "22px 24px" }}>
-          <SectionTitle>面談ファネル</SectionTitle>
-          {meetingCounts.total === 0 ? (
-            <div style={{ textAlign: "center", padding: "28px 0", color: "var(--ink-mute)", fontSize: 13 }}>
-              面談申込はまだありません
+        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "20px 22px" }}>
+          <SectionTitle><MessageSquare size={14} color="var(--royal)" /> カジュアル面談ファネル</SectionTitle>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {[
+              { label: "申込（pending）", count: meetings.pending, color: "var(--warm)" },
+              { label: "連絡済み", count: meetings.company_contacted, color: "var(--accent)" },
+              { label: "日程確定", count: meetings.scheduled, color: "var(--purple)" },
+              { label: "完了", count: meetings.completed, color: "var(--success)" },
+              { label: "辞退", count: meetings.declined, color: "var(--error)" },
+            ].map((row) => (
+              <div key={row.label}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{row.label}</span>
+                  <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--ink)" }}>{row.count}</span>
+                </div>
+                <ProgressBar value={row.count} max={Math.max(meetings.total, 1)} color={row.color} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 6ヶ月バーチャート ── */}
+      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "20px 22px", marginBottom: 28 }}>
+        <SectionTitle><BarChart2 size={14} color="var(--royal)" /> 月次推移（直近6ヶ月）</SectionTitle>
+        <MultiBarChart data={sixMonth} />
+      </div>
+
+      {/* ── 求人パフォーマンス ── */}
+      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "20px 22px", marginBottom: 28 }}>
+        <SectionTitle><Eye size={14} color="var(--royal)" /> 求人パフォーマンス</SectionTitle>
+        {jobPerf.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "24px 0", color: "var(--ink-mute)", fontSize: 13 }}>
+            求人データがまだありません
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--line)" }}>
+                  {["求人タイトル", "ステータス", "閲覧数", "応募数", "転換率"].map((h) => (
+                    <th key={h} style={{
+                      padding: "8px 12px", textAlign: "left",
+                      fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
+                      whiteSpace: "nowrap",
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {jobPerf.map((j) => (
+                  <tr key={j.job_id} style={{ borderBottom: "1px solid var(--line-soft)" }}>
+                    <td style={{ padding: "10px 12px", fontWeight: 500, color: "var(--ink)", maxWidth: 240 }}>
+                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {j.title}
+                      </div>
+                      {j.isUnderperforming && (
+                        <div style={{ fontSize: 10, color: "var(--error)", marginTop: 2 }}>
+                          ⚠ 転換率が業界平均を下回っています
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: "10px 12px" }}><StatusBadge status={j.status} /></td>
+                    <td style={{ padding: "10px 12px", fontFamily: "Inter, sans-serif", color: "var(--ink-soft)", textAlign: "right" }}>
+                      {j.view_count.toLocaleString()}
+                    </td>
+                    <td style={{ padding: "10px 12px", fontFamily: "Inter, sans-serif", color: "var(--ink-soft)", textAlign: "right" }}>
+                      {j.application_count}
+                    </td>
+                    <td style={{ padding: "10px 12px", textAlign: "right" }}>
+                      <span style={{
+                        fontFamily: "Inter, sans-serif", fontWeight: 700,
+                        color: j.isUnderperforming ? "var(--error)" : j.conversion_rate_pct >= 5 ? "var(--success)" : "var(--ink)",
+                      }}>
+                        {j.conversion_rate_pct.toFixed(1)}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── プロフィール完成度 + アクティビティ ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+
+        {/* プロフィール完成度 */}
+        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "20px 22px" }}>
+          <SectionTitle>企業プロフィール充実度</SectionTitle>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+            <div style={{
+              width: 60, height: 60, borderRadius: "50%",
+              background: `conic-gradient(var(--royal) ${profile.score * 3.6}deg, var(--line) 0)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <div style={{
+                width: 46, height: 46, borderRadius: "50%", background: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 14, color: "var(--royal)",
+              }}>
+                {profile.score}%
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 4 }}>
+                {profile.score >= 80 ? "充実しています" : profile.score >= 50 ? "もう少し埋めましょう" : "基本情報を入力しましょう"}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                企業情報が充実するほど応募率が向上します
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              { label: "公開ステータス", ok: profile.isPublished, hint: profile.isPublished ? "公開中" : "非公開" },
+              { label: "カジュアル面談受付", ok: profile.acceptingMeetings, hint: profile.acceptingMeetings ? "受付中" : "停止中" },
+              { label: "ミッション記入", ok: profile.score >= 20, hint: "" },
+              { label: "会社説明記入", ok: profile.score >= 40, hint: "" },
+              { label: "Why Join 記入", ok: profile.score >= 60, hint: "" },
+            ].map((item) => (
+              <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{
+                  width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
+                  background: item.ok ? "var(--success-soft)" : "var(--line-soft)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {item.ok
+                    ? <CheckCircle2 size={10} color="var(--success)" />
+                    : <Minus size={10} color="var(--ink-mute)" />
+                  }
+                </div>
+                <span style={{ fontSize: 12, color: item.ok ? "var(--ink)" : "var(--ink-mute)" }}>{item.label}</span>
+                {item.hint && <span style={{ fontSize: 11, color: item.ok ? "var(--success)" : "var(--error)", marginLeft: "auto" }}>{item.hint}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* アクティビティログ */}
+        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "20px 22px" }}>
+          <SectionTitle>最近のアクティビティ</SectionTitle>
+          {activities.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "24px 0", color: "var(--ink-mute)", fontSize: 13 }}>
+              アクティビティはまだありません
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {[
-                { label: "申込受付", count: meetingCounts.pending, color: "var(--warm)" },
-                { label: "企業コンタクト済", count: meetingCounts.company_contacted, color: "var(--accent)" },
-                { label: "日程確定", count: meetingCounts.scheduled, color: "var(--purple)" },
-                { label: "面談完了", count: meetingCounts.completed, color: "var(--success)" },
-                { label: "辞退", count: meetingCounts.declined, color: "var(--error)" },
-              ].map((s) => (
-                <div key={s.label}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                    <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>{s.label}</span>
-                    <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 700, color: s.color }}>
-                      {s.count}件
-                    </span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              {(activities as Record<string, unknown>[]).map((a, i) => (
+                <div key={a.id as string} style={{
+                  padding: "10px 0",
+                  borderBottom: i < activities.length - 1 ? "1px solid var(--line-soft)" : "none",
+                  display: "flex", gap: 10, alignItems: "flex-start",
+                }}>
+                  <div style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: "var(--royal)", marginTop: 6, flexShrink: 0,
+                  }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, color: "var(--ink)", lineHeight: 1.5, wordBreak: "break-all" }}>
+                      {a.description as string}
+                    </div>
+                    <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 2 }}>
+                      {formatRelative(a.created_at as string)}
+                    </div>
                   </div>
-                  <ProgressBar value={s.count} max={meetingCounts.total} color={s.color} />
                 </div>
               ))}
             </div>
           )}
         </div>
-      </div>
-
-      {/* ── 月次面談数グラフ ── */}
-      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "22px 24px", marginBottom: 20 }}>
-        <SectionTitle>月次カジュアル面談数（直近6ヶ月）</SectionTitle>
-        <BarChart data={monthlyMeetings} />
-        {meetingCounts.total === 0 && (
-          <p style={{ textAlign: "center", fontSize: 12, color: "var(--ink-mute)", marginTop: 12 }}>
-            面談申込が増えると推移グラフが表示されます
-          </p>
-        )}
-      </div>
-
-      {/* ── アクティビティログ ── */}
-      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "22px 24px" }}>
-        <SectionTitle>アクティビティログ</SectionTitle>
-        {activities.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "28px 0", color: "var(--ink-mute)", fontSize: 13 }}>
-            まだアクティビティがありません
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {activities.slice(0, 20).map((a, i) => {
-              const typeLabel = ACTIVITY_TYPE_LABELS[a.type as string] ?? (a.type as string);
-              const dotColor = ACTIVITY_COLORS[a.type as string] ?? "var(--ink-mute)";
-              const dt = new Date(a.created_at as string);
-              const dateStr = dt.toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-              return (
-                <div key={a.id as string} style={{
-                  display: "grid",
-                  gridTemplateColumns: "28px 1fr auto",
-                  alignItems: "start",
-                  gap: 12,
-                  paddingBottom: i < activities.length - 1 ? 12 : 0,
-                  marginBottom: i < activities.length - 1 ? 12 : 0,
-                  borderBottom: i < activities.length - 1 ? "1px solid var(--line-soft)" : "none",
-                }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: "50%",
-                    background: `${dotColor}20`,
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor }} />
-                  </div>
-                  <div>
-                    <span style={{
-                      display: "inline-block", fontSize: 10, fontWeight: 700,
-                      color: dotColor, background: `${dotColor}18`,
-                      padding: "2px 8px", borderRadius: 100,
-                      marginBottom: 3, fontFamily: "Inter, sans-serif",
-                    }}>
-                      {typeLabel}
-                    </span>
-                    <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                      {a.description as string}
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", marginTop: 2 }}>
-                    {dateStr}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </BusinessLayout>
   );
