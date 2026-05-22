@@ -229,15 +229,17 @@ function JobCard({
             const isRemote = tag.includes("リモート") || tag === "全国どこでも";
             const isOffice = tag.includes("原則出社") || tag.includes("オフィス");
             const isHybrid = tag.includes("ハイブリッド");
-            const isLocation = /都|道|府|県$/.test(tag) || tag === "全国";
+            const isLocation = /都|道|府|県/.test(tag) || tag === "全国";
             const isWorkStyle = isRemote || isOffice || isHybrid;
-            const icon = isRemote ? "🏠 " : isOffice ? "🏢 " : isHybrid ? "🔀 " : isLocation ? "📍 " : "";
+            // 🔀 はサポートが不安定なため 🏡 (ハイブリッド) に変更
+            const icon = isRemote ? "🏠" : isOffice ? "🏢" : isHybrid ? "🏡" : isLocation ? "📍" : "";
             return (
               <span
                 key={tag}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
+                  gap: 3,
                   fontSize: 10,
                   padding: "3px 8px",
                   borderRadius: 100,
@@ -259,7 +261,10 @@ function JobCard({
                   fontWeight: isWorkStyle ? 600 : 500,
                 }}
               >
-                {icon}{tag}
+                {icon && (
+                  <span style={{ fontSize: 11, lineHeight: 1 }}>{icon}</span>
+                )}
+                {tag}
               </span>
             );
           })}
