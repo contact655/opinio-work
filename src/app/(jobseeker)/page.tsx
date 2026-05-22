@@ -863,7 +863,7 @@ function FinalCta() {
 
   return (
     <section style={{
-      background: `linear-gradient(135deg, var(--royal-deep) 0%, var(--royal) 60%, var(--accent) 100%)`,
+      background: `linear-gradient(135deg, #001233 0%, var(--royal) 60%, var(--accent) 100%)`,
       padding: "96px 48px", textAlign: "center",
     }} className="px-5 py-16 md:py-24 md:px-12">
       {/* Mentor avatar row + social proof */}

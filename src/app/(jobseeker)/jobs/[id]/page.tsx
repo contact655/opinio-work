@@ -238,7 +238,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* Skills */}
               {(job.required_skills.length > 0 || job.preferred_skills.length > 0) && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
-                <SecTitle color="var(--gold)" icon={
+                <SecTitle color="var(--warm)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
@@ -259,7 +259,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
                       {job.required_skills.map((s, i) => (
                         <li key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
                             <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
                           </svg>
                           {s}
@@ -661,7 +661,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* CTA */}
               <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "22px", display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{
-                  background: "linear-gradient(135deg, var(--royal), var(--accent))",
+                  background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
                   borderRadius: 10, padding: "18px", textAlign: "center" as const,
                 }}>
                   <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 6 }}>まずは気軽に話してみる</div>
@@ -670,7 +670,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                   <Link href={`/companies/${job.company_id}/casual-meeting?job_id=${job.id}`} style={{
                     display: "block", width: "100%", padding: "11px 0",
-                    background: "#fff", color: "var(--royal)",
+                    background: "#fff", color: "#B45309",
                     borderRadius: 8, fontSize: 13, fontWeight: 700,
                     textDecoration: "none", textAlign: "center",
                   }}>
@@ -777,7 +777,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
           transform: translateY(-1px) !important;
         }
       `}</style>
-      <FloatingCTA href={`/companies/${company.id}/casual-meeting`} label="カジュアル面談を申し込む" subLabel="完全無料 · 30分から" />
+      <FloatingCTA href={`/companies/${company.id}/casual-meeting`} label="カジュアル面談を申し込む" subLabel="完全無料 · 30分から" variant="warm" />
     </>
   );
 }

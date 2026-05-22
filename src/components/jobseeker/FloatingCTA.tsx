@@ -2,13 +2,36 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-export function FloatingCTA({ href, label, subLabel }: { href: string; label: string; subLabel?: string }) {
+const VARIANTS = {
+  royal: {
+    background: "linear-gradient(135deg, var(--royal), #1a3a8f)",
+    boxShadow: "0 4px 16px rgba(0,35,102,0.35)",
+  },
+  warm: {
+    background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+    boxShadow: "0 4px 16px rgba(245,158,11,0.35)",
+  },
+};
+
+export function FloatingCTA({
+  href,
+  label,
+  subLabel,
+  variant = "royal",
+}: {
+  href: string;
+  label: string;
+  subLabel?: string;
+  variant?: "royal" | "warm";
+}) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const fn = () => setVisible(window.scrollY > 300);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  const style = VARIANTS[variant];
 
   return (
     <div className="md:hidden" style={{
@@ -25,10 +48,9 @@ export function FloatingCTA({ href, label, subLabel }: { href: string; label: st
         display: "flex", alignItems: "center", justifyContent: "center",
         gap: 8, width: "100%",
         padding: "14px 20px",
-        background: "linear-gradient(135deg, var(--royal), #1a3a8f)",
+        ...style,
         color: "#fff", borderRadius: 12, textDecoration: "none",
         fontSize: 15, fontWeight: 700,
-        boxShadow: "0 4px 16px rgba(0,35,102,0.35)",
       }}>
         {label}
       </Link>

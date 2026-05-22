@@ -2439,14 +2439,15 @@ function MobileBottomCTA({ company }: { company: Company }) {
           style={{
             display: "block",
             padding: "12px 0",
-            background: "#fff",
-            color: "var(--royal)",
+            background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+            color: "#fff",
             borderRadius: 8,
             fontSize: 14,
             fontWeight: 700,
             textAlign: "center",
             textDecoration: "none",
             marginBottom: hasJobs ? 8 : 0,
+            boxShadow: "0 3px 10px rgba(245,158,11,0.3)",
           }}
         >
           話を聞く（カジュアル面談）
@@ -2547,13 +2548,14 @@ function Sidebar({
                     display: "block",
                     width: "100%",
                     padding: "13px 0",
-                    background: "#fff",
-                    color: "var(--royal)",
+                    background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+                    color: "#fff",
                     borderRadius: 8,
                     fontSize: 14,
                     fontWeight: 700,
                     textAlign: "center",
                     textDecoration: "none",
+                    boxShadow: "0 4px 12px rgba(245,158,11,0.35)",
                   }}
                 >
                   話を聞く（カジュアル面談）
