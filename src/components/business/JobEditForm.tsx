@@ -214,18 +214,21 @@ export function JobEditForm({
   const [isCreating, setIsCreating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const { saveState, trigger: triggerAutosave } = useAutoSave();
-  const isFirstRender = useRef(true);
+  // hasInteracted: React 18 Strict Mode 対策 (isFirstRender パターンは NG)
+  // ユーザーが実際にフォームを変更したときだけ true にセットする
+  const hasInteracted = useRef(false);
   const effectiveTeam = teamMembers ?? MOCK_TEAM;
   const jobId = initialJob?.id ?? null;
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
+    hasInteracted.current = true;
     setForm((prev) => ({ ...prev, [key]: value }));
     triggerAutosave();
   }
 
   // Autosave: edit mode のみ form 変更後 700ms で PUT
   useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    if (!hasInteracted.current) return;
     if (!jobId || mode !== "edit" || process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
     const timer = setTimeout(() => {
       fetch(`/api/biz/jobs/${jobId}`, {
