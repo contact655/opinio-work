@@ -170,17 +170,32 @@ export default async function MentorDetailPage({ params }: Props) {
             marginBottom: 16,
           }}>
             {/* Availability badge */}
-            {mentor.is_available && (
-              <div style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "5px 12px", borderRadius: 100,
-                background: "var(--success-soft)", color: "var(--success)",
-                fontSize: 11.5, fontWeight: 700, marginBottom: 20,
-              }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
-                相談受付中
-              </div>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+              {mentor.is_available && (
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "5px 14px", borderRadius: 100,
+                  background: "var(--success-soft)", color: "var(--success)",
+                  fontSize: 11.5, fontWeight: 700,
+                  border: "1px solid #A7F3D0",
+                }}>
+                  <span className="pulse-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
+                  相談受付中
+                </div>
+              )}
+              {(mentor.success_count ?? 0) > 0 && (
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "5px 12px", borderRadius: 100,
+                  background: "var(--bg-tint)", color: "var(--ink-soft)",
+                  fontSize: 11.5, fontWeight: 600,
+                  border: "1px solid var(--line)",
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  <span style={{ fontFamily: "Inter, sans-serif" }}>{mentor.success_count}</span>件の相談実績
+                </div>
+              )}
+            </div>
 
             {/* Avatar + name */}
             <div style={{ display: "flex", gap: 20, alignItems: "flex-start", marginBottom: 20 }}>
@@ -422,6 +437,11 @@ export default async function MentorDetailPage({ params }: Props) {
 
       <style>{`
         .mentor-detail-cta:hover { opacity: 0.88; }
+        @keyframes pulseDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.4); }
+        }
+        .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
       `}</style>
       <FloatingCTA href={`/mentors/${mentor.id}/reserve`} label={`${mentor.name}さんに相談する`} subLabel="完全無料 · 編集部が事前確認" />
     </>

@@ -69,10 +69,13 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
               border: `1px solid ${mentor.is_available ? "#A7F3D0" : "var(--line)"}`,
               letterSpacing: "0.04em",
             }}>
-              <span style={{
-                width: 5, height: 5, borderRadius: "50%", flexShrink: 0,
-                background: mentor.is_available ? "var(--success)" : "var(--ink-mute)",
-              }} />
+              <span
+                className={mentor.is_available ? "pulse-dot" : undefined}
+                style={{
+                  width: 5, height: 5, borderRadius: "50%", flexShrink: 0,
+                  background: mentor.is_available ? "var(--success)" : "var(--ink-mute)",
+                }}
+              />
               {mentor.is_available ? "相談受付中" : "一時停止中"}
             </span>
           </div>
@@ -318,6 +321,11 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
       )}
 
       <style>{`
+        @keyframes pulseDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.5); }
+        }
+        .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
         .mentor-card:hover {
           border-color: var(--royal-100) !important;
           box-shadow: 0 6px 16px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.08) !important;
