@@ -17,9 +17,38 @@ export async function generateMetadata({
   const result = await fetchJobById(params.id);
   if (!result) return { title: "求人 — OPINIO" };
   const { job, company } = result;
+
+  const salaryText = job.salary_min && job.salary_max
+    ? `年収${job.salary_min}〜${job.salary_max}万円`
+    : job.salary_min ? `年収${job.salary_min}万円〜` : "";
+
+  const description = [
+    job.highlight ?? `${company.name}の${job.role}求人`,
+    salaryText,
+    job.work_style,
+    "IT/SaaS業界の求人はOPINIOで。",
+  ].filter(Boolean).join("｜");
+
+  const ogImageUrl = `/api/og?type=job&name=${encodeURIComponent(job.role)}&sub=${encodeURIComponent(company.name)}&badge=${encodeURIComponent(job.dept ?? "")}`;
+
   return {
-    title: `${job.role} — ${company.name} — OPINIO`,
-    description: job.highlight,
+    title: `${job.role} — ${company.name} | OPINIO`,
+    description,
+    alternates: { canonical: `/jobs/${params.id}` },
+    keywords: [job.role, company.name, job.dept ?? "", "IT転職", "SaaS転職", salaryText].filter(Boolean),
+    openGraph: {
+      title: `${job.role} — ${company.name} | OPINIO`,
+      description,
+      type: "website",
+      url: `/jobs/${params.id}`,
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `${job.role} — ${company.name}` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${job.role} — ${company.name} | OPINIO`,
+      description,
+      images: [ogImageUrl],
+    },
   };
 }
 
@@ -104,6 +133,42 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "JobPosting",
+            title: job.role,
+            hiringOrganization: {
+              "@type": "Organization",
+              name: company.name,
+            },
+            jobLocation: {
+              "@type": "Place",
+              address: {
+                "@type": "PostalAddress",
+                addressCountry: "JP",
+                addressLocality: job.location ?? "東京",
+              },
+            },
+            baseSalary: job.salary_min ? {
+              "@type": "MonetaryAmount",
+              currency: "JPY",
+              value: {
+                "@type": "QuantitativeValue",
+                minValue: job.salary_min * 10000,
+                maxValue: job.salary_max ? job.salary_max * 10000 : undefined,
+                unitText: "YEAR",
+              },
+            } : undefined,
+            datePosted: new Date().toISOString(),
+            employmentType: job.employment_type ?? "FULL_TIME",
+            description: job.highlight ?? "",
+            url: `https://opinio.jp/jobs/${params.id}`,
+          }),
+        }}
+      />
       {/* Breadcrumb */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">

@@ -7,22 +7,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data: jobs } = await supabase
     .from("ow_jobs")
     .select("id, updated_at")
-    .eq("status", "active");
+    .in("status", ["active", "published"]);
 
   const { data: companies } = await supabase
     .from("ow_companies")
     .select("id, updated_at");
 
-  let articles: any[] = [];
-  try {
-    const { data } = await supabase
-      .from("ow_articles")
-      .select("slug, updated_at")
-      .eq("is_published", true);
-    articles = data || [];
-  } catch {
-    // ow_articles may not exist yet
-  }
+  const { data: articles } = await supabase
+    .from("ow_articles")
+    .select("slug, updated_at")
+    .eq("is_published", true);
+
+  const { data: mentors } = await supabase
+    .from("ow_mentors")
+    .select("id, updated_at")
+    .eq("is_available", true);
 
   const baseUrl = "https://opinio.jp";
 
@@ -41,6 +40,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${baseUrl}/companies`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/mentors`,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.8,
@@ -69,11 +74,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })) ?? []),
-    ...articles.map((article) => ({
+    ...(mentors?.map((m) => ({
+      url: `${baseUrl}/mentors/${m.id}`,
+      lastModified: new Date(m.updated_at),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })) ?? []),
+    ...(articles?.map((article) => ({
       url: `${baseUrl}/articles/${article.slug}`,
       lastModified: new Date(article.updated_at),
       changeFrequency: "monthly" as const,
       priority: 0.6,
-    })),
+    })) ?? []),
   ];
 }

@@ -33,14 +33,32 @@ export async function generateMetadata({
   params: { id: string };
 }): Promise<Metadata> {
   const result = await getCompanyById(params.id);
-  if (!result) return { title: "企業が見つかりません" };
+  if (!result) return { title: "企業が見つかりません | OPINIO" };
   const { company } = result;
+
+  const description = company.tagline
+    ? `${company.tagline}｜${company.industry ?? "IT/SaaS"}業界・${company.employee_count ? company.employee_count.toString() + "名規模" : "詳細はページへ"}。カジュアル面談受付中。`
+    : `${company.name}の企業情報・求人・組織文化をOPINIOで確認。カジュアル面談で現場の声を聞けます。`;
+
+  const ogImageUrl = `/api/og?type=company&name=${encodeURIComponent(company.name)}&sub=${encodeURIComponent(company.tagline ?? "")}&badge=${encodeURIComponent(company.industry ?? "IT/SaaS")}`;
+
   return {
-    title: `${company.name} — 企業情報 | OPINIO`,
-    description: company.tagline,
+    title: `${company.name} — 企業情報・求人 | OPINIO`,
+    description,
+    alternates: { canonical: `/companies/${params.id}` },
+    keywords: [company.name, company.industry ?? "", "カジュアル面談", "IT転職", "SaaS転職"].filter(Boolean),
     openGraph: {
       title: `${company.name} | OPINIO`,
-      description: company.tagline,
+      description,
+      type: "website",
+      url: `/companies/${params.id}`,
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: company.name }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${company.name} | OPINIO`,
+      description,
+      images: [ogImageUrl],
     },
   };
 }
@@ -2834,6 +2852,22 @@ export default async function CompanyDetailPage({
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: company.name,
+            description: company.tagline ?? undefined,
+            url: `https://opinio.jp/companies/${params.id}`,
+            numberOfEmployees: company.employee_count > 0 ? {
+              "@type": "QuantitativeValue",
+              value: company.employee_count,
+            } : undefined,
+          }),
+        }}
+      />
       <Breadcrumb company={company} />
       <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} isAuthenticated={isAuthenticated} recruiters={recruiters} />
       <CompanyStickyNav items={[
