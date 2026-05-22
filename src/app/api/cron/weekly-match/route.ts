@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "${BASE_URL}";
+
 export async function GET(request: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -141,7 +143,7 @@ function generateWeeklyEmail(topJobs: any[]): string {
         <div style="font-size:12px;color:#085041;background:#E1F5EE;border-radius:8px;padding:8px 10px;margin-bottom:12px">
           <strong>マッチ理由：</strong>${j.matchReason}
         </div>
-        <a href="https://opinio-work-kappa.vercel.app/jobs/${j.id}"
+        <a href="${BASE_URL}/jobs/${j.id}"
            style="display:inline-block;background:#1D9E75;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500">
           詳細を見る →
         </a>
@@ -163,14 +165,14 @@ function generateWeeklyEmail(topJobs: any[]): string {
       </p>
       ${jobsHtml}
       <div style="border-top:1px solid #e5e7eb;padding-top:16px;margin-top:20px">
-        <a href="https://opinio-work-kappa.vercel.app/jobs"
+        <a href="${BASE_URL}/jobs"
            style="display:inline-block;border:1px solid #1D9E75;color:#1D9E75;padding:10px 20px;border-radius:8px;font-size:14px;text-decoration:none">
           すべての求人を見る
         </a>
       </div>
       <p style="font-size:11px;color:#9ca3af;margin-top:20px">
         opinio.jp &middot; Truth to Careers<br>
-        配信停止は<a href="https://opinio-work-kappa.vercel.app/dashboard" style="color:#9ca3af">こちら</a>
+        配信停止は<a href="${BASE_URL}/dashboard" style="color:#9ca3af">こちら</a>
       </p>
     </body>
     </html>

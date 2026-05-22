@@ -28,7 +28,6 @@ type InviteContext = {
   companyName: string;
 };
 
-const MOCK_EXISTING_USERS = ["taro@example.com", "yamada@test.com"];
 const PERSONAL_DOMAINS = ["gmail.com", "yahoo.co.jp", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com"];
 
 const INDUSTRY_OPTIONS = [
@@ -558,16 +557,12 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
   }, []);
 
   const handleEmailBlur = useCallback(() => {
-    if (MOCK_EXISTING_USERS.includes(email.trim().toLowerCase())) {
-      setShowExistingNotice(true);
-    }
-  }, [email]);
+    // blur 時の重複チェックは不要（submit 時に Supabase が検出）
+  }, []);
 
   const handleEmailChange = useCallback((val: string) => {
     setEmail(val);
-    if (!MOCK_EXISTING_USERS.includes(val.trim().toLowerCase())) {
-      setShowExistingNotice(false);
-    }
+    setShowExistingNotice(false);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -599,14 +594,14 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             // 招待モード: 既存メアド → ログインタブへ（inviteContext は state で保持）
             onSwitchToLogin(email);
           } else {
-            // 通常モード: 企業情報を sessionStorage に退避してログインタブへ
+            // 通常モード: "既存ユーザー" 通知を表示し、企業情報を sessionStorage に退避してログインへ誘導
+            setShowExistingNotice(true);
             try {
               const pending: PendingCompany = { name: companyName, industry, employeeCount, genres };
               sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify(pending));
             } catch {
               // sessionStorage 書き込み失敗は無視（プライベートモード等）
             }
-            onSwitchToLogin(email);
           }
           return;
         }

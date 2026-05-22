@@ -15,12 +15,11 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ## 🎯 次のセッションでやること（2026-05-22 更新）
 
-### ⚠️ 柴さんに手動実行を依頼: Migration 113
+### ✅ 完了 2026-05-22: Migration 113 — ow_jobs.status 正規化
 ```sql
 UPDATE ow_jobs SET status = 'published' WHERE status = 'active';
 ```
-現在 DB 内の全30件が旧ステータス "active"。UI 表示は `toJobStatus()` で吸収済みだが、
-本来は "published" に統一すべき。コードは対応済み（`normalizedStatus()`, `IN('active','published')`）。
+全30件を "active" → "published" に統一完了。DB確認済み: `published: 30件`。
 
 ### ✅ 完了: Phase ε — Supabase MCP 接続 read-only（2026-05-02）
 ### ✅ 完了: photos + logo の Supabase Storage 接続（2026-04-27）
@@ -55,10 +54,24 @@ UPDATE ow_jobs SET status = 'published' WHERE status = 'active';
   - MOCK_RECEIVED_REQUESTS → ow_mentor_reservations.mentor_user_id から実データ取得
   - MOCK_USER.currentRole → 実 CareerEntry から動的生成
 
+### ✅ 完了 2026-05-22: biz/auth MOCK_EXISTING_USERS バグ修正
+  - 旧: メール入力時に hardcoded 2アドレスのみで「登録済み」判定
+  - 新: Supabase signUp の "already registered" エラーで showExistingNotice=true
+  - 本番ユーザー全員に正しく機能するよう修正
+
+### ✅ 完了 2026-05-22: 外部サービス接続・env var 整備
+  - **Resend**: RESEND_API_KEY を .env.local + Vercel に追加（opinio-local キー）
+  - **RESEND_FROM_EMAIL**: contact@opinio.co.jp（.env.local + Vercel）
+  - **NEXT_PUBLIC_SITE_URL**: https://opinio.co.jp（.env.local + Vercel）
+  - **CRON_SECRET**: ランダム生成済み（.env.local + Vercel）
+  - cron URL ハードコード修正: weekly-jobs/weekly-match の BASE_URL を env var に変更
+  - Vercel Cron Jobs 動作確認済み（weekly-jobs 日曜 23:00 UTC / weekly-match 月曜 09:00 UTC）
+  - Migration 113 実行済み（全30件 active → published）
+
 ### 🟢 次の優先候補
 - **ActivityList 残り 5 イベント** (casual_meeting_applied/offer_sent 等) — 機能実装時に add
 - **ow_articles テーブル作成** — 記事コンテンツを DB 管理したい場合
-- **/biz/conversations 詳細** — 既存 API があるが UI が薄い可能性
+- **QB-6: CategoriesEditor エッジケース仕上げ**（biz/organization）
 - **求職者側 royal blue デザイン統一**（Phase 6）
 
 ### DB 現状（2026-05-22 確認）
