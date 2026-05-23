@@ -1,11 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import type { CompanyPhoto } from "@/lib/supabase/queries";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
-// ─── Caption overlay (bottom gradient) ───────────────────────────────────────
+// ─── Shared constants ──────────────────────────────────────────────────────────
+
+/** すべての写真カードを同じ固定サイズで表示（4:3） */
+const CARD_H = 220; // px — 全カード共通の高さ
+const CARD_W = 293; // px — 4:3 比率 (220 × 4/3 ≒ 293)
+const GAP = 10;     // px — カード間隔
+
+// ─── Caption overlay ───────────────────────────────────────────────────────────
 
 function CaptionOverlay({ text }: { text: string }) {
   return (
@@ -15,7 +22,7 @@ function CaptionOverlay({ text }: { text: string }) {
         bottom: 0,
         left: 0,
         right: 0,
-        padding: "24px 12px 10px",
+        padding: "28px 12px 10px",
         background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.65) 100%)",
         color: "#fff",
         fontSize: 11,
@@ -73,34 +80,30 @@ function Lightbox({
       <button
         onClick={onClose}
         style={{
-          position: "absolute",
-          top: 16,
-          right: 16,
-          background: "rgba(255,255,255,0.15)",
-          border: "none",
-          borderRadius: "50%",
-          width: 40,
-          height: 40,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          color: "#fff",
+          position: "absolute", top: 16, right: 16,
+          background: "rgba(255,255,255,0.15)", border: "none",
+          borderRadius: "50%", width: 40, height: 40,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", color: "#fff",
         }}
       >
         <X size={20} />
       </button>
 
+      {/* Counter */}
+      <div
+        style={{
+          position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)",
+          color: "rgba(255,255,255,0.6)", fontSize: 13, fontFamily: "Inter, sans-serif",
+        }}
+      >
+        {idx + 1} / {photos.length}
+      </div>
+
       {/* Image */}
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          position: "relative",
-          maxWidth: "90vw",
-          maxHeight: "85vh",
-          width: "100%",
-          height: "100%",
-        }}
+        style={{ position: "relative", maxWidth: "90vw", maxHeight: "85vh", width: "100%", height: "100%" }}
       >
         <Image
           src={photo.image_url}
@@ -115,60 +118,25 @@ function Lightbox({
       {photo.caption && (
         <div
           style={{
-            position: "absolute",
-            bottom: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "rgba(0,0,0,0.6)",
-            color: "#fff",
-            fontSize: 13,
-            padding: "6px 16px",
-            borderRadius: 100,
-            backdropFilter: "blur(8px)",
-            whiteSpace: "nowrap",
+            position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)",
+            background: "rgba(0,0,0,0.6)", color: "#fff",
+            fontSize: 13, padding: "6px 16px", borderRadius: 100,
+            backdropFilter: "blur(8px)", whiteSpace: "nowrap",
           }}
         >
           {photo.caption}
         </div>
       )}
 
-      {/* Counter */}
-      <div
-        style={{
-          position: "absolute",
-          top: 20,
-          left: "50%",
-          transform: "translateX(-50%)",
-          color: "rgba(255,255,255,0.6)",
-          fontSize: 13,
-          fontFamily: "Inter, sans-serif",
-        }}
-      >
-        {idx + 1} / {photos.length}
-      </div>
-
       {/* Prev */}
       {idx > 0 && (
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIdx(idx - 1);
-          }}
+          onClick={(e) => { e.stopPropagation(); setIdx(idx - 1); }}
           style={{
-            position: "absolute",
-            left: 16,
-            top: "50%",
-            transform: "translateY(-50%)",
-            background: "rgba(255,255,255,0.15)",
-            border: "none",
-            borderRadius: "50%",
-            width: 44,
-            height: 44,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            color: "#fff",
+            position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
+            background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%",
+            width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", color: "#fff",
           }}
         >
           <ChevronLeft size={22} />
@@ -178,25 +146,12 @@ function Lightbox({
       {/* Next */}
       {idx < photos.length - 1 && (
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIdx(idx + 1);
-          }}
+          onClick={(e) => { e.stopPropagation(); setIdx(idx + 1); }}
           style={{
-            position: "absolute",
-            right: 16,
-            top: "50%",
-            transform: "translateY(-50%)",
-            background: "rgba(255,255,255,0.15)",
-            border: "none",
-            borderRadius: "50%",
-            width: 44,
-            height: 44,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            color: "#fff",
+            position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
+            background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%",
+            width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", color: "#fff",
           }}
         >
           <ChevronRight size={22} />
@@ -206,114 +161,144 @@ function Lightbox({
   );
 }
 
-// ─── Uniform 16:9 photo grid ───────────────────────────────────────────────────
-//
-// 1 photo  → full-width 16:9
-// 2 photos → 2-column, each 16:9
-// 3 photos → 2-column top row + 1 full-width bottom
-// 4 photos → 2×2 grid, all 16:9
-// 5+ photos → 2×2 grid (3 clear + 1 overlay showing "+N more")
+// ─── Horizontal photo strip ────────────────────────────────────────────────────
+// 全写真を同じサイズ（CARD_W × CARD_H）の横スクロール列で表示
 
-const MAX_SLOTS = 4; // max cells shown in the grid
-
-function PhotoGrid({
+function PhotoStrip({
   photos,
   onOpen,
 }: {
   photos: CompanyPhoto[];
   onOpen: (i: number) => void;
 }) {
-  const hasOverflow = photos.length > MAX_SLOTS;
-  // Number of photos shown in the grid
-  const gridPhotos = photos.slice(0, MAX_SLOTS);
-  // How many are "hidden" behind the overlay (+N)
-  const hiddenCount = hasOverflow ? photos.length - MAX_SLOTS + 1 : 0;
-  // If overflow, 4th slot becomes the overlay (background = photo[3], text = "+hiddenCount")
-  const clearCount = hasOverflow ? MAX_SLOTS - 1 : photos.length; // slots shown without overlay
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
 
-  // Compute gridColumn span per index
-  function colSpan(index: number): string | undefined {
-    const total = gridPhotos.length;
-    if (total === 1) return "1 / -1";
-    if (total === 3 && index === 2) return "1 / -1"; // 3rd photo spans full width
-    return undefined;
+  const updateArrows = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 1);
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    updateArrows();
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(updateArrows);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [updateArrows]);
+
+  function scroll(dir: "left" | "right") {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "right" ? CARD_W + GAP : -(CARD_W + GAP), behavior: "smooth" });
   }
+
+  const arrowStyle = (visible: boolean, side: "left" | "right"): React.CSSProperties => ({
+    position: "absolute",
+    top: "50%",
+    transform: "translateY(-50%)",
+    [side]: -14,
+    zIndex: 10,
+    width: 32, height: 32,
+    borderRadius: "50%",
+    background: "#fff",
+    border: "1px solid var(--line)",
+    boxShadow: "0 1px 6px rgba(0,0,0,0.14)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    cursor: "pointer",
+    opacity: visible ? 1 : 0,
+    pointerEvents: visible ? "auto" : "none",
+    transition: "opacity 0.15s",
+    padding: 0,
+  });
 
   return (
     <>
       <style>{`
-        .pg-cell-img { transition: transform 0.3s ease; }
-        .pg-cell:hover .pg-cell-img { transform: scale(1.04); }
+        .ps-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        .ps-card:hover { transform: scale(1.025); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+        .ps-strip::-webkit-scrollbar { display: none; }
       `}</style>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: photos.length === 1 ? "1fr" : "1fr 1fr",
-          gap: 8,
-          marginBottom: 20,
-        }}
-      >
-        {gridPhotos.map((photo, i) => {
-          const isOverlaySlot = hasOverflow && i === MAX_SLOTS - 1;
-          const isClear = i < clearCount;
+      <div style={{ position: "relative", marginBottom: 20 }}>
+        {/* 左矢印 */}
+        <button
+          style={arrowStyle(canLeft, "left")}
+          onClick={() => scroll("left")}
+          aria-label="前の写真へ"
+        >
+          <ChevronLeft size={16} color="var(--ink)" />
+        </button>
 
-          return (
+        {/* スクロール本体 */}
+        <div
+          ref={scrollRef}
+          className="ps-strip"
+          onScroll={updateArrows}
+          style={{
+            display: "flex",
+            gap: GAP,
+            overflowX: "auto",
+            scrollSnapType: "x mandatory",
+            scrollbarWidth: "none",
+            paddingBottom: 2, // スクロールバー非表示でも少し余白
+          }}
+        >
+          {photos.map((photo, i) => (
             <div
               key={photo.id}
-              className="pg-cell"
+              className="ps-card"
               onClick={() => onOpen(i)}
               style={{
-                aspectRatio: "16 / 9",
+                width: CARD_W,
+                height: CARD_H,
+                flexShrink: 0,
                 borderRadius: 12,
                 overflow: "hidden",
                 position: "relative",
                 cursor: "pointer",
-                gridColumn: colSpan(i),
+                scrollSnapAlign: "start",
                 background: "var(--bg-tint)",
-                flexShrink: 0,
               }}
             >
               <Image
                 src={photo.image_url}
                 alt={photo.caption ?? "オフィス写真"}
                 fill
-                sizes="(max-width: 640px) 100vw, 50vw"
+                sizes="320px"
                 style={{ objectFit: "cover" }}
-                className="pg-cell-img"
               />
-
-              {isOverlaySlot ? (
-                /* "+N" overlay on last slot */
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "rgba(0,0,0,0.55)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: 12,
-                  }}
-                >
-                  <span
-                    style={{
-                      color: "#fff",
-                      fontSize: 24,
-                      fontWeight: 700,
-                      fontFamily: "Inter, sans-serif",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    +{hiddenCount}
-                  </span>
-                </div>
-              ) : (
-                isClear && photo.caption && <CaptionOverlay text={photo.caption} />
-              )}
+              {photo.caption && <CaptionOverlay text={photo.caption} />}
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* 右矢印 */}
+        <button
+          style={arrowStyle(canRight, "right")}
+          onClick={() => scroll("right")}
+          aria-label="次の写真へ"
+        >
+          <ChevronRight size={16} color="var(--ink)" />
+        </button>
+      </div>
+
+      {/* 枚数インジケーター */}
+      <div
+        style={{
+          textAlign: "right",
+          fontSize: 11,
+          color: "var(--ink-mute)",
+          fontFamily: "Inter, sans-serif",
+          marginTop: -14,
+          marginBottom: 16,
+        }}
+      >
+        {photos.length}枚の写真
       </div>
     </>
   );
@@ -328,7 +313,7 @@ export function PhotoCarousel({ photos }: { photos: CompanyPhoto[] }) {
 
   return (
     <>
-      <PhotoGrid photos={photos} onOpen={setLightboxIndex} />
+      <PhotoStrip photos={photos} onOpen={setLightboxIndex} />
 
       {lightboxIndex !== null && (
         <Lightbox
