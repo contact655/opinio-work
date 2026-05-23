@@ -1,3 +1,5 @@
+"use client";
+
 type Props = {
   value: string;
   onChange: (v: string) => void;

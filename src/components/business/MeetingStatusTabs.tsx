@@ -1,3 +1,5 @@
+"use client";
+
 import type { MeetingStatus } from "@/lib/business/mockMeetings";
 import { STATUS_TABS } from "@/lib/business/mockMeetings";
 
