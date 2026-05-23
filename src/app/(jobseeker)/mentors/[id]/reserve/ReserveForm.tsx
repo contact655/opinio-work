@@ -342,7 +342,7 @@ export default function ReserveForm({
             予約の流れ
           </div>
           <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 14 }}>
-            Opinioの相談は、メンターの質を守るため <strong>編集部がまず確認</strong> するプロセスを挟んでいます。<br />
+            OPINIOの相談は、メンターの質を守るため <strong>編集部がまず確認</strong> するプロセスを挟んでいます。<br />
             予約成立まで通常 <strong>2〜5営業日</strong> かかります。
           </p>
           <div style={{ display: "flex", gap: 0 }}>
@@ -684,7 +684,7 @@ export default function ReserveForm({
               "メンターのご事情により、承認されない場合があります。その際は別のメンターをご紹介します。",
               "申請から対話実施まで通常2〜5営業日かかります。",
               "予約成立後のキャンセルは、対話48時間前までにご連絡ください。",
-              "対話内容は編集部とも共有し、Opinioのサービス改善に匿名で活用させていただく場合があります。",
+              "対話内容は編集部とも共有し、OPINIOのサービス改善に匿名で活用させていただく場合があります。",
             ].map((item, i) => (
               <li key={i} style={{
                 fontSize: 12, color: "#78350F", lineHeight: 1.8,

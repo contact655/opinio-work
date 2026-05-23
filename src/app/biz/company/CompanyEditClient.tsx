@@ -651,7 +651,7 @@ export function CompanyEditClient({
                   </button>
                 )}
               </div>
-              <FormHint>1件目が「Opinio のコメント」として強調表示されます。もっとも伝えたい特徴を1番目に書いてください。</FormHint>
+              <FormHint>1件目が「OPINIO のコメント」として強調表示されます。もっとも伝えたい特徴を1番目に書いてください。</FormHint>
             </SectionCard>
           </>
         );

@@ -374,7 +374,7 @@ export default function CasualMeetingForm({
             申し込み前にご確認ください
           </div>
           <ul style={{ margin: 0, paddingLeft: 16 }}>
-            <li>このフォームは<strong>企業の採用担当に直接届きます</strong>（Opinioは介在しません）。</li>
+            <li>このフォームは<strong>企業の採用担当に直接届きます</strong>（OPINIOは介在しません）。</li>
             <li>カジュアル面談は<strong>選考ではありません</strong>。相互理解のための対話です。</li>
             <li>通常<strong>3営業日以内</strong>に企業から連絡が来ますが、遅れる場合もあります。</li>
             <li>企業側の判断で、面談を見送る場合もあります。</li>

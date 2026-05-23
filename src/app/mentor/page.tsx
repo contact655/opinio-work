@@ -6,7 +6,7 @@ import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 export const metadata: Metadata = {
   title: "メンター制度 | OPINIO Work",
   description:
-    "Opinio Workのメンターは、キャリアの経験を次の世代の意思決定に渡す存在です。現在は招待制でスタートしています。",
+    "OPINIOのメンターは、キャリアの経験を次の世代の意思決定に渡す存在です。現在は招待制でスタートしています。",
 };
 
 // ── Section heading ───────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ export default function MentorPage() {
                 marginBottom: 24,
               }}
             >
-              Opinio Work メンター制度
+              OPINIO メンター制度
             </p>
             <h1
               style={{
@@ -144,7 +144,7 @@ export default function MentorPage() {
               }}
             >
               <p>
-                Opinio Workのメンターは、自らのキャリア経験を、これから意思決定をする求職者に渡す存在です。
+                OPINIOのメンターは、自らのキャリア経験を、これから意思決定をする求職者に渡す存在です。
               </p>
               <p>
                 業界の実情、職種の現実、特定企業の内側、キャリア選択の壁打ち。求職者が一次情報をもとに判断できるよう、率直な対話の場をつくります。
@@ -253,7 +253,7 @@ export default function MentorPage() {
                 lineHeight: 1.8,
               }}
             >
-              これは Opinio Work のメンター制度の前提です。詳細は{" "}
+              これは OPINIO のメンター制度の前提です。詳細は{" "}
               <Link
                 href="/mentor-terms"
                 style={{ color: "var(--royal)", textDecoration: "underline" }}
@@ -292,7 +292,7 @@ export default function MentorPage() {
               }}
             >
               <p>
-                メンターは、求職者からも企業からも報酬を受け取りません。Opinio Workからの金銭支払いもありません。
+                メンターは、求職者からも企業からも報酬を受け取りません。OPINIOからの金銭支払いもありません。
               </p>
               <p>
                 利害から自由な立場だからこそ、率直な情報共有と、求職者の意思決定に資する対話が成立すると考えています。
@@ -396,7 +396,7 @@ export default function MentorPage() {
                   キャリアを言語化し、可視化する
                 </h3>
                 <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9 }}>
-                  メンターとして活動する過程で、自分の経験が整理され、Opinio Work上のプロフィールとして可視化されます。これは外部からの信頼を得る一つの形でもあります。
+                  メンターとして活動する過程で、自分の経験が整理され、OPINIO上のプロフィールとして可視化されます。これは外部からの信頼を得る一つの形でもあります。
                 </p>
               </div>
             </div>

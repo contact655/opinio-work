@@ -880,7 +880,7 @@ export default function CompanyExplorer({
           <p className="text-[13px] text-gray-500" style={{ margin: 0 }}>
             IT/SaaS厳選 <span className="font-semibold text-gray-900">{filtered.length}社</span>
           </p>
-          <p style={{ fontSize: 12, color: "#9ca3af", margin: "2px 0 0 0" }}>Opinioが審査・掲載を承認した企業のみ</p>
+          <p style={{ fontSize: 12, color: "#9ca3af", margin: "2px 0 0 0" }}>OPINIOが審査・掲載を承認した企業のみ</p>
         </div>
         <div className="flex items-center gap-3">
           <select

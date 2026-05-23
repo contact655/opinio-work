@@ -52,7 +52,7 @@ export default function NotJobChangingPage() {
             </h1>
             <p style={{ fontSize: 15, color: "#475569", lineHeight: 1.8, margin: 0 }}>
               転職するか、しないか。<br />
-              答えを急がなくていい。Opinioは「今すぐ転職しない」あなたにも、価値ある情報を届けます。
+              答えを急がなくていい。OPINIOは「今すぐ転職しない」あなたにも、価値ある情報を届けます。
             </p>
           </header>
 
@@ -88,7 +88,7 @@ export default function NotJobChangingPage() {
             </h2>
             <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.8, marginBottom: 16, margin: "0 0 16px" }}>
               「今は動かないけど、半年後に状況を整理したい」<br />
-              そんなときは、Opinioに登録だけしておいてください。<br />
+              そんなときは、OPINIOに登録だけしておいてください。<br />
               半年後にメールでお知らせし、ご都合に合わせてメンターと再相談できます。
             </p>
             <Link

@@ -302,16 +302,16 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
         >
           {inviteCompanyName ? (
             <>
-              招待されたメンバーとして Opinio Work を始めましょう。<br />
+              招待されたメンバーとして OPINIO を始めましょう。<br />
               <span style={{ opacity: 0.8, fontSize: 13 }}>
                 ※ 招待されたメールアドレスと同じアドレスでご登録ください。
               </span>
             </>
           ) : (
             <>
-              Opinioは、企業と個人が対等に対話する場所。<br />
+              OPINIOは、企業と個人が対等に対話する場所。<br />
               <strong style={{ color: "#fff", fontWeight: 600 }}>スカウトを送らなくても、本当にフィットする人材が来る採用</strong>を実現します。<br />
-              まずは企業情報を登録して、Opinioの世界を体験してください。<br /><br />
+              まずは企業情報を登録して、OPINIOの世界を体験してください。<br /><br />
               <span style={{ opacity: 0.8, fontSize: 13 }}>※ 既に個人アカウントをお持ちの方も、同じメールでご利用いただけます。</span>
             </>
           )}
@@ -681,9 +681,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         }}>{isInviteMode ? "参加する。" : "始める。"}</h2>
         <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8 }}>
           {isInviteMode ? (
-            <>招待されたアカウントとして Opinio Work に参加します。<br />お名前とパスワードを設定してください。</>
+            <>招待されたアカウントとして OPINIO に参加します。<br />お名前とパスワードを設定してください。</>
           ) : (
-            <>企業情報を登録し、Opinioで人材との対話を始めましょう。<br />
+            <>企業情報を登録し、OPINIOで人材との対話を始めましょう。<br />
             登録後、すぐに企業情報の編集やカジュアル面談の受信が可能です。</>
           )}
         </p>
