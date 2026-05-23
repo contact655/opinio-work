@@ -5,7 +5,7 @@ import { useRef } from "react";
 type Props = {
   tags: string[];
   onTagsChange: (tags: string[]) => void;
-  color?: "royal" | "purple";
+  color?: "royal" | "purple" | "success" | "warm";
   placeholder?: string;
 };
 
@@ -17,8 +17,16 @@ export function RequirementsTagInput({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const pillBg = color === "purple" ? "var(--purple-soft)" : "var(--royal-50)";
-  const pillColor = color === "purple" ? "var(--purple)" : "var(--royal)";
+  const pillBg =
+    color === "purple" ? "var(--purple-soft)"
+    : color === "success" ? "var(--success-soft)"
+    : color === "warm" ? "var(--warm-soft)"
+    : "var(--royal-50)";
+  const pillColor =
+    color === "purple" ? "var(--purple)"
+    : color === "success" ? "var(--success)"
+    : color === "warm" ? "var(--warm)"
+    : "var(--royal)";
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     const val = e.currentTarget.value.trim();

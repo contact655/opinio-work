@@ -397,7 +397,8 @@ const COMPANY_DETAIL_COLS = [
   // Benefits section (Commit BB)
   "nearest_station", "work_time_system", "workstyle_description",
   "benefits", "evaluation_system",
-  // Note: fit_positives / fit_negatives not yet in DB — keep null via buildCompanyDetail fallback
+  // Fit section (Migration 115 で追加)
+  "fit_positives", "fit_negatives",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {

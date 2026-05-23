@@ -25,6 +25,8 @@ export type DbCompany = {
   gender_ratio: string | null;
   evaluation_system: string | null;
   benefits: string[] | null;
+  fit_positives: string[] | null;
+  fit_negatives: string[] | null;
   location: string | null;
   nearest_station: string | null;
   remote_work_status: string | null;
@@ -44,7 +46,7 @@ const SELECT_COLUMNS = [
   "id", "user_id", "name", "tagline", "mission", "why_join", "company_features",
   "industry", "phase", "business_stage", "url",
   "logo_gradient", "logo_letter", "logo_url", "about_markdown", "employee_count", "established_at",
-  "avg_age", "avg_salary", "funding_total", "gender_ratio", "evaluation_system", "benefits", "location", "nearest_station",
+  "avg_age", "avg_salary", "funding_total", "gender_ratio", "evaluation_system", "benefits", "fit_positives", "fit_negatives", "location", "nearest_station",
   "remote_work_status", "work_time_system", "avg_overtime_hours", "paid_leave_rate",
   "workstyle_description", "is_published", "accepting_casual_meetings", "notification_emails",
   "published_at", "draft_data", "updated_at",
@@ -96,6 +98,8 @@ export function transformDbToForm(row: DbCompany, currentPublishedGenres: string
     genderRatio: row.gender_ratio ?? "",
     evaluationSystem: row.evaluation_system ?? "",
     benefitsTags: Array.isArray(row.benefits) ? row.benefits : [],
+    fitPositives: Array.isArray(row.fit_positives) ? row.fit_positives : [],
+    fitNegatives: Array.isArray(row.fit_negatives) ? row.fit_negatives : [],
     location: row.location ?? "",
     nearestStation: row.nearest_station ?? "",
     remoteWorkStatus: row.remote_work_status ?? "",
@@ -141,6 +145,8 @@ export function transformFormToDb(form: BizCompany): Record<string, unknown> {
     gender_ratio: form.genderRatio || null,
     evaluation_system: form.evaluationSystem || null,
     benefits: form.benefitsTags.length > 0 ? form.benefitsTags : null,
+    fit_positives: form.fitPositives.length > 0 ? form.fitPositives : null,
+    fit_negatives: form.fitNegatives.length > 0 ? form.fitNegatives : null,
     location: form.location || null,
     nearest_station: form.nearestStation || null,
     remote_work_status: form.remoteWorkStatus || null,

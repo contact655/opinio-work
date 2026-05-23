@@ -401,6 +401,7 @@ export function CompanyEditClient({
       !!form.descriptionMarkdown,
       !!form.location,
       form.benefitsTags.length > 0,
+      form.fitPositives.length > 0,
     ];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
   }, [form]);
@@ -652,6 +653,32 @@ export function CompanyEditClient({
                 )}
               </div>
               <FormHint>1件目が「OPINIO のコメント」として強調表示されます。もっとも伝えたい特徴を1番目に書いてください。</FormHint>
+            </SectionCard>
+
+            <SectionCard
+              title="こんな人に向いている / 注意点"
+              desc="求職者が自分との相性を確認するための情報です。正直に記載することで、ミスマッチを防ぎます。"
+            >
+              <FormGroup>
+                <FormLabel>こんな人に向いている（fit_positives）</FormLabel>
+                <RequirementsTagInput
+                  tags={form.fitPositives}
+                  onTagsChange={(tags) => update("fitPositives", tags)}
+                  placeholder="例: 自律して動ける人、提案が好きな人... Enter で追加"
+                  color="success"
+                />
+                <FormHint>公開ページで緑色のチェックリストとして表示されます。タグを追加して Enter で確定。</FormHint>
+              </FormGroup>
+              <FormGroup>
+                <FormLabel>注意点・向いていないかも（fit_negatives）</FormLabel>
+                <RequirementsTagInput
+                  tags={form.fitNegatives}
+                  onTagsChange={(tags) => update("fitNegatives", tags)}
+                  placeholder="例: 指示待ちが多い人、変化が苦手な人... Enter で追加"
+                  color="warm"
+                />
+                <FormHint>公開ページでオレンジの注意リストとして表示されます。正直な記載がミスマッチ防止につながります。</FormHint>
+              </FormGroup>
             </SectionCard>
           </>
         );
