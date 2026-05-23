@@ -177,6 +177,17 @@ export default async function UserProfilePage({ params }: { params: { id: string
   // Current company for sidebar card
   const currentCareer = timelineCareers.find((c) => c.is_current && c.company_id) ?? null;
 
+  // If user is a mentor, fetch their mentor ID for direct CTA link
+  let mentorId: string | null = null;
+  if (owUser.is_mentor) {
+    const { data: mentorRow } = await supabase
+      .from("ow_mentors")
+      .select("id")
+      .eq("user_id", owUser.id)
+      .maybeSingle();
+    mentorId = (mentorRow?.id as string) ?? null;
+  }
+
   return (
     <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
       <style>{`
@@ -523,11 +534,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 14, lineHeight: 1.6 }}>
                     30分から無料でキャリア相談できます
                   </div>
-                  <Link href="/mentors" style={{
+                  <Link href={mentorId ? `/mentors/${mentorId}` : "/mentors"} style={{
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    padding: "9px 16px", background: "var(--royal)", color: "#fff",
+                    gap: 6, padding: "9px 16px",
+                    background: "linear-gradient(135deg, var(--royal), var(--accent))", color: "#fff",
                     borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none",
+                    boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
                   }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
                     相談を申し込む →
                   </Link>
                 </div>
