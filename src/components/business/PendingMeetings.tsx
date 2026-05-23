@@ -2,6 +2,7 @@ import Link from "next/link";
 
 export type MeetingApplication = {
   id: string;
+  candidateUserId?: string | null;
   candidateName: string;
   candidateInitial: string;
   candidateGradient: string;
@@ -119,7 +120,16 @@ export function PendingMeetings({ meetings }: Props) {
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>
-                    {m.candidateName}
+                    {m.candidateUserId ? (
+                      <a
+                        href={`/u/${m.candidateUserId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "var(--ink)", textDecoration: "underline", textUnderlineOffset: 2 }}
+                      >
+                        {m.candidateName}
+                      </a>
+                    ) : m.candidateName}
                   </div>
                   <div style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {m.jobTitle ? `${m.jobTitle}宛` : "求人なし"} · {m.appliedAt}

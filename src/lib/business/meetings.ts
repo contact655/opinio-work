@@ -175,6 +175,7 @@ export function transformMeeting(
 // Mirrors MeetingApplication from PendingMeetings.tsx (structural match)
 export type DashboardMeeting = {
   id: string;
+  candidateUserId: string | null; // ow_users.id — 公開プロフィールリンク用
   candidateName: string;
   candidateInitial: string;
   candidateGradient: string;
@@ -219,6 +220,7 @@ export async function fetchPendingMeetingsForDashboard(
         : "pending";
       return {
         id: row.id as string,
+        candidateUserId: applicant?.id ?? null,
         candidateName: applicant?.name ?? "—",
         candidateInitial: applicant?.name?.charAt(0) ?? "?",
         candidateGradient: gradient,

@@ -21,7 +21,7 @@ export default async function CandidatesPage() {
     .select("id, name, location, is_mentor, created_at, auth_id")
     .eq("visibility", "public")
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(500);
 
   const userIds = (rawUsers ?? []).map((u: any) => u.id as string);
   const authIds = (rawUsers ?? [])
