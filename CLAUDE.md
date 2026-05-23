@@ -15,24 +15,31 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ## 🎯 次のセッションでやること（2026-05-23 セッション3 更新）
 
-### ✅ 完了 2026-05-23 セッション4: ブックマーク初期状態ロード完成＋求人管理に応募数表示
+### ✅ 完了 2026-05-23 セッション4: UX 改善・候補者プロフィールリンク展開・応募数表示
 
   **ブックマーク初期状態:**
-  - `GET /api/bookmarks?target_type=job` エンドポイントを実装（前セッション）
-  - `JobsClient.tsx`: `useEffect` でマウント時に fetch → `bookmarkedIds: Set<string>` state
-  - `JobCard` に `initialBookmarked?: boolean` prop → `useState(initialBookmarked)` で初期化
+  - `JobsClient.tsx`: `useEffect` でマウント時に `GET /api/bookmarks?target_type=job` → `bookmarkedIds: Set<string>` state
+  - `JobCard` に `initialBookmarked?: boolean` prop + `useEffect` 同期 → 非同期ロード後もハートが正しく表示
 
   **求人管理（/biz/jobs）応募数表示:**
   - `BizJob` 型に `applicationCount: number` フィールドを追加
-  - `fetchJobsForCompany` で `ow_job_applications` の job_id 別カウントを並行取得
-  - `JobListCard` の下段メタに「📄 N 件の応募」バッジを追加（success グリーン、公開求人のみ）
-  - 面談数ラベルを「件のカジュアル面談」→「件の面談」に簡略化
-  - `GET /api/bookmarks?target_type=job` エンドポイントを実装（前セッションで追加済み）
-  - `JobsClient.tsx`: `useEffect` でマウント時に `GET /api/bookmarks?target_type=job` を呼び出し
-  - `bookmarkedIds: Set<string>` state で全ブックマーク済み求人 ID を保持
-  - `JobCard` に `initialBookmarked?: boolean` prop を追加 → `useState(initialBookmarked)` で初期化
-  - `<JobCard initialBookmarked={bookmarkedIds.has(job.id)} />` を渡す
-  - ログイン済みユーザーがページをリロードしてもハートがフィルされた状態で表示される
+  - `fetchJobsForCompany` で `ow_job_applications` job_id 別カウントを meeting と並行取得
+  - `JobListCard` 下段メタに「N 件の応募」バッジ（success グリーン、公開求人のみ）
+
+  **候補者プロフィールリンク全面展開:**
+  - `BizApplicationsClient`: 詳細パネルに「公開プロフィール」リンクボタン追加
+  - `MeetingDetailPanel`: 「詳細プロフィール →」が `/u/{applicantUserId}` に実際リンク
+  - `MeetingApplication` 型に `applicantUserId: string | null` フィールド追加
+  - `DashboardMeeting` 型に `candidateUserId: string | null` フィールド追加
+  - `PendingMeetings`: 候補者名から `/u/{candidateUserId}` へリンク
+  - `/biz/conversations/[id]`: 「プロフィール詳細（準備中）」→ 実際の `/u/{id}` リンクに変更
+
+  **プレースホルダーアラート解消:**
+  - `CompanyEditClient`: プレビュー → `window.open /companies/{companyId}`
+  - `JobEditForm`: プレビュー → `window.open /jobs/{jobId}` (jobId なければ disabled)
+  - `MeetingsClient`: 返信 → `/biz/conversations` へ router.push
+
+  **候補者サーチ:** `/biz/candidates` フェッチ上限 100 → 500（全 266 ユーザーを表示）
 
 ### ✅ 完了 2026-05-23 セッション3: ビルドエラー修正・プロフィール完成度強化・マイページ改善
   - **ビルドエラー修正**:
