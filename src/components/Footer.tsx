@@ -18,7 +18,8 @@ const COMPANY_LINKS = [
 
 const OPINIO_LINKS = [
   { href: "/about",                     label: "OPINIOについて" },
-  { href: "/about/scope",               label: "対象業界・審査基準" },
+  { href: "/about/scope",               label: "対象業界" },
+  { href: "/about/selection-criteria",  label: "掲載企業の審査基準" },
   { href: "/privacy",                   label: "プライバシーポリシー" },
   { href: "/terms",                     label: "利用規約" },
   { href: "/mentor-terms",              label: "メンター向け利用規約" },

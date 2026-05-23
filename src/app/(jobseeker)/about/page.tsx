@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "OPINIOについて | OPINIO",
   description:
-    "IT/SaaS業界に特化したキャリアインフラ「Opinio」の運営理念・コンセプトについて。",
+    "IT/SaaS業界に特化したキャリアインフラ「OPINIO」の運営理念・コンセプトについて。",
 };
 
 export default function AboutPage() {
@@ -15,7 +15,7 @@ export default function AboutPage() {
         <nav style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--ink-mute)", marginBottom: 40 }}>
           <Link href="/" style={{ color: "var(--royal)", textDecoration: "none" }}>ホーム</Link>
           <span>›</span>
-          <span>Opinioについて</span>
+          <span style={{ color: "var(--ink-soft)" }}>OPINIOについて</span>
         </nav>
 
         {/* Header */}
@@ -34,7 +34,7 @@ export default function AboutPage() {
             fontWeight: 700, lineHeight: 1.4,
             color: "var(--ink)", marginBottom: 20,
           }}>
-            Opinioについて
+            OPINIOについて
           </h1>
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: 600 }}>
             IT/SaaS業界に特化したキャリアインフラ。<br />
@@ -61,7 +61,7 @@ export default function AboutPage() {
           </h2>
           <p style={{ fontSize: 15, lineHeight: 1.9, color: "var(--ink-soft)" }}>
             私たちは、採用を「スカウト」で済ませる時代に疑問を持っています。<br />
-            Opinioは「対話から始まる採用」を産業として確立することを目指します。<br />
+            OPINIOは「対話から始まる採用」を産業として確立することを目指します。<br />
             求職者が能動的に情報を集め、先輩に相談し、納得して動く。そんなキャリアの作り方を支えるインフラでありたい。
           </p>
         </div>
@@ -100,18 +100,54 @@ export default function AboutPage() {
           ))}
         </div>
 
-        {/* Preparing notice */}
+        {/* Sub-page navigation */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
+          <Link href="/about/scope" style={{ textDecoration: "none" }}>
+            <div style={{
+              background: "#fff", borderRadius: 14, padding: "24px 24px",
+              border: "1px solid var(--line)",
+              boxShadow: "0 1px 6px rgba(0,35,102,0.05)",
+              transition: "box-shadow 0.15s",
+              cursor: "pointer",
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase", marginBottom: 10 }}>SCOPE</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>対象業界</div>
+              <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                OPINIOがカバーするIT/SaaS業界の定義と、対象外の業界について。
+              </div>
+              <div style={{ marginTop: 14, fontSize: 13, fontWeight: 600, color: "var(--royal)" }}>詳しく見る →</div>
+            </div>
+          </Link>
+          <Link href="/about/selection-criteria" style={{ textDecoration: "none" }}>
+            <div style={{
+              background: "#fff", borderRadius: 14, padding: "24px 24px",
+              border: "1px solid var(--line)",
+              boxShadow: "0 1px 6px rgba(0,35,102,0.05)",
+              transition: "box-shadow 0.15s",
+              cursor: "pointer",
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase", marginBottom: 10 }}>CRITERIA</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>掲載企業の審査基準</div>
+              <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                編集部による審査プロセスと3軸の評価基準を公開しています。
+              </div>
+              <div style={{ marginTop: 14, fontSize: 13, fontWeight: 600, color: "var(--royal)" }}>詳しく見る →</div>
+            </div>
+          </Link>
+        </div>
+
+        {/* Articles CTA */}
         <div style={{
           background: "var(--royal-50)", borderRadius: 12, padding: "24px 28px",
           border: "1px solid var(--royal-100)",
           textAlign: "center",
         }}>
           <p style={{ fontSize: 14, color: "var(--royal)", fontWeight: 500 }}>
-            詳細なAboutページは準備中です。最新情報は
+            OPINIOの取り組みについてさらに詳しくは
             <Link href="/articles" style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none", margin: "0 4px" }}>
               記事ページ
             </Link>
-            でご覧いただけます。
+            でもご覧いただけます。
           </p>
         </div>
       </div>
