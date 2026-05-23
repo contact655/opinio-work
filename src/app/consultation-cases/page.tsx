@@ -9,6 +9,13 @@ export const metadata = {
   title: "相談事例 | OPINIO",
   description:
     "実際のキャリア相談事例を紹介。SIerからSaaS転職、年収交渉、キャリアチェンジなど、リアルな相談と気づきをご覧ください。",
+  alternates: { canonical: "/consultation-cases" },
+  openGraph: {
+    title: "相談事例 | OPINIO",
+    description: "SIerからSaaS転職、年収交渉、キャリアチェンジ——リアルな相談と気づきをご覧ください。",
+    url: "https://opinio.jp/consultation-cases",
+    type: "website",
+  },
 };
 
 async function getCases() {

@@ -4,9 +4,16 @@ import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 
 export const metadata: Metadata = {
-  title: "メンター制度 | OPINIO Work",
+  title: "メンター制度 | OPINIO",
   description:
     "OPINIOのメンターは、キャリアの経験を次の世代の意思決定に渡す存在です。現在は招待制でスタートしています。",
+  alternates: { canonical: "/mentor" },
+  openGraph: {
+    title: "メンター制度 | OPINIO",
+    description: "OPINIOのメンターは、キャリアの経験を次の世代の意思決定に渡す存在です。現在は招待制でスタートしています。",
+    url: "https://opinio.jp/mentor",
+    type: "website",
+  },
 };
 
 // ── Section heading ───────────────────────────────────────────────────────────

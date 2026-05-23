@@ -9,6 +9,13 @@ export const metadata = {
   title: "キャリア相談 | OPINIO",
   description:
     "現役SaaS実務家10名に無料で転職相談。営業・CS・マーケの現役プロが転職のリアルを正直に話します。",
+  alternates: { canonical: "/career-consultation" },
+  openGraph: {
+    title: "キャリア相談 | OPINIO",
+    description: "現役SaaS実務家10名に無料で転職相談。営業・CS・マーケのプロが転職のリアルを正直に話します。",
+    url: "https://opinio.jp/career-consultation",
+    type: "website",
+  },
 };
 
 async function getMentors() {
