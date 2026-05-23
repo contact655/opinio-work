@@ -99,7 +99,9 @@ type OwUser = {
   id: string;
   name: string;
   avatar_color: string | null;
+  avatar_url: string | null;
   cover_color: string | null;
+  cover_photo_url: string | null;
   visibility: string | null;
   location: string | null;
   birth_date: string | null;
@@ -126,6 +128,234 @@ type SettingsState = {
 
 const DEFAULT_AVATAR_COLOR = "linear-gradient(135deg, #002366, #3B5FD9)";
 const DEFAULT_COVER_COLOR  = "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
+
+// ─── ProfilePhotoUploader ─────────────────────────────────────────────────────
+
+function ProfilePhotoUploader({
+  owUser,
+  basicInfoName,
+  settings,
+}: {
+  owUser: OwUser;
+  basicInfoName: string;
+  settings: SettingsState;
+}) {
+  const supabase = createClient();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(owUser?.avatar_url ?? null);
+  const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(owUser?.cover_photo_url ?? null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadPhoto = async (file: File, type: "avatar" | "cover") => {
+    if (!owUser?.id) return;
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `users/${type}s/${owUser.id}/${Date.now()}.${ext}`;
+
+    const { data, error } = await supabase.storage
+      .from("ow-uploads")
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (error || !data) { alert("アップロードに失敗しました"); return null; }
+
+    const { data: { publicUrl } } = supabase.storage.from("ow-uploads").getPublicUrl(data.path);
+
+    // DB に保存
+    await fetch("/api/jobseeker/profile-photo", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, url: publicUrl }),
+    });
+    return publicUrl;
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    const url = await uploadPhoto(file, "avatar");
+    if (url) setAvatarUrl(url);
+    setUploadingAvatar(false);
+  };
+
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    const url = await uploadPhoto(file, "cover");
+    if (url) setCoverPhotoUrl(url);
+    setUploadingCover(false);
+  };
+
+  const removePhoto = async (type: "avatar" | "cover") => {
+    await fetch("/api/jobseeker/profile-photo", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type }),
+    });
+    if (type === "avatar") setAvatarUrl(null);
+    else setCoverPhotoUrl(null);
+  };
+
+  const uploadBtn = (label: string, loading: boolean, onClick: () => void): React.ReactNode => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "7px 12px", background: "#fff", color: "var(--ink)",
+        border: "1px solid var(--line)", borderRadius: 6,
+        fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+        cursor: loading ? "default" : "pointer",
+        opacity: loading ? 0.6 : 1,
+      }}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+      </svg>
+      {loading ? "アップロード中..." : label}
+    </button>
+  );
+
+  return (
+    <div>
+      {/* Preview */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{
+          width: "100%", maxWidth: 360, borderRadius: 12, overflow: "hidden",
+          border: "1px solid var(--line)", position: "relative",
+        }}>
+          {/* Cover */}
+          <div style={{
+            height: 90, position: "relative",
+            background: coverPhotoUrl ? undefined : settings.coverColor,
+            overflow: "hidden",
+          }}>
+            {coverPhotoUrl && (
+              <img src={coverPhotoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            )}
+            {/* Upload cover overlay */}
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={uploadingCover}
+              style={{
+                position: "absolute", inset: 0,
+                background: "rgba(0,0,0,0.35)",
+                border: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontSize: 11, fontWeight: 600, gap: 4,
+                opacity: 0,
+                transition: "opacity 0.2s",
+              }}
+              className="cover-upload-overlay"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              カバー写真を変更
+            </button>
+          </div>
+          {/* Avatar */}
+          <div style={{ padding: "0 14px 14px", marginTop: -28 }}>
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: "50%",
+                background: avatarUrl ? undefined : settings.avatarColor,
+                overflow: "hidden",
+                color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22, fontWeight: 600,
+                border: "3px solid #fff",
+                boxShadow: "0 2px 8px rgba(15,23,42,0.1)",
+                cursor: "pointer",
+              }}
+              onClick={() => avatarInputRef.current?.click()}
+              >
+                {avatarUrl
+                  ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : (basicInfoName.charAt(0) || "?")}
+              </div>
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                style={{
+                  position: "absolute", bottom: -2, right: -2,
+                  width: 18, height: 18, borderRadius: "50%",
+                  background: "var(--royal)", border: "2px solid #fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", padding: 0,
+                }}
+              >
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <style>{`.cover-upload-overlay:hover { opacity: 1 !important; }`}</style>
+        <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 6 }}>プレビュー（クリックで写真を変更）</div>
+      </div>
+
+      {/* Upload controls */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Avatar */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>プロフィール画像</div>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.7 }}>
+            JPG / PNG・推奨サイズ 400×400px以上
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {uploadBtn("画像をアップロード", uploadingAvatar, () => avatarInputRef.current?.click())}
+            {avatarUrl && (
+              <button
+                type="button"
+                onClick={() => removePhoto("avatar")}
+                style={{
+                  padding: "7px 12px", fontSize: 11, fontWeight: 600,
+                  color: "var(--error)", border: "1px solid var(--error)",
+                  background: "#fff", borderRadius: 6, cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                削除
+              </button>
+            )}
+          </div>
+          <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
+        </div>
+
+        {/* Cover */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>カバー写真</div>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.7 }}>
+            JPG / PNG・推奨サイズ 1200×400px以上（横長）
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {uploadBtn("カバー写真をアップロード", uploadingCover, () => coverInputRef.current?.click())}
+            {coverPhotoUrl && (
+              <button
+                type="button"
+                onClick={() => removePhoto("cover")}
+                style={{
+                  padding: "7px 12px", fontSize: 11, fontWeight: 600,
+                  color: "var(--error)", border: "1px solid var(--error)",
+                  background: "#fff", borderRadius: 6, cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                削除
+              </button>
+            )}
+          </div>
+          <input ref={coverInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleCoverChange} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const DEGREE_OPTIONS = ["高校卒", "専門卒", "短大卒", "学士", "修士", "博士", "その他"] as const;
 const EDU_YEAR_OPTS  = Array.from({ length: 61 }, (_, i) => new Date().getFullYear() + 4 - i);
@@ -3173,61 +3403,7 @@ export default function ProfileEditClient({
               title="プロフィール画像・カバー"
               desc="プロフィールページのヘッダーに表示されます。"
             >
-              <div style={{ display: "flex", gap: 24, alignItems: "flex-start", marginBottom: 20 }}>
-                <div style={{ flexShrink: 0 }}>
-                  <div
-                    style={{
-                      width: 200, height: 80, borderRadius: "10px 10px 0 0",
-                      background: settings.coverColor, position: "relative",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 68, height: 68, borderRadius: "50%",
-                        background: settings.avatarColor,
-                        color: "#fff", display: "flex", alignItems: "center",
-                        justifyContent: "center", fontSize: 26, fontWeight: 600,
-                        border: "4px solid #fff",
-                        position: "absolute", bottom: -34, left: 14,
-                        boxShadow: "0 4px 12px rgba(15,23,42,0.1)",
-                      }}
-                    >
-                      {basicInfo.name.charAt(0) || "?"}
-                    </div>
-                  </div>
-                  <div style={{ height: 34 }} />
-                  <div style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center", marginTop: 2 }}>
-                    プレビュー
-                  </div>
-                </div>
-                <div style={{ flex: 1, paddingTop: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
-                    プロフィール画像
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
-                    未設定の場合、名前の頭文字で自動生成されます。
-                  </div>
-                  <button
-                    type="button"
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      padding: "7px 12px", background: "#fff", color: "var(--ink)",
-                      border: "1px solid var(--line)", borderRadius: 6,
-                      fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                      cursor: "not-allowed", opacity: 0.5,
-                    }}
-                    disabled
-                    title="画像アップロードは近日公開予定です"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                    画像をアップロード（近日公開）
-                  </button>
-                </div>
-              </div>
+              <ProfilePhotoUploader owUser={owUser} basicInfoName={basicInfo.name} settings={settings} />
             </FormSection>
 
             {/* ── Section 2: ログイン情報 ───────────────────────────────────── */}

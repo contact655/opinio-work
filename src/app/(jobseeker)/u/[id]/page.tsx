@@ -27,7 +27,9 @@ type OwUser = {
   id: string;
   name: string;
   avatar_color: string | null;
+  avatar_url: string | null;
   cover_color: string | null;
+  cover_photo_url: string | null;
   about_me: string | null;
   birth_date: string | null;
   location: string | null;
@@ -79,7 +81,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     supabase.auth.getUser(),
     supabase
       .from("ow_users")
-      .select("id, name, avatar_color, cover_color, about_me, birth_date, location, social_links, is_mentor, future_aspirations, auth_id")
+      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, birth_date, location, social_links, is_mentor, future_aspirations, auth_id")
       .eq("id", params.id)
       .maybeSingle(),
   ]);
@@ -204,19 +206,38 @@ export default async function UserProfilePage({ params }: { params: { id: string
           background: "#fff", border: "1px solid var(--line)",
           borderRadius: 16, overflow: "hidden", marginBottom: 24,
         }}>
-          <div style={{ height: 180, background: coverColor }} />
+          {/* Cover area: photo or gradient */}
+          <div style={{ height: 180, position: "relative", background: owUser.cover_photo_url ? undefined : coverColor, overflow: "hidden" }}>
+            {owUser.cover_photo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={owUser.cover_photo_url}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            )}
+          </div>
 
           <div style={{ padding: "0 32px 28px", marginTop: -56, position: "relative" }}>
+            {/* Avatar: photo or gradient letter */}
             <div style={{
               width: 112, height: 112, borderRadius: "50%",
-              background: avatarColor,
+              background: owUser.avatar_url ? undefined : avatarColor,
               color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 42, fontWeight: 600,
               border: "5px solid #fff",
               boxShadow: "0 4px 16px rgba(15,23,42,0.12)",
               marginBottom: 16, position: "relative",
+              overflow: owUser.avatar_url ? "hidden" : "visible",
             }}>
-              {initial}
+              {owUser.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={owUser.avatar_url}
+                  alt={owUser.name}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+                />
+              ) : initial}
               {owUser.is_mentor && (
                 <div style={{
                   position: "absolute", bottom: 4, right: 4,

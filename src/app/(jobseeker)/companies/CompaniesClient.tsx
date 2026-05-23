@@ -66,6 +66,9 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
   const remoteTags = deriveRemoteTags(company.remote_work_status);
   const hasTags = remoteTags.length > 0 || company.accepting_casual_meetings;
 
+  // カバーエリア: 写真 or グラデーション
+  const fallbackGradient = company.logo_gradient ?? "linear-gradient(135deg, #002366, #3B5FD9)";
+
   return (
     <Link href={`/companies/${company.id}`} style={{ textDecoration: "none", display: "block", height: "100%" }}>
       <article
@@ -74,111 +77,142 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
           background: "#fff",
           border: `1px solid ${company.accepting_casual_meetings ? "#A7F3D0" : "var(--line)"}`,
           borderRadius: 16,
-          padding: 20,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          gap: 12,
           height: "100%",
           boxSizing: "border-box",
           transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
           cursor: "pointer",
         }}
       >
-        {/* Header: logo + name + meta */}
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <CompanyLogo
-            name={company.name}
-            logoUrl={company.logo_url}
-            logoLetter={company.logo_letter}
-            logoGradient={company.logo_gradient}
-            size={44}
-            borderRadius={10}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: 15, fontWeight: 600, color: "var(--ink)",
-              lineHeight: 1.3, marginBottom: 3,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        {/* ── Cover banner: photo or gradient ── */}
+        <div style={{
+          position: "relative",
+          height: 120,
+          flexShrink: 0,
+          background: company.cover_photo_url ? undefined : fallbackGradient,
+          overflow: "hidden",
+        }}>
+          {company.cover_photo_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={company.cover_photo_url}
+              alt=""
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          )}
+          {/* 面談受付中バッジ（右上） */}
+          {company.accepting_casual_meetings && (
+            <span style={{
+              position: "absolute", top: 10, right: 10,
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 10, fontWeight: 700,
+              padding: "3px 10px", borderRadius: 100,
+              background: "rgba(255,255,255,0.92)",
+              color: "var(--success)",
+              backdropFilter: "blur(4px)",
             }}>
-              {company.name}
-            </div>
-            {metaParts.length > 0 && (
-              <div style={{
-                fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}>
-                {metaParts.join(" · ")}
-              </div>
-            )}
-          </div>
+              <span style={{
+                width: 5, height: 5, borderRadius: "50%",
+                background: "var(--success)", flexShrink: 0,
+                animation: "pulseDot 1.8s ease-in-out infinite",
+              }} />
+              面談受付中
+            </span>
+          )}
         </div>
 
-        {/* Tagline */}
-        <p style={{
-          fontSize: 13,
-          lineHeight: 1.8,
-          color: "var(--ink-soft)",
-          flex: 1,
-          margin: 0,
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden",
-        } as React.CSSProperties}>
-          {company.tagline || "詳細情報は企業ページをご覧ください"}
-        </p>
-
-        {/* Tags */}
-        {hasTags && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-            {remoteTags.map((t) => (
-              <span key={t} style={{
-                fontSize: 10, fontWeight: 600,
-                padding: "2px 8px", borderRadius: 100,
-                background: "var(--royal-50)", color: "var(--royal)",
-              }}>{t}</span>
-            ))}
-            {company.accepting_casual_meetings && (
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: 10, fontWeight: 700,
-                padding: "3px 10px", borderRadius: 100,
-                background: "var(--success-soft)", color: "var(--success)",
-                border: "1px solid #A7F3D0",
-              }}>
-                <span style={{
-                  width: 5, height: 5, borderRadius: "50%",
-                  background: "var(--success)", flexShrink: 0,
-                  animation: "pulseDot 1.8s ease-in-out infinite",
-                }} />
-                面談受付中
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Footer: job count + freshness */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          paddingTop: 12, borderTop: "1px solid var(--line-soft)",
-        }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <span style={{
-              fontSize: 20, fontWeight: 700,
-              color: company.job_count > 0 ? "var(--royal)" : "var(--ink-mute)",
-              fontFamily: "Inter, sans-serif",
+        {/* ── Body ── */}
+        <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
+          {/* Logo + name: ロゴをカバー下端に重ねて表示 */}
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-end", marginTop: -20 }}>
+            <div style={{
+              flexShrink: 0,
+              border: "3px solid #fff",
+              borderRadius: 12,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+              lineHeight: 0,
             }}>
-              {company.job_count}
-            </span>
-            <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>件の求人</span>
+              <CompanyLogo
+                name={company.name}
+                logoUrl={company.logo_url}
+                logoLetter={company.logo_letter}
+                logoGradient={company.logo_gradient}
+                size={44}
+                borderRadius={9}
+              />
+            </div>
+            <div style={{ flex: 1, minWidth: 0, paddingBottom: 2 }}>
+              <div style={{
+                fontSize: 15, fontWeight: 600, color: "var(--ink)",
+                lineHeight: 1.3, marginBottom: 2,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                {company.name}
+              </div>
+              {metaParts.length > 0 && (
+                <div style={{
+                  fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {metaParts.join(" · ")}
+                </div>
+              )}
+            </div>
           </div>
-          <span style={{
-            fontSize: 11,
-            color: isFresh ? "var(--success)" : "var(--ink-mute)",
-            fontWeight: isFresh ? 600 : 400,
+
+          {/* Tagline */}
+          <p style={{
+            fontSize: 13,
+            lineHeight: 1.8,
+            color: "var(--ink-soft)",
+            flex: 1,
+            margin: 0,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          } as React.CSSProperties}>
+            {company.tagline || "詳細情報は企業ページをご覧ください"}
+          </p>
+
+          {/* Remote tags */}
+          {hasTags && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {remoteTags.map((t) => (
+                <span key={t} style={{
+                  fontSize: 10, fontWeight: 600,
+                  padding: "2px 8px", borderRadius: 100,
+                  background: "var(--royal-50)", color: "var(--royal)",
+                }}>{t}</span>
+              ))}
+            </div>
+          )}
+
+          {/* Footer: job count + freshness */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            paddingTop: 10, borderTop: "1px solid var(--line-soft)",
           }}>
-            {freshLabel}
-          </span>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+              <span style={{
+                fontSize: 20, fontWeight: 700,
+                color: company.job_count > 0 ? "var(--royal)" : "var(--ink-mute)",
+                fontFamily: "Inter, sans-serif",
+              }}>
+                {company.job_count}
+              </span>
+              <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>件の求人</span>
+            </div>
+            <span style={{
+              fontSize: 11,
+              color: isFresh ? "var(--success)" : "var(--ink-mute)",
+              fontWeight: isFresh ? 600 : 400,
+            }}>
+              {freshLabel}
+            </span>
+          </div>
         </div>
       </article>
     </Link>

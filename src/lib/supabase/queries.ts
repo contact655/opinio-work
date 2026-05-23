@@ -296,6 +296,8 @@ export type CompanyListRow = {
   is_published: boolean;
   updated_at: string;
   job_count: number;
+  /** カード上部に表示するオフィス写真 URL（ow_company_office_photos の display_order 最小のもの） */
+  cover_photo_url: string | null;
 };
 
 const COMPANY_LISTPAGE_COLS = [
@@ -329,17 +331,31 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     return [];
   }
 
-  // Fetch active job counts for all companies in one round trip
-  // "active" は旧来の値、"published" は新しい値 (migration 113 適用後に "active" は消える)
-  const { data: jobRows } = await supabase
-    .from("ow_jobs")
-    .select("company_id")
-    .in("status", ["active", "published"]);
+  // Fetch active job counts + first office photo per company in parallel
+  const [{ data: jobRows }, { data: photoRows }] = await Promise.all([
+    supabase
+      .from("ow_jobs")
+      .select("company_id")
+      .in("status", ["active", "published"]),
+    supabase
+      .from("ow_company_office_photos")
+      .select("company_id, image_url, display_order")
+      .order("display_order", { ascending: true }),
+  ]);
 
   const jobCountMap = new Map<string, number>();
   for (const j of jobRows ?? []) {
     const cid = j.company_id as string;
     jobCountMap.set(cid, (jobCountMap.get(cid) ?? 0) + 1);
+  }
+
+  // 各社の最初の写真を 1 枚だけ保持（display_order 昇順なので最初に出現したもの）
+  const coverPhotoMap = new Map<string, string>();
+  for (const p of photoRows ?? []) {
+    const cid = p.company_id as string;
+    if (!coverPhotoMap.has(cid)) {
+      coverPhotoMap.set(cid, p.image_url as string);
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -359,6 +375,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     is_published: (row.is_published as boolean) ?? false,
     updated_at: (row.updated_at as string) ?? "",
     job_count: jobCountMap.get(row.id as string) ?? 0,
+    cover_photo_url: coverPhotoMap.get(row.id as string) ?? null,
   }));
 }
 
