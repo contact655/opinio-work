@@ -51,7 +51,7 @@ export function TeamMembers({ members }: Props) {
             color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
           }}>Team</span>
         </div>
-        <Link href="/biz/team" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+        <Link href="/biz/members" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
           管理 →
         </Link>
       </div>

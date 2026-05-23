@@ -70,7 +70,7 @@ export function RecruiterProfile({ profile }: Props) {
                 {profile.isPublic ? "求職者に公開中" : "非公開"}
               </span>
             </div>
-            <a href="/biz/profile" style={{
+            <a href="/biz/company" style={{
               fontSize: 11, fontWeight: 700,
               color: "var(--royal)", textDecoration: "none",
             }}>

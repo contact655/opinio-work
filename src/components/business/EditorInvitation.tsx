@@ -63,7 +63,7 @@ export function EditorInvitation() {
         </div>
 
         <a
-          href="/biz/editor-request"
+          href="mailto:info@opinio.jp?subject=取材申込&body=取材をご希望の企業名・担当者名・ご連絡先をご記入ください。"
           style={{
             display: "inline-flex",
             alignItems: "center",

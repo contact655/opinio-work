@@ -370,7 +370,7 @@ function MetaRow({
       </span>
       {muted && showLink && (
         <Link
-          href="/mypage/profile"
+          href="/profile/edit"
           style={{
             fontSize: 14,
             color: "#1D9E75",
@@ -610,7 +610,7 @@ export default async function MemberDetailPage({
                   <EmptyState
                     text="まだ登録されていません"
                     buttonText="プロフィールを編集する →"
-                    href="/mypage/profile"
+                    href="/profile/edit"
                     showButton={isOwner}
                   />
                 )}
@@ -684,7 +684,7 @@ export default async function MemberDetailPage({
                         </p>
                         {isOwner && (
                           <Link
-                            href="/mypage/profile"
+                            href="/profile/edit"
                             style={{
                               fontSize: 14,
                               color: "#1D9E75",
@@ -807,7 +807,7 @@ export default async function MemberDetailPage({
                                 </p>
                               ) : isOwner ? (
                                 <Link
-                                  href="/mypage/profile"
+                                  href="/profile/edit"
                                   style={{
                                     fontSize: 14,
                                     color: "#1D9E75",
@@ -860,7 +860,7 @@ export default async function MemberDetailPage({
                                 </p>
                               ) : isOwner ? (
                                 <Link
-                                  href="/mypage/profile"
+                                  href="/profile/edit"
                                   style={{
                                     fontSize: 14,
                                     color: "#1D9E75",
@@ -979,7 +979,7 @@ export default async function MemberDetailPage({
                   <EmptyState
                     text="まだ登録されていません"
                     buttonText="学歴を追加する →"
-                    href="/mypage/profile"
+                    href="/profile/edit"
                     showButton={isOwner}
                   />
                 )}
@@ -1015,7 +1015,7 @@ export default async function MemberDetailPage({
                   <EmptyState
                     text="まだ登録されていません"
                     buttonText="スキルを追加する →"
-                    href="/mypage/profile"
+                    href="/profile/edit"
                     showButton={isOwner}
                   />
                 )}
@@ -1068,7 +1068,7 @@ export default async function MemberDetailPage({
                   <EmptyState
                     text="まだ登録されていません"
                     buttonText="追加する →"
-                    href="/mypage/profile"
+                    href="/profile/edit"
                     showButton={isOwner}
                   />
                 )}
