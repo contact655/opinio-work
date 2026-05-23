@@ -186,7 +186,8 @@ function generateWeeklyEmail(topJobs: any[]): string {
     <html>
     <body style="font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
       <div style="margin-bottom:24px">
-        <span style="font-size:18px;font-weight:600">opinio<span style="color:#1D9E75">.work</span></span>
+        <span style="font-size:18px;font-weight:600;color:#002366">OPINIO</span>
+        <span style="font-size:11px;color:#64748b;margin-left:8px">IT/SaaS業界のキャリアインフラ</span>
       </div>
       <h1 style="font-size:20px;font-weight:600;margin-bottom:4px">今週のあなたへのおすすめ求人</h1>
       <p style="color:#6b7280;font-size:14px;margin-bottom:20px">
@@ -200,8 +201,8 @@ function generateWeeklyEmail(topJobs: any[]): string {
         </a>
       </div>
       <p style="font-size:11px;color:#9ca3af;margin-top:20px">
-        opinio.jp &middot; Truth to Careers<br>
-        配信停止は<a href="${BASE_URL}/dashboard" style="color:#9ca3af">マイページ</a>から設定できます
+        opinio.jp &middot; IT/SaaS業界のキャリアインフラ<br>
+        配信停止は<a href="${BASE_URL}/mypage" style="color:#9ca3af">マイページ</a>から設定できます
       </p>
     </body>
     </html>
