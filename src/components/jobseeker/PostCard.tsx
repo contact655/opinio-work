@@ -58,7 +58,7 @@ function BadgeRow({ isEditor, TypeIcon, typeLabel }: {
           ? { background: "var(--royal-50)", color: "var(--royal)", borderColor: "var(--royal-100)" }
           : { background: "var(--bg-tint)", color: "var(--ink-soft)", borderColor: "var(--line)" }),
       }}>
-        {isEditor ? "Opinio 編集部選" : "企業発信"}
+        {isEditor ? "OPINIO 編集部選" : "企業発信"}
       </span>
       <span style={{
         fontSize: 11, color: "var(--ink-mute)", padding: "2px 6px",

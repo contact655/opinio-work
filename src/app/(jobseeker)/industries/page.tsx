@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "対象業界 | OPINIO",
   description:
-    "Opinioが対象とするIT/SaaS業界の定義について。B2B SaaS・外資IT・AIスタートアップなどを網羅。",
+    "OPINIOが対象とするIT/SaaS業界の定義について。B2B SaaS・外資IT・AIスタートアップなどを網羅。",
 };
 
 const IN_SCOPE = [
@@ -68,7 +68,7 @@ export default function IndustriesPage() {
             対象業界
           </h1>
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: 600 }}>
-            OpinioはIT/SaaS業界に特化したプラットフォームです。<br />
+            OPINIOはIT/SaaS業界に特化したプラットフォームです。<br />
             以下の定義に沿った企業の求人・情報を掲載しています。
           </p>
         </div>

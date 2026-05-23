@@ -617,7 +617,7 @@ export default async function MemberDetailPage({
               </ProfileSection>
 
               {/* 本音Q&A（常に表示・3問すべて） */}
-              <ProfileSection title="本音Q&A" badge="Opinio独自">
+              <ProfileSection title="本音Q&A" badge="OPINIO独自">
                 <div
                   style={{
                     display: "flex",
