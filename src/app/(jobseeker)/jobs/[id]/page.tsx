@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { type PositionMember } from "@/app/jobs/mockJobData";
-import { getJobById as fetchJobById } from "@/lib/supabase/queries";
+import { getJobById as fetchJobById, getMentors } from "@/lib/supabase/queries";
 import { FloatingCTA } from "@/components/jobseeker/FloatingCTA";
 import { createClient } from "@/lib/supabase/server";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
@@ -180,6 +180,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
       initialBookmarked = !!bmark;
     }
   }
+
+  // Fetch related mentors (by job dept / theme) — show up to 3
+  const relatedMentors = await getMentors({ dept: job.dept ?? undefined, sort: "sessions" })
+    .then((list) => list.filter((m) => m.is_available).slice(0, 3))
+    .catch(() => []);
 
   // Fetch same-category jobs from other companies
   const sameCategoryJobs: RelatedJob[] = [];
@@ -818,6 +823,82 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                 </section>
               )}
+              {/* ── 先輩メンターに相談 ── */}
+              {relatedMentors.length > 0 && (
+                <section style={{
+                  background: "linear-gradient(135deg, var(--royal-50) 0%, #F5F3FF 100%)",
+                  border: "1px solid var(--royal-100)",
+                  borderRadius: 14, padding: "22px 24px", marginBottom: 20,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 4 }}>
+                        MENTOR
+                      </div>
+                      <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
+                        この職種を経験した先輩に相談する
+                      </h3>
+                    </div>
+                    <Link href="/mentors" style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      すべて見る →
+                    </Link>
+                  </div>
+                  <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.7 }}>
+                    応募前に、実際に{job.dept ?? "この職種"}として働く先輩の生の声を聞いてみませんか？30分・完全無料です。
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {relatedMentors.map((mentor) => (
+                      <Link key={mentor.id} href={`/mentors/${mentor.id}`} style={{
+                        display: "flex", alignItems: "center", gap: 12,
+                        background: "#fff", borderRadius: 10, padding: "12px 14px",
+                        textDecoration: "none", border: "1px solid var(--line)",
+                        transition: "border-color 0.15s, box-shadow 0.15s",
+                      }}
+                        className="mentor-suggest-card"
+                      >
+                        <div style={{
+                          width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+                          background: mentor.gradient,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          color: "#fff", fontSize: 14, fontWeight: 700,
+                          boxShadow: "0 0 0 2px var(--royal-100)",
+                        }}>
+                          {mentor.initial}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+                            {mentor.name}さん
+                          </div>
+                          <div style={{ fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {mentor.current_company}{mentor.current_role ? ` · ${mentor.current_role}` : ""}
+                          </div>
+                        </div>
+                        {mentor.is_available && (
+                          <span style={{
+                            fontSize: 9.5, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                            background: "var(--success-soft)", color: "var(--success)",
+                            border: "1px solid #A7F3D0", flexShrink: 0, whiteSpace: "nowrap",
+                          }}>
+                            受付中
+                          </span>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                  <Link href="/mentors" style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    marginTop: 14, padding: "10px 0",
+                    background: "var(--royal)", color: "#fff",
+                    borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    先輩に相談してから考える（無料）
+                  </Link>
+                </section>
+              )}
+
               {/* Same-category jobs from other companies */}
               <RelatedJobsSection jobs={sameCategoryJobs} />
 
