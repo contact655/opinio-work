@@ -1081,11 +1081,16 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "28px 32px",
+        overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      <div style={{ marginBottom: 24 }}>
+      {/* Section header */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+      }}>
         <SecTitle
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -1096,6 +1101,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
           福利厚生・評価制度
         </SecTitle>
       </div>
+      <div style={{ padding: "24px 32px 28px" }}>
 
       {/* ── 福利厚生 ── */}
       <div style={{ marginBottom: 28 }}>
@@ -1155,6 +1161,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
           </div>
         )}
       </div>
+      </div>
     </section>
   );
 }
@@ -1167,20 +1174,16 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "28px 32px",
+        overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: 8,
-        }}
-      >
+      {/* Section header */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+      }}>
         <SecTitle
           iconColor="warm"
           icon={
@@ -1193,7 +1196,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
           働き方の選択肢
         </SecTitle>
       </div>
-
+      <div style={{ padding: "24px 32px 28px" }}>
       <div
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}
         className="[grid-template-columns:1fr] sm:[grid-template-columns:1fr_1fr]"
@@ -1390,6 +1393,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
           <strong style={{ color: "var(--royal)" }}>「先輩への相談」</strong>
           で、あなたが受ける可能性のあるポジションの実態をご確認ください。
         </div>
+      </div>
       </div>
     </section>
   );
