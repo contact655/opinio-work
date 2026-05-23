@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Header from "@/components/Header";
+import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
 
 const JOB_TYPES = ["営業", "カスタマーサクセス", "マーケ", "PdM", "エンジニア", "事業開発"];
 const LOCATIONS = ["東京", "大阪", "名古屋", "福岡", "リモート可"];
@@ -45,7 +45,7 @@ export default function ProfileSetupPage() {
 
   return (
     <>
-      <Header />
+      <JobseekerHeader />
       <main className="pt-16 min-h-screen" style={{ background: "#f8f8f6" }}>
         <div
           style={{

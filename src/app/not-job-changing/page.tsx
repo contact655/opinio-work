@@ -1,5 +1,5 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
+import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import Link from "next/link";
 
 export const metadata = {
@@ -33,7 +33,7 @@ const articles = [
 export default function NotJobChangingPage() {
   return (
     <>
-      <Header />
+      <JobseekerHeader />
       <main className="pt-16 min-h-screen" style={{ background: "#f8f9fa" }}>
         <div className="max-w-[820px] mx-auto px-4 sm:px-6 lg:px-8" style={{ paddingTop: 32, paddingBottom: 64 }}>
           {/* Breadcrumb */}
@@ -115,7 +115,7 @@ export default function NotJobChangingPage() {
           </div>
         </div>
       </main>
-      <Footer />
+      <JobseekerFooter />
     </>
   );
 }

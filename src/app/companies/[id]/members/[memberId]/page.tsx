@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
+import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
@@ -450,7 +450,7 @@ export default async function MemberDetailPage({
 
   return (
     <>
-      <Header />
+      <JobseekerHeader />
       <main className="pt-16 min-h-screen" style={{ background: "#f9fafb" }}>
         <div
           style={{
@@ -1091,7 +1091,7 @@ export default async function MemberDetailPage({
           </div>
         </div>
       </main>
-      <Footer />
+      <JobseekerFooter />
     </>
   );
 }

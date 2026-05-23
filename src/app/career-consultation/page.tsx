@@ -1,5 +1,5 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
+import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
 import CareerConsultationClient from "./CareerConsultationClient";
 
@@ -59,7 +59,7 @@ export default async function CareerConsultationPage() {
 
   return (
     <>
-      <Header />
+      <JobseekerHeader />
       <main className="pt-16 min-h-screen bg-white">
         <CareerConsultationClient
           mentors={mentors}
@@ -67,7 +67,7 @@ export default async function CareerConsultationPage() {
           userProfile={userProfile}
         />
       </main>
-      <Footer />
+      <JobseekerFooter />
     </>
   );
 }

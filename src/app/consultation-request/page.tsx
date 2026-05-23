@@ -3,8 +3,8 @@
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
+import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 
 const TIME_OPTIONS = [
   "朝（9〜12時）",
@@ -272,7 +272,7 @@ function ConsultationRequestForm() {
 export default function ConsultationRequestPage() {
   return (
     <>
-      <Header />
+      <JobseekerHeader />
       <main className="pt-16 min-h-screen bg-white">
         <Suspense
           fallback={
@@ -284,7 +284,7 @@ export default function ConsultationRequestPage() {
           <ConsultationRequestForm />
         </Suspense>
       </main>
-      <Footer />
+      <JobseekerFooter />
     </>
   );
 }

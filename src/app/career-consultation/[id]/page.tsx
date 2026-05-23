@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
+import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getMentorAvatarProps } from "@/lib/utils/mentorAvatar";
@@ -62,7 +62,7 @@ export default async function MentorDetailPage({
 
   return (
     <>
-      <Header />
+      <JobseekerHeader />
       <main className="pt-16 min-h-screen" style={{ background: "#f9fafb" }}>
         {/* Breadcrumb */}
         <div className="max-w-4xl mx-auto px-6 py-4">
@@ -394,7 +394,7 @@ export default async function MentorDetailPage({
           </div>
         </div>
       </main>
-      <Footer />
+      <JobseekerFooter />
     </>
   );
 }

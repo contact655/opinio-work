@@ -1,5 +1,5 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
+import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import ArticleDetailClient from "./ArticleDetailClient";
@@ -41,7 +41,7 @@ export default async function ArticleDetailPage({
 
   return (
     <>
-      <Header />
+      <JobseekerHeader />
       <main className="pt-16 min-h-screen bg-white">
         <ArticleDetailClient
           article={article}
@@ -49,7 +49,7 @@ export default async function ArticleDetailPage({
           companyId={params.id}
         />
       </main>
-      <Footer />
+      <JobseekerFooter />
     </>
   );
 }

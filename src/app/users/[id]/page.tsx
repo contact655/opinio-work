@@ -1,6 +1,6 @@
 import Image from "next/image";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
+import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -84,7 +84,7 @@ export default async function MemberProfilePage({
 
   return (
     <>
-      <Header />
+      <JobseekerHeader />
       <main className="pt-16 min-h-screen" style={{ background: "#f8f9fa" }}>
         <div className="max-w-[780px] mx-auto px-4 sm:px-6 lg:px-8" style={{ paddingTop: 32, paddingBottom: 48 }}>
           {/* Breadcrumb */}
@@ -283,7 +283,7 @@ export default async function MemberProfilePage({
           )}
         </div>
       </main>
-      <Footer />
+      <JobseekerFooter />
     </>
   );
 }

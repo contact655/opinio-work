@@ -1,5 +1,5 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
+import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
 import CompanyListClient from "./CompanyListClient";
 
@@ -26,7 +26,7 @@ export default async function CompanyListPage({
 
   return (
     <>
-      <Header />
+      <JobseekerHeader />
       <main className="pt-16 min-h-screen bg-white">
         <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <CompanyListClient
@@ -39,7 +39,7 @@ export default async function CompanyListPage({
           />
         </div>
       </main>
-      <Footer />
+      <JobseekerFooter />
     </>
   );
 }

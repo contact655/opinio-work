@@ -1,5 +1,5 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
+import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -33,7 +33,7 @@ export default async function CompanyJobsPage({
 
   return (
     <>
-      <Header />
+      <JobseekerHeader />
       <main className="pt-16 min-h-screen bg-background">
         {/* Company Header */}
         <div className="bg-white border-b border-card-border">
@@ -187,7 +187,7 @@ export default async function CompanyJobsPage({
           )}
         </div>
       </main>
-      <Footer />
+      <JobseekerFooter />
     </>
   );
 }

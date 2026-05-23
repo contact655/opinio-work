@@ -1,5 +1,5 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
+import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
 import ConsultationCasesClient from "./ConsultationCasesClient";
 
@@ -34,11 +34,11 @@ export default async function ConsultationCasesPage() {
 
   return (
     <>
-      <Header />
+      <JobseekerHeader />
       <main className="pt-16 min-h-screen" style={{ background: "#FAFAF9" }}>
         <ConsultationCasesClient cases={cases} />
       </main>
-      <Footer />
+      <JobseekerFooter />
     </>
   );
 }
