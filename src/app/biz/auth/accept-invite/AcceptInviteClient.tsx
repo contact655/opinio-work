@@ -42,7 +42,7 @@ export function AcceptInviteClient(props: Props) {
             letterSpacing: "-0.02em",
             marginBottom: 4,
           }}>
-            Opinio <span style={{
+            OPINIO<span style={{
               fontSize: 10,
               fontWeight: 600,
               letterSpacing: "0.15em",
@@ -159,7 +159,7 @@ function UnauthenticatedState({
           onClick={() => saveInviteAndNavigate("signup")}
           style={{ ...primaryButtonStyle, border: "none", cursor: "pointer" } as React.CSSProperties}
         >
-          Opinio に登録して参加
+          OPINIOに登録して参加
         </button>
         <button
           type="button"

@@ -412,7 +412,7 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
         className="biz-brand-foot"
         style={{ marginTop: "auto", fontSize: 11, color: "rgba(255,255,255,0.55)", paddingTop: 32 }}
       >
-        © 2026 Opinio Business · 企業向け採用プラットフォーム
+        © 2026 OPINIO · 企業向け採用プラットフォーム
       </div>
     </div>
   );
@@ -1194,7 +1194,7 @@ function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, route
             <strong style={{ color: "var(--ink)", fontWeight: 700, display: "block", marginBottom: 2 }}>
               ログインして「{pendingCompany.name}」を作成します
             </strong>
-            このメールアドレスはすでに Opinio に登録されています。
+            このメールアドレスはすでに OPINIO に登録されています。
             ログインすると、入力済みの企業情報で企業アカウントを作成します。
           </div>
         </div>
@@ -1381,7 +1381,7 @@ function UnifiedAccountNotice() {
         </svg>
       </div>
       <div style={{ flex: 1, fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        <strong style={{ color: "var(--ink)", fontWeight: 700 }}>Opinioアカウントは1つ。</strong>
+        <strong style={{ color: "var(--ink)", fontWeight: 700 }}>OPINIOアカウントは1つ。</strong>
         あなたのキャリア情報（プロフィール・職歴）は、企業担当者としての情報と共通で管理されます。
         採用候補者からは「採用担当者のキャリア」として見られるため、
         <strong style={{ color: "var(--ink)", fontWeight: 700 }}>信頼の基盤</strong>になります。
@@ -1430,7 +1430,7 @@ function ExistingUserNotice({ email, onSwitchToLogin, onChangeEmail }: ExistingU
         </div>
         <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 10 }}>
           <strong style={{ color: "var(--ink)", fontWeight: 700 }}>{email}</strong> はすでに
-          Opinio アカウントに紐付いています。ログインして企業情報を追加できます。
+          OPINIO アカウントに紐付いています。ログインして企業情報を追加できます。
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
           <button

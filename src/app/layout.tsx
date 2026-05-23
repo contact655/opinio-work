@@ -107,7 +107,7 @@ const jsonLd = {
       url: "https://www.opinio.co.jp",
       name: "OPINIO",
       description:
-        "IT/SaaS業界の転職は、情報戦。Opinio編集部が企業を取材し、先輩メンターが相談に乗る、キャリアプラットフォーム。完全無料。",
+        "IT/SaaS業界の転職は、情報戦。OPINIO編集部が企業を取材し、先輩メンターが相談に乗る、キャリアプラットフォーム。完全無料。",
       publisher: { "@id": "https://www.opinio.co.jp/#organization" },
       potentialAction: {
         "@type": "SearchAction",
