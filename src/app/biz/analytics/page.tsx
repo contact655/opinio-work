@@ -61,10 +61,10 @@ async function fetchMeetingFunnel(supabase: ReturnType<typeof createClient>, ten
 async function fetchCompanyProfile(supabase: ReturnType<typeof createClient>, tenantId: string) {
   const { data } = await supabase
     .from("ow_companies")
-    .select("mission, tagline, description, why_join, fit_positives, is_published, accepting_casual_meetings")
+    .select("mission, tagline, description, why_join, is_published, accepting_casual_meetings")
     .eq("id", tenantId)
     .maybeSingle();
-  const fields = [data?.mission, data?.tagline, data?.description, data?.why_join, data?.fit_positives];
+  const fields = [data?.mission, data?.tagline, data?.description, data?.why_join];
   const score = Math.round((fields.filter(Boolean).length / fields.length) * 100);
   return { score, isPublished: !!data?.is_published, acceptingMeetings: !!data?.accepting_casual_meetings };
 }
