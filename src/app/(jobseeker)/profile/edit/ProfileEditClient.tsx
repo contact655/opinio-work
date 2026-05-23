@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
@@ -93,7 +93,7 @@ type MediaAppearance = {
   sort_order: number;
 };
 
-type ProfileTab = "basic" | "career" | "skills" | "certs" | "achievements" | "socials" | "account";
+type ProfileTab = "basic" | "career" | "skills" | "preferences" | "certs" | "achievements" | "socials" | "account";
 
 type OwUser = {
   id: string;
@@ -145,6 +145,7 @@ const PROFILE_TABS: TabItem[] = [
   { key: "basic",        label: "基本情報" },
   { key: "career",       label: "職歴・学歴" },
   { key: "skills",       label: "スキル" },
+  { key: "preferences",  label: "希望条件" },
   { key: "certs",        label: "資格" },
   { key: "achievements", label: "実績・受賞" },
   { key: "socials",      label: "SNS" },
@@ -2273,6 +2274,7 @@ export default function ProfileEditClient({
   initialExperiences,
   roles,
   isWelcome = false,
+  initialProfilePrefs = null,
 }: {
   owUser: OwUser;
   authEmail: string;
@@ -2286,9 +2288,30 @@ export default function ProfileEditClient({
   initialExperiences: Stint[];
   roles: RoleItem[];
   isWelcome?: boolean;
+  initialProfilePrefs?: {
+    job_type: string | null;
+    experience_years: string | null;
+    desired_work_style: string | null;
+    desired_salary_min: number | null;
+    desired_salary_max: number | null;
+    transfer_timing: string | null;
+    desired_phase: string[] | null;
+    worry: string | null;
+  } | null;
 }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+
+  // ── 希望条件 (ow_profiles) state ─────────────────────────────────────────────
+  const [prefJobType, setPrefJobType] = useState(initialProfilePrefs?.job_type ?? "");
+  const [prefExpYears, setPrefExpYears] = useState(initialProfilePrefs?.experience_years ?? "");
+  const [prefWorkStyle, setPrefWorkStyle] = useState(initialProfilePrefs?.desired_work_style ?? "");
+  const [prefSalaryMin, setPrefSalaryMin] = useState(initialProfilePrefs?.desired_salary_min?.toString() ?? "");
+  const [prefSalaryMax, setPrefSalaryMax] = useState(initialProfilePrefs?.desired_salary_max?.toString() ?? "");
+  const [prefTiming, setPrefTiming] = useState(initialProfilePrefs?.transfer_timing ?? "");
+  const [prefSaving, setPrefSaving] = useState(false);
+  const [prefSaved, setPrefSaved] = useState(false);
+  const prefSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── グローバル保存ステータス（全タブ共通のインジケーター用） ─────────────
   // isSaving: いずれかのタブで保存中, justSaved: 直近3秒以内に保存完了
@@ -2301,6 +2324,26 @@ export default function ProfileEditClient({
       setTimeout(() => setGlobalSaveStatus("idle"), 3000);
     }
   }, []);
+
+  // ── 希望条件 save callback（notifyGlobalSave 宣言後） ─────────────────────
+  const savePreferences = useCallback(async (patch: Record<string, unknown>) => {
+    setPrefSaving(true);
+    notifyGlobalSave("saving");
+    try {
+      const res = await fetch("/api/jobseeker/career-preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (res.ok) {
+        if (prefSavedTimerRef.current) clearTimeout(prefSavedTimerRef.current);
+        setPrefSaved(true);
+        notifyGlobalSave("saved");
+        prefSavedTimerRef.current = setTimeout(() => setPrefSaved(false), 3000);
+      }
+    } catch { /* ignore */ }
+    finally { setPrefSaving(false); }
+  }, [notifyGlobalSave]);
 
   // ── schools マスター（段階6-7 Phase 1: EducationEditor から hoisted） ───────
   // EducationEditor が mount される度に fetch しないよう、ProfileEditClient
@@ -2506,6 +2549,7 @@ export default function ProfileEditClient({
     basic:        !!(basicInfo.name.trim() || basicInfo.aboutMe.trim()),
     career:       initialExperiences.length > 0 || educations.length > 0,
     skills:       skillTags.length > 0,
+    preferences:  !!(prefJobType || prefWorkStyle || prefSalaryMin || prefSalaryMax || prefTiming),
     certs:        certifications.length > 0,
     achievements: achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0,
     socials:      Object.values(socialLinks).some((v) => !!v),
@@ -2805,6 +2849,173 @@ export default function ProfileEditClient({
               skillTags={skillTags}
               setSkillTags={setSkillTags}
             />
+          </div>
+        )}
+
+        {/* 希望条件タブ */}
+        {activeTab === "preferences" && (
+          <div style={{ maxWidth: 680 }}>
+            {/* 保存状態インジケーター */}
+            {(prefSaving || prefSaved) && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 6, marginBottom: 16,
+                padding: "8px 14px", borderRadius: 8,
+                background: prefSaved ? "var(--success-soft)" : "var(--royal-50)",
+                border: `1px solid ${prefSaved ? "#A7F3D0" : "var(--royal-100)"}`,
+                fontSize: 12, fontWeight: 600,
+                color: prefSaved ? "var(--success)" : "var(--royal)",
+              }}>
+                {prefSaving ? (
+                  <><span style={{ width: 10, height: 10, borderRadius: "50%", border: "2px solid currentColor", borderTopColor: "transparent", display: "inline-block", animation: "spin 0.6s linear infinite" }} /> 保存中…</>
+                ) : (
+                  <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg> 保存しました</>
+                )}
+              </div>
+            )}
+
+            <FormSection
+              title="希望職種・経験年数"
+              desc="企業側の候補者サーチに表示されます。カジュアル面談の申込をもらいやすくなります。"
+            >
+              <FormGroup label="希望職種">
+                <select
+                  value={prefJobType}
+                  onChange={async (e) => {
+                    setPrefJobType(e.target.value);
+                    await savePreferences({ job_type: e.target.value || null });
+                  }}
+                  style={selectStyle()}
+                >
+                  <option value="">未設定</option>
+                  <option value="フィールドセールス">フィールドセールス</option>
+                  <option value="インサイドセールス">インサイドセールス</option>
+                  <option value="カスタマーサクセス">カスタマーサクセス</option>
+                  <option value="マーケティング">マーケティング</option>
+                  <option value="事業開発・BizDev">事業開発・BizDev</option>
+                  <option value="プロダクトマネージャー">プロダクトマネージャー</option>
+                  <option value="エンジニア">エンジニア</option>
+                  <option value="デザイナー">デザイナー</option>
+                  <option value="HR・人事">HR・人事</option>
+                  <option value="財務・経理">財務・経理</option>
+                  <option value="その他">その他</option>
+                </select>
+              </FormGroup>
+              <FormGroup label="社会人経験年数">
+                <select
+                  value={prefExpYears}
+                  onChange={async (e) => {
+                    setPrefExpYears(e.target.value);
+                    await savePreferences({ experience_years: e.target.value || null });
+                  }}
+                  style={selectStyle()}
+                >
+                  <option value="">未設定</option>
+                  <option value="1〜2年">1〜2年</option>
+                  <option value="3〜5年">3〜5年</option>
+                  <option value="6〜10年">6〜10年</option>
+                  <option value="11年以上">11年以上</option>
+                </select>
+              </FormGroup>
+            </FormSection>
+
+            <FormSection
+              title="勤務スタイル・転職時期"
+              desc="希望する働き方と転職のタイミングを教えてください。"
+            >
+              <FormGroup label="希望勤務スタイル">
+                <select
+                  value={prefWorkStyle}
+                  onChange={async (e) => {
+                    setPrefWorkStyle(e.target.value);
+                    await savePreferences({ desired_work_style: e.target.value || null });
+                  }}
+                  style={selectStyle()}
+                >
+                  <option value="">未設定</option>
+                  <option value="full_remote">フルリモート希望</option>
+                  <option value="hybrid">ハイブリッド（週1〜3出社）</option>
+                  <option value="on_site">出社中心</option>
+                  <option value="flexible">柔軟に対応できる</option>
+                </select>
+              </FormGroup>
+              <FormGroup label="転職検討時期">
+                <select
+                  value={prefTiming}
+                  onChange={async (e) => {
+                    setPrefTiming(e.target.value);
+                    await savePreferences({ transfer_timing: e.target.value || null });
+                  }}
+                  style={selectStyle()}
+                >
+                  <option value="">未設定</option>
+                  <option value="即時">すぐにでも（即時）</option>
+                  <option value="1〜3ヶ月以内">1〜3ヶ月以内</option>
+                  <option value="半年以内">半年以内</option>
+                  <option value="1年以内">1年以内</option>
+                  <option value="情報収集中">まだ情報収集段階</option>
+                </select>
+              </FormGroup>
+            </FormSection>
+
+            <FormSection
+              title="希望年収"
+              desc="非公開にしたい場合は未入力のままにしてください。入力した場合は企業側に表示されます。"
+            >
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <FormGroup label="希望年収（下限）">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                      type="number"
+                      value={prefSalaryMin}
+                      onChange={(e) => setPrefSalaryMin(e.target.value)}
+                      onBlur={async (e) => {
+                        const val = e.target.value ? parseInt(e.target.value, 10) : null;
+                        await savePreferences({ desired_salary_min: val });
+                      }}
+                      placeholder="例: 600"
+                      min={0}
+                      max={9999}
+                      style={{ ...inputStyle(), width: "100%" }}
+                    />
+                    <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
+                  </div>
+                </FormGroup>
+                <FormGroup label="希望年収（上限）">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                      type="number"
+                      value={prefSalaryMax}
+                      onChange={(e) => setPrefSalaryMax(e.target.value)}
+                      onBlur={async (e) => {
+                        const val = e.target.value ? parseInt(e.target.value, 10) : null;
+                        await savePreferences({ desired_salary_max: val });
+                      }}
+                      placeholder="例: 900"
+                      min={0}
+                      max={9999}
+                      style={{ ...inputStyle(), width: "100%" }}
+                    />
+                    <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
+                  </div>
+                </FormGroup>
+              </div>
+              {prefSalaryMin && prefSalaryMax && parseInt(prefSalaryMin) > parseInt(prefSalaryMax) && (
+                <div style={{ fontSize: 11, color: "var(--error)", marginTop: 6 }}>
+                  ⚠ 下限が上限を超えています
+                </div>
+              )}
+            </FormSection>
+
+            <div style={{
+              padding: "14px 18px", background: "var(--royal-50)",
+              border: "1px solid var(--royal-100)", borderRadius: 10,
+              fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
+            }}>
+              💡 <strong style={{ color: "var(--royal)" }}>希望条件は企業側に公開されます。</strong>
+              しかし OPINIO ではスカウトはできない設計です。
+              企業はこの情報を参考に、自社への関心を持ちやすい求職者に気づきます。
+              ダイレクトメッセージは送れません。
+            </div>
           </div>
         )}
 

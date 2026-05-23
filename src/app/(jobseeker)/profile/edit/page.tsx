@@ -97,6 +97,40 @@ export default async function ProfileEditPage({
       display_order: (r.display_order as number) ?? 0,
     }));
 
+  // ow_profiles — 希望条件（job_type, desired_work_style, desired_salary, transfer_timing）
+  let profilePrefs: {
+    job_type: string | null;
+    experience_years: string | null;
+    desired_work_style: string | null;
+    desired_salary_min: number | null;
+    desired_salary_max: number | null;
+    transfer_timing: string | null;
+    desired_phase: string[] | null;
+    worry: string | null;
+  } | null = null;
+
+  if (owUser) {
+    // onboarding は auth.users.id を user_id として保存する場合がある
+    const { data: p1 } = await supabase
+      .from("ow_profiles")
+      .select("job_type, experience_years, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (p1) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      profilePrefs = p1 as any;
+    } else {
+      const { data: p2 } = await supabase
+        .from("ow_profiles")
+        .select("job_type, experience_years, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry")
+        .eq("user_id", owUser.id)
+        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (p2) profilePrefs = p2 as any;
+    }
+  }
+
   // Build UUID → name map from ow_roles
   const roleNameById = new Map<string, string>();
   for (const role of allRoles ?? []) {
@@ -165,6 +199,7 @@ export default async function ProfileEditPage({
       initialExperiences={initialExperiences}
       roles={roles}
       isWelcome={isWelcome}
+      initialProfilePrefs={profilePrefs}
     />
   );
 }
