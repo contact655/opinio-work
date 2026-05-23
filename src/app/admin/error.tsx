@@ -53,7 +53,7 @@ export default function AdminError({
         )}
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button
+          <button type="button"
             onClick={reset}
             style={{
               display: "inline-block",
