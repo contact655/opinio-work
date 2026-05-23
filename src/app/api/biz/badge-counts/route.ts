@@ -21,11 +21,11 @@ export async function GET() {
       .eq("company_id", companyId)
       .eq("status", "pending");
 
-    // new / unreviewed applications (status = 'pending')
+    // new / unreviewed applications via ow_job_applications → ow_jobs (company_id)
     const { count: applicationsCount } = await supabase
-      .from("ow_applications")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", companyId)
+      .from("ow_job_applications")
+      .select("id, ow_jobs!inner(company_id)", { count: "exact", head: true })
+      .eq("ow_jobs.company_id", companyId)
       .eq("status", "pending");
 
     return NextResponse.json({
