@@ -1,3 +1,5 @@
+"use client";
+
 import type { MeetingApplication } from "@/lib/business/mockMeetings";
 import { MeetingStatusBadge } from "./MeetingStatusBadge";
 

@@ -24,18 +24,20 @@ const WORK_STYLE_LABELS: Record<string, string> = {
   flexible: "柔軟に対応",
 };
 
-const JOB_TYPE_LABELS: Record<string, string> = {
-  product_manager: "プロダクトマネージャー",
-  engineer: "エンジニア",
-  designer: "デザイナー",
-  sales: "営業",
-  cs: "カスタマーサクセス",
-  marketing: "マーケティング",
-  hr: "HR / 人事",
-  finance: "財務 / 経理",
-  bizdev: "事業開発",
-  other: "その他",
-};
+// ow_profiles.job_type stores Japanese strings matching the onboarding options
+const JOB_TYPE_OPTIONS = [
+  "フィールドセールス",
+  "インサイドセールス",
+  "カスタマーサクセス",
+  "マーケティング",
+  "事業開発・BizDev",
+  "プロダクトマネージャー",
+  "エンジニア",
+  "デザイナー",
+  "HR・人事",
+  "財務・経理",
+  "その他",
+];
 
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg, #002366, #3B5FD9)",
@@ -116,8 +118,8 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
           }}
         >
           <option value="">職種（全て）</option>
-          {Object.entries(JOB_TYPE_LABELS).map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
+          {JOB_TYPE_OPTIONS.map((v) => (
+            <option key={v} value={v}>{v}</option>
           ))}
         </select>
         <select
@@ -214,7 +216,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
                       </div>
                     ) : c.jobType ? (
                       <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
-                        {JOB_TYPE_LABELS[c.jobType] ?? c.jobType}
+                        {c.jobType}
                       </div>
                     ) : null}
                   </div>

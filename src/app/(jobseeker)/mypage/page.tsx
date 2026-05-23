@@ -390,6 +390,22 @@ export default async function MypagePage() {
     }
   }
 
+  // Fetch ow_profiles career preferences (user_id = auth.users.id)
+  let hasCareerPreferences = false;
+  if (owUser) {
+    const { data: profile } = await supabase
+      .from("ow_profiles")
+      .select("job_type, desired_work_style, desired_salary_min, transfer_timing")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    hasCareerPreferences = !!(
+      profile?.job_type ||
+      profile?.desired_work_style ||
+      profile?.desired_salary_min ||
+      profile?.transfer_timing
+    );
+  }
+
   // Fetch notification badge counts
   let conversationsBadge = 0;
   let applicationsBadge = 0;
@@ -411,5 +427,5 @@ export default async function MypagePage() {
     applicationsBadge = appCount ?? 0;
   }
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} mentorBookmarks={mentorBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} receivedRequests={receivedRequests} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} />;
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} mentorBookmarks={mentorBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} receivedRequests={receivedRequests} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} />;
 }

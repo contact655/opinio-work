@@ -2309,6 +2309,7 @@ export default function ProfileEditClient({
   const [prefSalaryMin, setPrefSalaryMin] = useState(initialProfilePrefs?.desired_salary_min?.toString() ?? "");
   const [prefSalaryMax, setPrefSalaryMax] = useState(initialProfilePrefs?.desired_salary_max?.toString() ?? "");
   const [prefTiming, setPrefTiming] = useState(initialProfilePrefs?.transfer_timing ?? "");
+  const [prefWorry, setPrefWorry] = useState(initialProfilePrefs?.worry ?? "");
   const [prefSaving, setPrefSaving] = useState(false);
   const [prefSaved, setPrefSaved] = useState(false);
   const prefSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3004,6 +3005,30 @@ export default function ProfileEditClient({
                   ⚠ 下限が上限を超えています
                 </div>
               )}
+            </FormSection>
+
+            <FormSection
+              title="今一番の悩み・相談テーマ"
+              desc="メンター相談やカジュアル面談のマッチングに使われます。"
+            >
+              <FormGroup label="今一番の悩み">
+                <select
+                  value={prefWorry}
+                  onChange={async (e) => {
+                    setPrefWorry(e.target.value);
+                    await savePreferences({ worry: e.target.value || null });
+                  }}
+                  style={selectStyle()}
+                >
+                  <option value="">未設定</option>
+                  <option value="転職すべきか迷っている">転職すべきか迷っている</option>
+                  <option value="年収を大幅に上げたい">年収を大幅に上げたい</option>
+                  <option value="外資・グローバル企業に行きたい">外資・グローバル企業に行きたい</option>
+                  <option value="キャリアチェンジを考えている">キャリアチェンジを考えている</option>
+                  <option value="スタートアップに興味がある">スタートアップに興味がある</option>
+                  <option value="まず話を聞いてみたい">まず話を聞いてみたい</option>
+                </select>
+              </FormGroup>
             </FormSection>
 
             <div style={{

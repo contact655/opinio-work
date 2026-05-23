@@ -256,7 +256,7 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
 // ─── Profile completeness widget ─────────────────────────────────────────────
 
 function ProfileCompletenessCard({
-  userName, userAboutMe, userLocation, userSkillTags, timelineCareers, userEducations,
+  userName, userAboutMe, userLocation, userSkillTags, timelineCareers, userEducations, hasCareerPreferences,
 }: {
   userName: string;
   userAboutMe?: string | null;
@@ -264,6 +264,7 @@ function ProfileCompletenessCard({
   userSkillTags?: { id: string; label: string; sort_order: number }[];
   timelineCareers?: CareerEntry[];
   userEducations?: { id: string; school: string; [key: string]: unknown }[];
+  hasCareerPreferences?: boolean;
 }) {
   const checks: { label: string; done: boolean; hint: string }[] = [
     { label: "名前", done: !!userName && userName !== "ユーザー", hint: "名前を設定する" },
@@ -272,6 +273,7 @@ function ProfileCompletenessCard({
     { label: "スキルタグ", done: (userSkillTags?.length ?? 0) > 0, hint: "得意な技術・スキルを追加" },
     { label: "職歴", done: (timelineCareers?.length ?? 0) > 0, hint: "これまでのキャリアを記録" },
     { label: "学歴", done: (userEducations?.length ?? 0) > 0, hint: "学校・学部を追加" },
+    { label: "希望条件", done: !!hasCareerPreferences, hint: "希望職種・勤務スタイルを設定" },
   ];
   const doneCount = checks.filter((c) => c.done).length;
   const pct = Math.round((doneCount / checks.length) * 100);
@@ -405,6 +407,7 @@ function DashboardView({
   currentRole,
   userLocation, userAboutMe, userBirthDate, userFutureAspirations, userSocialLinks,
   userSkillTags, userEducations, userCertifications, timelineCareers,
+  hasCareerPreferences,
 }: {
   userId: string; isMentor: boolean;
   userName: string; userInitial: string; userAvatar: string;
@@ -421,6 +424,7 @@ function DashboardView({
   }[];
   userCertifications?: { id: string; name: string; sort_order: number }[];
   timelineCareers?: CareerEntry[];
+  hasCareerPreferences?: boolean;
 }) {
   // MergedTimeline 用データ整形（/mypage は常に本人なので viewerIsOwner = true）
   const timelineEdus = toTimelineEducationEntries((userEducations ?? []) as RawEducation[]);
@@ -441,6 +445,7 @@ function DashboardView({
         userSkillTags={userSkillTags}
         timelineCareers={timelineCareers}
         userEducations={userEducations}
+        hasCareerPreferences={hasCareerPreferences}
       />
 
       {/* コンパクトプロフィールカード — Phase ν-6 段階3: 全フィールドインライン編集対応 */}
@@ -935,6 +940,7 @@ export default function MypageClient({
   receivedRequests: receivedRequestsProp = [],
   conversationsBadge,
   applicationsBadge,
+  hasCareerPreferences = false,
 }: {
   owUser: OwUser;
   skillTags?: { id: string; label: string; sort_order: number }[];
@@ -954,6 +960,7 @@ export default function MypageClient({
   receivedRequests?: ReceivedRequest[];
   conversationsBadge?: number;
   applicationsBadge?: number;
+  hasCareerPreferences?: boolean;
 }) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
@@ -1226,6 +1233,7 @@ export default function MypageClient({
           userEducations={educations}
           userCertifications={certifications}
           timelineCareers={timelineCareers}
+          hasCareerPreferences={hasCareerPreferences}
         />
       )}
       {activeView === "casual" && <CasualView casualMeetings={casualMeetings} />}
