@@ -427,7 +427,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
           box-shadow: 0 2px 8px rgba(15,23,42,0.12);
           cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          color: #1a1d24;
+          color: var(--ink);
           font-size: 18px; line-height: 1; padding: 0;
           transition: opacity 0.18s ease, box-shadow 0.18s ease;
           pointer-events: auto; user-select: none;

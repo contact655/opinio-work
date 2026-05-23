@@ -82,11 +82,11 @@ export default function NotJobChangingPage() {
           </section>
 
           {/* 半年後リマインド */}
-          <section style={{ background: "#f0fdf4", borderRadius: 14, padding: 28, border: "0.5px solid #b7e4c7", marginBottom: 24 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>
+          <section style={{ background: "var(--royal-50)", borderRadius: 14, padding: 28, border: "1px solid var(--royal-100)", marginBottom: 24 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
               半年後にまた相談する
             </h2>
-            <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.8, marginBottom: 16, margin: "0 0 16px" }}>
+            <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 16, margin: "0 0 16px" }}>
               「今は動かないけど、半年後に状況を整理したい」<br />
               そんなときは、OPINIOに登録だけしておいてください。<br />
               半年後にメールでお知らせし、ご都合に合わせてメンターと再相談できます。
@@ -95,22 +95,40 @@ export default function NotJobChangingPage() {
               href="/auth/signup?intent=remind_6m"
               style={{
                 display: "inline-block", padding: "12px 28px", borderRadius: 10,
-                fontSize: 14, fontWeight: 600, background: "#1D9E75", color: "#fff", textDecoration: "none",
+                fontSize: 14, fontWeight: 600, background: "var(--royal)", color: "#fff", textDecoration: "none",
               }}
             >
               半年後リマインドに登録する →
             </Link>
           </section>
 
-          <div style={{ display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+          {/* メンター相談 CTA */}
+          <div style={{
+            background: "var(--warm-soft)", border: "1.5px solid #FDE68A",
+            borderRadius: 14, padding: 28, marginBottom: 24,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            gap: 16, flexWrap: "wrap",
+          }}>
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>
+                今すぐ先輩に話を聞く
+              </p>
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.7 }}>
+                転職するかどうか迷っている段階でも大丈夫。30分・完全無料です
+              </p>
+            </div>
             <Link
-              href="/career-consultation"
+              href="/mentors"
               style={{
-                display: "inline-block", padding: "12px 28px", borderRadius: 10,
-                fontSize: 14, fontWeight: 600, background: "#fff", color: "#1D9E75", border: "1.5px solid #1D9E75", textDecoration: "none",
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "12px 24px", borderRadius: 10,
+                fontSize: 14, fontWeight: 700,
+                background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                color: "#fff", textDecoration: "none",
+                flexShrink: 0,
               }}
             >
-              先にメンターに相談する
+              先輩メンターを見る（無料）
             </Link>
           </div>
         </div>
