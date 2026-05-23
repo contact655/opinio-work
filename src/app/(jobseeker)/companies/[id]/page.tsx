@@ -1566,46 +1566,38 @@ function CompanyPostsSection({
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "28px 32px",
+        overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      {/* セクションタイトル */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 20,
-        }}
-      >
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: "'Noto Serif JP', serif",
-            fontSize: 20,
-            fontWeight: 600,
-            color: "var(--ink)",
-            letterSpacing: "-0.01em",
-          }}
+      {/* Section header */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          }
         >
           この企業の発信
-        </h2>
+        </SecTitle>
         {postsCount > 5 && (
           <Link
             href={`/companies/${companyId}/posts`}
-            style={{
-              fontSize: 13,
-              color: "var(--royal)",
-              fontWeight: 500,
-              textDecoration: "none",
-            }}
+            style={{ fontSize: 13, color: "var(--royal)", fontWeight: 500, textDecoration: "none" }}
           >
             すべて見る ({postsCount} 件) →
           </Link>
         )}
       </div>
-
+      <div style={{ padding: "24px 32px 28px" }}>
       {/* PostCard 一覧 */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {posts.map((post) => (
@@ -1613,7 +1605,6 @@ function CompanyPostsSection({
         ))}
       </div>
 
-      {/* もっと見るボタン (5 件超かつ小画面向け、リンクはセクションタイトルと同じ先) */}
       {postsCount > 5 && (
         <Link
           href={`/companies/${companyId}/posts`}
@@ -1629,13 +1620,13 @@ function CompanyPostsSection({
             fontSize: 13,
             fontWeight: 500,
             textDecoration: "none",
-            transition: "background 0.15s",
           }}
           className="company-posts-more-link"
         >
           発信をすべて見る ({postsCount} 件) →
         </Link>
       )}
+      </div>
     </section>
   );
 }
@@ -1703,11 +1694,16 @@ function CurrentEmployeesSection({
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "28px 32px",
+        overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      <div style={{ marginBottom: 20 }}>
+      {/* Section header */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+      }}>
         <SecTitle icon={SECTION_ICON}>
           現役社員
           <span
@@ -1723,7 +1719,7 @@ function CurrentEmployeesSection({
           </span>
         </SecTitle>
       </div>
-
+      <div style={{ padding: "24px 32px 28px" }}>
       {/* ── Role composition bar (3名以上 + カテゴリあり) ───────────────────── */}
       {employees.length >= 3 && categories.length > 0 && (() => {
         const catCounts = new Map<string, number>();
@@ -1892,6 +1888,7 @@ function CurrentEmployeesSection({
           )}
         </div>
       )}
+      </div>
     </section>
   );
 }
@@ -1999,11 +1996,16 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "28px 32px",
+        overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      <div style={{ marginBottom: 20 }}>
+      {/* Section header */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+      }}>
         <SecTitle
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -2026,11 +2028,10 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
           </span>
         </SecTitle>
       </div>
-
+      <div style={{ padding: "24px 32px 28px" }}>
       {alumni.length > 0 ? (
         <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)]">
           {alumni.map((emp) => (
-            // γ-5: EmployeeCard → AlumniCard に差し替え
             <AlumniCard key={emp.userId} employee={emp} />
           ))}
         </div>
@@ -2046,6 +2047,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
           OB・OG情報は順次更新されます
         </p>
       )}
+      </div>
     </section>
   );
 }
@@ -2066,23 +2068,27 @@ function JobsSection({
           background: "#fff",
           border: "1px solid var(--line)",
           borderRadius: 16,
-          padding: "28px 32px",
+          overflow: "hidden",
           marginBottom: 20,
         }}
       >
-        <SecTitle
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <rect x="3" y="4" width="18" height="16" rx="2" />
-              <path d="M3 10h18" />
-            </svg>
-          }
-        >
-          募集中の求人
-        </SecTitle>
-        <p style={{ marginTop: 20, fontSize: 14, color: "var(--ink-mute)", textAlign: "center", padding: "32px 0" }}>
-          現在、公開中の求人はありません。
-        </p>
+        <div style={{ padding: "22px 32px 18px", borderBottom: "1px solid var(--line-soft)", background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)" }}>
+          <SecTitle
+            icon={
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <path d="M3 10h18" />
+              </svg>
+            }
+          >
+            募集中の求人
+          </SecTitle>
+        </div>
+        <div style={{ padding: "24px 32px 28px" }}>
+          <p style={{ fontSize: 14, color: "var(--ink-mute)", textAlign: "center", padding: "24px 0", margin: 0 }}>
+            現在、公開中の求人はありません。
+          </p>
+        </div>
       </section>
     );
   }
@@ -2196,32 +2202,35 @@ function JobsSection({
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "28px 32px",
+        overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      {/* セクションヘッダー */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: 8,
-        }}
-      >
+      {/* Section header */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 8,
+      }}>
         <SecTitle icon={sectionIcon}>
           募集中の求人
           <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>
             · {company.job_count}件
           </span>
         </SecTitle>
-        <a href="#jobs" style={{ color: "var(--royal)", fontSize: 13, fontWeight: 500 }}>
-          すべて見る →
-        </a>
+        <Link
+          href={`/companies/${company.id}/jobs`}
+          style={{ color: "var(--royal)", fontSize: 13, fontWeight: 500, textDecoration: "none" }}
+        >
+          すべての求人を見る →
+        </Link>
       </div>
-
+      <div style={{ padding: "24px 32px 28px" }}>
       {totalJobs < JOB_GROUPING_THRESHOLD ? (
         // ── 1〜3 件: カテゴリヘッダーなし、直接リスト (γ-4 修正③) ──────────
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -2313,6 +2322,7 @@ function JobsSection({
           </div>
         </>
       )}
+      </div>
     </section>
   );
 }
