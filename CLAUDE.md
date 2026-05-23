@@ -13,7 +13,36 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🎯 次のセッションでやること（2026-05-23 セッション7 更新）
+## 🎯 次のセッションでやること（2026-05-23 セッション8 更新）
+
+### ✅ 完了 2026-05-23 セッション8: /u/[id] サイドバー化・会社名リンク・loading skeleton 更新
+
+  **`/u/[id]` プロフィールページ全面刷新:**
+  - レイアウト: `maxWidth: 760` 1カラム → 2カラムグリッド（`1fr 280px`、最大幅 1060px）
+  - メインカラム: カバー+アバターヘッダー（全幅）、About Me、経歴タイムライン
+  - サイドバー（`position: sticky`）: 現在の在籍企業カード、メンターCTA、スキルチップ、資格リスト、SNSリンク、非認証CTA
+  - レスポンシブ: 900px 以下で1カラムに折りたたみ
+  - 「プロフィールを編集」ボタンをヘッダー右に追加（viewerIsOwner=true のみ）
+
+  **MergedTimeline: 会社名 → リンク化:**
+  - `company_id` がある場合、会社名を `<Link href="/companies/{id}">` でラップ
+  - ホバーでアンダーライン表示（`company-name-link` CSS クラス）
+  - 単独 career・並行カード・同社グループヘッダーの3箇所すべてに適用
+  - テキスト入力の企業（`company_text` のみ）はクリック不可のまま
+
+  **`biz/members` + `biz/meetings`: `window.confirm` 解消:**
+  - `MembersClient.tsx`: 招待キャンセルの確認を inline confirmation row に変更
+  - `MeetingDetailPanel.tsx`: 確認ダイアログを inline confirmation UI に変更
+
+  **`/u/[id]` loading skeleton 更新:**
+  - 旧 `maxWidth: 720` 1カラム版 → 新 `maxWidth: 1060` 2カラムグリッド版に更新
+  - カバー・アバター・メインカラム（About Me + Timeline 3行）・サイドバー（会社カード・スキル・SNS）
+
+  **「在籍メンバー」機能について:**
+  - `CurrentEmployeesSection`（現役社員）と `AlumniSection`（OB・OG社員）として既に完全実装済みと確認
+  - `/companies/[id]` で `ow_experiences.company_id` を元に自動表示
+  - 各カードが `/u/{userId}` にリンク、メンターは「相談する →」ボタン付き
+  - 実ユーザー招待 → オンボーディングで会社をマスタ選択した時点で自動表示される
 
 ### ✅ 完了 2026-05-23 セッション7: Header/Footer 統一・エラー境界・loading skeleton 網羅・ブランディング完成
 
@@ -252,13 +281,15 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ### 🟢 次の優先候補
 - **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了。企業担当者＋求職者を招待してテスト可能
+- **ow_profiles への実データ投入確認** — 実ユーザーを招待し、オンボーディング → profile/edit 希望条件 → /biz/candidates に表示される E2E フローを確認
 - ~~SEO / OGP 強化~~ ✅ 完了済み（企業詳細・求人詳細・メンター・記事 全ページに generateMetadata + og:image）
 - ~~新機能検討~~ ✅ `/u/[id]` 公開プロフィール・`/biz/candidates` 両方実装済み
 - ~~求職者プロフィール完成度~~ ✅ 完了済み（希望条件タブ・7項目完成度チェック 2026-05-23 セッション3）
 - ~~ow_users.visibility の UI 動作確認~~ ✅ RLS 確認済み（public/login_only/private それぞれ正しく動作）
 - ~~biz側 desired_phase フィルター~~ ✅ 完了済み（ピルボタン UI に変更済み 2026-05-23 セッション6）
-- **ow_profiles への実データ投入確認** — 実ユーザーを招待し、オンボーディング → profile/edit 希望条件 → /biz/candidates に表示される E2E フローを確認
-- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了。企業担当者＋求職者を招待してテスト可能
+- ~~/u/[id] サイドバー化~~ ✅ 完了済み（2カラムグリッド、在籍企業カード・スキル・SNS を sidebar に移動 2026-05-23 セッション8）
+- ~~会社名→企業詳細リンク（MergedTimeline）~~ ✅ 完了済み（company_id がある場合のみリンク化 2026-05-23 セッション8）
+- ~~「在籍メンバー」機能~~ ✅ 既実装確認済み（CurrentEmployeesSection / AlumniSection として /companies/[id] に存在）
 
 ### DB 現状（2026-05-22 セッション3 更新確認）
 | テーブル | 件数 | 備考 |
