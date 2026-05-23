@@ -224,7 +224,7 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
         <div>
           <h1 className="text-2xl font-bold mb-1">発信管理</h1>
           <p className="text-sm text-gray-500">
-            各企業の外部発信コンテンツを Opinio 編集部として登録・管理します。
+            各企業の外部発信コンテンツを OPINIO 編集部として登録・管理します。
           </p>
         </div>
         {!showForm && (

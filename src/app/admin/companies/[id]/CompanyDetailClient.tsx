@@ -330,7 +330,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
     { key: 'basic', label: '基本情報' },
     { key: 'recruiter', label: '採用担当者' },
     { key: 'admins', label: `アクセス管理 (${adminList.length})` },
-    { key: 'opinio', label: 'Opinio独自' },
+    { key: 'opinio', label: 'OPINIO独自' },
     { key: 'logo', label: 'ロゴ' },
     { key: 'genres', label: 'ジャンル' },
     { key: 'publish', label: '公開設定' },
@@ -700,7 +700,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
       {/* ── Opinio独自タブ ────────────────────────────────────────────────── */}
       {activeTab === 'opinio' && (
         <section className="bg-white border border-gray-200 rounded-lg p-6">
-          <h2 className="text-base font-semibold mb-1">Opinio 編集部コメント</h2>
+          <h2 className="text-base font-semibold mb-1">OPINIO 編集部コメント</h2>
           <p className="text-sm text-gray-500 mb-4">
             編集部独自の企業評価・コメントです。求職者には非公開の内部メモとしても活用できます。
           </p>
