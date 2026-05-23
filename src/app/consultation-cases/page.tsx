@@ -16,7 +16,7 @@ async function getCases() {
   try {
     const { data, error } = await supabase
       .from("consultation_cases")
-      .select("*, mentors(name, current_role, current_company, avatar_initial, avatar_color)")
+      .select("*, ow_mentors(name, current_role, current_company, avatar_initial, avatar_color)")
       .eq("is_published", true)
       .order("display_order", { ascending: true });
     if (error) {

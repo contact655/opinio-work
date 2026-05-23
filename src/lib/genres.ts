@@ -61,7 +61,7 @@ export async function fetchGenresWithCompanies(): Promise<GenreWithCompanies[]> 
           .from("ow_jobs")
           .select("company_id")
           .in("company_id", companyIds)
-          .eq("status", "active");
+          .in("status", ["published", "active"]);
 
         (jobRows ?? []).forEach((row: { company_id: string }) => {
           jobCountMap[row.company_id] = (jobCountMap[row.company_id] || 0) + 1;

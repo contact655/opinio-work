@@ -47,7 +47,7 @@ export default function Header() {
             const { count: njCount } = await supabase
               .from("ow_jobs")
               .select("id", { count: "exact", head: true })
-              .eq("status", "active")
+              .in("status", ["published", "active"])
               .gt("created_at", profile.last_login_at);
             if (njCount && njCount > 0) setNewJobCount(njCount);
           }

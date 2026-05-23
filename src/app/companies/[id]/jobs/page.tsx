@@ -28,7 +28,7 @@ export default async function CompanyJobsPage({
   if (!company) return notFound();
 
   const jobs = (company.ow_jobs || []).filter(
-    (j: any) => j.status === "active"
+    (j: any) => j.status === "published"
   );
 
   return (

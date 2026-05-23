@@ -15,7 +15,7 @@ type ConsultationCase = {
   insight: string;
   action_taken: string | null;
   display_order: number;
-  mentors: {
+  ow_mentors: {
     name: string;
     current_role: string | null;
     current_company: string | null;
@@ -51,7 +51,7 @@ function getCategoryStyle(category: string) {
 
 function CaseCard({ c }: { c: ConsultationCase }) {
   const catStyle = getCategoryStyle(c.worry_category);
-  const mentor = c.mentors;
+  const mentor = c.ow_mentors;
 
   return (
     <div
