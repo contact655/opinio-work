@@ -92,6 +92,9 @@ export type CompanyDetail = {
   workstyleDescription: string | null;
   benefits: string[] | null;
   evaluationSystem: string | null;
+  // Fit section
+  fit_positives: string[] | null;
+  fit_negatives: string[] | null;
 };
 
 // ─── Full data ─────────────────────────────────────────────────────────────
@@ -210,6 +213,16 @@ const LAYERX: CompanyDetail = {
   workstyleDescription: null,
   benefits: null,
   evaluationSystem: null,
+  // Fit section
+  fit_positives: [
+    "バックオフィス・FinTech・SaaSに興味があり、急成長スタートアップで裁量を持って働きたい人",
+    "フルリモート×副業OKのスタイルで、自分のペースで高いパフォーマンスを出したい人",
+    "技術と事業の両方に関心があり、CEOとの距離感が近い透明性の高い組織文化に共感できる人",
+  ],
+  fit_negatives: [
+    "大企業のように役割分担が明確で、決まったことをやり遂げる環境を求める人",
+    "まだスタートアップの不確実性や変化に慣れておらず、安定した業務フローを好む人",
+  ],
 };
 
 const SMARTHR: CompanyDetail = {
@@ -327,6 +340,16 @@ const SMARTHR: CompanyDetail = {
   workstyleDescription: null,
   benefits: null,
   evaluationSystem: null,
+  // Fit section
+  fit_positives: [
+    "HR Tech・SaaSプロダクトに関心があり、6万社のHRを支えるスケールで社会課題に取り組みたい人",
+    "IPO準備フェーズの組織づくりに関わりながら、キャリアの転換点を作りたい人",
+    "フルリモートで自律的に働き、育児や副業との両立を実現したい人",
+  ],
+  fit_negatives: [
+    "細かい指示やフォローを必要とし、自走するよりも管理された環境を好む人",
+    "スタートアップの変化スピードや、制度整備の過渡期をストレスに感じやすい人",
+  ],
 };
 
 // ─── Template generator (for the other 10 companies) ─────────────────────────
@@ -447,6 +470,9 @@ function makeDetail(c: Company, overrides: Partial<CompanyDetail> = {}): Company
     workstyleDescription: null,
     benefits: null,
     evaluationSystem: null,
+    // Fit section
+    fit_positives: null,
+    fit_negatives: null,
   };
 
   return { ...base, ...overrides };

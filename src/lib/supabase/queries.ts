@@ -243,6 +243,13 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
       ? (row.benefits as string[])
       : null,
     evaluationSystem: (row.evaluation_system as string | null) ?? null,
+    // Fit section
+    fit_positives: Array.isArray(row.fit_positives) && (row.fit_positives as string[]).length > 0
+      ? (row.fit_positives as string[])
+      : null,
+    fit_negatives: Array.isArray(row.fit_negatives) && (row.fit_negatives as string[]).length > 0
+      ? (row.fit_negatives as string[])
+      : null,
   };
 }
 
@@ -373,6 +380,8 @@ const COMPANY_DETAIL_COLS = [
   // Benefits section (Commit BB)
   "nearest_station", "work_time_system", "workstyle_description",
   "benefits", "evaluation_system",
+  // Fit section
+  "fit_positives", "fit_negatives",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {

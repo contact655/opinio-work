@@ -48,7 +48,7 @@ function ArticleCard({ article }: { article: Article }) {
       >
         {/* Eyecatch */}
         <div style={{
-          height: 150,
+          height: 180,
           background: article.eyecatch_gradient,
           display: "flex", alignItems: "center", justifyContent: "center",
           position: "relative", overflow: "hidden",
@@ -56,9 +56,17 @@ function ArticleCard({ article }: { article: Article }) {
           {/* 背景デコレーション */}
           <div style={{
             position: "absolute", inset: 0,
-            background: "radial-gradient(circle at 70% 30%, rgba(255,255,255,0.12) 0%, transparent 60%)",
+            background: "radial-gradient(circle at 70% 30%, rgba(255,255,255,0.15) 0%, transparent 60%)",
           }} />
-          <span style={{ fontSize: 52, opacity: 0.25, position: "relative", zIndex: 1 }}>{icon}</span>
+          {/* 引用マーク（インタビュー系記事） */}
+          {(article.type === "employee" || article.type === "mentor" || article.type === "ceo") && (
+            <span style={{
+              position: "absolute", left: 14, bottom: 10, zIndex: 1,
+              fontFamily: "Georgia, serif", fontSize: 64, lineHeight: 1,
+              color: "rgba(255,255,255,0.15)", fontWeight: 700, userSelect: "none",
+            }}>"</span>
+          )}
+          <span style={{ fontSize: 56, opacity: 0.2, position: "relative", zIndex: 1 }}>{icon}</span>
 
           {/* Category badge */}
           <div style={{
@@ -111,13 +119,14 @@ function ArticleCard({ article }: { article: Article }) {
         </div>
 
         {/* Body */}
-        <div style={{ padding: "16px 18px 18px", flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "18px 20px 20px", flex: 1, display: "flex", flexDirection: "column" }}>
           {/* 取材対象者の役職（社員/メンター/CEO記事のみ） */}
           {mainSubject?.role_at_interview && (
             <div style={{
-              fontSize: 10.5, color: "var(--ink-mute)", fontWeight: 500,
+              fontSize: 10.5, color: "var(--ink-mute)", fontWeight: 600,
               marginBottom: 6, lineHeight: 1.4,
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              letterSpacing: "0.02em",
             }}>
               {mainSubject.role_at_interview}
             </div>
@@ -125,7 +134,7 @@ function ArticleCard({ article }: { article: Article }) {
 
           <h2 style={{
             fontFamily: 'var(--font-noto-serif)',
-            fontSize: 14, fontWeight: 700, lineHeight: 1.65,
+            fontSize: 15, fontWeight: 700, lineHeight: 1.6,
             color: "var(--ink)", marginBottom: 8,
             display: "-webkit-box",
             WebkitLineClamp: 3,
@@ -515,9 +524,10 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
       <style>{`
         .article-card:hover {
           border-color: var(--royal-100) !important;
-          box-shadow: 0 8px 24px rgba(0,35,102,0.10) !important;
-          transform: translateY(-2px) !important;
+          box-shadow: 0 12px 32px rgba(0,35,102,0.13) !important;
+          transform: translateY(-4px) !important;
         }
+        .article-card { cursor: pointer; }
       `}</style>
     </>
   );

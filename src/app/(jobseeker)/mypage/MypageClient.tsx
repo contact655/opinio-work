@@ -282,55 +282,76 @@ function ProfileCompletenessCard({
 
   return (
     <section style={{
-      background: "#fff",
+      background: "linear-gradient(135deg, #EFF3FC 0%, #fff 60%)",
       border: "1.5px solid var(--royal-100)",
-      borderRadius: 14,
-      padding: "20px 24px",
+      borderRadius: 16,
+      padding: "22px 26px",
       marginBottom: 20,
+      position: "relative",
+      overflow: "hidden",
     }}>
+      {/* 背景デコレーション */}
+      <div style={{
+        position: "absolute", right: -20, top: -20,
+        width: 120, height: 120, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(59,95,217,0.06) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+
       {/* Header row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: "var(--royal-50)", color: "var(--royal)",
+            width: 36, height: 36, borderRadius: 10,
+            background: "linear-gradient(135deg, var(--royal), #3B5FD9)", color: "#fff",
             display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            boxShadow: "0 2px 8px rgba(0,35,102,0.25)",
           }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>
+            <div style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
               プロフィール完成度
             </div>
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>
+            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
               充実させるほど、企業に伝わりやすくなります
             </div>
           </div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <span style={{
-            fontFamily: "Inter, sans-serif", fontSize: 24, fontWeight: 700, color: "var(--royal)",
+          <div style={{
+            display: "flex", alignItems: "baseline", gap: 2,
+            background: "var(--royal)", borderRadius: 10,
+            padding: "6px 14px",
           }}>
-            {pct}
-          </span>
-          <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 600, color: "var(--ink-mute)" }}>%</span>
+            <span style={{
+              fontFamily: "Inter, sans-serif", fontSize: 26, fontWeight: 800, color: "#fff",
+              lineHeight: 1,
+            }}>
+              {pct}
+            </span>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.75)" }}>%</span>
+          </div>
         </div>
       </div>
 
       {/* Progress bar */}
       <div style={{
-        height: 6, borderRadius: 100, background: "var(--line)",
-        overflow: "hidden", marginBottom: 14,
+        height: 10, borderRadius: 100, background: "rgba(0,35,102,0.08)",
+        overflow: "hidden", marginBottom: 16,
       }}>
         <div style={{
           height: "100%", borderRadius: 100,
           background: pct >= 80
             ? "linear-gradient(90deg, var(--success), #34D399)"
-            : "linear-gradient(90deg, var(--royal), var(--accent))",
+            : "linear-gradient(90deg, var(--royal), #3B5FD9)",
           width: `${pct}%`,
-          transition: "width 0.6s cubic-bezier(0.4,0,0.2,1)",
+          transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)",
+          boxShadow: pct >= 80
+            ? "0 0 8px rgba(5,150,105,0.4)"
+            : "0 0 8px rgba(59,95,217,0.4)",
         }} />
       </div>
 

@@ -268,50 +268,52 @@ export default async function MentorDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* Trust bar */}
+            {/* 30分無料バッジ */}
             <div style={{
-              display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px 20px",
-              padding: "14px 16px",
-              background: "var(--bg-tint)", borderRadius: 10,
-              marginBottom: 16,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              gap: 6, marginBottom: 12,
             }}>
               {[
-                { icon: "✓", text: "完全無料" },
-                { icon: "✓", text: "30分から" },
-                { icon: "✓", text: "営業なし" },
-                { icon: "✓", text: "編集部が事前確認" },
-              ].map(({ text }) => (
-                <span key={text} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--ink-soft)", fontWeight: 500 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={3} strokeLinecap="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  {text}
+                { emoji: "🎁", label: "完全無料" },
+                { emoji: "⏱", label: "30分" },
+                { emoji: "💬", label: "オンライン" },
+                { emoji: "🔒", label: "営業なし" },
+              ].map(({ emoji, label }) => (
+                <span key={label} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "4px 10px", borderRadius: 100,
+                  background: "#F0FDF4", border: "1px solid #BBF7D0",
+                  fontSize: 11, fontWeight: 700, color: "#15803D",
+                  whiteSpace: "nowrap",
+                }}>
+                  {emoji} {label}
                 </span>
               ))}
             </div>
 
-            {/* CTA */}
+            {/* CTA ── メイン */}
             <Link
               href={`/mentors/${mentor.id}/reserve`}
               style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                width: "100%", padding: "16px",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                width: "100%", padding: "18px 16px",
                 background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
                 color: "#fff",
-                border: "none", borderRadius: 10, textDecoration: "none",
-                fontSize: 16, fontWeight: 700,
-                boxShadow: "0 4px 14px rgba(0,35,102,0.3)",
+                border: "none", borderRadius: 12, textDecoration: "none",
+                fontSize: 17, fontWeight: 800,
+                boxShadow: "0 6px 20px rgba(245,158,11,0.45)",
                 transition: "opacity 0.2s, transform 0.15s",
+                letterSpacing: "-0.01em",
               }}
               className="mentor-detail-cta"
             >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
-              {mentor.name}さんに相談する
+              無料で30分 話してみる
             </Link>
-            <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--ink-mute)", marginTop: 10 }}>
-              Opinio編集部が内容を確認・{mentor.name}さんに転送します
+            <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.6 }}>
+              編集部が内容を確認後、{mentor.name}さんに転送します
             </p>
 
             {/* Bookmark button */}

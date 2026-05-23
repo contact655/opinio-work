@@ -372,6 +372,128 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               </section>
               )}
 
+              {/* Position members — 0件のときは非表示 */}
+              {job.position_members.length > 0 && <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{
+                      width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+                      background: "var(--royal)",
+                      display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                      </svg>
+                    </span>
+                    <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
+                      {company.name}でこの職種を経験した人
+                      <span style={{ fontFamily: "Inter, sans-serif", color: "var(--royal)", marginLeft: 6 }}>
+                        {job.position_members.length}名
+                      </span>
+                    </h2>
+                  </div>
+                  {job.position_members.filter((m) => m.is_mentor).length > 0 && (
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                      うち <strong style={{ color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
+                        {job.position_members.filter((m) => m.is_mentor).length}
+                      </strong> 名メンター登録
+                    </div>
+                  )}
+                </div>
+
+                <p style={{ fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: 16 }}>
+                  過去・現在に関わらず、{company.name}でこの職種を経験したOpinio登録者です。
+                  <strong style={{ color: "var(--ink-soft)" }}>現在のステータス</strong>もあわせて表示しています。
+                </p>
+
+                {/* Avatar row */}
+                <div style={{ display: "flex", marginBottom: 20 }}>
+                  {job.position_members.map((m, i) => (
+                    <div key={i} style={{
+                      width: 44, height: 44, borderRadius: "50%",
+                      background: m.gradient,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontSize: 14, fontWeight: 700,
+                      border: "2.5px solid #fff",
+                      marginLeft: i === 0 ? 0 : -10,
+                      boxShadow: m.is_mentor ? "0 0 0 2px var(--royal), 0 0 0 4px #fff" : undefined,
+                      position: "relative", zIndex: 10 - i,
+                    }}>
+                      {m.initial}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Interview cards */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {job.position_members.map((m, i) => (
+                    <div key={i} style={{
+                      display: "flex", alignItems: "center", gap: 14,
+                      padding: "14px 16px",
+                      background: "var(--bg-tint)", border: "1px solid var(--line)",
+                      borderRadius: 10, cursor: "pointer",
+                    }}>
+                      <div style={{
+                        width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+                        background: m.gradient,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#fff", fontSize: 13, fontWeight: 700,
+                        boxShadow: m.is_mentor ? "0 0 0 2px var(--royal), 0 0 0 4px #fff" : undefined,
+                      }}>
+                        {m.initial}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontFamily: 'var(--font-noto-serif)',
+                          fontSize: 13, fontWeight: 500, color: "var(--ink)",
+                          lineHeight: 1.5, marginBottom: 4,
+                        }}>
+                          「{m.catch}」
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--ink-mute)" }}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5}>
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <path d="M14 2v6h6"/>
+                          </svg>
+                          {m.name} · {m.period} · {m.date}
+                        </div>
+                      </div>
+                      <StatusBadge status={m.status} label={m.status_label} />
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Status legend */}
+                <div style={{
+                  marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-soft)",
+                  display: "flex", flexWrap: "wrap", gap: 12, fontSize: 11, color: "var(--ink-mute)",
+                }}>
+                  {[
+                    { dot: "var(--success)", label: "現役・現職継続" },
+                    { dot: "#F59E0B", label: "現役・異動済み" },
+                    { dot: "var(--purple)", label: "OBOG" },
+                  ].map(({ dot, label }) => (
+                    <span key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: dot, flexShrink: 0 }} />
+                      {label}
+                    </span>
+                  ))}
+                  <span style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: "auto" }}>
+                    <span style={{
+                      width: 10, height: 10, borderRadius: "50%",
+                      background: "var(--royal)",
+                      boxShadow: "0 0 0 1.5px var(--royal), 0 0 0 3px #fff",
+                      flexShrink: 0,
+                    }} />
+                    メンター登録（相談可能）
+                  </span>
+                </div>
+              </section>}
+
               {/* Main tasks */}
               {job.main_tasks.length > 0 && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
@@ -539,128 +661,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </p>
               </section>
               )}
-
-              {/* Position members — 0件のときは非表示 */}
-              {job.position_members.length > 0 && <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{
-                      width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-                      background: "var(--royal)",
-                      display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
-                    }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                      </svg>
-                    </span>
-                    <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
-                      {company.name}でこの職種を経験した人
-                      <span style={{ fontFamily: "Inter, sans-serif", color: "var(--royal)", marginLeft: 6 }}>
-                        {job.position_members.length}名
-                      </span>
-                    </h2>
-                  </div>
-                  {job.position_members.filter((m) => m.is_mentor).length > 0 && (
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-                      うち <strong style={{ color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
-                        {job.position_members.filter((m) => m.is_mentor).length}
-                      </strong> 名メンター登録
-                    </div>
-                  )}
-                </div>
-
-                <p style={{ fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: 16 }}>
-                  過去・現在に関わらず、{company.name}でこの職種を経験したOpinio登録者です。
-                  <strong style={{ color: "var(--ink-soft)" }}>現在のステータス</strong>もあわせて表示しています。
-                </p>
-
-                {/* Avatar row */}
-                <div style={{ display: "flex", marginBottom: 20 }}>
-                  {job.position_members.map((m, i) => (
-                    <div key={i} style={{
-                      width: 44, height: 44, borderRadius: "50%",
-                      background: m.gradient,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 14, fontWeight: 700,
-                      border: "2.5px solid #fff",
-                      marginLeft: i === 0 ? 0 : -10,
-                      boxShadow: m.is_mentor ? "0 0 0 2px var(--royal), 0 0 0 4px #fff" : undefined,
-                      position: "relative", zIndex: 10 - i,
-                    }}>
-                      {m.initial}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Interview cards */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {job.position_members.map((m, i) => (
-                    <div key={i} style={{
-                      display: "flex", alignItems: "center", gap: 14,
-                      padding: "14px 16px",
-                      background: "var(--bg-tint)", border: "1px solid var(--line)",
-                      borderRadius: 10, cursor: "pointer",
-                    }}>
-                      <div style={{
-                        width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-                        background: m.gradient,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        color: "#fff", fontSize: 13, fontWeight: 700,
-                        boxShadow: m.is_mentor ? "0 0 0 2px var(--royal), 0 0 0 4px #fff" : undefined,
-                      }}>
-                        {m.initial}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontFamily: 'var(--font-noto-serif)',
-                          fontSize: 13, fontWeight: 500, color: "var(--ink)",
-                          lineHeight: 1.5, marginBottom: 4,
-                        }}>
-                          「{m.catch}」
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--ink-mute)" }}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5}>
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <path d="M14 2v6h6"/>
-                          </svg>
-                          {m.name} · {m.period} · {m.date}
-                        </div>
-                      </div>
-                      <StatusBadge status={m.status} label={m.status_label} />
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Status legend */}
-                <div style={{
-                  marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-soft)",
-                  display: "flex", flexWrap: "wrap", gap: 12, fontSize: 11, color: "var(--ink-mute)",
-                }}>
-                  {[
-                    { dot: "var(--success)", label: "現役・現職継続" },
-                    { dot: "#F59E0B", label: "現役・異動済み" },
-                    { dot: "var(--purple)", label: "OBOG" },
-                  ].map(({ dot, label }) => (
-                    <span key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: dot, flexShrink: 0 }} />
-                      {label}
-                    </span>
-                  ))}
-                  <span style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: "auto" }}>
-                    <span style={{
-                      width: 10, height: 10, borderRadius: "50%",
-                      background: "var(--royal)",
-                      boxShadow: "0 0 0 1.5px var(--royal), 0 0 0 3px #fff",
-                      flexShrink: 0,
-                    }} />
-                    メンター登録（相談可能）
-                  </span>
-                </div>
-              </section>}
 
               {/* Related article */}
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>

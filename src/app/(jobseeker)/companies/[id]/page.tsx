@@ -803,6 +803,136 @@ function CompanyFeaturesSection({
   );
 }
 
+// ─── Fit Section ─────────────────────────────────────────────────────────────
+
+function FitSection({ detail }: { detail: CompanyDetail }) {
+  const hasFit = detail.fit_positives && detail.fit_positives.length > 0;
+  const hasCaution = detail.fit_negatives && detail.fit_negatives.length > 0;
+  if (!hasFit && !hasCaution) return null;
+
+  return (
+    <section
+      id="fit"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 16,
+        padding: "28px 32px",
+        marginBottom: 20,
+      }}
+    >
+      <SecTitle
+        icon={
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9 12l2 2 4-4" />
+          </svg>
+        }
+      >
+        こんな人に向いている / 向いていない
+      </SecTitle>
+      <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: 20 }}>
+        Opinio編集部による、実際の取材・社員インタビューをもとにした見解です。
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="fit-grid">
+        {/* 合う人 */}
+        {hasFit && (
+          <div style={{
+            background: "#F0FDF4",
+            border: "1px solid #BBF7D0",
+            borderRadius: 12,
+            padding: "20px 22px",
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8, marginBottom: 16,
+              fontSize: 13, fontWeight: 800, color: "#15803D",
+            }}>
+              <span style={{
+                width: 24, height: 24, borderRadius: "50%",
+                background: "#16A34A", color: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </span>
+              向いている人
+            </div>
+            <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
+              {detail.fit_positives!.map((item, i) => (
+                <li key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: "#166534", lineHeight: 1.65 }}>
+                  <span style={{
+                    width: 18, height: 18, borderRadius: "50%", flexShrink: 0, marginTop: 2,
+                    background: "#BBF7D0", display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth={3}>
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 合わない人 */}
+        {hasCaution && (
+          <div style={{
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: 12,
+            padding: "20px 22px",
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8, marginBottom: 16,
+              fontSize: 13, fontWeight: 800, color: "#B91C1C",
+            }}>
+              <span style={{
+                width: 24, height: 24, borderRadius: "50%",
+                background: "#EF4444", color: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </span>
+              向いていない人
+            </div>
+            <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
+              {detail.fit_negatives!.map((item, i) => (
+                <li key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: "#991B1B", lineHeight: 1.65 }}>
+                  <span style={{
+                    width: 18, height: 18, borderRadius: "50%", flexShrink: 0, marginTop: 2,
+                    background: "#FECACA", display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth={3}>
+                      <line x1="15" y1="5" x2="5" y2="15" /><line x1="5" y1="5" x2="15" y2="15" />
+                    </svg>
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <p style={{
+        marginTop: 16, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7,
+        borderTop: "1px solid var(--line-soft)", paddingTop: 14,
+      }}>
+        ※ 編集部取材をもとにした見解です。最新情報は企業に直接ご確認ください。
+      </p>
+
+      <style>{`
+        @media (max-width: 640px) { .fit-grid { grid-template-columns: 1fr !important; } }
+      `}</style>
+    </section>
+  );
+}
+
 // ─── Benefits Section ─────────────────────────────────────────────────────────
 
 function BenefitsSection({ detail }: { detail: CompanyDetail }) {
@@ -2910,6 +3040,7 @@ export default async function CompanyDetailPage({
       <CompanyStickyNav items={[
         { id: "about",            label: "企業概要" },
         { id: "opinion",          label: "特徴・評判" },
+        { id: "fit",              label: "向き・不向き" },
         { id: "benefits",         label: "福利厚生" },
         { id: "work-style",       label: "働き方" },
         { id: "current-employees",label: "社員" },
@@ -2927,6 +3058,7 @@ export default async function CompanyDetailPage({
             <OpinioOpinionCard detail={detail} />
             <AboutSection detail={detail} photos={photos} />
             <CompanyFeaturesSection company={company} detail={detail} />
+            <FitSection detail={detail} />
             <NumbersSection numbers={detail.numbers} />
             <WorkStyleSection detail={detail} />
             <BenefitsSection detail={detail} />
