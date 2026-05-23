@@ -531,7 +531,7 @@ export default function CareerConsultationClient({
             <div style={{ fontSize: 14, color: "#374151", marginBottom: 14, lineHeight: 1.7 }}>
               プロフィールを設定すると、あなたに合った<br />メンターが自動で表示されます
             </div>
-            <Link href="/dashboard/profile" style={{ display: "inline-block", background: "#059669", color: "#fff", fontSize: 14, fontWeight: 600, padding: "10px 24px", borderRadius: 8, textDecoration: "none" }}>
+            <Link href="/profile/edit" style={{ display: "inline-block", background: "#059669", color: "#fff", fontSize: 14, fontWeight: 600, padding: "10px 24px", borderRadius: 8, textDecoration: "none" }}>
               プロフィールを設定する（1分）
             </Link>
           </div>

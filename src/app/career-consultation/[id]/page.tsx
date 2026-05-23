@@ -336,7 +336,7 @@ export default async function MentorDetailPage({
                 </div>
 
                 <Link
-                  href={`/consultation-request?mentor_id=${mentor.id}&mentor_name=${encodeURIComponent(mentor.name)}`}
+                  href={`/mentors/${mentor.id}/reserve`}
                   style={{
                     display: "block",
                     width: "100%",
