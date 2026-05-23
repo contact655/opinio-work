@@ -6,7 +6,7 @@
 //                   一部 "1-10名" / "11-50名" 形式が混在 → アプリ側でレンジ判定
 //   work_style:     ow_companies には remote_work_status カラム (on_site/hybrid/full_remote)
 //                   work_style は ow_jobs 側のカラム → remote_work_status を使用
-//   募集中判定:      ow_jobs.status = 'active' の存在チェック
+//   募集中判定:      ow_jobs.status = 'published' の存在チェック（Migration 113以降）
 //   is_published:   boolean NOT NULL — 31社 true / 3社 false
 //
 // 将来の拡張パス:
@@ -128,7 +128,7 @@ export async function searchCompanies(
       .from("ow_jobs")
       .select("company_id")
       .in("company_id", companyIds)
-      .eq("status", "active");
+      .in("status", ["published", "active"]);
 
     (activeJobs ?? []).forEach((j: { company_id: string }) => {
       hiringSet.add(j.company_id);
