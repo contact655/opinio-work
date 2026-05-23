@@ -530,6 +530,68 @@ function Hero() {
   );
 }
 
+// ─── Differentiator Strip ────────────────────────────────────────────────────
+
+function DiffStrip() {
+  const DIFFS = [
+    {
+      icon: "🚫",
+      title: "スカウトなし",
+      desc: "企業からの一方的な勧誘はありません。気になった企業に、自分のペースで接触できます。",
+      color: "#DC2626",
+      bg: "#FEF2F2",
+    },
+    {
+      icon: "💬",
+      title: "第三者メンターに相談",
+      desc: "転職エージェントではなく、中立な立場の現役/元社員メンターに本音を聞けます。",
+      color: "#7C3AED",
+      bg: "#F5F3FF",
+    },
+    {
+      icon: "👥",
+      title: "現役社員・OBの声",
+      desc: "求人票の裏側にある「実際の働き方」「入社後のギャップ」を確認してから動けます。",
+      color: "#059669",
+      bg: "#ECFDF5",
+    },
+  ];
+
+  return (
+    <section style={{ background: "#fff", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
+      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)" }}
+          className="grid-cols-1 sm:grid-cols-3">
+          {DIFFS.map((d, i) => (
+            <div key={i} style={{
+              display: "flex", alignItems: "flex-start", gap: 16,
+              padding: "32px 28px",
+              borderRight: i < 2 ? "1px solid var(--line)" : "none",
+            }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                background: d.bg,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22,
+              }}>
+                {d.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
+                  {d.title}
+                </div>
+                <div style={{ fontSize: 13, lineHeight: 1.7, color: "var(--ink-soft)" }}>
+                  {d.desc}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Logo Marquee ─────────────────────────────────────────────────────────────
 
 function LogoMarquee() {
@@ -1365,6 +1427,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <DiffStrip />
       <LogoMarquee />
       <StatsStrip />
       <InfraSection />

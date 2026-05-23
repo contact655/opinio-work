@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { User, LayoutGrid, LogOut, Menu, X, Building2, ShieldCheck } from "lucide-react";
+import { User, LayoutGrid, LogOut, Menu, X, Building2, ShieldCheck, ArrowRight } from "lucide-react";
 
 // ─── Badge Component ────────────────────────────────
 
@@ -105,7 +105,7 @@ export default function Header() {
     window.location.href = "/";
   }
 
-  // ─── 求職者ナビ（3項目：求人を探す / 企業を知る / 無料相談）──────────
+  // ─── 求職者ナビ（4項目：求人 / 企業 / メンター / 記事）──────────
   function renderCandidateNav(mobile: boolean) {
     if (mobile) {
       const close = () => setMenuOpen(false);
@@ -126,8 +126,11 @@ export default function Header() {
           <Link href="/companies" className="block" style={mobileNavStyle("/companies")} onClick={close}>
             企業を知る
           </Link>
-          <Link href="/career-consultation" className="block" style={mobileNavStyle("/career-consultation")} onClick={close}>
+          <Link href="/mentors" className="block" style={mobileNavStyle("/mentors")} onClick={close}>
             メンターに相談
+          </Link>
+          <Link href="/articles" className="block" style={mobileNavStyle("/articles")} onClick={close}>
+            記事
           </Link>
         </>
       );
@@ -164,13 +167,22 @@ export default function Header() {
           企業を知る
         </Link>
         <Link
-          href="/career-consultation"
+          href="/mentors"
           className="transition-colors"
-          style={navStyle("/career-consultation")}
-          onMouseEnter={(e) => { if (!isActive("/career-consultation")) e.currentTarget.style.color = "var(--royal)"; }}
-          onMouseLeave={(e) => { if (!isActive("/career-consultation")) e.currentTarget.style.color = "#0f172a"; }}
+          style={navStyle("/mentors")}
+          onMouseEnter={(e) => { if (!isActive("/mentors")) e.currentTarget.style.color = "var(--royal)"; }}
+          onMouseLeave={(e) => { if (!isActive("/mentors")) e.currentTarget.style.color = "#0f172a"; }}
         >
           メンターに相談
+        </Link>
+        <Link
+          href="/articles"
+          className="transition-colors"
+          style={navStyle("/articles")}
+          onMouseEnter={(e) => { if (!isActive("/articles")) e.currentTarget.style.color = "var(--royal)"; }}
+          onMouseLeave={(e) => { if (!isActive("/articles")) e.currentTarget.style.color = "#0f172a"; }}
+        >
+          記事
         </Link>
       </>
     );
@@ -240,12 +252,13 @@ export default function Header() {
           </Link>
           <Link
             href="/auth/signup"
-            className="transition-colors"
-            style={{ fontSize: 14, fontWeight: 600, color: "#fff", background: "var(--royal)", padding: "8px 20px", borderRadius: 8 }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--royal-deep)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--royal)"; }}
+            className="transition-colors flex items-center gap-1.5"
+            style={{ fontSize: 14, fontWeight: 600, color: "#fff", background: "linear-gradient(135deg, var(--royal), #3B5FD9)", padding: "9px 18px", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,35,102,0.25)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 14px rgba(0,35,102,0.35)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,35,102,0.25)"; e.currentTarget.style.transform = "none"; }}
           >
-            無料登録
+            無料で始める
+            <ArrowRight size={14} strokeWidth={2.5} />
           </Link>
         </>
       );
@@ -386,9 +399,18 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between" style={{ height: 64 }}>
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <span style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.5px" }}>
+          <Link href="/" className="flex items-center gap-2" style={{ textDecoration: "none" }}>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "var(--royal,#002366)", letterSpacing: "-0.5px", fontFamily: "'Inter', sans-serif" }}>
               OPINIO
+            </span>
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: "0.12em",
+              padding: "2px 6px", borderRadius: 3,
+              background: "var(--royal,#002366)", color: "#fff",
+              textTransform: "uppercase",
+              display: "inline-block",
+            }}>
+              for career
             </span>
           </Link>
 
@@ -410,10 +432,10 @@ export default function Header() {
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="transition-colors"
-                  style={{ fontSize: 14, fontWeight: 600, color: "#fff", background: "var(--royal)", padding: "8px 20px", borderRadius: 8 }}
+                  className="transition-colors flex items-center gap-1.5"
+                  style={{ fontSize: 14, fontWeight: 600, color: "#fff", background: "linear-gradient(135deg, var(--royal), #3B5FD9)", padding: "9px 18px", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,35,102,0.25)" }}
                 >
-                  無料登録
+                  無料で始める
                 </Link>
               </>
             ) : (

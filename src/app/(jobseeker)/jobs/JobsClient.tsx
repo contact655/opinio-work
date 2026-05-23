@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { Heart } from "lucide-react";
 import type { Job } from "@/app/jobs/mockJobData";
 import { SALARY_PRESETS } from "@/app/jobs/mockJobData";
 import type { Company } from "@/app/companies/mockCompanies";
@@ -69,8 +70,45 @@ function JobCard({
   const isFresh = job.updated_days_ago <= 7;
   const label = freshLabel(job.updated_days_ago);
   const deptStyle = getDeptStyle(job.dept);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarkAnim, setBookmarkAnim] = useState(false);
+
+  const handleBookmark = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setBookmarked((prev) => !prev);
+    setBookmarkAnim(true);
+    setTimeout(() => setBookmarkAnim(false), 400);
+    // TODO: Supabase bookmarkトグル（ow_bookmarks）
+  }, []);
 
   return (
+    <div style={{ position: "relative" }}>
+      {/* ブックマークボタン（カード右上に絶対配置） */}
+      <button
+        onClick={handleBookmark}
+        aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
+        style={{
+          position: "absolute", top: 10, right: 10, zIndex: 10,
+          width: 32, height: 32, borderRadius: "50%",
+          border: "none", cursor: "pointer",
+          background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.9)",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.2s",
+          transform: bookmarkAnim ? "scale(1.3)" : "scale(1)",
+        }}
+      >
+        <Heart
+          size={15}
+          strokeWidth={2}
+          style={{
+            color: bookmarked ? "#e24b4a" : "#94a3b8",
+            fill: bookmarked ? "#e24b4a" : "none",
+            transition: "all 0.2s",
+          }}
+        />
+      </button>
     <Link
       href={`/jobs/${job.id}`}
       style={{
@@ -356,6 +394,7 @@ function JobCard({
         </span>
       </div>
     </Link>
+    </div>
   );
 }
 
