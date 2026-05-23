@@ -7,10 +7,11 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 // ─── Shared constants ──────────────────────────────────────────────────────────
 
-/** すべての写真カードを同じ固定サイズで表示（4:3） */
-const CARD_H = 220; // px — 全カード共通の高さ
-const CARD_W = 293; // px — 4:3 比率 (220 × 4/3 ≒ 293)
-const GAP = 10;     // px — カード間隔
+/** すべての写真カードを同じサイズで表示
+ *  幅は CSS calc で「コンテナ幅 ÷ 2.3」 → 常に 2.3 枚だけ見える（スクロール必須） */
+const CARD_H = 250; // px — 全カード共通の高さ（固定）
+const GAP = 12;     // px — カード間隔
+// カード幅は CSS class .ps-card で管理（calc 使用）
 
 // ─── Caption overlay ───────────────────────────────────────────────────────────
 
@@ -194,37 +195,62 @@ function PhotoStrip({
   function scroll(dir: "left" | "right") {
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollBy({ left: dir === "right" ? CARD_W + GAP : -(CARD_W + GAP), behavior: "smooth" });
+    // 実際のカード幅をDOMから読んで正確なスクロール量を計算
+    const firstCard = el.firstElementChild as HTMLElement | null;
+    const amount = firstCard ? firstCard.offsetWidth + GAP : CARD_H * 1.5 + GAP;
+    el.scrollBy({ left: dir === "right" ? amount : -amount, behavior: "smooth" });
   }
 
   const arrowStyle = (visible: boolean, side: "left" | "right"): React.CSSProperties => ({
     position: "absolute",
     top: "50%",
     transform: "translateY(-50%)",
-    [side]: -14,
-    zIndex: 10,
-    width: 32, height: 32,
+    [side]: 10,           // overflow:hidden 内なので正の値
+    zIndex: 3,
+    width: 36, height: 36,
     borderRadius: "50%",
-    background: "#fff",
+    background: "rgba(255,255,255,0.95)",
     border: "1px solid var(--line)",
-    boxShadow: "0 1px 6px rgba(0,0,0,0.14)",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.16)",
     display: "flex", alignItems: "center", justifyContent: "center",
     cursor: "pointer",
     opacity: visible ? 1 : 0,
     pointerEvents: visible ? "auto" : "none",
-    transition: "opacity 0.15s",
+    transition: "opacity 0.18s",
     padding: 0,
   });
 
   return (
     <>
       <style>{`
-        .ps-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        /* カード幅: コンテナの 1/2.3 → 常に 2.3 枚しか見えない */
+        .ps-card {
+          width: calc((100% - ${GAP}px * 1.3) / 2.3);
+          min-width: 200px; /* モバイル最小幅 */
+          flex-shrink: 0;
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
         .ps-card:hover { transform: scale(1.025); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
         .ps-strip::-webkit-scrollbar { display: none; }
+        /* 右端フェード — スクロール可能を示すヒント */
+        .ps-outer::after {
+          content: "";
+          position: absolute;
+          top: 0; right: 0; bottom: 0;
+          width: 80px;
+          background: linear-gradient(to left, rgba(255,255,255,0.95) 0%, transparent 100%);
+          pointer-events: none;
+          transition: opacity 0.2s;
+          z-index: 2;
+        }
+        .ps-outer.scrolled-end::after { opacity: 0; }
       `}</style>
 
-      <div style={{ position: "relative", marginBottom: 20 }}>
+      {/* 外側ラッパー：右フェードのための position:relative + overflow:hidden */}
+      <div
+        className={`ps-outer${!canRight ? " scrolled-end" : ""}`}
+        style={{ position: "relative", overflow: "hidden", borderRadius: 12, marginBottom: 8 }}
+      >
         {/* 左矢印 */}
         <button
           style={arrowStyle(canLeft, "left")}
@@ -245,7 +271,6 @@ function PhotoStrip({
             overflowX: "auto",
             scrollSnapType: "x mandatory",
             scrollbarWidth: "none",
-            paddingBottom: 2, // スクロールバー非表示でも少し余白
           }}
         >
           {photos.map((photo, i) => (
@@ -254,9 +279,7 @@ function PhotoStrip({
               className="ps-card"
               onClick={() => onOpen(i)}
               style={{
-                width: CARD_W,
-                height: CARD_H,
-                flexShrink: 0,
+                height: CARD_H,        // 高さは固定（幅はCSS classで制御）
                 borderRadius: 12,
                 overflow: "hidden",
                 position: "relative",
@@ -294,7 +317,7 @@ function PhotoStrip({
           fontSize: 11,
           color: "var(--ink-mute)",
           fontFamily: "Inter, sans-serif",
-          marginTop: -14,
+          marginTop: 6,
           marginBottom: 16,
         }}
       >
