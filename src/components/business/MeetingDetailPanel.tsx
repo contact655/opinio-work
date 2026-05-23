@@ -456,9 +456,20 @@ export function MeetingDetailPanel({
             <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
               候補者のキャリア
             </div>
-            <a href="#" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
-              詳細プロフィール →
-            </a>
+            {m.applicantUserId ? (
+              <a
+                href={`/u/${m.applicantUserId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}
+              >
+                詳細プロフィール →
+              </a>
+            ) : (
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>
+                詳細プロフィール
+              </span>
+            )}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>

@@ -136,6 +136,7 @@ export function transformMeeting(
 
   return {
     id: row.id,
+    applicantUserId: applicant?.id ?? null,
     applicantName: applicant?.name ?? "—",
     applicantInitial: applicant?.name?.charAt(0) ?? "?",
     applicantGradient,

@@ -19,6 +19,7 @@ export type CareerEntry = {
 export type MeetingApplication = {
   id: string;
   // 申込者
+  applicantUserId: string | null; // ow_users.id — 公開プロフィールリンク用
   applicantName: string;
   applicantInitial: string;
   applicantGradient: string;
@@ -51,6 +52,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   // ── pending (新規受信) ── 4件、うち先頭4件を未読
   {
     id: "meet-p1",
+    applicantUserId: null,
     applicantName: "田中 翔太",
     applicantInitial: "田",
     applicantGradient: "linear-gradient(135deg, var(--royal), var(--accent))",
@@ -80,6 +82,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   },
   {
     id: "meet-p2",
+    applicantUserId: null,
     applicantName: "佐藤 花子",
     applicantInitial: "佐",
     applicantGradient: "linear-gradient(135deg, #FBBF24, #D97706)",
@@ -108,6 +111,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   },
   {
     id: "meet-p3",
+    applicantUserId: null,
     applicantName: "鈴木 一郎",
     applicantInitial: "鈴",
     applicantGradient: "linear-gradient(135deg, #34D399, var(--success))",
@@ -136,6 +140,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   },
   {
     id: "meet-p4",
+    applicantUserId: null,
     applicantName: "高橋 健太",
     applicantInitial: "高",
     applicantGradient: "linear-gradient(135deg, #A78BFA, var(--purple))",
@@ -165,6 +170,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   // ── company_contacted (確認中) ── 2件
   {
     id: "meet-c1",
+    applicantUserId: null,
     applicantName: "伊藤 美咲",
     applicantInitial: "伊",
     applicantGradient: "linear-gradient(135deg, #DB2777, #9D174D)",
@@ -193,6 +199,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   },
   {
     id: "meet-c2",
+    applicantUserId: null,
     applicantName: "渡辺 大介",
     applicantInitial: "渡",
     applicantGradient: "linear-gradient(135deg, #059669, #047857)",
@@ -222,6 +229,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   // ── scheduled (面談予定) ── 3件
   {
     id: "meet-s1",
+    applicantUserId: null,
     applicantName: "中村 ゆか",
     applicantInitial: "中",
     applicantGradient: "linear-gradient(135deg, #7C3AED, #5B21B6)",
@@ -251,6 +259,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   },
   {
     id: "meet-s2",
+    applicantUserId: null,
     applicantName: "加藤 大輝",
     applicantInitial: "加",
     applicantGradient: "linear-gradient(135deg, #D97706, #92400E)",
@@ -279,6 +288,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   },
   {
     id: "meet-s3",
+    applicantUserId: null,
     applicantName: "山田 春香",
     applicantInitial: "山",
     applicantGradient: "linear-gradient(135deg, #F472B6, #DB2777)",
@@ -308,6 +318,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   // ── scheduled (面談予定) ── 1件
   {
     id: "meet-sc1",
+    applicantUserId: null,
     applicantName: "小林 誠",
     applicantInitial: "小",
     applicantGradient: "linear-gradient(135deg, #0EA5E9, #0369A1)",
@@ -338,6 +349,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   // ── completed (完了) ── 2件（代表的に）
   {
     id: "meet-done1",
+    applicantUserId: null,
     applicantName: "松本 理沙",
     applicantInitial: "松",
     applicantGradient: "linear-gradient(135deg, #94A3B8, #64748B)",
@@ -367,6 +379,7 @@ export const MOCK_MEETINGS: MeetingApplication[] = [
   // ── declined (見送り) ── 1件
   {
     id: "meet-d1",
+    applicantUserId: null,
     applicantName: "木村 健",
     applicantInitial: "木",
     applicantGradient: "linear-gradient(135deg, #FCA5A5, #EF4444)",

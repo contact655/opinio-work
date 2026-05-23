@@ -330,25 +330,45 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
       }}>
         {renderDateMeta(job)}
 
-        {/* 面談申込数 */}
+        {/* 面談申込数・応募数 */}
         {job.status === "published" || job.status === "active" ? (
-          <span style={{
-            display: "flex", alignItems: "center", gap: 5,
-            color: job.meetingCount > 0 ? "var(--royal)" : "var(--ink-mute)",
-            fontWeight: job.meetingCount > 0 ? 600 : 400,
-          }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            <strong style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: job.meetingCount > 0 ? 13 : 11,
+          <>
+            <span style={{
+              display: "flex", alignItems: "center", gap: 5,
               color: job.meetingCount > 0 ? "var(--royal)" : "var(--ink-mute)",
+              fontWeight: job.meetingCount > 0 ? 600 : 400,
             }}>
-              {job.meetingCount}
-            </strong>
-            件のカジュアル面談
-          </span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <strong style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: job.meetingCount > 0 ? 13 : 11,
+                color: job.meetingCount > 0 ? "var(--royal)" : "var(--ink-mute)",
+              }}>
+                {job.meetingCount}
+              </strong>
+              件の面談
+            </span>
+            <span style={{
+              display: "flex", alignItems: "center", gap: 5,
+              color: job.applicationCount > 0 ? "var(--success)" : "var(--ink-mute)",
+              fontWeight: job.applicationCount > 0 ? 600 : 400,
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <strong style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: job.applicationCount > 0 ? 13 : 11,
+                color: job.applicationCount > 0 ? "var(--success)" : "var(--ink-mute)",
+              }}>
+                {job.applicationCount}
+              </strong>
+              件の応募
+            </span>
+          </>
         ) : null}
 
         {/* 下書き完成度 */}

@@ -466,9 +466,9 @@ function DetailPanel({ app, isUpdating, onStatusChange }: DetailProps) {
         </Section>
       )}
 
-      {/* 対話ボタン */}
-      {app.conversationId && (
-        <div style={{ paddingTop: 4 }}>
+      {/* アクションボタン群 */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", paddingTop: 4 }}>
+        {app.conversationId && (
           <Link
             href={`/biz/conversations/${app.conversationId}`}
             style={{
@@ -485,8 +485,30 @@ function DetailPanel({ app, isUpdating, onStatusChange }: DetailProps) {
             </svg>
             対話を見る →
           </Link>
-        </div>
-      )}
+        )}
+        {app.userId && (
+          <a
+            href={`/u/${app.userId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "10px 16px",
+              background: "var(--bg-tint)", color: "var(--ink-soft)",
+              border: "1px solid var(--line)",
+              borderRadius: 8, fontSize: 13, fontWeight: 600,
+              textDecoration: "none",
+              transition: "border-color 0.15s, color 0.15s",
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            公開プロフィール
+          </a>
+        )}
+      </div>
     </div>
   );
 }

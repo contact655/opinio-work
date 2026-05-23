@@ -14,6 +14,31 @@ async function resolveOwUserId(supabase: ReturnType<typeof createClient>): Promi
   return data?.id ?? null;
 }
 
+// GET /api/bookmarks?target_type=job — return Set of bookmarked target IDs
+export async function GET(req: Request) {
+  const supabase = createClient();
+  const owUserId = await resolveOwUserId(supabase);
+  if (!owUserId) return NextResponse.json({ ids: [] }); // not logged in → empty
+
+  const url = new URL(req.url);
+  const target_type = url.searchParams.get("target_type");
+  if (!target_type || !["article", "company", "job", "mentor"].includes(target_type)) {
+    return NextResponse.json({ error: "Invalid target_type" }, { status: 400 });
+  }
+
+  const { data, error } = await supabase
+    .from("ow_bookmarks")
+    .select("target_id")
+    .eq("user_id", owUserId)
+    .eq("target_type", target_type);
+
+  if (error) {
+    console.error("[GET /api/bookmarks]", error.message);
+    return NextResponse.json({ ids: [] });
+  }
+  return NextResponse.json({ ids: (data ?? []).map((b) => b.target_id as string) });
+}
+
 // POST /api/bookmarks — add bookmark (idempotent via upsert)
 export async function POST(req: Request) {
   const supabase = createClient();

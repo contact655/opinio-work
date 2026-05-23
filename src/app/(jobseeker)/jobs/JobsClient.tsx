@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -59,12 +59,14 @@ function getDeptStyle(dept: string) {
 function JobCard({
   job,
   companyMap,
+  initialBookmarked = false,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
+  initialBookmarked?: boolean;
 }) {
   // ── Hooks must be called before any early return ──
-  const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
   const bookmarkingRef = useRef(false);
   const router = useRouter();
@@ -525,6 +527,17 @@ export default function JobsClient({
 
   // Local-only keyword search
   const [q, setQ] = useState("");
+
+  // Bookmarks: load once on mount
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    fetch("/api/bookmarks?target_type=job")
+      .then((r) => r.ok ? r.json() : { ids: [] })
+      .then((data: { ids?: string[] }) => {
+        if (data.ids) setBookmarkedIds(new Set(data.ids));
+      })
+      .catch(() => {/* not logged in or network error — silently ignore */});
+  }, []);
 
   // Build Map for fast company lookup
   const companyMap = useMemo(
@@ -1013,7 +1026,7 @@ export default function JobsClient({
             <>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {paged.map((job) => (
-                  <JobCard key={job.id} job={job} companyMap={companyMap} />
+                  <JobCard key={job.id} job={job} companyMap={companyMap} initialBookmarked={bookmarkedIds.has(job.id)} />
                 ))}
               </div>
               <Pagination

@@ -212,8 +212,11 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
   }, [selectedId, handleStatusChange]);
 
   const handleProfileDetail = useCallback(() => {
-    alert("プロフィール詳細ページは Phase 4（Supabase 接続後）で実装予定です。");
-  }, []);
+    const userId = selectedMeeting?.applicantUserId;
+    if (userId) {
+      window.open(`/u/${userId}`, "_blank", "noopener,noreferrer");
+    }
+  }, [selectedMeeting?.applicantUserId]);
 
   function handleStatusTabChange(s: MeetingStatus) {
     setActiveStatus(s);

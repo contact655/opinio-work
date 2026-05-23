@@ -110,7 +110,7 @@ function computeCompletionPercent(row: DbJob): number {
   return Math.round((filled / fields.length) * 100);
 }
 
-function transformJob(row: DbJob, meetingCount: number): BizJob {
+function transformJob(row: DbJob, meetingCount: number, applicationCount: number): BizJob {
   const status = toJobStatus(row.status);
   return {
     id: row.id,
@@ -128,6 +128,7 @@ function transformJob(row: DbJob, meetingCount: number): BizJob {
     assigneeNames: [],
     status,
     meetingCount,
+    applicationCount,
     completionPercent: computeCompletionPercent(row),
     lastEditedAt: formatRelativeDate(row.updated_at),
     publishedAt: row.published_at ? formatRelativeDate(row.published_at) : undefined,
@@ -158,20 +159,32 @@ export async function fetchJobsForCompany(
   }
   if (!rows?.length) return [];
 
-  // Phase 2: count meetings per job (only non-declined)
+  // Phase 2: count meetings and applications per job (parallel)
   const jobIds = rows.map((r) => r.id);
-  const { data: meetingRows } = await supabase
-    .from("ow_casual_meetings")
-    .select("job_id")
-    .in("job_id", jobIds)
-    .neq("status", "declined");
+  const [{ data: meetingRows }, { data: applicationRows }] = await Promise.all([
+    supabase
+      .from("ow_casual_meetings")
+      .select("job_id")
+      .in("job_id", jobIds)
+      .neq("status", "declined"),
+    supabase
+      .from("ow_job_applications")
+      .select("job_id")
+      .in("job_id", jobIds),
+  ]);
 
   const meetingCounts: Record<string, number> = {};
   for (const m of meetingRows ?? []) {
     if (m.job_id) meetingCounts[m.job_id] = (meetingCounts[m.job_id] ?? 0) + 1;
   }
+  const applicationCounts: Record<string, number> = {};
+  for (const a of applicationRows ?? []) {
+    if (a.job_id) applicationCounts[a.job_id] = (applicationCounts[a.job_id] ?? 0) + 1;
+  }
 
-  return rows.map((row) => transformJob(row as unknown as DbJob, meetingCounts[row.id] ?? 0));
+  return rows.map((row) =>
+    transformJob(row as unknown as DbJob, meetingCounts[row.id] ?? 0, applicationCounts[row.id] ?? 0)
+  );
 }
 
 // ─── fetchJobById ──────────────────────────────────────
@@ -217,6 +230,7 @@ export async function fetchJobById(
     assigneeNames: [],
     status: toJobStatus(row.status),
     meetingCount: 0,
+    applicationCount: 0,
     completionPercent: 0,
     lastEditedAt: formatRelativeDate(row.updated_at),
     publishedAt: row.published_at ? formatRelativeDate(row.published_at) : undefined,
