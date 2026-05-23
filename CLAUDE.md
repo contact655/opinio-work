@@ -13,7 +13,29 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🎯 次のセッションでやること（2026-05-23 セッション5 更新）
+## 🎯 次のセッションでやること（2026-05-23 セッション6 更新）
+
+### ✅ 完了 2026-05-23 セッション6: 全ページブランディング統一・About ページ改善・フィルター改善
+
+  **About ページ改善:**
+  - `/about/scope` + `/about/selection-criteria` を `(jobseeker)` route group に移動（`JobseekerHeader` を継承）
+  - 旧 `app/about/scope/` + `app/about/selection-criteria/` ディレクトリを削除（ルート競合解消）
+  - `/about` ページにスコープ・審査基準サブページへのナビゲーションカードを追加（「準備中」バナーを置き換え）
+  - フッターに `掲載企業の審査基準` リンクを独立して追加
+
+  **DB クエリ修正:**
+  - `lib/search/companies.ts`: ow_jobs フィルター `.eq("status", "active")` → `.in("status", ["published", "active"])`
+
+  **フィルター改善:**
+  - `/biz/candidates`: `desired_phase` フィルターを `<select>` → ピルボタン（全フェーズ / シリーズA/B/C/上場）に変更
+
+  **SEO 改善:**
+  - `sitemap.ts` に `/about`, `/about/scope`, `/about/selection-criteria`, `/consultation-cases` を追加
+
+  **ブランディング統一（"Opinio" → "OPINIO"）:**
+  - ページタイトルメタデータ: `root layout`, `not-found`, `career-consultation`, `not-job-changing`, `consultation-cases`, `mentors`, `mentor`, `privacy`, `terms`, `mentor-terms`, `business`, `biz/auth`（全て `| opinio.jp` → `| OPINIO`、`Opinio Work` → `OPINIO`）
+  - 本文テキスト（30+ ファイル）: FaqSection, HomeFaq, home page, company detail, companies client, CasualMeetingForm, ReserveForm, biz/auth, biz/company edit, biz/jobs, biz/candidates, admin pages, etc.
+  - 残存する legal entity 名 `Opinio Inc.` / `Opinio, Inc.` はそのまま（法人名）
 
 ### ✅ 完了 2026-05-23 セッション5: 全ページ DB クエリ監査・壊れたリンク修正
 
@@ -202,8 +224,9 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 - ~~新機能検討~~ ✅ `/u/[id]` 公開プロフィール・`/biz/candidates` 両方実装済み
 - ~~求職者プロフィール完成度~~ ✅ 完了済み（希望条件タブ・7項目完成度チェック 2026-05-23 セッション3）
 - ~~ow_users.visibility の UI 動作確認~~ ✅ RLS 確認済み（public/login_only/private それぞれ正しく動作）
-- **biz側 desired_phase フィルター** — `/biz/candidates` に desired_phase フィルターを追加（シリーズA/B/C/上場のピルボタン）
+- ~~biz側 desired_phase フィルター~~ ✅ 完了済み（ピルボタン UI に変更済み 2026-05-23 セッション6）
 - **ow_profiles への実データ投入確認** — 実ユーザーを招待し、オンボーディング → profile/edit 希望条件 → /biz/candidates に表示される E2E フローを確認
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了。企業担当者＋求職者を招待してテスト可能
 
 ### DB 現状（2026-05-22 セッション3 更新確認）
 | テーブル | 件数 | 備考 |
