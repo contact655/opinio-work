@@ -1023,6 +1023,132 @@ function PainPoints() {
   );
 }
 
+// ─── User Testimonials ────────────────────────────────────────────────────────
+
+const TESTIMONIALS = [
+  {
+    quote: "メンターの方に話を聞いて、ずっと迷っていた転職に踏み切れました。求人情報だけでは分からない「社内の雰囲気」を教えてもらえたのが大きかったです。",
+    role: "SaaS営業 → CSM",
+    tag: "転職成功",
+    tagColor: "var(--success)",
+    tagBg: "var(--success-soft)",
+    avatar: "佐",
+    gradient: "linear-gradient(135deg, #7C3AED, #A78BFA)",
+  },
+  {
+    quote: "転職を考えているわけではなかったけど、業界の最新トレンドや他社の様子を知れて、現職でのキャリア戦略が整理できました。求人サイトというより情報プラットフォームに近い感覚。",
+    role: "プロダクトマネージャー・5年目",
+    tag: "情報収集",
+    tagColor: "var(--royal)",
+    tagBg: "var(--royal-50)",
+    avatar: "田",
+    gradient: "linear-gradient(135deg, #002366, #3B5FD9)",
+  },
+  {
+    quote: "自分と似たキャリアの先輩が実際にいて、30分話すだけで悩みが整理できました。「応募しなきゃ」というプレッシャーがないのがよかった。",
+    role: "エンジニア・3年目",
+    tag: "メンター相談",
+    tagColor: "#d97706",
+    tagBg: "var(--warm-soft)",
+    avatar: "鈴",
+    gradient: "linear-gradient(135deg, #059669, #34D399)",
+  },
+];
+
+function UserTestimonials() {
+  return (
+    <section style={{ background: "var(--bg-tint)", padding: "96px 48px" }} className="px-5 py-16 md:py-24 md:px-12">
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 52 }}>
+          <SectionTag>VOICES</SectionTag>
+          <h2 style={{
+            fontSize: "clamp(24px,3vw,34px)", fontWeight: 700,
+            color: "var(--ink)", marginBottom: 12,
+            fontFamily: "var(--font-noto-serif)",
+          }}>
+            使ってみた方の声
+          </h2>
+          <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.8 }}>
+            転職活動中でも、情報収集中でも。キャリアの悩みを持つすべての方に。
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {TESTIMONIALS.map((t, i) => (
+            <div
+              key={i}
+              style={{
+                background: "#fff",
+                border: "1px solid var(--line)",
+                borderRadius: 16,
+                padding: "24px 24px 22px",
+                display: "flex", flexDirection: "column",
+                boxShadow: "0 2px 12px rgba(15,23,42,0.06)",
+                position: "relative",
+              }}
+              className="testimonial-card"
+            >
+              {/* Large quote mark */}
+              <div style={{
+                position: "absolute", top: 18, right: 22,
+                fontSize: 56, fontWeight: 900, lineHeight: 1,
+                color: "var(--line)",
+                fontFamily: "Georgia, serif",
+                pointerEvents: "none",
+              }}>
+                "
+              </div>
+
+              {/* Tag */}
+              <span style={{
+                display: "inline-flex", alignItems: "center",
+                fontSize: 10, fontWeight: 700, padding: "3px 10px",
+                borderRadius: 100, marginBottom: 16,
+                background: t.tagBg, color: t.tagColor,
+                letterSpacing: "0.04em", alignSelf: "flex-start",
+                border: `1px solid ${t.tagColor}22`,
+              }}>
+                {t.tag}
+              </span>
+
+              {/* Quote */}
+              <p style={{
+                fontSize: 14, lineHeight: 1.9, color: "var(--ink-soft)",
+                flex: 1, marginBottom: 20,
+              }}>
+                {t.quote}
+              </p>
+
+              {/* Author */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: "50%",
+                  background: t.gradient,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontSize: 13, fontWeight: 700, flexShrink: 0,
+                }}>
+                  {t.avatar}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 500 }}>
+                  {t.role}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <style>{`
+        .testimonial-card:hover {
+          border-color: var(--royal-100) !important;
+          box-shadow: 0 8px 24px rgba(0,35,102,0.07) !important;
+          transform: translateY(-2px);
+          transition: all 0.2s;
+        }
+      `}</style>
+    </section>
+  );
+}
+
 // ─── Mentors Section ──────────────────────────────────────────────────────────
 
 type PreviewMentor = {
@@ -1455,6 +1581,7 @@ export default function HomePage() {
       <InfraSection />
       <HowItWorks />
       <PainPoints />
+      <UserTestimonials />
       <MentorsSection />
       <ArticlesPreview />
       <HomeFaq />

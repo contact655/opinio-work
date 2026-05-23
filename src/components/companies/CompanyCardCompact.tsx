@@ -142,6 +142,22 @@ export function CompanyCardCompact({ company }: Props) {
           {company.name}
         </div>
 
+        {/* タグライン */}
+        {company.tagline && (
+          <div style={{
+            fontSize: 11.5,
+            color: '#64748b',
+            lineHeight: 1.5,
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical' as const,
+            marginTop: -2,
+          }}>
+            {company.tagline}
+          </div>
+        )}
+
         {/* メタ情報 */}
         {metaItems.length > 0 && (
           <div style={{ fontSize: 13, color: '#374151', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>

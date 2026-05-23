@@ -20,6 +20,7 @@ export type Genre = {
 export type CompanyForCarousel = {
   id: string;
   name: string;
+  tagline: string | null;              // 企業キャッチコピー（1行）
   industry: string | null;
   funding_stage: string | null;
   employee_count: string | null;       // ow_companies.employee_count は text 型

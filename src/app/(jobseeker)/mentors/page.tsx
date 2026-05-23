@@ -96,6 +96,27 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
         </div>
       </div>
 
+      {/* Catchphrase */}
+      {mentor.catchphrase && (
+        <div style={{
+          fontSize: 12.5,
+          color: "var(--ink-soft)",
+          lineHeight: 1.65,
+          fontStyle: "italic",
+          padding: "8px 10px",
+          background: "var(--bg-tint)",
+          borderLeft: "3px solid var(--royal-100)",
+          borderRadius: "0 6px 6px 0",
+          marginBottom: 12,
+          overflow: "hidden",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical" as const,
+        }}>
+          「{mentor.catchphrase}」
+        </div>
+      )}
+
       {/* Career chain */}
       {mentor.career_chain.length > 0 && (
         <div style={{

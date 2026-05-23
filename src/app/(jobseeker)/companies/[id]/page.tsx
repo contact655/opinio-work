@@ -832,7 +832,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
         こんな人に向いている / 向いていない
       </SecTitle>
       <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: 20 }}>
-        OPINIO編集部による、実際の取材・社員インタビューをもとにした見解です。
+        企業からの回答をもとにしています。ミスマッチ防止のために企業が正直に記載した情報です。
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="fit-grid">
@@ -923,7 +923,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
         marginTop: 16, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7,
         borderTop: "1px solid var(--line-soft)", paddingTop: 14,
       }}>
-        ※ 編集部取材をもとにした見解です。最新情報は企業に直接ご確認ください。
+        ※ 企業が入力した情報をもとにしています。最新情報は企業に直接ご確認ください。
       </p>
 
       <style>{`
