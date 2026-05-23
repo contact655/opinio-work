@@ -13,6 +13,16 @@ export const metadata: Metadata = {
   title: "取材記事 — OPINIO",
   description:
     "LayerX・SmartHR・Ubie・Salesforceなど、IT/SaaS業界のリアルな働き方を取材。社員インタビュー・メンターの声・CEO取材・組織レポートの4カテゴリで届けます。",
+  keywords: ["IT業界インタビュー", "SaaS転職", "社員の声", "組織文化", "キャリア", "OPINIO"],
+  alternates: { canonical: "/articles" },
+  openGraph: {
+    title: "IT/SaaS業界の取材記事 | OPINIO",
+    description: "LayerX・SmartHR・Ubie・Salesforceなど、IT/SaaS業界のリアルな働き方を取材。社員・メンター・CEO・組織の4カテゴリ。",
+    type: "website",
+    url: "/articles",
+    images: [{ url: "/api/og?type=list&title=%E5%8F%96%E6%9D%90%E8%A8%98%E4%BA%8B&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E3%83%AA%E3%82%A2%E3%83%AB%E3%81%AA%E5%83%8D%E3%81%8D%E6%96%B9", width: 1200, height: 630 }],
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 // ─── Article Card ─────────────────────────────────────────────────────────────

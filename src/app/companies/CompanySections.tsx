@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, useEffect, useCallback } from "react";
 
@@ -189,7 +190,7 @@ function JobCard({ job }: { job: Job }) {
             style={{ border: "0.5px solid #e5e7eb" }}
           >
             {company.logo_url ? (
-              <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
+              <Image src={company.logo_url} alt={company.name} width={28} height={28} style={{ objectFit: "contain" }} />
             ) : (
               <span className="text-[10px] font-bold text-gray-600">{company.name?.[0]}</span>
             )}

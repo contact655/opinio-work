@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
@@ -107,8 +108,7 @@ export default async function MemberProfilePage({
                 background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center",
               }}>
                 {member.photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={member.photo_url} alt={member.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <Image src={member.photo_url} alt={member.name} width={96} height={96} style={{ objectFit: "cover" }} />
                 ) : (
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -133,8 +133,7 @@ export default async function MemberProfilePage({
                     }}
                   >
                     {companyLogoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={companyLogoUrl} alt={company.name} style={{ width: 20, height: 20, borderRadius: 4, objectFit: "contain" }} />
+                      <Image src={companyLogoUrl} alt={company.name} width={20} height={20} style={{ borderRadius: 4, objectFit: "contain" }} />
                     ) : (
                       <div style={{ width: 20, height: 20, borderRadius: 4, background: "#f1efe8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 500, color: "#666" }}>
                         {company.name?.[0]}
@@ -259,8 +258,7 @@ export default async function MemberProfilePage({
                   >
                     <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
                       {m.photo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={m.photo_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <Image src={m.photo_url} alt={m.name} width={40} height={40} style={{ objectFit: "cover" }} />
                       ) : (
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -99,8 +100,7 @@ export default async function MentorDetailPage({
                   {(() => {
                     const ap = getMentorAvatarProps(mentor.name, mentor.avatar_url);
                     if (ap.type === "image") return (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={ap.src} alt={mentor.name} style={{ width: 80, height: 80, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                      <Image src={ap.src} alt={mentor.name} width={80} height={80} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                     );
                     return (
                       <div style={{ width: 80, height: 80, borderRadius: "50%", background: ap.bgColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 500, color: ap.textColor, flexShrink: 0 }}>

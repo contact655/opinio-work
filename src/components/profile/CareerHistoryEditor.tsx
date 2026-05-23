@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
+import Image from "next/image";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import StoryAccordion from "./StoryAccordion";
@@ -435,8 +436,7 @@ function CompanySearch({
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   {c.logo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                    <Image src={c.logo_url} alt={c.name} width={36} height={36} style={{ objectFit: "contain" }} />
                   ) : (
                     <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", fontFamily: "Inter, sans-serif" }}>
                       {c.name.charAt(0)}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   calcMentorScore,
@@ -166,8 +167,7 @@ function MentorAvatar({ mentor, size, border }: { mentor: { avatar_url?: string 
   const props = getMentorAvatarProps(mentor.name, mentor.avatar_url);
   if (props.type === "image") {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={props.src} alt={mentor.name} style={{ width: size, height: size, borderRadius: "50%", border: border || "none", objectFit: "cover", flexShrink: 0 }} />
+      <Image src={props.src} alt={mentor.name} width={size} height={size} style={{ borderRadius: "50%", border: border || "none", objectFit: "cover", flexShrink: 0 }} />
     );
   }
   return (

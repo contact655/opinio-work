@@ -27,6 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://opinio.jp";
 
   return [
+    // ── Static pages ────────────────────────────────────────────────────────
     {
       url: baseUrl,
       lastModified: new Date(),
@@ -43,7 +44,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/companies`,
       lastModified: new Date(),
       changeFrequency: "weekly",
-      priority: 0.8,
+      priority: 0.85,
     },
     {
       url: `${baseUrl}/mentors`,
@@ -52,40 +53,54 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/career-consultation`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
       url: `${baseUrl}/articles`,
       lastModified: new Date(),
       changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/career-consultation`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
       priority: 0.7,
     },
+    {
+      url: `${baseUrl}/biz`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+
+    // ── Dynamic: jobs ────────────────────────────────────────────────────────
     ...(jobs?.map((job) => ({
       url: `${baseUrl}/jobs/${job.id}`,
       lastModified: new Date(job.updated_at),
       changeFrequency: "weekly" as const,
-      priority: 0.7,
+      priority: 0.75,
     })) ?? []),
+
+    // ── Dynamic: companies ───────────────────────────────────────────────────
     ...(companies?.map((company) => ({
       url: `${baseUrl}/companies/${company.id}`,
       lastModified: new Date(company.updated_at),
       changeFrequency: "monthly" as const,
-      priority: 0.6,
+      priority: 0.65,
     })) ?? []),
+
+    // ── Dynamic: mentors ─────────────────────────────────────────────────────
     ...(mentors?.map((m) => ({
       url: `${baseUrl}/mentors/${m.id}`,
       lastModified: new Date(m.updated_at),
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })) ?? []),
+
+    // ── Dynamic: articles ────────────────────────────────────────────────────
     ...(articles?.map((article) => ({
       url: `${baseUrl}/articles/${article.slug}`,
       lastModified: new Date(article.updated_at),
       changeFrequency: "monthly" as const,
-      priority: 0.6,
+      priority: 0.65,
     })) ?? []),
   ];
 }

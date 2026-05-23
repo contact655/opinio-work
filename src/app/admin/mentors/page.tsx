@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 type Mentor = {
@@ -139,8 +140,7 @@ export default function AdminMentorsPage() {
               fontSize: 18, fontWeight: 500, color: "#0f6e56", border: "2px solid #e5e7eb",
             }}>
               {mentor.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={mentor.avatar_url} alt={mentor.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <Image src={mentor.avatar_url} alt={mentor.name} width={56} height={56} style={{ objectFit: "cover" }} />
               ) : (
                 mentor.name?.charAt(0) ?? "?"
               )}
