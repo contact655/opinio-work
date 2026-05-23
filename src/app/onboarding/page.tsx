@@ -13,11 +13,26 @@ const STEPS = [
     question: "あなたの職種は？",
     sub: "最も近いものを選んでください",
     options: [
+      // Engineering
+      "エンジニア",
+      "バックエンド",
+      "フロントエンド",
+      "フルスタック",
+      "SRE/インフラ",
+      "iOS/Android",
+      // Product / Design
+      "プロダクトマネージャー",
+      "デザイナー",
+      "データサイエンティスト",
+      // Go-to-market
       "フィールドセールス",
       "インサイドセールス",
       "カスタマーサクセス",
       "マーケティング",
-      "事業開発・BizDev",
+      // Others
+      "事業開発",
+      "コーポレート",
+      "経営・CxO",
       "その他",
     ],
   },
@@ -332,8 +347,12 @@ function OnboardingInner() {
             {current.sub}
           </p>
 
-          {/* 選択肢 */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {/* 選択肢 — job_type は 2 列グリッド、その他は 1 列 */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: current.id === "job_type" ? "1fr 1fr" : "1fr",
+            gap: 8,
+          }}>
             {current.options.map((opt) => (
               <button
                 key={opt}
