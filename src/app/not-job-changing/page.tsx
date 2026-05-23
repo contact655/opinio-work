@@ -38,7 +38,7 @@ export default function NotJobChangingPage() {
         <div className="max-w-[820px] mx-auto px-4 sm:px-6 lg:px-8" style={{ paddingTop: 32, paddingBottom: 64 }}>
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2" style={{ fontSize: 13, marginBottom: 20 }}>
-            <Link href="/" style={{ color: "#1a6fd4", textDecoration: "none" }}>ホーム</Link>
+            <Link href="/" style={{ color: "var(--royal)", textDecoration: "none" }}>ホーム</Link>
             <span style={{ color: "#d1d5db" }}>›</span>
             <span style={{ color: "#6b7280" }}>転職しない人のために</span>
           </nav>

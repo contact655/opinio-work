@@ -269,22 +269,43 @@ export default function ConsultationCasesClient({
 
       {/* ─── CTA Banner ─── */}
       <section className="max-w-4xl mx-auto px-4 pb-16">
-        <div
-          className="rounded-xl p-8 text-center"
-          style={{ background: "#E1F5EE", border: "0.5px solid #5DCAA5" }}
-        >
-          <h2 className="text-[18px] font-semibold mb-2" style={{ color: "#085041" }}>
-            あなたも、話してみませんか？
-          </h2>
-          <p className="text-[13px] mb-6" style={{ color: "#0F6E56" }}>
-            完全無料 · 営業なし · 30分で気づきが変わる
-          </p>
+        <div style={{
+          background: "var(--warm-soft)",
+          border: "1.5px solid #FDE68A",
+          borderRadius: 16,
+          padding: "32px 40px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 24,
+          flexWrap: "wrap",
+        }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "#B45309", marginBottom: 8, textTransform: "uppercase" }}>
+              OPINIO MENTOR
+            </div>
+            <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(15px, 2vw, 18px)", fontWeight: 500, color: "var(--ink)", margin: 0, lineHeight: 1.55 }}>
+              あなたも、先輩に話してみませんか？
+            </p>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
+              完全無料・営業なし・30分で気づきが変わる。編集部が声がけした現役・元社員のみ。
+            </p>
+          </div>
           <Link
-            href="/career-consultation"
-            className="inline-block text-[14px] font-medium text-white px-6 py-3 rounded-lg transition-colors"
-            style={{ background: "#1D9E75" }}
+            href="/mentors"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
+              background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+              color: "#fff", textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
+              flexShrink: 0,
+            }}
           >
-            キャリア相談を予約する
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            先輩メンターを見る（無料）
           </Link>
         </div>
       </section>

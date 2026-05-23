@@ -21,11 +21,11 @@ export function GenreSection({ genre }: Props) {
         marginBottom: 20,
       }}>
         <div>
-          <span style={{ fontSize: 18, fontWeight: 700, color: '#1a1d24' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>
             {genre.name}
           </span>
           {(genre.description || genre.total_count > 0) && (
-            <span style={{ fontSize: 13, color: '#8b95a3', fontWeight: 400, marginLeft: 12 }}>
+            <span style={{ fontSize: 13, color: 'var(--ink-mute)', fontWeight: 400, marginLeft: 12 }}>
               {genre.description && genre.description}
               {genre.description && genre.total_count > 0 && ' ・ '}
               {genre.total_count > 0 && `${genre.total_count}社`}
@@ -37,7 +37,7 @@ export function GenreSection({ genre }: Props) {
             href={`/companies?genre=${genre.slug}`}
             style={{
               fontSize: 13,
-              color: '#1e63d8',
+              color: 'var(--accent)',
               textDecoration: 'none',
               flexShrink: 0,
             }}

@@ -351,6 +351,54 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
         </>
       )}
 
+      {/* ── 企業・求人への誘導 CTA ── */}
+      <div style={{ background: "#fff", borderTop: "1px solid var(--line)", padding: "48px 24px" }}>
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <div style={{
+              flex: 1, minWidth: 260,
+              background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
+              borderRadius: 14, padding: "24px 28px",
+              display: "flex", flexDirection: "column", gap: 12,
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase" }}>
+                COMPANIES
+              </div>
+              <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 500, color: "var(--ink)", lineHeight: 1.5, margin: 0 }}>
+                先輩が働く企業を<br />詳しく見てみよう
+              </p>
+              <Link href="/companies" style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                fontSize: 13, fontWeight: 600, color: "var(--royal)",
+                textDecoration: "none",
+              }}>
+                企業一覧を見る →
+              </Link>
+            </div>
+            <div style={{
+              flex: 1, minWidth: 260,
+              background: "var(--line-soft)", border: "1.5px solid var(--line)",
+              borderRadius: 14, padding: "24px 28px",
+              display: "flex", flexDirection: "column", gap: 12,
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--ink-mute)", textTransform: "uppercase" }}>
+                JOBS
+              </div>
+              <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 500, color: "var(--ink)", lineHeight: 1.5, margin: 0 }}>
+                気になる求人を見つけて<br />相談テーマを絞り込もう
+              </p>
+              <Link href="/jobs" style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                fontSize: 13, fontWeight: 600, color: "var(--ink-soft)",
+                textDecoration: "none",
+              }}>
+                求人一覧を見る →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <style>{`
         @keyframes pulseDot {
           0%, 100% { opacity: 1; transform: scale(1); }

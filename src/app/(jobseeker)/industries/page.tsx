@@ -148,29 +148,56 @@ export default function IndustriesPage() {
           </div>
         </div>
 
-        {/* CTA */}
-        <div style={{
-          background: "var(--royal-50)", borderRadius: 12, padding: "28px 32px",
-          border: "1px solid var(--royal-100)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          flexWrap: "wrap", gap: 16,
-        }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-              対象企業の求人を探す
-            </div>
-            <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
-              IT/SaaS業界の最新求人を、働き方・職種で絞り込めます
-            </div>
-          </div>
-          <Link href="/companies" style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "12px 24px", background: "var(--royal)", color: "#fff",
-            fontWeight: 600, fontSize: 14, borderRadius: 8, textDecoration: "none",
-            whiteSpace: "nowrap",
+        {/* CTAs */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{
+            background: "var(--royal-50)", borderRadius: 12, padding: "28px 32px",
+            border: "1px solid var(--royal-100)",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            flexWrap: "wrap", gap: 16,
           }}>
-            企業一覧を見る →
-          </Link>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                対象企業の求人を探す
+              </div>
+              <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+                IT/SaaS業界の最新求人を、働き方・職種で絞り込めます
+              </div>
+            </div>
+            <Link href="/companies" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "12px 24px", background: "var(--royal)", color: "#fff",
+              fontWeight: 600, fontSize: 14, borderRadius: 8, textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}>
+              企業一覧を見る →
+            </Link>
+          </div>
+          <div style={{
+            background: "var(--warm-soft)", borderRadius: 12, padding: "28px 32px",
+            border: "1px solid #FDE68A",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            flexWrap: "wrap", gap: 16,
+          }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                業界のことを先輩に直接聞く
+              </div>
+              <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+                OPINIOのメンターは編集部が声がけした現役・元社員のみ。30分・無料で相談できます
+              </div>
+            </div>
+            <Link href="/mentors" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "12px 24px",
+              background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+              color: "#fff",
+              fontWeight: 600, fontSize: 14, borderRadius: 8, textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}>
+              先輩に相談する（無料）→
+            </Link>
+          </div>
         </div>
       </div>
     </div>
