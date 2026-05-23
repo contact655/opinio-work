@@ -49,29 +49,67 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const genresWithCompanies = hasFilter ? [] : await fetchGenresWithCompanies();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pt-5 pb-6">
-      {/* 検索バー（常に表示） */}
-      <Suspense>
-        <CompanySearchBar industries={industries} locations={locations} />
-      </Suspense>
-
-      {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル */}
-      {hasFilter ? (
-        <CompanySearchResults
-          q={q}
-          industry={industry}
-          size={size}
-          workStyle={workStyle}
-          hiring={hiring}
-          location={location}
-        />
-      ) : (
-        <div className="mt-6">
-          {genresWithCompanies.map((genre) => (
-            <GenreSection key={genre.id} genre={genre} />
-          ))}
+    <div>
+      {/* ── Page header ── */}
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "28px 0 24px" }}>
+        <div className="max-w-7xl mx-auto px-4">
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: 6 }}>
+                COMPANIES
+              </div>
+              <h1 style={{
+                fontFamily: "var(--font-noto-serif)",
+                fontSize: "clamp(20px, 3vw, 26px)", fontWeight: 500,
+                color: "var(--ink)", margin: 0, lineHeight: 1.4,
+              }}>
+                IT/SaaS 業界の企業を知る
+              </h1>
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
+                {genresWithCompanies.length > 0
+                  ? `${genresWithCompanies.reduce((s, g) => s + g.total_count, 0)}社掲載中 · カジュアル面談・求人情報をまとめて確認`
+                  : "カジュアル面談・求人情報をまとめて確認"
+                }
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", flexShrink: 0 }}>
+              <a href="/jobs" style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                border: "1.5px solid var(--line)", background: "#fff",
+                color: "var(--ink-soft)", textDecoration: "none",
+              }}>
+                求人を探す →
+              </a>
+            </div>
+          </div>
+          {/* 検索バー */}
+          <Suspense>
+            <CompanySearchBar industries={industries} locations={locations} />
+          </Suspense>
         </div>
-      )}
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 pt-6 pb-6">
+
+        {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル */}
+        {hasFilter ? (
+          <CompanySearchResults
+            q={q}
+            industry={industry}
+            size={size}
+            workStyle={workStyle}
+            hiring={hiring}
+            location={location}
+          />
+        ) : (
+          <div className="mt-6">
+            {genresWithCompanies.map((genre) => (
+              <GenreSection key={genre.id} genre={genre} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
