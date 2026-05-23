@@ -113,13 +113,16 @@ function Hero({
 
   return (
     <section style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
-      {/* Gradient cover band */}
-      <div style={{ height: 80, background: company.gradient, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.22) 100%)" }} />
+      {/* Gradient cover band — taller for visual impact */}
+      <div style={{ height: 210, background: company.gradient, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.32) 100%)" }} />
+        {/* Decorative circles */}
+        <div style={{ position: "absolute", right: -60, top: -60, width: 280, height: 280, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -30, bottom: -80, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
       </div>
       <div
         style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
-        className="px-5 pb-7 pt-5 md:px-12"
+        className="px-5 pb-7 md:px-12"
       >
         <div
           style={{
@@ -131,23 +134,25 @@ function Hero({
           }}
         >
           {/* Left: logo + info */}
-          <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+            {/* Logo — overlaps cover band */}
             <div
               style={{
-                width: 88,
-                height: 88,
-                borderRadius: 16,
+                width: 96,
+                height: 96,
+                borderRadius: 18,
                 flexShrink: 0,
-                background: company.logo_url ? "#f8fafc" : company.gradient,
-                border: "3px solid #fff",
+                marginTop: -52,
+                background: company.logo_url ? "#fff" : company.gradient,
+                border: "4px solid #fff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#fff",
-                fontSize: 36,
+                fontSize: 38,
                 fontWeight: 700,
                 fontFamily: "Inter, sans-serif",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                boxShadow: "0 8px 28px rgba(0,0,0,0.18)",
                 overflow: "hidden",
               }}
             >
@@ -155,21 +160,23 @@ function Hero({
                 <Image
                   src={company.logo_url}
                   alt={company.name}
-                  width={88}
-                  height={88}
-                  style={{ objectFit: "contain" }}
+                  width={96}
+                  height={96}
+                  style={{ objectFit: "contain", padding: 8 }}
                 />
               ) : (
                 company.logo_letter ?? initial
               )}
             </div>
-            <div>
+            <div style={{ paddingTop: 14 }}>
               <div
                 style={{
                   fontSize: 11,
                   color: "var(--ink-mute)",
-                  marginBottom: 6,
-                  fontWeight: 500,
+                  marginBottom: 5,
+                  fontWeight: 600,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase" as const,
                 }}
               >
                 {company.industry}
@@ -178,10 +185,11 @@ function Hero({
                 style={{
                   fontFamily: 'var(--font-noto-serif)',
                   fontWeight: 700,
-                  fontSize: "clamp(22px,2.5vw,30px)",
+                  fontSize: "clamp(22px,2.5vw,32px)",
                   color: "var(--ink)",
                   marginBottom: 6,
                   letterSpacing: "0.01em",
+                  lineHeight: 1.25,
                 }}
               >
                 {company.name}
@@ -190,8 +198,9 @@ function Hero({
                 style={{
                   fontSize: 14,
                   color: "var(--ink-soft)",
-                  lineHeight: 1.6,
+                  lineHeight: 1.65,
                   marginBottom: 14,
+                  maxWidth: 560,
                 }}
               >
                 {company.tagline}
@@ -200,6 +209,7 @@ function Hero({
                 {/* バッジ1: 従業員 */}
                 <span
                   style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
                     padding: "5px 11px",
                     background: "var(--bg-tint)",
                     color: "var(--ink-soft)",
@@ -209,6 +219,7 @@ function Hero({
                     fontWeight: 500,
                   }}
                 >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                   {company.employee_count > 0
                     ? `従業員 ${company.employee_count.toLocaleString()}名`
                     : "従業員 —"}
@@ -217,9 +228,10 @@ function Hero({
                 {(() => {
                   const year = parseInt(detail.established);
                   const age = !isNaN(year) ? new Date().getFullYear() - year : null;
-                  return (
+                  return age !== null ? (
                     <span
                       style={{
+                        display: "inline-flex", alignItems: "center", gap: 5,
                         padding: "5px 11px",
                         background: "var(--bg-tint)",
                         color: "var(--ink-soft)",
@@ -229,9 +241,10 @@ function Hero({
                         fontWeight: 500,
                       }}
                     >
-                      {age !== null ? `創業 ${age}年` : "創業 —"}
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                      創業 {age}年
                     </span>
-                  );
+                  ) : null;
                 })()}
                 {/* バッジ3: 採用中 */}
                 {company.job_count > 0 && (
@@ -293,7 +306,7 @@ function Hero({
           </div>
 
           {/* Right: bookmark + share */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, alignSelf: "flex-start" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, alignSelf: "flex-start", paddingTop: 14 }}>
             <BookmarkButton
               companyName={company.name}
               companyId={company.id}
@@ -315,60 +328,68 @@ function Hero({
           </div>
         </div>
 
-        {/* Stats grid */}
+        {/* Stats grid — colored stat cards */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 16,
+            gap: 12,
             paddingTop: 24,
-            marginTop: 24,
+            marginTop: 20,
             borderTop: "1px solid var(--line-soft)",
           }}
           className="[grid-template-columns:repeat(2,1fr)] sm:[grid-template-columns:repeat(4,1fr)]"
         >
           {[
             {
+              iconBg: "var(--royal-50)",
+              iconColor: "var(--royal)",
               icon: (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                 </svg>
               ),
               label: "社員数",
-              value: company.employee_count.toLocaleString(),
-              unit: "名",
+              value: company.employee_count > 0 ? company.employee_count.toLocaleString() : "—",
+              unit: company.employee_count > 0 ? "名" : "",
               sub: "直近公表値",
             },
             {
+              iconBg: "#F3E8FF",
+              iconColor: "#7C3AED",
               icon: (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4" />
                 </svg>
               ),
               label: "事業ステージ",
               value: company.phase ?? "—",
               unit: "",
-              sub: "直近公表値",
+              sub: "",
               isText: true,
             },
             {
+              iconBg: "#ECFDF5",
+              iconColor: "#059669",
               icon: (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <rect x="3" y="4" width="18" height="18" rx="2" />
                   <path d="M16 2v4M8 2v4M3 10h18" />
                 </svg>
               ),
               label: "設立",
-              value: detail.established,
+              value: detail.established || "—",
               unit: "",
               sub: "",
               isText: true,
             },
             {
+              iconBg: "#FEF3C7",
+              iconColor: "#D97706",
               icon: (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <rect x="3" y="4" width="18" height="16" rx="2" />
                   <path d="M3 10h18" />
                 </svg>
@@ -376,32 +397,36 @@ function Hero({
               label: "募集中の求人",
               value: String(company.job_count),
               unit: "件",
-              sub: "現在公開中",
+              sub: company.job_count > 0 ? "現在公開中" : "",
             },
-          ].map(({ icon, label, value, unit, sub, isText }) => (
-            <div key={label} style={{ padding: "6px 0" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: 11,
-                  color: "var(--ink-mute)",
-                  fontWeight: 500,
-                  marginBottom: 6,
-                }}
-              >
-                <span style={{ color: "var(--royal)" }}>{icon}</span>
-                {label}
+          ].map(({ iconBg, iconColor, icon, label, value, unit, sub, isText }) => (
+            <div key={label} style={{
+              padding: "14px 16px",
+              background: "var(--bg-tint)",
+              borderRadius: 12,
+              border: "1px solid var(--line-soft)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
+                <span style={{
+                  width: 26, height: 26, borderRadius: 7,
+                  background: iconBg, color: iconColor,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  {icon}
+                </span>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>
+                  {label}
+                </span>
               </div>
               <div
                 style={{
                   fontFamily: isText ? undefined : "Inter, sans-serif",
-                  fontSize: isText ? 16 : 22,
+                  fontSize: isText ? 16 : 24,
                   fontWeight: 700,
                   color: "var(--ink)",
-                  lineHeight: 1.2,
-                  marginBottom: 4,
+                  lineHeight: 1.15,
+                  marginBottom: sub ? 4 : 0,
                 }}
               >
                 {value}
@@ -419,7 +444,7 @@ function Hero({
                 )}
               </div>
               {sub && (
-                <div style={{ fontSize: 10, color: "var(--ink-mute)" }}>{sub}</div>
+                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 2 }}>{sub}</div>
               )}
             </div>
           ))}
@@ -531,11 +556,16 @@ function AboutSection({
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "28px 32px",
+        overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      <div style={{ marginBottom: 20 }}>
+      {/* Section header with subtle gradient */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+      }}>
         <SecTitle
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -547,48 +577,50 @@ function AboutSection({
           企業について
         </SecTitle>
       </div>
+      <div style={{ padding: "24px 32px 28px" }}>
 
       {detail.mission && (
         <div
           style={{
             padding: "28px 32px",
-            background: "linear-gradient(135deg, var(--royal) 0%, #1d4ed8 100%)",
+            background: "linear-gradient(135deg, #0a1f4e 0%, #002366 60%, #1a3a8a 100%)",
             borderRadius: 14,
             marginBottom: 24,
             position: "relative",
             overflow: "hidden",
           }}
         >
-          {/* Background texture dot */}
-          <div style={{
-            position: "absolute", right: -20, top: -20,
-            width: 160, height: 160, borderRadius: "50%",
-            background: "rgba(255,255,255,0.05)",
-          }} />
-          <div
-            style={{
-              fontFamily: "Inter, sans-serif",
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: "0.18em",
-              color: "rgba(255,255,255,0.55)",
-              marginBottom: 14,
-              textTransform: "uppercase" as const,
-            }}
-          >
-            MISSION
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-noto-serif)',
-              fontSize: "clamp(18px, 2.5vw, 24px)",
-              fontWeight: 500,
-              color: "#fff",
-              lineHeight: 1.6,
-              letterSpacing: "0.02em",
-            }}
-          >
-            {detail.mission}
+          {/* Decorative circles */}
+          <div style={{ position: "absolute", right: -40, top: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", left: -20, bottom: -60, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
+          {/* Left accent bar */}
+          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "linear-gradient(180deg, #F59E0B 0%, #3B5FD9 100%)", borderRadius: "14px 0 0 14px" }} />
+          <div style={{ paddingLeft: 12 }}>
+            <div
+              style={{
+                fontFamily: "Inter, sans-serif",
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.2em",
+                color: "rgba(255,255,255,0.45)",
+                marginBottom: 12,
+                textTransform: "uppercase" as const,
+              }}
+            >
+              MISSION
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--font-noto-serif)',
+                fontSize: "clamp(18px, 2.2vw, 23px)",
+                fontWeight: 500,
+                color: "#fff",
+                lineHeight: 1.7,
+                letterSpacing: "0.02em",
+              }}
+            >
+              {detail.mission}
+            </div>
           </div>
         </div>
       )}
@@ -600,6 +632,7 @@ function AboutSection({
           {detail.about}
         </p>
       )}
+      </div>
     </section>
   );
 }
@@ -702,6 +735,15 @@ function CompanyFeaturesSection({
 }) {
   if (!detail.company_features.length) return null;
 
+  const FEATURE_COLORS = [
+    { bg: "var(--royal-50)", border: "var(--royal-100)", num: "var(--royal)" },
+    { bg: "#F3E8FF", border: "#DDD6FE", num: "#7C3AED" },
+    { bg: "#ECFDF5", border: "#A7F3D0", num: "#059669" },
+    { bg: "#FEF3C7", border: "#FDE68A", num: "#D97706" },
+    { bg: "var(--royal-50)", border: "var(--royal-100)", num: "var(--royal)" },
+    { bg: "#F3E8FF", border: "#DDD6FE", num: "#7C3AED" },
+  ];
+
   return (
     <section
       id="opinion"
@@ -709,20 +751,19 @@ function CompanyFeaturesSection({
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "28px 32px",
+        overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: 8,
-        }}
-      >
+      {/* Section header */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}>
         <SecTitle
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -733,39 +774,53 @@ function CompanyFeaturesSection({
         >
           特徴
         </SecTitle>
-        <span
-          style={{
-            fontSize: 11,
-            color: "var(--ink-mute)",
-            fontWeight: 600,
-          }}
-        >
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          fontSize: 11, color: "var(--ink-mute)", fontWeight: 600,
+          padding: "3px 10px", borderRadius: 100,
+          background: "var(--bg-tint)", border: "1px solid var(--line)",
+        }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
           編集部取材
         </span>
       </div>
 
+      <div style={{ padding: "24px 32px 28px" }}>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 12,
+          marginBottom: 20,
         }}
       >
-        {detail.company_features.map((item, i) => (
+        {detail.company_features.map((item, i) => {
+          const col = FEATURE_COLORS[i % FEATURE_COLORS.length];
+          return (
           <div
             key={i}
             style={{
-              background: "var(--line-soft)",
-              borderRadius: 8,
-              padding: 14,
-              fontSize: 13,
-              lineHeight: 1.65,
-              color: "var(--ink)",
+              background: col.bg,
+              border: `1px solid ${col.border}`,
+              borderRadius: 12,
+              padding: "16px 18px",
+              position: "relative",
             }}
           >
-            {item}
+            <div style={{
+              fontSize: 12, fontWeight: 800, fontFamily: "Inter, sans-serif",
+              color: col.num, marginBottom: 8, opacity: 0.6,
+            }}>
+              {String(i + 1).padStart(2, "0")}
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 1.7, color: "var(--ink)" }}>
+              {item}
+            </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div
@@ -806,6 +861,7 @@ function CompanyFeaturesSection({
           先輩に相談する →
         </Link>
       </div>
+      </div>
     </section>
   );
 }
@@ -824,20 +880,29 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "28px 32px",
+        overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      <SecTitle
-        icon={
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M9 12l2 2 4-4" />
-          </svg>
-        }
-      >
-        こんな人に向いている / 向いていない
-      </SecTitle>
+      {/* Section header */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+      }}>
+        <SecTitle
+          iconColor="green"
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+          }
+        >
+          こんな人に向いている / 向いていない
+        </SecTitle>
+      </div>
+      <div style={{ padding: "20px 32px 28px" }}>
       <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: 20 }}>
         企業からの回答をもとにしています。ミスマッチ防止のために企業が正直に記載した情報です。
       </p>
@@ -936,6 +1001,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
       <style>{`
         @media (max-width: 640px) { .fit-grid { grid-template-columns: 1fr !important; } }
       `}</style>
+      </div>
     </section>
   );
 }

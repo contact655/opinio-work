@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 /** すべての写真カードを同じサイズで表示
  *  幅は CSS calc で「コンテナ幅 ÷ 2.3」 → 常に 2.3 枚だけ見える（スクロール必須） */
-const CARD_H = 250; // px — 全カード共通の高さ（固定）
+const CARD_H = 280; // px — 全カード共通の高さ（固定）
 const GAP = 12;     // px — カード間隔
 // カード幅は CSS class .ps-card で管理（calc 使用）
 
