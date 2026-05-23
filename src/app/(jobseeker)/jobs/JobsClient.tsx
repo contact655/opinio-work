@@ -71,6 +71,14 @@ function JobCard({
   const bookmarkingRef = useRef(false);
   const router = useRouter();
 
+  // Sync when parent loads bookmark state asynchronously
+  useEffect(() => {
+    // Only update if we're not in the middle of a user interaction
+    if (!bookmarkingRef.current) {
+      setBookmarked(initialBookmarked);
+    }
+  }, [initialBookmarked]);
+
   const company = companyMap.get(job.company_id);
 
   const handleBookmark = useCallback(async (e: React.MouseEvent) => {
