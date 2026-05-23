@@ -39,51 +39,73 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const { q, industry, size, workStyle, hiring, location } = searchParams;
   const hasFilter = Boolean(q || industry || size || workStyle || hiring || location);
 
-  // 業種・都道府県一覧は常に取得（検索バーのドロップダウン用）
-  const [industries, locations] = await Promise.all([
+  // 全データを並列取得（genresWithCompanies は常に取得してヒーロー統計に使う）
+  const [industries, locations, genresWithCompanies] = await Promise.all([
     fetchDistinctIndustries(),
     fetchDistinctLocations(),
+    fetchGenresWithCompanies(),
   ]);
 
-  // カルーセル用ジャンルデータはフィルタなしの場合のみ取得
-  const genresWithCompanies = hasFilter ? [] : await fetchGenresWithCompanies();
+  const totalCount = genresWithCompanies.reduce((s, g) => s + g.total_count, 0);
 
   return (
     <div>
-      {/* ── Page header ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "28px 0 24px" }}>
+      {/* ── Gradient hero header ── */}
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1e3a8a 100%)",
+        padding: "36px 0 32px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Background decorations */}
+        <div style={{ position: "absolute", right: -100, top: -100, width: 480, height: 480, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -60, bottom: -80, width: 320, height: 320, borderRadius: "50%", background: "rgba(255,255,255,0.025)", pointerEvents: "none" }} />
+
         <div className="max-w-7xl mx-auto px-4">
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.45)", marginBottom: 10, textTransform: "uppercase" as const }}>
                 COMPANIES
               </div>
               <h1 style={{
                 fontFamily: "var(--font-noto-serif)",
-                fontSize: "clamp(20px, 3vw, 26px)", fontWeight: 500,
-                color: "var(--ink)", margin: 0, lineHeight: 1.4,
+                fontSize: "clamp(22px, 3vw, 30px)", fontWeight: 500,
+                color: "#fff", margin: 0, lineHeight: 1.4, marginBottom: 18,
               }}>
                 IT/SaaS 業界の企業を知る
               </h1>
-              <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
-                {genresWithCompanies.length > 0
-                  ? `${genresWithCompanies.reduce((s, g) => s + g.total_count, 0)}社掲載中 · カジュアル面談・求人情報をまとめて確認`
-                  : "カジュアル面談・求人情報をまとめて確認"
-                }
-              </p>
+              {/* Stats chips */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {totalCount > 0 && (
+                  <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    🏢 {totalCount}社掲載中
+                  </span>
+                )}
+                <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  💬 全社カジュアル面談受付中
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  ✓ 編集部審査済み
+                </span>
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 12, alignItems: "center", flexShrink: 0 }}>
-              <a href="/jobs" style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                border: "1.5px solid var(--line)", background: "#fff",
-                color: "var(--ink-soft)", textDecoration: "none",
-              }}>
-                求人を探す →
-              </a>
-            </div>
+            <a href="/jobs" style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "9px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+              background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)",
+              border: "1px solid rgba(255,255,255,0.22)", textDecoration: "none",
+              flexShrink: 0, alignSelf: "flex-start",
+              marginTop: 4,
+            }}>
+              求人を探す →
+            </a>
           </div>
-          {/* 検索バー */}
+        </div>
+      </div>
+
+      {/* ── Search bar panel ── */}
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0" }}>
+        <div className="max-w-7xl mx-auto px-4">
           <Suspense>
             <CompanySearchBar industries={industries} locations={locations} />
           </Suspense>
@@ -103,7 +125,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
             location={location}
           />
         ) : (
-          <div className="mt-6">
+          <div style={{ marginTop: 24 }}>
             {genresWithCompanies.map((genre) => (
               <GenreSection key={genre.id} genre={genre} />
             ))}

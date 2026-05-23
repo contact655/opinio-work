@@ -127,12 +127,12 @@ export function CompanyCardCompact({ company }: Props) {
       </div>
 
       {/* カード本体 */}
-      <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
         {/* 社名 */}
         <div style={{
           fontSize: 14,
           fontWeight: 700,
-          color: '#1a1d24',
+          color: 'var(--ink)',
           lineHeight: 1.35,
           overflow: 'hidden',
           display: '-webkit-box',
@@ -142,17 +142,30 @@ export function CompanyCardCompact({ company }: Props) {
           {company.name}
         </div>
 
+        {/* 業種タグ */}
+        {company.industry && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center',
+            fontSize: 10, fontWeight: 600,
+            padding: '2px 8px', borderRadius: 100,
+            background: 'var(--royal-50)', color: 'var(--royal)',
+            border: '1px solid var(--royal-100)',
+            alignSelf: 'flex-start',
+          }}>
+            {company.industry}
+          </div>
+        )}
+
         {/* タグライン */}
         {company.tagline && (
           <div style={{
             fontSize: 11.5,
-            color: '#64748b',
+            color: 'var(--ink-soft)',
             lineHeight: 1.5,
             overflow: 'hidden',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical' as const,
-            marginTop: -2,
           }}>
             {company.tagline}
           </div>
@@ -160,10 +173,10 @@ export function CompanyCardCompact({ company }: Props) {
 
         {/* メタ情報 */}
         {metaItems.length > 0 && (
-          <div style={{ fontSize: 13, color: '#374151', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
+          <div style={{ fontSize: 12, color: 'var(--ink-soft)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
             {metaItems.map((item, i) => (
-              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                {i > 0 && <span style={{ color: '#8b95a3', margin: '0 6px' }}>・</span>}
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {i > 0 && <span style={{ color: 'var(--ink-mute)', margin: '0 5px' }}>·</span>}
                 {item.icon}
                 {item.label}
               </span>

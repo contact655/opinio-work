@@ -32,20 +32,17 @@ export async function CompanySearchResults({ q, industry, size, workStyle, hirin
       <style>{`
         .search-results-grid {
           display: grid;
-          grid-template-columns: repeat(5, 1fr);
+          grid-template-columns: repeat(2, 1fr);
           gap: 14px;
         }
-        @media (max-width: 640px) {
-          .search-results-grid { grid-template-columns: repeat(1, 1fr); }
-        }
         @media (min-width: 641px) and (max-width: 1024px) {
-          .search-results-grid { grid-template-columns: repeat(2, 1fr); }
+          .search-results-grid { grid-template-columns: repeat(3, 1fr); }
         }
         @media (min-width: 1025px) and (max-width: 1280px) {
           .search-results-grid { grid-template-columns: repeat(3, 1fr); }
         }
         @media (min-width: 1281px) {
-          .search-results-grid { grid-template-columns: repeat(5, 1fr); }
+          .search-results-grid { grid-template-columns: repeat(4, 1fr); }
         }
 
         /* genre-card が GenreCarousel の <style> に依存しているため、ここでも定義 */
@@ -76,25 +73,25 @@ export async function CompanySearchResults({ q, industry, size, workStyle, hirin
 
       {/* ヒット件数ヘッダー */}
       <div style={{ marginBottom: 16, display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span style={{ fontSize: 15, fontWeight: 600, color: "#1a1d24" }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
           {totalCount}社
         </span>
-        <span style={{ fontSize: 13, color: "#8b95a3" }}>が見つかりました</span>
+        <span style={{ fontSize: 13, color: "var(--ink-mute)" }}>が見つかりました</span>
       </div>
 
       {/* 検索結果グリッド */}
       {companies.length === 0 ? (
         <div style={{
-          background: "#f8fafc",
+          background: "var(--bg-tint)",
           borderRadius: 12,
           padding: "48px 24px",
           textAlign: "center",
         }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
-          <p style={{ fontSize: 15, fontWeight: 600, color: "#1a1d24", marginBottom: 6 }}>
+          <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
             条件に合う企業が見つかりませんでした
           </p>
-          <p style={{ fontSize: 13, color: "#8b95a3" }}>
+          <p style={{ fontSize: 13, color: "var(--ink-mute)" }}>
             キーワードや絞り込み条件を変えてお試しください
           </p>
         </div>
