@@ -14,20 +14,39 @@ export default async function CandidatesPage() {
   const supabase = createClient();
 
   // 公開プロフィールの求職者を取得（visibility = 'public'）
+  // ow_profiles.user_id = auth.users.id（= ow_users.auth_id）のため
+  // Supabase の自動 JOIN は使わず、auth_id 経由で手動結合する
   const { data: rawUsers } = await supabase
     .from("ow_users")
-    .select(`
-      id, name, location, is_mentor, created_at,
-      ow_profiles!left (
-        onboarding_completed, desired_work_style,
-        desired_salary_min, desired_salary_max, job_type
-      )
-    `)
+    .select("id, name, location, is_mentor, created_at, auth_id")
     .eq("visibility", "public")
     .order("created_at", { ascending: false })
     .limit(100);
 
   const userIds = (rawUsers ?? []).map((u: any) => u.id as string);
+  const authIds = (rawUsers ?? [])
+    .filter((u: any) => u.auth_id)
+    .map((u: any) => u.auth_id as string);
+
+  // ow_profiles: user_id = auth.users.id（= ow_users.auth_id）経由で取得
+  const profilesByAuthId = new Map<string, {
+    onboarding_completed: boolean;
+    desired_work_style: string | null;
+    desired_salary_min: number | null;
+    desired_salary_max: number | null;
+    job_type: string | null;
+  }>();
+
+  if (authIds.length > 0) {
+    const { data: profileRows } = await supabase
+      .from("ow_profiles")
+      .select("user_id, onboarding_completed, desired_work_style, desired_salary_min, desired_salary_max, job_type")
+      .in("user_id", authIds);
+
+    for (const p of profileRows ?? []) {
+      profilesByAuthId.set(p.user_id as string, p as any);
+    }
+  }
 
   // 現職情報を別取得（is_current = true の最初の 1 件）
   const { data: currentExps } = userIds.length > 0
@@ -53,9 +72,8 @@ export default async function CandidatesPage() {
   }
 
   const candidates = (rawUsers ?? []).map((u: any) => {
-    const profile = Array.isArray(u.ow_profiles)
-      ? u.ow_profiles[0] ?? null
-      : u.ow_profiles ?? null;
+    const authId = u.auth_id as string | null;
+    const profile = authId ? (profilesByAuthId.get(authId) ?? null) : null;
     const currentExp = currentExpByUser.get(u.id as string) ?? null;
     return {
       id: u.id as string,

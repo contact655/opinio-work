@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 // PUT /api/jobseeker/career-preferences — 求職者の希望条件を ow_profiles に保存
+// 注意: ow_profiles.user_id = auth.users.id（onboarding の insert パターンに合わせる）
 export async function PUT(req: Request) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -41,9 +42,7 @@ export async function PUT(req: Request) {
 
   patch.updated_at = new Date().toISOString();
 
-  // ow_profiles は user_id で照合（auth.users.id ではなく ow_users.id を介する必要がある）
-  // onboarding では user_id = auth.users.id で insert している場合と
-  // ow_users.id を使う場合がある → 両方試みる（upsert）
+  // ow_profiles.user_id = auth.users.id（onboarding が user.id で insert するパターン）
   const { data: existing } = await supabase
     .from("ow_profiles")
     .select("id")
@@ -61,32 +60,14 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   } else {
-    // ow_users.id を介するケース
-    const { data: owUser } = await supabase
-      .from("ow_users")
-      .select("id")
-      .eq("auth_id", user.id)
-      .maybeSingle();
-
-    if (!owUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const { data: owExisting } = await supabase
+    // レコードがない場合は新規作成（auth.users.id を user_id として使う）
+    const { error } = await supabase
       .from("ow_profiles")
-      .select("id")
-      .eq("user_id", owUser.id)
-      .maybeSingle();
+      .insert({ user_id: user.id, ...patch, onboarding_completed: false });
 
-    if (owExisting) {
-      await supabase
-        .from("ow_profiles")
-        .update(patch)
-        .eq("user_id", owUser.id);
-    } else {
-      await supabase
-        .from("ow_profiles")
-        .insert({ user_id: owUser.id, ...patch, onboarding_completed: false });
+    if (error) {
+      console.error("[PUT /api/jobseeker/career-preferences] insert", error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
 
