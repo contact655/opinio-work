@@ -973,7 +973,9 @@ export default function MypageClient({
     : null;
 
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
-  const { isMentor } = useMypageMock();
+  // isMentor: owUser.is_mentor が真実のソース。開発環境ではモックトグルで上書き可能。
+  const { isMentor: isMentorMock } = useMypageMock();
+  const isMentor = (owUser?.is_mentor === true) || isMentorMock;
   const [receivedRequests, setReceivedRequests] = useState<ReceivedRequest[]>(receivedRequestsProp);
 
   const navigate = useCallback((v: ActiveView) => {
