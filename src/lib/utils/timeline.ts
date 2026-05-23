@@ -24,6 +24,33 @@ import type {
 
 const FALLBACK_AVATAR_COLOR = "linear-gradient(135deg, #002366, #3B5FD9)";
 
+// ─── Logo fallback helpers ────────────────────────────────────────────────────
+
+/**
+ * 会社名の文字列から決定論的なグラデーションインデックスを生成する。
+ * 同じ会社名は常に同じ色になる（ページリロードでも一致）。
+ */
+function hashGradientIndex(str: string): number {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) & 0xffff;
+  }
+  return h % COMPANY_GRADIENTS.length;
+}
+
+/** テスト会社 DB と同じ 6 色ローテーション */
+const COMPANY_GRADIENTS = [
+  "linear-gradient(135deg, #002366, #3B5FD9)", // royal
+  "linear-gradient(135deg, #064E3B, #059669)", // green
+  "linear-gradient(135deg, #92400E, #D97706)", // amber
+  "linear-gradient(135deg, #4C1D95, #7C3AED)", // purple
+  "linear-gradient(135deg, #991B1B, #DC2626)", // red
+  "linear-gradient(135deg, #164E63, #0891B2)", // teal
+];
+
+/** 非公開企業用ニュートラルグラデーション */
+const ANON_GRADIENT = "linear-gradient(135deg, #475569, #64748B)";
+
 // ─── buildTimelineCareerEntriesFromRaw ───────────────────────────────────────
 
 /**
@@ -88,13 +115,38 @@ export function buildTimelineCareerEntriesFromRaw(
     // ow_roles.name は日本語表示ラベルそのものなので変換不要
     const role_label = roleNameById.get(r.role_category_id) ?? r.role_category_id;
 
+    // ロゴ文字 + グラデーション解決:
+    //   1. master 企業 → DB の logo_letter / logo_gradient を優先
+    //   2. 自由入力企業 → company_text の頭文字 + 名前ハッシュでグラデーション決定
+    //   3. 非公開企業 → "非" + ニュートラルグレー
+    let logo_letter: string | null;
+    let logo_gradient: string | null;
+
+    if (companyInfo?.logoLetter && companyInfo?.logoGradient) {
+      // master 企業かつロゴ登録済み
+      logo_letter   = companyInfo.logoLetter;
+      logo_gradient = companyInfo.logoGradient;
+    } else if (r.company_id && companyInfo) {
+      // master 企業だがロゴ未登録 → 会社名頭文字 + 決定論的グラデーション
+      logo_letter   = companyInfo.name.charAt(0) || null;
+      logo_gradient = companyInfo.name ? COMPANY_GRADIENTS[hashGradientIndex(companyInfo.name)] : null;
+    } else if (r.company_text) {
+      // 自由入力企業 → 会社名頭文字 + 決定論的グラデーション
+      logo_letter   = r.company_text.replace(/^(株式会社|有限会社|合同会社)/, "").charAt(0) || r.company_text.charAt(0) || null;
+      logo_gradient = COMPANY_GRADIENTS[hashGradientIndex(r.company_text)];
+    } else {
+      // 非公開企業
+      logo_letter   = "非";
+      logo_gradient = ANON_GRADIENT;
+    }
+
     return {
       id:            r.id,
       company_id:    r.company_id,
       company_name,
       logo_url:      companyInfo?.logoUrl ?? null,
-      logo_letter:   companyInfo?.logoLetter ?? null,
-      logo_gradient: companyInfo?.logoGradient ?? null,
+      logo_letter,
+      logo_gradient,
       role_label,
       role_title:    r.role_title,
       started_at:    r.started_at,
