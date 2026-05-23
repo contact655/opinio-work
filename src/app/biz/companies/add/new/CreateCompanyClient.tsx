@@ -370,7 +370,7 @@ export function CreateCompanyClient({
         新しい会社を作成
       </h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.7 }}>
-        あなたが代表となる新しい会社を Opinio に登録します。
+        あなたが代表となる新しい会社を OPINIO に登録します。
         詳細な企業情報は作成後に会社設定ページから編集できます。
       </p>
 

@@ -832,7 +832,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
         こんな人に向いている / 向いていない
       </SecTitle>
       <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: 20 }}>
-        Opinio編集部による、実際の取材・社員インタビューをもとにした見解です。
+        OPINIO編集部による、実際の取材・社員インタビューをもとにした見解です。
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="fit-grid">
@@ -1633,7 +1633,7 @@ function CurrentEmployeesSection({
 
       {employees.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8, margin: 0 }}>
-          公開準備中 — Opinio で取材した社員プロフィールが順次公開されます
+          公開準備中 — OPINIO で取材した社員プロフィールが順次公開されます
         </p>
       ) : categories.length === 0 ? (
         // カテゴリ設定なし → レスポンシブ列
@@ -2335,7 +2335,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
             </svg>
           }
         >
-          Opinio 取材記事
+          OPINIO 取材記事
         </SecTitle>
       </div>
 

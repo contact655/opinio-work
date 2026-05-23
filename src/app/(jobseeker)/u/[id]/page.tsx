@@ -530,7 +530,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
       {/* Footer note */}
       <div style={{ textAlign: "center", padding: "16px 0 0", fontSize: 12, color: "var(--ink-mute)" }}>
         <Link href="/companies" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>
-          Opinio
+          OPINIO
         </Link>
         {" "}のプロフィールページ ·{" "}
         <Link href="/auth" style={{ color: "var(--royal)", textDecoration: "none" }}>

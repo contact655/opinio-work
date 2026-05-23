@@ -471,7 +471,7 @@ function BrandSide() {
         </h2>
         <p style={styles.brandSubtitle}>
           IT/SaaS業界の先輩に話を聞き、自分のキャリアを<br />
-          一緒に考える場所。Opinio編集部が直接取材した、<br />
+          一緒に考える場所。OPINIO編集部が直接取材した、<br />
           リアルな企業の声と出会えます。
         </p>
 

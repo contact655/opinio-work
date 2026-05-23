@@ -364,7 +364,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
       }} className="px-5 md:px-12">
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10 }}>
-            Opinio / 企業を知る
+            OPINIO / 企業を知る
           </div>
           <h1 style={{
             fontFamily: 'var(--font-noto-serif)',

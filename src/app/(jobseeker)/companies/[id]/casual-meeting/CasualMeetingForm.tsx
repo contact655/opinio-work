@@ -220,7 +220,7 @@ export default function CasualMeetingForm({
 
         {/* Section 1: Profile share */}
         <section style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>Opinioプロフィールを企業に共有</h2>
+          <h2 style={sectionTitleStyle}>OPINIOプロフィールを企業に共有</h2>
           <p style={sectionDescStyle}>
             あなたのプロフィール情報が企業側に共有されます。企業側が事前にあなたのキャリアを確認できるため、<strong>面談当日の対話がスムーズ</strong>になります。
           </p>
@@ -238,7 +238,7 @@ export default function CasualMeetingForm({
               style={{ marginTop: 2, accentColor: "var(--royal)", width: 16, height: 16, flexShrink: 0 }}
             />
             <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>
-              <strong>Opinioプロフィールを企業に共有する</strong>（推奨）<br />
+              <strong>OPINIOプロフィールを企業に共有する</strong>（推奨）<br />
               <span style={{ color: "var(--ink-soft)", fontSize: 12 }}>
                 チェックを外すと、プロフィールは共有されず、下記の入力内容のみが企業に届きます。
               </span>
@@ -301,7 +301,7 @@ export default function CasualMeetingForm({
               value={interestReason}
               onChange={(e) => setInterestReason(e.target.value)}
               rows={4}
-              placeholder="例：Opinio掲載の取材記事を読んで、職域を超える文化に興味を持ちました。"
+              placeholder="例：OPINIO掲載の取材記事を読んで、職域を超える文化に興味を持ちました。"
               style={{ ...inputStyle, resize: "vertical", lineHeight: 1.7 }}
             />
           </div>

@@ -233,7 +233,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
             fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8,
             marginBottom: hasMentors ? 24 : 16,
           }}>
-            30分の無料相談 · Opinio 編集部が最適な先輩をご紹介します
+            30分の無料相談 · OPINIO 編集部が最適な先輩をご紹介します
           </p>
 
           {/* アバタープレビュー（5 名以上いる場合のみ表示） */}

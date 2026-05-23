@@ -276,7 +276,7 @@ export default function ReserveForm({
             {mentor.name}さんに、<br />相談を予約する。
           </h1>
           <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9 }}>
-            30分の対話を予約します。このフォームの内容は<strong>Opinio編集部がまず確認</strong>し、マッチング精度を見てメンターに共有します。<br />
+            30分の対話を予約します。このフォームの内容は<strong>OPINIO編集部がまず確認</strong>し、マッチング精度を見てメンターに共有します。<br />
             質の高い対話を保つため、相談内容を事前に丁寧にご記入ください。
           </p>
         </div>
@@ -724,7 +724,7 @@ export default function ReserveForm({
             fontSize: 12, opacity: 0.9, lineHeight: 1.8, marginBottom: 20,
             maxWidth: 500, marginLeft: "auto", marginRight: "auto",
           }}>
-            このフォームを送信すると、Opinio編集部が内容を確認し、適切と判断した場合にメンターへ転送します。<br />
+            このフォームを送信すると、OPINIO編集部が内容を確認し、適切と判断した場合にメンターへ転送します。<br />
             編集部からの連絡は通常2営業日以内にお送りします。
           </p>
 

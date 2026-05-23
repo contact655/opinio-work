@@ -106,7 +106,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
             求人管理
           </h1>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-            求人の作成・編集・公開状態を管理します。新規求人は「公開申請」後にOpinio運営の審査（2-3営業日）を経て公開されます。
+            求人の作成・編集・公開状態を管理します。新規求人は「公開申請」後にOPINIO運営の審査（2-3営業日）を経て公開されます。
           </p>
         </div>
         {isAdmin && (
