@@ -4,6 +4,7 @@ export const metadata = {
   title: "掲載企業の審査基準 | OPINIO",
   description:
     "OPINIOは編集部による独自の審査を経た企業のみを掲載しています。審査プロセス・3軸の評価基準・取材体制をご紹介します。",
+  alternates: { canonical: "/about/selection-criteria" },
   openGraph: {
     title: "掲載企業の審査基準 | OPINIO",
     description: "OPINIO編集部の独自審査と取材体制について。",
