@@ -141,6 +141,7 @@ export default function AboutPage() {
           background: "var(--royal-50)", borderRadius: 12, padding: "24px 28px",
           border: "1px solid var(--royal-100)",
           textAlign: "center",
+          marginBottom: 16,
         }}>
           <p style={{ fontSize: 14, color: "var(--royal)", fontWeight: 500 }}>
             OPINIOの取り組みについてさらに詳しくは
@@ -149,6 +150,34 @@ export default function AboutPage() {
             </Link>
             でもご覧いただけます。
           </p>
+        </div>
+
+        {/* Mentor CTA */}
+        <div style={{
+          background: "var(--warm-soft)", border: "1.5px solid #FDE68A",
+          borderRadius: 14, padding: "28px 32px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: 16, flexWrap: "wrap",
+        }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "#B45309", marginBottom: 8, textTransform: "uppercase" as const }}>
+              OPINIO MENTOR
+            </div>
+            <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(14px, 2vw, 16px)", fontWeight: 500, color: "var(--ink)", margin: 0, lineHeight: 1.55 }}>
+              「丁寧な介在」を体感してみませんか？
+            </p>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
+              編集部が個別に声がけした現役・元社員のみ。30分・完全無料で相談できます。
+            </p>
+          </div>
+          <Link href="/mentors" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "12px 24px", borderRadius: 10, fontSize: 14, fontWeight: 700,
+            background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+            color: "#fff", textDecoration: "none", flexShrink: 0,
+          }}>
+            先輩メンターを見る →
+          </Link>
         </div>
       </div>
     </div>
