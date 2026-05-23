@@ -1017,18 +1017,31 @@ export default function JobsClient({
         >
           {paged.length === 0 ? (
             <div style={{
-              textAlign: "center", padding: "64px 0", background: "#fff",
+              textAlign: "center", padding: "48px 24px", background: "#fff",
               borderRadius: 16, border: "1px solid var(--line)", marginTop: 20,
             }}>
               <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う求人が見つかりませんでした</h3>
-              <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えてみてください</p>
-              <button onClick={() => router.replace("/jobs")} style={{
-                padding: "10px 24px", borderRadius: 8, background: "var(--royal)",
-                color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer",
-              }}>
-                すべてリセット
-              </button>
+              <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えるか、先輩メンターに直接聞いてみましょう</p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                <button onClick={() => router.replace("/jobs")} style={{
+                  padding: "10px 24px", borderRadius: 8, background: "var(--royal)",
+                  color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer",
+                }}>
+                  すべてリセット
+                </button>
+                <Link href="/mentors" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "10px 20px", borderRadius: 8,
+                  background: "linear-gradient(135deg, #F59E0B, #D97706)",
+                  color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none",
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  先輩に相談する
+                </Link>
+              </div>
             </div>
           ) : (
             <>
@@ -1042,6 +1055,53 @@ export default function JobsClient({
                 total={totalPages}
                 onPage={goPage}
               />
+
+              {/* ── メンター相談 CTA ── */}
+              <div style={{
+                marginTop: 48, padding: "28px 32px",
+                background: "linear-gradient(135deg, #001A4D 0%, #002366 60%, #1D4ED8 100%)",
+                borderRadius: 16,
+                display: "flex", flexDirection: "column", alignItems: "center",
+                textAlign: "center",
+                position: "relative", overflow: "hidden",
+              }}>
+                {/* 背景デコ */}
+                <div style={{
+                  position: "absolute", top: -30, right: -30,
+                  width: 180, height: 180, borderRadius: "50%",
+                  background: "rgba(255,255,255,0.04)",
+                  pointerEvents: "none",
+                }} />
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.55)", marginBottom: 10, textTransform: "uppercase" as const }}>
+                  OPINIO独自の機能
+                </div>
+                <h3 style={{
+                  fontFamily: "var(--font-noto-serif)",
+                  fontSize: "clamp(16px,2.5vw,20px)", fontWeight: 500,
+                  color: "#fff", marginBottom: 10, lineHeight: 1.5,
+                }}>
+                  気になる求人を見つけたら、<br />その職種の先輩に話を聞いてみよう。
+                </h3>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", lineHeight: 1.75, marginBottom: 22, maxWidth: 480 }}>
+                  「応募前にもっとリアルな声を聞きたい」なら、OPINIO編集部が紹介する先輩メンターに30分相談できます。営業される心配ゼロ・完全無料。
+                </p>
+                <Link href="/mentors" style={{
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  padding: "12px 28px",
+                  background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                  color: "#fff", borderRadius: 8, textDecoration: "none",
+                  fontSize: 14, fontWeight: 700,
+                  boxShadow: "0 4px 16px rgba(245,158,11,0.35)",
+                }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  先輩メンターを見てみる（無料）
+                </Link>
+                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 12 }}>
+                  OPINIO編集部が個別に声がけした厳選メンターのみ掲載
+                </p>
+              </div>
             </>
           )}
         </div>
