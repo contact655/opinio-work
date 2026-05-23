@@ -334,7 +334,7 @@ export default async function MentorDetailPage({ params }: Props) {
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
               {[
                 { step: "01", label: "相談内容を送る", desc: "フォームに相談したいことを入力（3分で完了）" },
-                { step: "02", label: "編集部が確認", desc: "Opinio編集部がメンターに適切か確認します" },
+                { step: "02", label: "編集部が確認", desc: "OPINIO編集部がメンターに適切か確認します" },
                 { step: "03", label: "メンターが承認", desc: "メンターが相談を受け付けると通知が届きます" },
                 { step: "04", label: "日程を調整", desc: "メンターとチャットで日時を確定します" },
                 { step: "05", label: "30分のオンライン対話", desc: "Zoom/Teamsでフランクにお話しします。完全無料" },

@@ -52,27 +52,27 @@ const PAIN_POINTS = [
   {
     icon: <ClockIcon />,
     q: "情報が古い気がして、応募に踏み切れない",
-    a: "求人票がいつ更新されたのか分からない。Opinioでは編集部の取材と企業アンケートで情報を更新し続け、更新日も明示します。",
+    a: "求人票がいつ更新されたのか分からない。OPINIOでは編集部の取材と企業アンケートで情報を更新し続け、更新日も明示します。",
   },
   {
     icon: <SearchIcon />,
     q: "「フルリモートで副業OK」の条件が探しにくい",
-    a: "働き方が多様化したのに、複数条件での検索が機能しない。Opinioは働き方×勤務地×企業タイプの組み合わせで、抜け漏れなく探せる設計です。",
+    a: "働き方が多様化したのに、複数条件での検索が機能しない。OPINIOは働き方×勤務地×企業タイプの組み合わせで、抜け漏れなく探せる設計です。",
   },
   {
     icon: <ShieldIcon />,
     q: "どの求人サイトを見れば、抜け漏れないか分からない",
-    a: "サービスによって掲載企業がバラバラ。OpinioはIT/SaaS業界の求人を網羅的に集め、ここを見れば済む場所を目指します。",
+    a: "サービスによって掲載企業がバラバラ。OPINIOはIT/SaaS業界の求人を網羅的に集め、ここを見れば済む場所を目指します。",
   },
   {
     icon: <ChatIcon />,
     q: "求人票には書けない「本当の組織文化」が知りたい",
-    a: "公式情報だけでは、入社後のギャップが怖い。Opinio編集部が現場メンバーへ直接取材した、生の組織文化レポートを各企業ページで公開しています。",
+    a: "公式情報だけでは、入社後のギャップが怖い。OPINIO編集部が現場メンバーへ直接取材した、生の組織文化レポートを各企業ページで公開しています。",
   },
   {
     icon: <PhoneOffIcon />,
     q: "エージェントに登録すると、営業電話が止まらない",
-    a: "登録したら電話・メールラッシュで、冷静に比較できない。Opinioは電話一切なし、すべてオンラインで自分のペースで進められる設計です。",
+    a: "登録したら電話・メールラッシュで、冷静に比較できない。OPINIOは電話一切なし、すべてオンラインで自分のペースで進められる設計です。",
   },
   {
     icon: <PersonIcon />,
@@ -526,7 +526,7 @@ function Hero({ stats }: { stats: SiteStats }) {
               fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 6,
             }}>
               <ChatIcon />
-              すべての求人に「Opinio編集部の見解」付き
+              すべての求人に「OPINIO編集部の見解」付き
             </div>
           </div>
         </div>
@@ -611,7 +611,7 @@ function LogoMarquee() {
         color: "var(--ink-mute)", textTransform: "uppercase",
         marginBottom: 20,
       }}>
-        IT / SaaS 業界を代表する企業が、Opinio に集まっています
+        IT / SaaS 業界を代表する企業が、OPINIO に集まっています
       </p>
       <div style={{ position: "relative", overflow: "hidden" }}>
         {/* fade masks */}
@@ -734,7 +734,7 @@ function InfraSection() {
         <InfraBlock
           num="01 / FRESH"
           title={<>企業の<em style={{ fontStyle: "normal", color: "var(--royal)" }}>「今」</em>を、<br />取材とアンケートで更新し続ける。</>}
-          desc="求人票に書かれている情報は、いつのものか分からない──そんな不安を解消します。Opinio編集部が企業を定期的に取材し、企業からも定期アンケートで最新情報を集めます。"
+          desc="求人票に書かれている情報は、いつのものか分からない──そんな不安を解消します。OPINIO編集部が企業を定期的に取材し、企業からも定期アンケートで最新情報を集めます。"
           points={[
             { icon: <ClockIcon />, html: <><strong>編集部による定期取材：</strong>経営層・現場メンバーに会いにいき、生の言葉をお届けします。</> },
             { icon: <ChatIcon />, html: <><strong>企業からの定期アンケート：</strong>リモート比率、残業時間、組織変更などを企業自身に更新してもらう仕組み。</> },
@@ -783,7 +783,7 @@ function InfraSection() {
           reverse
           num="02 / COVERED"
           title={<>ライフスタイルに合う求人を、<br /><em style={{ fontStyle: "normal", color: "var(--royal)" }}>抜け漏れなく</em>探せる。</>}
-          desc="働き方が多様化した今、「フルリモートで副業OK」「子育てと両立できる週4日勤務」──条件の組み合わせで求人を探すのが難しくなっています。Opinioは、ライフスタイル起点で絞り込める場所を目指します。"
+          desc="働き方が多様化した今、「フルリモートで副業OK」「子育てと両立できる週4日勤務」──条件の組み合わせで求人を探すのが難しくなっています。OPINIOは、ライフスタイル起点で絞り込める場所を目指します。"
           points={[
             { icon: <CheckMark />, html: <><strong>働き方で絞れる：</strong>フルリモート・副業OK・フレックス・週3/4日勤務など、多様なタグを標準装備。</> },
             { icon: <CheckMark />, html: <><strong>勤務地で絞れる：</strong>地方在住でも、自分のペースに合う場所で働ける会社を見つけられます。</> },
@@ -836,7 +836,7 @@ function InfraSection() {
         <InfraBlock
           num="03 / MENTOR"
           title={<>数年先を歩く先輩に、<br /><em style={{ fontStyle: "normal", color: "var(--royal)" }}>カジュアルに</em>話を聞ける。</>}
-          desc="キャリアの悩みは、家族や社内の人には聞きづらい。Opinioには、あなたと似た経歴を持ち、少し先を歩く先輩がいます。30分のオンライン対話で気軽に話せます。"
+          desc="キャリアの悩みは、家族や社内の人には聞きづらい。OPINIOには、あなたと似た経歴を持ち、少し先を歩く先輩がいます。30分のオンライン対話で気軽に話せます。"
           points={[
             { icon: <PersonIcon />, html: <><strong>似た経歴の先輩とマッチング：</strong>あなたの職種・経験年数・志向に近い先輩を自動で提案します。</> },
             { icon: <CheckMark />, html: <><strong>応募の強制なし：</strong>相談がそのまま求人提案に繋がることはありません。フラットな対話を大切に。</> },
@@ -930,7 +930,7 @@ function HowItWorks() {
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <SectionTag>HOW IT WORKS</SectionTag>
           <h2 style={{ fontSize: "clamp(26px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: 16 }}>
-            Opinioの、使い方
+            OPINIOの、使い方
           </h2>
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: "var(--max-w-form)", margin: "0 auto" }}>
             情報を集めて、先輩に相談して、自分で決める。<br />
@@ -1324,7 +1324,7 @@ function ArticlesPreview() {
               現場から届く、キャリアの声。
             </h2>
             <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-              Opinio編集部が IT/SaaS 業界の現場に会いに行く、4種類の取材コンテンツ。
+              OPINIO編集部が IT/SaaS 業界の現場に会いに行く、4種類の取材コンテンツ。
             </p>
           </div>
           <Link href="/articles" style={{
