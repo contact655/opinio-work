@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import type { MeetingApplication, MeetingStatus } from "@/lib/business/mockMeetings";
 import { STATUS_TABS } from "@/lib/business/mockMeetings";
 import { MeetingsLayout } from "@/components/business/MeetingsLayout";
@@ -26,6 +27,7 @@ type Props = {
 };
 
 export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props) {
+  const router = useRouter();
   // ── Core state ──────────────────────────────────────────────
   const [meetings, setMeetings] = useState<MeetingApplication[]>(initialMeetings);
   const [activeStatus, setActiveStatus] = useState<MeetingStatus>("pending");
@@ -203,8 +205,9 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
   }, [selectedId, handleMemoChange]);
 
   const handleReply = useCallback(() => {
-    alert("返信機能は今後実装予定です。");
-  }, []);
+    // 対話（会話）ページへ誘導
+    router.push("/biz/conversations");
+  }, [router]);
 
   const handleScheduleAdjust = useCallback(() => {
     if (!selectedId) return;

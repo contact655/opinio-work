@@ -895,7 +895,7 @@ export function CompanyEditClient({
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button
               type="button"
-              onClick={() => alert("プレビュー（実装予定）")}
+              onClick={() => window.open(`/companies/${companyId}`, "_blank", "noopener,noreferrer")}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 16px",

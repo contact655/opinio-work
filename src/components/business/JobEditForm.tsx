@@ -716,7 +716,10 @@ export function JobEditForm({
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button
             type="button"
-            onClick={() => alert("プレビュー機能は後日実装予定です。")}
+            onClick={() => {
+              if (jobId) window.open(`/jobs/${jobId}`, "_blank", "noopener,noreferrer");
+            }}
+            disabled={!jobId}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "8px 16px", fontSize: 13, fontWeight: 600,
