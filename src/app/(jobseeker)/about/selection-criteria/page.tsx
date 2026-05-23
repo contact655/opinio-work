@@ -184,7 +184,7 @@ export default function SelectionCriteriaPage() {
             掲載求人を見る →
           </Link>
           <Link
-            href="/career-consultation"
+            href="/mentors"
             style={{
               display: "inline-block", padding: "12px 28px", borderRadius: 10,
               fontSize: 14, fontWeight: 600, background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal-100)", textDecoration: "none",
