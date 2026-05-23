@@ -13,7 +13,27 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🎯 次のセッションでやること（2026-05-23 セッション2 更新）
+## 🎯 次のセッションでやること（2026-05-23 セッション3 更新）
+
+### ✅ 完了 2026-05-23 セッション3: ビルドエラー修正・プロフィール完成度強化・マイページ改善
+  - **ビルドエラー修正**:
+    - `Footer.tsx`・`MeetingCard.tsx`・`MeetingDetailPanel.tsx`・`MeetingStatusTabs.tsx`・`MeetingSearchBar.tsx` に `"use client"` 追加
+    - イベントハンドラーをサーバーコンポーネントから渡す RSC エラーを解消 → `/about/scope` タイムアウト解消
+  - **`/profile/edit` 希望条件タブ強化**:
+    - `今一番の悩み`（worry）select を追加（オンボーディング回答を後から変更可能に）
+    - `興味のある企業フェーズ`（desired_phase）multi-select を追加（シリーズA/B/C/上場 → ow_companies.phase と一致）
+    - `prefPhase` state 追加、ARRAY として career-preferences API に保存
+  - **`/mypage` プロフィール完成度ウィジェット**:
+    - `希望条件` を 7 番目のチェック項目として追加
+    - `mypage/page.tsx` で ow_profiles を fetch し `hasCareerPreferences` を算出
+    - `MypageClient` → `DashboardView` → `ProfileCompletenessCard` にプロップとして渡す
+  - **`/mypage` isMentor 修正**:
+    - `const { isMentor } = useMypageMock()` （常に false）→
+      `const isMentor = (owUser?.is_mentor === true) || isMentorMock`
+    - 実際に `is_mentor=true` のユーザーがメンター UI を見られるように
+  - **`/biz/candidates` job_type フィルター修正**:
+    - `JOB_TYPE_LABELS` の英語スラッグキー（product_manager等）→ 日本語文字列に修正
+    - `ow_profiles.job_type` はオンボーディングで保存された日本語文字列のため
 
 ### ✅ 完了 2026-05-23 セッション2: 求職者サーチ＋公開プロフィール連携強化
   - `/biz/candidates/page.tsx` クエリ修正:
@@ -123,8 +143,10 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 - **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了。企業担当者＋求職者を招待してテスト可能
 - ~~SEO / OGP 強化~~ ✅ 完了済み（企業詳細・求人詳細・メンター・記事 全ページに generateMetadata + og:image）
 - ~~新機能検討~~ ✅ `/u/[id]` 公開プロフィール・`/biz/candidates` 両方実装済み
-- **求職者プロフィール完成度** — `ow_profiles` への保存が `/profile/edit` で完全動作するか確認。`desired_work_style` / `job_type` などが実際に書き込まれているか確認する
-- **ow_users.visibility の UI 動作確認** — 求職者が「非公開」設定するとビジネス側の候補者リストから消えることを E2E 確認
+- ~~求職者プロフィール完成度~~ ✅ 完了済み（希望条件タブ・7項目完成度チェック 2026-05-23 セッション3）
+- ~~ow_users.visibility の UI 動作確認~~ ✅ RLS 確認済み（public/login_only/private それぞれ正しく動作）
+- **biz側 desired_phase フィルター** — `/biz/candidates` に desired_phase フィルターを追加（シリーズA/B/C/上場のピルボタン）
+- **ow_profiles への実データ投入確認** — 実ユーザーを招待し、オンボーディング → profile/edit 希望条件 → /biz/candidates に表示される E2E フローを確認
 
 ### DB 現状（2026-05-22 セッション3 更新確認）
 | テーブル | 件数 | 備考 |

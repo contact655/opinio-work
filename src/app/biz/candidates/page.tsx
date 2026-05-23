@@ -35,12 +35,14 @@ export default async function CandidatesPage() {
     desired_salary_min: number | null;
     desired_salary_max: number | null;
     job_type: string | null;
+    desired_phase: string[] | null;
+    transfer_timing: string | null;
   }>();
 
   if (authIds.length > 0) {
     const { data: profileRows } = await supabase
       .from("ow_profiles")
-      .select("user_id, onboarding_completed, desired_work_style, desired_salary_min, desired_salary_max, job_type")
+      .select("user_id, onboarding_completed, desired_work_style, desired_salary_min, desired_salary_max, job_type, desired_phase, transfer_timing")
       .in("user_id", authIds);
 
     for (const p of profileRows ?? []) {
@@ -86,6 +88,8 @@ export default async function CandidatesPage() {
       workStyle: profile?.desired_work_style || null,
       desiredSalaryMin: profile?.desired_salary_min || null,
       desiredSalaryMax: profile?.desired_salary_max || null,
+      desiredPhase: profile?.desired_phase || null,
+      transferTiming: profile?.transfer_timing || null,
       onboardingCompleted: profile?.onboarding_completed || false,
       createdAt: u.created_at as string,
     };

@@ -13,6 +13,8 @@ type Candidate = {
   workStyle: string | null;
   desiredSalaryMin: number | null;
   desiredSalaryMax: number | null;
+  desiredPhase: string[] | null;
+  transferTiming: string | null;
   onboardingCompleted: boolean;
   createdAt: string;
 };
@@ -54,10 +56,13 @@ function getGradient(id: string) {
   return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
 }
 
+const PHASE_OPTIONS = ["シリーズA", "シリーズB", "シリーズC", "上場"];
+
 export default function CandidatesClient({ candidates }: { candidates: Candidate[] }) {
   const [q, setQ] = useState("");
   const [workStyle, setWorkStyle] = useState("");
   const [jobType, setJobType] = useState("");
+  const [phase, setPhase] = useState("");
 
   const filtered = useMemo(() => {
     let list = candidates;
@@ -72,8 +77,9 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
     }
     if (workStyle) list = list.filter((c) => c.workStyle === workStyle);
     if (jobType)   list = list.filter((c) => c.jobType === jobType);
+    if (phase)     list = list.filter((c) => c.desiredPhase?.includes(phase));
     return list;
-  }, [candidates, q, workStyle, jobType]);
+  }, [candidates, q, workStyle, jobType, phase]);
 
   return (
     <div style={{ padding: "32px 40px", maxWidth: 1000, margin: "0 auto" }}>
@@ -135,6 +141,21 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
           <option value="">勤務スタイル（全て）</option>
           {Object.entries(WORK_STYLE_LABELS).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
+          ))}
+        </select>
+        <select
+          value={phase}
+          onChange={(e) => setPhase(e.target.value)}
+          style={{
+            height: 36, padding: "0 10px",
+            border: "1px solid var(--line)", borderRadius: 8,
+            fontSize: 13, color: "var(--ink-soft)", background: "#fff",
+            outline: "none", fontFamily: "inherit",
+          }}
+        >
+          <option value="">フェーズ（全て）</option>
+          {PHASE_OPTIONS.map((v) => (
+            <option key={v} value={v}>{v}</option>
           ))}
         </select>
         <span style={{ fontSize: 13, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
@@ -239,6 +260,24 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
                       fontWeight: 600,
                     }}>
                       {WORK_STYLE_LABELS[c.workStyle] ?? c.workStyle}
+                    </span>
+                  )}
+                  {c.transferTiming && (
+                    <span style={{
+                      fontSize: 11, padding: "3px 8px", borderRadius: 100,
+                      background: "var(--warm-soft)", border: "1px solid #FDE68A", color: "#92400E",
+                      fontWeight: 600,
+                    }}>
+                      ⏱ {c.transferTiming}
+                    </span>
+                  )}
+                  {c.desiredPhase && c.desiredPhase.length > 0 && (
+                    <span style={{
+                      fontSize: 11, padding: "3px 8px", borderRadius: 100,
+                      background: "var(--success-soft)", border: "1px solid #a7f3d0", color: "var(--success)",
+                      fontWeight: 600,
+                    }}>
+                      📊 {c.desiredPhase.join("・")}
                     </span>
                   )}
                 </div>
