@@ -112,15 +112,14 @@ function Hero({
   const isFresh = company.updated_days_ago <= 30;
 
   return (
-    <section style={{ background: "#fff", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-      {/* Gradient accent band */}
-      <div style={{
-        position: "absolute", top: 0, left: 0, right: 0, height: 4,
-        background: company.gradient,
-      }} />
+    <section style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
+      {/* Gradient cover band */}
+      <div style={{ height: 108, background: company.gradient, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.22) 100%)" }} />
+      </div>
       <div
         style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
-        className="px-5 py-8 md:px-12"
+        className="px-5 py-7 md:px-12"
       >
         <div
           style={{
@@ -140,7 +139,7 @@ function Hero({
                 borderRadius: 16,
                 flexShrink: 0,
                 background: company.logo_url ? "#f8fafc" : company.gradient,
-                border: company.logo_url ? "1px solid var(--line)" : "none",
+                border: "3px solid #fff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -552,21 +551,29 @@ function AboutSection({
       {detail.mission && (
         <div
           style={{
-            padding: 24,
-            background: "linear-gradient(135deg, var(--royal-50) 0%, #fff 100%)",
-            border: "1px solid var(--royal-100)",
-            borderRadius: 12,
-            marginBottom: 20,
+            padding: "28px 32px",
+            background: "linear-gradient(135deg, var(--royal) 0%, #1d4ed8 100%)",
+            borderRadius: 14,
+            marginBottom: 24,
+            position: "relative",
+            overflow: "hidden",
           }}
         >
+          {/* Background texture dot */}
+          <div style={{
+            position: "absolute", right: -20, top: -20,
+            width: 160, height: 160, borderRadius: "50%",
+            background: "rgba(255,255,255,0.05)",
+          }} />
           <div
             style={{
               fontFamily: "Inter, sans-serif",
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: 700,
-              letterSpacing: "0.15em",
-              color: "var(--accent)",
-              marginBottom: 10,
+              letterSpacing: "0.18em",
+              color: "rgba(255,255,255,0.55)",
+              marginBottom: 14,
+              textTransform: "uppercase" as const,
             }}
           >
             MISSION
@@ -574,10 +581,10 @@ function AboutSection({
           <div
             style={{
               fontFamily: 'var(--font-noto-serif)',
-              fontSize: 22,
+              fontSize: "clamp(18px, 2.5vw, 24px)",
               fontWeight: 500,
-              color: "var(--royal)",
-              lineHeight: 1.5,
+              color: "#fff",
+              lineHeight: 1.6,
               letterSpacing: "0.02em",
             }}
           >
@@ -589,7 +596,7 @@ function AboutSection({
       <PhotoCarousel photos={photos} />
 
       {detail.about && (
-        <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9 }}>
+        <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, marginTop: 20 }}>
           {detail.about}
         </p>
       )}
@@ -930,6 +937,60 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
         @media (max-width: 640px) { .fit-grid { grid-template-columns: 1fr !important; } }
       `}</style>
     </section>
+  );
+}
+
+// ─── MentorSuggestionBanner ──────────────────────────────────────────────────
+
+function MentorSuggestionBanner({ companyName }: { companyName: string }) {
+  return (
+    <div style={{
+      background: "linear-gradient(135deg, var(--warm-soft) 0%, #FFFBEB 100%)",
+      border: "1.5px solid #FDE68A",
+      borderRadius: 16,
+      padding: "24px 28px",
+      marginBottom: 20,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 20,
+      flexWrap: "wrap",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        {/* Icon */}
+        <div style={{
+          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+          background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 12px rgba(245,158,11,0.3)",
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>
+            気になる点は、先輩に直接聞いてみよう
+          </div>
+          <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+            {companyName} の現役・元社員メンターに30分・無料で相談できます
+          </div>
+        </div>
+      </div>
+      <Link
+        href="/mentors"
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 7,
+          padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 700,
+          background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+          color: "#fff", textDecoration: "none",
+          boxShadow: "0 3px 10px rgba(245,158,11,0.35)",
+          flexShrink: 0, whiteSpace: "nowrap" as const,
+        }}
+      >
+        先輩メンターを見る →
+      </Link>
+    </div>
   );
 }
 
@@ -2870,19 +2931,21 @@ function Sidebar({
         >
           Company Info
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {/* ジャンルチップ: 登録済み企業のみ表示、未登録は行ごと非表示 */}
           {company.genres.length > 0 && (
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "85px 1fr",
-                gap: 12,
+                gridTemplateColumns: "76px 1fr",
+                gap: 10,
                 fontSize: 13,
                 alignItems: "flex-start",
+                padding: "10px 0",
+                borderBottom: "1px solid var(--line-soft)",
               }}
             >
-              <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>ジャンル</span>
+              <span style={{ color: "var(--ink-mute)", fontSize: 11, fontWeight: 600, paddingTop: 3 }}>ジャンル</span>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {company.genres.map((g) => (
                   <span
@@ -2922,13 +2985,15 @@ function Sidebar({
                 key={key}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "85px 1fr",
-                  gap: 12,
+                  gridTemplateColumns: "76px 1fr",
+                  gap: 10,
                   fontSize: 13,
                   alignItems: "flex-start",
+                  padding: "10px 0",
+                  borderBottom: "1px solid var(--line-soft)",
                 }}
               >
-                <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>{key}</span>
+                <span style={{ color: "var(--ink-mute)", fontSize: 11, fontWeight: 600, paddingTop: 1 }}>{key}</span>
                 {isLink ? (
                   <a
                     href={value.startsWith("http") ? value : `https://${value}`}
@@ -2939,6 +3004,7 @@ function Sidebar({
                       textDecoration: "underline",
                       fontWeight: 500,
                       wordBreak: "break-all",
+                      fontSize: 13,
                     }}
                   >
                     {value} →
@@ -2946,7 +3012,7 @@ function Sidebar({
                 ) : isUnset ? (
                   <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>{value}</span>
                 ) : (
-                  <span style={{ color: "var(--ink)", fontWeight: 500 }}>{value}</span>
+                  <span style={{ color: "var(--ink)", fontWeight: 600, fontSize: 13 }}>{value}</span>
                 )}
               </div>
             ))}
@@ -3059,6 +3125,7 @@ export default async function CompanyDetailPage({
             <AboutSection detail={detail} photos={photos} />
             <CompanyFeaturesSection company={company} detail={detail} />
             <FitSection detail={detail} />
+            <MentorSuggestionBanner companyName={company.name} />
             <NumbersSection numbers={detail.numbers} />
             <WorkStyleSection detail={detail} />
             <BenefitsSection detail={detail} />
