@@ -101,7 +101,7 @@ export default function AboutPage() {
         </div>
 
         {/* Sub-page navigation */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 32 }}>
           <Link href="/about/scope" style={{ textDecoration: "none" }}>
             <div style={{
               background: "#fff", borderRadius: 14, padding: "24px 24px",
