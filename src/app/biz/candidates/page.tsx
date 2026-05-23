@@ -1,6 +1,7 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import CandidatesClient from "./CandidatesClient";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +41,10 @@ export default async function CandidatesPage() {
   }>();
 
   if (authIds.length > 0) {
-    const { data: profileRows } = await supabase
+    // ow_profiles の RLS は own_read のみ（biz ユーザーは他者のプロフィールを読めない）
+    // このページは getTenantContext() で biz 認証済みのため admin client で bypass する
+    const adminClient = createAdminClient();
+    const { data: profileRows } = await adminClient
       .from("ow_profiles")
       .select("user_id, onboarding_completed, desired_work_style, desired_salary_min, desired_salary_max, job_type, desired_phase, transfer_timing")
       .in("user_id", authIds);
