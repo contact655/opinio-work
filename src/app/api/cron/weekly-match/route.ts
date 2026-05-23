@@ -39,12 +39,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, sent: 0, reason: "no published jobs" });
     }
 
-    // メール通知を許可しているユーザーのプロフィールを取得
-    // notify_email が true または null（デフォルト許可）のユーザー
+    // メール通知を許可しているユーザーのプロフィールを取得（全ユーザーデフォルト許可）
     const { data: profiles } = await supabase
       .from("ow_profiles")
-      .select("user_id")
-      .or("notify_email.eq.true,notify_email.is.null");
+      .select("user_id");
 
     if (!profiles || profiles.length === 0) {
       return NextResponse.json({ success: true, sent: 0, reason: "no eligible users" });
