@@ -114,12 +114,12 @@ function Hero({
   return (
     <section style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
       {/* Gradient cover band */}
-      <div style={{ height: 108, background: company.gradient, position: "relative", overflow: "hidden" }}>
+      <div style={{ height: 80, background: company.gradient, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.22) 100%)" }} />
       </div>
       <div
         style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
-        className="px-5 py-7 md:px-12"
+        className="px-5 pb-7 pt-5 md:px-12"
       >
         <div
           style={{
