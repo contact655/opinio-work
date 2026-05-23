@@ -670,6 +670,7 @@ function PendingInvitesSection({
 }) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   async function handleCopy(invite: PendingInviteRecord) {
     const url = `${window.location.origin}/biz/auth/accept-invite?token=${invite.invitation_token}`;
@@ -684,7 +685,7 @@ function PendingInvitesSection({
   }
 
   async function handleCancel(invite: PendingInviteRecord) {
-    if (!window.confirm(`${invite.invited_email} への招待をキャンセルしますか？`)) return;
+    setConfirmingId(null);
     setCancellingId(invite.id);
     try {
       const res = await fetch(`/api/biz/members/${invite.id}`, { method: "DELETE" });
@@ -752,6 +753,7 @@ function PendingInvitesSection({
             const isExpired = daysLeft <= 0;
             const isCancelling = cancellingId === invite.id;
             const isCopied = copiedId === invite.id;
+            const isConfirming = confirmingId === invite.id;
             const isLast = index === invites.length - 1;
 
             return (
@@ -857,24 +859,60 @@ function PendingInvitesSection({
                       )}
                     </button>
                   )}
-                  <button
-                    onClick={() => handleCancel(invite)}
-                    disabled={isCancelling}
-                    style={{
-                      padding: "6px 11px",
-                      background: "none",
-                      border: "1px solid var(--line)",
-                      borderRadius: 7,
-                      fontFamily: "inherit",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: "var(--error)",
-                      cursor: isCancelling ? "not-allowed" : "pointer",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {isCancelling ? "キャンセル中..." : "キャンセル"}
-                  </button>
+                  {isConfirming ? (
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "5px 10px",
+                      background: "var(--error-soft)",
+                      border: "1px solid var(--error)",
+                      borderRadius: 8,
+                    }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--error)", whiteSpace: "nowrap" }}>
+                        キャンセルしますか？
+                      </span>
+                      <button
+                        onClick={() => handleCancel(invite)}
+                        disabled={isCancelling}
+                        style={{
+                          padding: "3px 9px", fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                          borderRadius: 5, cursor: "pointer", border: "none",
+                          background: "var(--error)", color: "#fff", whiteSpace: "nowrap",
+                        }}
+                      >
+                        はい
+                      </button>
+                      <button
+                        onClick={() => setConfirmingId(null)}
+                        style={{
+                          padding: "3px 9px", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                          borderRadius: 5, cursor: "pointer",
+                          border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        いいえ
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmingId(invite.id)}
+                      disabled={isCancelling}
+                      style={{
+                        padding: "6px 11px",
+                        background: "none",
+                        border: "1px solid var(--line)",
+                        borderRadius: 7,
+                        fontFamily: "inherit",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "var(--error)",
+                        cursor: isCancelling ? "not-allowed" : "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {isCancelling ? "キャンセル中..." : "キャンセル"}
+                    </button>
+                  )}
                 </div>
               </div>
             );

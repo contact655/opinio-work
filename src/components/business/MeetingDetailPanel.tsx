@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { MeetingApplication } from "@/lib/business/mockMeetings";
 import { MeetingStatusBadge } from "./MeetingStatusBadge";
 
@@ -175,6 +176,8 @@ export function MeetingDetailPanel({
   onPrev,
   onNext,
 }: Props) {
+  const [declineConfirming, setDeclineConfirming] = useState(false);
+
   if (!m) {
     return (
       <div style={{
@@ -283,16 +286,47 @@ export function MeetingDetailPanel({
           </svg>
           面談完了をマーク
         </ActionBtn>
-        <ActionBtn variant="danger" onClick={() => {
-          if (window.confirm("この面談を見送りますか？")) {
-            onStatusChange?.("declined");
-          }
-        }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M18 6 6 18M6 6l12 12"/>
-          </svg>
-          見送る
-        </ActionBtn>
+        {declineConfirming ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "6px 12px",
+            background: "var(--error-soft)",
+            border: "1px solid var(--error)",
+            borderRadius: 8,
+          }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", whiteSpace: "nowrap" }}>
+              本当に見送りますか？
+            </span>
+            <button
+              onClick={() => { setDeclineConfirming(false); onStatusChange?.("declined"); }}
+              style={{
+                padding: "4px 10px", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                borderRadius: 6, cursor: "pointer", border: "none",
+                background: "var(--error)", color: "#fff", whiteSpace: "nowrap",
+              }}
+            >
+              見送る
+            </button>
+            <button
+              onClick={() => setDeclineConfirming(false)}
+              style={{
+                padding: "4px 10px", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
+                borderRadius: 6, cursor: "pointer",
+                border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              やめる
+            </button>
+          </div>
+        ) : (
+          <ActionBtn variant="danger" onClick={() => setDeclineConfirming(true)}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+            見送る
+          </ActionBtn>
+        )}
       </div>
 
       {/* ── detail-content ── */}

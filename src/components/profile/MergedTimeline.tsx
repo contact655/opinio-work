@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Briefcase } from "lucide-react";
 import FutureSectionEditor from "./FutureSectionEditor";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
@@ -562,16 +563,32 @@ function CareerContent({
     <div style={{ paddingTop: 8, paddingBottom: 20, paddingLeft: 12 }}>
       {/* Company + badges */}
       <div style={{ marginBottom: 2 }}>
-        <span
-          style={{
-            fontFamily: "'Noto Serif JP', serif",
-            fontSize: 16,
-            fontWeight: 700,
-            color: "var(--ink)",
-          }}
-        >
-          {data.company_name}
-        </span>
+        {data.company_id ? (
+          <Link
+            href={`/companies/${data.company_id}`}
+            className="company-name-link"
+            style={{
+              fontFamily: "'Noto Serif JP', serif",
+              fontSize: 16,
+              fontWeight: 700,
+              color: "var(--ink)",
+              textDecoration: "none",
+            }}
+          >
+            {data.company_name}
+          </Link>
+        ) : (
+          <span
+            style={{
+              fontFamily: "'Noto Serif JP', serif",
+              fontSize: 16,
+              fontWeight: 700,
+              color: "var(--ink)",
+            }}
+          >
+            {data.company_name}
+          </span>
+        )}
         {data.is_current && <CurrentBadge />}
         {isParallel && <ParallelBadge />}
       </div>
@@ -723,16 +740,32 @@ function ParallelCareerCard({ data }: { data: CareerEntry }) {
       {/* Company 名行: 小ロゴ + 会社名 + badges */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
         <SmallLogo />
-        <span
-          style={{
-            fontFamily: "'Noto Serif JP', serif",
-            fontSize: 16,
-            fontWeight: 700,
-            color: "var(--ink)",
-          }}
-        >
-          {data.company_name}
-        </span>
+        {data.company_id ? (
+          <Link
+            href={`/companies/${data.company_id}`}
+            className="company-name-link"
+            style={{
+              fontFamily: "'Noto Serif JP', serif",
+              fontSize: 16,
+              fontWeight: 700,
+              color: "var(--ink)",
+              textDecoration: "none",
+            }}
+          >
+            {data.company_name}
+          </Link>
+        ) : (
+          <span
+            style={{
+              fontFamily: "'Noto Serif JP', serif",
+              fontSize: 16,
+              fontWeight: 700,
+              color: "var(--ink)",
+            }}
+          >
+            {data.company_name}
+          </span>
+        )}
         {data.is_current && <CurrentBadge />}
         <ParallelBadge />
       </div>
@@ -886,6 +919,16 @@ export default function MergedTimeline({
             border-left: none;
             border-top: 2px solid var(--line);
           }
+        }
+
+        /* Company name hover link */
+        .company-name-link {
+          transition: color 0.15s;
+        }
+        .company-name-link:hover {
+          color: var(--royal) !important;
+          text-decoration: underline;
+          text-underline-offset: 2px;
         }
       `}</style>
 
@@ -1060,16 +1103,32 @@ export default function MergedTimeline({
                   >
                     {/* 会社名ヘッダー */}
                     <div style={{ marginBottom: 10 }}>
-                      <span
-                        style={{
-                          fontFamily: "'Noto Serif JP', serif",
-                          fontSize: 16,
-                          fontWeight: 700,
-                          color: "var(--ink)",
-                        }}
-                      >
-                        {head.company_name}
-                      </span>
+                      {head.company_id ? (
+                        <Link
+                          href={`/companies/${head.company_id}`}
+                          className="company-name-link"
+                          style={{
+                            fontFamily: "'Noto Serif JP', serif",
+                            fontSize: 16,
+                            fontWeight: 700,
+                            color: "var(--ink)",
+                            textDecoration: "none",
+                          }}
+                        >
+                          {head.company_name}
+                        </Link>
+                      ) : (
+                        <span
+                          style={{
+                            fontFamily: "'Noto Serif JP', serif",
+                            fontSize: 16,
+                            fontWeight: 700,
+                            color: "var(--ink)",
+                          }}
+                        >
+                          {head.company_name}
+                        </span>
+                      )}
                       {anyIsCurrent && <CurrentBadge />}
                     </div>
 
