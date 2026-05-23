@@ -41,8 +41,9 @@ type UserProfile = {
   job_type: string | null;
   experience_years: string | null;
   worry: string | null;
-  consultation_tags: string[] | null;
-  current_company_type: string | null;
+  // 以下は ow_profiles に存在しないカラム（将来追加予定）
+  consultation_tags?: string[] | null;
+  current_company_type?: string | null;
 } | null;
 
 type ScoredMentor = {
@@ -95,8 +96,8 @@ function scoreMentors(
     job_type: profile.job_type,
     experience_years: profile.experience_years,
     worry: profile.worry,
-    consultation_tags: profile.consultation_tags,
-    current_company_type: profile.current_company_type,
+    consultation_tags: profile.consultation_tags ?? null,
+    current_company_type: profile.current_company_type ?? null,
   };
 
   return mentors
