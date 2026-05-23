@@ -9,6 +9,11 @@ import HomeFaq from "@/app/HomeFaq";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import { CountUp } from "@/components/jobseeker/CountUp";
 
+// ─── Site stats type ─────────────────────────────────────────────────────────
+
+type SiteStats = { companies: number; jobs: number; mentors: number };
+const DEFAULT_STATS: SiteStats = { companies: 36, jobs: 30, mentors: 10 };
+
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
 const LOGOS = [
@@ -204,7 +209,7 @@ function formatSalary(min: number | null, max: number | null): string | null {
   return null;
 }
 
-function Hero() {
+function Hero({ stats }: { stats: SiteStats }) {
   const router = useRouter();
   const [jobs, setJobs] = useState<PreviewJob[]>([]);
 
@@ -310,9 +315,9 @@ function Hero() {
             border: "1px solid var(--royal-100)", overflow: "hidden",
           }}>
             {[
-              { value: "36", unit: "社", label: "掲載企業" },
-              { value: "30", unit: "件", label: "公開求人" },
-              { value: "10", unit: "名", label: "相談できる先輩" },
+              { value: String(stats.companies), unit: "社", label: "掲載企業" },
+              { value: String(stats.jobs), unit: "件", label: "公開求人" },
+              { value: String(stats.mentors), unit: "名", label: "相談できる先輩" },
             ].map((s, i) => (
               <div key={s.label} style={{
                 flex: 1, textAlign: "center", padding: "14px 8px",
@@ -632,11 +637,11 @@ function LogoMarquee() {
 
 // ─── Stats Strip ──────────────────────────────────────────────────────────────
 
-function StatsStrip() {
+function StatsStrip({ stats }: { stats: SiteStats }) {
   const STATS = [
-    { value: "36", unit: "社", label: "掲載企業" },
-    { value: "30", unit: "件", label: "公開求人" },
-    { value: "10", unit: "名", label: "相談できるメンター" },
+    { value: String(stats.companies), unit: "社", label: "掲載企業" },
+    { value: String(stats.jobs), unit: "件", label: "公開求人" },
+    { value: String(stats.mentors), unit: "名", label: "相談できるメンター" },
     { value: "30", unit: "分", label: "初回相談・完全無料" },
   ];
   return (
@@ -1200,7 +1205,7 @@ function MentorsSection() {
 
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
-function FinalCta() {
+function FinalCta({ mentorCount }: { mentorCount: number }) {
   const MENTOR_AVATARS = [
     { initial: "田", gradient: "linear-gradient(135deg, #002366, #3B5FD9)" },
     { initial: "佐", gradient: "linear-gradient(135deg, #7C3AED, #A78BFA)" },
@@ -1241,7 +1246,7 @@ function FinalCta() {
           fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.85)",
         }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80", flexShrink: 0 }} />
-          10名のメンターが相談を受け付け中
+          {mentorCount}名のメンターが相談を受け付け中
         </div>
       </div>
 
@@ -1424,19 +1429,36 @@ function ArticlesPreview() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const [stats, setStats] = useState<SiteStats>(DEFAULT_STATS);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then((d: Partial<SiteStats>) => {
+        if (d.companies != null || d.jobs != null || d.mentors != null) {
+          setStats({
+            companies: d.companies ?? DEFAULT_STATS.companies,
+            jobs: d.jobs ?? DEFAULT_STATS.jobs,
+            mentors: d.mentors ?? DEFAULT_STATS.mentors,
+          });
+        }
+      })
+      .catch(() => {/* デフォルトを維持 */});
+  }, []);
+
   return (
     <>
-      <Hero />
+      <Hero stats={stats} />
       <DiffStrip />
       <LogoMarquee />
-      <StatsStrip />
+      <StatsStrip stats={stats} />
       <InfraSection />
       <HowItWorks />
       <PainPoints />
       <MentorsSection />
       <ArticlesPreview />
       <HomeFaq />
-      <FinalCta />
+      <FinalCta mentorCount={stats.mentors} />
     </>
   );
 }

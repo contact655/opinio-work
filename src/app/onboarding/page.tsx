@@ -131,29 +131,45 @@ function OnboardingInner() {
             {/* Success icon */}
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <div style={{
-                width: 60, height: 60, borderRadius: "50%",
-                background: "var(--success-soft)",
+                width: 64, height: 64, borderRadius: "50%",
+                background: "linear-gradient(135deg, var(--success), #34D399)",
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 6px 20px rgba(5,150,105,0.3)",
               }}>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
             </div>
             <h2 style={{
               fontFamily: "var(--font-noto-serif)",
-              fontSize: 22, fontWeight: 700,
+              fontSize: 24, fontWeight: 700,
               color: "var(--ink)", marginBottom: 10, textAlign: "center",
+              letterSpacing: "0.01em",
             }}>
               ようこそ、OPINIO へ！
             </h2>
             <p style={{
-              fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8,
-              marginBottom: 28, textAlign: "center",
+              fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.85,
+              marginBottom: 8, textAlign: "center",
             }}>
               基本情報を登録しました。<br />
-              次はプロフィールを充実させましょう。
+              次は3つのアクションでキャリアを動かし始めましょう。
             </p>
+            {/* ミニバッジ */}
+            <div style={{
+              display: "flex", justifyContent: "center", gap: 8, marginBottom: 24, flexWrap: "wrap",
+            }}>
+              {["完全無料", "スカウトなし", "30分から"].map((t) => (
+                <span key={t} style={{
+                  fontSize: 10.5, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                  background: "var(--royal-50)", color: "var(--royal)",
+                  border: "1px solid var(--royal-100)",
+                }}>
+                  ✓ {t}
+                </span>
+              ))}
+            </div>
 
             {/* ── 次のステップ 選択カード ── */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -209,7 +225,7 @@ function OnboardingInner() {
                 </div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2, color: "var(--ink)" }}>企業を見てみる</div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>36社のIT/SaaS企業を探索</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>IT/SaaS企業の内側を知ろう</div>
                 </div>
                 <div style={{ marginLeft: "auto", color: "var(--ink-mute)", fontSize: 16 }}>→</div>
               </a>
@@ -370,9 +386,11 @@ function OnboardingInner() {
               cursor: "pointer",
               fontFamily: "inherit",
               padding: "8px 16px",
+              textDecoration: "underline",
+              textDecorationColor: "var(--line)",
             }}
           >
-            スキップする
+            後で設定する →
           </button>
         </div>
       </div>

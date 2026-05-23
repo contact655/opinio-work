@@ -9,7 +9,7 @@ export async function GET() {
   const { count, error } = await admin
     .from("ow_jobs")
     .select("id", { count: "exact", head: true })
-    .eq("status", "active");
+    .in("status", ["published", "active"]);
 
   if (error) {
     return NextResponse.json({ count: 0 });

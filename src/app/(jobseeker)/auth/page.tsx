@@ -171,8 +171,8 @@ function AuthPageInner() {
   // ─── 確認メール送信完了 ──────────────────────────────────
   if (done) {
     return (
-      <div style={styles.layout}>
-        <BrandSide />
+      <div style={styles.layout} className="md:[grid-template-columns:1fr_1fr]">
+        <div className="hidden md:block"><BrandSide /></div>
         <div style={styles.formSide}>
           <div style={styles.formWrap}>
             <div style={{ textAlign: "center", padding: "40px 0" }}>
@@ -206,12 +206,20 @@ function AuthPageInner() {
   }
 
   return (
-    <div style={styles.layout}>
-      {/* ── 左：ブランディング ── */}
-      <BrandSide />
+    <div style={styles.layout} className="md:[grid-template-columns:1fr_1fr]">
+      {/* ── 左：ブランディング（スマホ非表示） ── */}
+      <div className="hidden md:block">
+        <BrandSide />
+      </div>
 
       {/* ── 右：フォーム ── */}
       <div style={styles.formSide}>
+        {/* スマホのみ：簡易ヘッダー */}
+        <div className="flex md:hidden" style={{ marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--line)" }}>
+          <a href="/" style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em", color: "var(--royal)", textDecoration: "none" }}>
+            OPINIO
+          </a>
+        </div>
         <div style={styles.formWrap}>
 
           {/* モード切替タブ */}
@@ -478,6 +486,32 @@ function BrandSide() {
             </div>
           ))}
         </div>
+
+        {/* ── 実績ミニ統計 ── */}
+        <div style={{
+          marginTop: 40,
+          display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 12,
+        }}>
+          {[
+            { value: "36社", label: "掲載企業" },
+            { value: "30件", label: "公開求人" },
+            { value: "10名", label: "メンター" },
+          ].map(({ value, label }) => (
+            <div key={label} style={{
+              background: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 10, padding: "12px 10px", textAlign: "center",
+            }}>
+              <div style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
+                {value}
+              </div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", marginTop: 4, fontWeight: 500 }}>
+                {label}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div style={{ marginTop: "auto", fontSize: 12, opacity: 0.6 }}>
@@ -524,7 +558,7 @@ const styles = {
   layout: {
     minHeight: "100vh",
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns: "1fr",
   } as React.CSSProperties,
 
   brandSide: {
@@ -533,7 +567,9 @@ const styles = {
     padding: "48px",
     display: "flex",
     flexDirection: "column",
-    position: "relative",
+    position: "sticky",
+    top: 0,
+    height: "100vh",
     overflow: "hidden",
   } as React.CSSProperties,
 
@@ -582,14 +618,12 @@ const styles = {
   } as React.CSSProperties,
 
   formSide: {
-    padding: "48px",
+    padding: "32px 24px",
     display: "flex",
     flexDirection: "column",
     justifyContent: "flex-start",
     background: "#fff",
-    position: "sticky",
-    top: 0,
-    height: "100vh",
+    minHeight: "100vh",
     overflowY: "auto",
     scrollbarGutter: "stable",
   } as React.CSSProperties,
