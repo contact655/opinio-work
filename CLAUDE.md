@@ -13,7 +13,34 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🎯 次のセッションでやること（2026-05-23 セッション6 更新）
+## 🎯 次のセッションでやること（2026-05-23 セッション7 更新）
+
+### ✅ 完了 2026-05-23 セッション7: Header/Footer 統一・エラー境界・loading skeleton 網羅・ブランディング完成
+
+  **Header/Footer 統一（11ファイル）:**
+  - `career-consultation/`, `career-consultation/[id]/`, `consultation-cases/`, `not-job-changing/`, `companies/list/`, `companies/[id]/jobs/`, `companies/[id]/articles/[articleId]/`, `companies/[id]/members/[memberId]/`, `users/[id]/`, `profile/setup/`, `consultation-request/`
+  - 旧 `Header`/`Footer` → `JobseekerHeader`/`JobseekerFooter` に統一
+
+  **エラー境界追加:**
+  - `(jobseeker)/error.tsx` — 求職者ルートグループ用（design-system CSS変数使用）
+  - `biz/error.tsx` — ビズルートグループ用（ダッシュボードへ戻るリンク付き）
+  - `admin/error.tsx` — 管理者ルートグループ用（ADMIN バッジ付き）
+
+  **loading skeleton 網羅（新規作成 14ファイル）:**
+  - 求職者: `(jobseeker)/about/loading.tsx`, `mypage/conversations/loading.tsx`, `mypage/applications/loading.tsx`
+  - biz: `biz/dashboard/loading.tsx`, `biz/jobs/loading.tsx`, `biz/meetings/loading.tsx`, `biz/applications/loading.tsx`, `biz/candidates/loading.tsx`, `biz/conversations/loading.tsx`, `biz/analytics/loading.tsx`, `biz/company/loading.tsx`, `biz/members/loading.tsx`
+  - admin: `admin/loading.tsx`
+
+  **SEO 改善:**
+  - `sitemap.ts` に `/not-job-changing`, `/industries`, `/mentor`, `/business` を追加
+  - `career-consultation/`, `consultation-cases/`, `mentor/` に openGraph + alternates: canonical 追加
+
+  **ブランディング完成（セッション7で残り解消）:**
+  - `lib/notify/templates.ts`: メール招待テンプレート内 "Opinio Work" → "OPINIO"
+  - `layout.tsx` JSON-LD: `name: "Opinio"` → `name: "OPINIO"`
+  - `business/page.tsx`, `consultation-request/page.tsx`, API エラーメッセージ, business コンポーネント群
+  - `lib/companyPerspective.ts`: source ラベル "Opinio取材ベース" → "OPINIO取材ベース"
+  - 残存するのはコードコメントのみ（ユーザー非表示）
 
 ### ✅ 完了 2026-05-23 セッション6: 全ページブランディング統一・About ページ改善・フィルター改善
 
