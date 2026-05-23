@@ -211,7 +211,7 @@ export default async function ForCompaniesPage() {
                   role: "SaaS系スタートアップ · Series B",
                 },
                 {
-                  quote: "求人ページに掲載するだけで、Opinio編集部が取材記事を書いてくれる。記事経由で「御社の文化が好き」と言って来る候補者の質が高い。",
+                  quote: "求人ページに掲載するだけで、OPINIO編集部が取材記事を書いてくれる。記事経由で「御社の文化が好き」と言って来る候補者の質が高い。",
                   name: "人事部長 B社",
                   role: "HR Tech · 従業員200名",
                 },
@@ -350,7 +350,7 @@ export default async function ForCompaniesPage() {
                 </h3>
                 <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, maxWidth: 560 }}>
                   スカウトを送らず、本気度の高い応募だけを受け取る。<br />
-                  Opinio はメンター制度・編集部の取材・自然言語検索で、<br />
+                  OPINIOはメンター制度・編集部の取材・自然言語検索で、<br />
                   採用ミスマッチを構造的に防ぎます。
                 </p>
               </div>
@@ -434,7 +434,7 @@ export default async function ForCompaniesPage() {
                   IT業界職経ありユーザーが中心
                 </h3>
                 <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
-                  Opinio に登録しているユーザーの大多数が、
+                  OPINIOに登録しているユーザーの大多数が、
                   IT/SaaS 業界で実務経験を持つ即戦力人材。
                   業界知識ゼロから教育する必要がありません。
                 </p>
@@ -628,7 +628,7 @@ export default async function ForCompaniesPage() {
                   textTransform: "uppercase" as const,
                   marginBottom: 20,
                 }}>
-                  ✓ Opinio が力になれる
+                  ✓ OPINIOが力になれる
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <CheckItem>IT/SaaS業界の即戦力人材を採用したい</CheckItem>

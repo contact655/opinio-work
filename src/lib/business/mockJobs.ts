@@ -59,7 +59,7 @@ export const MOCK_JOBS: BizJob[] = [
     rejectionReason:
       "「求める人物像」セクションで、業務に直接関係のない属性（年齢・性別など）に関する記述が含まれています。男女雇用機会均等法に基づき修正をお願いします。詳細は編集画面でご確認ください。",
     rejectionDate: "2026年4月20日 16:42",
-    rejectionReviewer: "Opinio編集部",
+    rejectionReviewer: "OPINIO編集部",
   },
   {
     id: "job-2",

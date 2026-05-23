@@ -594,7 +594,7 @@ export function JobEditForm({
             <FormSection title="公開状態">
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
-                  { icon: "👁", title: "公開申請する", desc: "「公開申請」ボタンを押すと、運営審査（2-3営業日）を経て、Opinio上で求職者に公開されます。", isPublic: true },
+                  { icon: "👁", title: "公開申請する", desc: "「公開申請」ボタンを押すと、運営審査（2-3営業日）を経て、OPINIO上で求職者に公開されます。", isPublic: true },
                   { icon: "🔒", title: "下書きとして保存", desc: "求人を下書きとして保存します。公開はされません。後で編集を続けることができます。", isPublic: false },
                 ].map((opt) => (
                   <div key={String(opt.isPublic)} style={{
@@ -635,7 +635,7 @@ export function JobEditForm({
                 準備ができたら、公開申請をしてください
               </div>
               <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 16 }}>
-                公開申請後、Opinio運営が内容を確認します（通常2-3営業日）。<br/>審査通過後、求職者に公開されます。
+                公開申請後、OPINIO運営が内容を確認します（通常2-3営業日）。<br/>審査通過後、求職者に公開されます。
               </div>
               <button
                 type="button"

@@ -350,7 +350,7 @@ export function BusinessHero() {
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
-              すべての候補者に「Opinio編集部の推薦コメント」付き
+              すべての候補者に「OPINIO編集部の推薦コメント」付き
             </div>
           </div>
         </div>

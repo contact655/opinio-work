@@ -28,7 +28,7 @@ export function EditorInvitation() {
           margin: 0,
           letterSpacing: "0.01em",
         }}>
-          Opinio編集部が取材に伺います
+          OPINIO編集部が取材に伺います
         </p>
       </div>
 

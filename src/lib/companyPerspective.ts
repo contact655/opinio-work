@@ -53,7 +53,7 @@ export function getCompanyPerspective(company: any): OpinioPerspective | null {
       return {
         fit_points: fit,
         caution_points: caution,
-        source: company.opinio_source || "Opinio取材ベース",
+        source: company.opinio_source || "OPINIO取材ベース",
         updated_at: company.opinio_updated_at || null,
       };
     }
@@ -68,7 +68,7 @@ export function getCompanyPerspective(company: any): OpinioPerspective | null {
       return {
         fit_points: fit,
         caution_points: caution,
-        source: p.source || "Opinio取材ベース",
+        source: p.source || "OPINIO取材ベース",
         updated_at: null,
       };
     }
@@ -96,7 +96,7 @@ export function getCompanyPerspective(company: any): OpinioPerspective | null {
   return {
     fit_points: fit,
     caution_points: caution,
-    source: "Opinioによる分析",
+    source: "OPINIOによる分析",
     updated_at: null,
   };
 }

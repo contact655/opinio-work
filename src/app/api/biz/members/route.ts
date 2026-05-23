@@ -47,7 +47,7 @@ export async function POST(req: Request) {
 
   if (!targetUser) {
     return NextResponse.json(
-      { error: "このメールアドレスのユーザーはまだ Opinio に登録されていません" },
+      { error: "このメールアドレスのユーザーはまだ OPINIOに登録されていません" },
       { status: 404 }
     );
   }

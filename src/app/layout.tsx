@@ -91,7 +91,7 @@ const jsonLd = {
     {
       "@type": "Organization",
       "@id": "https://www.opinio.co.jp/#organization",
-      name: "Opinio",
+      name: "OPINIO",
       url: "https://www.opinio.co.jp",
       logo: {
         "@type": "ImageObject",

@@ -280,12 +280,12 @@ export function companyInviteTemplate(params: {
 
   return {
     to: params.recipientEmail,
-    subject: `${params.companyName} の採用担当として招待されました - Opinio Work`,
+    subject: `${params.companyName} の採用担当として招待されました - OPINIO`,
     html: htmlWrap(`
       <h2>${params.companyName} の採用担当チームに招待されました</h2>
       <p>${params.recipientEmail} 様</p>
       <p>
-        <strong>${params.inviterName}</strong> さんから、Opinio Work で
+        <strong>${params.inviterName}</strong> さんから、OPINIO で
         <strong>${params.companyName}</strong> の${roleText}招待されました。
       </p>
       <p>下記ボタンから招待を受諾してください。</p>
@@ -322,7 +322,7 @@ export function newCompanyAdminTemplate(params: {
   createdAt: string;
   isDuplicate?: boolean;     // force_create=true で同名企業が既存だった場合
 }) {
-  const subjectPrefix = params.isDuplicate ? "[Opinio Work] [重複承知] " : "[Opinio Work] ";
+  const subjectPrefix = params.isDuplicate ? "[OPINIO] [重複承知] " : "[OPINIO] ";
   const duplicateNote = params.isDuplicate
     ? `<p style="color: #92400E; background: #FEF3C7; padding: 10px 14px; border-radius: 6px; font-size: 13px;">
         ⚠️ 同名企業が既に存在する状態で、ユーザーが意図的に別法人として作成しました。
@@ -334,7 +334,7 @@ export function newCompanyAdminTemplate(params: {
     to: ADMIN_EMAIL,
     subject: `${subjectPrefix}新規企業が登録されました: ${params.companyName}`,
     html: htmlWrap(`
-      <h2>新しい企業が Opinio Work に登録されました</h2>
+      <h2>新しい企業が OPINIO に登録されました</h2>
       ${duplicateNote}
       <table style="border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 16px;">
         <tr>
