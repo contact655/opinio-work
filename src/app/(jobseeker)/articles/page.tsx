@@ -64,7 +64,7 @@ function ArticleCard({ article }: { article: Article }) {
               position: "absolute", left: 14, bottom: 10, zIndex: 1,
               fontFamily: "Georgia, serif", fontSize: 64, lineHeight: 1,
               color: "rgba(255,255,255,0.15)", fontWeight: 700, userSelect: "none",
-            }}>"</span>
+            }}>&ldquo;</span>
           )}
           <span style={{ fontSize: 56, opacity: 0.2, position: "relative", zIndex: 1 }}>{icon}</span>
 

@@ -13,7 +13,27 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🎯 次のセッションでやること（2026-05-23 更新）
+## 🎯 次のセッションでやること（2026-05-23 セッション2 更新）
+
+### ✅ 完了 2026-05-23 セッション2: 求職者サーチ＋公開プロフィール連携強化
+  - `/biz/candidates/page.tsx` クエリ修正:
+    - `work_style_preference` → `desired_work_style`（正しいカラム名）
+    - `current_role`/`current_company` を `ow_profiles` から削除 → `ow_experiences`（is_current=true）から別取得
+    - `ow_users.visibility = 'public'` フィルタは正常動作確認（全ユーザー public がデフォルト）
+  - `CandidatesClient.tsx` リニューアル:
+    - 職種フィルター（job_type）追加、work style フィルター修正
+    - 各カードに `/u/{id}` 公開プロフィールリンク（新しいタブで開く）
+    - アバターグラデーションをユーザーIDハッシュで多色化
+    - CSS変数（`var(--royal)`等）を使用してデザイン統一
+  - `UserProfileCard.tsx` に「公開ページ →」リンクボタン追加（編集ボタン左隣）
+  - `ProfileEditClient.tsx` の可視性設定セクションに「公開プロフィールを見る」リンク追加
+  - `admin/candidates/page.tsx` の名前セルを `/u/{id}` リンク化
+  - `jobs/JobsClient.tsx` のブックマーク TODO を実装:
+    - `/api/bookmarks` POST/DELETE 呼び出し（楽観的更新 + エラー時リバート）
+    - 401 返却時は `/auth?next=...` へリダイレクト
+    - 連打防止のため `bookmarkingRef` を使用
+
+
 
 ### ✅ 完了 2026-05-22 セッション3: Supabase 接続完成度チェック＋在籍企業チェック実装
   - `/mypage` が完全 Supabase 接続済みであることを確認（casual_meetings / mentor_reservations / bookmarks / timeline 全件）
@@ -101,8 +121,10 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ### 🟢 次の優先候補
 - **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了。企業担当者＋求職者を招待してテスト可能
-- **SEO / OGP 強化** — 企業詳細・求人詳細ページの動的 `<title>` / `og:description` / `og:image`、`/sitemap.xml` 生成
-- **新機能検討** — 求職者プロフィールの公開設定・企業からの候補者サーチなど
+- ~~SEO / OGP 強化~~ ✅ 完了済み（企業詳細・求人詳細・メンター・記事 全ページに generateMetadata + og:image）
+- ~~新機能検討~~ ✅ `/u/[id]` 公開プロフィール・`/biz/candidates` 両方実装済み
+- **求職者プロフィール完成度** — `ow_profiles` への保存が `/profile/edit` で完全動作するか確認。`desired_work_style` / `job_type` などが実際に書き込まれているか確認する
+- **ow_users.visibility の UI 動作確認** — 求職者が「非公開」設定するとビジネス側の候補者リストから消えることを E2E 確認
 
 ### DB 現状（2026-05-22 セッション3 更新確認）
 | テーブル | 件数 | 備考 |

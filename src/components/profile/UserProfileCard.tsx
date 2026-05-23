@@ -65,6 +65,7 @@ function MetaItem({ icon, text }: { icon: React.ReactNode; text: string }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function UserProfileCard({
+  userId,
   userName,
   userInitial,
   userAvatar,
@@ -99,26 +100,50 @@ export default function UserProfileCard({
       }}
     >
       {/* ── 編集導線（右上） ─────────────────────────────────────────────── */}
-      <Link
-        href="/profile/edit"
-        style={{
-          position: "absolute", top: 20, right: 20,
-          display: "flex", alignItems: "center", gap: 5,
-          fontSize: 12, fontWeight: 600, color: "var(--royal)",
-          textDecoration: "none", opacity: 0.85,
-          padding: "5px 10px", borderRadius: 8,
-          border: "1px solid var(--royal-100)",
-          background: "var(--royal-50)",
-          transition: "opacity 0.15s",
-        }}
-        aria-label="プロフィールを編集"
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-        </svg>
-        プロフィールを編集
-      </Link>
+      <div style={{ position: "absolute", top: 20, right: 20, display: "flex", alignItems: "center", gap: 6 }}>
+        {/* 公開ページリンク */}
+        <Link
+          href={`/u/${userId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "flex", alignItems: "center", gap: 4,
+            fontSize: 11, fontWeight: 600, color: "var(--ink-soft)",
+            textDecoration: "none",
+            padding: "5px 10px", borderRadius: 8,
+            border: "1px solid var(--line)",
+            background: "var(--bg-tint)",
+            transition: "opacity 0.15s",
+          }}
+          aria-label="公開プロフィールを見る"
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          公開ページ
+        </Link>
+        <Link
+          href="/profile/edit"
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            fontSize: 12, fontWeight: 600, color: "var(--royal)",
+            textDecoration: "none", opacity: 0.85,
+            padding: "5px 10px", borderRadius: 8,
+            border: "1px solid var(--royal-100)",
+            background: "var(--royal-50)",
+            transition: "opacity 0.15s",
+          }}
+          aria-label="プロフィールを編集"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+          プロフィールを編集
+        </Link>
+      </div>
 
       {/* ── アバター + 基本情報 ──────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 18 }}>

@@ -21,7 +21,7 @@ const LOGOS = [
   "HubSpot", "freee", "Money Forward", "kubell", "PKSHA", "Datadog",
 ];
 
-const MENTORS = [
+const _MENTORS = [
   {
     name: "田中 翔太",
     path: "元 Salesforce → スタートアップ CRO",

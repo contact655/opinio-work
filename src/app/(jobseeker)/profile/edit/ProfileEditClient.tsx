@@ -2988,6 +2988,30 @@ export default function ProfileEditClient({
                   <option value="private">非公開（自分だけ見れる）</option>
                 </select>
               </FormGroup>
+              {owUser?.id && settings.visibility !== "private" && (
+                <div style={{ marginTop: 12 }}>
+                  <a
+                    href={`/u/${owUser.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      fontSize: 12, color: "var(--royal)", fontWeight: 600,
+                      textDecoration: "none",
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/>
+                      <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                    公開プロフィールを見る
+                  </a>
+                  <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 10 }}>
+                    企業側からはこのページが表示されます
+                  </span>
+                </div>
+              )}
             </FormSection>
 
             {/* ── Danger zone ──────────────────────────────────────────────── */}

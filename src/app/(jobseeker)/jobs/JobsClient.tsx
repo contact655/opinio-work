@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -63,24 +63,48 @@ function JobCard({
   job: Job;
   companyMap: Map<string, Company>;
 }) {
+  // ── Hooks must be called before any early return ──
+  const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarkAnim, setBookmarkAnim] = useState(false);
+  const bookmarkingRef = useRef(false);
+  const router = useRouter();
+
   const company = companyMap.get(job.company_id);
+
+  const handleBookmark = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (bookmarkingRef.current) return;
+    bookmarkingRef.current = true;
+    const next = !bookmarked;
+    setBookmarked(next);
+    setBookmarkAnim(true);
+    setTimeout(() => setBookmarkAnim(false), 400);
+    try {
+      const res = await fetch("/api/bookmarks", {
+        method: next ? "POST" : "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target_type: "job", target_id: job.id }),
+      });
+      if (res.status === 401) {
+        setBookmarked(!next);
+        router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
+      } else if (!res.ok) {
+        setBookmarked(!next); // revert on error
+      }
+    } catch {
+      setBookmarked(!next);
+    } finally {
+      bookmarkingRef.current = false;
+    }
+  }, [bookmarked, job.id, router]);
+
   if (!company) return null;
 
   const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
   const isFresh = job.updated_days_ago <= 7;
   const label = freshLabel(job.updated_days_ago);
   const deptStyle = getDeptStyle(job.dept);
-  const [bookmarked, setBookmarked] = useState(false);
-  const [bookmarkAnim, setBookmarkAnim] = useState(false);
-
-  const handleBookmark = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setBookmarked((prev) => !prev);
-    setBookmarkAnim(true);
-    setTimeout(() => setBookmarkAnim(false), 400);
-    // TODO: Supabase bookmarkトグル（ow_bookmarks）
-  }, []);
 
   return (
     <div style={{ position: "relative" }}>

@@ -66,12 +66,12 @@ export default async function AdminCandidatesPage({
               users.map((u: any) => (
                 <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                    <a href={`/u/${u.id}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:underline group">
                       <div className="w-7 h-7 rounded-full bg-primary-light flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
                         {u.name?.[0] || "?"}
                       </div>
-                      <span className="font-medium">{u.name || "未入力"}</span>
-                    </div>
+                      <span className="font-medium group-hover:text-primary">{u.name || "未入力"}</span>
+                    </a>
                   </td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{u.email}</td>
                   <td className="px-4 py-3 text-gray-600">{u.location || "-"}</td>

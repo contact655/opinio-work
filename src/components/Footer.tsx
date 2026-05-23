@@ -178,7 +178,7 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} Opinio Inc. All rights reserved.
           </p>
           <p style={{ fontSize: 12, color: "#334155", fontStyle: "italic" }}>
-            "Truth to Careers" — スカウトなし。第三者の目で、本当のキャリアを。
+            &ldquo;Truth to Careers&rdquo; — スカウトなし。第三者の目で、本当のキャリアを。
           </p>
         </div>
       </div>
