@@ -13,7 +13,38 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🎯 次のセッションでやること（2026-05-23 セッション3 更新）
+## 🎯 次のセッションでやること（2026-05-23 セッション5 更新）
+
+### ✅ 完了 2026-05-23 セッション5: 全ページ DB クエリ監査・壊れたリンク修正
+
+  **DB クエリ修正（5件）:**
+  - `consultation-cases/page.tsx`: PostgREST join を `mentors(...)` → `ow_mentors(...)` に修正（FK は ow_mentors を参照）
+  - `consultation-cases/ConsultationCasesClient.tsx`: 型定義 `mentors` → `ow_mentors`、参照も同期
+  - `companies/[id]/jobs/page.tsx`: `status === "active"` → `status === "published"`（Migration 113 後の正規値）
+  - `Header.tsx`: 新着求人カウント `.eq("status", "active")` → `.in("status", ["published", "active"])`
+  - `genres.ts`: 企業別求人数カウント `.eq("status", "active")` → `.in("status", ["published", "active"])`
+
+  **調査・確認済み（問題なし）:**
+  - `consultation-cases` テーブル ✅、`ow_mentor_reservations` テーブル ✅ 存在確認
+  - `company_articles` テーブルは存在しない（`companies/[id]/articles/[articleId]` は孤立ページ・リンクなし）
+  - `ow_applications` と `ow_job_applications` 両方存在、コードは正しく後者を使用
+  - `(jobseeker)/about/page.tsx` が `/about` を担当（route group）→ footer リンク正常
+  - ビジネスナビ全リンク（11件）正常確認
+  - フッターリンク全件正常確認
+  - `ow_company_external_links`、`ow_user_skill_tags`、`ow_user_educations`、`ow_user_certifications` など全テーブル存在確認
+  - `profile/setup/page.tsx` は孤立ページ（`ow_user_profiles` 旧テーブル使用・リンクなし）→ 放置
+
+  **前セッション（コンテキスト圧縮前）の修正:**
+  - `biz/posts/PostsClient.tsx`: `var(--gold)` → `var(--warm)`（未定義CSS変数修正）
+  - `biz/candidates/page.tsx`: ow_profiles フェッチを `createClient` → `createAdminClient`（RLS バイパス修正）
+  - `api/cron/weekly-jobs` + `weekly-match`: フッター URL `/dashboard` → `/mypage`、ブランド `opinio.work` → `OPINIO`
+  - `career-consultation/page.tsx`: ow_profiles の非存在カラム（consultation_tags / current_company_type）をSELECTから削除
+  - `career-consultation/CareerConsultationClient.tsx`: 上記2カラムを optional 型に
+  - `career-consultation/[id]/page.tsx`: 「相談を申し込む」→ `/consultation-request`（存在しないページ）から `/mentors/{id}/reserve` に修正
+  - `components/business/EditorInvitation.tsx`: `申し込む` → `/biz/editor-request`（存在しないページ）から `mailto:` リンクに修正
+  - `components/business/TeamMembers.tsx`: `管理 →` → `/biz/team` → `/biz/members` に修正
+  - `components/business/RecruiterProfile.tsx`: `編集 →` → `/biz/profile` → `/biz/company` に修正
+  - `companies/[id]/members/[memberId]/page.tsx`: `/mypage/profile` (8箇所) → `/profile/edit` に修正
 
 ### ✅ 完了 2026-05-23 セッション4: UX 改善・候補者プロフィールリンク展開・応募数表示
 
