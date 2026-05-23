@@ -2310,6 +2310,7 @@ export default function ProfileEditClient({
   const [prefSalaryMax, setPrefSalaryMax] = useState(initialProfilePrefs?.desired_salary_max?.toString() ?? "");
   const [prefTiming, setPrefTiming] = useState(initialProfilePrefs?.transfer_timing ?? "");
   const [prefWorry, setPrefWorry] = useState(initialProfilePrefs?.worry ?? "");
+  const [prefPhase, setPrefPhase] = useState<string[]>(initialProfilePrefs?.desired_phase ?? []);
   const [prefSaving, setPrefSaving] = useState(false);
   const [prefSaved, setPrefSaved] = useState(false);
   const prefSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3005,6 +3006,57 @@ export default function ProfileEditClient({
                   ⚠ 下限が上限を超えています
                 </div>
               )}
+            </FormSection>
+
+            <FormSection
+              title="興味のある企業フェーズ"
+              desc="どのステージの企業に関心がありますか？複数選択できます。"
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {["シリーズA", "シリーズB", "シリーズC", "上場"].map((phase) => {
+                  const checked = prefPhase.includes(phase);
+                  return (
+                    <label
+                      key={phase}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 7, cursor: "pointer",
+                        padding: "7px 14px", borderRadius: 8,
+                        background: checked ? "var(--royal-50)" : "var(--bg-tint)",
+                        border: `1.5px solid ${checked ? "var(--accent)" : "var(--line)"}`,
+                        color: checked ? "var(--royal)" : "var(--ink-soft)",
+                        fontSize: 13, fontWeight: checked ? 600 : 400,
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        style={{ display: "none" }}
+                        onChange={async () => {
+                          const next = checked
+                            ? prefPhase.filter((p) => p !== phase)
+                            : [...prefPhase, phase];
+                          setPrefPhase(next);
+                          await savePreferences({ desired_phase: next.length > 0 ? next : null });
+                        }}
+                      />
+                      <span style={{
+                        width: 14, height: 14, borderRadius: 4, flexShrink: 0,
+                        border: `2px solid ${checked ? "var(--accent)" : "var(--line)"}`,
+                        background: checked ? "var(--accent)" : "#fff",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        {checked && (
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round">
+                            <path d="M20 6L9 17l-5-5"/>
+                          </svg>
+                        )}
+                      </span>
+                      {phase}
+                    </label>
+                  );
+                })}
+              </div>
             </FormSection>
 
             <FormSection
