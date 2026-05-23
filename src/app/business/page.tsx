@@ -12,10 +12,12 @@ export const metadata: Metadata = {
   title: "採用コスト、ゼロから。｜OPINIO",
   description:
     "月額費用なし、広告費なし、入社決定時のみ成果報酬。IT/SaaS業界の即戦力人材を、無料で採用開始できる「OPINIO」。メンター介在で採用ミスマッチを構造的に防ぐ。",
+  alternates: { canonical: "/business" },
   openGraph: {
     title: "採用コスト、ゼロから。｜OPINIO",
     description: "掲載・スカウト・面談まで全て無料。成果報酬は入社決定時のみ。IT/SaaS業界特化の採用プラットフォーム。",
     type: "website",
+    url: "https://opinio.jp/business",
   },
 };
 
