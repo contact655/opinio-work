@@ -143,21 +143,26 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
             <option key={v} value={v}>{l}</option>
           ))}
         </select>
-        <select
-          value={phase}
-          onChange={(e) => setPhase(e.target.value)}
-          style={{
-            height: 36, padding: "0 10px",
-            border: "1px solid var(--line)", borderRadius: 8,
-            fontSize: 13, color: "var(--ink-soft)", background: "#fff",
-            outline: "none", fontFamily: "inherit",
-          }}
-        >
-          <option value="">フェーズ（全て）</option>
-          {PHASE_OPTIONS.map((v) => (
-            <option key={v} value={v}>{v}</option>
+        {/* Phase pill filters */}
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {["", ...PHASE_OPTIONS].map((v) => (
+            <button
+              key={v || "all"}
+              onClick={() => setPhase(v)}
+              style={{
+                height: 32, padding: "0 12px", borderRadius: 16,
+                fontSize: 12, fontWeight: phase === v ? 700 : 400,
+                border: phase === v ? "1.5px solid var(--royal)" : "1px solid var(--line)",
+                background: phase === v ? "var(--royal-50)" : "#fff",
+                color: phase === v ? "var(--royal)" : "var(--ink-soft)",
+                cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
+                transition: "all 0.15s",
+              }}
+            >
+              {v || "全フェーズ"}
+            </button>
           ))}
-        </select>
+        </div>
         <span style={{ fontSize: 13, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
           <strong style={{ color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>{filtered.length}</strong>
           {" "}件
