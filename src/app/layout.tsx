@@ -25,11 +25,11 @@ const notoSerifJP = Noto_Serif_JP({
 export const metadata: Metadata = {
   metadataBase: new URL("https://opinio.jp"),
   title: {
-    default: "opinio.jp｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
-    template: "%s | opinio.jp",
+    default: "OPINIO｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
+    template: "%s | OPINIO",
   },
   description:
-    "IT/SaaS業界の転職は、情報戦。Opinio編集部が120社を取材し、先輩メンターが相談に乗る、26-35歳のための転職プラットフォーム。完全無料。",
+    "IT/SaaS業界の転職は、情報戦。OPINIO編集部が120社を取材し、先輩メンターが相談に乗る、26-35歳のための転職プラットフォーム。完全無料。",
   keywords: [
     "IT転職",
     "SaaS転職",
@@ -45,23 +45,23 @@ export const metadata: Metadata = {
     locale: "ja_JP",
     url: "https://opinio.jp",
     siteName: "opinio.jp",
-    title: "opinio.jp｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
+    title: "OPINIO｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
     description:
-      "IT/SaaS業界の転職は、情報戦。Opinio編集部が120社を取材し、先輩メンターが相談に乗る、26-35歳のための転職プラットフォーム。完全無料。",
+      "IT/SaaS業界の転職は、情報戦。OPINIO編集部が120社を取材し、先輩メンターが相談に乗る、26-35歳のための転職プラットフォーム。完全無料。",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "opinio.jp — キャリアに、第三者の目を。",
+        alt: "OPINIO — キャリアに、第三者の目を。",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "opinio.jp｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
+    title: "OPINIO｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
     description:
-      "Opinio編集部が120社を取材し、先輩メンターが相談に乗る、26-35歳のための転職プラットフォーム。完全無料。",
+      "OPINIO編集部が120社を取材し、先輩メンターが相談に乗る、26-35歳のための転職プラットフォーム。完全無料。",
     images: ["/og-image.png"],
   },
   robots: {
