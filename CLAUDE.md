@@ -26,14 +26,19 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
   - `biz/error.tsx` — ビズルートグループ用（ダッシュボードへ戻るリンク付き）
   - `admin/error.tsx` — 管理者ルートグループ用（ADMIN バッジ付き）
 
-  **loading skeleton 網羅（新規作成 14ファイル）:**
-  - 求職者: `(jobseeker)/about/loading.tsx`, `mypage/conversations/loading.tsx`, `mypage/applications/loading.tsx`
-  - biz: `biz/dashboard/loading.tsx`, `biz/jobs/loading.tsx`, `biz/meetings/loading.tsx`, `biz/applications/loading.tsx`, `biz/candidates/loading.tsx`, `biz/conversations/loading.tsx`, `biz/analytics/loading.tsx`, `biz/company/loading.tsx`, `biz/members/loading.tsx`
+  **loading skeleton 網羅（新規作成 25ファイル）:**
+  - 求職者詳細ページ: `companies/[id]/loading.tsx`, `jobs/[id]/loading.tsx`, `mentors/[id]/loading.tsx`, `articles/[slug]/loading.tsx`, `u/[id]/loading.tsx`
+  - 求職者サブ: `(jobseeker)/about/loading.tsx`, `about/scope/loading.tsx`, `about/selection-criteria/loading.tsx`, `industries/loading.tsx`, `mypage/conversations/loading.tsx`, `mypage/applications/loading.tsx`
+  - biz: `biz/dashboard/loading.tsx`, `biz/jobs/loading.tsx`, `biz/meetings/loading.tsx`, `biz/applications/loading.tsx`, `biz/candidates/loading.tsx`, `biz/conversations/loading.tsx`, `biz/analytics/loading.tsx`, `biz/company/loading.tsx`, `biz/members/loading.tsx`, `biz/posts/loading.tsx`
   - admin: `admin/loading.tsx`
+
+  **not-found 追加:**
+  - `(jobseeker)/not-found.tsx` — 求職者ルート内 404（レイアウト継承、企業/求人/メンターへの Quick Links）
+  - `biz/not-found.tsx` — biz ルート内 404（ダッシュボードへリンク）
 
   **SEO 改善:**
   - `sitemap.ts` に `/not-job-changing`, `/industries`, `/mentor`, `/business` を追加
-  - `career-consultation/`, `consultation-cases/`, `mentor/` に openGraph + alternates: canonical 追加
+  - `career-consultation/`, `consultation-cases/`, `mentor/`, `industries/` に openGraph + alternates: canonical 追加
 
   **ブランディング完成（セッション7で残り解消）:**
   - `lib/notify/templates.ts`: メール招待テンプレート内 "Opinio Work" → "OPINIO"
