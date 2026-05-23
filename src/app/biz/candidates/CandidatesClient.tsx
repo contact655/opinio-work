@@ -58,11 +58,32 @@ function getGradient(id: string) {
 
 const PHASE_OPTIONS = ["シリーズA", "シリーズB", "シリーズC", "上場"];
 
+const TRANSFER_TIMING_OPTIONS = [
+  { value: "即時",       label: "即時" },
+  { value: "1〜3ヶ月以内", label: "1〜3ヶ月以内" },
+  { value: "半年以内",   label: "半年以内" },
+  { value: "1年以内",    label: "1年以内" },
+  { value: "情報収集中", label: "情報収集中" },
+];
+
+const SALARY_MIN_OPTIONS = [
+  { value: 0,   label: "年収下限なし" },
+  { value: 400, label: "400万円〜" },
+  { value: 500, label: "500万円〜" },
+  { value: 600, label: "600万円〜" },
+  { value: 700, label: "700万円〜" },
+  { value: 800, label: "800万円〜" },
+  { value: 1000, label: "1000万円〜" },
+];
+
 export default function CandidatesClient({ candidates }: { candidates: Candidate[] }) {
   const [q, setQ] = useState("");
   const [workStyle, setWorkStyle] = useState("");
   const [jobType, setJobType] = useState("");
   const [phase, setPhase] = useState("");
+  const [transferTiming, setTransferTiming] = useState("");
+  const [salaryMin, setSalaryMin] = useState(0);
+  const [mentorOnly, setMentorOnly] = useState(false);
 
   const filtered = useMemo(() => {
     let list = candidates;
@@ -75,11 +96,24 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
         (c.location ?? "").includes(lower)
       );
     }
-    if (workStyle) list = list.filter((c) => c.workStyle === workStyle);
-    if (jobType)   list = list.filter((c) => c.jobType === jobType);
-    if (phase)     list = list.filter((c) => c.desiredPhase?.includes(phase));
+    if (workStyle)      list = list.filter((c) => c.workStyle === workStyle);
+    if (jobType)        list = list.filter((c) => c.jobType === jobType);
+    if (phase)          list = list.filter((c) => c.desiredPhase?.includes(phase));
+    if (transferTiming) list = list.filter((c) => c.transferTiming === transferTiming);
+    if (salaryMin > 0)  list = list.filter((c) =>
+      (c.desiredSalaryMin != null && c.desiredSalaryMin >= salaryMin) ||
+      (c.desiredSalaryMax != null && c.desiredSalaryMax >= salaryMin)
+    );
+    if (mentorOnly)     list = list.filter((c) => c.isMentor);
     return list;
-  }, [candidates, q, workStyle, jobType, phase]);
+  }, [candidates, q, workStyle, jobType, phase, transferTiming, salaryMin, mentorOnly]);
+
+  const activeFilterCount = [workStyle, jobType, phase, transferTiming, salaryMin > 0, mentorOnly].filter(Boolean).length;
+
+  function clearAllFilters() {
+    setWorkStyle(""); setJobType(""); setPhase("");
+    setTransferTiming(""); setSalaryMin(0); setMentorOnly(false);
+  }
 
   return (
     <div style={{ padding: "32px 40px", maxWidth: 1000, margin: "0 auto" }}>
@@ -98,60 +132,99 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
 
       {/* Filters */}
       <div style={{
-        display: "flex", gap: 10, marginBottom: 24, flexWrap: "wrap", alignItems: "center",
-        background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "14px 18px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "16px 18px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginBottom: 24,
       }}>
-        <input
-          type="text"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="名前・職種・会社・地域で検索..."
-          style={{
-            flex: "1 1 220px", height: 36, padding: "0 12px",
-            border: "1px solid var(--line)", borderRadius: 8,
-            fontSize: 13, outline: "none", fontFamily: "inherit", color: "var(--ink)",
-          }}
-        />
-        <select
-          value={jobType}
-          onChange={(e) => setJobType(e.target.value)}
-          style={{
-            height: 36, padding: "0 10px",
-            border: "1px solid var(--line)", borderRadius: 8,
-            fontSize: 13, color: "var(--ink-soft)", background: "#fff",
-            outline: "none", fontFamily: "inherit",
-          }}
-        >
-          <option value="">職種（全て）</option>
-          {JOB_TYPE_OPTIONS.map((v) => (
-            <option key={v} value={v}>{v}</option>
-          ))}
-        </select>
-        <select
-          value={workStyle}
-          onChange={(e) => setWorkStyle(e.target.value)}
-          style={{
-            height: 36, padding: "0 10px",
-            border: "1px solid var(--line)", borderRadius: 8,
-            fontSize: 13, color: "var(--ink-soft)", background: "#fff",
-            outline: "none", fontFamily: "inherit",
-          }}
-        >
-          <option value="">勤務スタイル（全て）</option>
-          {Object.entries(WORK_STYLE_LABELS).map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
-          ))}
-        </select>
-        {/* Phase pill filters */}
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        {/* Row 1: search + basic selects + count */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+          <input
+            type="text"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="名前・職種・会社・地域で検索..."
+            style={{
+              flex: "1 1 200px", height: 36, padding: "0 12px",
+              border: "1px solid var(--line)", borderRadius: 8,
+              fontSize: 13, outline: "none", fontFamily: "inherit", color: "var(--ink)",
+            }}
+          />
+          <select
+            value={jobType}
+            onChange={(e) => setJobType(e.target.value)}
+            style={{
+              height: 36, padding: "0 10px",
+              border: "1px solid var(--line)", borderRadius: 8,
+              fontSize: 13, color: jobType ? "var(--ink)" : "var(--ink-soft)", background: "#fff",
+              outline: "none", fontFamily: "inherit",
+            }}
+          >
+            <option value="">職種（全て）</option>
+            {JOB_TYPE_OPTIONS.map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+          <select
+            value={workStyle}
+            onChange={(e) => setWorkStyle(e.target.value)}
+            style={{
+              height: 36, padding: "0 10px",
+              border: "1px solid var(--line)", borderRadius: 8,
+              fontSize: 13, color: workStyle ? "var(--ink)" : "var(--ink-soft)", background: "#fff",
+              outline: "none", fontFamily: "inherit",
+            }}
+          >
+            <option value="">勤務スタイル（全て）</option>
+            {Object.entries(WORK_STYLE_LABELS).map(([v, l]) => (
+              <option key={v} value={v}>{l}</option>
+            ))}
+          </select>
+          <select
+            value={salaryMin}
+            onChange={(e) => setSalaryMin(Number(e.target.value))}
+            style={{
+              height: 36, padding: "0 10px",
+              border: "1px solid var(--line)", borderRadius: 8,
+              fontSize: 13, color: salaryMin > 0 ? "var(--ink)" : "var(--ink-soft)", background: "#fff",
+              outline: "none", fontFamily: "inherit",
+            }}
+          >
+            {SALARY_MIN_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+
+          {/* Result count + clear */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+            <span style={{ fontSize: 13, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
+              <strong style={{ color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>{filtered.length}</strong>
+              {" "}件
+            </span>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={clearAllFilters}
+                style={{
+                  fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                  border: "1px solid var(--line)", background: "#fff",
+                  color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                クリア ({activeFilterCount})
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: phase pills + transfer timing pills + mentor toggle */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>企業フェーズ:</span>
           {["", ...PHASE_OPTIONS].map((v) => (
             <button
               key={v || "all"}
               onClick={() => setPhase(v)}
               style={{
-                height: 32, padding: "0 12px", borderRadius: 16,
-                fontSize: 12, fontWeight: phase === v ? 700 : 400,
+                height: 28, padding: "0 10px", borderRadius: 14,
+                fontSize: 11, fontWeight: phase === v ? 700 : 400,
                 border: phase === v ? "1.5px solid var(--royal)" : "1px solid var(--line)",
                 background: phase === v ? "var(--royal-50)" : "#fff",
                 color: phase === v ? "var(--royal)" : "var(--ink-soft)",
@@ -159,14 +232,44 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
                 transition: "all 0.15s",
               }}
             >
-              {v || "全フェーズ"}
+              {v || "全て"}
             </button>
           ))}
+
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginLeft: 8 }}>転職時期:</span>
+          {["", ...TRANSFER_TIMING_OPTIONS.map((o) => o.value)].map((v) => (
+            <button
+              key={v || "all"}
+              onClick={() => setTransferTiming(v)}
+              style={{
+                height: 28, padding: "0 10px", borderRadius: 14,
+                fontSize: 11, fontWeight: transferTiming === v ? 700 : 400,
+                border: transferTiming === v ? "1.5px solid var(--warm)" : "1px solid var(--line)",
+                background: transferTiming === v ? "var(--warm-soft)" : "#fff",
+                color: transferTiming === v ? "#92400E" : "var(--ink-soft)",
+                cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
+                transition: "all 0.15s",
+              }}
+            >
+              {v || "全て"}
+            </button>
+          ))}
+
+          <button
+            onClick={() => setMentorOnly(!mentorOnly)}
+            style={{
+              height: 28, padding: "0 12px", borderRadius: 14, marginLeft: 8,
+              fontSize: 11, fontWeight: mentorOnly ? 700 : 400,
+              border: mentorOnly ? "1.5px solid var(--purple)" : "1px solid var(--line)",
+              background: mentorOnly ? "var(--purple-soft)" : "#fff",
+              color: mentorOnly ? "var(--purple)" : "var(--ink-soft)",
+              cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
+              transition: "all 0.15s",
+            }}
+          >
+            🎓 メンターのみ
+          </button>
         </div>
-        <span style={{ fontSize: 13, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
-          <strong style={{ color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>{filtered.length}</strong>
-          {" "}件
-        </span>
       </div>
 
       {/* Candidates grid */}
