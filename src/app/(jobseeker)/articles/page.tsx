@@ -521,6 +521,52 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
         </div>
       </div>
 
+      {/* ── 読んだあとは、先輩に相談 CTA ── */}
+      <div style={{ background: "#fff", borderTop: "1px solid var(--line)", padding: "48px 24px" }}>
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+          <div style={{
+            background: "linear-gradient(135deg, var(--warm-soft) 0%, #FFF7E6 100%)",
+            border: "1.5px solid #FDE68A",
+            borderRadius: 16,
+            padding: "32px 40px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 24,
+            flexWrap: "wrap",
+          }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "#B45309", marginBottom: 8, textTransform: "uppercase" }}>
+                NEXT STEP
+              </div>
+              <p style={{
+                fontFamily: "var(--font-noto-serif)",
+                fontSize: "clamp(15px, 2vw, 18px)", fontWeight: 500,
+                color: "var(--ink)", margin: 0, lineHeight: 1.55,
+              }}>
+                記事を読んで気になったら、その先輩に直接話を聞いてみよう。
+              </p>
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8, lineHeight: 1.7 }}>
+                OPINIOのメンターは記事に登場した方々の多く。編集部を通して30分・無料で相談できます。
+              </p>
+            </div>
+            <Link href="/mentors" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
+              background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+              color: "#fff", textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
+              flexShrink: 0,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              先輩メンターに相談する
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <style>{`
         .article-card:hover {
           border-color: var(--royal-100) !important;
