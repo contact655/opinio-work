@@ -44,11 +44,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // 各求人の応募数を取得
+  // 各求人の応募数を取得（ow_job_applications が正規テーブル）
   const jobsWithCounts = await Promise.all(
     (jobs || []).map(async (job) => {
       const { count } = await admin
-        .from("ow_applications")
+        .from("ow_job_applications")
         .select("id", { count: "exact", head: true })
         .eq("job_id", job.id);
       return { ...job, application_count: count || 0 };
