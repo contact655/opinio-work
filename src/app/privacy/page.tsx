@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 import { LegalDocument } from "@/components/legal/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "プライバシーポリシー | Opinio Work",
-  description: "Opinio Work のプライバシーポリシーです。個人情報の取扱いについて定めています。",
+  title: "プライバシーポリシー | OPINIO",
+  description: "OPINIO のプライバシーポリシーです。個人情報の取扱いについて定めています。",
   robots: { index: true, follow: true },
 };
 

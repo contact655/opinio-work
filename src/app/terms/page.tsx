@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 import { LegalDocument } from "@/components/legal/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "利用規約（求職者向け） | Opinio Work",
-  description: "Opinio Work の利用規約（求職者向け）です。本サービスをご利用の前に必ずお読みください。",
+  title: "利用規約（求職者向け） | OPINIO",
+  description: "OPINIO の利用規約（求職者向け）です。本サービスをご利用の前に必ずお読みください。",
   robots: { index: true, follow: true },
 };
 

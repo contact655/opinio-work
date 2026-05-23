@@ -9,11 +9,11 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "採用コスト、ゼロから。｜Opinio Work",
+  title: "採用コスト、ゼロから。｜OPINIO",
   description:
-    "月額費用なし、広告費なし、入社決定時のみ成果報酬。IT/SaaS業界の即戦力人材を、無料で採用開始できる「Opinio Work」。メンター介在で採用ミスマッチを構造的に防ぐ。",
+    "月額費用なし、広告費なし、入社決定時のみ成果報酬。IT/SaaS業界の即戦力人材を、無料で採用開始できる「OPINIO」。メンター介在で採用ミスマッチを構造的に防ぐ。",
   openGraph: {
-    title: "採用コスト、ゼロから。｜Opinio Work",
+    title: "採用コスト、ゼロから。｜OPINIO",
     description: "掲載・スカウト・面談まで全て無料。成果報酬は入社決定時のみ。IT/SaaS業界特化の採用プラットフォーム。",
     type: "website",
   },
@@ -294,7 +294,7 @@ export default async function ForCompaniesPage() {
                     <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#fbbf24" }} />
                     <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#34d399" }} />
                     <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#60a5fa" }} />
-                    <span style={{ marginLeft: 8, fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>求人管理 — Opinio Work</span>
+                    <span style={{ marginLeft: 8, fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>求人管理 — OPINIO</span>
                   </div>
                   {/* Mock job form */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

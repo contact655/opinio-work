@@ -53,7 +53,7 @@ const OPTIONS = [
       </svg>
     ),
     title: "新しい会社を作成",
-    description: "自分が代表となる新しい会社を Opinio に登録します",
+    description: "自分が代表となる新しい会社を OPINIO に登録します",
   },
 ];
 

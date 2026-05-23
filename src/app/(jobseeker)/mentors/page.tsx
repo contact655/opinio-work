@@ -9,12 +9,12 @@ import MentorFilterBar from "./MentorFilterBar";
 export const metadata: Metadata = {
   title: "先輩に相談する — OPINIO",
   description:
-    "IT/SaaS業界の先輩社員・元社員に30分の無料キャリア相談。Opinio編集部が最適なメンターをご紹介します。",
+    "IT/SaaS業界の先輩社員・元社員に30分の無料キャリア相談。OPINIO編集部が最適なメンターをご紹介します。",
   keywords: ["メンター", "キャリア相談", "IT転職相談", "SaaS業界", "30分相談", "無料", "OPINIO"],
   alternates: { canonical: "/mentors" },
   openGraph: {
     title: "IT/SaaS業界の先輩に相談する | OPINIO",
-    description: "IT/SaaS業界の先輩社員・元社員に30分の無料キャリア相談。Opinio編集部が最適なメンターをご紹介します。",
+    description: "IT/SaaS業界の先輩社員・元社員に30分の無料キャリア相談。OPINIO編集部が最適なメンターをご紹介します。",
     type: "website",
     url: "/mentors",
     images: [{ url: "/api/og?type=list&title=%E3%83%A1%E3%83%B3%E3%82%BF%E3%83%BC%E3%81%AB%E7%9B%B8%E8%AB%87&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E5%85%88%E8%BC%A9%E3%81%AB30%E5%88%86%E7%84%A1%E6%96%99%E7%9B%B8%E8%AB%87", width: 1200, height: 630 }],
