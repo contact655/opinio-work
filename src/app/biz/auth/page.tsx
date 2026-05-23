@@ -359,7 +359,7 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
             },
             {
               title: "編集部が取材",
-              desc: "Opinio編集部が第三者視点で御社を取材。深い記事が対話のきっかけに。",
+              desc: "OPINIO編集部が第三者視点で御社を取材。深い記事が対話のきっかけに。",
               icon: (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                   <path d="M12 19l7-7 3 3-7 7-3-3z" />

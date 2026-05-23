@@ -146,7 +146,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
   // 差し戻しモーダル
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState(job.rejection_reason ?? "");
-  const [rejectionReviewer, setRejectionReviewer] = useState("Opinio編集部");
+  const [rejectionReviewer, setRejectionReviewer] = useState("OPINIO編集部");
 
   const ns = normalizedStatus(status);
   const badge = STATUS_BADGE[status ?? "draft"] ?? STATUS_BADGE.draft;
@@ -176,7 +176,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
     await supabase.from("ow_jobs").update({
       status: "rejected",
       rejection_reason: rejectionReason.trim(),
-      rejection_reviewer: rejectionReviewer.trim() || "Opinio編集部",
+      rejection_reviewer: rejectionReviewer.trim() || "OPINIO編集部",
       rejection_date: dateLabel,
       updated_at: now,
     }).eq("id", job.id);

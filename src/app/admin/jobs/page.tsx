@@ -56,7 +56,7 @@ export default function AdminJobsPage() {
   // 差し戻しモーダル state
   const [rejectTarget, setRejectTarget] = useState<Job | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
-  const [rejectionReviewer, setRejectionReviewer] = useState("Opinio編集部");
+  const [rejectionReviewer, setRejectionReviewer] = useState("OPINIO編集部");
 
   const loadJobs = useCallback(async () => {
     const supabase = createClient();
@@ -108,7 +108,7 @@ export default function AdminJobsPage() {
       .update({
         status: "rejected",
         rejection_reason: rejectionReason.trim(),
-        rejection_reviewer: rejectionReviewer.trim() || "Opinio編集部",
+        rejection_reviewer: rejectionReviewer.trim() || "OPINIO編集部",
         rejection_date: dateLabel,
         updated_at: now,
       })

@@ -370,7 +370,7 @@ export default async function ForCompaniesPage() {
                   {
                     icon: "📰",
                     title: "編集部が取材した記事",
-                    body: "Opinio編集部が第三者視点で御社を取材。深い記事が対話のきっかけになります。",
+                    body: "OPINIO編集部が第三者視点で御社を取材。深い記事が対話のきっかけになります。",
                   },
                   {
                     icon: "🔍",
