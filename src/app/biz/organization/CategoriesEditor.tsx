@@ -85,10 +85,16 @@ function ConfirmDeleteModal({
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
         display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100 }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+      role="presentation"
     >
-      <div style={{ background: "#fff", borderRadius: 14, padding: "28px 28px 24px",
-        width: "100%", maxWidth: 400, boxShadow: "0 8px 40px rgba(0,0,0,0.15)" }}>
-        <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 700,
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-delete-title"
+        style={{ background: "#fff", borderRadius: 14, padding: "28px 28px 24px",
+          width: "100%", maxWidth: 400, boxShadow: "0 8px 40px rgba(0,0,0,0.15)" }}
+      >
+        <h2 id="confirm-delete-title" style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 700,
           color: "var(--ink)", marginBottom: 10, marginTop: 0 }}>
           カテゴリを削除
         </h2>
@@ -176,14 +182,20 @@ function AddCategoryModal({
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
         display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100 }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+      role="presentation"
     >
-      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480,
-        maxHeight: "80vh", display: "flex", flexDirection: "column",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.15)", overflow: "hidden" }}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-category-title"
+        style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480,
+          maxHeight: "80vh", display: "flex", flexDirection: "column",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.15)", overflow: "hidden" }}
+      >
 
         {/* ヘッダー */}
         <div style={{ padding: "22px 24px 16px", borderBottom: "1px solid var(--line)", flexShrink: 0 }}>
-          <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 700,
+          <h2 id="add-category-title" style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 700,
             color: "var(--ink)", margin: "0 0 4px" }}>
             カテゴリを追加
           </h2>
