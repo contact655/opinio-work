@@ -293,11 +293,12 @@ export default function CasualMeetingForm({
             どちらも任意ですが、書いていただくと面談がより充実します。
           </p>
           <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>
+            <label htmlFor="cm-interest-reason" style={labelStyle}>
               興味を持ったきっかけ
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 400, marginLeft: 8 }}>任意</span>
             </label>
             <textarea
+              id="cm-interest-reason"
               value={interestReason}
               onChange={(e) => setInterestReason(e.target.value)}
               rows={4}
@@ -306,11 +307,12 @@ export default function CasualMeetingForm({
             />
           </div>
           <div>
-            <label style={labelStyle}>
+            <label htmlFor="cm-questions" style={labelStyle}>
               面談で聞きたいこと
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 400, marginLeft: 8 }}>任意</span>
             </label>
             <textarea
+              id="cm-questions"
               value={questions}
               onChange={(e) => setQuestions(e.target.value)}
               rows={5}
@@ -327,11 +329,12 @@ export default function CasualMeetingForm({
             日程調整や事前資料の送付に使用します。
           </p>
           <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>
+            <label htmlFor="cm-contact-email" style={labelStyle}>
               メールアドレス
               <span style={{ fontSize: 11, color: "var(--error)", marginLeft: 6 }}>必須</span>
             </label>
             <input
+              id="cm-contact-email"
               type="email"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
@@ -344,11 +347,12 @@ export default function CasualMeetingForm({
             </div>
           </div>
           <div>
-            <label style={labelStyle}>
+            <label htmlFor="cm-preferred-format" style={labelStyle}>
               希望する面談形式
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 400, marginLeft: 8 }}>任意</span>
             </label>
             <select
+              id="cm-preferred-format"
               value={preferredFormat}
               onChange={(e) => setPreferredFormat(e.target.value as Format)}
               style={inputStyle}
