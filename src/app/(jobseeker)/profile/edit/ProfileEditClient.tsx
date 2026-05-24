@@ -145,6 +145,7 @@ function ProfilePhotoUploader({
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(owUser?.cover_photo_url ?? null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -156,7 +157,12 @@ function ProfilePhotoUploader({
     const { data, error } = await supabase.storage
       .from("ow-uploads")
       .upload(path, file, { upsert: true, contentType: file.type });
-    if (error || !data) { console.error("[profile] upload failed:", error); return null; }
+    if (error || !data) {
+      console.error("[profile] upload failed:", error);
+      setUploadError("写真のアップロードに失敗しました。ファイルサイズや形式を確認してください。");
+      setTimeout(() => setUploadError(null), 5000);
+      return null;
+    }
 
     const { data: { publicUrl } } = supabase.storage.from("ow-uploads").getPublicUrl(data.path);
 
@@ -221,6 +227,21 @@ function ProfilePhotoUploader({
 
   return (
     <div>
+      {/* Upload error */}
+      {uploadError && (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "10px 14px", marginBottom: 14, borderRadius: 8,
+          background: "var(--error-soft)", border: "1px solid #FCA5A5",
+          fontSize: 13, color: "var(--error)", fontWeight: 600,
+        }}>
+          <span>⚠ {uploadError}</span>
+          <button onClick={() => setUploadError(null)} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--error)", fontSize: 16, padding: "0 4px",
+          }}>×</button>
+        </div>
+      )}
       {/* Preview */}
       <div style={{ marginBottom: 20 }}>
         <div style={{

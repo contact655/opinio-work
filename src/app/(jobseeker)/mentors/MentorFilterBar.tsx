@@ -47,6 +47,8 @@ function Dropdown({ label, options, paramKey: _paramKey, value, onSelect }: {
     <div ref={ref} style={{ position: "relative" }}>
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-label={value ? `${label}: ${value}（変更）` : `${label}で絞り込む`}
         style={{
           display: "inline-flex", alignItems: "center", gap: 6,
           padding: "8px 14px",
@@ -187,6 +189,7 @@ export default function MentorFilterBar({ total }: { total: number }) {
           {/* Sort toggle: default ↔ success_count */}
           <button
             onClick={() => updateParam("sort", sort === "sessions" ? null : "sessions")}
+            aria-pressed={sort === "sessions"}
             style={{
               display: "inline-flex", alignItems: "center", gap: 5,
               padding: "7px 13px", borderRadius: 100, fontSize: 12, fontWeight: 600,
@@ -218,6 +221,7 @@ export default function MentorFilterBar({ total }: { total: number }) {
               <button
                 key={label}
                 onClick={() => updateParam("theme", value)}
+                aria-pressed={isActive}
                 style={{
                   flexShrink: 0,
                   padding: "6px 16px",

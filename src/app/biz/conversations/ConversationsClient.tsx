@@ -142,19 +142,24 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
       </div>
 
       {/* ── Stage filter tabs ── */}
-      <div style={{
-        display: "flex",
-        gap: 4,
-        marginBottom: 14,
-        borderBottom: "1px solid var(--line)",
-        flexWrap: "wrap",
-      }}>
+      <div
+        role="tablist"
+        aria-label="対話ステージフィルター"
+        style={{
+          display: "flex",
+          gap: 4,
+          marginBottom: 14,
+          borderBottom: "1px solid var(--line)",
+          flexWrap: "wrap",
+        }}>
         {STAGE_FILTER_TABS.map((tab) => {
           const count = tab.key === "all" ? conversations.length : (stageCounts[tab.key] ?? 0);
           const isActive = activeStage === tab.key;
           return (
             <button
               key={tab.key}
+              role="tab"
+              aria-selected={isActive}
               onClick={() => setActiveStage(tab.key)}
               style={{
                 padding: "10px 14px",
@@ -206,6 +211,7 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="候補者名で検索..."
+              aria-label="候補者名で検索"
               style={{
                 padding: "7px 12px 7px 30px",
                 border: "1px solid var(--line)",
@@ -250,8 +256,25 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
             <div style={{ fontSize: 16, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
               対話がありません
             </div>
-            <div style={{ fontSize: 13, color: "var(--ink-mute)" }}>
-              候補者からの問い合わせがここに表示されます。
+            <div style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+              求人を公開すると、候補者からの問い合わせがここに表示されます。<br />
+              カジュアル面談申込みも対話として管理できます。
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+              <Link href="/biz/jobs" style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                background: "var(--royal)", color: "#fff", textDecoration: "none",
+              }}>
+                求人を管理する →
+              </Link>
+              <Link href="/biz/meetings" style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                border: "1px solid var(--line)", color: "var(--ink-soft)", textDecoration: "none", background: "#fff",
+              }}>
+                面談申込みを見る
+              </Link>
             </div>
           </div>
         </div>
@@ -271,6 +294,13 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
           {searchQuery.trim()
             ? `「${searchQuery}」に一致する対話が見つかりません`
             : "このステージの対話はありません"}
+        </div>
+      )}
+
+      {/* ── Result count ── */}
+      {conversations.length > 0 && filtered.length > 0 && (
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 8, textAlign: "right" }}>
+          {filtered.length} 件表示
         </div>
       )}
 

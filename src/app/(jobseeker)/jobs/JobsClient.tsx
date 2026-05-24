@@ -572,6 +572,7 @@ export default function JobsClient({
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(p));
     router.replace(`/jobs?${params.toString()}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // 実データに含まれる都道府県のみ (北から南順)

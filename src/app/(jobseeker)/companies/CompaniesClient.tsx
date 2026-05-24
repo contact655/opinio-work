@@ -240,6 +240,7 @@ function Pagination({ current, total, onChange }: {
       <button
         onClick={() => onChange(current - 1)}
         disabled={current <= 1}
+        aria-label="前のページへ"
         style={{ ...btnBase, minWidth: 80, color: "var(--ink-soft)", opacity: current <= 1 ? 0.4 : 1, cursor: current <= 1 ? "default" : "pointer" }}
       >
         ← 前へ
@@ -249,6 +250,8 @@ function Pagination({ current, total, onChange }: {
         <button
           key={p}
           onClick={() => onChange(p)}
+          aria-label={`${p}ページ目`}
+          aria-current={p === current ? "page" : undefined}
           style={{
             ...btnBase,
             minWidth: 38,
@@ -264,6 +267,7 @@ function Pagination({ current, total, onChange }: {
       <button
         onClick={() => onChange(current + 1)}
         disabled={current >= total}
+        aria-label="次のページへ"
         style={{ ...btnBase, minWidth: 80, color: "var(--ink-soft)", opacity: current >= total ? 0.4 : 1, cursor: current >= total ? "default" : "pointer" }}
       >
         次へ →
@@ -324,6 +328,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
     if (p <= 1) params.delete("page");
     else params.set("page", String(p));
     router.replace(`/companies?${params.toString()}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // 実データに含まれる都道府県のみ (北から南順)
@@ -423,21 +428,41 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
         }}>
           {/* Search input */}
-          <input
-            type="text"
-            placeholder="企業名・キーワードで検索..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            style={{
-              flex: "1 1 180px", minWidth: 140, maxWidth: 260, height: 38,
-              padding: "0 12px", border: "1px solid var(--line)", borderRadius: 8,
-              fontSize: 13, color: "var(--ink)", outline: "none", background: "#fff",
-            }}
-          />
+          <div style={{ position: "relative", flex: "1 1 180px", minWidth: 140, maxWidth: 260 }}>
+            <input
+              type="text"
+              aria-label="企業名・キーワードで検索"
+              placeholder="企業名・キーワードで検索..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              style={{
+                width: "100%", height: 38,
+                padding: q ? "0 32px 0 12px" : "0 12px",
+                border: "1px solid var(--line)", borderRadius: 8,
+                fontSize: 13, color: "var(--ink)", outline: "none", background: "#fff",
+                boxSizing: "border-box",
+              }}
+            />
+            {q && (
+              <button
+                onClick={() => setQ("")}
+                aria-label="検索をクリア"
+                style={{
+                  position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                  background: "none", border: "none", cursor: "pointer",
+                  color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
 
           {/* 面談受付中 chip */}
           <button
             onClick={() => setParam("hiring", hiring ? "" : "1")}
+            aria-pressed={hiring}
             style={{
               height: 38, padding: "0 14px", borderRadius: 8, fontSize: 13, fontWeight: 500,
               border: `1px solid ${hiring ? "var(--royal)" : "var(--line)"}`,
@@ -514,6 +539,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             <select
               value={sort}
               onChange={(e) => setParam("sort", e.target.value === "newest" ? "" : e.target.value)}
+              aria-label="並び順"
               style={filterSelectStyle(false)}
             >
               <option value="newest">更新日順</option>

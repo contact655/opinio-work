@@ -207,6 +207,14 @@ function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && !isSubmitting) onCancel();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isSubmitting, onCancel]);
+
   let title = "";
   let body = "";
   let confirmLabel = "";
@@ -241,15 +249,19 @@ function ConfirmDialog({
     }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div style={{
-        background: "#fff",
-        borderRadius: 14,
-        padding: "28px 28px 24px",
-        width: "100%",
-        maxWidth: 420,
-        boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
-      }}>
-        <h2 style={{
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+        style={{
+          background: "#fff",
+          borderRadius: 14,
+          padding: "28px 28px 24px",
+          width: "100%",
+          maxWidth: 420,
+          boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
+        }}>
+        <h2 id="confirm-dialog-title" style={{
           fontFamily: "var(--font-noto-serif)",
           fontSize: 18,
           fontWeight: 600,
@@ -335,6 +347,14 @@ function EditProfileDialog({
   const [roleTitle, setRoleTitle] = useState(target.role_title ?? "");
   const [department, setDepartment] = useState(target.department ?? "");
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && !isSubmitting) onCancel();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isSubmitting, onCancel]);
+
   return (
     <div
       style={{
@@ -348,15 +368,19 @@ function EditProfileDialog({
       }}
       onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) onCancel(); }}
     >
-      <div style={{
-        background: "#fff",
-        borderRadius: 14,
-        padding: "28px 28px 24px",
-        width: "100%",
-        maxWidth: 420,
-        boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
-      }}>
-        <h2 style={{
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-profile-dialog-title"
+        style={{
+          background: "#fff",
+          borderRadius: 14,
+          padding: "28px 28px 24px",
+          width: "100%",
+          maxWidth: 420,
+          boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
+        }}>
+        <h2 id="edit-profile-dialog-title" style={{
           fontFamily: "var(--font-noto-serif)",
           fontSize: 18,
           fontWeight: 600,
@@ -490,6 +514,25 @@ function AddMemberDialog({
 }) {
   const [email, setEmail] = useState("");
   const [permission, setPermission] = useState<"admin" | "member">("member");
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && !isSubmitting) onCancel();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isSubmitting, onCancel]);
+
+  function handleSubmit() {
+    setLocalError(null);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setLocalError("有効なメールアドレスを入力してください");
+      return;
+    }
+    onSubmit(email.trim(), permission);
+  }
 
   return (
     <div
@@ -504,15 +547,19 @@ function AddMemberDialog({
       }}
       onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) onCancel(); }}
     >
-      <div style={{
-        background: "#fff",
-        borderRadius: 14,
-        padding: "28px 28px 24px",
-        width: "100%",
-        maxWidth: 440,
-        boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
-      }}>
-        <h2 style={{
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-member-dialog-title"
+        style={{
+          background: "#fff",
+          borderRadius: 14,
+          padding: "28px 28px 24px",
+          width: "100%",
+          maxWidth: 440,
+          boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
+        }}>
+        <h2 id="add-member-dialog-title" style={{
           fontFamily: "var(--font-noto-serif)",
           fontSize: 18,
           fontWeight: 600,
@@ -596,7 +643,7 @@ function AddMemberDialog({
           </div>
         </div>
 
-        {errorMessage && (
+        {(localError || errorMessage) && (
           <div style={{
             padding: "10px 14px",
             background: "var(--error-soft)",
@@ -606,7 +653,7 @@ function AddMemberDialog({
             color: "var(--error)",
             marginBottom: 16,
           }}>
-            {errorMessage}
+            {localError ?? errorMessage}
           </div>
         )}
 
@@ -629,7 +676,7 @@ function AddMemberDialog({
             キャンセル
           </button>
           <button
-            onClick={() => onSubmit(email, permission)}
+            onClick={handleSubmit}
             disabled={isSubmitting || !email.trim()}
             style={{
               padding: "9px 18px",
