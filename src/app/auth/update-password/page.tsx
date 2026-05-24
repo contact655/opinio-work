@@ -145,17 +145,20 @@ export default function UpdatePasswordPage() {
               <form onSubmit={handleSubmit}>
                 {/* 新パスワード */}
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+                  <label htmlFor="update-password-new" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
                     新しいパスワード
                   </label>
                   <div style={{ position: "relative" }}>
                     <input
+                      id="update-password-new"
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       autoFocus
+                      autoComplete="new-password"
                       placeholder="8文字以上"
+                      aria-describedby="update-password-strength"
                       style={{
                         width: "100%",
                         padding: "12px 44px 12px 14px",
@@ -173,6 +176,7 @@ export default function UpdatePasswordPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "パスワードを非表示" : "パスワードを表示"}
                       style={{
                         position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
                         background: "none", border: "none", cursor: "pointer",
@@ -193,7 +197,13 @@ export default function UpdatePasswordPage() {
                   </div>
                   {/* Strength indicator */}
                   {password.length > 0 && (
-                    <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+                    <div
+                      id="update-password-strength"
+                      role="status"
+                      aria-live="polite"
+                      aria-label={`パスワード強度: ${password.length >= 12 ? "強い" : password.length >= 8 ? "普通" : "弱い"}`}
+                      style={{ display: "flex", gap: 4, marginTop: 6 }}
+                    >
                       {[1, 2, 3].map((level) => (
                         <div key={level} style={{
                           flex: 1, height: 3, borderRadius: 2,
@@ -209,15 +219,18 @@ export default function UpdatePasswordPage() {
 
                 {/* 確認 */}
                 <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+                  <label htmlFor="update-password-confirm" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
                     パスワードを確認
                   </label>
                   <input
+                    id="update-password-confirm"
                     type={showPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    autoComplete="new-password"
                     placeholder="もう一度入力"
+                    aria-describedby={confirmPassword && confirmPassword !== password ? "update-password-mismatch" : undefined}
                     style={{
                       width: "100%",
                       padding: "12px 14px",
@@ -233,20 +246,24 @@ export default function UpdatePasswordPage() {
                     onBlur={(e) => (e.target.style.borderColor = confirmPassword && confirmPassword !== password ? "var(--error)" : "var(--line)")}
                   />
                   {confirmPassword && confirmPassword !== password && (
-                    <p style={{ fontSize: 11, color: "var(--error)", marginTop: 4 }}>パスワードが一致しません</p>
+                    <p id="update-password-mismatch" role="alert" style={{ fontSize: 11, color: "var(--error)", marginTop: 4 }}>パスワードが一致しません</p>
                   )}
                 </div>
 
                 {error && (
-                  <div style={{
-                    padding: "10px 14px",
-                    background: "var(--error-soft)",
-                    border: "1px solid #FCA5A5",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    color: "var(--error)",
-                    marginBottom: 16,
-                  }}>
+                  <div
+                    role="alert"
+                    aria-live="polite"
+                    style={{
+                      padding: "10px 14px",
+                      background: "var(--error-soft)",
+                      border: "1px solid #FCA5A5",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      color: "var(--error)",
+                      marginBottom: 16,
+                    }}
+                  >
                     {error}
                   </div>
                 )}
