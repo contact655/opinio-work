@@ -466,7 +466,7 @@ export function CreateCompanyClient({
             padding: "16px 18px",
           }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 6 }}>
-              ⚠️ 同名の企業が既に存在します
+              ⚠ 同名の企業が既に存在します
             </div>
             <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7, marginBottom: 14 }}>
               <strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）が既に登録されています。<br />
