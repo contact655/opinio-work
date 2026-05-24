@@ -200,14 +200,51 @@ export default function ApplicationsPage() {
 
             {/* Application List */}
             {filtered.length === 0 ? (
-              <div className="text-center py-16">
-                <p className="text-gray-600 text-lg mb-2">応募はまだありません</p>
-                <Link
-                  href="/companies"
-                  className="text-primary hover:underline text-sm"
-                >
-                  企業を探す →
-                </Link>
+              <div style={{
+                textAlign: "center", padding: "64px 24px",
+                background: "#fff", borderRadius: 16, border: "1px solid var(--line)",
+              }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: "50%",
+                  background: "var(--royal-50)", display: "flex",
+                  alignItems: "center", justifyContent: "center",
+                  margin: "0 auto 20px",
+                }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="9" y1="13" x2="15" y2="13"/>
+                    <line x1="9" y1="17" x2="12" y2="17"/>
+                  </svg>
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
+                  まだ応募がありません
+                </p>
+                <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 24, lineHeight: 1.7 }}>
+                  気になる企業にカジュアル面談や求人応募をしてみましょう
+                </p>
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                  <Link
+                    href="/companies"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                      background: "var(--royal)", color: "#fff", textDecoration: "none",
+                    }}
+                  >
+                    企業を探す →
+                  </Link>
+                  <Link
+                    href="/jobs"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                      border: "1px solid var(--line)", color: "var(--ink-soft)", textDecoration: "none", background: "#fff",
+                    }}
+                  >
+                    求人を見る
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">

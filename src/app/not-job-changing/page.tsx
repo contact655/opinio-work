@@ -73,8 +73,9 @@ export default function NotJobChangingPage() {
                   <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.7, margin: 0 }}>
                     {a.desc}
                   </p>
-                  <div style={{ marginTop: 10, fontSize: 12, color: "#9ca3af" }}>
-                    準備中（近日公開予定）
+                  <div style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--royal)", fontWeight: 700, letterSpacing: "0.06em", padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    近日公開
                   </div>
                 </div>
               ))}
