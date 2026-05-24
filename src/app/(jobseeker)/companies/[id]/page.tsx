@@ -3255,6 +3255,22 @@ export default async function CompanyDetailPage({
       <MobileBottomCTA company={company} />
 
       <style>{`
+        /* ── Section entrance animation ── */
+        @keyframes section-enter {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        main > section, main > div[id], main > div:not([class]) {
+          animation: section-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        main > *:nth-child(1)  { animation-delay: 0.05s; }
+        main > *:nth-child(2)  { animation-delay: 0.1s;  }
+        main > *:nth-child(3)  { animation-delay: 0.15s; }
+        main > *:nth-child(4)  { animation-delay: 0.2s;  }
+        main > *:nth-child(5)  { animation-delay: 0.22s; }
+        main > *:nth-child(n+6){ animation-delay: 0.25s; }
+
+        /* ── Job cards ── */
         .job-item-link {
           transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
         }
@@ -3263,6 +3279,8 @@ export default async function CompanyDetailPage({
           box-shadow: 0 6px 20px rgba(0,35,102,0.1) !important;
           transform: translateY(-2px);
         }
+
+        /* ── Employee cards ── */
         .employee-card-link {
           transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
         }
@@ -3272,16 +3290,23 @@ export default async function CompanyDetailPage({
           transform: translateY(-2px);
           box-shadow: 0 4px 16px rgba(0,35,102,0.08) !important;
         }
-        .post-card-link:hover {
-          border-color: var(--royal) !important;
+
+        /* ── Post / article cards ── */
+        .post-card-link:hover { border-color: var(--royal) !important; }
+        .company-posts-more-link:hover { background: var(--royal-50) !important; }
+        .article-card:hover {
+          border-color: var(--royal-100) !important;
+          box-shadow: 0 4px 16px rgba(0,35,102,0.08) !important;
         }
-        .company-posts-more-link:hover {
-          background: var(--royal-50) !important;
-        }
+
+        /* ── Pulse for CTA dot ── */
         @keyframes cta-pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.4; transform: scale(0.7); }
         }
+
+        /* ── Nav no-scrollbar ── */
+        nav::-webkit-scrollbar { display: none; }
       `}</style>
     </>
   );

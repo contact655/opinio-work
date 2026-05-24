@@ -40,15 +40,17 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
   return (
     <nav style={{
       position: "sticky", top: 68, zIndex: 40,
-      background: "rgba(255,255,255,0.95)",
-      backdropFilter: "blur(8px)",
+      background: "rgba(255,255,255,0.97)",
+      backdropFilter: "blur(12px)",
       borderBottom: "1px solid var(--line)",
       overflowX: "auto",
       scrollbarWidth: "none",
+      WebkitOverflowScrolling: "touch" as unknown as undefined,
     }}>
       <div style={{
-        display: "flex", gap: 0, padding: "0 24px",
+        display: "flex", gap: 4, padding: "6px 24px",
         maxWidth: "var(--max-w-page)", margin: "0 auto",
+        alignItems: "center",
       }} className="px-5 md:px-12">
         {items.map(({ id, label }) => {
           const active = activeId === id;
@@ -57,13 +59,17 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
               key={id}
               onClick={() => scrollTo(id)}
               style={{
-                padding: "12px 14px",
-                fontSize: 13, fontWeight: active ? 700 : 500,
+                padding: "6px 13px",
+                fontSize: 13,
+                fontWeight: active ? 700 : 500,
                 color: active ? "var(--royal)" : "var(--ink-mute)",
-                background: "none", border: "none",
-                borderBottom: `2px solid ${active ? "var(--royal)" : "transparent"}`,
-                cursor: "pointer", whiteSpace: "nowrap",
-                transition: "color 0.15s, border-color 0.15s",
+                background: active ? "var(--royal-50)" : "none",
+                border: "none",
+                borderRadius: 100,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "color 0.18s, background 0.18s",
+                letterSpacing: active ? "0.01em" : 0,
               }}
             >
               {label}
