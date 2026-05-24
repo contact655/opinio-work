@@ -206,7 +206,7 @@ export default function MypageLayout({
             );
           })}
         </div>
-      </div>
+      </nav>
 
       {/* デスクトップ: グリッドレイアウト */}
       <div className="mypage-desktop-grid" style={{ display: "grid", gridTemplateColumns: rightColumn ? "260px 1fr 320px" : "260px 1fr", minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: 1440, margin: "0 auto" }}>

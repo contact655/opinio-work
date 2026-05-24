@@ -58,7 +58,7 @@ export function BusinessHeader() {
         </Link>
 
         {/* ── Desktop Nav ── */}
-        <nav style={{ gap: 24, flex: 1 }} className="hidden md:flex">
+        <nav aria-label="ビジネスページナビゲーション" style={{ gap: 24, flex: 1 }} className="hidden md:flex">
           {NAV_LINKS.map(({ href, label }) => (
             <a
               key={href}
