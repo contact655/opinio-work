@@ -192,10 +192,12 @@ export default function AdminReservationsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6" role="tablist" aria-label="予約ステータスで絞り込み">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.key}
+            role="tab"
+            aria-selected={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2 text-sm rounded-full border transition-colors ${
               activeTab === tab.key

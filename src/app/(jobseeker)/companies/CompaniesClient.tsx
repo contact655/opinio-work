@@ -430,7 +430,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           {/* Search input */}
           <div style={{ position: "relative", flex: "1 1 180px", minWidth: 140, maxWidth: 260 }}>
             <input
-              type="text"
+              type="search"
               aria-label="企業名・キーワードで検索"
               placeholder="企業名・キーワードで検索..."
               value={q}
@@ -591,14 +591,17 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           marginBottom: 20,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              padding: hasFilters ? "5px 14px" : "0",
-              borderRadius: 100,
-              background: hasFilters ? "var(--royal-50)" : "transparent",
-              border: hasFilters ? "1px solid var(--royal-100)" : "none",
-              transition: "all 0.2s",
-            }}>
+            <span
+              aria-live="polite"
+              aria-atomic="true"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: hasFilters ? "5px 14px" : "0",
+                borderRadius: 100,
+                background: hasFilters ? "var(--royal-50)" : "transparent",
+                border: hasFilters ? "1px solid var(--royal-100)" : "none",
+                transition: "all 0.2s",
+              }}>
               <strong style={{ fontSize: 20, color: "var(--royal)", fontFamily: "Inter, sans-serif", lineHeight: 1 }}>
                 {filtered.length}
               </strong>

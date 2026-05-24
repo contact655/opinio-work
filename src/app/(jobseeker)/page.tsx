@@ -364,7 +364,7 @@ function Hero({ stats }: { stats: SiteStats }) {
               }}
             >
               <input
-                type="text"
+                type="search"
                 placeholder="職種・スキル・企業名で検索..."
                 aria-label="職種・スキル・企業名で検索"
                 style={{

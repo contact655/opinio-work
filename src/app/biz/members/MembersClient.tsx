@@ -1279,12 +1279,16 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
       </div>
 
       {/* タブ */}
-      <div style={{
-        display: "flex",
-        gap: 4,
-        marginBottom: 16,
-        borderBottom: "1px solid var(--line)",
-      }}>
+      <div
+        role="tablist"
+        aria-label="メンバーステータス"
+        style={{
+          display: "flex",
+          gap: 4,
+          marginBottom: 16,
+          borderBottom: "1px solid var(--line)",
+        }}
+      >
         {(["active", "inactive"] as const).map((tab) => {
           const count = tab === "active" ? activeMembers.length : inactiveMembers.length;
           const label = tab === "active" ? "アクティブ" : "無効化済み";
@@ -1292,6 +1296,8 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           return (
             <button
               key={tab}
+              role="tab"
+              aria-selected={isSelected}
               onClick={() => setActiveTab(tab)}
               style={{
                 padding: "10px 16px",

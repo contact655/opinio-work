@@ -702,7 +702,7 @@ export default function JobsClient({
               <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
             </svg>
             <input
-              type="text"
+              type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="職種・企業名・スキルで検索…"
@@ -971,14 +971,17 @@ export default function JobsClient({
             <div style={{ flex: 1 }} />
 
             {/* Result count */}
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: hasFilter ? "4px 12px" : "0",
-              borderRadius: 100, whiteSpace: "nowrap",
-              background: hasFilter ? "var(--royal-50)" : "transparent",
-              border: hasFilter ? "1px solid var(--royal-100)" : "none",
-              transition: "all 0.2s",
-            }}>
+            <span
+              aria-live="polite"
+              aria-atomic="true"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: hasFilter ? "4px 12px" : "0",
+                borderRadius: 100, whiteSpace: "nowrap",
+                background: hasFilter ? "var(--royal-50)" : "transparent",
+                border: hasFilter ? "1px solid var(--royal-100)" : "none",
+                transition: "all 0.2s",
+              }}>
               <strong style={{ color: "var(--royal)", fontSize: 15, fontFamily: "Inter, sans-serif" }}>
                 {filtered.length}
               </strong>

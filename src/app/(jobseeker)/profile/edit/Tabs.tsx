@@ -22,6 +22,8 @@ export default function Tabs({
 }) {
   return (
     <div
+      role="tablist"
+      aria-label="プロフィール編集セクション"
       style={{
         display: "flex",
         gap: 0,
@@ -36,6 +38,8 @@ export default function Tabs({
           <button
             key={tab.key}
             type="button"
+            role="tab"
+            aria-selected={active}
             onClick={() => onTabChange(tab.key)}
             style={{
               padding: "10px 18px",

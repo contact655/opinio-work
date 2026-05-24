@@ -381,10 +381,12 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
       </div>
 
       {/* ── タブバー ─────────────────────────────────────────────────────── */}
-      <div className="flex border-b border-gray-200 mb-6 gap-0">
+      <div className="flex border-b border-gray-200 mb-6 gap-0" role="tablist" aria-label="企業詳細セクション">
         {TABS.map((tab) => (
           <button
             key={tab.key}
+            role="tab"
+            aria-selected={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === tab.key

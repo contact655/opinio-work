@@ -80,11 +80,14 @@ export default function ArticleFilterBar({ total }: { total: number }) {
           </div>
 
           {/* Type filter pills */}
+          <div role="tablist" aria-label="記事タイプで絞り込み" style={{ display: "contents" }}>
           {ARTICLE_TYPES.map(({ value, label }) => {
             const active = currentType === value;
             return (
               <button
                 key={value}
+                role="tab"
+                aria-selected={active}
                 onClick={() => updateParam("type", value === "all" ? null : value)}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
@@ -105,18 +108,20 @@ export default function ArticleFilterBar({ total }: { total: number }) {
               </button>
             );
           })}
+          </div>
 
           {/* Spacer */}
           <div style={{ flex: 1 }} />
 
           {/* Count */}
-          <span style={{ fontSize: 13, color: INK_MUTE, whiteSpace: "nowrap" }}>
+          <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: INK_MUTE, whiteSpace: "nowrap" }}>
             <strong style={{ color: "var(--royal)", fontSize: 15, fontFamily: "Inter, sans-serif" }}>{total}</strong> 本
           </span>
 
           {/* Sort */}
           <select
             value={currentSort}
+            aria-label="記事の並び順"
             onChange={(e) => updateParam("sort", e.target.value === "latest" ? null : e.target.value)}
             style={{
               padding: "7px 12px", border: `1px solid ${LINE}`, borderRadius: 8,

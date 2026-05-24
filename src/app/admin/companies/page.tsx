@@ -160,7 +160,7 @@ export default function AdminCompaniesPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }} role="tablist" aria-label="企業ステータスで絞り込み">
         {STATUS_TABS.map((tab) => {
           const count = tab.key === "all"
             ? companies.length
@@ -170,6 +170,8 @@ export default function AdminCompaniesPage() {
           return (
             <button
               key={tab.key}
+              role="tab"
+              aria-selected={activeTab === tab.key}
               onClick={() => setActiveTab(tab.key)}
               style={{
                 padding: "6px 14px", borderRadius: 100,

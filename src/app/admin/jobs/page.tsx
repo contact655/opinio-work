@@ -247,7 +247,7 @@ export default function AdminJobsPage() {
       </div>
 
       {/* Status Tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }} role="tablist" aria-label="求人ステータスで絞り込み">
         {STATUS_TABS.map((tab) => {
           const count = tab.key === "all"
             ? jobs.length
@@ -255,6 +255,8 @@ export default function AdminJobsPage() {
           return (
             <button
               key={tab.key}
+              role="tab"
+              aria-selected={activeTab === tab.key}
               onClick={() => setActiveTab(tab.key)}
               style={{
                 padding: "6px 14px",
