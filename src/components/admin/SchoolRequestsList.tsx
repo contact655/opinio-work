@@ -134,11 +134,11 @@ export default function SchoolRequestsList({ initialRequests }: Props) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">学校名</th>
-              <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">ふりがな</th>
-              <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">送信者</th>
-              <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">送信日時</th>
-              <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">操作</th>
+              <th scope="col" className="text-left px-5 py-3 text-xs text-gray-500 font-medium">学校名</th>
+              <th scope="col" className="text-left px-5 py-3 text-xs text-gray-500 font-medium">ふりがな</th>
+              <th scope="col" className="text-left px-5 py-3 text-xs text-gray-500 font-medium">送信者</th>
+              <th scope="col" className="text-left px-5 py-3 text-xs text-gray-500 font-medium">送信日時</th>
+              <th scope="col" className="text-left px-5 py-3 text-xs text-gray-500 font-medium">操作</th>
             </tr>
           </thead>
           <tbody>
