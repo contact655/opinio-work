@@ -99,11 +99,12 @@ export default function AdminInvitePage() {
 
         {/* Emails */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 8 }}>
+          <label htmlFor="invite-emails" style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 8 }}>
             招待先メールアドレス
             <span style={{ fontWeight: 400, color: "#94a3b8", marginLeft: 8 }}>（1行1件 または カンマ区切り、最大50件）</span>
           </label>
           <textarea
+            id="invite-emails"
             value={emailsText}
             onChange={(e) => setEmailsText(e.target.value)}
             placeholder={"user1@example.com\nuser2@example.com\nuser3@example.com"}
@@ -119,11 +120,12 @@ export default function AdminInvitePage() {
 
         {/* Custom message */}
         <div style={{ marginBottom: 24 }}>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 8 }}>
+          <label htmlFor="invite-message" style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 8 }}>
             招待メッセージ
             <span style={{ fontWeight: 400, color: "#94a3b8", marginLeft: 8 }}>（省略可 — Supabase の招待メールに加えて追加で送信）</span>
           </label>
           <textarea
+            id="invite-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="はじめまして。OPINIO 運営の○○です。このたびご招待しますので、ぜひご登録ください。"

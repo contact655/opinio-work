@@ -648,7 +648,11 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             textAlign: "center", padding: "64px 0", background: "#fff",
             borderRadius: 16, border: "1px solid var(--line)", marginTop: 20,
           }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+              </svg>
+            </div>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う企業が見つかりませんでした</h3>
             <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えてみてください</p>
             <button onClick={() => { setQ(""); router.replace("/companies"); }} style={{

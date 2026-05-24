@@ -50,7 +50,11 @@ async function NoTenantPage() {
         textAlign: "center",
         maxWidth: "var(--max-w-form)", margin: "60px auto",
       }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>🏢</div>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+        </div>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
           企業アカウントを追加しますか？
         </h2>

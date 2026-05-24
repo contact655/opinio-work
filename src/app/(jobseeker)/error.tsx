@@ -24,7 +24,11 @@ export default function JobseekerError({
     }}>
       <div style={{ textAlign: "center", maxWidth: 480 }}>
         {/* Icon */}
-        <div style={{ fontSize: 48, marginBottom: 16 }}>⚡</div>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--error-soft)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
 
         <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", margin: "0 0 12px" }}>
           エラーが発生しました

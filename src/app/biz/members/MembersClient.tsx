@@ -391,10 +391,11 @@ function EditProfileDialog({
         </h2>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+          <label htmlFor="member-role-title" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
             役職
           </label>
           <input
+            id="member-role-title"
             type="text"
             value={roleTitle}
             onChange={(e) => setRoleTitle(e.target.value)}
@@ -418,10 +419,11 @@ function EditProfileDialog({
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+          <label htmlFor="member-department" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
             部署
           </label>
           <input
+            id="member-department"
             type="text"
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
@@ -574,10 +576,11 @@ function AddMemberDialog({
 
         {/* email */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+          <label htmlFor="member-invite-email" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
             メールアドレス
           </label>
           <input
+            id="member-invite-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

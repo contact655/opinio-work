@@ -347,11 +347,12 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
 
           {/* URL + OGP 取得 */}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+            <label htmlFor="post-url" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
               URL <span style={{ color: "var(--error)" }}>*</span>
             </label>
             <div style={{ display: "flex", gap: 8 }}>
               <input
+                id="post-url"
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -403,10 +404,11 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 16px", marginBottom: 16 }}>
             {/* タイトル */}
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+              <label htmlFor="post-title" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
                 タイトル <span style={{ color: "var(--error)" }}>*</span>
               </label>
               <input
+                id="post-title"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -421,10 +423,11 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
 
             {/* 出典名 */}
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+              <label htmlFor="post-source-name" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
                 出典・媒体名
               </label>
               <input
+                id="post-source-name"
                 type="text"
                 value={sourceName}
                 onChange={(e) => setSourceName(e.target.value)}
@@ -439,10 +442,11 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
 
             {/* 公開日 */}
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+              <label htmlFor="post-published-at" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
                 公開日
               </label>
               <input
+                id="post-published-at"
                 type="date"
                 value={publishedAt}
                 onChange={(e) => setPublishedAt(e.target.value)}
@@ -457,10 +461,11 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
 
             {/* type */}
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+              <label htmlFor="post-type" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
                 種別
               </label>
               <select
+                id="post-type"
                 value={type}
                 onChange={(e) => setType(e.target.value as ContentType)}
                 style={{
@@ -479,10 +484,11 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
 
             {/* サムネ URL */}
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+              <label htmlFor="post-thumbnail-url" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
                 サムネイル URL
               </label>
               <input
+                id="post-thumbnail-url"
                 type="url"
                 value={thumbnailUrl}
                 onChange={(e) => setThumbnailUrl(e.target.value)}
@@ -498,10 +504,11 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
 
             {/* 説明 */}
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+              <label htmlFor="post-description" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
                 説明
               </label>
               <textarea
+                id="post-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="コンテンツの簡単な説明（OGP から自動取得）"
