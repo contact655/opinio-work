@@ -107,8 +107,9 @@ export default function AdminNewConsultationCase() {
         <form onSubmit={handleSubmit} className="space-y-5 bg-white p-8 rounded-xl border border-gray-200">
           {/* Mentor */}
           <div>
-            <label className={labelClass}>メンター</label>
+            <label htmlFor="field-mentor" className={labelClass}>メンター</label>
             <select
+              id="field-mentor"
               value={mentorId}
               onChange={(e) => setMentorId(e.target.value)}
               className={inputClass}
@@ -122,8 +123,9 @@ export default function AdminNewConsultationCase() {
 
           {/* Date */}
           <div>
-            <label className={labelClass}>相談日</label>
+            <label htmlFor="field-date" className={labelClass}>相談日</label>
             <input
+              id="field-date"
               type="date"
               value={consultedAt}
               onChange={(e) => setConsultedAt(e.target.value)}
@@ -134,8 +136,9 @@ export default function AdminNewConsultationCase() {
 
           {/* Profile */}
           <div>
-            <label className={labelClass}>相談者プロフィール（匿名）</label>
+            <label htmlFor="field-profile" className={labelClass}>相談者プロフィール（匿名）</label>
             <input
+              id="field-profile"
               type="text"
               value={anonProfile}
               onChange={(e) => setAnonProfile(e.target.value)}
@@ -147,8 +150,9 @@ export default function AdminNewConsultationCase() {
 
           {/* Category */}
           <div>
-            <label className={labelClass}>悩みカテゴリ</label>
+            <label htmlFor="field-category" className={labelClass}>悩みカテゴリ</label>
             <select
+              id="field-category"
               value={worryCategory}
               onChange={(e) => setWorryCategory(e.target.value)}
               className={inputClass}
@@ -161,8 +165,9 @@ export default function AdminNewConsultationCase() {
 
           {/* Worry */}
           <div>
-            <label className={labelClass}>相談内容</label>
+            <label htmlFor="field-worry" className={labelClass}>相談内容</label>
             <textarea
+              id="field-worry"
               value={worrySummary}
               onChange={(e) => setWorrySummary(e.target.value)}
               className={inputClass}
@@ -174,8 +179,9 @@ export default function AdminNewConsultationCase() {
 
           {/* Insight */}
           <div>
-            <label className={labelClass}>気づき・アドバイス</label>
+            <label htmlFor="field-insight" className={labelClass}>気づき・アドバイス</label>
             <textarea
+              id="field-insight"
               value={insight}
               onChange={(e) => setInsight(e.target.value)}
               className={inputClass}
@@ -187,8 +193,9 @@ export default function AdminNewConsultationCase() {
 
           {/* Action */}
           <div>
-            <label className={labelClass}>その後のアクション（任意）</label>
+            <label htmlFor="field-action" className={labelClass}>その後のアクション（任意）</label>
             <input
+              id="field-action"
               type="text"
               value={actionTaken}
               onChange={(e) => setActionTaken(e.target.value)}
@@ -199,8 +206,9 @@ export default function AdminNewConsultationCase() {
 
           {/* Display order */}
           <div>
-            <label className={labelClass}>表示順</label>
+            <label htmlFor="field-order" className={labelClass}>表示順</label>
             <input
+              id="field-order"
               type="number"
               value={displayOrder}
               onChange={(e) => setDisplayOrder(Number(e.target.value))}
