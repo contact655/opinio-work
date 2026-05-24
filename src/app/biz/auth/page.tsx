@@ -741,8 +741,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
               style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}
             >
               <div>
-                <FieldLabel label="業種" required />
+                <FieldLabel label="業種" required htmlFor="biz-signup-industry" />
                 <select
+                  id="biz-signup-industry"
                   required
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
@@ -757,8 +758,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
                 </select>
               </div>
               <div>
-                <FieldLabel label="従業員数" required />
+                <FieldLabel label="従業員数" required htmlFor="biz-signup-employee-count" />
                 <select
+                  id="biz-signup-employee-count"
                   required
                   value={employeeCount}
                   onChange={(e) => setEmployeeCount(e.target.value)}
@@ -838,6 +840,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             onChange={(e) => !isInviteMode && handleEmailChange(e.target.value)}
             onBlur={!isInviteMode ? handleEmailBlur : undefined}
             placeholder="yamada@your-company.co.jp"
+            aria-describedby="biz-signup-email-hint"
             style={{
               ...inputStyle,
               ...(isInviteMode ? { background: "var(--bg-tint)", color: "var(--ink-soft)", cursor: "not-allowed" } : {}),
@@ -845,12 +848,12 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             onFocus={(e) => !isInviteMode && applyFocusStyle(e.currentTarget)}
           />
           {showPersonalWarning && (
-            <div style={{ ...hintStyle, color: "var(--warm)" }}>
+            <div id="biz-signup-email-hint" role="alert" style={{ ...hintStyle, color: "var(--warm)" }}>
               ⚠ 企業ドメインのメールアドレスをご入力ください（gmail・yahoo等の個人アドレスはご利用いただけません）
             </div>
           )}
           {!showPersonalWarning && (
-            <div style={hintStyle}>企業ドメインのメールアドレスをご入力ください。</div>
+            <div id="biz-signup-email-hint" style={hintStyle}>企業ドメインのメールアドレスをご入力ください。</div>
           )}
           {showExistingNotice && (
             <ExistingUserNotice
@@ -877,13 +880,14 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
               autoComplete="new-password"
               onChange={(e) => setPassword(e.target.value)}
               placeholder="8文字以上"
+              aria-describedby="biz-signup-password-hint"
               style={{ ...inputStyle, paddingRight: 42 }}
               onFocus={(e) => applyFocusStyle(e.currentTarget)}
               onBlur={(e) => removeFocusStyle(e.currentTarget)}
             />
             <PasswordToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />
           </div>
-          <div style={hintStyle}>8文字以上。英数字を組み合わせてください。</div>
+          <div id="biz-signup-password-hint" style={hintStyle}>8文字以上。英数字を組み合わせてください。</div>
         </div>
 
         {/* unified-account-notice: 招待モードでは不要 */}

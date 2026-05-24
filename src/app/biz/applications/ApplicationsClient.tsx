@@ -428,10 +428,11 @@ function DetailPanel({ app, isUpdating, onStatusChange }: DetailProps) {
 
         {/* Status selector */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-          <label style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>
+          <label htmlFor={`app-status-${app.id}`} style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>
             ステータス変更
           </label>
           <select
+            id={`app-status-${app.id}`}
             value={app.status}
             disabled={isUpdating}
             onChange={(e) => {

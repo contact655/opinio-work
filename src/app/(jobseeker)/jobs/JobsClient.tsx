@@ -861,6 +861,7 @@ export default function JobsClient({
 
             {/* Salary filter */}
             <select
+              id="jobs-salary"
               value={salary}
               onChange={(e) => setParam("salary", e.target.value)}
               aria-label="年収で絞り込み"
@@ -893,6 +894,7 @@ export default function JobsClient({
 
             {/* Industry filter */}
             <select
+              id="jobs-industry"
               value={industry}
               onChange={(e) => setParam("industry", e.target.value)}
               aria-label="業界で絞り込み"
@@ -946,6 +948,7 @@ export default function JobsClient({
                   backgroundRepeat: "no-repeat",
                   backgroundPosition: "right 8px center",
                 }}
+                id="jobs-prefecture"
                 aria-label="都道府県で絞り込み"
               >
                 <option value="">都道府県</option>
@@ -1002,6 +1005,7 @@ export default function JobsClient({
 
             {/* Sort */}
             <select
+              id="jobs-sort"
               value={sort}
               onChange={(e) => setParam("sort", e.target.value)}
               aria-label="並び順"

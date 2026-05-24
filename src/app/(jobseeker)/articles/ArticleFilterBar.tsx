@@ -128,6 +128,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
 
           {/* Sort */}
           <select
+            id="articles-sort"
             value={currentSort}
             aria-label="記事の並び順"
             onChange={(e) => updateParam("sort", e.target.value === "latest" ? null : e.target.value)}

@@ -167,6 +167,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
             )}
           </div>
           <select
+            id="candidates-job-type"
             value={jobType}
             aria-label="職種で絞り込み"
             onChange={(e) => setJobType(e.target.value)}
@@ -183,6 +184,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
             ))}
           </select>
           <select
+            id="candidates-work-style"
             value={workStyle}
             aria-label="勤務スタイルで絞り込み"
             onChange={(e) => setWorkStyle(e.target.value)}
@@ -199,6 +201,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
             ))}
           </select>
           <select
+            id="candidates-salary-min"
             value={salaryMin}
             aria-label="希望年収で絞り込み"
             onChange={(e) => setSalaryMin(Number(e.target.value))}
