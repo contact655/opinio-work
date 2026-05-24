@@ -1,3 +1,4 @@
+import type React from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -7,24 +8,40 @@ export const metadata: Metadata = {
   robots: { index: true },
 };
 
-const FEATURES = [
+const FEATURES: { icon: React.ReactNode; title: string; desc: string }[] = [
   {
-    icon: "🏢",
+    icon: (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
     title: "企業情報を掲載する",
     desc: "会社の文化・働き方・フィット感を丁寧に伝えられます。採用ページよりも「素」の企業を表現できます。",
   },
   {
-    icon: "💼",
+    icon: (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+      </svg>
+    ),
     title: "求人を掲載する",
     desc: "IT/SaaS 業界に特化したプラットフォームで、経験者へ直接リーチ。求人票の作成・公開を無料で始められます。",
   },
   {
-    icon: "☕",
+    icon: (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
     title: "カジュアル面談で接点を作る",
     desc: "転職意欲に関わらず興味を持った求職者と対話。スカウトではなく、求職者が選んで来ます。",
   },
   {
-    icon: "📊",
+    icon: (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
     title: "応募を管理する",
     desc: "応募者の一覧・選考ステータス管理・メッセージのやり取りをワンストップで。",
   },
@@ -135,7 +152,7 @@ export default function BizLandingPage() {
                 fontWeight: 600,
                 marginBottom: 24,
               }}>
-                🎉 掲載・利用無料（βプログラム）
+                ✦ 掲載・利用無料（βプログラム）
               </div>
               <h1 className="biz-lp-hero-title" style={{
                 fontSize: 36,
@@ -230,7 +247,12 @@ export default function BizLandingPage() {
                 borderRadius: 12,
                 padding: "24px 28px",
               }}>
-                <div style={{ fontSize: 28, marginBottom: 12 }}>{f.icon}</div>
+                <div style={{
+                  width: 52, height: 52, borderRadius: 12,
+                  background: "rgba(0,35,102,0.06)", color: "#002366",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  marginBottom: 16,
+                }}>{f.icon}</div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 8px", color: "#0f172a" }}>{f.title}</h3>
                 <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.7, margin: 0 }}>{f.desc}</p>
               </div>

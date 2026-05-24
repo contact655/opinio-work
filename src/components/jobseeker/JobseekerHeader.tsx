@@ -476,7 +476,11 @@ export function JobseekerHeader() {
                           style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, textDecoration: "none", transition: "background 0.1s" }}
                           onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-tint)"}
                           onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                          <div style={{ width: 28, height: 28, borderRadius: 6, background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", flexShrink: 0, fontSize: 14 }}>💼</div>
+                          <div style={{ width: 28, height: 28, borderRadius: 6, background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", flexShrink: 0 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                            </svg>
+                          </div>
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{j.title}</div>
                             {j.job_category && <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{j.job_category}</div>}
