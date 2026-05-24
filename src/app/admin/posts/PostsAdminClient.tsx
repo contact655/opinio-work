@@ -81,6 +81,13 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
   // 保存状態
   const [isPending, startTransition] = useTransition();
   const [formError, setFormError] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setTimeout(() => setErrorMessage(null), 4000);
+  };
 
   // ─── フィルタ済み一覧 ──
 
@@ -204,13 +211,17 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
   // ─── 削除 ──
 
   const handleDelete = (id: string) => {
-    if (!confirm("この発信リンクを削除しますか？")) return;
+    setPendingDeleteId(id);
+  };
+
+  const confirmDelete = (id: string) => {
+    setPendingDeleteId(null);
     startTransition(async () => {
       const result = await deleteAdminPost(id);
       if (result.success) {
         setPosts((prev) => prev.filter((p) => p.id !== id));
       } else {
-        alert(result.error);
+        showError(result.error ?? "削除に失敗しました。再度お試しください。");
       }
     });
   };
@@ -219,6 +230,13 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
 
   return (
     <div className="p-8">
+      {/* ── エラーバナー ── */}
+      {errorMessage && (
+        <div className="flex items-center justify-between p-3 mb-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 font-semibold">
+          <span>⚠ {errorMessage}</span>
+          <button onClick={() => setErrorMessage(null)} className="ml-2 text-red-500 hover:text-red-700">×</button>
+        </div>
+      )}
       {/* ── ヘッダー ── */}
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
@@ -505,13 +523,40 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
             </thead>
             <tbody>
               {filteredPosts.map((post) => (
-                <AdminPostRow
-                  key={post.id}
-                  post={post}
-                  isPending={isPending}
-                  onEdit={() => handleEdit(post)}
-                  onDelete={() => handleDelete(post.id)}
-                />
+                <>
+                  <AdminPostRow
+                    key={post.id}
+                    post={post}
+                    isPending={isPending}
+                    onEdit={() => handleEdit(post)}
+                    onDelete={() => handleDelete(post.id)}
+                  />
+                  {pendingDeleteId === post.id && (
+                    <tr key={`${post.id}-confirm`} className="bg-red-50">
+                      <td colSpan={6} className="px-4 py-3 border-b border-red-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-red-700">
+                            この発信リンクを削除しますか？この操作は取り消せません。
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setPendingDeleteId(null)}
+                              className="px-3 py-1.5 text-xs font-semibold border border-gray-200 rounded-md bg-white text-gray-500 cursor-pointer"
+                            >
+                              キャンセル
+                            </button>
+                            <button
+                              onClick={() => confirmDelete(post.id)}
+                              className="px-3 py-1.5 text-xs font-semibold border border-red-500 rounded-md bg-red-500 text-white cursor-pointer"
+                            >
+                              削除する
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </tbody>
           </table>

@@ -728,7 +728,6 @@ function BookmarkGrid({ items }: { items: Bookmark[] }) {
 
 function BookmarksView({ companyBookmarks, jobBookmarks, mentorBookmarks }: { companyBookmarks: Bookmark[]; jobBookmarks: Bookmark[]; mentorBookmarks: Bookmark[] }) {
   const sections = [
-    { title: "記事", titleEn: "Articles", items: [] as Bookmark[] },
     { title: "企業", titleEn: "Companies", items: companyBookmarks },
     { title: "求人", titleEn: "Jobs", items: jobBookmarks },
     { title: "メンター", titleEn: "Mentors", items: mentorBookmarks },

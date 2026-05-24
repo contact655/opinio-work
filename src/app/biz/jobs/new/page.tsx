@@ -1,4 +1,5 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
+import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { JobEditForm } from "@/components/business/JobEditForm";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
@@ -34,15 +35,7 @@ export default async function JobNewPage() {
   const userName = user?.email ? user.email.split("@")[0] : "ご担当者";
 
   const ctx = await getTenantContext();
-  if (!ctx) {
-    return (
-      <BusinessLayout userName={userName} variant="fullBleed">
-        <div style={{ textAlign: "center", padding: "80px 20px", color: "var(--ink-mute)" }}>
-          企業アカウントが必要です
-        </div>
-      </BusinessLayout>
-    );
-  }
+  if (!ctx) return <BizNoTenantPage userName={userName} />;
 
   const teamMembers = await fetchTeamMembers(supabase, ctx.tenantId);
 
