@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { MeetingApplication, MeetingStatus } from "@/lib/business/mockMeetings";
 import { STATUS_TABS } from "@/lib/business/mockMeetings";
@@ -219,6 +219,25 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
     if (!selectedId) return;
     handleStatusChange(selectedId, "scheduled");
   }, [selectedId, handleStatusChange]);
+
+  // ── Keyboard navigation ─────────────────────────────────────
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      // Don't intercept when typing in inputs/textareas
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+
+      if (e.key === "ArrowDown" || e.key === "j") {
+        e.preventDefault();
+        if (selectedIndex < filtered.length - 1) setSelectedId(filtered[selectedIndex + 1].id);
+      } else if (e.key === "ArrowUp" || e.key === "k") {
+        e.preventDefault();
+        if (selectedIndex > 0) setSelectedId(filtered[selectedIndex - 1].id);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [filtered, selectedIndex]);
 
   const handleProfileDetail = useCallback(() => {
     const userId = selectedMeeting?.applicantUserId;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import type { BizApplication, ApplicationStatus, ApplicationStatusTab } from "@/lib/business/applications";
 import { APPLICATION_STATUS_TABS, countByStatus, VALID_APPLICATION_STATUSES } from "@/lib/business/applications";
@@ -162,6 +162,28 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
     applications.find((a) => a.id === selectedId) ?? null,
     [applications, selectedId]
   );
+
+  const selectedIndex = useMemo(() =>
+    filtered.findIndex((a) => a.id === selectedId),
+    [filtered, selectedId]
+  );
+
+  // ── Keyboard navigation (↑↓ / j k) ──────────────────────────────────────
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      if (e.key === "ArrowDown" || e.key === "j") {
+        e.preventDefault();
+        if (selectedIndex < filtered.length - 1) setSelectedId(filtered[selectedIndex + 1].id);
+      } else if (e.key === "ArrowUp" || e.key === "k") {
+        e.preventDefault();
+        if (selectedIndex > 0) setSelectedId(filtered[selectedIndex - 1].id);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [filtered, selectedIndex]);
 
   // ── Status change ─────────────────────────────────────────────────────────
   async function handleStatusChange(appId: string, newStatus: ApplicationStatus) {
