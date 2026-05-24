@@ -120,7 +120,7 @@ export function AddByTokenClient() {
         />
 
         {error && (
-          <div style={{
+          <div role="alert" aria-live="polite" style={{
             marginTop: 10, fontSize: 12, color: "var(--error)",
             padding: "9px 12px", background: "var(--error-soft)",
             borderRadius: 6, lineHeight: 1.6,

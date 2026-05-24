@@ -923,7 +923,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
 
         {/* エラー */}
         {error && (
-          <div style={{
+          <div role="alert" aria-live="polite" style={{
             fontSize: 12,
             color: "var(--error)",
             padding: "8px 12px",
@@ -1253,7 +1253,7 @@ function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, route
 
         {/* エラー */}
         {error && (
-          <div style={{
+          <div role="alert" aria-live="polite" style={{
             fontSize: 12,
             color: "var(--error)",
             padding: "8px 12px",

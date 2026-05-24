@@ -275,7 +275,7 @@ function ConfirmDialog({
         </p>
 
         {errorMessage && (
-          <div style={{
+          <div role="alert" aria-live="polite" style={{
             padding: "10px 14px",
             background: "var(--error-soft)",
             border: "1px solid #FCA5A5",
@@ -447,7 +447,7 @@ function EditProfileDialog({
         </div>
 
         {errorMessage && (
-          <div style={{
+          <div role="alert" aria-live="polite" style={{
             padding: "10px 14px",
             background: "var(--error-soft)",
             border: "1px solid #FCA5A5",

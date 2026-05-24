@@ -146,7 +146,7 @@ export default function ResetPasswordPage() {
                 </div>
 
                 {error && (
-                  <div style={{
+                  <div role="alert" aria-live="polite" style={{
                     padding: "10px 14px",
                     background: "var(--error-soft)",
                     border: "1px solid #FCA5A5",
