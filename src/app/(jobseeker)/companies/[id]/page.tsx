@@ -302,6 +302,58 @@ function Hero({
                   </span>
                 )}
               </div>
+
+              {/* Perk keyword chips — work style highlights (max 4) */}
+              {(() => {
+                const chips: { icon: string; label: string }[] = [];
+                // Remote/location
+                if (detail.work_location.length > 0) {
+                  const wl = detail.work_location[0].label;
+                  const icon = wl.includes("リモート") || wl.includes("在宅") || wl.includes("テレワーク") ? "🏠" : "🏢";
+                  chips.push({ icon, label: wl });
+                }
+                // Work style (flex, side job)
+                for (const ws of detail.work_style) {
+                  if (chips.length >= 4) break;
+                  const icon = ws.label.includes("フレックス") ? "⏰"
+                    : ws.label.includes("副業") ? "💼"
+                    : ws.label.includes("裁量") ? "⚡"
+                    : "✨";
+                  chips.push({ icon, label: ws.label });
+                }
+                // Top benefits
+                for (const b of (detail.benefits ?? [])) {
+                  if (chips.length >= 4) break;
+                  const icon = b.includes("ストックオプション") || b.includes("SO") ? "📈"
+                    : b.includes("書籍") || b.includes("研修") ? "📚"
+                    : b.includes("育休") || b.includes("産休") ? "👶"
+                    : "✓";
+                  chips.push({ icon, label: b.length > 12 ? b.slice(0, 12) + "…" : b });
+                }
+                if (chips.length === 0) return null;
+                return (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+                    {chips.slice(0, 4).map(({ icon, label }) => (
+                      <span
+                        key={label}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "4px 10px",
+                          background: "rgba(0,35,102,0.05)",
+                          color: "var(--ink-soft)",
+                          border: "1px solid rgba(0,35,102,0.1)",
+                          borderRadius: 100,
+                          fontSize: 11,
+                          fontWeight: 500,
+                        }}
+                      >
+                        <span style={{ fontSize: 12 }}>{icon}</span>
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -950,7 +1002,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
         企業からの回答をもとにしています。ミスマッチ防止のために企業が正直に記載した情報です。
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="fit-grid">
+      <div style={{ display: "grid", gridTemplateColumns: (hasFit && hasCaution) ? "1fr 1fr" : "1fr", gap: 16 }} className="fit-grid">
         {/* 合う人 */}
         {hasFit && (
           <div style={{
@@ -1834,9 +1886,26 @@ function CurrentEmployeesSection({
       })()}
 
       {employees.length === 0 ? (
-        <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8, margin: 0 }}>
-          公開準備中 — OPINIO で取材した社員プロフィールが順次公開されます
-        </p>
+        <div style={{
+          textAlign: "center", padding: "32px 20px",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+        }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: "50%",
+            background: "var(--royal-50)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 22,
+          }}>
+            👥
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)" }}>
+            社員プロフィールを準備中
+          </div>
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+            OPINIO 取材メンバーが順次公開されます。<br />
+            カジュアル面談で直接チームの声を聞けます。
+          </div>
+        </div>
       ) : categories.length === 0 ? (
         // カテゴリ設定なし → レスポンシブ列
         <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
@@ -2111,16 +2180,15 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
           ))}
         </div>
       ) : (
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--ink-mute)",
-            lineHeight: 1.8,
-            margin: 0,
-          }}
-        >
-          OB・OG情報は順次更新されます
-        </p>
+        <div style={{
+          textAlign: "center", padding: "24px 20px",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+        }}>
+          <span style={{ fontSize: 28 }}>🎓</span>
+          <div style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+            OB・OG情報は順次更新されます
+          </div>
+        </div>
       )}
       </div>
     </section>
