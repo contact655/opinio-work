@@ -168,6 +168,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
           </div>
           <select
             value={jobType}
+            aria-label="職種で絞り込み"
             onChange={(e) => setJobType(e.target.value)}
             style={{
               height: 36, padding: "0 10px",
@@ -183,6 +184,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
           </select>
           <select
             value={workStyle}
+            aria-label="勤務スタイルで絞り込み"
             onChange={(e) => setWorkStyle(e.target.value)}
             style={{
               height: 36, padding: "0 10px",
@@ -198,6 +200,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
           </select>
           <select
             value={salaryMin}
+            aria-label="希望年収で絞り込み"
             onChange={(e) => setSalaryMin(Number(e.target.value))}
             style={{
               height: 36, padding: "0 10px",
@@ -213,7 +216,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
 
           {/* Result count + clear */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-            <span style={{ fontSize: 13, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
+            <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
               <strong style={{ color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>{filtered.length}</strong>
               {" "}件
             </span>
