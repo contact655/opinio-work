@@ -431,15 +431,21 @@ function FormSection({
 }
 
 function FormGroup({
-  label, hint, children,
+  label, hint, children, htmlFor,
 }: {
-  label: string; hint?: string; children: React.ReactNode;
+  label: string; hint?: string; children: React.ReactNode; htmlFor?: string;
 }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
-        {label}
-      </div>
+      {htmlFor ? (
+        <label htmlFor={htmlFor} style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
+          {label}
+        </label>
+      ) : (
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
+          {label}
+        </div>
+      )}
       {children}
       {hint && (
         <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6, lineHeight: 1.6 }}>
@@ -1070,8 +1076,9 @@ function EducationForm({
     }}>
       {/* 学校名 — Phase 5: datalist コンボボックス */}
       <div>
-        <label style={el()}>学校名 *</label>
+        <label htmlFor="edu-school" style={el()}>学校名 *</label>
         <input
+          id="edu-school"
           type="text"
           list="school-options"
           value={draft.school}
@@ -1113,8 +1120,9 @@ function EducationForm({
 
       {/* 学部・学科 */}
       <div>
-        <label style={el()}>学部・学科（任意）</label>
+        <label htmlFor="edu-faculty" style={el()}>学部・学科（任意）</label>
         <input
+          id="edu-faculty"
           type="text"
           value={draft.faculty}
           onChange={(e) => set("faculty", e.target.value)}
@@ -1127,8 +1135,9 @@ function EducationForm({
 
       {/* 学位 */}
       <div>
-        <label style={el()}>学位（任意）</label>
+        <label htmlFor="edu-degree" style={el()}>学位（任意）</label>
         <select
+          id="edu-degree"
           value={draft.degree}
           onChange={(e) => set("degree", e.target.value)}
           disabled={isSaving}
@@ -2947,19 +2956,22 @@ export default function ProfileEditClient({
               title="基本情報"
               desc="プロフィールページに表示される情報です。"
             >
-              <FormGroup label="名前">
+              <FormGroup label="名前" htmlFor="pe-name">
                 <input
+                  id="pe-name"
                   type="text"
                   value={basicInfo.name}
+                  autoComplete="name"
                   onChange={(e) => setBasicInfo((prev) => ({ ...prev, name: e.target.value }))}
                   placeholder="例：山田 太郎"
                   style={inputStyle()}
                 />
               </FormGroup>
 
-              <FormGroup label="所在地" hint="現在お住まいの都道府県を選択してください。">
+              <FormGroup label="所在地" hint="現在お住まいの都道府県を選択してください。" htmlFor="pe-location">
                 <div style={{ position: "relative" }}>
                   <select
+                    id="pe-location"
                     value={basicInfo.location}
                     onChange={(e) => setBasicInfo((prev) => ({ ...prev, location: e.target.value }))}
                     style={selectStyle()}
@@ -3130,8 +3142,9 @@ export default function ProfileEditClient({
               title="希望職種・経験年数"
               desc="企業側の候補者サーチに表示されます。カジュアル面談の申込をもらいやすくなります。"
             >
-              <FormGroup label="希望職種">
+              <FormGroup label="希望職種" htmlFor="pe-job-type">
                 <select
+                  id="pe-job-type"
                   value={prefJobType}
                   onChange={async (e) => {
                     setPrefJobType(e.target.value);
@@ -3153,8 +3166,9 @@ export default function ProfileEditClient({
                   <option value="その他">その他</option>
                 </select>
               </FormGroup>
-              <FormGroup label="社会人経験年数">
+              <FormGroup label="社会人経験年数" htmlFor="pe-exp-years">
                 <select
+                  id="pe-exp-years"
                   value={prefExpYears}
                   onChange={async (e) => {
                     setPrefExpYears(e.target.value);
@@ -3175,8 +3189,9 @@ export default function ProfileEditClient({
               title="勤務スタイル・転職時期"
               desc="希望する働き方と転職のタイミングを教えてください。"
             >
-              <FormGroup label="希望勤務スタイル">
+              <FormGroup label="希望勤務スタイル" htmlFor="pe-work-style">
                 <select
+                  id="pe-work-style"
                   value={prefWorkStyle}
                   onChange={async (e) => {
                     setPrefWorkStyle(e.target.value);
@@ -3191,8 +3206,9 @@ export default function ProfileEditClient({
                   <option value="flexible">柔軟に対応できる</option>
                 </select>
               </FormGroup>
-              <FormGroup label="転職検討時期">
+              <FormGroup label="転職検討時期" htmlFor="pe-timing">
                 <select
+                  id="pe-timing"
                   value={prefTiming}
                   onChange={async (e) => {
                     setPrefTiming(e.target.value);
@@ -3215,9 +3231,10 @@ export default function ProfileEditClient({
               desc="非公開にしたい場合は未入力のままにしてください。入力した場合は企業側に表示されます。"
             >
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <FormGroup label="希望年収（下限）">
+                <FormGroup label="希望年収（下限）" htmlFor="pe-salary-min">
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <input
+                      id="pe-salary-min"
                       type="number"
                       value={prefSalaryMin}
                       onChange={(e) => setPrefSalaryMin(e.target.value)}
@@ -3233,9 +3250,10 @@ export default function ProfileEditClient({
                     <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
                   </div>
                 </FormGroup>
-                <FormGroup label="希望年収（上限）">
+                <FormGroup label="希望年収（上限）" htmlFor="pe-salary-max">
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <input
+                      id="pe-salary-max"
                       type="number"
                       value={prefSalaryMax}
                       onChange={(e) => setPrefSalaryMax(e.target.value)}
@@ -3314,8 +3332,9 @@ export default function ProfileEditClient({
               title="今一番の悩み・相談テーマ"
               desc="メンター相談やカジュアル面談のマッチングに使われます。"
             >
-              <FormGroup label="今一番の悩み">
+              <FormGroup label="今一番の悩み" htmlFor="pe-worry">
                 <select
+                  id="pe-worry"
                   value={prefWorry}
                   onChange={async (e) => {
                     setPrefWorry(e.target.value);
@@ -3460,8 +3479,9 @@ export default function ProfileEditClient({
               title="プロフィールの公開設定"
               desc="プロフィールページを他のユーザーが閲覧できるかどうかを設定します。"
             >
-              <FormGroup label="公開範囲">
+              <FormGroup label="公開範囲" htmlFor="pe-visibility">
                 <select
+                  id="pe-visibility"
                   value={settings.visibility}
                   onChange={(e) =>
                     setSettings((prev) => ({ ...prev, visibility: e.target.value as SettingsState["visibility"] }))

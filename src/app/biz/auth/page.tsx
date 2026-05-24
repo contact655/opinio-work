@@ -834,6 +834,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             required
             readOnly={isInviteMode}
             value={email}
+            autoComplete="email"
             onChange={(e) => !isInviteMode && handleEmailChange(e.target.value)}
             onBlur={!isInviteMode ? handleEmailBlur : undefined}
             placeholder="yamada@your-company.co.jp"
@@ -873,6 +874,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
               required
               minLength={8}
               value={password}
+              autoComplete="new-password"
               onChange={(e) => setPassword(e.target.value)}
               placeholder="8文字以上"
               style={{ ...inputStyle, paddingRight: 42 }}

@@ -148,15 +148,16 @@ export default function ApplicationForm({
 
           {/* Email — readonly */}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
+            <label htmlFor="apply-email" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
               メールアドレス
               <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>認証メールから自動取得</span>
-            </div>
+            </label>
             <input
+              id="apply-email"
               type="email"
               value={authEmail}
               readOnly
-              aria-label="メールアドレス"
+              autoComplete="email"
               style={{
                 width: "100%", padding: "10px 12px",
                 border: "1.5px solid var(--line)", borderRadius: 8,
@@ -168,16 +169,17 @@ export default function ApplicationForm({
 
           {/* Phone — optional */}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
+            <label htmlFor="apply-phone" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
               電話番号
               <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>任意</span>
-            </div>
+            </label>
             <input
+              id="apply-phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="090-0000-0000"
-              aria-label="電話番号（任意）"
+              autoComplete="tel"
               style={{
                 width: "100%", padding: "10px 12px",
                 border: "1.5px solid var(--line)", borderRadius: 8,
@@ -190,16 +192,16 @@ export default function ApplicationForm({
 
           {/* Message — optional */}
           <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
+            <label htmlFor="apply-message" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
               志望動機・メッセージ
               <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>任意</span>
-            </div>
+            </label>
             <textarea
+              id="apply-message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={`${companyName}に応募した理由や、自己PRをご記入ください。`}
               rows={6}
-              aria-label="志望動機・メッセージ（任意）"
               style={{
                 width: "100%", padding: "10px 12px",
                 border: "1.5px solid var(--line)", borderRadius: 8,

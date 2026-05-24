@@ -583,6 +583,7 @@ function AddMemberDialog({
             id="member-invite-email"
             type="email"
             value={email}
+            autoComplete="email"
             onChange={(e) => setEmail(e.target.value)}
             placeholder="example@company.com"
             disabled={isSubmitting}
