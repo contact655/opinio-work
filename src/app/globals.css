@@ -362,6 +362,47 @@ button:focus-visible {
   border-radius: 4px;
 }
 
+/* ── FAQ accordion (business LP) ── */
+details > summary::-webkit-details-marker { display: none; }
+details[open] .faq-chevron { transform: rotate(180deg); }
+details > summary:hover { background: var(--bg-tint); }
+
+/* ── Stat card hover (mypage) ── */
+.stat-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.stat-card-hover:hover {
+  border-color: var(--royal-100) !important;
+  box-shadow: 0 4px 12px rgba(0,35,102,0.08) !important;
+  transform: translateY(-1px);
+}
+
+/* ── Bookmark card hover (mypage) ── */
+.bookmark-card-hover {
+  transition: border-color 0.15s ease;
+}
+.bookmark-card-hover:hover {
+  border-color: var(--royal-100) !important;
+}
+
+/* ── genre-card hover (CompanyCardCompact) ── */
+.genre-card {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.genre-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,35,102,0.09);
+}
+
+/* ── Mentor detail CTA hover ── */
+.mentor-detail-cta:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
 /* ── Mentor suggest card (job detail) ── */
 .mentor-suggest-card:hover {
   border-color: var(--royal-100) !important;

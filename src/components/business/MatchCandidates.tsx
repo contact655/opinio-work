@@ -60,27 +60,60 @@ export function MatchCandidates({ candidates }: Props) {
       padding: "22px 26px",
     }}>
       <div style={{
-        fontFamily: "var(--font-noto-serif)",
-        fontSize: 15, fontWeight: 600, color: "var(--ink)",
-        display: "flex", alignItems: "baseline", gap: 8,
+        display: "flex", alignItems: "baseline", justifyContent: "space-between",
         marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--line)",
       }}>
-        マッチ候補者
-        <span style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 9, fontWeight: 700,
-          color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
-        }}>Match Candidates</span>
+        <div style={{
+          fontFamily: "var(--font-noto-serif)",
+          fontSize: 15, fontWeight: 600, color: "var(--ink)",
+          display: "flex", alignItems: "baseline", gap: 8,
+        }}>
+          候補者サーチ
+          <span style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 9, fontWeight: 700,
+            color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
+          }}>Candidates</span>
+        </div>
+        <a href="/biz/candidates" style={{
+          fontSize: 12, color: "var(--royal)", fontWeight: 600,
+          textDecoration: "none",
+        }}>
+          すべて見る →
+        </a>
       </div>
 
       {candidates.length === 0 ? (
         <div style={{
-          padding: "32px 0",
+          padding: "24px 0",
           textAlign: "center",
-          color: "var(--ink-mute)",
-          fontSize: 13,
         }}>
-          マッチ候補者は現在表示されていません
+          <div style={{
+            width: 40, height: 40, borderRadius: "50%",
+            background: "var(--royal-50)", color: "var(--royal)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 12px",
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 4 }}>
+            266名の候補者が登録中
+          </div>
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 16, lineHeight: 1.6 }}>
+            IT/SaaS業界のプロフェッショナルを<br />職種・希望条件で絞り込んで探せます
+          </div>
+          <a href="/biz/candidates" style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "9px 18px",
+            background: "var(--royal)", color: "#fff",
+            borderRadius: 8, fontSize: 13, fontWeight: 600,
+            textDecoration: "none",
+          }}>
+            候補者を探す →
+          </a>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>

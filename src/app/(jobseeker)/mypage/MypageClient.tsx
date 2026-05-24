@@ -996,6 +996,7 @@ export default function MypageClient({
     jobBookmarks.length +
     mentorBookmarks.length;
 
+  // Build recentActivity from real Supabase data (sorted by applied_at desc, top 3)
   const recentActivity: {
     id: string;
     avatar: React.ReactNode;
@@ -1005,34 +1006,27 @@ export default function MypageClient({
     appliedAt: string;
     statusKey: string;
   }[] = [
-    {
-      id: "cm-1",
-      avatar: <CompanyAvatar initial="L" gradient="linear-gradient(135deg,#1E40AF,#002366)" />,
-      companyName: "株式会社LayerX",
-      jobTitle: "Bakuraku事業 PdM",
+    ...casualMeetings.map((m) => ({
+      id: `cm-${m.id}`,
+      avatar: <CompanyAvatar initial={m.company_initial} gradient={m.company_gradient} />,
+      companyName: m.company_name,
+      jobTitle: m.job_title,
       kind: "カジュアル面談",
-      appliedAt: "2026.04.18 申込",
-      statusKey: "pending",
-    },
-    {
-      id: "mr-1",
-      avatar: <PersonAvatar initial="渡" gradient="linear-gradient(135deg,#A78BFA,#7C3AED)" hasMentorBadge />,
-      companyName: "渡辺 美穂さん",
-      jobTitle: "AIスタートアップA社 CPO",
+      appliedAt: `${m.applied_at} 申込`,
+      statusKey: m.status,
+    })),
+    ...mentorReservations.map((r) => ({
+      id: `mr-${r.id}`,
+      avatar: <PersonAvatar initial={r.mentor_initial} gradient={r.mentor_gradient} hasMentorBadge />,
+      companyName: `${r.mentor_name}さん`,
+      jobTitle: r.mentor_role,
       kind: "メンター相談",
-      appliedAt: "2026.04.16 申込",
-      statusKey: "pending_review",
-    },
-    {
-      id: "cm-2",
-      avatar: <CompanyAvatar initial="S" gradient="linear-gradient(135deg,#00B4D8,#0077B6)" />,
-      companyName: "SmartHR株式会社",
-      jobTitle: "プロダクト企画",
-      kind: "カジュアル面談",
-      appliedAt: "2026.04.12 申込 · 2026.04.28(火) 14:00〜",
-      statusKey: "scheduled",
-    },
-  ];
+      appliedAt: `${r.applied_at} 申込`,
+      statusKey: r.status,
+    })),
+  ]
+    .sort((a, b) => b.appliedAt.localeCompare(a.appliedAt))
+    .slice(0, 3);
 
   const statCards = [
     {
@@ -1056,8 +1050,8 @@ export default function MypageClient({
     {
       icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
       iconBg: "var(--purple-soft)", iconColor: "var(--purple)",
-      value: 8, label: "閲覧した\n記事数",
-      onClick: undefined as (() => void) | undefined,
+      value: mentorBookmarks.length, label: "メンター\nブックマーク",
+      onClick: () => navigate("bookmarks"),
     },
   ];
 
@@ -1074,19 +1068,38 @@ export default function MypageClient({
             すべて見る →
           </button>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {recentActivity.map((item) => (
-            <RecentActivityItem
-              key={item.id}
-              avatar={item.avatar}
-              companyName={item.companyName}
-              jobTitle={item.jobTitle}
-              kind={item.kind}
-              appliedAt={item.appliedAt}
-              statusKey={item.statusKey}
-            />
-          ))}
-        </div>
+        {recentActivity.length === 0 ? (
+          <div style={{ padding: "16px 0", textAlign: "center" }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: "50%",
+              background: "var(--warm-soft)", color: "#B45309",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 8px",
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 4 }}>まだ申込はありません</div>
+            <Link href="/companies" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+              企業を探す →
+            </Link>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {recentActivity.map((item) => (
+              <RecentActivityItem
+                key={item.id}
+                avatar={item.avatar}
+                companyName={item.companyName}
+                jobTitle={item.jobTitle}
+                kind={item.kind}
+                appliedAt={item.appliedAt}
+                statusKey={item.statusKey}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ブックマーク */}
@@ -1163,10 +1176,10 @@ export default function MypageClient({
               onClick={card.onClick}
               style={{
                 background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-                padding: "14px", cursor: card.onClick ? "pointer" : "default",
+                padding: "14px", cursor: "pointer",
                 transition: "all 0.2s",
               }}
-              className={card.onClick ? "stat-card-hover" : ""}
+              className="stat-card-hover"
             >
               <div style={{
                 width: 28, height: 28, borderRadius: 8,

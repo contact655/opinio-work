@@ -316,16 +316,35 @@ export default async function MentorDetailPage({ params }: Props) {
               編集部が内容を確認後、{mentor.name}さんに転送します
             </p>
 
-            {/* Bookmark button */}
-            <div style={{ marginTop: 12 }}>
-              <BookmarkButton
-                targetType="mentor"
-                targetId={mentor.id}
-                label="気になるに追加"
-                initialBookmarked={initialBookmarked}
-                isAuthenticated={isAuthenticated}
-                variant="with-text"
-              />
+            {/* Bookmark button + Profile link */}
+            <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <BookmarkButton
+                  targetType="mentor"
+                  targetId={mentor.id}
+                  label="気になるに追加"
+                  initialBookmarked={initialBookmarked}
+                  isAuthenticated={isAuthenticated}
+                  variant="with-text"
+                />
+              </div>
+              {mentor.user_id && (
+                <Link
+                  href={`/u/${mentor.user_id}`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "10px 14px", borderRadius: 8, textDecoration: "none",
+                    background: "var(--royal-50)", color: "var(--royal)",
+                    border: "1px solid var(--royal-100)",
+                    fontSize: 12, fontWeight: 600, whiteSpace: "nowrap",
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  プロフィール
+                </Link>
+              )}
             </div>
           </div>
 

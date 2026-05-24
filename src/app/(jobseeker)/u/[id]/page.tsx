@@ -659,10 +659,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
           <Link href="/companies" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>
             OPINIO
           </Link>
-          {" "}のプロフィールページ ·{" "}
-          <Link href="/auth" style={{ color: "var(--royal)", textDecoration: "none" }}>
-            登録して情報収集を始める
-          </Link>
+          {" "}のプロフィールページ
+          {!authUser && (
+            <>
+              {" "}·{" "}
+              <Link href="/auth" style={{ color: "var(--royal)", textDecoration: "none" }}>
+                登録して情報収集を始める
+              </Link>
+            </>
+          )}
         </div>
 
       </div>

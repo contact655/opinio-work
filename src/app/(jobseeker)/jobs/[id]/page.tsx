@@ -337,6 +337,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </span>
                 ))}
                 {/* Salary — prominent display */}
+                {(job.salary_min || job.salary_max) && (
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
                   fontSize: 18, fontWeight: 700, padding: "4px 14px", borderRadius: 100,
@@ -346,8 +347,12 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                   </svg>
-                  {job.salary_min}-{job.salary_max}万
+                  {job.salary_min && job.salary_max
+                    ? `${job.salary_min}〜${job.salary_max}万`
+                    : job.salary_min ? `${job.salary_min}万〜`
+                    : `〜${job.salary_max}万`}
                 </span>
+                )}
               </div>
             </div>
           </div>
@@ -437,7 +442,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       display: "flex", alignItems: "center", gap: 14,
                       padding: "14px 16px",
                       background: "var(--bg-tint)", border: "1px solid var(--line)",
-                      borderRadius: 10, cursor: "pointer",
+                      borderRadius: 10,
                     }}>
                       <div style={{
                         width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
@@ -465,9 +470,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         </div>
                       </div>
                       <StatusBadge status={m.status} label={m.status_label} />
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
                     </div>
                   ))}
                 </div>
@@ -668,6 +670,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               )}
 
               {/* Related article */}
+              {job.related_article_title && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
                 <SecTitle color="var(--ink)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -714,6 +717,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                 )}
               </section>
+              )}
 
               {/* Company summary */}
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
@@ -815,7 +819,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                             {rj.role}
                           </div>
                           <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-                            ¥{rj.salary_min}-{rj.salary_max}万 · {rj.work_style}
+                            {(rj.salary_min || rj.salary_max)
+                              ? `¥${rj.salary_min && rj.salary_max ? `${rj.salary_min}〜${rj.salary_max}万` : rj.salary_min ? `${rj.salary_min}万〜` : `〜${rj.salary_max}万`} · `
+                              : ""}{rj.work_style}
                           </div>
                         </div>
                       </Link>
@@ -954,6 +960,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   求人サマリー
                 </div>
                 {/* Salary — highlighted row */}
+                {(job.salary_min || job.salary_max) && (
                 <div style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
                   padding: "10px 12px", marginBottom: 8, borderRadius: 8,
@@ -964,10 +971,14 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     fontSize: 20, fontWeight: 700, color: "var(--royal)",
                     fontFamily: "Inter, sans-serif", textAlign: "right" as const,
                   }}>
-                    {job.salary_min}〜{job.salary_max}
+                    {job.salary_min && job.salary_max
+                      ? `${job.salary_min}〜${job.salary_max}`
+                      : job.salary_min ? `${job.salary_min}〜`
+                      : `〜${job.salary_max}`}
                     <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 2 }}>万円</span>
                   </span>
                 </div>
+                )}
                 {[
                   { key: "職種", value: job.dept },
                   { key: "雇用形態", value: job.employment_type },
