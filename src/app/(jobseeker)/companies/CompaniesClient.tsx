@@ -655,7 +655,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             </div>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う企業が見つかりませんでした</h3>
             <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えてみてください</p>
-            <button onClick={() => { setQ(""); router.replace("/companies"); }} style={{
+            <button type="button" onClick={() => { setQ(""); router.replace("/companies"); }} style={{
               padding: "10px 24px", borderRadius: 8, background: "var(--royal)",
               color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer",
             }}>

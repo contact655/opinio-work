@@ -1055,7 +1055,7 @@ export default function JobsClient({
               <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う求人が見つかりませんでした</h3>
               <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えるか、先輩メンターに直接聞いてみましょう</p>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                <button onClick={() => router.replace("/jobs")} style={{
+                <button type="button" onClick={() => router.replace("/jobs")} style={{
                   padding: "10px 24px", borderRadius: 8, background: "var(--royal)",
                   color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer",
                 }}>

@@ -353,7 +353,7 @@ function AuthPageInner() {
 
               <div style={styles.switchRow}>
                 すでにアカウントをお持ちの方は
-                <button style={styles.switchLink} onClick={() => setMode("login")}>
+                <button type="button" style={styles.switchLink} onClick={() => setMode("login")}>
                   ログイン
                 </button>
               </div>
@@ -438,7 +438,7 @@ function AuthPageInner() {
 
               <div style={styles.switchRow}>
                 アカウントをお持ちでない方は
-                <button style={styles.switchLink} onClick={() => setMode("signup")}>
+                <button type="button" style={styles.switchLink} onClick={() => setMode("signup")}>
                   新規登録
                 </button>
               </div>

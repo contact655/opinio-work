@@ -265,7 +265,7 @@ export default function MypageLayout({
         </aside>
 
         {/* メインコンテンツ */}
-        <main style={{ padding: "36px 40px 60px" }} className="mypage-main-content">
+        <main id="main-content" style={{ padding: "36px 40px 60px" }} className="mypage-main-content">
           {children}
         </main>
 

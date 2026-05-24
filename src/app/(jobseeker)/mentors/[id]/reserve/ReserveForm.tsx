@@ -115,7 +115,7 @@ function SuccessModal({ mentorName, onClose }: { mentorName: string; onClose: ()
           }}>
             マイページで確認 →
           </Link>
-          <button onClick={onClose} style={{
+          <button type="button" onClick={onClose} style={{
             flex: 1, padding: "12px 0", background: "var(--bg-tint)", color: "var(--ink-soft)",
             border: "1px solid var(--line)", borderRadius: 10,
             fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
@@ -562,7 +562,7 @@ export default function ReserveForm({
               {days.map((day) => {
                 const active = selectedDays.has(day);
                 return (
-                  <button key={day} onClick={() => toggleDay(day)} style={{
+                  <button type="button" key={day} onClick={() => toggleDay(day)} style={{
                     padding: "10px 4px", borderRadius: 10, textAlign: "center",
                     border: active ? "1.5px solid var(--royal)" : "1.5px solid var(--line)",
                     background: active ? "var(--royal-50)" : "#fff",
@@ -585,7 +585,7 @@ export default function ReserveForm({
               {times.map(({ key, label, value }) => {
                 const active = selectedTimes.has(key);
                 return (
-                  <button key={key} onClick={() => toggleTime(key)} style={{
+                  <button type="button" key={key} onClick={() => toggleTime(key)} style={{
                     padding: "12px 10px", borderRadius: 10, textAlign: "center",
                     border: active ? "1.5px solid var(--royal)" : "1.5px solid var(--line)",
                     background: active ? "var(--royal-50)" : "#fff",

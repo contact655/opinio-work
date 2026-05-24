@@ -107,12 +107,12 @@ function ConfirmDeleteModal({
           </span>
         </p>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button onClick={onCancel} style={{ padding: "8px 16px", border: "1px solid var(--line)",
+          <button type="button" onClick={onCancel} style={{ padding: "8px 16px", border: "1px solid var(--line)",
             borderRadius: 8, background: "#fff", fontSize: 13, fontWeight: 600,
             color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit" }}>
             キャンセル
           </button>
-          <button onClick={onConfirm} style={{ padding: "8px 16px", border: "none",
+          <button type="button" onClick={onConfirm} style={{ padding: "8px 16px", border: "none",
             borderRadius: 8, background: "var(--error)", fontSize: 13, fontWeight: 700,
             color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>
             削除
@@ -349,14 +349,14 @@ function AddCategoryModal({
               : selected.size > 0 ? `${selected.size} 件選択中` : "カテゴリを選択してください"}
           </span>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={onCancel}
+            <button type="button" onClick={onCancel}
               style={{ padding: "8px 16px", border: "1px solid var(--line)", borderRadius: 8,
                 background: "#fff", fontSize: 13, fontWeight: 600, color: "var(--ink-soft)",
                 cursor: "pointer", fontFamily: "inherit" }}>
               {noRolesDefined || !hasAvailable ? "閉じる" : "キャンセル"}
             </button>
             {hasAvailable && !noRolesDefined && (
-              <button onClick={() => canAdd && onAdd(selectedRoles)} disabled={!canAdd}
+              <button type="button" onClick={() => canAdd && onAdd(selectedRoles)} disabled={!canAdd}
                 style={{ padding: "8px 16px", border: "none", borderRadius: 8,
                   background: canAdd ? "var(--royal)" : "var(--line)",
                   fontSize: 13, fontWeight: 700, color: "#fff",
@@ -472,6 +472,7 @@ function CategoryRow({
 
       {/* 削除ボタン */}
       <button
+        type="button"
         onClick={() => onDeleteClick(category)}
         style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid var(--line)",
           background: "#fff", color: "var(--ink-mute)", cursor: "pointer",
@@ -876,6 +877,7 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
 
             {/* カテゴリを追加ボタン（保存中は無効） */}
             <button
+              type="button"
               onClick={() => !isSaving && setShowAddModal(true)}
               disabled={isSaving}
               style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
@@ -926,6 +928,7 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
               </p>
               {/* CTAボタン */}
               <button
+                type="button"
                 onClick={() => !isSaving && setShowAddModal(true)}
                 disabled={isSaving}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6,
@@ -975,6 +978,7 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
           gap: 10, paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
           {isDirty && !isSaving && (
             <button
+              type="button"
               onClick={handleDiscard}
               style={{ padding: "9px 18px", border: "1px solid var(--line)", borderRadius: 8,
                 background: "#fff", fontSize: 13, fontWeight: 600,
@@ -985,6 +989,7 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
           )}
 
           <button
+            type="button"
             onClick={handleSave}
             disabled={!isDirty || isSaving}
             style={{

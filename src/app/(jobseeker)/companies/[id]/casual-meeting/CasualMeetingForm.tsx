@@ -32,11 +32,13 @@ function SuccessScreen({ companyName, contactEmail }: { companyName: string; con
       }}>
         <div style={{
           width: 64, height: 64, borderRadius: "50%",
-          background: "var(--success-soft)", color: "var(--success)",
+          background: "var(--success-soft)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          margin: "0 auto 24px", fontSize: 28,
+          margin: "0 auto 24px",
         }}>
-          ✓
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
         </div>
         <h1 style={{
           fontFamily: 'var(--font-noto-serif)', fontSize: 22,
