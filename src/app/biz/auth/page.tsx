@@ -724,10 +724,12 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         {!isInviteMode && (
           <>
             <div style={{ marginBottom: 16 }}>
-              <FieldLabel label="企業名" required />
+              <FieldLabel label="企業名" required htmlFor="biz-signup-company-name" />
               <input
+                id="biz-signup-company-name"
                 type="text"
                 required
+                autoComplete="organization"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="株式会社〇〇"
@@ -802,6 +804,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             type="text"
             required
             value={contactName}
+            autoComplete="name"
             onChange={(e) => setContactName(e.target.value)}
             placeholder="山田 太郎"
             style={inputStyle}
@@ -819,6 +822,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             type="text"
             required
             value={contactTitle}
+            autoComplete="organization-title"
             onChange={(e) => setContactTitle(e.target.value)}
             placeholder="例：人事部 採用マネージャー"
             style={inputStyle}
