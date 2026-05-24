@@ -22,11 +22,12 @@ type Props = {
   onNext?: () => void;
 };
 
-function IconBtn({ children, onClick, disabled }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean }) {
+function IconBtn({ children, onClick, disabled, ariaLabel }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; ariaLabel?: string }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
+      aria-label={ariaLabel}
       style={{
         width: 32, height: 32,
         border: "1px solid var(--line)",
@@ -237,12 +238,12 @@ export function MeetingDetailPanel({
         </div>
 
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <IconBtn onClick={onPrev} disabled={isPrevDisabled}>
+          <IconBtn onClick={onPrev} disabled={isPrevDisabled} ariaLabel="前の申込">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="m15 18-6-6 6-6"/>
             </svg>
           </IconBtn>
-          <IconBtn onClick={onNext} disabled={isNextDisabled}>
+          <IconBtn onClick={onNext} disabled={isNextDisabled} ariaLabel="次の申込">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="m9 18 6-6-6-6"/>
             </svg>
@@ -374,12 +375,16 @@ export function MeetingDetailPanel({
                 <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>担当者</div>
               </div>
               <div style={{ flex: 1 }} />
-              <button style={{
-                padding: "5px 10px",
-                fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                border: "1px solid var(--line)", borderRadius: 6,
-                background: "#fff", color: "var(--ink-soft)", cursor: "pointer",
-              }}>
+              <button
+                disabled
+                title="この機能は現在準備中です"
+                style={{
+                  padding: "5px 10px",
+                  fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                  border: "1px solid var(--line)", borderRadius: 6,
+                  background: "#fff", color: "var(--ink-mute)", cursor: "not-allowed",
+                  opacity: 0.6,
+                }}>
                 対応者を変更
               </button>
             </div>
@@ -564,17 +569,20 @@ export function MeetingDetailPanel({
             <span style={{ fontSize: 12, fontWeight: 700, color: "#78350F" }}>
               · 社内共有メモ
             </span>
-            {memoSaveState === "saving" && (
-              <span style={{ fontSize: 10, color: "#B45309", marginLeft: "auto" }}>保存中…</span>
-            )}
-            {memoSaveState === "saved" && (
-              <span style={{ fontSize: 10, color: "var(--success)", marginLeft: "auto" }}>✓ 保存済み</span>
-            )}
+            <span aria-live="polite" style={{ marginLeft: "auto" }}>
+              {memoSaveState === "saving" && (
+                <span style={{ fontSize: 10, color: "#B45309" }}>保存中…</span>
+              )}
+              {memoSaveState === "saved" && (
+                <span style={{ fontSize: 10, color: "var(--success)" }}>✓ 保存済み</span>
+              )}
+            </span>
           </div>
 
           <textarea
             value={memoValue}
             onChange={(e) => onMemoChange?.(e.target.value)}
+            aria-label="社内共有メモ"
             placeholder="チームメンバーと共有するメモを書いてください..."
             style={{
               width: "100%",

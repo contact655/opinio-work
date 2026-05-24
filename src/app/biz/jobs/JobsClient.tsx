@@ -189,6 +189,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
               <button
                 key={tab.status}
                 onClick={() => setActiveStatus(tab.status)}
+                aria-pressed={isActive}
                 style={{
                   padding: "7px 13px",
                   background: isActive ? "var(--royal)" : "#fff",
@@ -240,8 +241,9 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="求人タイトル・職種で検索..."
+            aria-label="求人を検索"
             style={{
-              padding: "7px 12px 7px 32px",
+              padding: searchQuery ? "7px 32px 7px 32px" : "7px 12px 7px 32px",
               border: "1px solid var(--line)",
               borderRadius: 8,
               fontFamily: "inherit",
@@ -253,10 +255,29 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
             onFocus={(e) => (e.target.style.borderColor = "var(--royal)")}
             onBlur={(e) => (e.target.style.borderColor = "var(--line)")}
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              aria-label="検索をクリア"
+              style={{
+                position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                background: "none", border: "none", cursor: "pointer",
+                color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2,
+                display: "flex", alignItems: "center",
+              }}
+            >
+              ×
+            </button>
+          )}
         </div>
       </div>
 
       {/* 求人リスト */}
+      {(hasFilters || searchQuery) && filtered.length > 0 && (
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 4, textAlign: "right" }}>
+          {filtered.length} 件の求人
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {filtered.length === 0 ? (
           <JobsEmptyState hasFilters={hasFilters} />

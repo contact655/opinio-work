@@ -131,8 +131,17 @@ export default function ConversationsPage() {
   if (loading) {
     return (
       <MypageLayout activeKey="conversations">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
-          <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>読み込み中...</p>
+        <h1 style={{
+          fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
+          color: "var(--ink)", marginBottom: 24,
+        }}>対話一覧</h1>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="skeleton-shimmer" style={{
+              height: 72, borderRadius: 12,
+              background: "var(--line-soft)", border: "1px solid var(--line)",
+            }} />
+          ))}
         </div>
       </MypageLayout>
     );
@@ -146,8 +155,23 @@ export default function ConversationsPage() {
       }}>対話一覧</h1>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-          <strong>Error:</strong> {error}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 16px", marginBottom: 16, borderRadius: 8,
+          background: "var(--error-soft)", border: "1px solid #FCA5A5",
+          fontSize: 13, color: "var(--error)", fontWeight: 600, gap: 12,
+        }} role="alert">
+          <span>⚠ データの読み込みに失敗しました。</span>
+          <button
+            onClick={loadData}
+            style={{
+              padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+              background: "var(--error)", color: "#fff", border: "none", cursor: "pointer",
+              whiteSpace: "nowrap", fontFamily: "inherit",
+            }}
+          >
+            再試行
+          </button>
         </div>
       )}
 
@@ -204,7 +228,12 @@ export default function ConversationsPage() {
             const hasUnread = hasUnreadMap.get(conv.id) ?? false;
 
             return (
-              <Link key={conv.id} href={`/mypage/conversations/${conv.id}`} className="block">
+              <Link
+                key={conv.id}
+                href={`/mypage/conversations/${conv.id}`}
+                className="block"
+                aria-label={hasUnread ? `${displayName}（未読あり）` : displayName}
+              >
                 <div
                   className={`bg-white rounded-card border p-4 transition-all duration-150 flex items-center gap-4 ${
                     hasUnread
