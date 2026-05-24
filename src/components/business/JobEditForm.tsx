@@ -213,7 +213,13 @@ export function JobEditForm({
   const [activeSection, setActiveSection] = useState("basic");
   const [isCreating, setIsCreating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { saveState, trigger: triggerAutosave } = useAutoSave();
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setTimeout(() => setErrorMessage(null), 5000);
+  };
   // hasInteracted: React 18 Strict Mode 対策 (isFirstRender パターンは NG)
   // ユーザーが実際にフォームを変更したときだけ true にセットする
   const hasInteracted = useRef(false);
@@ -243,7 +249,7 @@ export function JobEditForm({
   }, [form]);
 
   const handleCreate = useCallback(async () => {
-    if (!form.title.trim()) { alert("求人タイトルを入力してください。"); return; }
+    if (!form.title.trim()) { showError("求人タイトルを入力してください。"); return; }
     setIsCreating(true);
     try {
       const res = await fetch("/api/biz/jobs", {
@@ -255,10 +261,11 @@ export function JobEditForm({
       const { id } = await res.json() as { id: string };
       router.replace(`/biz/jobs/${id}/edit`);
     } catch {
-      alert("求人の作成に失敗しました。再度お試しください。");
+      showError("求人の作成に失敗しました。再度お試しください。");
     } finally {
       setIsCreating(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, companyId, router]);
 
   const handlePublish = useCallback(async () => {
@@ -279,10 +286,11 @@ export function JobEditForm({
       if (!submitRes.ok) throw new Error("submit failed");
       router.push("/biz/jobs");
     } catch {
-      alert("公開申請に失敗しました。再度お試しください。");
+      showError("公開申請に失敗しました。再度お試しください。");
     } finally {
       setIsPublishing(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, jobId, router]);
 
   // セクション完成度チェック
@@ -795,6 +803,21 @@ export function JobEditForm({
               date={initialJob.rejectionDate}
               reviewer={initialJob.rejectionReviewer}
             />
+          )}
+          {/* エラーバナー */}
+          {errorMessage && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "12px 16px", marginBottom: 20, borderRadius: 8,
+              background: "var(--error-soft)", border: "1px solid #FCA5A5",
+              fontSize: 13, color: "var(--error)", fontWeight: 600,
+            }} role="alert">
+              <span>⚠ {errorMessage}</span>
+              <button onClick={() => setErrorMessage(null)} style={{
+                background: "none", border: "none", cursor: "pointer",
+                color: "var(--error)", fontSize: 16, padding: "0 4px",
+              }}>×</button>
+            </div>
           )}
           {renderSection()}
         </main>

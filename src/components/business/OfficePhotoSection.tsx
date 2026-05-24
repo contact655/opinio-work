@@ -417,6 +417,7 @@ function PhotoCategorySection({
 export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [uploadingCategory, setUploadingCategory] = useState<PhotoCategory | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const dragOverIdRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pendingCategoryRef = useRef<PhotoCategory | null>(null);
@@ -441,11 +442,13 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
     const category = pendingCategoryRef.current;
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      alert("JPG・PNG・WebP のみ対応しています");
+      setPhotoError("JPG・PNG・WebP のみ対応しています");
+      setTimeout(() => setPhotoError(null), 4000);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert("5MB 以内のファイルを選択してください");
+      setPhotoError("5MB 以内のファイルを選択してください");
+      setTimeout(() => setPhotoError(null), 4000);
       return;
     }
 
@@ -494,7 +497,8 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
       onPhotosChange([...photos, newPhoto]);
     } catch (err) {
       console.error("[OfficePhotoSection] upload failed:", err);
-      alert("アップロードに失敗しました。もう一度お試しください。");
+      setPhotoError("アップロードに失敗しました。もう一度お試しください。");
+      setTimeout(() => setPhotoError(null), 5000);
     } finally {
       isUploadingRef.current = false;
       setUploadingCategory(null);
@@ -512,7 +516,8 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
       onPhotosChange(photos.filter((p) => p.id !== id));
     } catch (err) {
       console.error("[OfficePhotoSection] delete failed:", err);
-      alert("削除に失敗しました。もう一度お試しください。");
+      setPhotoError("削除に失敗しました。もう一度お試しください。");
+      setTimeout(() => setPhotoError(null), 5000);
     }
   }
 
@@ -568,6 +573,22 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
         style={{ display: "none" }}
         onChange={handleFileSelected}
       />
+
+      {/* Photo error banner */}
+      {photoError && (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "10px 14px", marginBottom: 14, borderRadius: 8,
+          background: "var(--error-soft)", border: "1px solid #FCA5A5",
+          fontSize: 13, color: "var(--error)", fontWeight: 600,
+        }} role="alert">
+          <span>⚠ {photoError}</span>
+          <button onClick={() => setPhotoError(null)} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--error)", fontSize: 16, padding: "0 4px",
+          }}>×</button>
+        </div>
+      )}
 
       {/* ガイドラインバナー */}
       <div style={{

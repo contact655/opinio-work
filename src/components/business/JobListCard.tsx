@@ -33,7 +33,9 @@ function ActionBtn({
 }) {
   return (
     <button
-      onClick={onClick ?? (() => alert(`「${label}」は今後実装予定です。`))}
+      onClick={onClick}
+      disabled={!onClick}
+      title={!onClick ? "この機能は現在準備中です" : undefined}
       style={{
         padding: "6px 12px",
         background: primary ? "var(--royal)" : danger ? "transparent" : "var(--bg-tint)",
@@ -59,8 +61,10 @@ function ActionBtn({
 function IconBtn({ title, isDelete, onClick }: { title: string; isDelete?: boolean; onClick?: () => void }) {
   return (
     <button
-      title={title}
-      onClick={onClick ?? (() => alert(`「${title}」は今後実装予定です。`))}
+      title={!onClick ? `${title}（準備中）` : title}
+      onClick={onClick}
+      disabled={!onClick}
+      aria-label={title}
       style={{
         width: 28, height: 28,
         background: "transparent",

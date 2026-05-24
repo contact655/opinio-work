@@ -25,6 +25,7 @@ export function ImageUpload({
   const supabase = createClient();
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentUrl ?? null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,7 +51,8 @@ export function ImageUpload({
       onUpload(data.publicUrl);
     } catch (err) {
       console.error("Upload error:", err);
-      alert("アップロードに失敗しました");
+      setUploadError("アップロードに失敗しました");
+      setTimeout(() => setUploadError(null), 4000);
     } finally {
       setUploading(false);
     }
@@ -60,6 +62,15 @@ export function ImageUpload({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+      {uploadError && (
+        <div style={{
+          fontSize: 11, color: "var(--error)", background: "var(--error-soft)",
+          border: "1px solid #FCA5A5", borderRadius: 6, padding: "6px 10px",
+          textAlign: "center", maxWidth: 200,
+        }}>
+          ⚠ {uploadError}
+        </div>
+      )}
       <label style={{ cursor: uploading ? "not-allowed" : "pointer" }}>
         <div style={{
           width: size,
