@@ -6,10 +6,24 @@ import { createClient } from "@/lib/supabase/client";
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
-const STEPS = [
+import type { JSX } from "react";
+
+type Step = {
+  id: string;
+  icon: JSX.Element;
+  question: string;
+  sub: string;
+  options: string[];
+};
+
+const STEPS: Step[] = [
   {
     id: "job_type",
-    emoji: "💼",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+      </svg>
+    ),
     question: "あなたの職種は？",
     sub: "最も近いものを選んでください",
     options: [
@@ -38,14 +52,22 @@ const STEPS = [
   },
   {
     id: "experience_years",
-    emoji: "📅",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    ),
     question: "社会人経験は何年ですか？",
     sub: "キャリアの長さを教えてください",
     options: ["1〜2年", "3〜5年", "6〜10年", "11年以上"],
   },
   {
     id: "worry",
-    emoji: "💬",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    ),
     question: "今一番の悩みは？",
     sub: "相談したいテーマに近いもの",
     options: [
@@ -213,7 +235,7 @@ function OnboardingInner() {
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>プロフィールを設定する</div>
                   <div style={{ fontSize: 11, opacity: 0.85 }}>自己紹介・職歴・スキルを登録（5分）</div>
                 </div>
-                <div style={{ marginLeft: "auto", opacity: 0.7, fontSize: 16 }}>→</div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", opacity: 0.7, flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
 
               {/* Step 2: 企業を探す */}
@@ -242,7 +264,7 @@ function OnboardingInner() {
                   <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2, color: "var(--ink)" }}>企業を見てみる</div>
                   <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>IT/SaaS企業の内側を知ろう</div>
                 </div>
-                <div style={{ marginLeft: "auto", color: "var(--ink-mute)", fontSize: 16 }}>→</div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
 
               {/* Step 3: メンターに相談 */}
@@ -270,7 +292,7 @@ function OnboardingInner() {
                   <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2, color: "var(--ink)" }}>先輩にキャリアを相談する</div>
                   <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>メンターと無料で30分対話</div>
                 </div>
-                <div style={{ marginLeft: "auto", color: "var(--ink-mute)", fontSize: 16 }}>→</div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
             </div>
           </div>
@@ -286,7 +308,14 @@ function OnboardingInner() {
         <LogoMark />
 
         {/* ステップインジケーター */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 28 }}>
+        <div
+          role="progressbar"
+          aria-valuenow={step + 1}
+          aria-valuemin={1}
+          aria-valuemax={STEPS.length}
+          aria-label={`ステップ ${step + 1} / ${STEPS.length}`}
+          style={{ display: "flex", gap: 6, marginBottom: 28 }}
+        >
           {STEPS.map((_, i) => (
             <div
               key={i}
@@ -317,7 +346,7 @@ function OnboardingInner() {
             gap: 8,
             marginBottom: 16,
           }}>
-            <span style={{ fontSize: 24 }}>{current.emoji}</span>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28 }}>{current.icon}</span>
             <span style={{
               fontSize: 11,
               fontWeight: 700,
@@ -355,6 +384,7 @@ function OnboardingInner() {
           }}>
             {current.options.map((opt) => (
               <button
+                type="button"
                 key={opt}
                 onClick={() => select(opt)}
                 disabled={saving}
@@ -395,6 +425,7 @@ function OnboardingInner() {
         {/* スキップ */}
         <div style={{ textAlign: "center" }}>
           <button
+            type="button"
             onClick={() => router.push(nextUrl)}
             disabled={saving}
             style={{
@@ -409,7 +440,8 @@ function OnboardingInner() {
               textDecorationColor: "var(--line)",
             }}
           >
-            後で設定する →
+            後で設定する
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ display: "inline", verticalAlign: "middle", marginLeft: 4 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
         </div>
       </div>

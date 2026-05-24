@@ -297,10 +297,11 @@ export default function BizLandingPage() {
                   <div className="biz-lp-step-connector" style={{
                     alignSelf: "center",
                     color: "#cbd5e1",
-                    fontSize: 20,
                     marginTop: -24,
                     flexShrink: 0,
-                  }}>→</div>
+                  }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </div>
                 )}
               </>
             ))}
