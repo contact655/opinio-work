@@ -1108,6 +1108,34 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
       <div style={{ padding: "24px 32px 28px" }}>
 
       {/* ── 福利厚生 ── */}
+      {/* Benefit keyword → emoji mapping */}
+      {(() => {
+        const BENEFIT_ICONS: Record<string, string> = {
+          "フルリモート": "🏠", "リモート": "🏠", "在宅": "🏠", "テレワーク": "🏠",
+          "フレックス": "🕐", "フレックスタイム": "🕐", "時差出勤": "🕐",
+          "副業": "💼", "兼業": "💼",
+          "ストックオプション": "📈", "SO": "📈", "持株": "📈",
+          "書籍": "📚", "学習": "📚", "研修": "📚", "勉強会": "📚", "資格": "📚",
+          "育休": "👶", "産休": "👶", "子育て": "👶", "保育": "👶",
+          "健康保険": "🏥", "医療": "🏥", "保険": "🏥",
+          "交通費": "🚃", "定期代": "🚃",
+          "食事": "🍱", "ランチ": "🍱", "社食": "🍱",
+          "休暇": "🌴", "有給": "🌴", "休日": "🌴",
+          "家賃": "🏢", "住宅": "🏢", "社宅": "🏢",
+          "ペット": "🐾",
+          "英語": "🌐", "語学": "🌐", "海外": "🌐",
+          "マッサージ": "💆", "スポーツ": "🏃", "ジム": "🏃",
+          "社員旅行": "✈️",
+          "慶弔": "🎊",
+          "確定拠出": "💰", "退職金": "💰",
+        };
+        function getBenefitIcon(benefit: string): string {
+          for (const [kw, icon] of Object.entries(BENEFIT_ICONS)) {
+            if (benefit.includes(kw)) return icon;
+          }
+          return "✓";
+        }
+        return (
       <div style={{ marginBottom: 28 }}>
         <div style={SUBHEADER_STYLE}>Benefits</div>
         {detail.benefits && detail.benefits.length > 0 ? (
@@ -1118,7 +1146,8 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  padding: "6px 14px",
+                  gap: 6,
+                  padding: "7px 14px",
                   background: "var(--royal-50)",
                   border: "1px solid var(--royal-100)",
                   borderRadius: 100,
@@ -1127,6 +1156,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
                   fontWeight: 500,
                 }}
               >
+                <span style={{ fontSize: 14, lineHeight: 1 }}>{getBenefitIcon(b)}</span>
                 {b}
               </span>
             ))}
@@ -1145,6 +1175,8 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
           </div>
         )}
       </div>
+        );
+      })()}
 
       {/* ── 評価制度 ── */}
       <div>
@@ -3068,32 +3100,33 @@ function Sidebar({
           )}
           {(
             [
-              { key: "業界", value: company.industry },
-              { key: "事業ステージ", value: company.phase },
-              { key: "従業員数", value: company.employee_count ? `${company.employee_count.toLocaleString()}名` : "" },
-              { key: "所在地", value: detail.hq },
-              // nearest_station: 常時表示、null は "未設定" (isUnset フラグ)
-              { key: "最寄り駅", value: detail.nearestStation ?? "—", isUnset: !detail.nearestStation },
-              { key: "設立", value: detail.established },
-              { key: "代表者", value: detail.ceo },
-              ...(detail.url ? [{ key: "公式サイト", value: detail.url, isLink: true }] : []),
-            ] as { key: string; value: string; isLink?: boolean; isUnset?: boolean }[]
+              { key: "業界", value: company.industry, icon: "🏢" },
+              { key: "事業ステージ", value: company.phase, icon: "📊" },
+              { key: "従業員数", value: company.employee_count ? `${company.employee_count.toLocaleString()}名` : "", icon: "👥" },
+              { key: "所在地", value: detail.hq, icon: "📍" },
+              { key: "最寄り駅", value: detail.nearestStation ?? "—", isUnset: !detail.nearestStation, icon: "🚃" },
+              { key: "設立", value: detail.established, icon: "📅" },
+              { key: "代表者", value: detail.ceo, icon: "👤" },
+              ...(detail.url ? [{ key: "公式サイト", value: detail.url, isLink: true, icon: "🌐" }] : []),
+            ] as { key: string; value: string; icon: string; isLink?: boolean; isUnset?: boolean }[]
           )
             .filter((item) => item.isUnset || (item.value && item.value !== "—"))
-            .map(({ key, value, isLink, isUnset }) => (
+            .map(({ key, value, icon, isLink, isUnset }) => (
               <div
                 key={key}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "76px 1fr",
-                  gap: 10,
+                  gridTemplateColumns: "90px 1fr",
+                  gap: 8,
                   fontSize: 13,
                   alignItems: "flex-start",
                   padding: "10px 0",
                   borderBottom: "1px solid var(--line-soft)",
                 }}
               >
-                <span style={{ color: "var(--ink-mute)", fontSize: 11, fontWeight: 600, paddingTop: 1 }}>{key}</span>
+                <span style={{ color: "var(--ink-mute)", fontSize: 11, fontWeight: 600, paddingTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 12 }}>{icon}</span>{key}
+                </span>
                 {isLink ? (
                   <a
                     href={value.startsWith("http") ? value : `https://${value}`}
