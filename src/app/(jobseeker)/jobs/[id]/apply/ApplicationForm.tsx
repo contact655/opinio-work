@@ -136,6 +136,7 @@ export default function ApplicationForm({
               type="text"
               value={authName}
               readOnly
+              aria-label="お名前"
               style={{
                 width: "100%", padding: "10px 12px",
                 border: "1.5px solid var(--line)", borderRadius: 8,
@@ -155,6 +156,7 @@ export default function ApplicationForm({
               type="email"
               value={authEmail}
               readOnly
+              aria-label="メールアドレス"
               style={{
                 width: "100%", padding: "10px 12px",
                 border: "1.5px solid var(--line)", borderRadius: 8,
@@ -175,6 +177,7 @@ export default function ApplicationForm({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="090-0000-0000"
+              aria-label="電話番号（任意）"
               style={{
                 width: "100%", padding: "10px 12px",
                 border: "1.5px solid var(--line)", borderRadius: 8,
@@ -196,6 +199,7 @@ export default function ApplicationForm({
               onChange={(e) => setMessage(e.target.value)}
               placeholder={`${companyName}に応募した理由や、自己PRをご記入ください。`}
               rows={6}
+              aria-label="志望動機・メッセージ（任意）"
               style={{
                 width: "100%", padding: "10px 12px",
                 border: "1.5px solid var(--line)", borderRadius: 8,
@@ -211,11 +215,14 @@ export default function ApplicationForm({
           </div>
 
           {error && (
-            <div style={{
-              padding: "12px 16px", background: "var(--error-soft)",
-              border: "1px solid #FECACA", borderRadius: 8,
-              fontSize: 13, color: "var(--error)", marginBottom: 20,
-            }}>
+            <div
+              role="alert"
+              aria-live="polite"
+              style={{
+                padding: "12px 16px", background: "var(--error-soft)",
+                border: "1px solid #FECACA", borderRadius: 8,
+                fontSize: 13, color: "var(--error)", marginBottom: 20,
+              }}>
               {error}
             </div>
           )}

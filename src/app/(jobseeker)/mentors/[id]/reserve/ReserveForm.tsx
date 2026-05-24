@@ -729,11 +729,14 @@ export default function ReserveForm({
           </p>
 
           {submitError && (
-            <div style={{
-              background: "rgba(220,38,38,0.15)", border: "1px solid rgba(220,38,38,0.4)",
-              borderRadius: 8, padding: "10px 16px", marginBottom: 16,
-              fontSize: 13, color: "#FCA5A5",
-            }}>
+            <div
+              role="alert"
+              aria-live="polite"
+              style={{
+                background: "rgba(220,38,38,0.15)", border: "1px solid rgba(220,38,38,0.4)",
+                borderRadius: 8, padding: "10px 16px", marginBottom: 16,
+                fontSize: 13, color: "#FCA5A5",
+              }}>
               {submitError}
             </div>
           )}

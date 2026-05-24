@@ -383,11 +383,14 @@ export default function CasualMeetingForm({
 
         {/* Error */}
         {error && (
-          <div style={{
-            background: "var(--error-soft)", border: "1px solid #FECACA",
-            borderRadius: 8, padding: "12px 16px", marginBottom: 16,
-            fontSize: 13, color: "var(--error)",
-          }}>
+          <div
+            role="alert"
+            aria-live="polite"
+            style={{
+              background: "var(--error-soft)", border: "1px solid #FECACA",
+              borderRadius: 8, padding: "12px 16px", marginBottom: 16,
+              fontSize: 13, color: "var(--error)",
+            }}>
             {error}
           </div>
         )}
