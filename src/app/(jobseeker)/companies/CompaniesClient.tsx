@@ -438,7 +438,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
         }}>
           {/* Search input */}
-          <div style={{ position: "relative", flex: "1 1 180px", minWidth: 140, maxWidth: 260 }}>
+          <div role="search" style={{ position: "relative", flex: "1 1 180px", minWidth: 140, maxWidth: 260 }}>
             <input
               type="search"
               aria-label="企業名・キーワードで検索"

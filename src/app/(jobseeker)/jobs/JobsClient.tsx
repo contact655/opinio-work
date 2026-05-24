@@ -701,16 +701,18 @@ export default function JobsClient({
           </div>
 
           {/* ── Search bar ── */}
-          <div style={{ position: "relative", maxWidth: 520 }}>
+          <div role="search" style={{ position: "relative", maxWidth: 520 }}>
             <svg
               width="16" height="16" viewBox="0 0 24 24" fill="none"
               stroke="var(--ink-mute)" strokeWidth={2.2} strokeLinecap="round"
               style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+              aria-hidden="true"
             >
               <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
             </svg>
             <input
               type="search"
+              aria-label="求人を検索"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="職種・企業名・スキルで検索…"
