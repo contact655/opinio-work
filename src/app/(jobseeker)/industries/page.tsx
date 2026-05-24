@@ -50,10 +50,10 @@ export default function IndustriesPage() {
     <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
       <div style={{ maxWidth: 820, margin: "0 auto", padding: "64px 24px 96px" }}>
         {/* Breadcrumb */}
-        <nav style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--ink-mute)", marginBottom: 40 }}>
+        <nav aria-label="パンくずリスト" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--ink-mute)", marginBottom: 40 }}>
           <Link href="/" style={{ color: "var(--royal)", textDecoration: "none" }}>ホーム</Link>
           <span>›</span>
-          <span>対象業界</span>
+          <span aria-current="page">対象業界</span>
         </nav>
 
         {/* Header */}

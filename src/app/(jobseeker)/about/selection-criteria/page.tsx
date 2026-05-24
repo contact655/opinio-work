@@ -58,12 +58,12 @@ export default function SelectionCriteriaPage() {
     <div className="pt-16 min-h-screen" style={{ background: "var(--bg-tint)" }}>
       <div className="max-w-[820px] mx-auto px-4 sm:px-6 lg:px-8" style={{ paddingTop: 32, paddingBottom: 64 }}>
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2" style={{ fontSize: 13, marginBottom: 20 }}>
+        <nav aria-label="パンくずリスト" className="flex items-center gap-2" style={{ fontSize: 13, marginBottom: 20 }}>
           <Link href="/" style={{ color: "var(--royal)", textDecoration: "none" }}>ホーム</Link>
           <span style={{ color: "var(--line)" }}>›</span>
           <Link href="/about" style={{ color: "var(--royal)", textDecoration: "none" }}>OPINIOについて</Link>
           <span style={{ color: "var(--line)" }}>›</span>
-          <span style={{ color: "var(--ink-soft)" }}>審査基準</span>
+          <span aria-current="page" style={{ color: "var(--ink-soft)" }}>審査基準</span>
         </nav>
 
         <header style={{ marginBottom: 28 }}>

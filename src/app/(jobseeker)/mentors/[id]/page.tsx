@@ -151,17 +151,17 @@ export default async function MentorDetailPage({ params }: Props) {
       <ReadingProgress />
 
       {/* Breadcrumb */}
-      <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
+      <nav aria-label="パンくずリスト" style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
             <Link href="/mentors" style={{ color: "var(--ink-mute)" }}>先輩に相談</Link>
             <span>/</span>
-            <span style={{ color: "var(--ink-soft)" }}>{mentor.name}</span>
+            <span aria-current="page" style={{ color: "var(--ink-soft)" }}>{mentor.name}</span>
           </div>
         </div>
-      </div>
+      </nav>
 
       <main style={{ background: "var(--bg-tint)", minHeight: "calc(100vh - 120px)" }}>
         <div style={{ maxWidth: 780, margin: "0 auto" }} className="px-5 py-8 md:px-8 md:py-10">

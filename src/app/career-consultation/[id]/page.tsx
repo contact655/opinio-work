@@ -65,15 +65,15 @@ export default async function MentorDetailPage({
       <JobseekerHeader />
       <main className="pt-16 min-h-screen" style={{ background: "#f9fafb" }}>
         {/* Breadcrumb */}
-        <div className="max-w-4xl mx-auto px-6 py-4">
+        <nav aria-label="パンくずリスト" className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center gap-2" style={{ fontSize: 13, color: "#9ca3af" }}>
             <Link href="/career-consultation" style={{ color: "#9ca3af", textDecoration: "none" }}>
               メンター一覧
             </Link>
             <span>›</span>
-            <span style={{ color: "#6b7280" }}>{mentor.name}</span>
+            <span aria-current="page" style={{ color: "#6b7280" }}>{mentor.name}</span>
           </div>
-        </div>
+        </nav>
 
         <div className="max-w-4xl mx-auto px-6 pb-24">
           <div className="grid grid-cols-3 gap-6">

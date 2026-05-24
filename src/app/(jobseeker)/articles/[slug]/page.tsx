@@ -553,17 +553,17 @@ export default async function ArticlePage({ params }: { params: { slug: string }
       <BackToTop />
 
       {/* Breadcrumb */}
-      <div style={{ background: "var(--bg-tint)", borderBottom: `1px solid ${LINE}`, padding: "10px 0" }}>
+      <nav aria-label="パンくずリスト" style={{ background: "var(--bg-tint)", borderBottom: `1px solid ${LINE}`, padding: "10px 0" }}>
         <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: INK_MUTE, display: "flex", alignItems: "center", gap: 5 }}>
             <Link href="/" style={{ color: INK_MUTE }}>OPINIO</Link>
             <span>/</span>
             <Link href="/articles" style={{ color: INK_MUTE }}>取材記事</Link>
             <span>/</span>
-            <span style={{ color: INK_SOFT }}>{badge.label}</span>
+            <span aria-current="page" style={{ color: INK_SOFT }}>{badge.label}</span>
           </div>
         </div>
-      </div>
+      </nav>
 
       {/* Article body */}
       <article style={{ maxWidth: "var(--max-w-text)", margin: "0 auto", padding: "32px 24px 80px" }}>

@@ -174,7 +174,7 @@ export default async function PostsPage({ searchParams }: Props) {
   return (
     <>
       {/* Breadcrumb */}
-      <div style={{
+      <nav aria-label="パンくずリスト" style={{
         background: "var(--bg-tint)",
         borderBottom: "1px solid var(--line)",
         padding: "10px 0",
@@ -183,10 +183,10 @@ export default async function PostsPage({ searchParams }: Props) {
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
-            <span style={{ color: "var(--ink-soft)" }}>発信</span>
+            <span aria-current="page" style={{ color: "var(--ink-soft)" }}>発信</span>
           </div>
         </div>
-      </div>
+      </nav>
 
       {/* Hero */}
       <div style={{

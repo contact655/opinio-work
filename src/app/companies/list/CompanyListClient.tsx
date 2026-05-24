@@ -283,7 +283,7 @@ export default function CompanyListClient({
   return (
     <>
       {/* Breadcrumb + Title */}
-      <div className="mb-6">
+      <nav aria-label="パンくずリスト" className="mb-6">
         <Link
           href="/companies"
           className="text-[12px] text-gray-600 hover:text-primary transition-colors"
@@ -291,8 +291,8 @@ export default function CompanyListClient({
           企業トップ
         </Link>
         <span className="text-[12px] text-gray-500 mx-1.5">/</span>
-        <span className="text-[12px] text-gray-600">企業一覧</span>
-      </div>
+        <span aria-current="page" className="text-[12px] text-gray-600">企業一覧</span>
+      </nav>
 
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-lg font-bold text-gray-800">企業一覧</h1>

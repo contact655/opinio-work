@@ -88,7 +88,7 @@ export default async function MemberProfilePage({
       <main className="pt-16 min-h-screen" style={{ background: "#f8f9fa" }}>
         <div className="max-w-[780px] mx-auto px-4 sm:px-6 lg:px-8" style={{ paddingTop: 32, paddingBottom: 48 }}>
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2" style={{ fontSize: 13, marginBottom: 20 }}>
+          <nav aria-label="パンくずリスト" className="flex items-center gap-2" style={{ fontSize: 13, marginBottom: 20 }}>
             <Link href="/companies" style={{ color: "#1a6fd4", textDecoration: "none" }}>企業一覧</Link>
             <span style={{ color: "#d1d5db" }}>›</span>
             {company && (
@@ -97,7 +97,7 @@ export default async function MemberProfilePage({
                 <span style={{ color: "#d1d5db" }}>›</span>
               </>
             )}
-            <span style={{ color: "#6b7280" }}>{member.name}</span>
+            <span aria-current="page" style={{ color: "#6b7280" }}>{member.name}</span>
           </nav>
 
           {/* Header card: photo + name + company */}

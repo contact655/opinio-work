@@ -23,7 +23,7 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
   return (
     <>
       {/* Breadcrumb */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
+      <nav aria-label="パンくずリスト" style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: 960, margin: "0 auto" }} className="px-5 md:px-10">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
@@ -32,10 +32,10 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
             <span>/</span>
             <Link href={`/jobs/${job.id}`} style={{ color: "var(--ink-mute)" }}>{job.role}</Link>
             <span>/</span>
-            <span style={{ color: "var(--ink-soft)" }}>応募</span>
+            <span aria-current="page" style={{ color: "var(--ink-soft)" }}>応募</span>
           </div>
         </div>
-      </div>
+      </nav>
 
       <div style={{ background: "var(--bg-tint)", minHeight: "calc(100vh - 120px)" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 20px 80px" }} className="px-5 md:px-10">

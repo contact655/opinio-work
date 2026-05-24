@@ -243,7 +243,7 @@ export default function ReserveForm({
       )}
 
       {/* Breadcrumb */}
-      <nav style={{
+      <nav aria-label="パンくずリスト" style={{
         background: "var(--bg-tint)", padding: "13px 48px",
         borderBottom: "1px solid var(--line)", fontSize: 12, color: "var(--ink-mute)",
       }}>
@@ -253,7 +253,7 @@ export default function ReserveForm({
         <span style={{ margin: "0 6px" }}>/</span>
         <Link href={`/mentors/${mentor.id}`} style={{ color: "var(--ink-mute)" }}>{mentor.name}さん</Link>
         <span style={{ margin: "0 6px" }}>/</span>
-        <span style={{ color: "var(--ink-soft)" }}>相談を予約する</span>
+        <span aria-current="page" style={{ color: "var(--ink-soft)" }}>相談を予約する</span>
       </nav>
 
       <main style={{ maxWidth: 760, margin: "0 auto", padding: "48px 32px 80px" }}>

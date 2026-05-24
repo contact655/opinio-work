@@ -71,6 +71,7 @@ export async function generateMetadata({
 function Breadcrumb({ company }: { company: Company }) {
   return (
     <nav
+      aria-label="パンくずリスト"
       style={{
         background: "var(--bg-tint)",
         borderBottom: "1px solid var(--line)",
@@ -90,7 +91,7 @@ function Breadcrumb({ company }: { company: Company }) {
           企業を知る
         </Link>
         <span style={{ margin: "0 6px" }}>/</span>
-        <span style={{ color: "var(--ink-soft)" }}>{company.name}</span>
+        <span aria-current="page" style={{ color: "var(--ink-soft)" }}>{company.name}</span>
       </div>
     </nav>
   );

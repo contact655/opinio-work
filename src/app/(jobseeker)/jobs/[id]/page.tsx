@@ -261,17 +261,17 @@ export default async function JobDetailPage({ params }: { params: { id: string }
         }}
       />
       {/* Breadcrumb */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
+      <nav aria-label="パンくずリスト" style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
             <Link href="/jobs" style={{ color: "var(--ink-mute)" }}>求人を探す</Link>
             <span>/</span>
-            <span style={{ color: "var(--ink-soft)" }}>{job.role}</span>
+            <span aria-current="page" style={{ color: "var(--ink-soft)" }}>{job.role}</span>
           </div>
         </div>
-      </div>
+      </nav>
 
       {/* Hero */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "28px 0" }}>
