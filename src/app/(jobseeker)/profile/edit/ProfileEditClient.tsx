@@ -156,7 +156,7 @@ function ProfilePhotoUploader({
     const { data, error } = await supabase.storage
       .from("ow-uploads")
       .upload(path, file, { upsert: true, contentType: file.type });
-    if (error || !data) { alert("アップロードに失敗しました"); return null; }
+    if (error || !data) { console.error("[profile] upload failed:", error); return null; }
 
     const { data: { publicUrl } } = supabase.storage.from("ow-uploads").getPublicUrl(data.path);
 

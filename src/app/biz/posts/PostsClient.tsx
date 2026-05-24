@@ -130,6 +130,13 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
   // 保存状態
   const [isPending, startTransition] = useTransition();
   const [formError, setFormError] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setTimeout(() => setErrorMessage(null), 4000);
+  };
 
   // ─── Form helpers ──
 
@@ -240,13 +247,17 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
   // ─── 削除 ──
 
   const handleDelete = (id: string) => {
-    if (!confirm("この発信リンクを削除しますか？")) return;
+    setPendingDeleteId(id);
+  };
+
+  const confirmDelete = (id: string) => {
+    setPendingDeleteId(null);
     startTransition(async () => {
       const result = await deletePost(id);
       if (result.success) {
         setPosts((prev) => prev.filter((p) => p.id !== id));
       } else {
-        alert(result.error);
+        showError(result.error ?? "削除に失敗しました。再度お試しください。");
       }
     });
   };
@@ -255,6 +266,21 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      {/* ── エラーバナー ── */}
+      {errorMessage && (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 16px", marginBottom: 16, borderRadius: 8,
+          background: "var(--error-soft)", border: "1px solid #FCA5A5",
+          fontSize: 13, color: "var(--error)", fontWeight: 600,
+        }}>
+          <span>⚠ {errorMessage}</span>
+          <button onClick={() => setErrorMessage(null)} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--error)", fontSize: 16, padding: "0 4px",
+          }}>×</button>
+        </div>
+      )}
       {/* ── ヘッダー ── */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
@@ -583,14 +609,50 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
 
           {/* カード一覧 */}
           {posts.map((post, idx) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              isLast={idx === posts.length - 1}
-              onEdit={() => handleEdit(post)}
-              onDelete={() => handleDelete(post.id)}
-              isPending={isPending}
-            />
+            <div key={post.id}>
+              <PostCard
+                post={post}
+                isLast={idx === posts.length - 1 && pendingDeleteId !== post.id}
+                onEdit={() => handleEdit(post)}
+                onDelete={() => handleDelete(post.id)}
+                isPending={isPending}
+              />
+              {pendingDeleteId === post.id && (
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px 20px",
+                  background: "#FFF5F5", borderTop: "1px solid #FCA5A5",
+                  borderBottom: idx === posts.length - 1 ? "none" : "1px solid var(--line-soft)",
+                  fontSize: 13,
+                }}>
+                  <span style={{ color: "var(--error)", fontWeight: 600 }}>
+                    この発信リンクを削除しますか？この操作は取り消せません。
+                  </span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => setPendingDeleteId(null)}
+                      style={{
+                        padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                        border: "1px solid var(--line)", background: "#fff",
+                        color: "var(--ink-soft)", cursor: "pointer",
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={() => confirmDelete(post.id)}
+                      style={{
+                        padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                        border: "1px solid var(--error)", background: "var(--error)",
+                        color: "#fff", cursor: "pointer",
+                      }}
+                    >
+                      削除する
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       ) : null}

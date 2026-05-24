@@ -260,6 +260,12 @@ export function CompanyEditClient({
   const [photos, setPhotos] = useState<OfficePhoto[]>(initialPhotos);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setTimeout(() => setErrorMessage(null), 5000);
+  };
   // draft_data の有無を独立 state で管理（form に含めると autosave ループが起きる）
   const [hasDraftChanges, setHasDraftChanges] = useState(initialCompany.hasDraftChanges);
   // 今セッションで最後に自動保存した時刻
@@ -324,11 +330,11 @@ export function CompanyEditClient({
     if (!file) return;
 
     if (!["image/jpeg", "image/png", "image/svg+xml", "image/webp"].includes(file.type)) {
-      alert("JPG・PNG・SVG・WebP のみ対応しています");
+      showError("JPG・PNG・SVG・WebP のみ対応しています");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert("5MB 以内のファイルを選択してください");
+      showError("5MB 以内のファイルを選択してください");
       return;
     }
 
@@ -348,7 +354,7 @@ export function CompanyEditClient({
       setForm((prev) => ({ ...prev, logoUrl: publicUrl }));
     } catch (err) {
       console.error("[CompanyEditClient] logo upload failed:", err);
-      alert("ロゴのアップロードに失敗しました。もう一度お試しください。");
+      showError("ロゴのアップロードに失敗しました。もう一度お試しください。");
     }
   }
 
@@ -369,7 +375,7 @@ export function CompanyEditClient({
         body: JSON.stringify({ isPublished: true }),
       });
       if (!res.ok) {
-        alert("公開に失敗しました。再度お試しください。");
+        showError("公開に失敗しました。再度お試しください。");
         return;
       }
       const { publishedAt } = await res.json() as { publishedAt: string };
@@ -386,7 +392,7 @@ export function CompanyEditClient({
       setHasDraftChanges(false);
       setLastSavedAt(null);
     } catch {
-      alert("公開に失敗しました。再度お試しください。");
+      showError("公開に失敗しました。再度お試しください。");
     } finally {
       isPublishingRef.current = false;
       setIsPublishing(false);
@@ -1009,6 +1015,20 @@ export function CompanyEditClient({
             padding: "32px 40px 60px",
             maxWidth: 900,
           }}>
+            {errorMessage && (
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "12px 16px", marginBottom: 20, borderRadius: 8,
+                background: "var(--error-soft)", border: "1px solid #FCA5A5",
+                fontSize: 13, color: "var(--error)", fontWeight: 600,
+              }}>
+                <span>⚠ {errorMessage}</span>
+                <button onClick={() => setErrorMessage(null)} style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  color: "var(--error)", fontSize: 16, padding: "0 4px",
+                }}>×</button>
+              </div>
+            )}
             {renderSection()}
           </main>
         </div>
