@@ -11,16 +11,19 @@ function SidebarItem({
   badge?: number; onClick: () => void;
 }) {
   return (
-    <div
+    <button
       onClick={onClick}
+      aria-current={active ? "page" : undefined}
       style={{
+        width: "100%", textAlign: "left",
         padding: "10px 24px", fontSize: 13, fontWeight: active ? 600 : 500,
         color: active ? "var(--royal)" : "var(--ink-soft)",
         cursor: "pointer", display: "flex", alignItems: "center",
         justifyContent: "space-between",
         borderLeft: `3px solid ${active ? "var(--royal)" : "transparent"}`,
+        borderRight: "none", borderTop: "none", borderBottom: "none",
         background: active ? "var(--royal-50)" : "transparent",
-        transition: "all 0.15s",
+        transition: "all 0.15s", fontFamily: "inherit",
       }}
       className="mypage-nav-item"
     >
@@ -39,7 +42,7 @@ function SidebarItem({
           {badge}
         </span>
       )}
-    </div>
+    </button>
   );
 }
 
@@ -179,6 +182,7 @@ export default function MypageLayout({
               <a
                 key={item.key}
                 href={item.href}
+                aria-current={isActive ? "page" : undefined}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
                   padding: "12px 16px", fontSize: 13, fontWeight: isActive ? 700 : 500,

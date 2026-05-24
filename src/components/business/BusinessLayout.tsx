@@ -301,10 +301,10 @@ export function BusinessLayout({
       </header>
 
       {/* ── Body: sidebar + main ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "calc(100vh - 57px)" }}>
+      <div className="biz-layout-grid" style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "calc(100vh - 57px)" }}>
 
         {/* Sidebar */}
-        <aside style={{
+        <aside className="biz-layout-sidebar" style={{
           background: "#fff",
           borderRight: "1px solid var(--line)",
           padding: "20px 0",
@@ -342,6 +342,7 @@ export function BusinessLayout({
                 <div key={item.href}>
                   <Link
                     href={item.href}
+                    aria-current={active ? "page" : undefined}
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
                       padding: "9px 20px",
@@ -432,7 +433,7 @@ export function BusinessLayout({
         </aside>
 
         {/* Main content */}
-        <main id="main-content" style={variant === "fullBleed"
+        <main id="main-content" className="biz-layout-main" style={variant === "fullBleed"
           ? { padding: 0, minWidth: 0, overflow: "hidden" }
           : { padding: "28px 36px 60px", maxWidth: 1200, minWidth: 0 }
         }>
