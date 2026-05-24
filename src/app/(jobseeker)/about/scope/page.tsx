@@ -53,8 +53,13 @@ export default function ScopePage() {
 
         {/* 対象 */}
         <section style={{ background: "#fff", borderRadius: 14, padding: 28, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: 16 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 16 }}>
-            ✅ 対象とする業界
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--success-soft)", color: "var(--success)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </span>
+            対象とする業界
           </h2>
           <ul style={{ display: "flex", flexDirection: "column", gap: 14, listStyle: "none", margin: 0, padding: 0 }}>
             {inScope.map((item) => (
@@ -75,8 +80,13 @@ export default function ScopePage() {
 
         {/* 対象外 */}
         <section style={{ background: "#fff", borderRadius: 14, padding: 28, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: 24 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 16 }}>
-            ❌ 対象外の業界
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--error-soft)", color: "var(--error)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </span>
+            対象外の業界
           </h2>
           <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 14, lineHeight: 1.7 }}>
             編集部の取材リソースを集中させるため、現時点で以下の業界は対象外としています。

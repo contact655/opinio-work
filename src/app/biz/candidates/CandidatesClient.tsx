@@ -459,7 +459,10 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
         border: "1px solid #fde68a", borderRadius: 10,
         fontSize: 12, color: "#92400e", lineHeight: 1.7,
       }}>
-        💡 <strong>OPINIO の採用思想：</strong>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }}>
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <strong>OPINIO の採用思想：</strong>
         スカウトではなく「来てもらう」採用。企業情報・求人・カジュアル面談を充実させることで、
         求職者が自発的に接触してくる設計です。
         求職者へのダイレクトメッセージは現在提供していません。

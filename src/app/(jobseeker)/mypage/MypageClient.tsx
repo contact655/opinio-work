@@ -391,8 +391,11 @@ function ProfileCompletenessCard({
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14m-7-7h14"/></svg>
             {firstMissing.hint}を追加する
           </Link>
-          <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-            💡 入力は自動保存されます
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            入力は自動保存されます
           </span>
         </div>
       )}
@@ -780,8 +783,12 @@ function MentorRequestsView({
           color: "var(--warm)", background: "var(--warm-soft)",
           padding: "4px 10px", borderRadius: 100, letterSpacing: "0.1em",
           marginLeft: 10, verticalAlign: "middle",
+          display: "inline-flex", alignItems: "center", gap: 4,
         }}>
-          ⭐ MENTOR
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          MENTOR
         </span>
       </h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
@@ -905,8 +912,12 @@ function MentorScheduleView() {
           color: "var(--warm)", background: "var(--warm-soft)",
           padding: "4px 10px", borderRadius: 100, letterSpacing: "0.1em",
           marginLeft: 10, verticalAlign: "middle",
+          display: "inline-flex", alignItems: "center", gap: 4,
         }}>
-          ⭐ MENTOR
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          MENTOR
         </span>
       </h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>

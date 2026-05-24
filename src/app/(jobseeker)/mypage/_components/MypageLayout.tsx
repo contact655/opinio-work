@@ -238,8 +238,12 @@ export default function MypageLayout({
                 fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
                 color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase",
                 padding: "16px 24px 8px",
+                display: "flex", alignItems: "center", gap: 5,
               }}>
-                ⭐ メンター管理
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+                メンター管理
               </div>
               <nav style={{ display: "flex", flexDirection: "column" }}>
                 <SidebarItem icon={Icons.check}    label="受けた相談"    active={activeKey === "mentor-requests"}  badge={pendingReceivedCount}  onClick={() => nav("mentor-requests")} />

@@ -3358,7 +3358,10 @@ export default function ProfileEditClient({
               border: "1px solid var(--royal-100)", borderRadius: 10,
               fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
             }}>
-              💡 <strong style={{ color: "var(--royal)" }}>希望条件は企業側に公開されます。</strong>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 4, flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <strong style={{ color: "var(--royal)" }}>希望条件は企業側に公開されます。</strong>
               しかし OPINIO ではスカウトはできない設計です。
               企業はこの情報を参考に、自社への関心を持ちやすい求職者に気づきます。
               ダイレクトメッセージは送れません。
