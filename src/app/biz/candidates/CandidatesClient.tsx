@@ -388,7 +388,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
                       fontSize: 11, padding: "3px 8px", borderRadius: 100,
                       background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)",
                     }}>
-                      📍 {c.location}
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>{c.location}
                     </span>
                   )}
                   {c.workStyle && (
