@@ -92,23 +92,25 @@ function jobToForm(job: BizJob | null): FormState {
 
 // ─── サブコンポーネント ──────────────────────────────────────────────────────
 
-function FormLabel({ children, required, optional }: { children: React.ReactNode; required?: boolean; optional?: boolean }) {
+function FormLabel({ children, required, optional, htmlFor }: { children: React.ReactNode; required?: boolean; optional?: boolean; htmlFor?: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
+    <label htmlFor={htmlFor} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
       {children}
       {required && <span style={{ color: "var(--error)", fontSize: 11 }}>必須</span>}
       {optional && <span style={{ color: "var(--ink-mute)", fontSize: 10, fontWeight: 400 }}>任意</span>}
-    </div>
+    </label>
   );
 }
 
-function FormInput({ value, onChange, placeholder, type = "text" }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
+function FormInput({ value, onChange, placeholder, type = "text", id, required }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; id?: string; required?: boolean }) {
   return (
     <input
+      id={id}
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      required={required}
       style={{
         width: "100%", padding: "10px 12px",
         border: "1.5px solid var(--line)", borderRadius: 8,
@@ -121,9 +123,10 @@ function FormInput({ value, onChange, placeholder, type = "text" }: { value: str
   );
 }
 
-function FormSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+function FormSelect({ value, onChange, options, id }: { value: string; onChange: (v: string) => void; options: string[]; id?: string }) {
   return (
     <select
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       style={{
@@ -144,12 +147,13 @@ function FormSelect({ value, onChange, options }: { value: string; onChange: (v:
   );
 }
 
-function FormTextarea({ value, onChange, placeholder, rows = 5, maxLength, ariaLabel }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; maxLength?: number; ariaLabel?: string }) {
+function FormTextarea({ value, onChange, placeholder, rows = 5, maxLength, ariaLabel, id }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; maxLength?: number; ariaLabel?: string; id?: string }) {
   const nearLimit = maxLength ? value.length >= maxLength * 0.9 : false;
   const atLimit = maxLength ? value.length >= maxLength : false;
   return (
     <div style={{ position: "relative" }}>
       <textarea
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -359,8 +363,8 @@ export function JobEditForm({
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>求人の基本情報を入力してください。求職者側の検索・一覧表示に使われる重要な項目です。</p>
             <FormSection title="求人タイトル・職種">
               <FormGroup>
-                <FormLabel required>求人タイトル</FormLabel>
-                <FormInput value={form.title} onChange={(v) => updateForm("title", v)} placeholder="例：プロダクトマネージャー（タイミーキャリアプラス）" />
+                <FormLabel required htmlFor="jef-title">求人タイトル</FormLabel>
+                <FormInput id="jef-title" value={form.title} onChange={(v) => updateForm("title", v)} placeholder="例：プロダクトマネージャー（タイミーキャリアプラス）" required />
                 <Hint>求職者が最初に目にする最重要項目。ポジション名 + 補足情報を記載してください。</Hint>
               </FormGroup>
               <FormGroup>
@@ -388,12 +392,12 @@ export function JobEditForm({
               </FormGroup>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup style={{ margin: 0 }}>
-                  <FormLabel required>職種カテゴリ</FormLabel>
-                  <FormSelect value={form.jobCategory} onChange={(v) => updateForm("jobCategory", v)} options={JOB_CATEGORIES} />
+                  <FormLabel required htmlFor="jef-job-category">職種カテゴリ</FormLabel>
+                  <FormSelect id="jef-job-category" value={form.jobCategory} onChange={(v) => updateForm("jobCategory", v)} options={JOB_CATEGORIES} />
                 </FormGroup>
                 <FormGroup style={{ margin: 0 }}>
-                  <FormLabel optional>所属部門</FormLabel>
-                  <FormInput value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：タイミーキャリアプラス事業部" />
+                  <FormLabel optional htmlFor="jef-department">所属部門</FormLabel>
+                  <FormInput id="jef-department" value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：タイミーキャリアプラス事業部" />
                 </FormGroup>
               </div>
             </FormSection>
@@ -409,31 +413,31 @@ export function JobEditForm({
               <FormGroup>
                 <FormLabel required>年収レンジ</FormLabel>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr 60px", gap: 8, alignItems: "center" }}>
-                  <FormInput value={form.salaryMin} onChange={(v) => updateForm("salaryMin", v)} placeholder="600" type="number" />
+                  <FormInput value={form.salaryMin} onChange={(v) => updateForm("salaryMin", v)} placeholder="600" type="number" id="jef-salary-min" />
                   <span style={{ color: "var(--ink-mute)", fontWeight: 600 }}>〜</span>
-                  <FormInput value={form.salaryMax} onChange={(v) => updateForm("salaryMax", v)} placeholder="1000" type="number" />
+                  <FormInput value={form.salaryMax} onChange={(v) => updateForm("salaryMax", v)} placeholder="1000" type="number" id="jef-salary-max" />
                   <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
                 </div>
                 <Hint>求職者側では「¥{form.salaryMin || "?"}-{form.salaryMax || "?"}万」と表示されます</Hint>
               </FormGroup>
               <FormGroup style={{ marginBottom: 0 }}>
-                <FormLabel optional>給与の補足説明</FormLabel>
-                <FormTextarea value={form.salaryNote} onChange={(v) => updateForm("salaryNote", v)} placeholder="例：賞与は年2回、業績連動。ストックオプション制度あり。" rows={3} maxLength={200} ariaLabel="給与補足" />
+                <FormLabel optional htmlFor="jef-salary-note">給与の補足説明</FormLabel>
+                <FormTextarea id="jef-salary-note" value={form.salaryNote} onChange={(v) => updateForm("salaryNote", v)} placeholder="例：賞与は年2回、業績連動。ストックオプション制度あり。" rows={3} maxLength={200} />
               </FormGroup>
             </FormSection>
             <FormSection title="勤務地・勤務形態">
               <FormGroup>
-                <FormLabel required>勤務地</FormLabel>
-                <FormInput value={form.location} onChange={(v) => updateForm("location", v)} placeholder="例：東京都豊島区東池袋1-9-6" />
+                <FormLabel required htmlFor="jef-location">勤務地</FormLabel>
+                <FormInput id="jef-location" value={form.location} onChange={(v) => updateForm("location", v)} placeholder="例：東京都豊島区東池袋1-9-6" required />
               </FormGroup>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup style={{ margin: 0 }}>
-                  <FormLabel required>リモートワーク</FormLabel>
-                  <FormSelect value={form.remoteWorkStatus} onChange={(v) => updateForm("remoteWorkStatus", v)} options={REMOTE_OPTIONS} />
+                  <FormLabel required htmlFor="jef-remote">リモートワーク</FormLabel>
+                  <FormSelect id="jef-remote" value={form.remoteWorkStatus} onChange={(v) => updateForm("remoteWorkStatus", v)} options={REMOTE_OPTIONS} />
                 </FormGroup>
                 <FormGroup style={{ margin: 0 }}>
-                  <FormLabel optional>試用期間</FormLabel>
-                  <FormInput value={form.probationPeriod} onChange={(v) => updateForm("probationPeriod", v)} placeholder="例：3ヶ月" />
+                  <FormLabel optional htmlFor="jef-probation">試用期間</FormLabel>
+                  <FormInput id="jef-probation" value={form.probationPeriod} onChange={(v) => updateForm("probationPeriod", v)} placeholder="例：3ヶ月" />
                 </FormGroup>
               </div>
             </FormSection>
@@ -479,7 +483,7 @@ export function JobEditForm({
               </div>
             </FormSection>
             <FormSection title="候補者へのメッセージ" desc="採用担当者から候補者へのメッセージ。求職者側の求人詳細ページに表示されます。">
-              <FormTextarea value={form.messageToCandidates} onChange={(v) => updateForm("messageToCandidates", v)} placeholder="例：BtoCマーケティングの経験を活かして、社会的意義のあるプロダクトに関わりたい方をお待ちしています。" rows={5} maxLength={500} ariaLabel="採用担当者メッセージ" />
+              <FormTextarea id="jef-message-to-candidates" value={form.messageToCandidates} onChange={(v) => updateForm("messageToCandidates", v)} placeholder="例：BtoCマーケティングの経験を活かして、社会的意義のあるプロダクトに関わりたい方をお待ちしています。" rows={5} maxLength={500} />
             </FormSection>
           </>
         );
@@ -511,7 +515,7 @@ export function JobEditForm({
               </FormGroup>
             </FormSection>
             <FormSection title="求めるカルチャーフィット" desc="スキルだけでは測れない、価値観・働き方のフィットについて記述してください。">
-              <FormTextarea value={form.cultureFit} onChange={(v) => updateForm("cultureFit", v)} placeholder="例：データドリブンな意思決定を大切にしながらも、ユーザーの声に真摯に向き合える方。" rows={5} maxLength={500} ariaLabel="カルチャーフィット" />
+              <FormTextarea id="jef-culture-fit" value={form.cultureFit} onChange={(v) => updateForm("cultureFit", v)} placeholder="例：データドリブンな意思決定を大切にしながらも、ユーザーの声に真摯に向き合える方。" rows={5} maxLength={500} />
             </FormSection>
           </>
         );
@@ -530,12 +534,12 @@ export function JobEditForm({
             <FormSection title="選考期間の目安">
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup style={{ margin: 0 }}>
-                  <FormLabel>カジュアル面談から内定まで</FormLabel>
-                  <FormInput value={form.selectionDuration} onChange={(v) => updateForm("selectionDuration", v)} placeholder="例：3-4週間" />
+                  <FormLabel htmlFor="jef-selection-duration">カジュアル面談から内定まで</FormLabel>
+                  <FormInput id="jef-selection-duration" value={form.selectionDuration} onChange={(v) => updateForm("selectionDuration", v)} placeholder="例：3-4週間" />
                 </FormGroup>
                 <FormGroup style={{ margin: 0 }}>
-                  <FormLabel optional>入社可能時期</FormLabel>
-                  <FormSelect value={form.startDatePreference} onChange={(v) => updateForm("startDatePreference", v)} options={DURATION_OPTIONS} />
+                  <FormLabel optional htmlFor="jef-start-date">入社可能時期</FormLabel>
+                  <FormSelect id="jef-start-date" value={form.startDatePreference} onChange={(v) => updateForm("startDatePreference", v)} options={DURATION_OPTIONS} />
                 </FormGroup>
               </div>
             </FormSection>
