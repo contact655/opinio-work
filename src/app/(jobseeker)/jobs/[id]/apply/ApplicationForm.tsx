@@ -128,15 +128,16 @@ export default function ApplicationForm({
 
           {/* Name — readonly */}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
+            <label htmlFor="apply-name" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
               お名前
               <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>プロフィールから自動取得</span>
-            </div>
+            </label>
             <input
+              id="apply-name"
               type="text"
               value={authName}
               readOnly
-              aria-label="お名前"
+              autoComplete="name"
               style={{
                 width: "100%", padding: "10px 12px",
                 border: "1.5px solid var(--line)", borderRadius: 8,
