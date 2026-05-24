@@ -377,11 +377,12 @@ export function CreateCompanyClient({
       <form onSubmit={(e) => handleSubmit(e, false)} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* 会社名（サジェスト付き） */}
         <div>
-          <label style={labelStyle}>
+          <label htmlFor="cc-company-name" style={labelStyle}>
             会社名 <span style={{ color: "var(--error)" }}>*</span>
           </label>
           <div style={{ position: "relative" }}>
             <input
+              id="cc-company-name"
               ref={nameInputRef}
               type="text"
               value={name}
@@ -509,8 +510,9 @@ export function CreateCompanyClient({
 
         {/* 業界 */}
         <div>
-          <label style={labelStyle}>業界</label>
+          <label htmlFor="cc-industry" style={labelStyle}>業界</label>
           <select
+            id="cc-industry"
             value={industry}
             onChange={(e) => setIndustry(e.target.value)}
             style={{ ...selectStyle, color: industry ? "var(--ink)" : "var(--ink-mute)" }}
@@ -545,8 +547,9 @@ export function CreateCompanyClient({
 
         {/* 企業サイト URL */}
         <div>
-          <label style={labelStyle}>企業サイト URL</label>
+          <label htmlFor="cc-website" style={labelStyle}>企業サイト URL</label>
           <input
+            id="cc-website"
             type="url"
             value={website}
             onChange={(e) => setWebsite(e.target.value)}

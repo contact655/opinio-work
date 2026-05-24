@@ -97,10 +97,11 @@ export function AddByTokenClient() {
       </p>
 
       <form onSubmit={handleSubmit}>
-        <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6, letterSpacing: "0.04em" }}>
+        <label htmlFor="add-token-input" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6, letterSpacing: "0.04em" }}>
           招待コード
         </label>
         <input
+          id="add-token-input"
           type="text"
           value={token}
           onChange={(e) => setToken(e.target.value)}
