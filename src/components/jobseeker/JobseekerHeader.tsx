@@ -385,7 +385,7 @@ export function JobseekerHeader() {
               </svg>
               <input
                 ref={searchInputRef}
-                type="text"
+                type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="企業・職種・スキル・メンターを検索..."
