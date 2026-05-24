@@ -112,8 +112,13 @@ export default function AdminReservationsPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-400">読み込み中...</p>
+      <div style={{ padding: 32 }}>
+        <div className="skeleton-shimmer" style={{ height: 32, borderRadius: 8, maxWidth: 300, marginBottom: 24 }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {[1,2,3,4,5].map((i) => (
+            <div key={i} className="skeleton-shimmer" style={{ height: 60, borderRadius: 8 }} />
+          ))}
+        </div>
       </div>
     );
   }

@@ -210,8 +210,11 @@ export default function ConversationDetailPage() {
   if (loading) {
     return (
       <MypageLayout activeKey="conversations">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
-          <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>読み込み中...</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 700 }}>
+          <div className="skeleton-shimmer" style={{ height: 40, borderRadius: 8, maxWidth: 300 }} />
+          <div className="skeleton-shimmer" style={{ height: 56, borderRadius: 12 }} />
+          <div className="skeleton-shimmer" style={{ height: 400, borderRadius: 12 }} />
+          <div className="skeleton-shimmer" style={{ height: 80, borderRadius: 12 }} />
         </div>
       </MypageLayout>
     );

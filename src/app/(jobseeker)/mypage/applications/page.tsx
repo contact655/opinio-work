@@ -130,8 +130,21 @@ export default function ApplicationsPage() {
   if (loading) {
     return (
       <MypageLayout activeKey="applications">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
-          <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>読み込み中...</p>
+        <h1 style={{
+          fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
+          color: "var(--ink)", marginBottom: 24,
+        }}>応募管理</h1>
+        {/* Skeleton summary cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[1,2,3,4].map((i) => (
+            <div key={i} className="skeleton-shimmer" style={{ height: 80, borderRadius: 12 }} />
+          ))}
+        </div>
+        {/* Skeleton application cards */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {[1,2,3].map((i) => (
+            <div key={i} className="skeleton-shimmer" style={{ height: 140, borderRadius: 16 }} />
+          ))}
         </div>
       </MypageLayout>
     );

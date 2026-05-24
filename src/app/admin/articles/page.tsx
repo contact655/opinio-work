@@ -76,8 +76,13 @@ export default function AdminArticlesPage() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "4rem 2rem", textAlign: "center" }}>
-        <p style={{ color: "#9ca3af" }}>読み込み中...</p>
+      <div style={{ padding: 32 }}>
+        <div className="skeleton-shimmer" style={{ height: 32, borderRadius: 8, maxWidth: 300, marginBottom: 24 }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {[1,2,3,4,5].map((i) => (
+            <div key={i} className="skeleton-shimmer" style={{ height: 60, borderRadius: 8 }} />
+          ))}
+        </div>
       </div>
     );
   }
