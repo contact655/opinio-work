@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ja_JP",
     url: "https://opinio.jp",
-    siteName: "opinio.jp",
+    siteName: "OPINIO",
     title: "OPINIO｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
     description:
       "IT/SaaS業界の転職は、情報戦。OPINIO編集部が120社を取材し、先輩メンターが相談に乗る、26-35歳のための転職プラットフォーム。完全無料。",

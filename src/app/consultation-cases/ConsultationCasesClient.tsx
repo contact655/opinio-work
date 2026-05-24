@@ -222,7 +222,7 @@ export default function ConsultationCasesClient({
             人たち。
           </h1>
           <p className="text-[14px] text-gray-600 leading-relaxed max-w-md mx-auto">
-            実際にopinio.jpのキャリア相談を利用した方の
+            実際にOPINIOのキャリア相談を利用した方の
             <br className="hidden sm:block" />
             相談内容と気づきをご紹介します。
           </p>
@@ -231,10 +231,12 @@ export default function ConsultationCasesClient({
 
       {/* ─── Filters ─── */}
       <section className="max-w-4xl mx-auto px-4 pt-8 pb-2">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="相談カテゴリで絞り込み">
           {CATEGORY_FILTERS.map((f) => (
             <button
               key={f.value}
+              role="tab"
+              aria-selected={category === f.value}
               onClick={() => setCategory(f.value)}
               className="text-[12px] px-3.5 py-1.5 rounded-full transition-all"
               style={

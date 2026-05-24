@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
           }}
         >
           <span style={{ fontSize: 18, color: "#94A3B8", fontWeight: 500 }}>
-            opinio.jp
+            OPINIO
           </span>
           <span style={{ fontSize: 18, color: "#94A3B8" }}>
             IT/SaaS業界のキャリアインフラ
