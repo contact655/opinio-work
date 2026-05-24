@@ -161,7 +161,7 @@ function MultiBarChart({ data }: { data: MonthRow[] }) {
   return (
     <div>
       {/* Legend */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 16, marginBottom: 14 }} aria-hidden="true">
         {series.map((s) => (
           <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
@@ -169,8 +169,8 @@ function MultiBarChart({ data }: { data: MonthRow[] }) {
           </div>
         ))}
       </div>
-      {/* Chart */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120 }}>
+      {/* Chart - decorative, screen reader gets data from summary text */}
+      <div aria-hidden="true" style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120 }}>
         {data.map((d) => (
           <div key={d.label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 2, width: "100%", height: 100, justifyContent: "center" }}>
@@ -189,6 +189,10 @@ function MultiBarChart({ data }: { data: MonthRow[] }) {
           </div>
         ))}
       </div>
+      {/* Screen-reader summary */}
+      <p className="sr-only">
+        月次データ: {data.map((d) => `${d.label} — 応募${d.applications}件、面談${d.interviews}件`).join("、")}
+      </p>
     </div>
   );
 }
