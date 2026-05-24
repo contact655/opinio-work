@@ -83,7 +83,7 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main */}
-      <main className="flex-1 ml-[240px] bg-background min-h-screen">
+      <main id="main-content" className="flex-1 ml-[240px] bg-background min-h-screen">
         {children}
       </main>
     </div>

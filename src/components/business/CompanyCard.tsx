@@ -72,6 +72,7 @@ export function CompanyCard({
         <Link
           href={`/companies/${tenantId}`}
           target="_blank"
+          rel="noopener noreferrer"
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "8px 14px",
