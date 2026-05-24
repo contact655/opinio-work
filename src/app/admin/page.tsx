@@ -167,10 +167,10 @@ export default async function AdminDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="text-left py-2 text-xs text-gray-400 font-medium">企業名</th>
-                <th className="text-left py-2 text-xs text-gray-400 font-medium">業界</th>
-                <th className="text-left py-2 text-xs text-gray-400 font-medium">ステータス</th>
-                <th className="text-left py-2 text-xs text-gray-400 font-medium">登録日</th>
+                <th scope="col" className="text-left py-2 text-xs text-gray-400 font-medium">企業名</th>
+                <th scope="col" className="text-left py-2 text-xs text-gray-400 font-medium">業界</th>
+                <th scope="col" className="text-left py-2 text-xs text-gray-400 font-medium">ステータス</th>
+                <th scope="col" className="text-left py-2 text-xs text-gray-400 font-medium">登録日</th>
               </tr>
             </thead>
             <tbody>

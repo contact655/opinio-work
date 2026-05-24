@@ -199,7 +199,7 @@ export default function AdminCompaniesPage() {
           <thead>
             <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
               {["企業名", "業界", "所在地", "従業員数", "求人数", "カジュアル面談", "公開状態", "更新日", "操作"].map((h) => (
-                <th key={h} style={{
+                <th key={h} scope="col" style={{
                   textAlign: "left", padding: "10px 14px",
                   fontSize: 11, color: "#64748B", fontWeight: 600,
                   letterSpacing: "0.04em", whiteSpace: "nowrap",

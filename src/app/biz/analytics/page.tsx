@@ -410,11 +410,12 @@ export default async function AnalyticsPage() {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }} aria-label="求人パフォーマンス一覧">
+              <caption style={{ display: "none" }}>求人タイトル・ステータス・閲覧数・応募数・転換率の一覧</caption>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--line)" }}>
                   {["求人タイトル", "ステータス", "閲覧数", "応募数", "転換率"].map((h) => (
-                    <th key={h} style={{
+                    <th key={h} scope="col" style={{
                       padding: "8px 12px", textAlign: "left",
                       fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
                       whiteSpace: "nowrap",

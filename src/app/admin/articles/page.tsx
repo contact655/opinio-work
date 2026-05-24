@@ -182,13 +182,13 @@ export default function AdminArticlesPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">タイトル</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">種類</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">企業</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">読了</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">ステータス</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">公開日</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">操作</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">タイトル</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">種類</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">企業</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">読了</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">ステータス</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">公開日</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">操作</th>
             </tr>
           </thead>
           <tbody>

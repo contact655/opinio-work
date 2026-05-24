@@ -46,13 +46,13 @@ export default async function AdminCandidatesPage({
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">名前</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">メール</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">居住地</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">年代</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">公開設定</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">メンター</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">登録日</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">名前</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">メール</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">居住地</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">年代</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">公開設定</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">メンター</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">登録日</th>
             </tr>
           </thead>
           <tbody>

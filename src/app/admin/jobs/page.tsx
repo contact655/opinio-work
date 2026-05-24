@@ -291,7 +291,7 @@ export default function AdminJobsPage() {
           <thead>
             <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
               {["求人タイトル", "企業名", "職種", "年収（万円）", "勤務地", "働き方", "ステータス", "申請日", "操作"].map((h) => (
-                <th key={h} style={{
+                <th key={h} scope="col" style={{
                   textAlign: "left", padding: "10px 14px",
                   fontSize: 11, color: "#64748B", fontWeight: 600,
                   letterSpacing: "0.04em", whiteSpace: "nowrap",
