@@ -47,20 +47,22 @@ function FormLabel({
   children,
   required,
   optional,
+  htmlFor,
 }: {
   children: React.ReactNode;
   required?: boolean;
   optional?: boolean;
+  htmlFor?: string;
 }) {
   return (
-    <div style={{
+    <label htmlFor={htmlFor} style={{
       display: "flex", alignItems: "center", gap: 6,
       fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8,
     }}>
       {children}
       {required && <span style={{ color: "var(--error)", fontSize: 11 }}>必須</span>}
       {optional && <span style={{ color: "var(--ink-mute)", fontSize: 10, fontWeight: 400 }}>任意</span>}
-    </div>
+    </label>
   );
 }
 
@@ -113,6 +115,7 @@ function FormInput({
   type = "text",
   ariaLabel,
   maxLength,
+  id,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -120,9 +123,11 @@ function FormInput({
   type?: string;
   ariaLabel?: string;
   maxLength?: number;
+  id?: string;
 }) {
   return (
     <input
+      id={id}
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
@@ -157,13 +162,16 @@ function FormSelect({
   value,
   onChange,
   options,
+  id,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: string[];
+  id?: string;
 }) {
   return (
     <select
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       style={{
@@ -562,8 +570,8 @@ export function CompanyEditClient({
 
             <SectionCard title="企業の基本情報">
               <FormGroup>
-                <FormLabel required>企業名</FormLabel>
-                <FormInput value={form.name} onChange={(v) => update("name", v)} />
+                <FormLabel required htmlFor="ce-name">企業名</FormLabel>
+                <FormInput id="ce-name" value={form.name} onChange={(v) => update("name", v)} />
               </FormGroup>
               <FormGroup>
                 <FormLabel required>ミッション</FormLabel>
@@ -571,18 +579,18 @@ export function CompanyEditClient({
                 <FormHint>企業詳細ページのヒーローエリアに大きく表示される、企業の核となるメッセージです。短く、印象的に。</FormHint>
               </FormGroup>
               <FormGroup>
-                <FormLabel>タグライン</FormLabel>
-                <FormInput value={form.tagline} onChange={(v) => update("tagline", v)} placeholder="例: MA領域でシリーズCのスタートアップ" />
+                <FormLabel htmlFor="ce-tagline">タグライン</FormLabel>
+                <FormInput id="ce-tagline" value={form.tagline} onChange={(v) => update("tagline", v)} placeholder="例: MA領域でシリーズCのスタートアップ" />
                 <FormHint>企業詳細ページのミッション直下に表示される短いサブテキストです。SEOの meta description にも使用されます。</FormHint>
               </FormGroup>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup>
-                  <FormLabel required>業種</FormLabel>
-                  <FormSelect value={form.industry} onChange={(v) => update("industry", v)} options={INDUSTRY_OPTIONS} />
+                  <FormLabel required htmlFor="ce-industry">業種</FormLabel>
+                  <FormSelect id="ce-industry" value={form.industry} onChange={(v) => update("industry", v)} options={INDUSTRY_OPTIONS} />
                 </FormGroup>
                 <FormGroup>
-                  <FormLabel>事業ステージ</FormLabel>
-                  <FormSelect value={form.phase} onChange={(v) => update("phase", v)} options={PHASE_OPTIONS} />
+                  <FormLabel htmlFor="ce-phase">事業ステージ</FormLabel>
+                  <FormSelect id="ce-phase" value={form.phase} onChange={(v) => update("phase", v)} options={PHASE_OPTIONS} />
                 </FormGroup>
               </div>
               {availableGenres.length > 0 && (
@@ -598,8 +606,8 @@ export function CompanyEditClient({
                 </FormGroup>
               )}
               <FormGroup>
-                <FormLabel>公式サイトURL</FormLabel>
-                <FormInput type="url" value={form.url} onChange={(v) => update("url", v)} placeholder="https://example.co.jp" />
+                <FormLabel htmlFor="ce-url">公式サイトURL</FormLabel>
+                <FormInput id="ce-url" type="url" value={form.url} onChange={(v) => update("url", v)} placeholder="https://example.co.jp" />
               </FormGroup>
             </SectionCard>
           </>
@@ -796,12 +804,12 @@ export function CompanyEditClient({
             </p>
             <SectionCard title="オフィス所在地">
               <FormGroup>
-                <FormLabel required>本社所在地</FormLabel>
-                <FormInput value={form.location} onChange={(v) => update("location", v)} placeholder="東京都渋谷区..." />
+                <FormLabel required htmlFor="ce-location">本社所在地</FormLabel>
+                <FormInput id="ce-location" value={form.location} onChange={(v) => update("location", v)} placeholder="東京都渋谷区..." />
               </FormGroup>
               <FormGroup>
-                <FormLabel>最寄り駅</FormLabel>
-                <FormInput value={form.nearestStation} onChange={(v) => update("nearestStation", v)} placeholder="例: JR渋谷駅 東口より徒歩5分" />
+                <FormLabel htmlFor="ce-nearest-station">最寄り駅</FormLabel>
+                <FormInput id="ce-nearest-station" value={form.nearestStation} onChange={(v) => update("nearestStation", v)} placeholder="例: JR渋谷駅 東口より徒歩5分" />
               </FormGroup>
             </SectionCard>
             <SectionCard title="働き方">
