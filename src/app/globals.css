@@ -132,6 +132,16 @@ body {
   overflow-x: hidden; /* belt-and-suspenders against any wide child */
 }
 
+/* ── Brand text selection ── */
+::selection {
+  background: var(--royal-100);
+  color: var(--ink);
+}
+::-moz-selection {
+  background: var(--royal-100);
+  color: var(--ink);
+}
+
 /* ─── Mobile UX hardening ────────────────────────────────── */
 
 /* Ensure tappable elements meet iOS 44px minimum touch target */

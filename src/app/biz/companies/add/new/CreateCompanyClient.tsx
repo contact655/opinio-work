@@ -297,12 +297,16 @@ export function CreateCompanyClient({
         }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowSwitchModal(false); }}
         >
-          <div style={{
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="switch-modal-title"
+            style={{
             background: "#fff", borderRadius: 14, padding: "28px 28px 24px",
             maxWidth: 400, width: "calc(100% - 40px)",
             boxShadow: "0 8px 32px rgba(0,0,0,0.16)",
           }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+            <div id="switch-modal-title" style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
               別のアカウントで企業を作成しますか？
             </div>
             <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 22 }}>

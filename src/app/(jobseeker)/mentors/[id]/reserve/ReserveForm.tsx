@@ -54,7 +54,11 @@ function SuccessModal({ mentorName, onClose }: { mentorName: string; onClose: ()
       background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)",
       display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
     }}>
-      <div style={{
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="申込完了"
+        style={{
         background: "#fff", borderRadius: 20, padding: "44px 40px",
         maxWidth: 500, width: "100%", textAlign: "center",
         boxShadow: "0 24px 64px rgba(15,23,42,0.18)",

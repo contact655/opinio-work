@@ -362,10 +362,14 @@ export function JobseekerHeader() {
       {searchOpen && (
         <>
           <div
+            aria-hidden="true"
             style={{ position: "fixed", inset: 0, zIndex: 199, background: "rgba(0,0,0,0.4)" }}
             onClick={() => setSearchOpen(false)}
           />
-          <div style={{
+          <div
+            role="search"
+            aria-label="サイト検索"
+            style={{
             position: "fixed", top: 0, left: 0, right: 0, zIndex: 200,
             background: "#fff", boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
           }}>
