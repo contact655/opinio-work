@@ -84,7 +84,7 @@ function ActionBtn({
       style={styles[variant]}
       onMouseEnter={(e) => {
         if (variant === "primary") {
-          e.currentTarget.style.background = "var(--royal-deep)";
+          e.currentTarget.style.background = "#001233";
         } else if (variant === "danger") {
           e.currentTarget.style.background = "var(--error-soft)";
           e.currentTarget.style.borderColor = "var(--error)";

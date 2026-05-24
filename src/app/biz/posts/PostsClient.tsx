@@ -307,7 +307,7 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
                 transition: "background 0.15s",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--royal-deep)"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#001233"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "var(--royal)"; }}
             >
               <Plus size={15} strokeWidth={2.5} />
@@ -570,7 +570,7 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
                 cursor: isPending ? "not-allowed" : "pointer",
                 transition: "background 0.15s",
               }}
-              onMouseEnter={(e) => { if (!isPending) e.currentTarget.style.background = "var(--royal-deep)"; }}
+              onMouseEnter={(e) => { if (!isPending) e.currentTarget.style.background = "#001233"; }}
               onMouseLeave={(e) => { if (!isPending) e.currentTarget.style.background = "var(--royal)"; }}
             >
               {isPending ? (

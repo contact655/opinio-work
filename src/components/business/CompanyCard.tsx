@@ -107,7 +107,7 @@ export function CompanyCard({
             transition: "all 0.2s",
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLAnchorElement).style.background = "var(--royal-deep)";
+            (e.currentTarget as HTMLAnchorElement).style.background = "#001233";
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLAnchorElement).style.background = "var(--royal)";
