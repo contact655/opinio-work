@@ -215,6 +215,7 @@ function FormTextarea({
   serif,
   maxLength,
   ariaLabel,
+  id,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -223,6 +224,7 @@ function FormTextarea({
   serif?: boolean;
   maxLength?: number;
   ariaLabel?: string;
+  id?: string;
 }) {
   const nearLimit = maxLength ? value.length >= maxLength * 0.9 : false;
   const atLimit = maxLength ? value.length >= maxLength : false;
@@ -230,6 +232,7 @@ function FormTextarea({
   return (
     <div style={{ position: "relative" }}>
       <textarea
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -574,8 +577,8 @@ export function CompanyEditClient({
                 <FormInput id="ce-name" value={form.name} onChange={(v) => update("name", v)} />
               </FormGroup>
               <FormGroup>
-                <FormLabel required>ミッション</FormLabel>
-                <FormTextarea serif value={form.mission} onChange={(v) => update("mission", v)} rows={2} placeholder="企業のミッションやビジョン" maxLength={80} ariaLabel="ミッション" />
+                <FormLabel required htmlFor="ce-mission">ミッション</FormLabel>
+                <FormTextarea id="ce-mission" serif value={form.mission} onChange={(v) => update("mission", v)} rows={2} placeholder="企業のミッションやビジョン" maxLength={80} />
                 <FormHint>企業詳細ページのヒーローエリアに大きく表示される、企業の核となるメッセージです。短く、印象的に。</FormHint>
               </FormGroup>
               <FormGroup>
