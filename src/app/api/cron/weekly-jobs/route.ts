@@ -89,7 +89,7 @@ export async function GET(request: Request) {
         await getResend().emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "contact@opinio.co.jp",
           to: email,
-          subject: `【opinio.jp】今週の新着求人 ${totalCount}件をお届けします`,
+          subject: `【OPINIO】今週の新着求人 ${totalCount}件をお届けします`,
           html,
         });
         sent++;
@@ -173,7 +173,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
 
       <div style="border-top:1px solid #e5e7eb;padding-top:20px;margin-top:24px">
         <p style="font-size:11px;color:#9ca3af;line-height:1.6">
-          opinio.jp &middot; IT/SaaS業界のキャリアインフラ<br>
+          OPINIO &middot; IT/SaaS業界のキャリアインフラ<br>
           配信停止は<a href="${BASE_URL}/mypage" style="color:#9ca3af">マイページ</a>から設定できます
         </p>
       </div>

@@ -86,7 +86,7 @@ export async function POST(req: Request) {
         if (message) {
           await notify({
             to: normalizedEmail,
-            subject: "【opinio.jp】招待のご案内",
+            subject: "【OPINIO】招待のご案内",
             html: buildInviteHtml(normalizedEmail, role, message, siteUrl),
           }).catch(() => {/* best-effort */});
         }

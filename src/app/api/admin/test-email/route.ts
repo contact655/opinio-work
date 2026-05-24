@@ -79,7 +79,7 @@ export async function GET(req: Request) {
       </p>
     `);
   } else if (type === "welcome") {
-    subject = "【opinio.jp】ようこそ！アカウント登録が完了しました";
+    subject = "【OPINIO】ようこそ！アカウント登録が完了しました";
     html = wrapHtml(`
       <h2 style="color:#002366">OPINIO へようこそ！</h2>
       <p>これは <strong>ウェルカムメールのテスト</strong>です。</p>

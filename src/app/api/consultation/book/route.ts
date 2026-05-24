@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     // ① メンター（＝admin）へ通知メール
     const mentorEmail = mentor.email || adminEmail;
     await resend.emails.send({
-      from: `opinio.jp <${fromEmail}>`,
+      from: `OPINIO <${fromEmail}>`,
       to: mentorEmail,
       subject: `【相談予約】${userName}さんから相談リクエストが届きました`,
       html: `
@@ -86,14 +86,14 @@ export async function POST(req: Request) {
         <p>メッセージページからやり取りを開始してください。</p>
         <a href="https://opinio.jp/mypage">メッセージを確認する →</a>
         <br/><br/>
-        <p style="color:#999;font-size:12px;">opinio.jp — Truth to Careers</p>
+        <p style="color:#999;font-size:12px;">OPINIO — Truth to Careers</p>
       `,
     });
 
     // ② ユーザーへ確認メール
     if (userEmail) {
       await resend.emails.send({
-        from: `opinio.jp <${fromEmail}>`,
+        from: `OPINIO <${fromEmail}>`,
         to: userEmail,
         subject: `【予約完了】${mentor.name}さんへの相談リクエストを送りました`,
         html: `
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
           <hr/>
           <a href="https://opinio.jp/mypage">メッセージを確認する →</a>
           <br/><br/>
-          <p style="color:#999;font-size:12px;">opinio.jp — Truth to Careers</p>
+          <p style="color:#999;font-size:12px;">OPINIO — Truth to Careers</p>
         `,
       });
     }

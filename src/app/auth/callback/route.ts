@@ -69,7 +69,7 @@ export async function GET(request: Request) {
           ?? "さん";
         notify({
           to: session.user.email,
-          subject: "【opinio.jp】ようこそ！OPINIO へ登録完了しました",
+          subject: "【OPINIO】ようこそ！OPINIO へ登録完了しました",
           html: buildWelcomeHtml(userName),
         }).catch(() => {/* best-effort */});
       }
