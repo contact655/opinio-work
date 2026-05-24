@@ -232,17 +232,22 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
       </div>
 
       {/* Status tabs */}
-      <div style={{
-        display: "flex", gap: 4, marginBottom: 20,
-        borderBottom: "1px solid var(--line)", paddingBottom: 0,
-        overflowX: "auto",
-      }}>
+      <div
+        role="tablist"
+        aria-label="応募ステータス"
+        style={{
+          display: "flex", gap: 4, marginBottom: 20,
+          borderBottom: "1px solid var(--line)", paddingBottom: 0,
+          overflowX: "auto",
+        }}>
         {APPLICATION_STATUS_TABS.map((tab: ApplicationStatusTab) => {
           const isActive = activeStatus === tab.status;
           const count = counts[tab.status as ApplicationStatus | "all"];
           return (
             <button
               key={tab.status}
+              role="tab"
+              aria-selected={isActive}
               onClick={() => {
                 setActiveStatus(tab.status as ApplicationStatus | "all");
                 setSelectedId(null);

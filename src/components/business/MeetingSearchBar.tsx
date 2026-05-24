@@ -25,10 +25,11 @@ export function MeetingSearchBar({ value, onChange }: Props) {
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
       </svg>
       <input
-        type="text"
+        type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="候補者名・求人名で検索..."
+        aria-label="面談を検索"
         style={{
           width: "100%",
           padding: "8px 10px 8px 30px",
@@ -51,6 +52,17 @@ export function MeetingSearchBar({ value, onChange }: Props) {
           e.currentTarget.style.background = "var(--bg-tint)";
         }}
       />
+      {value && (
+        <button
+          onClick={() => onChange("")}
+          aria-label="検索をクリア"
+          style={{
+            position: "absolute", right: 30, top: "50%", transform: "translateY(-50%)",
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--ink-mute)", fontSize: 14, lineHeight: 1, padding: "0 2px",
+          }}
+        >×</button>
+      )}
     </div>
   );
 }

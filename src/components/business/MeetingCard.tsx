@@ -12,7 +12,12 @@ type Props = {
 export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`${m.applicantName}の面談申請${m.isUnread ? "（未読）" : ""}`}
+      aria-pressed={isSelected}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
       style={{
         padding: isSelected ? "14px 20px 14px 17px" : "14px 20px",
         borderBottom: "1px solid var(--line)",

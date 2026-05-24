@@ -19,14 +19,17 @@ type Props = {
 
 export function MeetingStatusTabs({ counts, activeStatus, onStatusChange }: Props) {
   return (
-    <div style={{
-      padding: "10px 20px 8px",
-      borderBottom: "1px solid var(--line)",
-      display: "flex",
-      gap: 3,
-      overflowX: "auto",
-      scrollbarWidth: "none",
-    }}>
+    <div
+      role="tablist"
+      aria-label="面談ステータス"
+      style={{
+        padding: "10px 20px 8px",
+        borderBottom: "1px solid var(--line)",
+        display: "flex",
+        gap: 3,
+        overflowX: "auto",
+        scrollbarWidth: "none",
+      }}>
       {STATUS_TABS.map(({ status, label }) => {
         const active = status === activeStatus;
         const count = counts[status] ?? 0;
@@ -34,6 +37,8 @@ export function MeetingStatusTabs({ counts, activeStatus, onStatusChange }: Prop
         return (
           <button
             key={status}
+            role="tab"
+            aria-selected={active}
             onClick={() => onStatusChange(status)}
             style={{
               display: "inline-flex",
