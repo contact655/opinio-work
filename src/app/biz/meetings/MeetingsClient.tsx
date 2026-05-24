@@ -40,6 +40,12 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
   const [memoDrafts, setMemoDrafts] = useState<Record<string, string>>({});
   const [memoSaveStates, setMemoSaveStates] = useState<Record<string, MemoSaveState>>({});
   const memoTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setTimeout(() => setErrorMessage(null), 4000);
+  };;
 
   // ── Derived ─────────────────────────────────────────────────
   const counts = useMemo(() => {
@@ -100,7 +106,7 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
         prev.map((m) => m.id === meetingId ? { ...m, status: old.status } : m)
       );
       console.error("[meetings] Failed to update status");
-      alert("ステータス更新に失敗しました。再度お試しください。");
+      showError("ステータス更新に失敗しました。再度お試しください。");
     }
   }, [meetings, filtered]);
 
@@ -286,6 +292,21 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
   );
 
   return (
+    <>
+      {errorMessage && (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 16px", marginBottom: 16, borderRadius: 8,
+          background: "var(--error-soft)", border: "1px solid #FCA5A5",
+          fontSize: 13, color: "var(--error)", fontWeight: 600,
+        }}>
+          <span>⚠ {errorMessage}</span>
+          <button onClick={() => setErrorMessage(null)} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--error)", fontSize: 16, padding: "0 4px",
+          }}>×</button>
+        </div>
+      )}
     <MeetingsLayout
       listPanel={listPanel}
       detailPanel={
@@ -306,5 +327,6 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
         />
       }
     />
+    </>
   );
 }
