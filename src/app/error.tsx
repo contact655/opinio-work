@@ -32,7 +32,18 @@ export default function GlobalError({
         </Link>
 
         {/* Icon */}
-        <div style={{ fontSize: 56, marginBottom: 16 }}>⚡</div>
+        <div style={{
+          width: 72, height: 72, borderRadius: "50%",
+          background: "#fee2e2",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          margin: "0 auto 20px",
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
 
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0f172a", margin: "0 0 12px" }}>
           エラーが発生しました

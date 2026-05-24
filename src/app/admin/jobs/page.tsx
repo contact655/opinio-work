@@ -478,10 +478,11 @@ export default function AdminJobsPage() {
               「{rejectTarget.title}」（{rejectTarget.ow_companies?.name}）
             </p>
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>
+              <label htmlFor="ajob-rejection-reason" style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>
                 フィードバック内容（企業側に表示されます）
               </label>
               <textarea
+                id="ajob-rejection-reason"
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 placeholder="例：「求める人物像」セクションに年齢・性別等の記述があります。男女雇用機会均等法に基づき修正をお願いします。"
@@ -496,10 +497,11 @@ export default function AdminJobsPage() {
               />
             </div>
             <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>
+              <label htmlFor="ajob-reviewer" style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>
                 審査担当者名
               </label>
               <input
+                id="ajob-reviewer"
                 type="text"
                 value={rejectionReviewer}
                 onChange={(e) => setRejectionReviewer(e.target.value)}

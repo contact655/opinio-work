@@ -2186,7 +2186,15 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
           textAlign: "center", padding: "24px 20px",
           display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
         }}>
-          <span style={{ fontSize: 28 }}>🎓</span>
+          <div style={{
+            width: 48, height: 48, borderRadius: "50%",
+            background: "var(--royal-50)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
+            </svg>
+          </div>
           <div style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7 }}>
             OB・OG情報は順次更新されます
           </div>

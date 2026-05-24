@@ -87,7 +87,16 @@ export async function CompanySearchResults({ q, industry, size, workStyle, hirin
           padding: "48px 24px",
           textAlign: "center",
         }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+          <div style={{
+            width: 56, height: 56, borderRadius: "50%",
+            background: "var(--royal-50)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 12px",
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
           <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
             条件に合う企業が見つかりませんでした
           </p>

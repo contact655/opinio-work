@@ -274,10 +274,11 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
           <div className="grid grid-cols-2 gap-x-4 gap-y-4">
             {/* 企業選択 (編集時はロック) */}
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label htmlFor="apost-company" className="block text-xs font-semibold text-gray-600 mb-1.5">
                 企業 <span className="text-red-500">*</span>
               </label>
               <select
+                id="apost-company"
                 value={formCompanyId}
                 onChange={(e) => setFormCompanyId(e.target.value)}
                 disabled={!!editingId}
@@ -295,11 +296,12 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
 
             {/* URL + OGP 取得 */}
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label htmlFor="apost-url" className="block text-xs font-semibold text-gray-600 mb-1.5">
                 URL <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
                 <input
+                  id="apost-url"
                   type="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
@@ -333,10 +335,11 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
 
             {/* タイトル */}
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label htmlFor="apost-title" className="block text-xs font-semibold text-gray-600 mb-1.5">
                 タイトル <span className="text-red-500">*</span>
               </label>
               <input
+                id="apost-title"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -347,8 +350,9 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
 
             {/* 出典名 */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">出典・媒体名</label>
+              <label htmlFor="apost-source" className="block text-xs font-semibold text-gray-600 mb-1.5">出典・媒体名</label>
               <input
+                id="apost-source"
                 type="text"
                 value={sourceName}
                 onChange={(e) => setSourceName(e.target.value)}
@@ -359,8 +363,9 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
 
             {/* 公開日 */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">公開日</label>
+              <label htmlFor="apost-published-at" className="block text-xs font-semibold text-gray-600 mb-1.5">公開日</label>
               <input
+                id="apost-published-at"
                 type="date"
                 value={publishedAt}
                 onChange={(e) => setPublishedAt(e.target.value)}
@@ -370,8 +375,9 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
 
             {/* 種別 */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">種別</label>
+              <label htmlFor="apost-type" className="block text-xs font-semibold text-gray-600 mb-1.5">種別</label>
               <select
+                id="apost-type"
                 value={type}
                 onChange={(e) => setType(e.target.value as ContentType)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white focus:outline-none focus:border-primary"
@@ -384,8 +390,9 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
 
             {/* サムネ URL */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">サムネイル URL</label>
+              <label htmlFor="apost-thumbnail" className="block text-xs font-semibold text-gray-600 mb-1.5">サムネイル URL</label>
               <input
+                id="apost-thumbnail"
                 type="url"
                 value={thumbnailUrl}
                 onChange={(e) => setThumbnailUrl(e.target.value)}
@@ -396,8 +403,9 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
 
             {/* 説明 */}
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">説明</label>
+              <label htmlFor="apost-description" className="block text-xs font-semibold text-gray-600 mb-1.5">説明</label>
               <textarea
+                id="apost-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="コンテンツの簡単な説明（OGP から自動取得）"

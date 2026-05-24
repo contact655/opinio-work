@@ -959,7 +959,16 @@ export default function CompanyExplorer({
         )
       ) : (
         <div className="text-center py-20">
-          <div className="text-4xl mb-3">🔍</div>
+          <div style={{
+            width: 56, height: 56, borderRadius: "50%",
+            background: "var(--royal-50)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 12px",
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
           <p className="text-gray-600 text-[14px] mb-2">
             該当する企業が見つかりませんでした
           </p>

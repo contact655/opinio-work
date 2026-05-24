@@ -267,7 +267,17 @@ export default async function PostsPage({ searchParams }: Props) {
               color: "var(--ink-mute)",
               fontSize: 15,
             }}>
-              <div style={{ fontSize: 32, marginBottom: 16 }}>📡</div>
+              <div style={{
+                width: 56, height: 56, borderRadius: "50%",
+                background: "var(--royal-50)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                margin: "0 auto 16px",
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.22 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.12 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.09 8.91" />
+                  <path d="M16 3h5v5" /><path d="M21 3l-7 7" />
+                </svg>
+              </div>
               <div>発信がまだ登録されていません</div>
             </div>
           )}
