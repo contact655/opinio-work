@@ -11,7 +11,7 @@ const TYPE_LABEL: Record<string, string> = {
 export function JobseekerFooter() {
   const recentArticles = MOCK_ARTICLES.slice(0, 3);
   return (
-    <footer style={{ background: "var(--ink)", color: "#fff", marginTop: "auto" }}>
+    <footer role="contentinfo" style={{ background: "var(--ink)", color: "#fff", marginTop: "auto" }}>
 
       {/* ── Recent articles strip ────────────────────────────────────────────── */}
       <div style={{

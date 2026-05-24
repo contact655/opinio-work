@@ -1086,7 +1086,7 @@ export async function getArticles(filter?: ArticleFilter): Promise<Article[]> {
     const q = filter.q.toLowerCase();
     articles = articles.filter((a: Article) =>
       a.title.toLowerCase().includes(q) ||
-      (a.company_name_text ?? "").toLowerCase().includes(q) ||
+      (a.company_name ?? "").toLowerCase().includes(q) ||
       (a.subtitle ?? "").toLowerCase().includes(q)
     );
   }
