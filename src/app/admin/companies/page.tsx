@@ -26,6 +26,7 @@ type Company = {
 export default function AdminCompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -79,9 +80,16 @@ export default function AdminCompaniesPage() {
   }
 
   const filtered = companies.filter((c) => {
-    if (activeTab === "all") return true;
-    if (activeTab === "published") return c.is_published;
-    if (activeTab === "private") return !c.is_published;
+    if (activeTab === "published" && !c.is_published) return false;
+    if (activeTab === "private" && c.is_published) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return (
+        (c.name ?? "").toLowerCase().includes(q) ||
+        (c.industry ?? "").toLowerCase().includes(q) ||
+        (c.location ?? "").toLowerCase().includes(q)
+      );
+    }
     return true;
   });
 
@@ -114,6 +122,41 @@ export default function AdminCompaniesPage() {
             {companies.filter((c) => c.is_published).length} 社公開中
           </span>
         </div>
+      </div>
+
+      {/* Search */}
+      <div style={{ position: "relative", marginBottom: 16 }}>
+        <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="企業名・業界・所在地で検索..."
+          aria-label="企業を検索"
+          style={{
+            width: "100%", padding: "9px 36px 9px 36px",
+            border: "1.5px solid #E2E8F0", borderRadius: 8,
+            fontSize: 13, color: "#0F172A", background: "#fff",
+            outline: "none", boxSizing: "border-box",
+            fontFamily: "inherit", transition: "border-color 0.15s",
+          }}
+          onFocus={(e) => { e.target.style.borderColor = "#002366"; }}
+          onBlur={(e) => { e.target.style.borderColor = "#E2E8F0"; }}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            aria-label="検索をクリア"
+            style={{
+              position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+              background: "none", border: "none", cursor: "pointer",
+              color: "#94A3B8", fontSize: 16, lineHeight: 1, padding: "2px 4px",
+            }}
+          >×</button>
+        )}
       </div>
 
       {/* Tabs */}

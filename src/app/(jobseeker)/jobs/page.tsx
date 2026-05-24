@@ -28,15 +28,14 @@ export default async function JobsPage() {
   return (
     <Suspense
       fallback={
-        <div
-          style={{
-            padding: "80px 0",
-            textAlign: "center",
-            color: "var(--ink-mute)",
-            fontSize: 15,
-          }}
-        >
-          読み込み中...
+        <div style={{ padding: "24px 20px", maxWidth: 900, margin: "0 auto" }}>
+          <div className="skeleton-shimmer" style={{ height: 48, borderRadius: 12, marginBottom: 16 }} />
+          <div className="skeleton-shimmer" style={{ height: 44, borderRadius: 8, marginBottom: 20, maxWidth: 500 }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {[1,2,3,4,5].map((i) => (
+              <div key={i} className="skeleton-shimmer" style={{ height: 130, borderRadius: 16 }} />
+            ))}
+          </div>
         </div>
       }
     >

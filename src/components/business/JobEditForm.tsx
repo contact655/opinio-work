@@ -144,23 +144,42 @@ function FormSelect({ value, onChange, options }: { value: string; onChange: (v:
   );
 }
 
-function FormTextarea({ value, onChange, placeholder, rows = 5 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
+function FormTextarea({ value, onChange, placeholder, rows = 5, maxLength, ariaLabel }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; maxLength?: number; ariaLabel?: string }) {
+  const nearLimit = maxLength ? value.length >= maxLength * 0.9 : false;
+  const atLimit = maxLength ? value.length >= maxLength : false;
   return (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      style={{
-        width: "100%", padding: "10px 12px",
-        border: "1.5px solid var(--line)", borderRadius: 8,
-        fontFamily: "inherit", fontSize: 13, color: "var(--ink)",
-        background: "#fff", resize: "vertical", lineHeight: 1.8,
-        minHeight: rows * 24 + 20, outline: "none", transition: "all 0.15s",
-      }}
-      onFocus={(e) => { e.target.style.borderColor = "var(--royal)"; e.target.style.boxShadow = "0 0 0 3px var(--royal-50)"; }}
-      onBlur={(e) => { e.target.style.borderColor = "var(--line)"; e.target.style.boxShadow = "none"; }}
-    />
+    <div style={{ position: "relative" }}>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        maxLength={maxLength}
+        aria-label={ariaLabel}
+        style={{
+          width: "100%", padding: "10px 12px",
+          paddingBottom: maxLength ? "26px" : "10px",
+          border: "1.5px solid var(--line)", borderRadius: 8,
+          fontFamily: "inherit", fontSize: 13, color: "var(--ink)",
+          background: "#fff", resize: "vertical", lineHeight: 1.8,
+          minHeight: rows * 24 + 20, outline: "none", transition: "all 0.15s",
+          boxSizing: "border-box",
+        }}
+        onFocus={(e) => { e.target.style.borderColor = "var(--royal)"; e.target.style.boxShadow = "0 0 0 3px var(--royal-50)"; }}
+        onBlur={(e) => { e.target.style.borderColor = "var(--line)"; e.target.style.boxShadow = "none"; }}
+      />
+      {maxLength && (
+        <span style={{
+          position: "absolute", bottom: 6, right: 10,
+          fontSize: 10,
+          color: atLimit ? "var(--error)" : nearLimit ? "var(--warm)" : "var(--ink-mute)",
+          fontWeight: nearLimit ? 600 : 400, pointerEvents: "none",
+          fontFamily: "'Inter', sans-serif",
+        }}>
+          {value.length} / {maxLength}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -399,7 +418,7 @@ export function JobEditForm({
               </FormGroup>
               <FormGroup style={{ marginBottom: 0 }}>
                 <FormLabel optional>給与の補足説明</FormLabel>
-                <FormTextarea value={form.salaryNote} onChange={(v) => updateForm("salaryNote", v)} placeholder="例：賞与は年2回、業績連動。ストックオプション制度あり。" rows={3} />
+                <FormTextarea value={form.salaryNote} onChange={(v) => updateForm("salaryNote", v)} placeholder="例：賞与は年2回、業績連動。ストックオプション制度あり。" rows={3} maxLength={200} ariaLabel="給与補足" />
               </FormGroup>
             </FormSection>
             <FormSection title="勤務地・勤務形態">
@@ -460,7 +479,7 @@ export function JobEditForm({
               </div>
             </FormSection>
             <FormSection title="候補者へのメッセージ" desc="採用担当者から候補者へのメッセージ。求職者側の求人詳細ページに表示されます。">
-              <FormTextarea value={form.messageToCandidates} onChange={(v) => updateForm("messageToCandidates", v)} placeholder="例：BtoCマーケティングの経験を活かして、社会的意義のあるプロダクトに関わりたい方をお待ちしています。" rows={5} />
+              <FormTextarea value={form.messageToCandidates} onChange={(v) => updateForm("messageToCandidates", v)} placeholder="例：BtoCマーケティングの経験を活かして、社会的意義のあるプロダクトに関わりたい方をお待ちしています。" rows={5} maxLength={500} ariaLabel="採用担当者メッセージ" />
             </FormSection>
           </>
         );
@@ -492,7 +511,7 @@ export function JobEditForm({
               </FormGroup>
             </FormSection>
             <FormSection title="求めるカルチャーフィット" desc="スキルだけでは測れない、価値観・働き方のフィットについて記述してください。">
-              <FormTextarea value={form.cultureFit} onChange={(v) => updateForm("cultureFit", v)} placeholder="例：データドリブンな意思決定を大切にしながらも、ユーザーの声に真摯に向き合える方。" rows={5} />
+              <FormTextarea value={form.cultureFit} onChange={(v) => updateForm("cultureFit", v)} placeholder="例：データドリブンな意思決定を大切にしながらも、ユーザーの声に真摯に向き合える方。" rows={5} maxLength={500} ariaLabel="カルチャーフィット" />
             </FormSection>
           </>
         );

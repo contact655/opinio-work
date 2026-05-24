@@ -276,8 +276,12 @@ export default function ConsultationRequestPage() {
       <main className="pt-16 min-h-screen bg-white">
         <Suspense
           fallback={
-            <div style={{ textAlign: "center", padding: 80, color: "#9ca3af", fontSize: 14 }}>
-              読み込み中...
+            <div style={{ padding: "40px 20px", maxWidth: 680, margin: "0 auto" }}>
+              <div className="skeleton-shimmer" style={{ height: 36, borderRadius: 8, maxWidth: 300, marginBottom: 24 }} />
+              <div className="skeleton-shimmer" style={{ height: 120, borderRadius: 12, marginBottom: 16 }} />
+              <div className="skeleton-shimmer" style={{ height: 80, borderRadius: 12, marginBottom: 16 }} />
+              <div className="skeleton-shimmer" style={{ height: 56, borderRadius: 12, marginBottom: 16 }} />
+              <div className="skeleton-shimmer" style={{ height: 48, borderRadius: 8, maxWidth: 200 }} />
             </div>
           }
         >

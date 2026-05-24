@@ -111,11 +111,15 @@ function FormInput({
   onChange,
   placeholder,
   type = "text",
+  ariaLabel,
+  maxLength,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
+  ariaLabel?: string;
+  maxLength?: number;
 }) {
   return (
     <input
@@ -123,6 +127,8 @@ function FormInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      aria-label={ariaLabel}
+      maxLength={maxLength}
       style={{
         width: "100%",
         padding: "10px 12px",
@@ -199,43 +205,70 @@ function FormTextarea({
   placeholder,
   rows = 4,
   serif,
+  maxLength,
+  ariaLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   rows?: number;
   serif?: boolean;
+  maxLength?: number;
+  ariaLabel?: string;
 }) {
+  const nearLimit = maxLength ? value.length >= maxLength * 0.9 : false;
+  const atLimit = maxLength ? value.length >= maxLength : false;
+
   return (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      style={{
-        width: "100%",
-        padding: "10px 12px",
-        border: "1.5px solid var(--line)",
-        borderRadius: 8,
-        fontFamily: serif ? "var(--font-noto-serif)" : "inherit",
-        fontSize: serif ? 16 : 13,
-        fontWeight: serif ? 500 : 400,
-        color: "var(--ink)",
-        background: "#fff",
-        outline: "none",
-        resize: "vertical",
-        lineHeight: 1.8,
-        transition: "all 0.15s",
-      }}
-      onFocus={(e) => {
-        (e.target as HTMLTextAreaElement).style.borderColor = "var(--royal)";
-        (e.target as HTMLTextAreaElement).style.boxShadow = "0 0 0 3px var(--royal-50)";
-      }}
-      onBlur={(e) => {
-        (e.target as HTMLTextAreaElement).style.borderColor = "var(--line)";
-        (e.target as HTMLTextAreaElement).style.boxShadow = "none";
-      }}
-    />
+    <div style={{ position: "relative" }}>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        maxLength={maxLength}
+        aria-label={ariaLabel}
+        style={{
+          width: "100%",
+          padding: "10px 12px",
+          paddingBottom: maxLength ? "28px" : "10px",
+          border: "1.5px solid var(--line)",
+          borderRadius: 8,
+          fontFamily: serif ? "var(--font-noto-serif)" : "inherit",
+          fontSize: serif ? 16 : 13,
+          fontWeight: serif ? 500 : 400,
+          color: "var(--ink)",
+          background: "#fff",
+          outline: "none",
+          resize: "vertical",
+          lineHeight: 1.8,
+          transition: "all 0.15s",
+          boxSizing: "border-box",
+        }}
+        onFocus={(e) => {
+          (e.target as HTMLTextAreaElement).style.borderColor = "var(--royal)";
+          (e.target as HTMLTextAreaElement).style.boxShadow = "0 0 0 3px var(--royal-50)";
+        }}
+        onBlur={(e) => {
+          (e.target as HTMLTextAreaElement).style.borderColor = "var(--line)";
+          (e.target as HTMLTextAreaElement).style.boxShadow = "none";
+        }}
+      />
+      {maxLength && (
+        <span style={{
+          position: "absolute",
+          bottom: 6,
+          right: 10,
+          fontSize: 10,
+          color: atLimit ? "var(--error)" : nearLimit ? "var(--warm)" : "var(--ink-mute)",
+          fontWeight: nearLimit ? 600 : 400,
+          pointerEvents: "none",
+          fontFamily: "'Inter', sans-serif",
+        }}>
+          {value.length} / {maxLength}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -534,7 +567,7 @@ export function CompanyEditClient({
               </FormGroup>
               <FormGroup>
                 <FormLabel required>ミッション</FormLabel>
-                <FormTextarea serif value={form.mission} onChange={(v) => update("mission", v)} rows={2} placeholder="企業のミッションやビジョン" />
+                <FormTextarea serif value={form.mission} onChange={(v) => update("mission", v)} rows={2} placeholder="企業のミッションやビジョン" maxLength={80} ariaLabel="ミッション" />
                 <FormHint>企業詳細ページのヒーローエリアに大きく表示される、企業の核となるメッセージです。短く、印象的に。</FormHint>
               </FormGroup>
               <FormGroup>
@@ -602,6 +635,8 @@ export function CompanyEditClient({
                 onChange={(v) => update("whyJoin", v)}
                 rows={4}
                 placeholder="例: 日本のSaaS市場の最前線で、プロダクトの本質的な価値を追求できる環境です。..."
+                maxLength={600}
+                ariaLabel="入社する理由・魅力"
               />
             </SectionCard>
 
@@ -622,6 +657,8 @@ export function CompanyEditClient({
                         }}
                         rows={3}
                         placeholder={`特徴 ${i + 1}: 候補者の視点から見た、この会社ならではの魅力を記述してください`}
+                        maxLength={200}
+                        ariaLabel={`企業の特徴 ${i + 1}`}
                       />
                     </div>
                     <button
@@ -732,7 +769,7 @@ export function CompanyEditClient({
             <SectionCard title="評価制度・福利厚生">
               <FormGroup>
                 <FormLabel>評価制度</FormLabel>
-                <FormTextarea value={form.evaluationSystem} onChange={(v) => update("evaluationSystem", v)} rows={3} placeholder="評価制度の説明..." />
+                <FormTextarea value={form.evaluationSystem} onChange={(v) => update("evaluationSystem", v)} rows={3} placeholder="評価制度の説明..." maxLength={400} ariaLabel="評価制度" />
               </FormGroup>
               <FormGroup>
                 <FormLabel>福利厚生</FormLabel>
@@ -788,7 +825,7 @@ export function CompanyEditClient({
               </div>
               <FormGroup>
                 <FormLabel optional>働き方の補足説明</FormLabel>
-                <FormTextarea value={form.workstyleNote} onChange={(v) => update("workstyleNote", v)} rows={3} placeholder="数値だけでは伝わらない、働き方の文化や考え方を補足してください" />
+                <FormTextarea value={form.workstyleNote} onChange={(v) => update("workstyleNote", v)} rows={3} placeholder="数値だけでは伝わらない、働き方の文化や考え方を補足してください" maxLength={400} ariaLabel="働き方の補足" />
                 <FormHint>数値だけでは伝わらない、働き方の文化や考え方を補足してください</FormHint>
               </FormGroup>
             </SectionCard>

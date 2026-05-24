@@ -50,6 +50,7 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 export default function AdminJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -158,8 +159,16 @@ export default function AdminJobsPage() {
     s === "active" ? "published" : (s ?? "draft");
 
   const filtered = jobs.filter((j) => {
-    if (activeTab === "all") return true;
-    return normalizedStatus(j.status) === activeTab;
+    if (activeTab !== "all" && normalizedStatus(j.status) !== activeTab) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return (
+        (j.title ?? "").toLowerCase().includes(q) ||
+        (j.ow_companies?.name ?? "").toLowerCase().includes(q) ||
+        (j.job_category ?? "").toLowerCase().includes(q)
+      );
+    }
+    return true;
   });
 
   const pendingCount = jobs.filter((j) => j.status === "pending_review").length;
@@ -199,6 +208,41 @@ export default function AdminJobsPage() {
           }}>
             ⚠ {pendingCount}件の審査待ち
           </span>
+        )}
+      </div>
+
+      {/* Search */}
+      <div style={{ position: "relative", marginBottom: 16 }}>
+        <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="求人タイトル・企業名・職種で検索..."
+          aria-label="求人を検索"
+          style={{
+            width: "100%", padding: "9px 36px 9px 36px",
+            border: "1.5px solid #E2E8F0", borderRadius: 8,
+            fontSize: 13, color: "#0F172A", background: "#fff",
+            outline: "none", boxSizing: "border-box",
+            fontFamily: "inherit", transition: "border-color 0.15s",
+          }}
+          onFocus={(e) => { e.target.style.borderColor = "#002366"; }}
+          onBlur={(e) => { e.target.style.borderColor = "#E2E8F0"; }}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            aria-label="検索をクリア"
+            style={{
+              position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+              background: "none", border: "none", cursor: "pointer",
+              color: "#94A3B8", fontSize: 16, lineHeight: 1, padding: "2px 4px",
+            }}
+          >×</button>
         )}
       </div>
 
