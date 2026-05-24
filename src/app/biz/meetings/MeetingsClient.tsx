@@ -135,6 +135,16 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
     });
     if (!res.ok) {
       console.error("[meetings] Failed to assign meeting");
+      // Roll back optimistic update and show error
+      setMeetings((prev) =>
+        prev.map((m) =>
+          m.id === meetingId
+            ? { ...m, assigneeId: null, assigneeName: null, assigneeInitial: null, assigneeGradient: null }
+            : m
+        )
+      );
+      setErrorMessage("担当者の設定に失敗しました。再度お試しください。");
+      setTimeout(() => setErrorMessage(null), 4000);
     }
   }, [currentUser]);
 

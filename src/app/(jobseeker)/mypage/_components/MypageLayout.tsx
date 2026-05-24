@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMypageMock } from "./MypageMockContext";
 
 // ─── SidebarItem ──────────────────────────────────────────────────────────────
@@ -103,6 +104,7 @@ export default function MypageLayout({
   rightColumn?: React.ReactNode;
 }) {
   const { isMentor, setIsMentor } = useMypageMock();
+  const router = useRouter();
 
   const topOffset = 65;
 
@@ -224,9 +226,9 @@ export default function MypageLayout({
             マイページ
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
-            <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      onClick={() => { window.location.href = "/mypage"; }} />
-            <SidebarItem icon={Icons.application} label="応募管理"      active={activeKey === "applications"}   badge={applicationsBadge}   onClick={() => { window.location.href = "/mypage/applications"; }} />
-            <SidebarItem icon={Icons.message}     label="対話"          active={activeKey === "conversations"}  badge={conversationsBadge}  onClick={() => { window.location.href = "/mypage/conversations"; }} />
+            <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      onClick={() => { router.push("/mypage"); }} />
+            <SidebarItem icon={Icons.application} label="応募管理"      active={activeKey === "applications"}   badge={applicationsBadge}   onClick={() => { router.push("/mypage/applications"); }} />
+            <SidebarItem icon={Icons.message}     label="対話"          active={activeKey === "conversations"}  badge={conversationsBadge}  onClick={() => { router.push("/mypage/conversations"); }} />
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}       onClick={() => nav("bookmarks")} />
           </nav>
 
@@ -254,7 +256,7 @@ export default function MypageLayout({
             アカウント
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
-            <SidebarItem icon={Icons.user} label="プロフィール" active={activeKey === "profile" || activeKey === "settings"} onClick={() => { window.location.href = "/profile/edit"; }} />
+            <SidebarItem icon={Icons.user} label="プロフィール" active={activeKey === "profile" || activeKey === "settings"} onClick={() => { router.push("/profile/edit"); }} />
           </nav>
         </aside>
 
