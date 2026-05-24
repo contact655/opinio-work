@@ -467,11 +467,15 @@ export default function AdminJobsPage() {
           display: "flex", alignItems: "center", justifyContent: "center",
           zIndex: 1000,
         }}>
-          <div style={{
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ajobs-reject-title"
+            style={{
             background: "#fff", borderRadius: 16, padding: 28,
             width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
           }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>
+            <h3 id="ajobs-reject-title" style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>
               差し戻し理由を入力
             </h3>
             <p style={{ fontSize: 13, color: "#64748B", marginBottom: 16 }}>

@@ -504,19 +504,25 @@ export default function JobDetailClient({ job }: { job: Job }) {
         }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowRejectModal(false); }}
         >
-          <div style={{
-            background: "#fff", borderRadius: 16, padding: 32,
-            width: 480, maxWidth: "90vw",
-            boxShadow: "0 20px 60px rgba(15,23,42,0.18)",
-          }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reject-modal-title"
+            style={{
+              background: "#fff", borderRadius: 16, padding: 32,
+              width: 480, maxWidth: "90vw",
+              boxShadow: "0 20px 60px rgba(15,23,42,0.18)",
+            }}>
+            <h2 id="reject-modal-title" style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>
               差し戻し理由を入力
             </h2>
             <p style={{ fontSize: 12, color: "#64748B", marginBottom: 16, lineHeight: 1.6 }}>
               企業担当者に通知されます。修正してほしい箇所を具体的に記載してください。
             </p>
 
+            <label htmlFor="jd-rejection-reason" style={{ display: "none" }}>差し戻し理由</label>
             <textarea
+              id="jd-rejection-reason"
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               placeholder="例: 給与レンジが記入されていません。必須スキルをより具体的に記載してください。"
@@ -530,10 +536,11 @@ export default function JobDetailClient({ job }: { job: Job }) {
             />
 
             <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, color: "#64748B", display: "block", marginBottom: 4 }}>
+              <label htmlFor="jd-reviewer" style={{ fontSize: 12, color: "#64748B", display: "block", marginBottom: 4 }}>
                 担当者名（表示用）
               </label>
               <input
+                id="jd-reviewer"
                 type="text"
                 value={rejectionReviewer}
                 onChange={(e) => setRejectionReviewer(e.target.value)}
