@@ -911,7 +911,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
           />
           <label htmlFor="biz-signup-terms">
             <a href="#" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 500 }}>利用規約</a>、
-            <a href="/privacy" target="_blank" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 500 }}>プライバシーポリシー</a>に同意します
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 500 }}>プライバシーポリシー</a>に同意します
           </label>
         </div>
 

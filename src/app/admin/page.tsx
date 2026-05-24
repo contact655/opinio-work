@@ -78,7 +78,7 @@ export default async function AdminDashboard() {
                 <p className="text-xs text-blue-600">求職者・企業担当者をメール招待</p>
               </div>
             </Link>
-            <Link href="/api/admin/test-email?type=casual_meeting" target="_blank" className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
+            <Link href="/api/admin/test-email?type=casual_meeting" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
               <span className="text-base">🧪</span>
               <div>
                 <p className="text-sm font-medium text-gray-700">メール送信テスト</p>

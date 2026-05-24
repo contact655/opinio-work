@@ -371,6 +371,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
         <Link
           href={`/companies/${company.id}`}
           target="_blank"
+          rel="noopener noreferrer"
           className="text-sm text-blue-600 hover:underline flex items-center gap-1"
         >
           求職者画面で確認する

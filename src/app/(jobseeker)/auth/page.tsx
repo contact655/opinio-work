@@ -337,8 +337,8 @@ function AuthPageInner() {
                     style={{ width: 17, height: 17, accentColor: "var(--royal)", cursor: "pointer", flexShrink: 0, marginTop: 1 }}
                   />
                   <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                    <a href="/terms" target="_blank" style={styles.termLink}>利用規約</a>および
-                    <a href="/privacy" target="_blank" style={styles.termLink}>プライバシーポリシー</a>に同意します
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" style={styles.termLink}>利用規約</a>および
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" style={styles.termLink}>プライバシーポリシー</a>に同意します
                   </span>
                 </label>
 
