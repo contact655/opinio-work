@@ -160,7 +160,7 @@ export default function MypageLayout({
       )}
 
       {/* モバイル: 横スクロールタブバー */}
-      <div className="mypage-mobile-tabbar" style={{
+      <nav aria-label="マイページナビゲーション" className="mypage-mobile-tabbar" style={{
         background: "#fff", borderBottom: "1px solid var(--line)",
         overflowX: "auto", WebkitOverflowScrolling: "touch" as unknown as undefined,
         position: "sticky", top: topOffset, zIndex: 40,

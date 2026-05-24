@@ -853,6 +853,7 @@ export default function JobsClient({
             <select
               value={salary}
               onChange={(e) => setParam("salary", e.target.value)}
+              aria-label="年収で絞り込み"
               style={{
                 padding: "5px 10px",
                 border: `1.5px solid ${salary ? "var(--royal)" : "var(--line)"}`,
@@ -884,6 +885,7 @@ export default function JobsClient({
             <select
               value={industry}
               onChange={(e) => setParam("industry", e.target.value)}
+              aria-label="業界で絞り込み"
               style={{
                 padding: "5px 10px",
                 border: `1.5px solid ${industry ? "var(--royal)" : "var(--line)"}`,
@@ -989,6 +991,7 @@ export default function JobsClient({
             <select
               value={sort}
               onChange={(e) => setParam("sort", e.target.value)}
+              aria-label="並び順"
               style={{
                 padding: "5px 10px",
                 border: "1.5px solid var(--line)",

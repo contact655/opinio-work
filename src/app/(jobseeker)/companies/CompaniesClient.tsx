@@ -479,6 +479,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             value={industry}
             onChange={(e) => setParam("industry", e.target.value)}
             style={filterSelectStyle(!!industry)}
+            aria-label="業界で絞り込み"
           >
             {INDUSTRY_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -526,6 +527,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
                 value={remote}
                 onChange={(e) => setParam("remote", e.target.value)}
                 style={filterSelectStyle(!!remote)}
+                aria-label="リモートワークで絞り込み"
               >
                 {REMOTE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
