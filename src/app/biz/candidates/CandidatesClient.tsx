@@ -415,7 +415,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
                       background: "var(--success-soft)", border: "1px solid #a7f3d0", color: "var(--success)",
                       fontWeight: 600,
                     }}>
-                      📊 {c.desiredPhase.join("・")}
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>{c.desiredPhase.join("・")}
                     </span>
                   )}
                 </div>

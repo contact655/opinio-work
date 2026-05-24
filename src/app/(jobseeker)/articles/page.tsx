@@ -293,19 +293,19 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
 
           {/* Article type grid */}
           <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-            {[
-              { icon: "💬", label: "社員インタビュー", desc: "現場の声" },
-              { icon: "🌟", label: "メンターの声",     desc: "経験談" },
-              { icon: "👔", label: "CEO・経営陣",      desc: "ビジョン" },
-              { icon: "📊", label: "取材レポート",     desc: "組織分析" },
-            ].map(({ icon, label, desc }) => (
+            {([
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label: "社員インタビュー", desc: "現場の声" },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, label: "メンターの声", desc: "経験談" },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: "CEO・経営陣", desc: "ビジョン" },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>, label: "取材レポート", desc: "組織分析" },
+            ] as { icon: React.ReactNode; label: string; desc: string }[]).map(({ icon, label, desc }) => (
               <div key={label} style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                 padding: "10px 16px", borderRadius: 12,
                 border: "1px solid var(--line)", background: "var(--bg-tint)",
                 minWidth: 90,
               }}>
-                <span style={{ fontSize: 22 }}>{icon}</span>
+                <span>{icon}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)" }}>{label}</span>
                 <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>{desc}</span>
               </div>

@@ -1897,9 +1897,11 @@ function CurrentEmployeesSection({
             width: 48, height: 48, borderRadius: "50%",
             background: "var(--royal-50)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 22,
           }}>
-            👥
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
           </div>
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)" }}>
             社員プロフィールを準備中
@@ -2787,16 +2789,16 @@ const NUMBER_ITEMS: {
   label: string;
   key: keyof CompanyNumbers;
   format: (v: string | number) => string;
-  icon: string;
+  icon: React.ReactNode;
   accentColor: string;
   accentBg: string;
 }[] = [
-  { label: "平均年収", key: "avgSalary", format: (v) => String(v), icon: "💰", accentColor: "#059669", accentBg: "#ECFDF5" },
-  { label: "平均年齢", key: "avgAge", format: (v) => `${v} 歳`, icon: "👤", accentColor: "var(--royal)", accentBg: "var(--royal-50)" },
-  { label: "有給取得率", key: "paidLeaveRate", format: (v) => `${v}%`, icon: "🌴", accentColor: "#7C3AED", accentBg: "#F3E8FF" },
-  { label: "月間残業時間", key: "avgOvertimeHours", format: (v) => String(v), icon: "🕐", accentColor: "#D97706", accentBg: "#FEF3C7" },
-  { label: "男女比", key: "genderRatio", format: (v) => String(v), icon: "👥", accentColor: "#DB2777", accentBg: "#FCE7F3" },
-  { label: "累計調達額", key: "fundingTotal", format: (v) => String(v), icon: "📈", accentColor: "#0891B2", accentBg: "#ECFEFF" },
+  { label: "平均年収", key: "avgSalary", format: (v) => String(v), icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/></svg>, accentColor: "#059669", accentBg: "#ECFDF5" },
+  { label: "平均年齢", key: "avgAge", format: (v) => `${v} 歳`, icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, accentColor: "var(--royal)", accentBg: "var(--royal-50)" },
+  { label: "有給取得率", key: "paidLeaveRate", format: (v) => `${v}%`, icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>, accentColor: "#7C3AED", accentBg: "#F3E8FF" },
+  { label: "月間残業時間", key: "avgOvertimeHours", format: (v) => String(v), icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, accentColor: "#D97706", accentBg: "#FEF3C7" },
+  { label: "男女比", key: "genderRatio", format: (v) => String(v), icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DB2777" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, accentColor: "#DB2777", accentBg: "#FCE7F3" },
+  { label: "累計調達額", key: "fundingTotal", format: (v) => String(v), icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0891B2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>, accentColor: "#0891B2", accentBg: "#ECFEFF" },
 ];
 
 function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
@@ -2885,7 +2887,7 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
                       <span style={{
                         width: 24, height: 24, borderRadius: 6, flexShrink: 0,
                         background: accentBg, display: "flex",
-                        alignItems: "center", justifyContent: "center", fontSize: 13,
+                        alignItems: "center", justifyContent: "center",
                       }}>
                         {icon}
                       </span>
@@ -3319,15 +3321,15 @@ function Sidebar({
           )}
           {(
             [
-              { key: "業界", value: company.industry, icon: "🏢" },
-              { key: "事業ステージ", value: company.phase, icon: "📊" },
-              { key: "従業員数", value: company.employee_count ? `${company.employee_count.toLocaleString()}名` : "", icon: "👥" },
-              { key: "所在地", value: detail.hq, icon: "📍" },
-              { key: "最寄り駅", value: detail.nearestStation ?? "—", isUnset: !detail.nearestStation, icon: "🚃" },
-              { key: "設立", value: detail.established, icon: "📅" },
-              { key: "代表者", value: detail.ceo, icon: "👤" },
-              ...(detail.url ? [{ key: "公式サイト", value: detail.url, isLink: true, icon: "🌐" }] : []),
-            ] as { key: string; value: string; icon: string; isLink?: boolean; isUnset?: boolean }[]
+              { key: "業界", value: company.industry, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+              { key: "事業ステージ", value: company.phase, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+              { key: "従業員数", value: company.employee_count ? `${company.employee_count.toLocaleString()}名` : "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+              { key: "所在地", value: detail.hq, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> },
+              { key: "最寄り駅", value: detail.nearestStation ?? "—", isUnset: !detail.nearestStation, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16"/><path d="M4 14h16"/><path d="M9 4v16"/><path d="M15 4v16"/></svg> },
+              { key: "設立", value: detail.established, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
+              { key: "代表者", value: detail.ceo, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
+              ...(detail.url ? [{ key: "公式サイト", value: detail.url, isLink: true, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }] : []),
+            ] as { key: string; value: string; icon: React.ReactNode; isLink?: boolean; isUnset?: boolean }[]
           )
             .filter((item) => item.isUnset || (item.value && item.value !== "—"))
             .map(({ key, value, icon, isLink, isUnset }) => (
@@ -3344,7 +3346,7 @@ function Sidebar({
                 }}
               >
                 <span style={{ color: "var(--ink-mute)", fontSize: 11, fontWeight: 600, paddingTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ fontSize: 12 }}>{icon}</span>{key}
+                  {icon}{key}
                 </span>
                 {isLink ? (
                   <a

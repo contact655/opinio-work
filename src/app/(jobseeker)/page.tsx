@@ -539,23 +539,36 @@ function Hero({ stats }: { stats: SiteStats }) {
 // ─── Differentiator Strip ────────────────────────────────────────────────────
 
 function DiffStrip() {
-  const DIFFS = [
+  const DIFFS: { icon: React.ReactNode; title: string; desc: string; color: string; bg: string }[] = [
     {
-      icon: "🚫",
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+        </svg>
+      ),
       title: "スカウトなし",
       desc: "企業からの一方的な勧誘はありません。気になった企業に、自分のペースで接触できます。",
       color: "#DC2626",
       bg: "#FEF2F2",
     },
     {
-      icon: "💬",
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      ),
       title: "第三者メンターに相談",
       desc: "転職エージェントではなく、中立な立場の現役/元社員メンターに本音を聞けます。",
       color: "#7C3AED",
       bg: "#F5F3FF",
     },
     {
-      icon: "👥",
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      ),
       title: "現役社員・OBの声",
       desc: "求人票の裏側にある「実際の働き方」「入社後のギャップ」を確認してから動けます。",
       color: "#059669",
