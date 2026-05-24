@@ -464,11 +464,12 @@ export default function ReserveForm({
           </p>
 
           <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 8 }}>
+            <label htmlFor="reserve-situation" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 8 }}>
               いまの状況
               <span style={{ color: "var(--error, #DC2626)", marginLeft: 4, fontSize: 11 }}>必須</span>
             </label>
             <textarea
+              id="reserve-situation"
               value={situation}
               onChange={(e) => { setSituation(e.target.value); setErrors((p) => ({ ...p, situation: "" })); }}
               rows={4}
@@ -486,11 +487,12 @@ export default function ReserveForm({
           </div>
 
           <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 8 }}>
+            <label htmlFor="reserve-questions" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 8 }}>
               聞きたいこと
               <span style={{ color: "var(--error, #DC2626)", marginLeft: 4, fontSize: 11 }}>必須</span>
             </label>
             <textarea
+              id="reserve-questions"
               value={questions}
               onChange={(e) => { setQuestions(e.target.value); setErrors((p) => ({ ...p, questions: "" })); }}
               rows={5}
@@ -508,11 +510,12 @@ export default function ReserveForm({
           </div>
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 8 }}>
+            <label htmlFor="reserve-background" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 8 }}>
               相談の背景・伝えておきたいこと
               <span style={{ color: "var(--ink-mute)", marginLeft: 4, fontSize: 11 }}>任意</span>
             </label>
             <textarea
+              id="reserve-background"
               value={background}
               onChange={(e) => setBackground(e.target.value)}
               rows={3}
@@ -629,10 +632,11 @@ export default function ReserveForm({
           </p>
 
           <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 8 }}>
+            <label htmlFor="reserve-email" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 8 }}>
               メールアドレス<span style={{ color: "var(--error, #DC2626)", marginLeft: 4, fontSize: 11 }}>必須</span>
             </label>
             <input
+              id="reserve-email"
               type="email"
               value={userEmail}
               readOnly
@@ -645,11 +649,12 @@ export default function ReserveForm({
           </div>
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 8 }}>
+            <label htmlFor="reserve-tool" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 8 }}>
               Zoom / Google Meet の希望
               <span style={{ color: "var(--ink-mute)", marginLeft: 4, fontSize: 11 }}>任意</span>
             </label>
             <select
+              id="reserve-tool"
               value={tool}
               onChange={(e) => setTool(e.target.value)}
               style={{
