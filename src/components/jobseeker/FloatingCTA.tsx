@@ -34,16 +34,19 @@ export function FloatingCTA({
   const style = VARIANTS[variant];
 
   return (
-    <div className="md:hidden" style={{
-      position: "fixed", bottom: 0, left: 0, right: 0,
-      padding: "12px 16px 20px",
-      background: "rgba(255,255,255,0.97)",
-      backdropFilter: "blur(8px)",
-      borderTop: "1px solid var(--line)",
-      zIndex: 100,
-      transform: visible ? "translateY(0)" : "translateY(100%)",
-      transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    }}>
+    <div
+      aria-hidden={!visible}
+      className="md:hidden"
+      style={{
+        position: "fixed", bottom: 0, left: 0, right: 0,
+        padding: "12px 16px 20px",
+        background: "rgba(255,255,255,0.97)",
+        backdropFilter: "blur(8px)",
+        borderTop: "1px solid var(--line)",
+        zIndex: 100,
+        transform: visible ? "translateY(0)" : "translateY(100%)",
+        transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
       <Link href={href} style={{
         display: "flex", alignItems: "center", justifyContent: "center",
         gap: 8, width: "100%",

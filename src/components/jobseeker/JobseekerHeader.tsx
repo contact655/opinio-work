@@ -568,7 +568,7 @@ export function JobseekerHeader() {
         )}
 
         {/* Nav links */}
-        <nav style={{ padding: "8px 0", flex: 1 }}>
+        <nav aria-label="モバイルナビゲーション" style={{ padding: "8px 0", flex: 1 }}>
           {NAV_LINKS.map(({ href, label }) => {
             const active = pathname.startsWith(href);
             return (

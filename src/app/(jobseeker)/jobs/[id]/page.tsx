@@ -4,7 +4,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { type PositionMember } from "@/app/jobs/mockJobData";
 import { getJobById as fetchJobById, getMentors } from "@/lib/supabase/queries";
-import { FloatingCTA } from "@/components/jobseeker/FloatingCTA";
 import { createClient } from "@/lib/supabase/server";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 
@@ -1087,7 +1086,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
           50% { opacity: 0.5; transform: scale(0.75); }
         }
       `}</style>
-      <FloatingCTA href={`/companies/${company.id}/casual-meeting`} label="カジュアル面談を申し込む" subLabel="完全無料 · 30分から" variant="warm" />
     </>
   );
 }
