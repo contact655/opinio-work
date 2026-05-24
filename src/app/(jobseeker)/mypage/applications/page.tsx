@@ -195,10 +195,12 @@ export default function ApplicationsPage() {
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex gap-2 mb-6">
+            <div className="flex gap-2 mb-6" role="tablist" aria-label="応募ステータスで絞り込み">
               {FILTER_TABS.map((tab) => (
                 <button
                   key={tab.key}
+                  role="tab"
+                  aria-selected={activeFilter === tab.key}
                   onClick={() => setActiveFilter(tab.key)}
                   className={`px-4 py-2 text-sm rounded-full border transition-colors ${
                     activeFilter === tab.key
