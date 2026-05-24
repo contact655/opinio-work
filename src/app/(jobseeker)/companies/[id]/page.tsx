@@ -401,42 +401,46 @@ function Hero({
             },
           ].map(({ iconBg, iconColor, icon, label, value, unit, sub, isText }) => (
             <div key={label} style={{
-              padding: "14px 16px",
-              background: "var(--bg-tint)",
+              padding: "16px 18px",
+              background: "#fff",
               borderRadius: 12,
-              border: "1px solid var(--line-soft)",
+              border: "1px solid var(--line)",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
                 <span style={{
-                  width: 26, height: 26, borderRadius: 7,
+                  width: 28, height: 28, borderRadius: 8,
                   background: iconBg, color: iconColor,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   flexShrink: 0,
+                  boxShadow: `0 1px 4px ${iconBg}`,
                 }}>
                   {icon}
                 </span>
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" as const, fontFamily: "Inter, sans-serif" }}>
                   {label}
                 </span>
               </div>
               <div
                 style={{
-                  fontFamily: isText ? undefined : "Inter, sans-serif",
-                  fontSize: isText ? 16 : 24,
-                  fontWeight: 700,
-                  color: "var(--ink)",
-                  lineHeight: 1.15,
-                  marginBottom: sub ? 4 : 0,
+                  fontFamily: isText ? "var(--font-noto-sans)" : "Inter, sans-serif",
+                  fontSize: isText ? 17 : 26,
+                  fontWeight: 800,
+                  color: value === "—" ? "var(--ink-mute)" : "var(--ink)",
+                  lineHeight: 1.1,
+                  marginBottom: sub ? 5 : 0,
+                  letterSpacing: isText ? "0.01em" : "-0.02em",
                 }}
               >
                 {value}
                 {unit && (
                   <span
                     style={{
-                      fontSize: 13,
+                      fontSize: 14,
                       color: "var(--ink-soft)",
-                      fontWeight: 500,
-                      marginLeft: 2,
+                      fontWeight: 600,
+                      marginLeft: 3,
+                      letterSpacing: 0,
                     }}
                   >
                     {unit}
@@ -444,7 +448,7 @@ function Hero({
                 )}
               </div>
               {sub && (
-                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 2 }}>{sub}</div>
+                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "Inter, sans-serif", letterSpacing: "0.03em" }}>{sub}</div>
               )}
             </div>
           ))}
@@ -2128,62 +2132,64 @@ function JobsSection({
     catId?: string;
     index: number;
   }) {
+    const catColor = resolveAvatarColor(catId ?? null, null);
     return (
       <Link
         key={job.id ?? index}
         href={job.id ? `/jobs/${job.id}` : `/jobs?company=${company.id}`}
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto auto",
-          gap: 16,
-          padding: "14px 18px",
+          display: "flex",
+          gap: 0,
           border: "1px solid var(--line)",
-          borderRadius: 10,
+          borderRadius: 12,
           cursor: "pointer",
           background: "#fff",
           textDecoration: "none",
-          alignItems: "center",
+          overflow: "hidden",
+          transition: "box-shadow 0.2s, transform 0.2s",
         }}
         className="job-item-link"
       >
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 5 }}>
-            {job.title}
+        {/* Left accent bar in category color */}
+        <div style={{ width: 4, flexShrink: 0, background: catColor.text, opacity: 0.7 }} />
+        {/* Content */}
+        <div style={{ flex: 1, padding: "16px 18px", display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 6, lineHeight: 1.35 }}>
+              {job.title}
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {job.is_new && (
+                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: "var(--success-soft,#ECFDF5)", color: "var(--success)", fontWeight: 700, border: "1px solid #A7F3D0" }}>
+                  新着
+                </span>
+              )}
+              <JobCatBadge catName={catName} catId={catId} />
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            {job.is_new && (
-              <span
-                style={{
-                  fontSize: 10,
-                  padding: "2px 8px",
-                  borderRadius: 4,
-                  background: "var(--success-soft,#ECFDF5)",
-                  color: "var(--success)",
-                  fontWeight: 700,
-                  border: "1px solid #A7F3D0",
-                }}
-              >
-                新着
-              </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+            {job.salary && job.salary !== "—" && (
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, letterSpacing: "0.04em", marginBottom: 2 }}>年収</div>
+                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 15, fontWeight: 800, color: "var(--success)" }}>
+                  {job.salary}
+                </div>
+              </div>
             )}
-            <JobCatBadge catName={catName} catId={catId} />
+            <div style={{
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "7px 14px", borderRadius: 8,
+              background: "var(--royal-50)", color: "var(--royal)",
+              border: "1px solid var(--royal-100)",
+              fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+            }}>
+              詳細を見る
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </div>
           </div>
         </div>
-        <div
-          style={{
-            fontFamily: "Inter, sans-serif",
-            fontSize: 14,
-            fontWeight: 700,
-            color: "var(--royal)",
-            flexShrink: 0,
-            textAlign: "right",
-          }}
-        >
-          {job.salary}
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round">
-          <path d="M9 18l6-6-6-6" />
-        </svg>
       </Link>
     );
   }
@@ -2348,11 +2354,16 @@ function RecruitersSection({
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "28px 32px",
+        overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      <div style={{ marginBottom: 20 }}>
+      {/* Section header */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+      }}>
         <SecTitle
           iconColor="green"
           icon={
@@ -2366,32 +2377,33 @@ function RecruitersSection({
           採用担当者
         </SecTitle>
       </div>
-
+      <div style={{ padding: "24px 32px 28px" }}>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(5, 1fr)",
-          gap: 10,
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 12,
         }}
+        className="[grid-template-columns:repeat(2,1fr)] sm:[grid-template-columns:repeat(3,1fr)]"
       >
         {recruiters.map((r, i) => (
           <div
             key={r.id}
             style={{
               display: "flex",
-              gap: 10,
-              padding: "10px 12px",
+              gap: 14,
+              padding: "16px 18px",
               border: "1px solid var(--line)",
               borderRadius: 12,
               background: "#fff",
-              alignItems: "flex-start",
+              alignItems: "center",
             }}
           >
             <div
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 8,
+                width: 52,
+                height: 52,
+                borderRadius: 12,
                 flexShrink: 0,
                 background: r.avatar_color ?? AV_GRADIENTS[i % AV_GRADIENTS.length],
                 color: "#fff",
@@ -2400,29 +2412,33 @@ function RecruitersSection({
                 justifyContent: "center",
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 700,
-                fontSize: 19,
+                fontSize: 20,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
               }}
             >
               {r.avatar_initial}
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div
                 style={{
                   fontSize: 14,
                   fontWeight: 700,
                   color: "var(--ink)",
-                  marginBottom: 2,
+                  marginBottom: 3,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {r.name}
               </div>
               {r.role_title && (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2 }}>
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {r.role_title}
                 </div>
               )}
               {r.department && (
-                <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {r.department}
                 </div>
               )}
@@ -2440,9 +2456,16 @@ function RecruitersSection({
           fontSize: 12,
           color: "var(--ink-soft)",
           lineHeight: 1.7,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
         }}
       >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
         カジュアル面談を申し込むと、上記担当者から連絡が届きます。
+      </div>
       </div>
     </section>
   );
@@ -2459,11 +2482,16 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "28px 32px",
+        overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      <div style={{ marginBottom: 20 }}>
+      {/* Section header */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+      }}>
         <SecTitle
           iconColor="default"
           icon={
@@ -2479,7 +2507,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
           OPINIO 取材記事
         </SecTitle>
       </div>
-
+      <div style={{ padding: "24px 32px 28px" }}>
       <div
         style={{
           display: "grid",
@@ -2582,6 +2610,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
           </Link>
         </div>
       )}
+      </div>
     </section>
   );
 }
@@ -2608,43 +2637,33 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
         background: "#fff",
         borderRadius: 16,
         border: "1px solid var(--line)",
-        padding: "28px 32px 32px",
+        overflow: "hidden",
         marginBottom: 24,
       }}
     >
-      {/* Section title */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-        <svg
-          width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="var(--royal)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
-        >
-          <rect x="2" y="3" width="20" height="14" rx="2"/>
-          <path d="M8 21h8M12 17v4"/>
-          <path d="M7 8h2v5H7zM11 6h2v7h-2zM15 10h2v3h-2z"/>
-        </svg>
-        <span
-          style={{
-            fontFamily: "var(--font-noto-serif)",
-            fontSize: 17,
-            fontWeight: 700,
-            color: "var(--ink)",
-            letterSpacing: "0.01em",
-          }}
+      {/* Section header */}
+      <div style={{
+        padding: "22px 32px 18px",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 20V10M12 20V4M6 20v-6" />
+            </svg>
+          }
         >
           数値で見る企業
-        </span>
-        <span
-          style={{
-            fontSize: 11,
-            color: "var(--ink-mute)",
-            marginLeft: 4,
-            fontFamily: "Inter, sans-serif",
-          }}
-        >
+        </SecTitle>
+        <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
           企業アンケート回答
         </span>
       </div>
-
+      <div style={{ padding: "24px 32px 28px" }}>
       {/* 全項目が未入力の場合は収集中メッセージ、一部でも入力済みならグリッド表示 */}
       {NUMBER_ITEMS.every(({ key }) => {
         const raw = numbers[key];
@@ -2734,6 +2753,7 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
           </p>
         </>
       )}
+      </div>
     </section>
   );
 }
@@ -3235,9 +3255,13 @@ export default async function CompanyDetailPage({
       <MobileBottomCTA company={company} />
 
       <style>{`
+        .job-item-link {
+          transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+        }
         .job-item-link:hover {
           border-color: var(--royal) !important;
-          background: var(--royal-50) !important;
+          box-shadow: 0 6px 20px rgba(0,35,102,0.1) !important;
+          transform: translateY(-2px);
         }
         .employee-card-link {
           transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
