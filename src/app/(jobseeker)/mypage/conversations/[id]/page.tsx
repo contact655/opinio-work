@@ -249,6 +249,7 @@ export default function ConversationDetailPage() {
               <img
                 src={company.logo_url}
                 alt={company.name}
+                loading="lazy"
                 className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
               />
             ) : (

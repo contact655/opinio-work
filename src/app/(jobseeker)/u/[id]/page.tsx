@@ -224,6 +224,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
               <img
                 src={owUser.cover_photo_url}
                 alt=""
+                loading="eager"
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             )}
@@ -246,6 +247,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 <img
                   src={owUser.avatar_url}
                   alt={owUser.name}
+                  loading="eager"
                   style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
                 />
               ) : initial}

@@ -534,6 +534,7 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
               <img
                 src={thumbnailUrl}
                 alt="thumbnail preview"
+                loading="lazy"
                 style={{ maxWidth: 280, height: 140, objectFit: "cover", borderRadius: "var(--radius-md)", display: "block" }}
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
               />
@@ -708,6 +709,7 @@ function PostCard({
           <img
             src={post.thumbnail_url}
             alt=""
+            loading="lazy"
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
           />
