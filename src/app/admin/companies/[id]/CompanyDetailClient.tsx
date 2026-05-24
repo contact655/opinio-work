@@ -407,10 +407,11 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
             <h2 className="text-base font-semibold mb-4">会社基本情報</h2>
             <div className="space-y-4">
               <div>
-                <label className={labelCls}>
+                <label htmlFor="acd-name" className={labelCls}>
                   企業名 <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="acd-name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => update('name', e.target.value)}
@@ -419,8 +420,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
               </div>
 
               <div>
-                <label className={labelCls}>タグライン</label>
+                <label htmlFor="acd-tagline" className={labelCls}>タグライン</label>
                 <input
+                  id="acd-tagline"
                   type="text"
                   value={formData.tagline}
                   onChange={(e) => update('tagline', e.target.value)}
@@ -430,8 +432,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
               </div>
 
               <div>
-                <label className={labelCls}>ミッション</label>
+                <label htmlFor="acd-mission" className={labelCls}>ミッション</label>
                 <textarea
+                  id="acd-mission"
                   value={formData.mission}
                   onChange={(e) => update('mission', e.target.value)}
                   rows={3}
@@ -441,8 +444,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
               </div>
 
               <div>
-                <label className={labelCls}>企業説明</label>
+                <label htmlFor="acd-description" className={labelCls}>企業説明</label>
                 <textarea
+                  id="acd-description"
                   value={formData.description}
                   onChange={(e) => update('description', e.target.value)}
                   rows={4}
@@ -452,8 +456,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className={labelCls}>業界</label>
+                  <label htmlFor="acd-industry" className={labelCls}>業界</label>
                   <input
+                    id="acd-industry"
                     type="text"
                     value={formData.industry}
                     onChange={(e) => update('industry', e.target.value)}
@@ -461,8 +466,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>資金調達ステージ</label>
+                  <label htmlFor="acd-funding-stage" className={labelCls}>資金調達ステージ</label>
                   <input
+                    id="acd-funding-stage"
                     type="text"
                     value={formData.funding_stage}
                     onChange={(e) => update('funding_stage', e.target.value)}
@@ -471,8 +477,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>従業員数</label>
+                  <label htmlFor="acd-employee-count" className={labelCls}>従業員数</label>
                   <input
+                    id="acd-employee-count"
                     type="text"
                     value={formData.employee_count}
                     onChange={(e) => update('employee_count', e.target.value)}
@@ -484,8 +491,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className={labelCls}>設立年</label>
+                  <label htmlFor="acd-founded-year" className={labelCls}>設立年</label>
                   <input
+                    id="acd-founded-year"
                     type="number"
                     value={formData.founded_year}
                     onChange={(e) => update('founded_year', e.target.value)}
@@ -496,8 +504,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>代表者名</label>
+                  <label htmlFor="acd-ceo-name" className={labelCls}>代表者名</label>
                   <input
+                    id="acd-ceo-name"
                     type="text"
                     value={formData.ceo_name}
                     onChange={(e) => update('ceo_name', e.target.value)}
@@ -506,8 +515,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>企業 URL</label>
+                  <label htmlFor="acd-url" className={labelCls}>企業 URL</label>
                   <input
+                    id="acd-url"
                     type="url"
                     value={formData.url}
                     onChange={(e) => update('url', e.target.value)}
@@ -519,8 +529,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>本社所在地</label>
+                  <label htmlFor="acd-headquarters-address" className={labelCls}>本社所在地</label>
                   <input
+                    id="acd-headquarters-address"
                     type="text"
                     value={formData.headquarters_address}
                     onChange={(e) => update('headquarters_address', e.target.value)}
@@ -529,8 +540,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>最寄り駅</label>
+                  <label htmlFor="acd-nearest-station" className={labelCls}>最寄り駅</label>
                   <input
+                    id="acd-nearest-station"
                     type="text"
                     value={formData.nearest_station}
                     onChange={(e) => update('nearest_station', e.target.value)}
@@ -541,8 +553,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
               </div>
 
               <div>
-                <label className={labelCls}>リモートワーク状況</label>
+                <label htmlFor="acd-remote-work-status" className={labelCls}>リモートワーク状況</label>
                 <select
+                  id="acd-remote-work-status"
                   value={formData.remote_work_status}
                   onChange={(e) => update('remote_work_status', e.target.value)}
                   className={inputCls}
@@ -574,8 +587,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
             <h2 className="text-base font-semibold mb-4">カルチャー・採用メッセージ</h2>
             <div className="space-y-4">
               <div>
-                <label className={labelCls}>なぜ入社するか（why_join）</label>
+                <label htmlFor="acd-why-join" className={labelCls}>なぜ入社するか（why_join）</label>
                 <textarea
+                  id="acd-why-join"
                   value={formData.why_join}
                   onChange={(e) => update('why_join', e.target.value)}
                   rows={4}
@@ -585,8 +599,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
               </div>
 
               <div>
-                <label className={labelCls}>カルチャー説明</label>
+                <label htmlFor="acd-culture-description" className={labelCls}>カルチャー説明</label>
                 <textarea
+                  id="acd-culture-description"
                   value={formData.culture_description}
                   onChange={(e) => update('culture_description', e.target.value)}
                   rows={4}
@@ -606,8 +621,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelCls}>担当者名</label>
+                <label htmlFor="acd-recruiter-name" className={labelCls}>担当者名</label>
                 <input
+                  id="acd-recruiter-name"
                   type="text"
                   value={formData.recruiter_name}
                   onChange={(e) => update('recruiter_name', e.target.value)}
@@ -616,8 +632,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
                 />
               </div>
               <div>
-                <label className={labelCls}>役職・部署</label>
+                <label htmlFor="acd-recruiter-role" className={labelCls}>役職・部署</label>
                 <input
+                  id="acd-recruiter-role"
                   type="text"
                   value={formData.recruiter_role}
                   onChange={(e) => update('recruiter_role', e.target.value)}
@@ -628,8 +645,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
             </div>
 
             <div>
-              <label className={labelCls}>担当者メッセージ</label>
+              <label htmlFor="acd-recruiter-message" className={labelCls}>担当者メッセージ</label>
               <textarea
+                id="acd-recruiter-message"
                 value={formData.recruiter_message}
                 onChange={(e) => update('recruiter_message', e.target.value)}
                 rows={5}
@@ -684,8 +702,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
             </div>
 
             <div>
-              <label className={labelCls}>カジュアル面談 URL</label>
+              <label htmlFor="acd-casual-interview-url" className={labelCls}>カジュアル面談 URL</label>
               <input
+                id="acd-casual-interview-url"
                 type="url"
                 value={formData.casual_interview_url}
                 onChange={(e) => update('casual_interview_url', e.target.value)}
@@ -708,8 +727,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
             編集部独自の企業評価・コメントです。求職者には非公開の内部メモとしても活用できます。
           </p>
           <div>
-            <label className={labelCls}>コメント</label>
+            <label htmlFor="acd-opinio-comment" className={labelCls}>コメント</label>
             <textarea
+              id="acd-opinio-comment"
               value={formData.opinio_comment}
               onChange={(e) => update('opinio_comment', e.target.value)}
               rows={10}
@@ -748,8 +768,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
             {/* アップロード + URL 入力 */}
             <div className="flex-1 space-y-3">
               <div>
-                <label className={labelCls}>ファイルアップロード</label>
+                <label htmlFor="acd-logo-file" className={labelCls}>ファイルアップロード</label>
                 <input
+                  id="acd-logo-file"
                   type="file"
                   accept="image/png,image/jpeg,image/svg+xml,image/webp"
                   onChange={handleLogoUpload}
@@ -763,8 +784,9 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
               </div>
 
               <div>
-                <label className={labelCls}>または URL を直接入力</label>
+                <label htmlFor="acd-logo-url" className={labelCls}>または URL を直接入力</label>
                 <input
+                  id="acd-logo-url"
                   type="text"
                   value={formData.logo_url}
                   onChange={(e) => update('logo_url', e.target.value)}
