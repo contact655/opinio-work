@@ -187,13 +187,14 @@ export function JobseekerHeader() {
           </Link>
 
           {/* Nav — desktop only */}
-          <nav className="hidden md:flex" style={{ gap: 24, flex: 1 }}>
+          <nav className="hidden md:flex" aria-label="メインナビゲーション" style={{ gap: 24, flex: 1 }}>
             {NAV_LINKS.map(({ href, label }) => {
               const active = pathname.startsWith(href);
               return (
                 <Link
                   key={href}
                   href={href}
+                  aria-current={active ? "page" : undefined}
                   style={{
                     fontSize: 14,
                     fontWeight: 500,

@@ -458,6 +458,7 @@ function Pagination({
       <button
         onClick={() => onPage(current - 1)}
         disabled={current === 1}
+        aria-label="前のページへ"
         style={{
           padding: "8px 14px",
           border: "1px solid var(--line)",
@@ -475,6 +476,8 @@ function Pagination({
         <button
           key={p}
           onClick={() => onPage(p)}
+          aria-label={`${p}ページ目`}
+          aria-current={p === current ? "page" : undefined}
           style={{
             padding: "8px 14px",
             border: "1px solid var(--line)",
@@ -493,6 +496,7 @@ function Pagination({
       <button
         onClick={() => onPage(current + 1)}
         disabled={current === total}
+        aria-label="次のページへ"
         style={{
           padding: "8px 14px",
           border: "1px solid var(--line)",
