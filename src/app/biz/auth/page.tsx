@@ -794,8 +794,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
 
         {/* 担当者名 */}
         <div style={{ marginBottom: 16 }}>
-          <FieldLabel label="ご担当者のお名前" required />
+          <FieldLabel label="ご担当者のお名前" required htmlFor="biz-contact-name" />
           <input
+            id="biz-contact-name"
             type="text"
             required
             value={contactName}
@@ -810,8 +811,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
 
         {/* 部署・役職 */}
         <div style={{ marginBottom: 16 }}>
-          <FieldLabel label="部署・役職" required />
+          <FieldLabel label="部署・役職" required htmlFor="biz-contact-title" />
           <input
+            id="biz-contact-title"
             type="text"
             required
             value={contactTitle}
@@ -825,8 +827,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
 
         {/* 企業メールアドレス: 招待モードではプリフィル＋readOnly */}
         <div style={{ marginBottom: 16 }}>
-          <FieldLabel label={isInviteMode ? "メールアドレス（招待先）" : "企業メールアドレス"} required />
+          <FieldLabel label={isInviteMode ? "メールアドレス（招待先）" : "企業メールアドレス"} required htmlFor="biz-signup-email" />
           <input
+            id="biz-signup-email"
             type="email"
             required
             readOnly={isInviteMode}
@@ -862,9 +865,10 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
 
         {/* パスワード */}
         <div style={{ marginBottom: 16 }}>
-          <FieldLabel label="パスワード" required />
+          <FieldLabel label="パスワード" required htmlFor="biz-signup-password" />
           <div style={{ position: "relative" }}>
             <input
+              id="biz-signup-password"
               type={showPassword ? "text" : "password"}
               required
               minLength={8}
@@ -1203,8 +1207,9 @@ function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, route
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
         {/* メール */}
         <div style={{ marginBottom: 16 }}>
-          <FieldLabel label="企業メールアドレス" />
+          <FieldLabel label="企業メールアドレス" htmlFor="biz-login-email" />
           <input
+            id="biz-login-email"
             type="email"
             required
             value={email}
@@ -1219,9 +1224,10 @@ function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, route
 
         {/* パスワード */}
         <div style={{ marginBottom: 8 }}>
-          <FieldLabel label="パスワード" />
+          <FieldLabel label="パスワード" htmlFor="biz-login-password" />
           <div style={{ position: "relative" }}>
             <input
+              id="biz-login-password"
               type={showPassword ? "text" : "password"}
               required
               value={password}
@@ -1473,9 +1479,9 @@ function ExistingUserNotice({ email, onSwitchToLogin, onChangeEmail }: ExistingU
   );
 }
 
-function FieldLabel({ label, required }: { label: string; required?: boolean }) {
+function FieldLabel({ label, required, htmlFor }: { label: string; required?: boolean; htmlFor?: string }) {
   return (
-    <div style={{
+    <label htmlFor={htmlFor} style={{
       display: "flex",
       alignItems: "center",
       gap: 6,
@@ -1486,7 +1492,7 @@ function FieldLabel({ label, required }: { label: string; required?: boolean }) 
     }}>
       {label}
       {required && <span style={{ color: "var(--error)", fontSize: 11 }}>必須</span>}
-    </div>
+    </label>
   );
 }
 
