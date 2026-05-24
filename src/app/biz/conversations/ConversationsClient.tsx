@@ -207,7 +207,7 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
               </svg>
             </span>
             <input
-              type="text"
+              type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="候補者名で検索..."

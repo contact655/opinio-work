@@ -218,7 +218,7 @@ export default function AdminJobsPage() {
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
         <input
-          type="text"
+          type="search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="求人タイトル・企業名・職種で検索..."

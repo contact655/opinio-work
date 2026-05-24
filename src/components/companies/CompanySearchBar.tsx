@@ -336,7 +336,7 @@ export function CompanySearchBar({ industries, locations }: Props) {
             <path d="m21 21-4.35-4.35" />
           </svg>
           <input
-            type="text"
+            type="search"
             className="csb-input"
             placeholder="キーワードで企業を探す（例: SaaS, セールス, AI）"
             value={inputValue}

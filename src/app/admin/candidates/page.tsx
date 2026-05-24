@@ -33,7 +33,7 @@ export default async function AdminCandidatesPage({
       {/* Search */}
       <form action="/admin/candidates" method="GET" className="mb-6">
         <input
-          type="text"
+          type="search"
           name="q"
           defaultValue={searchParams.q}
           placeholder="名前・メール・所在地で検索..."

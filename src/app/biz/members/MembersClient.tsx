@@ -1236,7 +1236,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           </svg>
         </span>
         <input
-          type="text"
+          type="search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="名前・メール・役職で検索..."

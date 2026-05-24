@@ -237,7 +237,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
             </svg>
           </span>
           <input
-            type="text"
+            type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="求人タイトル・職種で検索..."

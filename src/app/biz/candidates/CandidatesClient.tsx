@@ -139,7 +139,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
           <div style={{ position: "relative", flex: "1 1 200px" }}>
             <input
-              type="text"
+              type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="名前・職種・会社・地域で検索..."
