@@ -19,6 +19,13 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
   const [jobs, setJobs] = useState<BizJob[]>(initialJobs);
   const [activeStatus, setActiveStatus] = useState<JobStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setTimeout(() => setErrorMessage(null), 4000);
+  };
 
   const handleStatusChange = useCallback(async (jobId: string, newStatus: JobStatus) => {
     const old = jobs.find((j) => j.id === jobId);
@@ -34,12 +41,17 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
     });
     if (!res.ok && old) {
       setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, status: old.status } : j));
-      alert("ステータス更新に失敗しました。再度お試しください。");
+      showError("ステータス更新に失敗しました。再度お試しください。");
     }
   }, [jobs]);
 
   const handleDelete = useCallback(async (jobId: string) => {
-    if (!confirm("この求人を削除しますか？この操作は取り消せません。")) return;
+    // Show inline confirmation instead of window.confirm
+    setPendingDeleteId(jobId);
+  }, []);
+
+  const confirmDelete = useCallback(async (jobId: string) => {
+    setPendingDeleteId(null);
     const snapshot = jobs;
     // optimistic remove
     setJobs((prev) => prev.filter((j) => j.id !== jobId));
@@ -49,13 +61,13 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
     const res = await fetch(`/api/biz/jobs/${jobId}`, { method: "DELETE" });
     if (!res.ok) {
       setJobs(snapshot);
-      alert("削除に失敗しました。再度お試しください。");
+      showError("削除に失敗しました。再度お試しください。");
     }
   }, [jobs]);
 
   const handleDuplicate = useCallback(async (jobId: string) => {
     if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") {
-      alert("複製機能はモックモードでは動作しません。");
+      showError("複製機能はモックモードでは動作しません。");
       return;
     }
     const res = await fetch("/api/biz/jobs", {
@@ -63,7 +75,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sourceId: jobId }),
     });
-    if (!res.ok) { alert("複製に失敗しました。再度お試しください。"); return; }
+    if (!res.ok) { showError("複製に失敗しました。再度お試しください。"); return; }
     const { id } = await res.json() as { id: string };
     router.push(`/biz/jobs/${id}/edit`);
   }, [router]);
@@ -87,6 +99,22 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
 
   return (
     <div>
+      {/* エラーバナー */}
+      {errorMessage && (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 16px", marginBottom: 16, borderRadius: 8,
+          background: "var(--error-soft)", border: "1px solid #FCA5A5",
+          fontSize: 13, color: "var(--error)", fontWeight: 600,
+        }}>
+          <span>⚠ {errorMessage}</span>
+          <button onClick={() => setErrorMessage(null)} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--error)", fontSize: 16, padding: "0 4px",
+          }}>×</button>
+        </div>
+      )}
+
       {/* ページヘッダー */}
       <div style={{
         display: "flex",
@@ -234,13 +262,49 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
           <JobsEmptyState hasFilters={hasFilters} />
         ) : (
           filtered.map((job) => (
-            <JobListCard
-              key={job.id}
-              job={job}
-              onStatusChange={handleStatusChange}
-              onDelete={handleDelete}
-              onDuplicate={handleDuplicate}
-            />
+            <div key={job.id}>
+              <JobListCard
+                job={job}
+                onStatusChange={handleStatusChange}
+                onDelete={handleDelete}
+                onDuplicate={handleDuplicate}
+              />
+              {/* Inline delete confirmation */}
+              {pendingDeleteId === job.id && (
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px 18px", borderRadius: "0 0 10px 10px",
+                  background: "#FFF5F5", border: "1px solid #FCA5A5", borderTop: "none",
+                  fontSize: 13,
+                }}>
+                  <span style={{ color: "var(--error)", fontWeight: 600 }}>
+                    この求人を削除しますか？この操作は取り消せません。
+                  </span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => setPendingDeleteId(null)}
+                      style={{
+                        padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                        border: "1px solid var(--line)", background: "#fff",
+                        color: "var(--ink-soft)", cursor: "pointer",
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={() => confirmDelete(job.id)}
+                      style={{
+                        padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                        border: "1px solid var(--error)", background: "var(--error)",
+                        color: "#fff", cursor: "pointer",
+                      }}
+                    >
+                      削除する
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ))
         )}
       </div>

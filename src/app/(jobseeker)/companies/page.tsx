@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
 import { fetchGenresWithCompanies } from "@/lib/genres";
 import { fetchDistinctIndustries, fetchDistinctLocations } from "@/lib/search/companies";
 import { GenreSection } from "@/components/companies/GenreSection";
@@ -89,7 +90,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                 </span>
               </div>
             </div>
-            <a href="/jobs" style={{
+            <Link href="/jobs" style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "9px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600,
               background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)",
@@ -98,7 +99,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
               marginTop: 4,
             }}>
               求人を探す →
-            </a>
+            </Link>
           </div>
         </div>
       </div>

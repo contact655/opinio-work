@@ -49,7 +49,7 @@ function ArticleCard({ article }: { article: Article }) {
         {/* Eyecatch */}
         <div style={{
           height: 180,
-          background: article.eyecatch_gradient,
+          background: article.eyecatch_gradient || "linear-gradient(135deg, #002366, #3B5FD9)",
           display: "flex", alignItems: "center", justifyContent: "center",
           position: "relative", overflow: "hidden",
         }}>
