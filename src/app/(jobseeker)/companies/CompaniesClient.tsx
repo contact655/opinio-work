@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { LayoutGrid, List } from "lucide-react";
@@ -315,6 +315,14 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const secondaryVisible = showMoreFilters || hasSecondaryFilter;
 
+  // Scroll shadow for sticky filter bar
+  const [filterBarScrolled, setFilterBarScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setFilterBarScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
@@ -422,6 +430,8 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
       <div style={{
         background: "#fff", borderBottom: "1px solid var(--line)",
         padding: "10px 48px", position: "sticky", top: 60, zIndex: 50,
+        boxShadow: filterBarScrolled ? "0 4px 12px rgba(0,35,102,0.07)" : "none",
+        transition: "box-shadow 0.2s ease",
       }} className="px-5 md:px-12">
         <div style={{
           maxWidth: 1200, margin: "0 auto",

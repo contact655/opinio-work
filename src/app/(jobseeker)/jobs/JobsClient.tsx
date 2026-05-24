@@ -540,6 +540,14 @@ export default function JobsClient({
   // Local-only keyword search
   const [q, setQ] = useState("");
 
+  // Scroll shadow for sticky filter bar
+  const [filterBarScrolled, setFilterBarScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setFilterBarScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Bookmarks: load once on mount
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -806,6 +814,8 @@ export default function JobsClient({
           background: "rgba(255,255,255,0.96)",
           backdropFilter: "blur(8px)",
           borderBottom: "1px solid var(--line)",
+          boxShadow: filterBarScrolled ? "0 4px 12px rgba(0,35,102,0.07)" : "none",
+          transition: "box-shadow 0.2s ease",
         }}
       >
         <div

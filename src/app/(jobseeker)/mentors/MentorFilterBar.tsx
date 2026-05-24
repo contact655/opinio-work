@@ -129,6 +129,12 @@ export default function MentorFilterBar({ total }: { total: number }) {
 
   const [localQ, setLocalQ] = useState(q);
   const qTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const updateParam = useCallback((key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -156,6 +162,8 @@ export default function MentorFilterBar({ total }: { total: number }) {
       background: "rgba(255,255,255,0.96)",
       backdropFilter: "blur(8px)",
       borderBottom: `1px solid ${LINE}`,
+      boxShadow: scrolled ? "0 4px 12px rgba(0,35,102,0.07)" : "none",
+      transition: "box-shadow 0.2s ease",
     }}>
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
         <div style={{ padding: "11px 0", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

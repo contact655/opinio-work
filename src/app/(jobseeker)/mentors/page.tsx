@@ -332,12 +332,22 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
             <main style={{ background: "var(--bg-tint)" }}>
               <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
                 {allMentors.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "80px 0", color: "var(--ink-mute)" }}>
-                    <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
-                    <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--ink-soft)" }}>
+                  <div style={{ textAlign: "center", padding: "64px 24px", color: "var(--ink-mute)" }}>
+                    <div style={{
+                      width: 64, height: 64, borderRadius: "50%",
+                      background: "var(--royal-50)", display: "flex",
+                      alignItems: "center", justifyContent: "center",
+                      margin: "0 auto 20px",
+                    }}>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                      </svg>
+                    </div>
+                    <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--ink)" }}>
                       条件に合うメンターが見つかりませんでした
                     </p>
-                    <p style={{ fontSize: 14 }}>フィルターを変更してみてください</p>
+                    <p style={{ fontSize: 14, lineHeight: 1.7 }}>フィルターを変更するか、すべてのメンターを表示してみてください</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
