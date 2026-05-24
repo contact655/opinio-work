@@ -135,6 +135,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} antialiased`}>
+        <a href="#main-content" className="skip-to-main">メインコンテンツへスキップ</a>
         {children}
         <Analytics />
       </body>

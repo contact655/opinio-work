@@ -137,17 +137,35 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
       }}>
         {/* Row 1: search + basic selects + count */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-          <input
-            type="text"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="名前・職種・会社・地域で検索..."
-            style={{
-              flex: "1 1 200px", height: 36, padding: "0 12px",
-              border: "1px solid var(--line)", borderRadius: 8,
-              fontSize: 13, outline: "none", fontFamily: "inherit", color: "var(--ink)",
-            }}
-          />
+          <div style={{ position: "relative", flex: "1 1 200px" }}>
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="名前・職種・会社・地域で検索..."
+              aria-label="候補者を検索"
+              style={{
+                width: "100%", height: 36, padding: q ? "0 32px 0 12px" : "0 12px",
+                border: "1px solid var(--line)", borderRadius: 8,
+                fontSize: 13, outline: "none", fontFamily: "inherit", color: "var(--ink)",
+                boxSizing: "border-box",
+              }}
+            />
+            {q && (
+              <button
+                onClick={() => setQ("")}
+                aria-label="検索をクリア"
+                style={{
+                  position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                  background: "none", border: "none", cursor: "pointer",
+                  color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
           <select
             value={jobType}
             onChange={(e) => setJobType(e.target.value)}
@@ -222,6 +240,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
             <button
               key={v || "all"}
               onClick={() => setPhase(v)}
+              aria-pressed={phase === v}
               style={{
                 height: 28, padding: "0 10px", borderRadius: 14,
                 fontSize: 11, fontWeight: phase === v ? 700 : 400,
@@ -241,6 +260,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
             <button
               key={v || "all"}
               onClick={() => setTransferTiming(v)}
+              aria-pressed={transferTiming === v}
               style={{
                 height: 28, padding: "0 10px", borderRadius: 14,
                 fontSize: 11, fontWeight: transferTiming === v ? 700 : 400,

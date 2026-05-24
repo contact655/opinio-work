@@ -432,7 +432,7 @@ export function BusinessLayout({
         </aside>
 
         {/* Main content */}
-        <main style={variant === "fullBleed"
+        <main id="main-content" style={variant === "fullBleed"
           ? { padding: 0, minWidth: 0, overflow: "hidden" }
           : { padding: "28px 36px 60px", maxWidth: 1200, minWidth: 0 }
         }>

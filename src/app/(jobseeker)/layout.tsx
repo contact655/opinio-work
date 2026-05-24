@@ -30,7 +30,7 @@ export default function JobseekerLayout({ children }: { children: React.ReactNod
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <JobseekerHeader />
-      <main style={{ flex: 1 }}>
+      <main id="main-content" style={{ flex: 1 }}>
         {children}
       </main>
       <JobseekerFooter />

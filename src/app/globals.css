@@ -362,6 +362,53 @@ button:focus-visible {
   border-radius: 4px;
 }
 
+/* ── Input / select / textarea focus ── */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--royal);
+  outline-offset: 0;
+  border-color: var(--royal) !important;
+  box-shadow: 0 0 0 3px rgba(0,35,102,0.08);
+}
+
+/* ── Skip to main content (screen readers) ── */
+.skip-to-main {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-to-main:focus {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  width: auto;
+  height: auto;
+  padding: 10px 16px;
+  background: var(--royal);
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  z-index: 9999;
+  text-decoration: none;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ── FAQ accordion (business LP) ── */
 details > summary::-webkit-details-marker { display: none; }
 details[open] .faq-chevron { transform: rotate(180deg); }
