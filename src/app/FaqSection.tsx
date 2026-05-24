@@ -27,13 +27,29 @@ export default function FaqSection() {
         <h2 className="text-[28px] font-medium text-[#0f172a] mb-8">あなたの不安に、第三者の目でお答えします</h2>
         <div className="max-w-2xl">
           {faqs.map((faq, i) => (
-            <div key={i} className="border-b border-gray-100 py-5 cursor-pointer" onClick={() => setOpen(open === i ? null : i)}>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-[15px] font-medium text-[#0f172a]">{faq.q}</span>
-                <span className="text-[#1D9E75] text-xl flex-shrink-0 transition-transform" style={{ transform: open === i ? "rotate(45deg)" : "none" }}>+</span>
-              </div>
+            <div key={i} className="border-b border-gray-100 py-5">
+              <button
+                type="button"
+                className="w-full text-left cursor-pointer"
+                aria-expanded={open === i}
+                aria-controls={`faq-answer-${i}`}
+                id={`faq-question-${i}`}
+                onClick={() => setOpen(open === i ? null : i)}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-[15px] font-medium text-[#0f172a]">{faq.q}</span>
+                  <span className="text-[#1D9E75] text-xl flex-shrink-0 transition-transform" style={{ transform: open === i ? "rotate(45deg)" : "none" }} aria-hidden="true">+</span>
+                </div>
+              </button>
               {open === i && (
-                <p className="text-[14px] text-[#475569] leading-relaxed mt-3">{faq.a}</p>
+                <p
+                  id={`faq-answer-${i}`}
+                  role="region"
+                  aria-labelledby={`faq-question-${i}`}
+                  className="text-[14px] text-[#475569] leading-relaxed mt-3"
+                >
+                  {faq.a}
+                </p>
               )}
             </div>
           ))}

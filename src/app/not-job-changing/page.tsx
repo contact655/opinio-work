@@ -93,7 +93,7 @@ export default function NotJobChangingPage() {
               半年後にメールでお知らせし、ご都合に合わせてメンターと再相談できます。
             </p>
             <Link
-              href="/auth/signup?intent=remind_6m"
+              href="/auth?mode=signup"
               style={{
                 display: "inline-block", padding: "12px 28px", borderRadius: 10,
                 fontSize: 14, fontWeight: 600, background: "var(--royal)", color: "#fff", textDecoration: "none",

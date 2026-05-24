@@ -18,6 +18,8 @@ import type { CompanyDetail, CompanyNumbers } from "@/app/companies/[id]/mockDet
 import { PhotoCarousel } from "./PhotoCarousel";
 import BookmarkButton, { CompanyStickyNav } from "./CompanyDetailClient";
 import EvaluationText from "./EvaluationText";
+import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
+import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { createClient } from "@/lib/supabase/server";
 import PostCard from "@/components/jobseeker/PostCard";
 import type { Database } from "@/lib/supabase/types";
@@ -3426,6 +3428,8 @@ export default async function CompanyDetailPage({
 
   return (
     <>
+      <ReadingProgress />
+      <BackToTop />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

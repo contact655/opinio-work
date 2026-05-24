@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMentorById, type MentorData } from "@/lib/supabase/queries";
 import { FloatingCTA } from "@/components/jobseeker/FloatingCTA";
+import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { createClient } from "@/lib/supabase/server";
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import {
@@ -147,6 +148,8 @@ export default async function MentorDetailPage({ params }: Props) {
 
   return (
     <>
+      <ReadingProgress />
+
       {/* Breadcrumb */}
       <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">

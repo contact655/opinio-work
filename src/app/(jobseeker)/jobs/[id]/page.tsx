@@ -6,6 +6,7 @@ import { type PositionMember } from "@/app/jobs/mockJobData";
 import { getJobById as fetchJobById, getMentors } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
+import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
@@ -222,6 +223,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
   return (
     <>
+      <ReadingProgress />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

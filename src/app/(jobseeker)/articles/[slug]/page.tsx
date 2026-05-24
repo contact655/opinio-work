@@ -14,6 +14,8 @@ import {
   getArticleBySlug,
   getArticlesBySlugs,
 } from "@/lib/supabase/queries";
+import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
+import { BackToTop } from "@/components/jobseeker/BackToTop";
 
 // ─── generateMetadata ─────────────────────────────────────────────────────────
 
@@ -547,6 +549,9 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
   return (
     <>
+      <ReadingProgress />
+      <BackToTop />
+
       {/* Breadcrumb */}
       <div style={{ background: "var(--bg-tint)", borderBottom: `1px solid ${LINE}`, padding: "10px 0" }}>
         <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto" }} className="px-5 md:px-12">
