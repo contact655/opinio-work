@@ -45,6 +45,7 @@ export default function AdminReservationsPage() {
   const [actioning, setActioning] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const supabase = createClient();
 
   const showFlash = useCallback((msg: string) => {
@@ -125,10 +126,16 @@ export default function AdminReservationsPage() {
 
   const pendingCount = reservations.filter((r) => r.status === "pending_review").length;
 
-  const filtered =
-    activeTab === "all"
-      ? reservations
-      : reservations.filter((r) => r.status === activeTab);
+  const filtered = reservations.filter((r) => {
+    if (activeTab !== "all" && r.status !== activeTab) return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (r.mentor_name ?? "").toLowerCase().includes(q) ||
+      (r.contact_email ?? "").toLowerCase().includes(q) ||
+      (r.current_situation ?? "").toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="p-8">
@@ -158,6 +165,31 @@ export default function AdminReservationsPage() {
           {flash}
         </div>
       )}
+
+      {/* Search */}
+      <div style={{ position: "relative", marginBottom: 16 }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+        </svg>
+        <input
+          type="search"
+          placeholder="メンター名・メールアドレスで検索"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          aria-label="予約を検索"
+          style={{
+            width: "100%", boxSizing: "border-box",
+            padding: "10px 12px 10px 38px",
+            border: "1px solid #E2E8F0", borderRadius: 8,
+            fontSize: 13, color: "#0F172A",
+            background: "#fff", outline: "none",
+            fontFamily: "inherit", maxWidth: 400,
+          }}
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery("")} aria-label="検索をクリア" style={{ position: "absolute", left: 375, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94A3B8", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
+        )}
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6">

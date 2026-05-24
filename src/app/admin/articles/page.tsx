@@ -29,6 +29,8 @@ export default function AdminArticlesPage() {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const supabase = createClient();
 
   const showFlash = useCallback((msg: string) => {
@@ -89,6 +91,17 @@ export default function AdminArticlesPage() {
 
   const publishedCount = articles.filter((a) => a.is_published).length;
 
+  const filtered = articles.filter((a) => {
+    if (typeFilter && a.type !== typeFilter) return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      a.title.toLowerCase().includes(q) ||
+      (a.company_name_text ?? "").toLowerCase().includes(q) ||
+      (TYPE_LABELS[a.type ?? ""] ?? "").toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
@@ -102,6 +115,55 @@ export default function AdminArticlesPage() {
             公開中 {publishedCount}件
           </span>
         </div>
+      </div>
+
+      {/* Search + Type filter */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flex: "1 1 240px", minWidth: 200 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            type="search"
+            placeholder="タイトル・企業名で検索"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="記事を検索"
+            style={{
+              width: "100%", boxSizing: "border-box",
+              padding: "9px 12px 9px 36px",
+              border: "1px solid var(--line, #E2E8F0)", borderRadius: 8,
+              fontSize: 13, color: "var(--ink, #0F172A)",
+              background: "#fff", outline: "none",
+              fontFamily: "inherit",
+            }}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} aria-label="検索をクリア" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute, #94A3B8)", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {[null, "employee", "mentor", "ceo", "report"].map((type) => (
+            <button
+              key={type ?? "all"}
+              onClick={() => setTypeFilter(type)}
+              style={{
+                padding: "7px 13px", borderRadius: 100, fontSize: 12, fontWeight: 600,
+                border: `1.5px solid ${typeFilter === type ? "var(--royal, #002366)" : "var(--line, #E2E8F0)"}`,
+                background: typeFilter === type ? "var(--royal, #002366)" : "#fff",
+                color: typeFilter === type ? "#fff" : "var(--ink-soft, #475569)",
+                cursor: "pointer", whiteSpace: "nowrap",
+              }}
+            >
+              {type === null ? "すべて" : TYPE_LABELS[type]}
+            </button>
+          ))}
+        </div>
+        {(searchQuery || typeFilter) && (
+          <span style={{ fontSize: 12, color: "var(--ink-mute, #94A3B8)" }}>
+            {filtered.length}件
+          </span>
+        )}
       </div>
 
       {/* Flash */}
@@ -130,14 +192,14 @@ export default function AdminArticlesPage() {
             </tr>
           </thead>
           <tbody>
-            {articles.length === 0 ? (
+            {filtered.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-center py-12 text-gray-400">
-                  記事が見つかりません
+                  {searchQuery || typeFilter ? "該当する記事が見つかりません" : "記事が見つかりません"}
                 </td>
               </tr>
             ) : (
-              articles.map((article) => (
+              filtered.map((article) => (
                 <tr key={article.id} className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">

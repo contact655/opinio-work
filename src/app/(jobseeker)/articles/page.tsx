@@ -219,11 +219,12 @@ const PER_PAGE = 9;
 export default async function ArticlesPage({ searchParams }: { searchParams: SearchParams }) {
   const typeParam = typeof searchParams.type === "string" ? searchParams.type : undefined;
   const sortParam = typeof searchParams.sort === "string" ? searchParams.sort : undefined;
+  const qParam    = typeof searchParams.q    === "string" ? searchParams.q    : undefined;
   const pageParam  = typeof searchParams.page === "string" ? Math.max(1, parseInt(searchParams.page, 10)) : 1;
 
   const [allArticles, filteredArticles] = await Promise.all([
     getArticles(),
-    getArticles({ type: typeParam, sort: sortParam }),
+    getArticles({ type: typeParam, sort: sortParam, q: qParam }),
   ]);
 
   // Stats per type

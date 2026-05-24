@@ -210,10 +210,11 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
   const dept  = typeof searchParams.dept  === "string" ? searchParams.dept  : undefined;
   const theme = typeof searchParams.theme === "string" ? searchParams.theme : undefined;
   const sort  = typeof searchParams.sort  === "string" ? searchParams.sort  : undefined;
+  const q     = typeof searchParams.q     === "string" ? searchParams.q     : undefined;
 
   // 全メンター（フィルタ付き） + カテゴリ別（フィルタなし）を並列取得
   const [allMentors, categoriesWithMentors] = await Promise.all([
-    getMentors({ dept, theme, sort }),
+    getMentors({ dept, theme, sort, q }),
     fetchCategoriesWithMentors(),
   ]);
 

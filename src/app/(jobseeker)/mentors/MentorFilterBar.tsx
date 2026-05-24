@@ -125,6 +125,10 @@ export default function MentorFilterBar({ total }: { total: number }) {
   const industry = searchParams.get("industry");
   const theme    = searchParams.get("theme");
   const sort     = searchParams.get("sort") ?? "default";
+  const q        = searchParams.get("q") ?? "";
+
+  const [localQ, setLocalQ] = useState(q);
+  const qTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updateParam = useCallback((key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -133,7 +137,18 @@ export default function MentorFilterBar({ total }: { total: number }) {
     router.push(`${pathname}?${params.toString()}`);
   }, [searchParams, pathname, router]);
 
-  const hasAnyFilter = !!(dept || industry || theme);
+  const handleQueryChange = useCallback((val: string) => {
+    setLocalQ(val);
+    if (qTimer.current) clearTimeout(qTimer.current);
+    qTimer.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (val.trim()) params.set("q", val.trim());
+      else params.delete("q");
+      router.push(`${pathname}?${params.toString()}`);
+    }, 400);
+  }, [searchParams, pathname, router]);
+
+  const hasAnyFilter = !!(dept || industry || theme || q);
 
   return (
     <div style={{
@@ -144,6 +159,37 @@ export default function MentorFilterBar({ total }: { total: number }) {
     }}>
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
         <div style={{ padding: "11px 0", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+
+          {/* Keyword search */}
+          <div style={{ position: "relative", minWidth: 180, flex: "0 1 220px" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={INK_MUTE} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              type="search"
+              placeholder="名前・会社名・テーマ"
+              value={localQ}
+              onChange={(e) => handleQueryChange(e.target.value)}
+              aria-label="メンターを検索"
+              style={{
+                width: "100%", boxSizing: "border-box",
+                padding: "8px 32px 8px 33px",
+                border: `1.5px solid ${localQ ? ROYAL : LINE}`,
+                borderRadius: 100,
+                fontSize: 13, color: "var(--ink)",
+                background: "#fff", outline: "none",
+                fontFamily: "inherit",
+                transition: "border-color 0.15s",
+              }}
+            />
+            {localQ && (
+              <button
+                onClick={() => handleQueryChange("")}
+                aria-label="検索をクリア"
+                style={{ position: "absolute", right: 11, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: INK_MUTE, fontSize: 14, lineHeight: 1, padding: 0 }}
+              >×</button>
+            )}
+          </div>
 
           <Dropdown
             label="職種"
@@ -169,7 +215,7 @@ export default function MentorFilterBar({ total }: { total: number }) {
 
           {hasAnyFilter && (
             <button
-              onClick={() => router.push(pathname)}
+              onClick={() => { setLocalQ(""); router.push(pathname); }}
               style={{
                 padding: "8px 12px", borderRadius: 100, fontSize: 12, fontWeight: 500,
                 border: "none", background: "none", color: INK_MUTE,

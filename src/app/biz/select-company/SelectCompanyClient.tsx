@@ -13,6 +13,7 @@ type Item = {
 
 export default function SelectCompanyClient({ items }: { items: Item[] }) {
   const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // デフォルト会社を先頭に固定
   const sorted = [
@@ -33,9 +34,13 @@ export default function SelectCompanyClient({ items }: { items: Item[] }) {
         window.location.href = data.redirectTo;
       } else {
         setLoading(null);
+        setError("企業の切り替えに失敗しました。再度お試しください。");
+        setTimeout(() => setError(null), 4000);
       }
     } catch {
       setLoading(null);
+      setError("ネットワークエラーが発生しました。再度お試しください。");
+      setTimeout(() => setError(null), 4000);
     }
   }
 
@@ -48,6 +53,20 @@ export default function SelectCompanyClient({ items }: { items: Item[] }) {
         <p style={{ color: "var(--ink-soft)", fontSize: 14, marginBottom: 32 }}>
           複数の企業アカウントに所属しています。操作する企業を選択してください。
         </p>
+        {error && (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "12px 16px", marginBottom: 16, borderRadius: 8,
+            background: "var(--error-soft)", border: "1px solid #FCA5A5",
+            fontSize: 13, color: "var(--error)", fontWeight: 600,
+          }}>
+            <span>⚠ {error}</span>
+            <button onClick={() => setError(null)} style={{
+              background: "none", border: "none", cursor: "pointer",
+              color: "var(--error)", fontSize: 16, padding: "0 4px",
+            }}>×</button>
+          </div>
+        )}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {sorted.map((item) => (
             <button

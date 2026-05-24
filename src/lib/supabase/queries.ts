@@ -935,6 +935,7 @@ export type MentorFilter = {
   dept?: string;
   theme?: string;
   sort?: string;
+  q?: string;
 };
 
 export async function getMentors(filter?: MentorFilter): Promise<MentorData[]> {
@@ -959,6 +960,16 @@ export async function getMentors(filter?: MentorFilter): Promise<MentorData[]> {
   if (filter?.theme) {
     const theme = filter.theme.toLowerCase();
     rows = rows.filter((m) => m.themes.some((t) => t.toLowerCase().includes(theme)));
+  }
+  if (filter?.q) {
+    const q = filter.q.toLowerCase();
+    rows = rows.filter((m) =>
+      m.name.toLowerCase().includes(q) ||
+      (m.current_company ?? "").toLowerCase().includes(q) ||
+      (m.current_role ?? "").toLowerCase().includes(q) ||
+      m.themes.some((t) => t.toLowerCase().includes(q)) ||
+      (m.catchphrase ?? "").toLowerCase().includes(q)
+    );
   }
   if (filter?.sort === "sessions") {
     rows = rows.sort((a, b) => (b.success_count ?? 0) - (a.success_count ?? 0));
@@ -1036,7 +1047,7 @@ function mapDbArticle(row: Record<string, any>): Article {
   };
 }
 
-export type ArticleFilter = { type?: string; sort?: string };
+export type ArticleFilter = { type?: string; sort?: string; q?: string };
 
 export async function getArticles(filter?: ArticleFilter): Promise<Article[]> {
   const supabase = createClient();
@@ -1071,6 +1082,14 @@ export async function getArticles(filter?: ArticleFilter): Promise<Article[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let articles = (data ?? []).map((row: Record<string, any>) => mapDbArticle(row));
 
+  if (filter?.q) {
+    const q = filter.q.toLowerCase();
+    articles = articles.filter((a: Article) =>
+      a.title.toLowerCase().includes(q) ||
+      (a.company_name_text ?? "").toLowerCase().includes(q) ||
+      (a.subtitle ?? "").toLowerCase().includes(q)
+    );
+  }
   if (filter?.sort === "popular") {
     articles = articles.sort((a: Article, b: Article) => b.read_min - a.read_min);
   }
