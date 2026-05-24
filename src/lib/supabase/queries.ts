@@ -250,6 +250,16 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     fit_negatives: Array.isArray(row.fit_negatives) && (row.fit_negatives as string[]).length > 0
       ? (row.fit_negatives as string[])
       : null,
+    // Why join — separate from description/about
+    why_join: (() => {
+      const wj = row.why_join as string | null | undefined;
+      const desc = row.description as string | null | undefined;
+      // Only show why_join if it exists AND is different from description
+      if (typeof wj === "string" && wj.trim() && wj.trim() !== (desc ?? "").trim()) {
+        return wj.trim();
+      }
+      return null;
+    })(),
   };
 }
 

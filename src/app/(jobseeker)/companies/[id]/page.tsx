@@ -636,6 +636,45 @@ function AboutSection({
           {detail.about}
         </p>
       )}
+
+      {/* Why Join — only if distinct from about/description */}
+      {detail.why_join && (
+        <div
+          style={{
+            marginTop: 24,
+            padding: "20px 24px 20px 28px",
+            borderLeft: "4px solid var(--royal)",
+            background: "linear-gradient(135deg, #f8faff 0%, #eff3fc 100%)",
+            borderRadius: "0 12px 12px 0",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--royal)",
+              opacity: 0.7,
+              marginBottom: 10,
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            この会社に入社する理由
+          </div>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 14,
+              lineHeight: 1.9,
+              color: "var(--ink-soft)",
+              fontFamily: "var(--font-noto-serif)",
+            }}
+          >
+            {detail.why_join}
+          </p>
+        </div>
+      )}
       </div>
     </section>
   );
@@ -2197,6 +2236,22 @@ function JobsSection({
                 </span>
               )}
               <JobCatBadge catName={catName} catId={catId} />
+              {detail.work_location.length > 0 && (() => {
+                const wl = detail.work_location[0].label;
+                const isRemote = wl.includes("リモート") || wl.includes("在宅") || wl.includes("テレワーク") || wl.includes("フルリモート");
+                return (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 3,
+                    fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                    background: isRemote ? "#f0fdf4" : "var(--bg-tint)",
+                    color: isRemote ? "var(--success)" : "var(--ink-mute)",
+                    border: `1px solid ${isRemote ? "#A7F3D0" : "var(--line)"}`,
+                    fontWeight: 500,
+                  }}>
+                    {isRemote ? "🏠" : "🏢"} {wl}
+                  </span>
+                );
+              })()}
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
@@ -2653,13 +2708,16 @@ const NUMBER_ITEMS: {
   label: string;
   key: keyof CompanyNumbers;
   format: (v: string | number) => string;
+  icon: string;
+  accentColor: string;
+  accentBg: string;
 }[] = [
-  { label: "平均年収", key: "avgSalary", format: (v) => String(v) },
-  { label: "平均年齢", key: "avgAge", format: (v) => `${v} 歳` },
-  { label: "有給取得率", key: "paidLeaveRate", format: (v) => `${v}%` },
-  { label: "月間残業時間", key: "avgOvertimeHours", format: (v) => String(v) },
-  { label: "男女比", key: "genderRatio", format: (v) => String(v) },
-  { label: "累計調達額", key: "fundingTotal", format: (v) => String(v) },
+  { label: "平均年収", key: "avgSalary", format: (v) => String(v), icon: "💰", accentColor: "#059669", accentBg: "#ECFDF5" },
+  { label: "平均年齢", key: "avgAge", format: (v) => `${v} 歳`, icon: "👤", accentColor: "var(--royal)", accentBg: "var(--royal-50)" },
+  { label: "有給取得率", key: "paidLeaveRate", format: (v) => `${v}%`, icon: "🌴", accentColor: "#7C3AED", accentBg: "#F3E8FF" },
+  { label: "月間残業時間", key: "avgOvertimeHours", format: (v) => String(v), icon: "🕐", accentColor: "#D97706", accentBg: "#FEF3C7" },
+  { label: "男女比", key: "genderRatio", format: (v) => String(v), icon: "👥", accentColor: "#DB2777", accentBg: "#FCE7F3" },
+  { label: "累計調達額", key: "fundingTotal", format: (v) => String(v), icon: "📈", accentColor: "#0891B2", accentBg: "#ECFEFF" },
 ];
 
 function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
@@ -2722,7 +2780,7 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
             }}
             className="sm:grid-cols-3 grid-cols-2"
           >
-            {NUMBER_ITEMS.map(({ label, key, format }) => {
+            {NUMBER_ITEMS.map(({ label, key, format, icon, accentColor, accentBg }) => {
               const raw = numbers[key];
               const hasValue = raw !== null && raw !== undefined && String(raw).trim() !== "";
               const display = hasValue ? format(raw as string | number) : "—";
@@ -2731,37 +2789,49 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
                 <div
                   key={key}
                   style={{
-                    background: hasValue ? "var(--bg-tint)" : "#fafafa",
+                    background: hasValue ? "#fff" : "#fafafa",
                     border: `1px solid ${hasValue ? "var(--line)" : "#efefef"}`,
-                    borderRadius: 10,
+                    borderRadius: 12,
                     padding: "14px 16px 16px",
-                    minHeight: 80,
+                    minHeight: 88,
                     display: "flex",
                     flexDirection: "column",
-                    gap: 6,
+                    gap: 8,
+                    boxShadow: hasValue ? "0 1px 4px rgba(0,0,0,0.04)" : "none",
                   }}
                 >
-                  {/* Label */}
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontFamily: "Inter, sans-serif",
-                      fontWeight: 600,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      color: hasValue ? "var(--ink-soft)" : "var(--ink-mute)",
-                    }}
-                  >
-                    {label}
-                  </span>
+                  {/* Icon + Label row */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {hasValue && (
+                      <span style={{
+                        width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+                        background: accentBg, display: "flex",
+                        alignItems: "center", justifyContent: "center", fontSize: 13,
+                      }}>
+                        {icon}
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontFamily: "Inter, sans-serif",
+                        fontWeight: 600,
+                        letterSpacing: "0.04em",
+                        color: hasValue ? "var(--ink-soft)" : "var(--ink-mute)",
+                      }}
+                    >
+                      {label}
+                    </span>
+                  </div>
                   {/* Value */}
                   <span
                     style={{
-                      fontSize: hasValue ? 18 : 14,
-                      fontWeight: hasValue ? 700 : 400,
+                      fontSize: hasValue ? 20 : 14,
+                      fontWeight: hasValue ? 800 : 400,
                       fontFamily: hasValue ? "Inter, 'Noto Sans JP', sans-serif" : "'Noto Sans JP', sans-serif",
-                      color: hasValue ? "var(--ink)" : "var(--ink-mute)",
-                      lineHeight: 1.25,
+                      color: hasValue ? accentColor : "var(--ink-mute)",
+                      lineHeight: 1.2,
+                      letterSpacing: hasValue ? "-0.01em" : 0,
                     }}
                   >
                     {display}
@@ -3041,6 +3111,76 @@ function Sidebar({
           </div>
         );
       })()}
+
+      {/* 申し込みの流れ — casual meeting flow steps */}
+      {company.accepting_casual_meetings && (
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid var(--line)",
+            borderRadius: 16,
+            padding: "18px 20px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--ink-mute)",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              marginBottom: 16,
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            申し込みの流れ
+          </div>
+          {[
+            { n: "1", label: "フォームで申し込む", sub: "1分で完了" },
+            { n: "2", label: "採用担当者から連絡" },
+            { n: "3", label: "日程を調整" },
+            { n: "4", label: "カジュアル面談（約30分）", sub: "無料・秘密厳守" },
+          ].map(({ n, label, sub }, i, arr) => (
+            <div key={n} style={{ display: "flex", gap: 12, position: "relative" }}>
+              {/* Connector line */}
+              {i < arr.length - 1 && (
+                <div style={{
+                  position: "absolute", left: 10, top: 22, bottom: -8, width: 1,
+                  background: "var(--line-soft)",
+                }} />
+              )}
+              {/* Step number circle */}
+              <div style={{
+                width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                background: i === 0 ? "var(--warm)" : "var(--bg-tint)",
+                border: i === 0 ? "none" : "1px solid var(--line)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10, fontWeight: 700,
+                color: i === 0 ? "#fff" : "var(--ink-mute)",
+                fontFamily: "Inter, sans-serif",
+                boxShadow: i === 0 ? "0 2px 8px rgba(245,158,11,0.3)" : "none",
+              }}>
+                {n}
+              </div>
+              {/* Label */}
+              <div style={{ paddingBottom: i < arr.length - 1 ? 18 : 0 }}>
+                <div style={{
+                  fontSize: 13, fontWeight: i === 0 ? 600 : 500,
+                  color: i === 0 ? "var(--ink)" : "var(--ink-soft)",
+                  lineHeight: 1.35,
+                }}>
+                  {label}
+                </div>
+                {sub && (
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+                    {sub}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Company Info */}
       <div

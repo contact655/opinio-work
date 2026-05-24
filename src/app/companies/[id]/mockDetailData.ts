@@ -95,6 +95,8 @@ export type CompanyDetail = {
   // Fit section
   fit_positives: string[] | null;
   fit_negatives: string[] | null;
+  // Why join (separate from about/description)
+  why_join: string | null;
 };
 
 // ─── Full data ─────────────────────────────────────────────────────────────
@@ -223,6 +225,7 @@ const LAYERX: CompanyDetail = {
     "大企業のように役割分担が明確で、決まったことをやり遂げる環境を求める人",
     "まだスタートアップの不確実性や変化に慣れておらず、安定した業務フローを好む人",
   ],
+  why_join: null,
 };
 
 const SMARTHR: CompanyDetail = {
@@ -350,6 +353,7 @@ const SMARTHR: CompanyDetail = {
     "細かい指示やフォローを必要とし、自走するよりも管理された環境を好む人",
     "スタートアップの変化スピードや、制度整備の過渡期をストレスに感じやすい人",
   ],
+  why_join: null,
 };
 
 // ─── Template generator (for the other 10 companies) ─────────────────────────
@@ -473,6 +477,7 @@ function makeDetail(c: Company, overrides: Partial<CompanyDetail> = {}): Company
     // Fit section
     fit_positives: null,
     fit_negatives: null,
+    why_join: null,
   };
 
   return { ...base, ...overrides };
