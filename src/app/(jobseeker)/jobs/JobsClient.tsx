@@ -120,8 +120,10 @@ function JobCard({
     <div style={{ position: "relative" }}>
       {/* ブックマークボタン（カード右上に絶対配置） */}
       <button
+        type="button"
         onClick={handleBookmark}
         aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
+        aria-pressed={bookmarked}
         style={{
           position: "absolute", top: 10, right: 10, zIndex: 10,
           width: 32, height: 32, borderRadius: "50%",

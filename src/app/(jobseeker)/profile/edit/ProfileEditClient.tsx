@@ -229,13 +229,13 @@ function ProfilePhotoUploader({
     <div>
       {/* Upload error */}
       {uploadError && (
-        <div style={{
+        <div role="alert" aria-live="polite" style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "10px 14px", marginBottom: 14, borderRadius: 8,
           background: "var(--error-soft)", border: "1px solid #FCA5A5",
           fontSize: 13, color: "var(--error)", fontWeight: 600,
         }}>
-          <span>⚠ {uploadError}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{uploadError}</span>
           <button type="button" onClick={() => setUploadError(null)} aria-label="エラーを閉じる" style={{
             background: "none", border: "none", cursor: "pointer",
             color: "var(--error)", fontSize: 16, padding: "0 4px",
@@ -3276,8 +3276,8 @@ export default function ProfileEditClient({
                 </FormGroup>
               </div>
               {prefSalaryMin && prefSalaryMax && parseInt(prefSalaryMin) > parseInt(prefSalaryMax) && (
-                <div style={{ fontSize: 11, color: "var(--error)", marginTop: 6 }}>
-                  ⚠ 下限が上限を超えています
+                <div role="alert" style={{ fontSize: 11, color: "var(--error)", marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>下限が上限を超えています
                 </div>
               )}
             </FormSection>
@@ -3535,8 +3535,8 @@ export default function ProfileEditClient({
                 borderRadius: 14, padding: "20px 24px", marginBottom: 24,
               }}
             >
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--error)", marginBottom: 6 }}>
-                ⚠ アカウント削除
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--error)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>アカウント削除
               </div>
               <div style={{ fontSize: 12, color: "#991B1B", marginBottom: 14, lineHeight: 1.7 }}>
                 アカウントを削除すると、プロフィール・職歴・記事へのコメントなど、すべてのデータが完全に削除されます。

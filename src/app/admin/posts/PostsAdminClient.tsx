@@ -232,8 +232,8 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
     <div className="p-8">
       {/* ── エラーバナー ── */}
       {errorMessage && (
-        <div className="flex items-center justify-between p-3 mb-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 font-semibold">
-          <span>⚠ {errorMessage}</span>
+        <div role="alert" aria-live="polite" className="flex items-center justify-between p-3 mb-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 font-semibold">
+          <span className="flex items-center gap-1.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{errorMessage}</span>
           <button type="button" onClick={() => setErrorMessage(null)} aria-label="エラーを閉じる" className="ml-2 text-red-500 hover:text-red-700">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>

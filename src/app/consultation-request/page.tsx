@@ -157,14 +157,19 @@ function ConsultationRequestForm() {
         {/* Message */}
         <div>
           <label
+            htmlFor="cr-message"
             style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 8 }}
           >
-            相談したい内容 <span style={{ color: "#ef4444" }}>*</span>
+            相談したい内容 <span style={{ color: "#ef4444" }} aria-hidden="true">*</span>
           </label>
           <textarea
+            id="cr-message"
             value={message}
             onChange={(e) => setMessage(e.target.value.slice(0, 500))}
             placeholder="例：SIer営業5年目です。SaaSに転職したいのですが、未経験でも可能か、どのように進めればいいか相談したいです。"
+            required
+            aria-required="true"
+            aria-describedby="cr-message-count"
             rows={5}
             style={{
               width: "100%",
@@ -185,23 +190,25 @@ function ConsultationRequestForm() {
               e.currentTarget.style.borderColor = "#e5e7eb";
             }}
           />
-          <div style={{ textAlign: "right", fontSize: 12, color: "#9ca3af", marginTop: 4 }}>
+          <div id="cr-message-count" style={{ textAlign: "right", fontSize: 12, color: "#9ca3af", marginTop: 4 }} aria-live="polite" aria-atomic="true">
             {message.length} / 500字
           </div>
         </div>
 
         {/* Preferred time */}
         <div>
-          <label
-            style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 8 }}
+          <p
+            id="cr-time-label"
+            style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 8, margin: "0 0 8px" }}
           >
             面談の希望時間帯
-          </label>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          </p>
+          <div role="group" aria-labelledby="cr-time-label" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {TIME_OPTIONS.map((time) => (
               <button
                 key={time}
                 type="button"
+                aria-pressed={preferredTime === time}
                 onClick={() => setPreferredTime(preferredTime === time ? "" : time)}
                 style={{
                   padding: "8px 16px",
@@ -241,7 +248,9 @@ function ConsultationRequestForm() {
 
         {/* Error */}
         {error && (
-          <p style={{ fontSize: 13, color: "#dc2626" }}>{error}</p>
+          <div role="alert" aria-live="polite" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#dc2626", fontWeight: 600 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{error}
+          </div>
         )}
 
         {/* Submit */}
