@@ -399,6 +399,7 @@ export default function ConversationDetailPage() {
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="メッセージを入力… (Cmd+Enter で送信)"
+                  aria-label="メッセージを入力"
                   rows={2}
                   className="flex-1 resize-none border border-card-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   disabled={sending}

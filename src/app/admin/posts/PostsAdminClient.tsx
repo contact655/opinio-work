@@ -479,6 +479,7 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
         <select
           value={filterCompanyId}
           onChange={(e) => setFilterCompanyId(e.target.value)}
+          aria-label="企業で絞り込み"
           className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:border-primary max-w-xs"
         >
           <option value="all">全企業 ({posts.length} 件)</option>

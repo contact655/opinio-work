@@ -753,12 +753,14 @@ function TextareaField({
   placeholder,
   softLimit = 200,
   rows = 5,
+  ariaLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   softLimit?: number;
   rows?: number;
+  ariaLabel?: string;
 }) {
   const len    = value.length;
   const isOver = len > softLimit;
@@ -769,6 +771,7 @@ function TextareaField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={ariaLabel}
         rows={rows}
         style={{
           ...inputStyle({ resize: "vertical", lineHeight: 1.8, minHeight: rows * 24 }),
@@ -1156,6 +1159,7 @@ function EducationForm({
             value={draft.enrolledYear}
             onChange={(e) => set("enrolledYear", e.target.value)}
             disabled={isSaving}
+            aria-label="入学年"
             style={{ ...ef(), ...selectExtra, flex: "1 1 110px", width: "auto", cursor: isSaving ? "default" : "pointer" }}
           >
             <option value="">年</option>
@@ -1165,6 +1169,7 @@ function EducationForm({
             value={draft.enrolledMonth}
             onChange={(e) => set("enrolledMonth", e.target.value)}
             disabled={isSaving}
+            aria-label="入学月"
             style={{ ...ef(), ...selectExtra, flex: "0 0 72px", width: "auto", cursor: isSaving ? "default" : "pointer" }}
           >
             <option value="">月</option>
@@ -1194,6 +1199,7 @@ function EducationForm({
             value={draft.graduatedYear}
             onChange={(e) => set("graduatedYear", e.target.value)}
             disabled={isSaving || draft.isCurrent}
+            aria-label="卒業年"
             style={{ ...ef(), ...selectExtra, flex: "1 1 110px", width: "auto", cursor: (isSaving || draft.isCurrent) ? "default" : "pointer" }}
           >
             <option value="">年</option>
@@ -1203,6 +1209,7 @@ function EducationForm({
             value={draft.graduatedMonth}
             onChange={(e) => set("graduatedMonth", e.target.value)}
             disabled={isSaving || draft.isCurrent}
+            aria-label="卒業月"
             style={{ ...ef(), ...selectExtra, flex: "0 0 72px", width: "auto", cursor: (isSaving || draft.isCurrent) ? "default" : "pointer" }}
           >
             <option value="">月</option>
@@ -1954,6 +1961,7 @@ function AchievementForm({
         <label style={ael()}>詳細（任意）</label>
         <textarea value={draft.description} onChange={(e) => set("description", e.target.value)}
           placeholder="達成背景や取り組み内容など" maxLength={500} rows={3} disabled={isSaving}
+          aria-label="実績の詳細"
           style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
       </div>
       <AchieveFormActions isSaving={isSaving} justSaved={justSaved} canSave={canSave} onSave={onSave} onCancel={onCancel} />
@@ -2149,6 +2157,7 @@ function AwardForm({
         <label style={ael()}>詳細（任意）</label>
         <textarea value={draft.description} onChange={(e) => set("description", e.target.value)}
           placeholder="受賞の背景や内容など" maxLength={500} rows={3} disabled={isSaving}
+          aria-label="受賞の詳細"
           style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
       </div>
       <AchieveFormActions isSaving={isSaving} justSaved={justSaved} canSave={canSave} onSave={onSave} onCancel={onCancel} />
@@ -2353,6 +2362,7 @@ function MediaAppearanceForm({
         <label style={ael()}>詳細（任意）</label>
         <textarea value={draft.description} onChange={(e) => set("description", e.target.value)}
           placeholder="掲載の背景や内容など" maxLength={500} rows={3} disabled={isSaving}
+          aria-label="メディア掲載の詳細"
           style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
       </div>
       <AchieveFormActions isSaving={isSaving} justSaved={justSaved} canSave={canSave} onSave={onSave} onCancel={onCancel} />
@@ -3054,6 +3064,7 @@ export default function ProfileEditClient({
                 placeholder="例：リクルートで4年間営業を経験後、SaaS 企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"
                 softLimit={200}
                 rows={5}
+                ariaLabel="自己紹介"
               />
             </FormSection>
 

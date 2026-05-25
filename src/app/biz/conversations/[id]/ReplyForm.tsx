@@ -118,6 +118,7 @@ export function ReplyForm({ conversationId }: Props) {
             onKeyDown={handleKeyDown}
             disabled={submitting}
             placeholder="メッセージを入力… (⌘+Enter で送信)"
+            aria-label="返信メッセージ"
             rows={2}
             style={{
               width: "100%",

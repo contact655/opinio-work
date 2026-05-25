@@ -104,6 +104,7 @@ export function RequirementsTagInput({
       <input
         ref={inputRef}
         type="text"
+        aria-label={placeholder}
         onKeyDown={handleKeyDown}
         placeholder={tags.length === 0 ? placeholder : ""}
         style={{

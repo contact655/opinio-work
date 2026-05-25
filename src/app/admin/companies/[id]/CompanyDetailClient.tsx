@@ -882,6 +882,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
               <select
                 value={formData.status}
                 onChange={(e) => update('status', e.target.value)}
+                aria-label="審査ステータス"
                 className={inputCls}
               >
                 <option value="pending">pending（審査中）</option>
