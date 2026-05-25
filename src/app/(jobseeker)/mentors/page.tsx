@@ -33,11 +33,12 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
       style={{
         display: "flex", flexDirection: "column",
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         padding: "22px 22px 20px",
-        boxShadow: "0 2px 8px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)",
-        transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 6px 20px rgba(15,23,42,0.07)",
+        transition: "box-shadow 0.24s cubic-bezier(0.22,1,0.36,1), transform 0.24s cubic-bezier(0.22,1,0.36,1)",
+        willChange: "transform",
       }}
       className="mentor-card"
     >
@@ -102,14 +103,14 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
       {/* Catchphrase */}
       {mentor.catchphrase && (
         <div style={{
-          fontSize: 12.5,
-          color: "var(--ink-soft)",
-          lineHeight: 1.65,
+          fontSize: 13,
+          color: "#334155",
+          lineHeight: 1.7,
           fontStyle: "italic",
-          padding: "8px 10px",
-          background: "var(--bg-tint)",
-          borderLeft: "3px solid var(--royal-100)",
-          borderRadius: "0 6px 6px 0",
+          padding: "10px 14px",
+          background: "linear-gradient(135deg, var(--royal-50) 0%, #f0f4ff 100%)",
+          borderLeft: "3px solid var(--royal)",
+          borderRadius: "0 8px 8px 0",
           marginBottom: 12,
           overflow: "hidden",
           display: "-webkit-box",
@@ -231,49 +232,34 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
 
   return (
     <>
-      {/* Breadcrumb */}
-      <nav aria-label="パンくずリスト" style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-          <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
-            <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
-            <span>/</span>
-            <span aria-current="page" style={{ color: "var(--ink-soft)" }}>先輩に相談</span>
+      {/* ── Gradient hero header ── */}
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1e3a8a 100%)",
+        padding: "44px 0 40px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Background decorations */}
+        <div style={{ position: "absolute", right: -100, top: -100, width: 480, height: 480, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -60, bottom: -80, width: 320, height: 320, borderRadius: "50%", background: "rgba(255,255,255,0.025)", pointerEvents: "none" }} />
+
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "0 20px", textAlign: "center", position: "relative" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.65)", marginBottom: 12, textTransform: "uppercase" as const }}>
+            MENTORS
           </div>
-        </div>
-      </nav>
 
-      {/* ヒーロー */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "48px 0 40px" }}>
-        <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto", textAlign: "center" }} className="px-5">
-
-          <h1 style={{
-            fontFamily: "var(--font-noto-serif)",
-            fontSize: "clamp(26px, 4vw, 36px)", fontWeight: 500,
-            color: "var(--ink)", letterSpacing: "0.04em",
-            marginBottom: 16, lineHeight: 1.4,
-          }}>
-            先輩に、相談する。
-          </h1>
-
-          <p style={{
-            fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8,
-            marginBottom: hasMentors ? 24 : 16,
-          }}>
-            30分の無料相談 · OPINIO 編集部が最適な先輩をご紹介します
-          </p>
-
-          {/* アバタープレビュー（5 名以上いる場合のみ表示） */}
+          {/* Avatar stack */}
           {hasEnoughMentorsForPreview && (
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 0, marginBottom: 20 }}>
               {allMentors.slice(0, 8).map((m, i) => (
                 <div key={m.id} style={{
-                  width: 40, height: 40, borderRadius: "50%",
+                  width: 42, height: 42, borderRadius: "50%",
                   background: m.gradient,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontSize: 13, fontWeight: 700,
-                  border: "2.5px solid #fff",
-                  marginLeft: i === 0 ? 0 : -10,
-                  boxShadow: "0 0 0 2px var(--royal), 0 0 0 4px rgba(0,35,102,0.1)",
+                  color: "#fff", fontSize: 14, fontWeight: 700,
+                  border: "2.5px solid rgba(255,255,255,0.9)",
+                  marginLeft: i === 0 ? 0 : -12,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
                   position: "relative", zIndex: 10 - i,
                 }}>
                   {m.initial}
@@ -281,11 +267,11 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
               ))}
               {allMentors.length > 8 && (
                 <div style={{
-                  width: 40, height: 40, borderRadius: "50%",
-                  background: "var(--bg-tint)", border: "2px solid var(--line)",
+                  width: 42, height: 42, borderRadius: "50%",
+                  background: "rgba(255,255,255,0.15)", border: "2.5px solid rgba(255,255,255,0.4)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
-                  marginLeft: -10, position: "relative", zIndex: 1,
+                  fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.9)",
+                  marginLeft: -12, position: "relative", zIndex: 1,
                 }}>
                   +{allMentors.length - 8}
                 </div>
@@ -293,15 +279,27 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
             </div>
           )}
 
+          <h1 style={{
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: "clamp(24px, 3.5vw, 36px)", fontWeight: 700,
+            color: "#fff", margin: "0 0 12px", lineHeight: 1.4,
+          }}>
+            先輩に、相談する。
+          </h1>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.8, marginBottom: 24 }}>
+            30分の無料相談 · OPINIO 編集部が最適な先輩をご紹介します
+          </p>
+
+          {/* Trust chips */}
           <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
             {["編集部が個別に声がけした厳選メンター", "申請フォームなし", "完全無料"].map((label) => (
               <span key={label} style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
-                fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
-                padding: "5px 12px", borderRadius: 100,
-                background: "var(--bg-tint)", border: "1px solid var(--line)",
+                fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.88)",
+                padding: "5px 13px", borderRadius: 999,
+                background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)",
               }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
                 {label}
@@ -333,7 +331,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
             </Suspense>
 
             {/* グリッド */}
-            <main style={{ background: "var(--bg-tint)" }}>
+            <main style={{ background: "#f0f4f8" }}>
               <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
                 {allMentors.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "64px 24px", color: "var(--ink-mute)" }}>
@@ -367,49 +365,65 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
       )}
 
       {/* ── 企業・求人への誘導 CTA ── */}
-      <div style={{ background: "#fff", borderTop: "1px solid var(--line)", padding: "48px 24px" }}>
+      <div style={{ background: "#f0f4f8", padding: "48px 24px 56px" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", color: "var(--ink-mute)", textTransform: "uppercase" as const, marginBottom: 8 }}>
+              EXPLORE MORE
+            </p>
+            <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(16px,2vw,20px)", fontWeight: 700, color: "var(--ink)", margin: 0 }}>
+              相談テーマを見つけるために
+            </p>
+          </div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <div style={{
-              flex: 1, minWidth: 260,
-              background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
-              borderRadius: 14, padding: "24px 28px",
-              display: "flex", flexDirection: "column", gap: 12,
-            }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase" }}>
-                COMPANIES
+            <Link href="/companies" style={{
+              flex: 1, minWidth: 260, textDecoration: "none",
+              background: "#fff",
+              borderRadius: 16, padding: "28px 32px",
+              display: "flex", flexDirection: "column", gap: 10,
+              boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 6px 20px rgba(15,23,42,0.07)",
+              transition: "box-shadow 0.2s, transform 0.2s",
+            }} className="cta-card">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", textTransform: "uppercase" as const }}>
+                  COMPANIES
+                </div>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
               </div>
-              <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 500, color: "var(--ink)", lineHeight: 1.5, margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: 18, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5, margin: 0 }}>
                 先輩が働く企業を<br />詳しく見てみよう
               </p>
-              <Link href="/companies" style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                fontSize: 13, fontWeight: 600, color: "var(--royal)",
-                textDecoration: "none",
-              }}>
-                企業一覧を見る →
-              </Link>
-            </div>
-            <div style={{
-              flex: 1, minWidth: 260,
-              background: "var(--line-soft)", border: "1.5px solid var(--line)",
-              borderRadius: 14, padding: "24px 28px",
-              display: "flex", flexDirection: "column", gap: 12,
-            }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--ink-mute)", textTransform: "uppercase" }}>
-                JOBS
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, color: "var(--royal)" }}>
+                企業一覧を見る
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M9 18l6-6-6-6"/></svg>
+              </span>
+            </Link>
+            <Link href="/jobs" style={{
+              flex: 1, minWidth: 260, textDecoration: "none",
+              background: "#fff",
+              borderRadius: 16, padding: "28px 32px",
+              display: "flex", flexDirection: "column", gap: 10,
+              boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 6px 20px rgba(15,23,42,0.07)",
+              transition: "box-shadow 0.2s, transform 0.2s",
+            }} className="cta-card">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "var(--accent)", textTransform: "uppercase" as const }}>
+                  JOBS
+                </div>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8l-2 4h12z"/></svg>
+                </div>
               </div>
-              <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 500, color: "var(--ink)", lineHeight: 1.5, margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: 18, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5, margin: 0 }}>
                 気になる求人を見つけて<br />相談テーマを絞り込もう
               </p>
-              <Link href="/jobs" style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                fontSize: 13, fontWeight: 600, color: "var(--ink-soft)",
-                textDecoration: "none",
-              }}>
-                求人一覧を見る →
-              </Link>
-            </div>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, color: "var(--accent)" }}>
+                求人一覧を見る
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M9 18l6-6-6-6"/></svg>
+              </span>
+            </Link>
           </div>
         </div>
       </div>
@@ -421,13 +435,21 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
         }
         .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
         .mentor-card:hover {
-          border-color: var(--royal-100) !important;
-          box-shadow: 0 6px 16px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.08) !important;
+          box-shadow: 0 12px 36px rgba(0,35,102,0.18), 0 2px 8px rgba(0,35,102,0.08) !important;
+          transform: translateY(-5px) !important;
+        }
+        .mentor-card:active {
+          box-shadow: 0 4px 12px rgba(15,23,42,0.10) !important;
           transform: translateY(-2px) !important;
+          transition-duration: 0.06s !important;
         }
         .mentor-cta:hover {
           opacity: 0.88 !important;
           transform: translateY(-1px) !important;
+        }
+        .cta-card:hover {
+          box-shadow: 0 12px 36px rgba(0,35,102,0.14), 0 2px 8px rgba(0,35,102,0.07) !important;
+          transform: translateY(-3px) !important;
         }
         /* carousel-arrow は GenreCarousel の CSS を流用 */
         .carousel-arrow {
