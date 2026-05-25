@@ -228,6 +228,7 @@ function ReadyState({ token, companyName }: { token: string; companyName: string
       )}
 
       <button
+        type="button"
         onClick={handleAccept}
         disabled={loading}
         style={{
@@ -284,6 +285,7 @@ function MismatchState({
       </p>
 
       <button
+        type="button"
         onClick={handleSignOut}
         disabled={loading}
         style={{

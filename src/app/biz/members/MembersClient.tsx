@@ -60,6 +60,7 @@ function DropdownMenu({
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
         style={{
           width: 28,
@@ -95,6 +96,7 @@ function DropdownMenu({
           {member.is_active ? (
             <>
               <button
+                type="button"
                 onClick={() => {
                   setOpen(false);
                   onEditProfile({ id: member.id, role_title: member.role_title, department: member.department });
@@ -116,6 +118,7 @@ function DropdownMenu({
                 役職・部署を編集
               </button>
               <button
+                type="button"
                 disabled={isSelf}
                 onClick={() => {
                   setOpen(false);
@@ -139,6 +142,7 @@ function DropdownMenu({
                 {isSelf && <span style={{ fontSize: 10, marginLeft: 6, color: "var(--ink-mute)" }}>（自分は変更不可）</span>}
               </button>
               <button
+                type="button"
                 disabled={isSelf}
                 onClick={() => {
                   setOpen(false);
@@ -163,6 +167,7 @@ function DropdownMenu({
             </>
           ) : (
             <button
+              type="button"
               onClick={() => {
                 setOpen(false);
                 onAction(member.id, "reactivate");
@@ -290,6 +295,7 @@ function ConfirmDialog({
 
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button
+            type="button"
             onClick={onCancel}
             disabled={isSubmitting}
             style={{
@@ -307,6 +313,7 @@ function ConfirmDialog({
             キャンセル
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={isSubmitting}
             style={{
@@ -462,6 +469,7 @@ function EditProfileDialog({
 
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button
+            type="button"
             onClick={onCancel}
             disabled={isSubmitting}
             style={{
@@ -479,6 +487,7 @@ function EditProfileDialog({
             キャンセル
           </button>
           <button
+            type="button"
             onClick={() => onSubmit(target.id, roleTitle, department)}
             disabled={isSubmitting}
             style={{
@@ -663,6 +672,7 @@ function AddMemberDialog({
 
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button
+            type="button"
             onClick={onCancel}
             disabled={isSubmitting}
             style={{
@@ -680,6 +690,7 @@ function AddMemberDialog({
             キャンセル
           </button>
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || !email.trim()}
             style={{
@@ -873,6 +884,7 @@ function PendingInvitesSection({
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   {!isExpired && (
                     <button
+                      type="button"
                       onClick={() => handleCopy(invite)}
                       title="招待 URL をコピー"
                       style={{
@@ -922,6 +934,7 @@ function PendingInvitesSection({
                         キャンセルしますか？
                       </span>
                       <button
+                        type="button"
                         onClick={() => handleCancel(invite)}
                         disabled={isCancelling}
                         style={{
@@ -933,6 +946,7 @@ function PendingInvitesSection({
                         はい
                       </button>
                       <button
+                        type="button"
                         onClick={() => setConfirmingId(null)}
                         style={{
                           padding: "3px 9px", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
@@ -946,6 +960,7 @@ function PendingInvitesSection({
                     </div>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => setConfirmingId(invite.id)}
                       disabled={isCancelling}
                       style={{
@@ -1164,6 +1179,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         </div>
         {isAdmin && (
         <button
+          type="button"
           onClick={() => { setAddError(null); setShowAddDialog(true); }}
           style={{
             display: "inline-flex",
@@ -1260,6 +1276,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         />
         {searchQuery && (
           <button
+            type="button"
             onClick={() => setSearchQuery("")}
             style={{
               position: "absolute",
@@ -1300,6 +1317,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           return (
             <button
               key={tab}
+              type="button"
               role="tab"
               aria-selected={isSelected}
               onClick={() => setActiveTab(tab)}
@@ -1415,6 +1433,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                     <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{member.email}</span>
                     <button
+                      type="button"
                       onClick={() => handleCopyEmail(member.email)}
                       title="メールアドレスをコピー"
                       style={{

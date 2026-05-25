@@ -158,6 +158,7 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
           return (
             <button
               key={tab.key}
+              type="button"
               role="tab"
               aria-selected={isActive}
               onClick={() => setActiveStage(tab.key)}
