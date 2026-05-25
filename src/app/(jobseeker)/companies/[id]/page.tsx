@@ -202,7 +202,7 @@ function Hero({
               <p
                 style={{
                   fontSize: 14,
-                  color: "var(--ink-soft)",
+                  color: "#334155",
                   lineHeight: 1.65,
                   marginBottom: 14,
                   maxWidth: 560,
@@ -575,8 +575,8 @@ function SecTitle({
         alignItems: "center",
         gap: 10,
         fontFamily: 'var(--font-noto-serif)',
-        fontWeight: 500,
-        fontSize: 20,
+        fontWeight: 700,
+        fontSize: 22,
         color: "var(--ink)",
         letterSpacing: "0.02em",
       }}
@@ -623,9 +623,9 @@ function AboutSection({
     >
       {/* Section header with subtle gradient */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
       }}>
         <SecTitle
           icon={
@@ -689,7 +689,7 @@ function AboutSection({
       <PhotoCarousel photos={photos} />
 
       {detail.about && (
-        <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, marginTop: 20 }}>
+        <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, marginTop: 20 }}>
           {detail.about}
         </p>
       )}
@@ -724,7 +724,7 @@ function AboutSection({
               margin: 0,
               fontSize: 14,
               lineHeight: 1.9,
-              color: "var(--ink-soft)",
+              color: "var(--ink)",
               fontFamily: "var(--font-noto-serif)",
             }}
           >
@@ -857,9 +857,9 @@ function CompanyFeaturesSection({
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -986,9 +986,9 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
       }}>
         <SecTitle
           iconColor="green"
@@ -1003,7 +1003,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
         </SecTitle>
       </div>
       <div style={{ padding: "20px 32px 28px" }}>
-      <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: 20 }}>
+      <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 20 }}>
         企業へのヒアリングをもとにOPINIO編集部が整理しました。入社前のミスマッチ防止にお役立てください。
       </p>
 
@@ -1092,7 +1092,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
       </div>
 
       <p style={{
-        marginTop: 16, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7,
+        marginTop: 16, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
         borderTop: "1px solid var(--line-soft)", paddingTop: 14,
       }}>
         ※ 企業が入力した情報をもとにしています。最新情報は企業に直接ご確認ください。
@@ -1167,7 +1167,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
     fontFamily: "Inter, sans-serif",
     fontSize: 11,
     fontWeight: 700,
-    color: "var(--ink-mute)",
+    color: "var(--ink-soft)",
     marginBottom: 12,
     letterSpacing: "0.1em",
     textTransform: "uppercase",
@@ -1187,9 +1187,9 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
       }}>
         <SecTitle
           icon={
@@ -1312,9 +1312,9 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
       }}>
         <SecTitle
           iconColor="warm"
@@ -1339,7 +1339,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
               fontFamily: "Inter, sans-serif",
               fontSize: 11,
               fontWeight: 700,
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginBottom: 10,
               letterSpacing: "0.1em",
               textTransform: "uppercase",
@@ -1391,7 +1391,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
               fontFamily: "Inter, sans-serif",
               fontSize: 11,
               fontWeight: 700,
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginBottom: 10,
               letterSpacing: "0.1em",
               textTransform: "uppercase",
@@ -1485,7 +1485,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
             fontFamily: "Inter, sans-serif",
             fontSize: 11,
             fontWeight: 700,
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginBottom: 10,
             letterSpacing: "0.1em",
             textTransform: "uppercase",
@@ -1704,9 +1704,9 @@ function CompanyPostsSection({
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -1832,9 +1832,9 @@ function CurrentEmployeesSection({
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
       }}>
         <SecTitle icon={SECTION_ICON}>
           現役社員
@@ -2153,9 +2153,9 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
       }}>
         <SecTitle
           icon={
@@ -2230,7 +2230,7 @@ function JobsSection({
           marginBottom: 20,
         }}
       >
-        <div style={{ padding: "22px 32px 18px", borderBottom: "1px solid var(--line-soft)", background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)" }}>
+        <div style={{ padding: "24px 32px 20px", borderBottom: "1px solid var(--line-soft)", background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)" }}>
           <SecTitle
             icon={
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -2384,9 +2384,9 @@ function JobsSection({
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -2530,9 +2530,9 @@ function RecruitersSection({
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
       }}>
         <SecTitle
           iconColor="green"
@@ -2658,9 +2658,9 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
       }}>
         <SecTitle
           iconColor="default"
@@ -2816,9 +2816,9 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 32px 18px",
+        padding: "24px 32px 20px",
         borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
+        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
