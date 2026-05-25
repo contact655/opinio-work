@@ -2181,7 +2181,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
       </div>
       <div style={{ padding: "24px 32px 28px" }}>
       {alumni.length > 0 ? (
-        <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)]">
+        <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
           {alumni.map((emp) => (
             <AlumniCard key={emp.userId} employee={emp} />
           ))}
