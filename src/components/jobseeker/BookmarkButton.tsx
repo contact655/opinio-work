@@ -52,6 +52,7 @@ export function BookmarkButton({
   if (variant === "with-text") {
     return (
       <button
+        type="button"
         onClick={toggle}
         disabled={loading}
         style={{
@@ -83,6 +84,7 @@ export function BookmarkButton({
   // icon-only variant
   return (
     <button
+      type="button"
       onClick={toggle}
       disabled={loading}
       title={bookmarked ? "ブックマーク済み" : label}

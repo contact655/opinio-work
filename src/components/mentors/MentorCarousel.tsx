@@ -106,6 +106,7 @@ export function MentorCarousel({ mentors }: Props) {
 
       <div style={{ position: "relative" }}>
         <button
+          type="button"
           className={`carousel-arrow carousel-arrow-left${canScrollLeft ? "" : " carousel-arrow-hidden"}`}
           onClick={() => handleScroll("left")}
           aria-label="前のカードへ"
@@ -121,6 +122,7 @@ export function MentorCarousel({ mentors }: Props) {
         </div>
 
         <button
+          type="button"
           className={`carousel-arrow carousel-arrow-right${canScrollRight ? "" : " carousel-arrow-hidden"}`}
           onClick={() => handleScroll("right")}
           aria-label="次のカードへ"

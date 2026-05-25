@@ -583,7 +583,7 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
           fontSize: 13, color: "var(--error)", fontWeight: 600,
         }} role="alert">
           <span>⚠ {photoError}</span>
-          <button onClick={() => setPhotoError(null)} style={{
+          <button type="button" onClick={() => setPhotoError(null)} style={{
             background: "none", border: "none", cursor: "pointer",
             color: "var(--error)", fontSize: 16, padding: "0 4px",
           }}>×</button>

@@ -268,6 +268,7 @@ export default function Header() {
     return (
       <div className="relative" ref={profileDropdownRef}>
         <button
+          type="button"
           onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
           className="flex items-center justify-center transition-colors"
           style={{
@@ -332,6 +333,7 @@ export default function Header() {
 
               <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
               <button
+                type="button"
                 onClick={handleLogout}
                 className="flex items-center gap-2 w-full px-4 py-2.5 text-[14px] hover:bg-gray-50 transition-colors text-left"
                 style={{ color: "#374151", fontWeight: 500 }}
@@ -381,6 +383,7 @@ export default function Header() {
           マイページ
         </Link>
         <button
+          type="button"
           onClick={() => {
             setMenuOpen(false);
             handleLogout();
@@ -445,6 +448,7 @@ export default function Header() {
 
           {/* Mobile Menu Button */}
           <button
+            type="button"
             className="md:hidden p-2"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="メニュー"

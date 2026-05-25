@@ -38,6 +38,7 @@ function PillGroup({
         return (
           <button
             key={o.value}
+            type="button"
             onClick={() => onChange(isActive ? null : o.value)}
             style={{
               padding: "5px 14px",
@@ -257,7 +258,7 @@ export function CompanySearchBar({ industries, locations }: Props) {
 
           {/* クリアボタン */}
           {hasAnyFilter && (
-            <button className="csb-clear" onClick={handleClear}>
+            <button type="button" className="csb-clear" onClick={handleClear}>
               ✕ クリア
             </button>
           )}
@@ -305,6 +306,7 @@ export function CompanySearchBar({ industries, locations }: Props) {
               }}>
                 {WORK_STYLE_PILLS.find(p => p.value === currentWorkStyle)?.label}
                 <button
+                  type="button"
                   onClick={() => updateParam("workStyle", null)}
                   style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--royal)", lineHeight: 1, fontSize: 13 }}
                   aria-label="勤務形態フィルタを解除"
@@ -320,6 +322,7 @@ export function CompanySearchBar({ industries, locations }: Props) {
               }}>
                 {SIZE_PILLS.find(p => p.value === currentSize)?.label}
                 <button
+                  type="button"
                   onClick={() => updateParam("size", null)}
                   style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--royal)", lineHeight: 1, fontSize: 13 }}
                   aria-label="規模フィルタを解除"
@@ -345,6 +348,7 @@ export function CompanySearchBar({ industries, locations }: Props) {
           />
           {inputValue && (
             <button
+              type="button"
               onClick={() => { setInputValue(""); updateParam("q", null); }}
               style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", color: "#8b95a3", lineHeight: 1 }}
               aria-label="クリア"
