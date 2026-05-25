@@ -269,7 +269,7 @@ export function CompanySearchBar({ industries, locations }: Props) {
 
           {/* 勤務形態ピル */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 11.5, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>
+            <span style={{ fontSize: 11.5, color: "var(--ink-soft)", whiteSpace: "nowrap", fontWeight: 600 }}>
               勤務形態
             </span>
             <PillGroup
@@ -283,7 +283,7 @@ export function CompanySearchBar({ industries, locations }: Props) {
 
           {/* 規模ピル */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 11.5, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>
+            <span style={{ fontSize: 11.5, color: "var(--ink-soft)", whiteSpace: "nowrap", fontWeight: 600 }}>
               規模
             </span>
             <PillGroup

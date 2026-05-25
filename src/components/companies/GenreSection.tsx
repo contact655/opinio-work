@@ -20,17 +20,24 @@ export function GenreSection({ genre }: Props) {
         alignItems: 'baseline',
         marginBottom: 20,
       }}>
-        <div>
-          <span style={{ fontSize: 19, fontWeight: 700, color: 'var(--ink)' }}>
-            {genre.name}
-          </span>
-          {(genre.description || genre.total_count > 0) && (
-            <span style={{ fontSize: 13, color: 'var(--ink-soft)', fontWeight: 400, marginLeft: 12 }}>
-              {genre.description && genre.description}
-              {genre.description && genre.total_count > 0 && ' ・ '}
-              {genre.total_count > 0 && `${genre.total_count}社`}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Left accent bar */}
+          <div style={{
+            width: 4, height: 22, borderRadius: 2, flexShrink: 0,
+            background: 'linear-gradient(180deg, var(--royal) 0%, var(--accent) 100%)',
+          }} />
+          <div>
+            <span style={{ fontSize: 19, fontWeight: 700, color: 'var(--ink)' }}>
+              {genre.name}
             </span>
-          )}
+            {(genre.description || genre.total_count > 0) && (
+              <span style={{ fontSize: 13, color: 'var(--ink-soft)', fontWeight: 400, marginLeft: 10 }}>
+                {genre.description && genre.description}
+                {genre.description && genre.total_count > 0 && ' ・ '}
+                {genre.total_count > 0 && `${genre.total_count}社`}
+              </span>
+            )}
+          </div>
         </div>
         {genre.total_count > 0 && (
           <Link

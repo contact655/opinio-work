@@ -107,7 +107,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       </div>
 
       {/* ── Search bar panel ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0" }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
         <div className="max-w-7xl mx-auto px-4">
           <Suspense>
             <CompanySearchBar industries={industries} locations={locations} />

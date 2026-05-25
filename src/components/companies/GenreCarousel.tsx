@@ -100,23 +100,23 @@ export function GenreCarousel({ companies }: Props) {
           display: flex;
           flex-direction: column;
           background: #ffffff;
-          border-radius: 16px;
+          border-radius: 18px;
           overflow: hidden;
-          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.06);
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 6px 20px rgba(15, 23, 42, 0.07);
           text-decoration: none;
           color: inherit;
-          transition: box-shadow 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+          transition: box-shadow 0.24s cubic-bezier(0.22, 1, 0.36, 1), transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
           cursor: pointer;
           height: 100%;
           will-change: transform;
         }
         .genre-card:hover {
-          box-shadow: 0 20px 40px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(15, 23, 42, 0.12);
-          transform: translateY(-10px) scale(1.01);
+          box-shadow: 0 12px 36px rgba(0, 35, 102, 0.18), 0 2px 8px rgba(0, 35, 102, 0.08);
+          transform: translateY(-6px);
         }
         .genre-card:active {
-          box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10), 0 0 0 1px rgba(15, 23, 42, 0.08);
-          transform: translateY(-2px) scale(0.98);
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.10);
+          transform: translateY(-2px);
           transition-duration: 0.06s;
         }
 
