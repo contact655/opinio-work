@@ -33,7 +33,7 @@ function ArticleCard({ article }: { article: Article }) {
   const mainSubject = article.subject ?? article.subjects?.[0];
 
   return (
-    <Link href={`/articles/${article.slug}`} style={{ textDecoration: "none" }}>
+    <Link href={`/articles/${article.slug}`} prefetch={true} style={{ textDecoration: "none" }}>
       <article style={{
         display: "flex", flexDirection: "column",
         background: "#fff",

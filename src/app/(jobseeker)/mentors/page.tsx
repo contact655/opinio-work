@@ -179,6 +179,7 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
       <div style={{ marginTop: "auto", paddingTop: 14, borderTop: "1px solid var(--line-soft, #F1F5F9)" }}>
         <Link
           href={`/mentors/${mentor.id}`}
+          prefetch={true}
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
             width: "100%", padding: "10px",

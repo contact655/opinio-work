@@ -70,7 +70,7 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
   const fallbackGradient = company.logo_gradient ?? "linear-gradient(135deg, #002366, #3B5FD9)";
 
   return (
-    <Link href={`/companies/${company.id}`} style={{ textDecoration: "none", display: "block", height: "100%" }}>
+    <Link href={`/companies/${company.id}`} prefetch={true} style={{ textDecoration: "none", display: "block", height: "100%" }}>
       <article
         className="company-card"
         style={{

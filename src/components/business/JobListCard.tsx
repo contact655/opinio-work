@@ -230,6 +230,8 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
         (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 14px rgba(15,23,42,0.06)";
         // Preserve left border
         (e.currentTarget as HTMLDivElement).style.borderLeft = LEFT_BORDER[job.status];
+        // Prefetch edit page on hover for faster navigation
+        router.prefetch(`/biz/jobs/${job.id}/edit`);
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLDivElement).style.borderColor = "var(--line)";

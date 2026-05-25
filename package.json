@@ -17,6 +17,7 @@
     "@supabase/supabase-js": "^2.101.1",
     "lucide-react": "^1.14.0",
     "next": "14.2.35",
+    "nextjs-toploader": "^3.9.17",
     "open-graph-scraper": "^6.11.0",
     "pg": "^8.20.0",
     "react": "^18",

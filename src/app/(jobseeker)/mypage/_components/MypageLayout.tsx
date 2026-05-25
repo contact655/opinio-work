@@ -1,34 +1,35 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMypageMock } from "./MypageMockContext";
 
 // ─── SidebarItem ──────────────────────────────────────────────────────────────
+// href を受け取り <Link> でレンダリングすることで Next.js の自動 prefetch を利用する
 
 function SidebarItem({
-  icon, label, active, badge, onClick,
+  icon, label, active, badge, href, onClick,
 }: {
   icon: React.ReactNode; label: string; active: boolean;
-  badge?: number; onClick: () => void;
+  badge?: number;
+  /** href がある場合は <Link> でレンダリング（prefetch 有効）。ない場合は button */
+  href?: string;
+  onClick?: () => void;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      style={{
-        width: "100%", textAlign: "left",
-        padding: "10px 24px", fontSize: 13, fontWeight: active ? 600 : 500,
-        color: active ? "var(--royal)" : "var(--ink-soft)",
-        cursor: "pointer", display: "flex", alignItems: "center",
-        justifyContent: "space-between",
-        borderLeft: `3px solid ${active ? "var(--royal)" : "transparent"}`,
-        borderRight: "none", borderTop: "none", borderBottom: "none",
-        background: active ? "var(--royal-50)" : "transparent",
-        transition: "all 0.15s", fontFamily: "inherit",
-      }}
-      className="mypage-nav-item"
-    >
+  const itemStyle: React.CSSProperties = {
+    width: "100%", textAlign: "left",
+    padding: "10px 24px", fontSize: 13, fontWeight: active ? 600 : 500,
+    color: active ? "var(--royal)" : "var(--ink-soft)",
+    cursor: "pointer", display: "flex", alignItems: "center",
+    justifyContent: "space-between",
+    borderLeft: `3px solid ${active ? "var(--royal)" : "transparent"}`,
+    background: active ? "var(--royal-50)" : "transparent",
+    transition: "all 0.15s", fontFamily: "inherit",
+    textDecoration: "none",
+  };
+
+  const inner = (
+    <>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ color: active ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0 }}>
           {icon}
@@ -44,6 +45,31 @@ function SidebarItem({
           {badge}
         </span>
       )}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        aria-current={active ? "page" : undefined}
+        style={itemStyle}
+        className="mypage-nav-item"
+      >
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      style={itemStyle}
+      className="mypage-nav-item"
+    >
+      {inner}
     </button>
   );
 }
@@ -228,10 +254,10 @@ export default function MypageLayout({
             マイページ
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
-            <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      onClick={() => { router.push("/mypage"); }} />
-            <SidebarItem icon={Icons.application} label="応募管理"      active={activeKey === "applications"}   badge={applicationsBadge}   onClick={() => { router.push("/mypage/applications"); }} />
-            <SidebarItem icon={Icons.message}     label="対話"          active={activeKey === "conversations"}  badge={conversationsBadge}  onClick={() => { router.push("/mypage/conversations"); }} />
-            <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}       onClick={() => nav("bookmarks")} />
+            <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      href="/mypage" />
+            <SidebarItem icon={Icons.application} label="応募管理"      active={activeKey === "applications"}   badge={applicationsBadge}   href="/mypage/applications" />
+            <SidebarItem icon={Icons.message}     label="対話"          active={activeKey === "conversations"}  badge={conversationsBadge}  href="/mypage/conversations" />
+            <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}      onClick={() => nav("bookmarks")} />
           </nav>
 
           {isMentor && (
@@ -262,7 +288,7 @@ export default function MypageLayout({
             アカウント
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
-            <SidebarItem icon={Icons.user} label="プロフィール" active={activeKey === "profile" || activeKey === "settings"} onClick={() => { router.push("/profile/edit"); }} />
+            <SidebarItem icon={Icons.user} label="プロフィール" active={activeKey === "profile" || activeKey === "settings"} href="/profile/edit" />
           </nav>
         </aside>
 

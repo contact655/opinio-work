@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
 import { Analytics } from "@/components/analytics/Analytics";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 
 const inter = Inter({
@@ -135,6 +136,17 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} antialiased`}>
+        <NextTopLoader
+          color="var(--royal, #002366)"
+          initialPosition={0.08}
+          crawlSpeed={200}
+          height={3}
+          crawl={true}
+          showSpinner={false}
+          easing="ease"
+          speed={200}
+          shadow="0 0 10px rgba(0,35,102,0.4),0 0 5px rgba(0,35,102,0.3)"
+        />
         <a href="#main-content" className="skip-to-main">メインコンテンツへスキップ</a>
         {children}
         <Analytics />

@@ -147,6 +147,7 @@ function JobCard({
       </button>
     <Link
       href={`/jobs/${job.id}`}
+      prefetch={true}
       style={{
         display: "flex",
         flexDirection: "column",
