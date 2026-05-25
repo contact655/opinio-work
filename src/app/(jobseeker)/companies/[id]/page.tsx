@@ -615,17 +615,18 @@ function AboutSection({
       id="about"
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 20,
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header with subtle gradient */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
       }}>
         <SecTitle
           icon={
@@ -638,7 +639,7 @@ function AboutSection({
           企業について
         </SecTitle>
       </div>
-      <div style={{ padding: "24px 32px 28px" }}>
+      <div style={{ padding: "22px 28px 28px" }}>
 
       {detail.mission && (
         <div
@@ -849,17 +850,18 @@ function CompanyFeaturesSection({
       id="opinion"
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 20,
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -887,7 +889,7 @@ function CompanyFeaturesSection({
         </span>
       </div>
 
-      <div style={{ padding: "24px 32px 28px" }}>
+      <div style={{ padding: "22px 28px 28px" }}>
       <div
         style={{
           display: "grid",
@@ -978,17 +980,18 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
       id="fit"
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 20,
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
       }}>
         <SecTitle
           iconColor="green"
@@ -1112,10 +1115,11 @@ function MentorSuggestionBanner({ companyName }: { companyName: string }) {
   return (
     <div style={{
       background: "linear-gradient(135deg, var(--warm-soft) 0%, #FFFBEB 100%)",
-      border: "1.5px solid #FDE68A",
+      border: "none",
       borderRadius: 16,
       padding: "24px 28px",
-      marginBottom: 20,
+      marginBottom: 24,
+      boxShadow: "0 1px 3px rgba(245,158,11,0.08), 0 8px 28px rgba(245,158,11,0.1)",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -1179,17 +1183,18 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
       id="benefits"
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 20,
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
       }}>
         <SecTitle
           icon={
@@ -1201,7 +1206,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
           福利厚生・評価制度
         </SecTitle>
       </div>
-      <div style={{ padding: "24px 32px 28px" }}>
+      <div style={{ padding: "22px 28px 28px" }}>
 
       {/* ── 福利厚生 ── */}
       {/* Benefit keyword → emoji mapping */}
@@ -1304,17 +1309,18 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
       id="work-style"
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 20,
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
       }}>
         <SecTitle
           iconColor="warm"
@@ -1328,7 +1334,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
           働き方の選択肢
         </SecTitle>
       </div>
-      <div style={{ padding: "24px 32px 28px" }}>
+      <div style={{ padding: "22px 28px 28px" }}>
       <div
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}
         className="[grid-template-columns:1fr] sm:[grid-template-columns:1fr_1fr]"
@@ -1696,17 +1702,18 @@ function CompanyPostsSection({
       id="posts"
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 20,
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -1729,7 +1736,7 @@ function CompanyPostsSection({
           </Link>
         )}
       </div>
-      <div style={{ padding: "24px 32px 28px" }}>
+      <div style={{ padding: "22px 28px 28px" }}>
       {/* PostCard 一覧 */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {posts.map((post) => (
@@ -1824,17 +1831,18 @@ function CurrentEmployeesSection({
       id="current-employees"
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 20,
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
       }}>
         <SecTitle icon={SECTION_ICON}>
           現役社員
@@ -1851,7 +1859,7 @@ function CurrentEmployeesSection({
           </span>
         </SecTitle>
       </div>
-      <div style={{ padding: "24px 32px 28px" }}>
+      <div style={{ padding: "22px 28px 28px" }}>
       {/* ── Role composition bar (3名以上 + カテゴリあり) ───────────────────── */}
       {employees.length >= 3 && categories.length > 0 && (() => {
         const catCounts = new Map<string, number>();
@@ -2145,17 +2153,18 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
       id="alumni"
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 20,
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
       }}>
         <SecTitle
           icon={
@@ -2179,7 +2188,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
           </span>
         </SecTitle>
       </div>
-      <div style={{ padding: "24px 32px 28px" }}>
+      <div style={{ padding: "22px 28px 28px" }}>
       {alumni.length > 0 ? (
         <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
           {alumni.map((emp) => (
@@ -2224,13 +2233,14 @@ function JobsSection({
         id="jobs"
         style={{
           background: "#fff",
-          border: "1px solid var(--line)",
-          borderRadius: 16,
+          border: "none",
+          borderRadius: 18,
           overflow: "hidden",
-          marginBottom: 20,
+          marginBottom: 24,
+          boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
         }}
       >
-        <div style={{ padding: "24px 32px 20px", borderBottom: "1px solid var(--line-soft)", background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)" }}>
+        <div style={{ padding: "22px 28px 18px", borderBottom: "1px solid var(--line-soft)", background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)" }}>
           <SecTitle
             icon={
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -2242,7 +2252,7 @@ function JobsSection({
             募集中の求人
           </SecTitle>
         </div>
-        <div style={{ padding: "24px 32px 28px" }}>
+        <div style={{ padding: "22px 28px 28px" }}>
           <p style={{ fontSize: 14, color: "var(--ink-mute)", textAlign: "center", padding: "24px 0", margin: 0 }}>
             現在、公開中の求人はありません。
           </p>
@@ -2376,17 +2386,18 @@ function JobsSection({
       id="jobs"
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 20,
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -2406,7 +2417,7 @@ function JobsSection({
           すべての求人を見る →
         </Link>
       </div>
-      <div style={{ padding: "24px 32px 28px" }}>
+      <div style={{ padding: "22px 28px 28px" }}>
       {totalJobs < JOB_GROUPING_THRESHOLD ? (
         // ── 1〜3 件: カテゴリヘッダーなし、直接リスト (γ-4 修正③) ──────────
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -2522,17 +2533,18 @@ function RecruitersSection({
     <section
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 20,
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
       }}>
         <SecTitle
           iconColor="green"
@@ -2547,7 +2559,7 @@ function RecruitersSection({
           採用担当者
         </SecTitle>
       </div>
-      <div style={{ padding: "24px 32px 28px" }}>
+      <div style={{ padding: "22px 28px 28px" }}>
       <div
         style={{
           display: "grid",
@@ -2650,17 +2662,18 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
     <section
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 16,
+        border: "none",
+        borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 20,
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
       }}>
         <SecTitle
           iconColor="default"
@@ -2677,7 +2690,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
           OPINIO 取材記事
         </SecTitle>
       </div>
-      <div style={{ padding: "24px 32px 28px" }}>
+      <div style={{ padding: "22px 28px 28px" }}>
       <div
         style={{
           display: "grid",
@@ -2808,17 +2821,18 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
     <section
       style={{
         background: "#fff",
-        borderRadius: 16,
-        border: "1px solid var(--line)",
+        borderRadius: 18,
+        border: "none",
         overflow: "hidden",
         marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "24px 32px 20px",
-        borderBottom: "1px solid var(--line-soft)",
-        background: "linear-gradient(180deg, #eef2ff 0%, #fff 100%)",
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -2836,7 +2850,7 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
           企業アンケート回答
         </span>
       </div>
-      <div style={{ padding: "24px 32px 28px" }}>
+      <div style={{ padding: "22px 28px 28px" }}>
       {/* 全項目が未入力の場合は収集中メッセージ、一部でも入力済みならグリッド表示 */}
       {NUMBER_ITEMS.every(({ key }) => {
         const raw = numbers[key];
@@ -3200,16 +3214,17 @@ function Sidebar({
         <div
           style={{
             background: "#fff",
-            border: "1px solid var(--line)",
+            border: "none",
             borderRadius: 16,
             padding: "18px 20px",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
           }}
         >
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.1em",
               textTransform: "uppercase",
               marginBottom: 16,
@@ -3269,9 +3284,10 @@ function Sidebar({
       <div
         style={{
           background: "#fff",
-          border: "1px solid var(--line)",
+          border: "none",
           borderRadius: 16,
           padding: 22,
+          boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
         }}
       >
         <div
@@ -3279,7 +3295,7 @@ function Sidebar({
             fontSize: 12,
             fontWeight: 700,
             letterSpacing: "0.1em",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginBottom: 14,
             textTransform: "uppercase",
           }}
@@ -3300,7 +3316,7 @@ function Sidebar({
                 borderBottom: "1px solid var(--line-soft)",
               }}
             >
-              <span style={{ color: "var(--ink-mute)", fontSize: 11, fontWeight: 600, paddingTop: 3 }}>ジャンル</span>
+              <span style={{ color: "var(--ink-soft)", fontSize: 11, fontWeight: 600, paddingTop: 3 }}>ジャンル</span>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {company.genres.map((g) => (
                   <span
@@ -3347,7 +3363,7 @@ function Sidebar({
                   borderBottom: "1px solid var(--line-soft)",
                 }}
               >
-                <span style={{ color: "var(--ink-mute)", fontSize: 11, fontWeight: 600, paddingTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ color: "var(--ink-soft)", fontSize: 11, fontWeight: 600, paddingTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
                   {icon}{key}
                 </span>
                 {isLink ? (
