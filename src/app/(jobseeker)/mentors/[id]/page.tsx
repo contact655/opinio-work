@@ -13,6 +13,9 @@ import {
 } from "@/lib/utils/timeline";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 
+// 5分間ページキャッシュ（ISR）
+export const revalidate = 300;
+
 type Props = { params: { id: string } };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

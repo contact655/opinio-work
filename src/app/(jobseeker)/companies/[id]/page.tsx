@@ -28,6 +28,9 @@ import { JOB_GROUPING_THRESHOLD } from "@/lib/constants";
 
 type ExternalLink = Database["public"]["Tables"]["ow_company_external_links"]["Row"];
 
+// 5分間ページキャッシュ（ISR）
+export const revalidate = 300;
+
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({

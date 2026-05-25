@@ -7,6 +7,9 @@ import { GenreSection } from "@/components/companies/GenreSection";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 
+// 5分間ページキャッシュ（ISR）
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: "IT/SaaS企業を知る — OPINIO",
   description:

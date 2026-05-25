@@ -9,6 +9,9 @@ import {
 import { getArticles } from "@/lib/supabase/queries";
 import ArticleFilterBar from "./ArticleFilterBar";
 
+// 5分間ページキャッシュ（ISR）
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: "取材記事 — OPINIO",
   description:

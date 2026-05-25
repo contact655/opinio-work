@@ -6,6 +6,9 @@ import { fetchCategoriesWithMentors } from "@/lib/mentors";
 import { ConsultationSection } from "@/components/mentors/ConsultationSection";
 import MentorFilterBar from "./MentorFilterBar";
 
+// 5分間ページキャッシュ（ISR）
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: "先輩に相談する — OPINIO",
   description:

@@ -17,6 +17,9 @@ import {
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 
+// 5分間ページキャッシュ（ISR）
+export const revalidate = 300;
+
 // ─── generateMetadata ─────────────────────────────────────────────────────────
 
 export async function generateMetadata({

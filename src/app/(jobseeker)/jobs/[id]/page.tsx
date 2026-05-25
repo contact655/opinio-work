@@ -8,6 +8,9 @@ import { createClient } from "@/lib/supabase/server";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 
+// 5分間ページキャッシュ（ISR）
+export const revalidate = 300;
+
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({

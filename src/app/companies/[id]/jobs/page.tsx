@@ -4,7 +4,8 @@ import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+// 5分間ページキャッシュ（ISR）
+export const revalidate = 300;
 
 // ─── Salary formatter ────────────────────────────────────────────────────────
 function formatSalary(min: number | null, max: number | null): string | null {
