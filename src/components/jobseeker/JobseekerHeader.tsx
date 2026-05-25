@@ -214,6 +214,7 @@ export function JobseekerHeader() {
 
           {/* Search icon — desktop */}
           <button
+            type="button"
             className="hidden md:flex"
             onClick={() => setSearchOpen(true)}
             aria-label="検索"
@@ -242,7 +243,7 @@ export function JobseekerHeader() {
               user ? (
                 /* ── Logged-in: avatar button + dropdown ── */
                 <div style={{ position: "relative" }} ref={dropdownRef}>
-                  <button
+                  <button type="button"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     aria-label="アカウントメニュー"
                     aria-expanded={dropdownOpen}
@@ -297,6 +298,7 @@ export function JobseekerHeader() {
                         マイページ
                       </Link>
                       <button
+                        type="button"
                         onClick={handleLogout}
                         style={{ width: "100%", textAlign: "left", padding: "10px 16px", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500, background: "transparent", border: "none", cursor: "pointer", borderTop: "0.5px solid var(--line-soft)" }}
                         onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; }}
@@ -329,6 +331,7 @@ export function JobseekerHeader() {
               <InitialAvatar name={user.name || user.email} size={30} />
             )}
             <button
+              type="button"
               onClick={() => setMobileMenuOpen((v) => !v)}
               aria-label={mobileMenuOpen ? "メニューを閉じる" : "メニューを開く"}
               aria-expanded={mobileMenuOpen}
@@ -620,6 +623,7 @@ export function JobseekerHeader() {
                 マイページ
               </Link>
               <button
+                type="button"
                 onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
                 style={{ width: "100%", textAlign: "left", display: "block", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink-soft)", background: "none", border: "none", cursor: "pointer" }}
               >
