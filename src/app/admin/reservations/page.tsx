@@ -187,7 +187,7 @@ export default function AdminReservationsPage() {
           }}
         />
         {searchQuery && (
-          <button onClick={() => setSearchQuery("")} aria-label="検索をクリア" style={{ position: "absolute", left: 375, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94A3B8", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
+          <button type="button" onClick={() => setSearchQuery("")} aria-label="検索をクリア" style={{ position: "absolute", left: 375, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94A3B8", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
         )}
       </div>
 
@@ -195,6 +195,7 @@ export default function AdminReservationsPage() {
       <div className="flex gap-2 mb-6" role="tablist" aria-label="予約ステータスで絞り込み">
         {STATUS_TABS.map((tab) => (
           <button
+            type="button"
             key={tab.key}
             role="tab"
             aria-selected={activeTab === tab.key}
@@ -274,6 +275,7 @@ export default function AdminReservationsPage() {
                     {r.status === "pending_review" && (
                       <>
                         <button
+                          type="button"
                           onClick={() => updateStatus(r.id, "approved")}
                           disabled={actioning === r.id}
                           className="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded hover:bg-primary-dark disabled:opacity-50 transition-colors"
@@ -281,6 +283,7 @@ export default function AdminReservationsPage() {
                           {actioning === r.id ? "..." : "転送する"}
                         </button>
                         <button
+                          type="button"
                           onClick={() => updateStatus(r.id, "rejected")}
                           disabled={actioning === r.id}
                           className="px-3 py-1.5 border border-red-300 text-red-500 text-xs rounded hover:bg-red-50 disabled:opacity-50 transition-colors"
@@ -290,6 +293,7 @@ export default function AdminReservationsPage() {
                       </>
                     )}
                     <button
+                      type="button"
                       onClick={() => setExpandedId(isExpanded ? null : r.id)}
                       className="px-3 py-1.5 border border-card-border text-gray-500 text-xs rounded hover:bg-gray-50 transition-colors"
                     >

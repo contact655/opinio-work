@@ -148,6 +148,7 @@ export default function AdminCompaniesPage() {
         />
         {searchQuery && (
           <button
+            type="button"
             onClick={() => setSearchQuery("")}
             aria-label="検索をクリア"
             style={{
@@ -169,6 +170,7 @@ export default function AdminCompaniesPage() {
             : companies.filter((c) => !c.is_published).length;
           return (
             <button
+              type="button"
               key={tab.key}
               role="tab"
               aria-selected={activeTab === tab.key}
@@ -265,6 +267,7 @@ export default function AdminCompaniesPage() {
                   {/* 操作 */}
                   <td style={{ padding: "12px 14px" }}>
                     <button
+                      type="button"
                       onClick={() => handleTogglePublish(c)}
                       disabled={actionLoading === c.id}
                       style={{

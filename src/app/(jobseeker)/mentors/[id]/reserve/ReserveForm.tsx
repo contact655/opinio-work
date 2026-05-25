@@ -416,6 +416,7 @@ export default function ReserveForm({
                 const active = selectedThemes.has(theme);
                 return (
                   <button
+                    type="button"
                     key={theme}
                     onClick={() => toggleTheme(theme)}
                     style={{
@@ -752,6 +753,7 @@ export default function ReserveForm({
           )}
 
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
             style={{

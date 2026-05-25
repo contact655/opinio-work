@@ -139,12 +139,13 @@ export default function AdminArticlesPage() {
             }}
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} aria-label="検索をクリア" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute, #94A3B8)", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
+            <button type="button" onClick={() => setSearchQuery("")} aria-label="検索をクリア" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute, #94A3B8)", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
           )}
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {[null, "employee", "mentor", "ceo", "report"].map((type) => (
             <button
+              type="button"
               key={type ?? "all"}
               onClick={() => setTypeFilter(type)}
               style={{
@@ -239,6 +240,7 @@ export default function AdminArticlesPage() {
                   </td>
                   <td className="px-4 py-3">
                     <button
+                      type="button"
                       onClick={() => togglePublished(article.id, article.is_published)}
                       disabled={toggling === article.id}
                       className={`px-3 py-1 text-xs rounded border transition-colors disabled:opacity-50 ${

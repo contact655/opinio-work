@@ -385,6 +385,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
       <div className="flex border-b border-gray-200 mb-6 gap-0" role="tablist" aria-label="企業詳細セクション">
         {TABS.map((tab) => (
           <button
+            type="button"
             key={tab.key}
             role="tab"
             aria-selected={activeTab === tab.key}
@@ -906,12 +907,14 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
       {/* ── 保存ボタン（sticky） ──────────────────────────────────────────── */}
       <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 px-8 py-4 flex justify-end gap-3 z-10">
         <button
+          type="button"
           onClick={() => router.push('/admin/companies')}
           className="px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
         >
           キャンセル
         </button>
         <button
+          type="button"
           onClick={handleSave}
           disabled={isSaving || isUploading || isAvatarUploading}
           className="px-6 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"

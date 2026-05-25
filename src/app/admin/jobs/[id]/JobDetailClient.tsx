@@ -269,6 +269,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
             {ns === "pending_review" && (
               <>
                 <button
+                  type="button"
                   onClick={handleApprove}
                   disabled={actionLoading}
                   style={{
@@ -281,6 +282,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
                   ✓ 承認・公開
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowRejectModal(true)}
                   disabled={actionLoading}
                   style={{
@@ -296,6 +298,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
             )}
             {ns === "published" && (
               <button
+                type="button"
                 onClick={handlePrivate}
                 disabled={actionLoading}
                 style={{
@@ -310,6 +313,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
             )}
             {ns === "private" && (
               <button
+                type="button"
                 onClick={handleRepublish}
                 disabled={actionLoading}
                 style={{
@@ -324,6 +328,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
             )}
             {ns === "rejected" && (
               <button
+                type="button"
                 onClick={handleApprove}
                 disabled={actionLoading}
                 style={{
@@ -554,6 +559,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
 
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button
+                type="button"
                 onClick={() => setShowRejectModal(false)}
                 style={{
                   padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600,
@@ -564,6 +570,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
                 キャンセル
               </button>
               <button
+                type="button"
                 onClick={handleRejectConfirm}
                 disabled={!rejectionReason.trim() || actionLoading}
                 style={{

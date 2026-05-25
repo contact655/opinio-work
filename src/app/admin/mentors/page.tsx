@@ -158,6 +158,7 @@ export default function AdminMentorsPage() {
                 <span style={{ fontSize: 12, color: "#6b7280" }}>{mentor.current_company}</span>
                 {/* Availability badge */}
                 <button
+                  type="button"
                   onClick={() => toggleAvailable(mentor.id, mentor.is_available)}
                   disabled={saving === mentor.id}
                   style={{
@@ -196,6 +197,7 @@ export default function AdminMentorsPage() {
                   }}
                 />
                 <button
+                  type="button"
                   onClick={() => saveMentor(mentor.id)}
                   disabled={saving === mentor.id}
                   style={{
