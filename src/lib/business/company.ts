@@ -101,7 +101,7 @@ export function transformDbToForm(row: DbCompany, currentPublishedGenres: string
     benefitsTags: Array.isArray(row.benefits) ? row.benefits : [],
     fitPositives: Array.isArray(row.fit_positives) ? row.fit_positives : [],
     fitNegatives: Array.isArray(row.fit_negatives) ? row.fit_negatives : [],
-    showFitNegatives: row.show_fit_negatives ?? true,
+    showFitNegatives: row.show_fit_negatives ?? false,
     location: row.location ?? "",
     nearestStation: row.nearest_station ?? "",
     remoteWorkStatus: row.remote_work_status ?? "",

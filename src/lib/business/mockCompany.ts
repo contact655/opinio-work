@@ -82,7 +82,7 @@ export const MOCK_COMPANY: BizCompany = {
   companyFeatures: [],
   fitPositives: [],
   fitNegatives: [],
-  showFitNegatives: true,
+  showFitNegatives: false,
   descriptionMarkdown: `## 私たちについて
 
 タイミーは、スキマ時間にすぐ働ける仕事と、人手が足りない事業者をマッチングするサービスです。「はたらく」を通じて、人生の可能性を広げることを目指しています。
