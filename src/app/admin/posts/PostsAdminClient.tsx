@@ -249,6 +249,7 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
         </div>
         {!showForm && (
           <button
+            type="button"
             onClick={openNewForm}
             className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-dark transition-colors flex-shrink-0"
           >
@@ -266,6 +267,7 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
               {editingId ? "発信リンクを編集" : "新しい発信リンクを追加"}
             </h2>
             <button
+              type="button"
               onClick={closeForm}
               className="flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
             >
@@ -312,6 +314,7 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-primary font-mono"
                 />
                 <button
+                  type="button"
                   onClick={handleFetchOgp}
                   disabled={ogpFetching || !url.trim()}
                   className="flex items-center gap-1.5 px-3.5 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
@@ -446,6 +449,7 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
             </div>
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={closeForm}
                 disabled={isPending}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
@@ -453,6 +457,7 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
                 キャンセル
               </button>
               <button
+                type="button"
                 onClick={handleSave}
                 disabled={isPending || !formCompanyId || !url.trim() || !title.trim()}
                 className="flex items-center gap-1.5 px-5 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -486,6 +491,7 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
         </select>
         {filterCompanyId !== "all" && (
           <button
+            type="button"
             onClick={() => setFilterCompanyId("all")}
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
           >
@@ -503,6 +509,7 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
               : "この企業の発信リンクはまだ登録されていません"}
           </p>
           <button
+            type="button"
             onClick={openNewForm}
             className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-dark transition-colors"
           >
@@ -550,12 +557,14 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
                           </span>
                           <div className="flex gap-2">
                             <button
+                              type="button"
                               onClick={() => setPendingDeleteId(null)}
                               className="px-3 py-1.5 text-xs font-semibold border border-gray-200 rounded-md bg-white text-gray-500 cursor-pointer"
                             >
                               キャンセル
                             </button>
                             <button
+                              type="button"
                               onClick={() => confirmDelete(post.id)}
                               className="px-3 py-1.5 text-xs font-semibold border border-red-500 rounded-md bg-red-500 text-white cursor-pointer"
                             >
@@ -675,6 +684,7 @@ function AdminPostRow({
             <ExternalLink size={13} strokeWidth={2} />
           </a>
           <button
+            type="button"
             onClick={onEdit}
             disabled={isPending}
             className="flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:bg-gray-100 hover:text-primary transition-colors disabled:opacity-50"
@@ -683,6 +693,7 @@ function AdminPostRow({
             <Edit2 size={13} strokeWidth={2} />
           </button>
           <button
+            type="button"
             onClick={onDelete}
             disabled={isPending}
             className="flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-50"

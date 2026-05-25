@@ -236,6 +236,7 @@ export default function AdminJobsPage() {
         />
         {searchQuery && (
           <button
+            type="button"
             onClick={() => setSearchQuery("")}
             aria-label="検索をクリア"
             style={{
@@ -256,6 +257,7 @@ export default function AdminJobsPage() {
           return (
             <button
               key={tab.key}
+              type="button"
               role="tab"
               aria-selected={activeTab === tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -376,6 +378,7 @@ export default function AdminJobsPage() {
                         {ns === "pending_review" && (
                           <>
                             <button
+                              type="button"
                               onClick={() => handleApprove(j)}
                               disabled={actionLoading === j.id}
                               style={{
@@ -389,6 +392,7 @@ export default function AdminJobsPage() {
                               承認・公開
                             </button>
                             <button
+                              type="button"
                               onClick={() => { setRejectTarget(j); setRejectionReason(""); }}
                               disabled={actionLoading === j.id}
                               style={{
@@ -405,6 +409,7 @@ export default function AdminJobsPage() {
                         )}
                         {(ns === "published") && (
                           <button
+                            type="button"
                             onClick={() => handlePrivate(j)}
                             disabled={actionLoading === j.id}
                             style={{
@@ -420,6 +425,7 @@ export default function AdminJobsPage() {
                         )}
                         {ns === "rejected" && (
                           <button
+                            type="button"
                             onClick={() => { setRejectTarget(j); setRejectionReason(j.rejection_reason ?? ""); }}
                             disabled={actionLoading === j.id}
                             style={{
@@ -435,6 +441,7 @@ export default function AdminJobsPage() {
                         )}
                         {ns === "private" && (
                           <button
+                            type="button"
                             onClick={() => handleRepublish(j)}
                             disabled={actionLoading === j.id}
                             style={{
@@ -521,6 +528,7 @@ export default function AdminJobsPage() {
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button
+                type="button"
                 onClick={() => { setRejectTarget(null); setRejectionReason(""); }}
                 style={{
                   padding: "8px 18px", borderRadius: 8,
@@ -531,6 +539,7 @@ export default function AdminJobsPage() {
                 キャンセル
               </button>
               <button
+                type="button"
                 onClick={handleRejectConfirm}
                 disabled={!rejectionReason.trim() || actionLoading !== null}
                 style={{
