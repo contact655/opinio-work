@@ -133,6 +133,7 @@ export function MarkdownEditor({ value, onChange, placeholder, minHeight = 240 }
       {/* エディタ本体 */}
       <div data-md-editor="">
         <textarea
+          aria-label={placeholder ?? "本文"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}

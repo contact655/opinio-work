@@ -243,6 +243,7 @@ export default function InlineEditableField({
         {type === "textarea" ? (
           <textarea
             ref={textareaRef}
+            aria-label={label ?? placeholder ?? "テキスト入力"}
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}

@@ -1104,6 +1104,7 @@ function StoryForm({
           説明 {draft.type === "card" ? "（title か description どちらか必須）" : "（任意）"}
         </label>
         <textarea
+          aria-label="説明"
           value={draft.description}
           onChange={(e) => set("description", e.target.value)}
           placeholder={

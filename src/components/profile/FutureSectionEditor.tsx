@@ -149,6 +149,7 @@ export default function FutureSectionEditor({
       {isEditing ? (
         <div>
           <textarea
+            aria-label="将来やりたいこと"
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
             rows={6}

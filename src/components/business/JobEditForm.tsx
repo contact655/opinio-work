@@ -469,6 +469,7 @@ export function JobEditForm({
                   ))}
                 </div>
                 <textarea
+                  aria-label="求人詳細（Markdown）"
                   value={form.descriptionMarkdown}
                   onChange={(e) => updateForm("descriptionMarkdown", e.target.value)}
                   placeholder={"## このポジションのミッション\n\n具体的な業務内容を記載してください。"}

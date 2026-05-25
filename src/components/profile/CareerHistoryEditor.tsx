@@ -667,6 +667,7 @@ function StintForm({
       <div>
         <label style={labelStyle()}>業務内容（任意）</label>
         <textarea
+          aria-label="業務内容"
           value={draft.description}
           onChange={(e) => set("description", e.target.value)}
           placeholder="業務内容や成果、チームの規模など"
