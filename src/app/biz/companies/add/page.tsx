@@ -1,7 +1,6 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 

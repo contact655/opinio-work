@@ -1116,7 +1116,7 @@ function UserTestimonials() {
                 fontFamily: "Georgia, serif",
                 pointerEvents: "none",
               }}>
-                "
+                &ldquo;
               </div>
 
               {/* Tag */}

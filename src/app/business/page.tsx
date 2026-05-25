@@ -252,9 +252,9 @@ export default async function ForCompaniesPage() {
                     ))}
                   </div>
                   <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, flex: 1, margin: 0 }}>
-                    <span style={{ color: "var(--royal)", fontStyle: "italic", marginRight: 2 }}>"</span>
+                    <span style={{ color: "var(--royal)", fontStyle: "italic", marginRight: 2 }}>&ldquo;</span>
                     {quote}
-                    <span style={{ color: "var(--royal)", fontStyle: "italic", marginLeft: 2 }}>"</span>
+                    <span style={{ color: "var(--royal)", fontStyle: "italic", marginLeft: 2 }}>&rdquo;</span>
                   </p>
                   <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12, display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{

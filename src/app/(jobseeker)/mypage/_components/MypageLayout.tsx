@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMypageMock } from "./MypageMockContext";
 
 // ─── SidebarItem ──────────────────────────────────────────────────────────────
@@ -131,8 +130,6 @@ export default function MypageLayout({
   rightColumn?: React.ReactNode;
 }) {
   const { isMentor, setIsMentor } = useMypageMock();
-  const router = useRouter();
-
   const topOffset = 65;
 
   function handleSetIsMentor(v: boolean) {
