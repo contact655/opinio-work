@@ -76,10 +76,11 @@ export function CompanyCardCompact({ company }: Props) {
           />
         ) : (
           <span style={{
-            fontSize: 22,
+            fontSize: 44,
             fontWeight: 700,
             color: ph.text,
             letterSpacing: '-0.02em',
+            opacity: 0.8,
           }}>
             {initial}
           </span>
@@ -127,10 +128,10 @@ export function CompanyCardCompact({ company }: Props) {
       </div>
 
       {/* カード本体 */}
-      <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 7 }}>
         {/* 社名 */}
         <div style={{
-          fontSize: 14,
+          fontSize: 15,
           fontWeight: 700,
           color: 'var(--ink)',
           lineHeight: 1.35,
@@ -146,8 +147,8 @@ export function CompanyCardCompact({ company }: Props) {
         {company.industry && (
           <div style={{
             display: 'inline-flex', alignItems: 'center',
-            fontSize: 10, fontWeight: 600,
-            padding: '2px 8px', borderRadius: 100,
+            fontSize: 10.5, fontWeight: 600,
+            padding: '2px 9px', borderRadius: 100,
             background: 'var(--royal-50)', color: 'var(--royal)',
             border: '1px solid var(--royal-100)',
             alignSelf: 'flex-start',
@@ -159,9 +160,9 @@ export function CompanyCardCompact({ company }: Props) {
         {/* タグライン */}
         {company.tagline && (
           <div style={{
-            fontSize: 11.5,
-            color: 'var(--ink-soft)',
-            lineHeight: 1.5,
+            fontSize: 12.5,
+            color: '#334155',
+            lineHeight: 1.55,
             overflow: 'hidden',
             display: '-webkit-box',
             WebkitLineClamp: 2,
@@ -173,7 +174,7 @@ export function CompanyCardCompact({ company }: Props) {
 
         {/* メタ情報 */}
         {metaItems.length > 0 && (
-          <div style={{ fontSize: 12, color: 'var(--ink-soft)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
             {metaItems.map((item, i) => (
               <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 {i > 0 && <span style={{ color: 'var(--ink-mute)', margin: '0 5px' }}>·</span>}
