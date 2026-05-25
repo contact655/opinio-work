@@ -723,8 +723,44 @@ export function CompanyEditClient({
                 />
                 <FormHint>公開ページで緑色のチェックリストとして表示されます。タグを追加して Enter で確定。</FormHint>
               </FormGroup>
+              {/* show_fit_negatives toggle */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "14px 18px",
+                background: "var(--bg-tint)",
+                border: "1px solid var(--line)",
+                borderRadius: 10,
+                marginBottom: 12,
+              }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>
+                    「慎重に検討ください」欄を公開する
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+                    オフにすると入力内容は保存されますが、求職者には表示されません。編集部の判断で非推奨とする場合もあります。
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.showFitNegatives}
+                  onClick={() => { hasInteracted.current = true; setForm(f => ({ ...f, showFitNegatives: !f.showFitNegatives })); }}
+                  style={{
+                    width: 44, height: 24, borderRadius: 12, flexShrink: 0, marginLeft: 16,
+                    background: form.showFitNegatives ? "var(--royal)" : "var(--line)",
+                    border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s",
+                  }}
+                >
+                  <span style={{
+                    position: "absolute", top: 3, width: 18, height: 18, borderRadius: "50%",
+                    background: "#fff", transition: "left 0.2s",
+                    left: form.showFitNegatives ? 23 : 3,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                  }} />
+                </button>
+              </div>
               <FormGroup>
-                <FormLabel>注意点・向いていないかも（fit_negatives）</FormLabel>
+                <FormLabel>慎重に検討ください（向いていない人）</FormLabel>
                 <RequirementsTagInput
                   tags={form.fitNegatives}
                   onTagsChange={(tags) => update("fitNegatives", tags)}

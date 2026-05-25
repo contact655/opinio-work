@@ -29,6 +29,7 @@ export type BizCompany = {
   companyFeatures: string[]; // 企業特徴リスト（公開ページ「特徴」セクション）
   fitPositives: string[];   // 「こんな人に向いている」ポイント
   fitNegatives: string[];   // 「注意点・向いていないかも」ポイント
+  showFitNegatives: boolean;   // 「慎重に検討を」欄を公開するか
 
   // ── 数値データ ───────────────────────────────────────────
   employeeCount: string;
@@ -81,6 +82,7 @@ export const MOCK_COMPANY: BizCompany = {
   companyFeatures: [],
   fitPositives: [],
   fitNegatives: [],
+  showFitNegatives: true,
   descriptionMarkdown: `## 私たちについて
 
 タイミーは、スキマ時間にすぐ働ける仕事と、人手が足りない事業者をマッチングするサービスです。「はたらく」を通じて、人生の可能性を広げることを目指しています。

@@ -970,7 +970,7 @@ function CompanyFeaturesSection({
 
 function FitSection({ detail }: { detail: CompanyDetail }) {
   const hasFit = detail.fit_positives && detail.fit_positives.length > 0;
-  const hasCaution = detail.fit_negatives && detail.fit_negatives.length > 0;
+  const hasCaution = detail.fit_negatives && detail.fit_negatives.length > 0 && detail.show_fit_negatives !== false;
   if (!hasFit && !hasCaution) return null;
 
   return (
@@ -999,12 +999,12 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
             </svg>
           }
         >
-          こんな人に向いている / 向いていない
+          OPINIO編集部より
         </SecTitle>
       </div>
       <div style={{ padding: "20px 32px 28px" }}>
       <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: 20 }}>
-        企業からの回答をもとにしています。ミスマッチ防止のために企業が正直に記載した情報です。
+        企業へのヒアリングをもとにOPINIO編集部が整理しました。入社前のミスマッチ防止にお役立てください。
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: (hasFit && hasCaution) ? "1fr 1fr" : "1fr", gap: 16 }} className="fit-grid">
@@ -1052,34 +1052,34 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
         {/* 合わない人 */}
         {hasCaution && (
           <div style={{
-            background: "#FEF2F2",
-            border: "1px solid #FECACA",
+            background: "#FFFBEB",
+            border: "1px solid #FDE68A",
             borderRadius: 12,
             padding: "20px 22px",
           }}>
             <div style={{
               display: "flex", alignItems: "center", gap: 8, marginBottom: 16,
-              fontSize: 13, fontWeight: 800, color: "#B91C1C",
+              fontSize: 13, fontWeight: 800, color: "#92400E",
             }}>
               <span style={{
                 width: 24, height: 24, borderRadius: "50%",
-                background: "#EF4444", color: "#fff",
+                background: "#F59E0B", color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
               }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
               </span>
-              向いていない人
+              慎重に検討ください
             </div>
             <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
               {detail.fit_negatives!.map((item, i) => (
-                <li key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: "#991B1B", lineHeight: 1.65 }}>
+                <li key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: "#78350F", lineHeight: 1.65 }}>
                   <span style={{
                     width: 18, height: 18, borderRadius: "50%", flexShrink: 0, marginTop: 2,
-                    background: "#FECACA", display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "#FDE68A", display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth={3}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth={3}>
                       <line x1="15" y1="5" x2="5" y2="15" /><line x1="5" y1="5" x2="15" y2="15" />
                     </svg>
                   </span>
