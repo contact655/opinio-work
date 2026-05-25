@@ -3394,12 +3394,13 @@ export default async function CompanyDetailPage({
     getArticlesByCompany(params.id),
     getCompanyEmployees(params.id),
     supabase.auth.getUser(),
-    // 企業発信リンク (公開中、最新 5 件)
+    // 企業発信リンク (公開中・実URL限定、最新 5 件)
     supabase
       .from("ow_company_external_links")
       .select("*")
       .eq("company_id", params.id)
       .eq("is_published", true)
+      .not("url", "ilike", "%example.com%")
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(5),
@@ -3408,7 +3409,8 @@ export default async function CompanyDetailPage({
       .from("ow_company_external_links")
       .select("*", { count: "exact", head: true })
       .eq("company_id", params.id)
-      .eq("is_published", true),
+      .eq("is_published", true)
+      .not("url", "ilike", "%example.com%"),
   ]);
 
   const posts: ExternalLink[] = postsResult.data ?? [];

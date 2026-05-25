@@ -95,6 +95,7 @@ export type CompanyDetail = {
   // Fit section
   fit_positives: string[] | null;
   fit_negatives: string[] | null;
+  show_fit_negatives?: boolean;
   // Why join (separate from about/description)
   why_join: string | null;
 };

@@ -1,24 +1,84 @@
+import { createClient } from "@/lib/supabase/server";
 import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
-import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
+// ─── Salary formatter ────────────────────────────────────────────────────────
+function formatSalary(min: number | null, max: number | null): string | null {
+  if (!min && !max) return null;
+  const fmt = (n: number) => `${Math.round(n / 10000)}`;
+  if (min && max) return `${fmt(min)}〜${fmt(max)}万円`;
+  if (min) return `${fmt(min)}万円〜`;
+  if (max) return `〜${fmt(max)}万円`;
+  return null;
+}
+
+// ─── Work-style icon & label ─────────────────────────────────────────────────
+function WorkStyleBadge({ style }: { style: string | null }) {
+  if (!style) return null;
+  const isRemote =
+    style.includes("リモート") ||
+    style.includes("在宅") ||
+    style.includes("テレワーク") ||
+    style.includes("フルリモート");
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3,
+        fontSize: 11,
+        padding: "2px 8px",
+        borderRadius: 6,
+        background: isRemote ? "#f0fdf4" : "var(--bg-tint)",
+        color: isRemote ? "var(--success)" : "var(--ink-mute)",
+        border: `1px solid ${isRemote ? "#A7F3D0" : "var(--line)"}`,
+        fontWeight: 500,
+      }}
+    >
+      {isRemote ? "🏠" : "🏢"} {style}
+    </span>
+  );
+}
+
+// ─── Category badge ──────────────────────────────────────────────────────────
+function CatBadge({ cat }: { cat: string | null }) {
+  if (!cat) return null;
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        padding: "2px 8px",
+        borderRadius: 6,
+        background: "var(--royal-50)",
+        color: "var(--royal)",
+        border: "1px solid var(--royal-100)",
+        fontWeight: 600,
+      }}
+    >
+      {cat}
+    </span>
+  );
+}
+
+// ─── Data fetcher ─────────────────────────────────────────────────────────────
 async function getCompanyWithJobs(id: string) {
   const supabase = createClient();
   const { data } = await supabase
     .from("ow_companies")
     .select(
-      `id, name, logo_url, industry, location, employee_count,
-      ow_jobs(id, title, job_category, employment_type, description, salary_min, salary_max, location, work_style, status)`
+      `id, name, logo_url, logo_gradient, logo_letter, industry, location, employee_count,
+      ow_jobs(id, title, job_category, employment_type, salary_min, salary_max, location, work_style, status, published_at)`
     )
     .eq("id", id)
     .single();
   return data;
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function CompanyJobsPage({
   params,
 }: {
@@ -27,165 +87,273 @@ export default async function CompanyJobsPage({
   const company = await getCompanyWithJobs(params.id);
   if (!company) return notFound();
 
-  const jobs = (company.ow_jobs || []).filter(
-    (j: any) => j.status === "published"
-  );
+  const jobs = ((company.ow_jobs as any[]) || [])
+    .filter((j) => j.status === "published" || j.status === "active")
+    .sort((a, b) => {
+      // 新着順
+      const da = a.published_at ? new Date(a.published_at).getTime() : 0;
+      const db = b.published_at ? new Date(b.published_at).getTime() : 0;
+      return db - da;
+    });
+
+  // 7日以内なら新着バッジ
+  const isNew = (publishedAt: string | null) => {
+    if (!publishedAt) return false;
+    return Date.now() - new Date(publishedAt).getTime() < 7 * 24 * 60 * 60 * 1000;
+  };
+
+  const gradient = company.logo_gradient || "linear-gradient(135deg,#002366,#3B5FD9)";
+  const letter = company.logo_letter || (company.name ? company.name[0] : "?");
 
   return (
     <>
       <JobseekerHeader />
-      <main className="pt-16 min-h-screen bg-background">
-        {/* Company Header */}
-        <div className="bg-white border-b border-card-border">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center bg-gray-50">
-                {company.logo_url ? (
-                  <img
-                    src={company.logo_url}
-                    alt={company.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xl font-bold text-gray-600">
-                    {company.name[0]}
-                  </span>
-                )}
-              </div>
-              <div className="flex-1">
-                <Link
-                  href={`/companies/${company.id}`}
-                  className="text-sm text-primary hover:underline"
-                >
-                  ← 企業詳細に戻る
-                </Link>
-                <h1 className="text-xl font-bold mt-0.5">{company.name}</h1>
-                <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                  {company.industry && <span>{company.industry}</span>}
-                  {company.location && <span>{company.location}</span>}
+      <main style={{ minHeight: "100vh", background: "var(--bg-tint)", paddingTop: 64 }}>
+
+        {/* ── Company banner ── */}
+        <div style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
+          <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 20px" }}>
+            {/* Back link */}
+            <Link
+              href={`/companies/${company.id}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                fontSize: 13,
+                color: "var(--ink-mute)",
+                textDecoration: "none",
+                marginBottom: 16,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              企業詳細に戻る
+            </Link>
+
+            {/* Company identity */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              {company.logo_url ? (
+                <img
+                  src={company.logo_url}
+                  alt={company.name}
+                  style={{ width: 52, height: 52, borderRadius: 12, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }}
+                />
+              ) : (
+                <div style={{
+                  width: 52, height: 52, borderRadius: 12, flexShrink: 0,
+                  background: gradient,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontSize: 22, fontWeight: 700,
+                  fontFamily: "var(--font-noto-serif)",
+                }}>
+                  {letter}
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h1 style={{
+                  fontFamily: "var(--font-noto-serif)",
+                  fontSize: 20, fontWeight: 700,
+                  color: "var(--ink)", margin: 0, lineHeight: 1.3,
+                }}>
+                  {company.name}の求人一覧
+                </h1>
+                <div style={{ display: "flex", gap: 12, marginTop: 4, flexWrap: "wrap" }}>
+                  {company.industry && (
+                    <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>{company.industry}</span>
+                  )}
+                  {company.location && (
+                    <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>📍 {company.location}</span>
+                  )}
                   {company.employee_count && (
-                    <span>{/^\d+$/.test(company.employee_count) ? `${company.employee_count}名` : String(company.employee_count).includes("名") ? company.employee_count : `${company.employee_count}名`}</span>
+                    <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+                      {String(company.employee_count).includes("名") ? company.employee_count : `${company.employee_count}名`}
+                    </span>
                   )}
                 </div>
+              </div>
+              <div style={{
+                fontFamily: "Inter, sans-serif",
+                fontSize: 13, fontWeight: 700,
+                color: "var(--royal)",
+                background: "var(--royal-50)",
+                border: "1px solid var(--royal-100)",
+                borderRadius: 8,
+                padding: "6px 14px",
+                flexShrink: 0,
+              }}>
+                {jobs.length}件募集中
               </div>
             </div>
           </div>
         </div>
 
-        {/* Job List */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h2 className="text-lg font-bold mb-6">
-            {company.name}の求人一覧（{jobs.length}件）
-          </h2>
-
+        {/* ── Job list ── */}
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 60px" }}>
           {jobs.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {jobs.map((job: any) => (
-                <Link
-                  key={job.id}
-                  href={`/jobs/${job.id}`}
-                  className="block bg-white rounded-card-lg border border-card-border overflow-hidden hover:shadow-lg transition-shadow"
-                >
-                  <div className="p-5">
-                    {/* Job title */}
-                    <h3 className="font-medium text-lg leading-tight mb-2">
-                      {job.title}
-                    </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {jobs.map((job) => {
+                const salary = formatSalary(job.salary_min, job.salary_max);
+                const newJob = isNew(job.published_at);
+                return (
+                  <Link
+                    key={job.id}
+                    href={`/jobs/${job.id}`}
+                    style={{
+                      display: "flex",
+                      gap: 0,
+                      border: "1px solid var(--line)",
+                      borderRadius: 14,
+                      cursor: "pointer",
+                      background: "#fff",
+                      textDecoration: "none",
+                      overflow: "hidden",
+                      transition: "box-shadow 0.18s, transform 0.18s, border-color 0.18s",
+                    }}
+                    className="company-job-card"
+                  >
+                    {/* Left accent bar */}
+                    <div style={{ width: 4, flexShrink: 0, background: "var(--royal)", opacity: 0.5 }} />
 
-                    {/* Description */}
-                    {job.description && (
-                      <p className="text-sm text-gray-500 line-clamp-2 mb-4">
-                        {job.description}
-                      </p>
-                    )}
+                    {/* Content */}
+                    <div style={{
+                      flex: 1,
+                      padding: "18px 22px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 16,
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Title + new badge */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                          {newJob && (
+                            <span style={{
+                              fontSize: 10, padding: "2px 8px", borderRadius: 4,
+                              background: "var(--success-soft,#ECFDF5)", color: "var(--success)",
+                              fontWeight: 700, border: "1px solid #A7F3D0",
+                            }}>
+                              新着
+                            </span>
+                          )}
+                          <h2 style={{
+                            fontSize: 15, fontWeight: 700,
+                            color: "var(--ink)", margin: 0, lineHeight: 1.35,
+                          }}>
+                            {job.title}
+                          </h2>
+                        </div>
 
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {job.job_category && (
-                        <span className="px-2.5 py-1 bg-primary-light text-primary text-xs rounded-full">
-                          {job.job_category}
-                        </span>
-                      )}
-                      {job.work_style && (
-                        <span className="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs rounded-full">
-                          {job.work_style}
-                        </span>
-                      )}
-                      {job.employment_type && (
-                        <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                          {job.employment_type}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Bottom row */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <div className="flex items-center gap-4">
-                        {job.salary_min && job.salary_max && (
-                          <span className="text-sm text-gray-600 flex items-center gap-1">
-                            <svg
-                              className="w-4 h-4 text-gray-600"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                            {job.salary_min}〜{job.salary_max}万円
-                          </span>
-                        )}
-                        {job.location && (
-                          <span className="text-xs text-gray-600 flex items-center gap-1">
-                            <svg
-                              className="w-3.5 h-3.5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                              />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                              />
-                            </svg>
-                            {job.location}
-                          </span>
-                        )}
+                        {/* Tags */}
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                          <CatBadge cat={job.job_category} />
+                          <WorkStyleBadge style={job.work_style} />
+                          {job.employment_type && (
+                            <span style={{
+                              fontSize: 11, padding: "2px 8px", borderRadius: 6,
+                              background: "var(--bg-tint)", color: "var(--ink-mute)",
+                              border: "1px solid var(--line)", fontWeight: 500,
+                            }}>
+                              {job.employment_type}
+                            </span>
+                          )}
+                          {job.location && job.location !== company.location && (
+                            <span style={{
+                              fontSize: 11, padding: "2px 8px", borderRadius: 6,
+                              background: "var(--bg-tint)", color: "var(--ink-mute)",
+                              border: "1px solid var(--line)", fontWeight: 500,
+                            }}>
+                              📍 {job.location}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-sm text-primary font-medium">
-                        詳細を見る →
-                      </span>
+
+                      {/* Salary + CTA */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+                        {salary && (
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, letterSpacing: "0.04em", marginBottom: 2 }}>年収</div>
+                            <div style={{
+                              fontFamily: "Inter, sans-serif",
+                              fontSize: 15, fontWeight: 800,
+                              color: "var(--success)",
+                            }}>
+                              {salary}
+                            </div>
+                          </div>
+                        )}
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 4,
+                          padding: "8px 16px", borderRadius: 9,
+                          background: "var(--royal-50)", color: "var(--royal)",
+                          border: "1px solid var(--royal-100)",
+                          fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+                        }}>
+                          詳細を見る
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                            <path d="M9 18l6-6-6-6" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           ) : (
-            <div className="text-center py-20">
-              <p className="text-gray-600 text-lg mb-2">
+            /* ── Empty state ── */
+            <div style={{
+              textAlign: "center",
+              padding: "64px 24px",
+              background: "#fff",
+              border: "1px solid var(--line)",
+              borderRadius: 16,
+            }}>
+              <div style={{ fontSize: 40, marginBottom: 16 }}>📋</div>
+              <p style={{ fontSize: 16, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
                 現在募集中の求人はありません
               </p>
-              <Link
-                href={`/companies/${company.id}`}
-                className="text-primary hover:underline text-sm"
-              >
-                企業詳細に戻る
-              </Link>
+              <p style={{ fontSize: 14, color: "var(--ink-soft)", marginBottom: 24 }}>
+                カジュアル面談でまず話を聞いてみませんか？
+              </p>
+              <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                <Link
+                  href={`/companies/${company.id}/casual-meeting`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "10px 22px", borderRadius: 9,
+                    background: "linear-gradient(135deg,#F59E0B,#D97706)",
+                    color: "#fff", fontSize: 13, fontWeight: 700,
+                    textDecoration: "none",
+                  }}
+                >
+                  カジュアル面談を申し込む
+                </Link>
+                <Link
+                  href={`/companies/${company.id}`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "10px 22px", borderRadius: 9,
+                    background: "#fff", color: "var(--royal)",
+                    border: "1.5px solid var(--royal)",
+                    fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  }}
+                >
+                  企業詳細に戻る
+                </Link>
+              </div>
             </div>
           )}
         </div>
+
+        <style>{`
+          .company-job-card:hover {
+            border-color: var(--accent) !important;
+            box-shadow: 0 4px 20px rgba(59,95,217,0.10);
+            transform: translateY(-1px);
+          }
+        `}</style>
       </main>
       <JobseekerFooter />
     </>
