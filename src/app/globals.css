@@ -364,11 +364,12 @@ p, .description, .desc {
   text-decoration: underline;
 }
 
-/* ── Focus visible ring ── */
+/* ── Focus visible ring ──
+   !important overrides inline outline:none so keyboard users always see focus rings */
 a:focus-visible,
 button:focus-visible {
-  outline: 2px solid var(--royal);
-  outline-offset: 2px;
+  outline: 2px solid var(--royal) !important;
+  outline-offset: 2px !important;
   border-radius: 4px;
 }
 
@@ -376,8 +377,8 @@ button:focus-visible {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--royal);
-  outline-offset: 0;
+  outline: 2px solid var(--royal) !important;
+  outline-offset: 0 !important;
   border-color: var(--royal) !important;
   box-shadow: 0 0 0 3px rgba(0,35,102,0.08);
 }

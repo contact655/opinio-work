@@ -55,6 +55,8 @@ export default function FavoriteButton({
         border: `0.5px solid ${favorited ? "#F09595" : "#e5e7eb"}`,
       }}
       title={favorited ? "気になるを解除" : "気になる"}
+      aria-label={favorited ? "気になるを解除" : "気になる"}
+      aria-pressed={favorited}
     >
       <svg
         viewBox="0 0 16 16"

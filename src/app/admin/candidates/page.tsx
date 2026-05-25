@@ -37,6 +37,7 @@ export default async function AdminCandidatesPage({
           name="q"
           defaultValue={searchParams.q}
           placeholder="名前・メール・所在地で検索..."
+          aria-label="候補者を検索"
           className="w-full max-w-md px-4 py-2.5 bg-white border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </form>

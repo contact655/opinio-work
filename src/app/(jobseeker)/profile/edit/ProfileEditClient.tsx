@@ -3458,8 +3458,9 @@ export default function ProfileEditClient({
 
             {/* ── Section 2: ログイン情報 ───────────────────────────────────── */}
             <FormSection title="ログイン情報">
-              <FormGroup label="メールアドレス">
+              <FormGroup label="メールアドレス" htmlFor="pe-email">
                 <input
+                  id="pe-email"
                   type="email"
                   autoComplete="email"
                   value={authEmail}

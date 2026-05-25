@@ -88,6 +88,8 @@ export function BookmarkButton({
       onClick={toggle}
       disabled={loading}
       title={bookmarked ? "ブックマーク済み" : label}
+      aria-label={bookmarked ? "ブックマーク済み" : label}
+      aria-pressed={bookmarked}
       style={{
         width: 40,
         height: 40,

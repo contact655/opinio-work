@@ -152,6 +152,7 @@ function PhotoCard({
             <button
               type="button"
               title="並び替え"
+              aria-label="並び替え"
               style={{
                 width: 24, height: 24,
                 background: "rgba(255,255,255,0.9)",
@@ -171,6 +172,7 @@ function PhotoCard({
             <button
               type="button"
               title="削除"
+              aria-label="写真を削除"
               onClick={onDelete}
               style={{
                 width: 24, height: 24,
