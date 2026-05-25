@@ -180,13 +180,14 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
       )}
 
       {/* CTA */}
-      <div style={{ marginTop: "auto", paddingTop: 14, borderTop: "1px solid var(--line-soft, #F1F5F9)" }}>
+      <div style={{ marginTop: "auto", paddingTop: 14, borderTop: "1px solid var(--line-soft, #F1F5F9)", display: "flex", flexDirection: "column", gap: 8 }}>
+        {/* 相談する → 予約ページへ */}
         <Link
-          href={`/mentors/${mentor.id}`}
+          href={`/mentors/${mentor.id}/reserve`}
           prefetch={true}
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-            width: "100%", padding: "10px",
+            width: "100%", padding: "11px",
             background: "linear-gradient(135deg, #F59E0B, #D97706)",
             color: "#fff",
             border: "none",
@@ -201,6 +202,27 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
           相談する
+        </Link>
+        {/* プロフィール詳細 → 詳細ページへ */}
+        <Link
+          href={`/mentors/${mentor.id}`}
+          prefetch={true}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+            width: "100%", padding: "8px",
+            background: "transparent",
+            color: "var(--ink-soft)",
+            border: "1px solid var(--line)",
+            borderRadius: 8, textDecoration: "none",
+            fontSize: 12, fontWeight: 500,
+            transition: "border-color 0.15s, color 0.15s",
+          }}
+          className="mentor-profile-link"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          プロフィールを詳しく見る
         </Link>
       </div>
     </article>
@@ -446,6 +468,10 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
         .mentor-cta:hover {
           opacity: 0.88 !important;
           transform: translateY(-1px) !important;
+        }
+        .mentor-profile-link:hover {
+          border-color: var(--royal-100) !important;
+          color: var(--royal) !important;
         }
         .cta-card:hover {
           box-shadow: 0 12px 36px rgba(0,35,102,0.14), 0 2px 8px rgba(0,35,102,0.07) !important;
