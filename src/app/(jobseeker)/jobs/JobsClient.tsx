@@ -152,14 +152,15 @@ function JobCard({
         display: "flex",
         flexDirection: "column",
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 14,
-        padding: "18px 18px 16px",
+        border: "none",
+        borderRadius: 18,
+        padding: "20px 20px 16px",
         textDecoration: "none",
         position: "relative",
         overflow: "hidden",
-        boxShadow: "0 2px 8px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)",
-        transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 6px 20px rgba(15,23,42,0.07)",
+        transition: "box-shadow 0.24s cubic-bezier(0.22,1,0.36,1), transform 0.24s cubic-bezier(0.22,1,0.36,1)",
+        willChange: "transform",
       }}
       className="job-card-link"
     >
@@ -226,11 +227,11 @@ function JobCard({
         <div style={{ minWidth: 0 }}>
           <div
             style={{
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: 700,
               color: "var(--ink)",
               lineHeight: 1.4,
-              marginBottom: 4,
+              marginBottom: 5,
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
@@ -249,7 +250,7 @@ function JobCard({
           >
             <span
               style={{
-                fontSize: 11.5,
+                fontSize: 12,
                 color: "var(--royal)",
                 fontWeight: 600,
               }}
@@ -673,126 +674,111 @@ export default function JobsClient({
 
   return (
     <>
-      {/* Page header */}
-      <div
-        style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}
-      >
-        <div
-          style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
-          className="px-5 py-6 md:px-12"
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexShrink: 0 }}>
-              <h1
-                style={{
-                  fontFamily: 'var(--font-noto-serif)',
-                  fontSize: "clamp(22px,2.5vw,28px)",
-                  fontWeight: 500,
-                  color: "var(--ink)",
-                  letterSpacing: "0.02em",
-                }}
-              >
-                求人を、見つける。
-              </h1>
-              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "var(--ink-mute)" }}>
-                <strong style={{ color: "var(--royal)", fontSize: 18, fontWeight: 700 }}>
-                  {allJobs.length.toLocaleString()}
-                </strong>
-                件
-              </span>
-            </div>
-            {newThisWeek > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--ink-mute)" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
-                  <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-                </svg>
-                今週新着 <strong style={{ color: "var(--ink)" }}>{newThisWeek}件</strong>
-              </div>
-            )}
-          </div>
+      {/* ── Gradient hero header ── */}
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1e3a8a 100%)",
+        padding: "36px 0 32px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Background decorations */}
+        <div style={{ position: "absolute", right: -100, top: -100, width: 480, height: 480, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -60, bottom: -80, width: 320, height: 320, borderRadius: "50%", background: "rgba(255,255,255,0.025)", pointerEvents: "none" }} />
 
-          {/* ── Search bar ── */}
-          <div role="search" style={{ position: "relative", maxWidth: 520 }}>
-            <svg
-              width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="var(--ink-mute)" strokeWidth={2.2} strokeLinecap="round"
-              style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-            </svg>
-            <input
-              type="search"
-              aria-label="求人を検索"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="職種・企業名・スキルで検索…"
-              style={{
-                width: "100%",
-                padding: "10px 14px 10px 40px",
-                fontSize: 14,
-                border: "1.5px solid var(--line)",
-                borderRadius: 10,
-                outline: "none",
-                background: "#fff",
-                color: "var(--ink)",
-                boxSizing: "border-box",
-                transition: "border-color 0.15s",
-              }}
-              className="job-search-input"
-            />
-            {q && (
-              <button
-                type="button"
-                onClick={() => setQ("")}
-                style={{
-                  position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-                  background: "none", border: "none", cursor: "pointer",
-                  color: "var(--ink-mute)", fontSize: 16, padding: "4px",
-                }}
-              >
-                ×
-              </button>
-            )}
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "0 20px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.65)", marginBottom: 10, textTransform: "uppercase" as const }}>
+                JOBS
+              </div>
+              <h1 style={{
+                fontFamily: "var(--font-noto-serif)",
+                fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
+                color: "#fff", margin: 0, lineHeight: 1.4, marginBottom: 18,
+              }}>
+                IT/SaaS 求人を探す
+              </h1>
+              {/* Stats chips */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8l-2 4h12z"/></svg>
+                  {allJobs.length}件掲載中
+                </span>
+                {newThisWeek > 0 && (
+                  <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    今週{newThisWeek}件新着
+                  </span>
+                )}
+                <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  ✓ 全社カジュアル面談受付中
+                </span>
+              </div>
+
+              {/* ── Search bar in hero ── */}
+              <div role="search" style={{ position: "relative", maxWidth: 560 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2.2} strokeLinecap="round" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} aria-hidden="true">
+                  <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+                <input
+                  type="search"
+                  aria-label="求人を検索"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="職種・企業名・スキルで検索…"
+                  style={{
+                    width: "100%",
+                    padding: "13px 14px 13px 44px",
+                    fontSize: 14,
+                    border: "none",
+                    borderRadius: 10,
+                    outline: "none",
+                    background: "rgba(255,255,255,0.97)",
+                    color: "var(--ink)",
+                    boxSizing: "border-box" as const,
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+                  }}
+                  className="job-search-input"
+                />
+                {q && (
+                  <button type="button" onClick={() => setQ("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 16, padding: "4px" }}>×</button>
+                )}
+              </div>
+            </div>
+
+            <Link href="/companies" style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "9px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+              background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)",
+              border: "1px solid rgba(255,255,255,0.22)", textDecoration: "none",
+              flexShrink: 0, alignSelf: "flex-start", marginTop: 4,
+            }}>
+              企業を見る →
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Category pills */}
-      <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
-        <div
-          style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
-          className="px-5 md:px-12"
-        >
-          <div
-            style={{
-              padding: "10px 0",
-              display: "flex",
-              gap: 8,
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
-            {/* すべて */}
+      {/* ── Category pills bar ── */}
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "0 20px" }}>
+          <div style={{ padding: "10px 0", display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
             <button
               type="button"
               onClick={() => setParam("category", "")}
               style={{
-                padding: "6px 16px",
-                borderRadius: 999,
+                padding: "6px 16px", borderRadius: 999,
                 border: `1.5px solid ${!category ? "var(--royal)" : "var(--line)"}`,
                 background: !category ? "var(--royal)" : "#fff",
                 color: !category ? "#fff" : "var(--ink-soft)",
-                fontSize: 13,
-                fontWeight: !category ? 600 : 400,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
+                fontSize: 13, fontWeight: !category ? 700 : 400,
+                cursor: "pointer", whiteSpace: "nowrap",
                 transition: "background 0.12s, border-color 0.12s, color 0.12s",
+                fontFamily: "inherit",
               }}
             >
               すべて
             </button>
-
             {parentRoles.map((role) => {
               const active = category === role.id;
               return (
@@ -801,16 +787,14 @@ export default function JobsClient({
                   key={role.id}
                   onClick={() => setParam("category", role.id)}
                   style={{
-                    padding: "6px 16px",
-                    borderRadius: 999,
+                    padding: "6px 16px", borderRadius: 999,
                     border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
                     background: active ? "var(--royal)" : "#fff",
                     color: active ? "#fff" : "var(--ink-soft)",
-                    fontSize: 13,
-                    fontWeight: active ? 600 : 400,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
+                    fontSize: 13, fontWeight: active ? 700 : 400,
+                    cursor: "pointer", whiteSpace: "nowrap",
                     transition: "background 0.12s, border-color 0.12s, color 0.12s",
+                    fontFamily: "inherit",
                   }}
                 >
                   {role.name}
@@ -1053,7 +1037,7 @@ export default function JobsClient({
       </div>
 
       {/* Grid */}
-      <main style={{ background: "var(--bg-tint)" }}>
+      <main style={{ background: "#f0f4f8" }}>
         <div
           style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
           className="px-5 py-8 md:px-12 md:py-10"
@@ -1156,9 +1140,16 @@ export default function JobsClient({
 
       <style>{`
         .job-card-link:hover {
-          border-color: var(--royal-100) !important;
-          box-shadow: 0 6px 16px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.08) !important;
+          box-shadow: 0 12px 36px rgba(0,35,102,0.18), 0 2px 8px rgba(0,35,102,0.08) !important;
+          transform: translateY(-5px) !important;
+        }
+        .job-card-link:active {
+          box-shadow: 0 4px 12px rgba(15,23,42,0.10) !important;
           transform: translateY(-2px) !important;
+          transition-duration: 0.06s !important;
+        }
+        .job-search-input:focus {
+          box-shadow: 0 0 0 3px rgba(0,35,102,0.12) !important;
         }
       `}</style>
     </>
