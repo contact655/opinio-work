@@ -250,6 +250,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     fit_negatives: Array.isArray(row.fit_negatives) && (row.fit_negatives as string[]).length > 0
       ? (row.fit_negatives as string[])
       : null,
+    show_fit_negatives: (row.show_fit_negatives as boolean | null) ?? false,
     // Why join — separate from description/about
     why_join: (() => {
       const wj = row.why_join as string | null | undefined;
@@ -407,8 +408,8 @@ const COMPANY_DETAIL_COLS = [
   // Benefits section (Commit BB)
   "nearest_station", "work_time_system", "workstyle_description",
   "benefits", "evaluation_system",
-  // Fit section (Migration 115 で追加)
-  "fit_positives", "fit_negatives",
+  // Fit section
+  "fit_positives", "fit_negatives", "show_fit_negatives",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {
