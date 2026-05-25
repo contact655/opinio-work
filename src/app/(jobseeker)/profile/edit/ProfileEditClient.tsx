@@ -2866,6 +2866,7 @@ export default function ProfileEditClient({
                 ].map(({ tab, label }) => (
                   <button
                     key={tab}
+                    type="button"
                     onClick={() => setActiveTab(tab)}
                     style={{
                       padding: "4px 12px", borderRadius: 100,
@@ -2881,6 +2882,7 @@ export default function ProfileEditClient({
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setWelcomeDismissed(true)}
               aria-label="バナーを閉じる"
               style={{
