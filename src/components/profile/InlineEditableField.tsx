@@ -61,6 +61,7 @@ export default function InlineEditableField({
   onSave,
   type = "text",
   placeholder,
+  label,
   maxLength,
   options,
   required,
