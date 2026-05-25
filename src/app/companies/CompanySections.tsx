@@ -273,6 +273,7 @@ function Carousel({
     <div className="relative group/carousel">
       {canLeft && (
         <button
+          type="button"
           onClick={() => slide("left")}
           className="absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity"
           style={{ border: "0.5px solid #e5e7eb" }}
@@ -284,6 +285,7 @@ function Carousel({
       )}
       {canRight && (
         <button
+          type="button"
           onClick={() => slide("right")}
           className="absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity"
           style={{ border: "0.5px solid #e5e7eb" }}

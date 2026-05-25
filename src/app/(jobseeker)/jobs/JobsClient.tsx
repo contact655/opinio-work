@@ -463,6 +463,7 @@ function Pagination({
       }}
     >
       <button
+        type="button"
         onClick={() => onPage(current - 1)}
         disabled={current === 1}
         aria-label="前のページへ"
@@ -481,6 +482,7 @@ function Pagination({
       </button>
       {pages.map((p) => (
         <button
+          type="button"
           key={p}
           onClick={() => onPage(p)}
           aria-label={`${p}ページ目`}
@@ -501,6 +503,7 @@ function Pagination({
         </button>
       ))}
       <button
+        type="button"
         onClick={() => onPage(current + 1)}
         disabled={current === total}
         aria-label="次のページへ"
@@ -739,6 +742,7 @@ export default function JobsClient({
             />
             {q && (
               <button
+                type="button"
                 onClick={() => setQ("")}
                 style={{
                   position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
@@ -770,6 +774,7 @@ export default function JobsClient({
           >
             {/* すべて */}
             <button
+              type="button"
               onClick={() => setParam("category", "")}
               style={{
                 padding: "6px 16px",
@@ -791,6 +796,7 @@ export default function JobsClient({
               const active = category === role.id;
               return (
                 <button
+                  type="button"
                   key={role.id}
                   onClick={() => setParam("category", role.id)}
                   style={{
@@ -845,6 +851,7 @@ export default function JobsClient({
               const isActive = work_style === ws;
               return (
                 <button
+                  type="button"
                   key={ws}
                   onClick={() => setParam("work_style", isActive ? "" : ws)}
                   style={{
@@ -971,6 +978,7 @@ export default function JobsClient({
 
             {hasFilter && (
               <button
+                type="button"
                 onClick={() => {
                   setQ("");
                   router.replace("/jobs");

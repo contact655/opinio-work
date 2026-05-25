@@ -139,6 +139,7 @@ export default function MypageLayout({
             { label: "メンター登録済み", value: true },
           ].map((opt) => (
             <button
+              type="button"
               key={String(opt.value)}
               onClick={() => handleSetIsMentor(opt.value)}
               style={{

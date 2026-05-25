@@ -153,6 +153,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
             />
             {q && (
               <button
+                type="button"
                 onClick={() => setQ("")}
                 aria-label="検索をクリア"
                 style={{
@@ -225,6 +226,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
             </span>
             {activeFilterCount > 0 && (
               <button
+                type="button"
                 onClick={clearAllFilters}
                 style={{
                   fontSize: 11, padding: "4px 10px", borderRadius: 6,
@@ -244,6 +246,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
           <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>企業フェーズ:</span>
           {["", ...PHASE_OPTIONS].map((v) => (
             <button
+              type="button"
               key={v || "all"}
               onClick={() => setPhase(v)}
               aria-pressed={phase === v}
@@ -264,6 +267,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
           <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginLeft: 8 }}>転職時期:</span>
           {["", ...TRANSFER_TIMING_OPTIONS.map((o) => o.value)].map((v) => (
             <button
+              type="button"
               key={v || "all"}
               onClick={() => setTransferTiming(v)}
               aria-pressed={transferTiming === v}
@@ -282,6 +286,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
           ))}
 
           <button
+            type="button"
             onClick={() => setMentorOnly(!mentorOnly)}
             style={{
               height: 28, padding: "0 12px", borderRadius: 14, marginLeft: 8,

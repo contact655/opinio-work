@@ -79,6 +79,7 @@ function Lightbox({
     >
       {/* Close */}
       <button
+        type="button"
         onClick={onClose}
         style={{
           position: "absolute", top: 16, right: 16,
@@ -132,6 +133,7 @@ function Lightbox({
       {/* Prev */}
       {idx > 0 && (
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); setIdx(idx - 1); }}
           style={{
             position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
@@ -147,6 +149,7 @@ function Lightbox({
       {/* Next */}
       {idx < photos.length - 1 && (
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); setIdx(idx + 1); }}
           style={{
             position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
@@ -253,6 +256,7 @@ function PhotoStrip({
       >
         {/* 左矢印 */}
         <button
+          type="button"
           style={arrowStyle(canLeft, "left")}
           onClick={() => scroll("left")}
           aria-label="前の写真へ"
@@ -302,6 +306,7 @@ function PhotoStrip({
 
         {/* 右矢印 */}
         <button
+          type="button"
           style={arrowStyle(canRight, "right")}
           onClick={() => scroll("right")}
           aria-label="次の写真へ"

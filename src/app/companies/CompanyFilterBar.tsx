@@ -41,6 +41,7 @@ function Dropdown({
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         style={{
           display: "inline-flex", alignItems: "center", gap: 6,
@@ -77,6 +78,7 @@ function Dropdown({
             {/* Clear option */}
             {hasValue && (
               <button
+                type="button"
                 onClick={() => { onSelect(null); setOpen(false); }}
                 style={{
                   padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500,
@@ -89,6 +91,7 @@ function Dropdown({
             )}
             {options.map((opt) => (
               <button
+                type="button"
                 key={opt}
                 onClick={() => { onSelect(opt); setOpen(false); }}
                 style={{
@@ -149,6 +152,7 @@ export default function CompanyFilterBar({ total }: { total: number }) {
 
           {/* Quick filter: 面談受付中 */}
           <button
+            type="button"
             onClick={() => updateParam("meeting", meeting === "1" ? null : "1")}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
@@ -198,6 +202,7 @@ export default function CompanyFilterBar({ total }: { total: number }) {
           {/* Clear all */}
           {hasAnyFilter && (
             <button
+              type="button"
               onClick={() => router.push(pathname)}
               style={{
                 padding: "8px 12px", borderRadius: 100, fontSize: 12, fontWeight: 500,

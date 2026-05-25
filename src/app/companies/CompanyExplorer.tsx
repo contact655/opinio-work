@@ -128,6 +128,7 @@ function TagButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="transition-all whitespace-nowrap"
       style={
@@ -611,6 +612,7 @@ function SectionCarousel({ section }: { section: SectionDef }) {
           <span className="text-[12px] text-gray-600">{section.companies.length}社</span>
           <div className="flex items-center gap-1 ml-1">
             <button
+              type="button"
               onClick={() => slide("left")}
               disabled={!canLeft}
               className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
@@ -626,6 +628,7 @@ function SectionCarousel({ section }: { section: SectionDef }) {
               </svg>
             </button>
             <button
+              type="button"
               onClick={() => slide("right")}
               disabled={!canRight}
               className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
@@ -668,6 +671,7 @@ function SectionCarousel({ section }: { section: SectionDef }) {
         <div className="flex items-center justify-center gap-1.5 mt-3">
           {Array.from({ length: totalPages }).map((_, i) => (
             <button
+              type="button"
               key={i}
               onClick={() => jumpToPage(i)}
               className="rounded-full transition-all"
@@ -901,6 +905,7 @@ export default function CompanyExplorer({
           >
             {(["list", "grid", "grid5", "section"] as const).map((v, i) => (
               <button
+                type="button"
                 key={v}
                 onClick={() => handleViewChange(v)}
                 className="p-1.5 transition-colors"
@@ -973,6 +978,7 @@ export default function CompanyExplorer({
             該当する企業が見つかりませんでした
           </p>
           <button
+            type="button"
             onClick={() => {
               setQuery("");
               setIndustry("すべて");

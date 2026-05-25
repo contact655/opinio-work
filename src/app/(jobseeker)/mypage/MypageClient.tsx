@@ -845,6 +845,7 @@ function MentorRequestsView({
                 </div>
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                   <button
+                    type="button"
                     onClick={() => onDecline(r.id)}
                     style={{
                       padding: "7px 14px", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
@@ -854,7 +855,9 @@ function MentorRequestsView({
                   >
                     見送る
                   </button>
-                  <button style={{
+                  <button
+                    type="button"
+                    style={{
                     padding: "7px 14px", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
                     borderRadius: 7, cursor: "pointer",
                     border: "1px solid var(--line)", background: "#fff", color: "var(--ink)",
@@ -862,6 +865,7 @@ function MentorRequestsView({
                     詳細を見る
                   </button>
                   <button
+                    type="button"
                     onClick={() => onApprove(r.id)}
                     style={{
                       padding: "7px 14px", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
@@ -1072,6 +1076,7 @@ export default function MypageClient({
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>最近の申込</span>
           <button
+            type="button"
             onClick={() => navigate("casual")}
             style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, border: "none", background: "none", cursor: "pointer" }}
           >
@@ -1117,6 +1122,7 @@ export default function MypageClient({
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>ブックマーク</span>
           <button
+            type="button"
             onClick={() => navigate("bookmarks")}
             style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, border: "none", background: "none", cursor: "pointer" }}
           >

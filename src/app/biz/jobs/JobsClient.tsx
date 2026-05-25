@@ -187,6 +187,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
             const isRejected = tab.status === "rejected";
             return (
               <button
+                type="button"
                 key={tab.status}
                 onClick={() => setActiveStatus(tab.status)}
                 aria-pressed={isActive}
@@ -257,6 +258,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery("")}
               aria-label="検索をクリア"
               style={{
@@ -303,6 +305,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
                   </span>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
+                      type="button"
                       onClick={() => setPendingDeleteId(null)}
                       style={{
                         padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
@@ -313,6 +316,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
                       キャンセル
                     </button>
                     <button
+                      type="button"
                       onClick={() => confirmDelete(job.id)}
                       style={{
                         padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,

@@ -91,6 +91,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         </p>
       </div>
       <button
+        type="button"
         onClick={onAdd}
         style={{
           display: "inline-flex", alignItems: "center", gap: 6,
@@ -298,6 +299,7 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
           </div>
           {!showForm && (
             <button
+              type="button"
               onClick={openNewForm}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
@@ -331,6 +333,7 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
               {editingId ? "発信リンクを編集" : "新しい発信リンクを追加"}
             </h2>
             <button
+              type="button"
               onClick={closeForm}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -366,6 +369,7 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
                 }}
               />
               <button
+                type="button"
                 onClick={handleFetchOgp}
                 disabled={ogpFetching || !url.trim()}
                 style={{
@@ -555,6 +559,7 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
           {/* アクションボタン */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
             <button
+              type="button"
               onClick={closeForm}
               disabled={isPending}
               style={{
@@ -567,6 +572,7 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
               キャンセル
             </button>
             <button
+              type="button"
               onClick={handleSave}
               disabled={isPending || !url.trim() || !title.trim()}
               style={{
@@ -638,6 +644,7 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
                   </span>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
+                      type="button"
                       onClick={() => setPendingDeleteId(null)}
                       style={{
                         padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
@@ -648,6 +655,7 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
                       キャンセル
                     </button>
                     <button
+                      type="button"
                       onClick={() => confirmDelete(post.id)}
                       style={{
                         padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
@@ -798,6 +806,7 @@ function PostCard({
           <ExternalLink size={14} strokeWidth={2} />
         </a>
         <button
+          type="button"
           onClick={onEdit}
           disabled={isPending}
           title="編集"
@@ -819,6 +828,7 @@ function PostCard({
           <Edit2 size={14} strokeWidth={2} />
         </button>
         <button
+          type="button"
           onClick={onDelete}
           disabled={isPending}
           title="削除"
