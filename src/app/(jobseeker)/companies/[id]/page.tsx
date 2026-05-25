@@ -146,6 +146,8 @@ function Hero({
                 borderRadius: 18,
                 flexShrink: 0,
                 marginTop: -52,
+                position: "relative",
+                zIndex: 1,
                 background: company.logo_url ? "#fff" : company.gradient,
                 border: "4px solid #fff",
                 display: "flex",
