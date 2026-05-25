@@ -46,6 +46,7 @@ function Dropdown({ label, options, paramKey: _paramKey, value, onSelect }: {
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-label={value ? `${label}: ${value}（変更）` : `${label}で絞り込む`}
@@ -85,6 +86,7 @@ function Dropdown({ label, options, paramKey: _paramKey, value, onSelect }: {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
             {hasValue && (
               <button
+                type="button"
                 onClick={() => { onSelect(null); setOpen(false); }}
                 style={{
                   padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500,
@@ -97,6 +99,7 @@ function Dropdown({ label, options, paramKey: _paramKey, value, onSelect }: {
             )}
             {options.map((opt) => (
               <button
+                type="button"
                 key={opt}
                 onClick={() => { onSelect(opt); setOpen(false); }}
                 style={{
@@ -195,6 +198,7 @@ export default function MentorFilterBar({ total }: { total: number }) {
             />
             {localQ && (
               <button
+                type="button"
                 onClick={() => handleQueryChange("")}
                 aria-label="検索をクリア"
                 style={{ position: "absolute", right: 11, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: INK_MUTE, fontSize: 14, lineHeight: 1, padding: 0 }}
@@ -226,6 +230,7 @@ export default function MentorFilterBar({ total }: { total: number }) {
 
           {hasAnyFilter && (
             <button
+              type="button"
               onClick={() => { setLocalQ(""); router.push(pathname); }}
               style={{
                 padding: "8px 12px", borderRadius: 100, fontSize: 12, fontWeight: 500,
@@ -245,6 +250,7 @@ export default function MentorFilterBar({ total }: { total: number }) {
 
           {/* Sort toggle: default ↔ success_count */}
           <button
+            type="button"
             onClick={() => updateParam("sort", sort === "sessions" ? null : "sessions")}
             aria-pressed={sort === "sessions"}
             style={{
@@ -276,6 +282,7 @@ export default function MentorFilterBar({ total }: { total: number }) {
             const isActive = value === null ? !theme : theme === value;
             return (
               <button
+                type="button"
                 key={label}
                 onClick={() => updateParam("theme", value)}
                 aria-pressed={isActive}

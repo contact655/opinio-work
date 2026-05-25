@@ -152,6 +152,7 @@ function FilterChip({
 
   return (
     <button
+      type="button"
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -561,6 +562,7 @@ export default function CareerConsultationClient({
             </span>
             {worryFilter !== "all" && (
               <button
+                type="button"
                 onClick={() => setWorryFilter("all")}
                 style={{ fontSize: 12, fontWeight: 500, color: "#1D9E75", background: "none", border: "none", cursor: "pointer" }}
               >
@@ -573,7 +575,9 @@ export default function CareerConsultationClient({
           <div style={{ display: "flex", gap: 4 }}>
             {/* 3列 */}
             <button
+              type="button"
               onClick={() => handleLayout("grid3")}
+              aria-pressed={layout === "grid3"}
               aria-label="3列表示"
               style={{
                 width: 32, height: 28, borderRadius: 6, cursor: "pointer",
@@ -590,7 +594,9 @@ export default function CareerConsultationClient({
             </button>
             {/* 2列 */}
             <button
+              type="button"
               onClick={() => handleLayout("grid")}
+              aria-pressed={layout === "grid"}
               aria-label="2列表示"
               style={{
                 width: 32, height: 28, borderRadius: 6, cursor: "pointer",
@@ -607,7 +613,9 @@ export default function CareerConsultationClient({
             </button>
             {/* 1列 */}
             <button
+              type="button"
               onClick={() => handleLayout("list")}
+              aria-pressed={layout === "list"}
               aria-label="1列表示"
               style={{
                 width: 32, height: 28, borderRadius: 6, cursor: "pointer",
@@ -652,6 +660,7 @@ export default function CareerConsultationClient({
             </div>
             <p className="text-gray-600 text-[14px] mb-2">該当するメンターが見つかりませんでした</p>
             <button
+              type="button"
               onClick={() => setWorryFilter("all")}
               style={{ fontSize: 13, fontWeight: 500, color: "#1D9E75", background: "none", border: "none", cursor: "pointer" }}
             >

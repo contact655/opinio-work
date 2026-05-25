@@ -337,6 +337,8 @@ function Hero({ stats }: { stats: SiteStats }) {
           {/* Quick search bar */}
           <div style={{ marginTop: 32 }}>
             <form
+              role="search"
+              aria-label="求人・企業を検索"
               onSubmit={(e) => {
                 e.preventDefault();
                 const q = (e.currentTarget.querySelector('input') as HTMLInputElement).value.trim();
@@ -393,6 +395,8 @@ function Hero({ stats }: { stats: SiteStats }) {
               {["フルリモート", "カスタマーサクセス", "プロダクトマネージャー", "副業OK"].map((tag) => (
                 <button
                   key={tag}
+                  type="button"
+                  aria-label={`${tag}で検索`}
                   onClick={() => router.push(`/jobs?q=${encodeURIComponent(tag)}`)}
                   style={{
                     fontSize: 11, padding: "4px 10px", borderRadius: 100,

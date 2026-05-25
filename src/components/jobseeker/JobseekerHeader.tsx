@@ -390,6 +390,8 @@ export function JobseekerHeader() {
               <input
                 ref={searchInputRef}
                 type="search"
+                aria-label="企業・職種・スキル・メンターを検索"
+                aria-autocomplete="list"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="企業・職種・スキル・メンターを検索..."
@@ -401,9 +403,9 @@ export function JobseekerHeader() {
                 }}
               />
               {searchQuery && (
-                <button type="button" onClick={() => { setSearchQuery(""); setSuggestions(null); searchInputRef.current?.focus(); }}
+                <button type="button" aria-label="検索をクリア" onClick={() => { setSearchQuery(""); setSuggestions(null); searchInputRef.current?.focus(); }}
                   style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--ink-mute)", flexShrink: 0 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
               )}
               <button type="submit" style={{
@@ -540,6 +542,7 @@ export function JobseekerHeader() {
       {/* Mobile drawer overlay */}
       {mobileMenuOpen && (
         <div
+          aria-hidden="true"
           style={{
             position: "fixed", inset: 0, zIndex: 99,
             background: "rgba(0,0,0,0.25)",
@@ -550,6 +553,10 @@ export function JobseekerHeader() {
 
       {/* Mobile drawer */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="ナビゲーションメニュー"
+        aria-hidden={!mobileMenuOpen}
         className="md:hidden"
         style={{
           position: "fixed", top: 60, right: 0, bottom: 0, zIndex: 100,

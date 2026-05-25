@@ -238,6 +238,7 @@ function Pagination({ current, total, onChange }: {
   return (
     <div style={{ display: "flex", gap: 6, justifyContent: "center", paddingTop: 48 }}>
       <button
+        type="button"
         onClick={() => onChange(current - 1)}
         disabled={current <= 1}
         aria-label="前のページへ"
@@ -248,6 +249,7 @@ function Pagination({ current, total, onChange }: {
 
       {Array.from({ length: total }, (_, i) => i + 1).map((p) => (
         <button
+          type="button"
           key={p}
           onClick={() => onChange(p)}
           aria-label={`${p}ページ目`}
@@ -265,6 +267,7 @@ function Pagination({ current, total, onChange }: {
       ))}
 
       <button
+        type="button"
         onClick={() => onChange(current + 1)}
         disabled={current >= total}
         aria-label="次のページへ"
@@ -455,6 +458,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             />
             {q && (
               <button
+                type="button"
                 onClick={() => setQ("")}
                 aria-label="検索をクリア"
                 style={{
@@ -471,6 +475,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
 
           {/* 面談受付中 chip */}
           <button
+            type="button"
             onClick={() => setParam("hiring", hiring ? "" : "1")}
             aria-pressed={hiring}
             style={{
@@ -498,6 +503,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
 
           {/* 詳細フィルター toggle */}
           <button
+            type="button"
             onClick={() => setShowMoreFilters((v) => !v)}
             style={{
               height: 38, padding: "0 12px", borderRadius: 8, fontSize: 13, fontWeight: 500,
@@ -560,6 +566,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
 
             {/* Layout toggle buttons */}
             <button
+              type="button"
               onClick={() => setLayout("grid")}
               aria-label="3 列で表示"
               style={{
@@ -575,6 +582,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
               <LayoutGrid size={16} strokeWidth={2} />
             </button>
             <button
+              type="button"
               onClick={() => setLayout("list")}
               aria-label="1 列で表示"
               style={{
@@ -631,6 +639,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           </div>
           {hasFilters && (
             <button
+              type="button"
               onClick={() => { setQ(""); router.replace("/companies"); }}
               style={{
                 fontSize: 12, color: "var(--ink-mute)", background: "none",

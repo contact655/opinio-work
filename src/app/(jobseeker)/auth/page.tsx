@@ -193,6 +193,7 @@ function AuthPageInner() {
                 メール内のリンクをクリックして登録を完了してください。
               </p>
               <button
+                type="button"
                 onClick={() => { setDone(false); setMode("login"); }}
                 style={{ ...styles.submitBtn, width: "auto", padding: "10px 28px" }}
               >
@@ -225,12 +226,14 @@ function AuthPageInner() {
           {/* モード切替タブ */}
           <div style={styles.modeTabs}>
             <button
+              type="button"
               style={{ ...styles.modeTab, ...(mode === "signup" ? styles.modeTabActive : {}) }}
               onClick={() => setMode("signup")}
             >
               新規登録
             </button>
             <button
+              type="button"
               style={{ ...styles.modeTab, ...(mode === "login" ? styles.modeTabActive : {}) }}
               onClick={() => setMode("login")}
             >
