@@ -196,8 +196,8 @@ export function CompanyCardCompact({ company }: Props) {
               <Users size={11} strokeWidth={2} color="#16a34a" />
               <span style={{ color: '#15803d' }}>
                 社員 {company.current_member_count}名
-                {company.obog_count > 0 && <span style={{ color: '#86efac', fontWeight: 400 }}> + OB {company.obog_count}名</span>}
-                <span style={{ color: '#86efac', fontWeight: 400 }}> 公開中</span>
+                {company.obog_count > 0 && <span style={{ color: '#16a34a', fontWeight: 500 }}> + OB {company.obog_count}名</span>}
+                <span style={{ color: '#16a34a', fontWeight: 500 }}> 公開中</span>
               </span>
             </div>
           ) : (
