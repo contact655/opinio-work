@@ -428,7 +428,7 @@ export default function ReserveForm({
                       transition: "all 0.15s",
                     }}
                   >
-                    {active && <span style={{ fontSize: 10 }}>✓</span>}
+                    {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>}
                     {theme}
                   </button>
                 );
@@ -642,6 +642,7 @@ export default function ReserveForm({
             <input
               id="reserve-email"
               type="email"
+              autoComplete="email"
               value={userEmail}
               readOnly
               style={{

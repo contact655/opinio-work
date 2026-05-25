@@ -64,8 +64,11 @@ function Dropdown({ label, options, paramKey: _paramKey, value, onSelect }: {
         {hasValue && (
           <span style={{
             background: ROYAL, color: "#fff", fontSize: 10, fontWeight: 700,
-            padding: "1px 5px", borderRadius: 100, lineHeight: 1.4,
-          }}>✓</span>
+            padding: "2px 5px", borderRadius: 100, lineHeight: 1,
+            display: "inline-flex", alignItems: "center",
+          }}>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+          </span>
         )}
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
           <path d="M19 9l-7 7-7-7" />

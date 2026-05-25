@@ -3459,6 +3459,7 @@ export default function ProfileEditClient({
               <FormGroup label="メールアドレス">
                 <input
                   type="email"
+                  autoComplete="email"
                   value={authEmail}
                   readOnly
                   style={{ ...inputStyle(), background: "var(--bg-tint)", color: "var(--ink-soft)", cursor: "default" }}

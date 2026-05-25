@@ -824,7 +824,7 @@ function InfraSection() {
                         color: c.on ? "#fff" : "var(--ink-soft)",
                         border: c.on ? "none" : "1.5px solid var(--line)",
                       }}>
-                        {c.on && <span style={{ fontSize: 10 }}>✓</span>}
+                        {c.on && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>}
                         {c.t}
                       </span>
                     ))}

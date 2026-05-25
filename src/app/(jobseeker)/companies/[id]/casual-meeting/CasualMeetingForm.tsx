@@ -338,6 +338,7 @@ export default function CasualMeetingForm({
             <input
               id="cm-contact-email"
               type="email"
+              autoComplete="email"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
               placeholder="your@email.com"

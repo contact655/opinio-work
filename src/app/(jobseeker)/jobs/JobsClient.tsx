@@ -305,8 +305,15 @@ function JobCard({
             const isHybrid = tag.includes("ハイブリッド");
             const isLocation = /都|道|府|県/.test(tag) || tag === "全国";
             const isWorkStyle = isRemote || isOffice || isHybrid;
-            // 🔀 はサポートが不安定なため 🏡 (ハイブリッド) に変更
-            const icon = isRemote ? "🏠" : isOffice ? "🏢" : isHybrid ? "🏡" : isLocation ? "📍" : "";
+            const iconEl = isRemote ? (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            ) : isOffice ? (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            ) : isHybrid ? (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            ) : isLocation ? (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            ) : null;
             return (
               <span
                 key={tag}
@@ -335,9 +342,7 @@ function JobCard({
                   fontWeight: isWorkStyle ? 600 : 500,
                 }}
               >
-                {icon && (
-                  <span style={{ fontSize: 11, lineHeight: 1 }}>{icon}</span>
-                )}
+                {iconEl}
                 {tag}
               </span>
             );
