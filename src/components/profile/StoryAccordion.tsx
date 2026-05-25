@@ -1123,6 +1123,7 @@ function StoryForm({
         <div>
           <label style={labelStyle()}>セクション（任意）</label>
           <select
+            aria-label="セクション（任意）"
             value={draft.section_id ?? ""}
             onChange={(e) =>
               onDraftChange({ ...draft, section_id: e.target.value || null })

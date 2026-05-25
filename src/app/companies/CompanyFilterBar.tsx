@@ -220,6 +220,7 @@ export default function CompanyFilterBar({ total }: { total: number }) {
             <strong style={{ color: ROYAL, fontSize: 15 }}>{total}</strong> 社
           </span>
           <select
+            aria-label="並び順"
             value={sort}
             onChange={(e) => updateParam("sort", e.target.value === "updated" ? null : e.target.value)}
             style={{

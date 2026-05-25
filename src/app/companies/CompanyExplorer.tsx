@@ -888,6 +888,7 @@ export default function CompanyExplorer({
         </div>
         <div className="flex items-center gap-3">
           <select
+            aria-label="並び順"
             value={sort}
             onChange={(e) => setSort(e.target.value)}
             className="text-[12px] text-gray-500 bg-transparent outline-none cursor-pointer pr-1"

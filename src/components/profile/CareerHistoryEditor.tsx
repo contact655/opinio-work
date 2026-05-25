@@ -577,6 +577,7 @@ function StintForm({
       <div>
         <label style={labelStyle()}>役職カテゴリ *</label>
         <select
+          aria-label="役職カテゴリ"
           value={draft.roleCategoryId}
           onChange={(e) => set("roleCategoryId", e.target.value)}
           disabled={isSaving}

@@ -257,6 +257,7 @@ export default function InlineEditableField({
         ) : type === "select" ? (
           <select
             ref={selectRef}
+            aria-label={label ?? placeholder ?? "選択してください"}
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
