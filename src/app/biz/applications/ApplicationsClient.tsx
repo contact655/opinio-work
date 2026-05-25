@@ -246,6 +246,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
           return (
             <button
               key={tab.status}
+              type="button"
               role="tab"
               aria-selected={isActive}
               onClick={() => {
@@ -304,6 +305,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
               return (
                 <button
                   key={app.id}
+                  type="button"
                   onClick={() => setSelectedId(app.id)}
                   className={isSelected ? undefined : "app-row"}
                   style={{

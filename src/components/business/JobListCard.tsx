@@ -33,6 +33,7 @@ function ActionBtn({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={!onClick}
       title={!onClick ? "この機能は現在準備中です" : undefined}
@@ -61,6 +62,7 @@ function ActionBtn({
 function IconBtn({ title, isDelete, onClick }: { title: string; isDelete?: boolean; onClick?: () => void }) {
   return (
     <button
+      type="button"
       title={!onClick ? `${title}（準備中）` : title}
       onClick={onClick}
       disabled={!onClick}

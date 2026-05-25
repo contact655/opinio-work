@@ -25,6 +25,7 @@ type Props = {
 function IconBtn({ children, onClick, disabled, ariaLabel, title }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; ariaLabel?: string; title?: string }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
@@ -82,6 +83,7 @@ function ActionBtn({
   };
   return (
     <button
+      type="button"
       onClick={onClick}
       style={styles[variant]}
       onMouseEnter={(e) => {
@@ -300,6 +302,7 @@ export function MeetingDetailPanel({
               本当に見送りますか？
             </span>
             <button
+              type="button"
               onClick={() => { setDeclineConfirming(false); onStatusChange?.("declined"); }}
               style={{
                 padding: "4px 10px", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
@@ -310,6 +313,7 @@ export function MeetingDetailPanel({
               見送る
             </button>
             <button
+              type="button"
               onClick={() => setDeclineConfirming(false)}
               style={{
                 padding: "4px 10px", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
@@ -377,6 +381,7 @@ export function MeetingDetailPanel({
               </div>
               <div style={{ flex: 1 }} />
               <button
+                type="button"
                 disabled
                 title="この機能は現在準備中です"
                 style={{
@@ -404,6 +409,7 @@ export function MeetingDetailPanel({
                 <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>まだ対応者がいません</span>
               </div>
               <button
+                type="button"
                 onClick={onAssignToMe}
                 style={{
                   padding: "8px 14px",

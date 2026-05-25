@@ -836,7 +836,7 @@ export function JobEditForm({
               fontSize: 13, color: "var(--error)", fontWeight: 600,
             }} role="alert">
               <span>⚠ {errorMessage}</span>
-              <button onClick={() => setErrorMessage(null)} style={{
+              <button type="button" onClick={() => setErrorMessage(null)} style={{
                 background: "none", border: "none", cursor: "pointer",
                 color: "var(--error)", fontSize: 16, padding: "0 4px",
               }}>×</button>
