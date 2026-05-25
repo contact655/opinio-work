@@ -21,6 +21,7 @@ export function BackToTop() {
 
   return (
     <button
+      type="button"
       onClick={scrollToTop}
       aria-label="ページトップへ戻る"
       style={{

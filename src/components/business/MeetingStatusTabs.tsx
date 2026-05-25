@@ -36,6 +36,7 @@ export function MeetingStatusTabs({ counts, activeStatus, onStatusChange }: Prop
         const cfg = STATUS_COLORS[status];
         return (
           <button
+            type="button"
             key={status}
             role="tab"
             aria-selected={active}

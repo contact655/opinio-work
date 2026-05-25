@@ -94,6 +94,7 @@ export default function ProfileSetupPage() {
               >
                 {JOB_TYPES.map((type) => (
                   <button
+                    type="button"
                     key={type}
                     onClick={() => setJobTypes(toggleItem(jobTypes, type))}
                     style={{
@@ -114,6 +115,7 @@ export default function ProfileSetupPage() {
                 ))}
               </div>
               <button
+                type="button"
                 onClick={() => setStep(2)}
                 disabled={jobTypes.length === 0}
                 style={{
@@ -153,6 +155,7 @@ export default function ProfileSetupPage() {
               >
                 {LOCATIONS.map((loc) => (
                   <button
+                    type="button"
                     key={loc}
                     onClick={() => setLocations(toggleItem(locations, loc))}
                     style={{
@@ -200,6 +203,7 @@ export default function ProfileSetupPage() {
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button
+                  type="button"
                   onClick={() => setStep(1)}
                   style={{
                     flex: 1,
@@ -215,6 +219,7 @@ export default function ProfileSetupPage() {
                   ← 戻る
                 </button>
                 <button
+                  type="button"
                   onClick={() => setStep(3)}
                   disabled={locations.length === 0}
                   style={{
@@ -255,6 +260,7 @@ export default function ProfileSetupPage() {
               >
                 {WORK_STYLES.map((style) => (
                   <button
+                    type="button"
                     key={style}
                     onClick={() => setWorkStyle(style)}
                     style={{
@@ -277,6 +283,7 @@ export default function ProfileSetupPage() {
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button
+                  type="button"
                   onClick={() => setStep(2)}
                   style={{
                     flex: 1,
@@ -292,6 +299,7 @@ export default function ProfileSetupPage() {
                   ← 戻る
                 </button>
                 <button
+                  type="button"
                   onClick={handleSave}
                   disabled={!workStyle || saving}
                   style={{
@@ -312,6 +320,7 @@ export default function ProfileSetupPage() {
                 </button>
               </div>
               <button
+                type="button"
                 onClick={() => router.push("/jobs")}
                 style={{
                   width: "100%",

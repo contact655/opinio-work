@@ -26,6 +26,7 @@ export default function EvaluationText({ text }: { text: string }) {
       </p>
       {isLong && (
         <button
+          type="button"
           onClick={() => setExpanded((v) => !v)}
           style={{
             marginTop: 8,

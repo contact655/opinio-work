@@ -47,6 +47,7 @@ export default function FavoriteButton({
 
   return (
     <button
+      type="button"
       onClick={toggle}
       className="flex items-center justify-center w-8 h-8 rounded-full transition-all"
       style={{

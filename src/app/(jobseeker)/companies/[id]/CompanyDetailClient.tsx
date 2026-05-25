@@ -56,6 +56,7 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
           const active = activeId === id;
           return (
             <button
+              type="button"
               key={id}
               onClick={() => scrollTo(id)}
               style={{
@@ -122,6 +123,7 @@ export default function BookmarkButton({
 
   return (
     <button
+      type="button"
       onClick={toggle}
       disabled={loading}
       title={bookmarked ? "ブックマーク済み" : `${companyName}をブックマーク`}

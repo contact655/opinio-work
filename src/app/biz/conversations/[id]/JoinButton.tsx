@@ -55,6 +55,7 @@ export function JoinButton({ conversationId }: Props) {
       </p>
 
       <button
+        type="button"
         onClick={handleJoin}
         disabled={submitting}
         style={{

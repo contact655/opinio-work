@@ -80,6 +80,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
             />
             {localQ && (
               <button
+                type="button"
                 onClick={() => handleQueryChange("")}
                 aria-label="検索をクリア"
                 style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: INK_MUTE, fontSize: 14, lineHeight: 1, padding: 0 }}
@@ -93,6 +94,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
             const active = currentType === value;
             return (
               <button
+                type="button"
                 key={value}
                 role="tab"
                 aria-selected={active}

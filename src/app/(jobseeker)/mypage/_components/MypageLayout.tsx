@@ -13,6 +13,7 @@ function SidebarItem({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       style={{

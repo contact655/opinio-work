@@ -70,6 +70,7 @@ export default function SelectCompanyClient({ items }: { items: Item[] }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {sorted.map((item) => (
             <button
+              type="button"
               key={item.companyId}
               onClick={() => handleSelect(item.companyId)}
               disabled={loading !== null}

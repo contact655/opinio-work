@@ -138,6 +138,7 @@ export function BusinessHeader() {
 
         {/* ── Mobile: hamburger ── */}
         <button
+          type="button"
           onClick={() => setMenuOpen(!menuOpen)}
           style={{
             marginLeft: "auto",

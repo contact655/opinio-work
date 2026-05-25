@@ -54,6 +54,7 @@ export function MeetingSearchBar({ value, onChange }: Props) {
       />
       {value && (
         <button
+          type="button"
           onClick={() => onChange("")}
           aria-label="検索をクリア"
           style={{

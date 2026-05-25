@@ -36,6 +36,7 @@ export function JobStatusSummary({ counts, activeStatus, onStatusClick }: Props)
         const isUrgent = card.urgent && counts[card.status] > 0;
         return (
           <button
+            type="button"
             key={card.status}
             onClick={() => onStatusClick(card.status)}
             style={{

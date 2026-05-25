@@ -124,6 +124,7 @@ function ConsultationRequestForm() {
           しばらくお待ちください。
         </p>
         <button
+          type="button"
           onClick={() => router.push("/career-consultation")}
           style={{
             fontSize: 14,

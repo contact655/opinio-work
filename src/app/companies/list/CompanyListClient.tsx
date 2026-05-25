@@ -106,6 +106,7 @@ function FilterSection({
           const isSelected = value === opt || (opt === "すべて" && !value);
           return (
             <button
+              type="button"
               key={opt}
               onClick={() => onChange(opt === "すべて" ? "" : opt)}
               className={`block w-full text-left text-[13px] px-3 py-1.5 rounded-md transition-colors ${
@@ -334,6 +335,7 @@ export default function CompanyListClient({
 
             {activeFilterCount > 0 && (
               <button
+                type="button"
                 onClick={() => {
                   setCategory(""); setPhase(""); setWorkstyle(""); setLocation("");
                   router.push("/companies/list", { scroll: false });
@@ -360,6 +362,7 @@ export default function CompanyListClient({
                 該当する企業が見つかりませんでした
               </p>
               <button
+                type="button"
                 onClick={() => {
                   setCategory(""); setPhase(""); setWorkstyle(""); setLocation(""); setQuery("");
                   router.push("/companies/list", { scroll: false });

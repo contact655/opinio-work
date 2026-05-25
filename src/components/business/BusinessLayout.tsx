@@ -220,6 +220,7 @@ export function BusinessLayout({
         {/* User menu */}
         <div className="relative" ref={avatarRef}>
           <button
+            type="button"
             onClick={() => setAvatarOpen(!avatarOpen)}
             aria-label="アカウントメニュー"
             aria-expanded={avatarOpen}
@@ -283,6 +284,7 @@ export function BusinessLayout({
                 企業情報を編集
               </Link>
               <button
+                type="button"
                 onClick={handleLogout}
                 style={{
                   width: "100%", textAlign: "left",

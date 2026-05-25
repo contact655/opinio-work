@@ -43,6 +43,7 @@ export default function HomeFaq() {
                 style={{ borderTop: i === 0 ? "1px solid var(--line)" : undefined, borderBottom: "1px solid var(--line)" }}
               >
                 <button
+                  type="button"
                   onClick={() => setOpenIndex(isOpen ? null : i)}
                   style={{
                     width: "100%", textAlign: "left", padding: "20px 0",

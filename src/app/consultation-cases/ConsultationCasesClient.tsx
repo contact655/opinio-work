@@ -234,6 +234,7 @@ export default function ConsultationCasesClient({
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="相談カテゴリで絞り込み">
           {CATEGORY_FILTERS.map((f) => (
             <button
+              type="button"
               key={f.value}
               role="tab"
               aria-selected={category === f.value}

@@ -59,6 +59,7 @@ export function CompanySwitcher({ currentCompany, memberships }: Props) {
   return (
     <div ref={ref} style={{ position: "relative", paddingLeft: 20, borderLeft: "1px solid var(--line)" }}>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         aria-haspopup="true"
         aria-expanded={open}
@@ -107,6 +108,7 @@ export function CompanySwitcher({ currentCompany, memberships }: Props) {
               const isLoading = switching === m.id;
               return (
                 <button
+                  type="button"
                   key={m.id}
                   role="menuitem"
                   onClick={() => switchTo(m.id)}

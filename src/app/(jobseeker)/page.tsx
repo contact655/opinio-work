@@ -899,7 +899,9 @@ function InfraSection() {
                       background: "var(--royal-50)", color: "var(--royal)",
                     }}>{m.sim}</span>
                   </div>
-                  <button style={{
+                  <button
+                    type="button"
+                    style={{
                     padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 600,
                     background: "var(--royal)", color: "#fff", border: "none", cursor: "pointer",
                     flexShrink: 0,

@@ -82,6 +82,7 @@ export default function ApplicationForm({
         </div>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <button
+            type="button"
             onClick={() => router.push("/mypage/applications")}
             style={{
               padding: "11px 24px",
@@ -93,6 +94,7 @@ export default function ApplicationForm({
             応募状況を確認する
           </button>
           <button
+            type="button"
             onClick={() => router.push("/jobs")}
             style={{
               padding: "11px 24px",

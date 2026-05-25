@@ -198,6 +198,7 @@ export default function ApplicationsPage() {
             <div className="flex gap-2 mb-6" role="tablist" aria-label="応募ステータスで絞り込み">
               {FILTER_TABS.map((tab) => (
                 <button
+                  type="button"
                   key={tab.key}
                   role="tab"
                   aria-selected={activeFilter === tab.key}

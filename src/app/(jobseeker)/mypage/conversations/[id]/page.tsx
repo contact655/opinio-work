@@ -404,6 +404,7 @@ export default function ConversationDetailPage() {
                   disabled={sending}
                 />
                 <button
+                  type="button"
                   onClick={handleSend}
                   disabled={!inputText.trim() || sending}
                   className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
