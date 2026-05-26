@@ -462,16 +462,47 @@ export default function CareerConsultationClient({
 
   return (
     <>
-      {/* ─── Page Header ─── */}
-      <div className="max-w-4xl mx-auto px-6 pt-8 pb-2">
-        <div className="flex items-baseline justify-between">
-          <div>
-            <h1 className="text-xl font-medium text-gray-900">メンターに相談する</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              IT業界出身のメンターが、転職の本音を一緒に整理します。完全無料・30分。
-            </p>
+      {/* ─── Hero ─── */}
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
+        padding: "44px 0 40px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        <div style={{ position: "absolute", right: -80, top: -80, width: 360, height: 360, borderRadius: "50%", background: "rgba(59,95,217,0.1)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -40, bottom: -60, width: 220, height: 220, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
+        <div className="max-w-[960px] mx-auto px-5 md:px-12" style={{ position: "relative" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.5)", marginBottom: 10, textTransform: "uppercase" as const }}>
+            CAREER CONSULTATION
           </div>
-          <div className="text-sm text-gray-400">{mentors.length}名のメンター</div>
+          <h1 style={{
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: "clamp(22px, 3vw, 32px)",
+            fontWeight: 700, color: "#fff",
+            marginBottom: 12, lineHeight: 1.4,
+          }}>
+            先輩に、相談する。
+          </h1>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.85, maxWidth: 480, margin: "0 0 20px" }}>
+            IT業界出身のメンターが、転職の本音を一緒に整理します。営業なし・完全無料・30分。
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
+            {[
+              { label: `${mentors.length}名のメンター`, icon: "👥" },
+              { label: "30分・完全無料", icon: "✓" },
+              { label: "編集部が個別声がけ", icon: "✓" },
+            ].map(({ label, icon }) => (
+              <span key={label} style={{
+                fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 100,
+                background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                display: "inline-flex", alignItems: "center", gap: 4,
+              }}>
+                <span style={{ fontSize: 12 }}>{icon}</span>
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -671,25 +702,32 @@ export default function CareerConsultationClient({
       </section>
 
       {/* ─── Bottom CTA ─── */}
-      <section className="bg-gray-50 py-12">
-        <div className="max-w-[960px] mx-auto px-4 sm:px-6 text-center">
-          <h2 className="text-[20px] font-bold text-gray-800 mb-2">
+      <section style={{ background: "var(--warm-soft)", borderTop: "1px solid #FDE68A", padding: "48px 0" }}>
+        <div className="max-w-[960px] mx-auto px-4 sm:px-6" style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "#B45309", marginBottom: 10, textTransform: "uppercase" as const }}>
+            OPINIO MENTOR
+          </div>
+          <h2 style={{ fontSize: "clamp(18px, 2.5vw, 24px)", fontWeight: 700, color: "var(--ink)", marginBottom: 8, fontFamily: "var(--font-noto-serif)" }}>
             まずは気軽に30分、話してみませんか？
           </h2>
-          <p className="text-[13px] text-gray-500 mb-6">
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", marginBottom: 24, lineHeight: 1.8 }}>
             営業は一切なし。転職するかどうか決まっていなくてもOKです。
           </p>
           <a
             href="#mentors"
-            className="inline-flex items-center gap-2 text-[14px] font-semibold px-6 py-3 rounded-full transition-colors"
-            style={{ background: "#1D9E75", color: "#fff" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#0F6E56")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#1D9E75")}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              fontSize: 14, fontWeight: 700, padding: "13px 28px", borderRadius: 8,
+              background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+              color: "#fff", textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
+            }}
           >
-            メンターを選んで予約する
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
+            メンターを選んで予約する（無料）
           </a>
         </div>
       </section>

@@ -10,38 +10,62 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 820, margin: "0 auto", padding: "64px 24px 96px" }}>
-        {/* Breadcrumb */}
-        <nav aria-label="パンくずリスト" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--ink-mute)", marginBottom: 40 }}>
-          <Link href="/" style={{ color: "var(--royal)", textDecoration: "none" }}>ホーム</Link>
-          <span>›</span>
-          <span aria-current="page" style={{ color: "var(--ink-soft)" }}>OPINIOについて</span>
-        </nav>
+      {/* Breadcrumb */}
+      <nav aria-label="パンくずリスト" style={{
+        background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0",
+      }}>
+        <div style={{ maxWidth: 860, margin: "0 auto" }} className="px-5 md:px-12">
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
+            <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
+            <span>/</span>
+            <span aria-current="page" style={{ color: "var(--ink-soft)" }}>OPINIOについて</span>
+          </div>
+        </div>
+      </nav>
 
-        {/* Header */}
-        <div style={{ marginBottom: 56 }}>
+      {/* Hero */}
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
+        padding: "48px 0 44px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        <div style={{ position: "absolute", right: -80, top: -80, width: 340, height: 340, borderRadius: "50%", background: "rgba(59,95,217,0.1)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -40, bottom: -60, width: 200, height: 200, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
+        <div style={{ maxWidth: 860, margin: "0 auto", position: "relative" }} className="px-5 md:px-12">
           <div style={{
-            display: "inline-block",
-            fontSize: 11, fontWeight: 700, letterSpacing: "0.12em",
-            color: "var(--royal)", textTransform: "uppercase",
-            marginBottom: 16,
+            fontSize: 11, fontWeight: 700, letterSpacing: "0.14em",
+            color: "rgba(255,255,255,0.5)", marginBottom: 12, textTransform: "uppercase",
           }}>
-            ABOUT
+            ABOUT OPINIO
           </div>
           <h1 style={{
             fontFamily: "var(--font-noto-serif)",
-            fontSize: "clamp(28px, 4vw, 40px)",
-            fontWeight: 700, lineHeight: 1.4,
-            color: "var(--ink)", marginBottom: 20,
+            fontSize: "clamp(24px, 3.5vw, 36px)",
+            fontWeight: 700, color: "#fff",
+            marginBottom: 14, lineHeight: 1.4,
           }}>
             OPINIOについて
           </h1>
-          <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: 600 }}>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.72)", lineHeight: 1.9, maxWidth: 500, margin: "0 0 20px" }}>
             IT/SaaS業界に特化したキャリアインフラ。<br />
             企業の「今」を知り、先輩と話し、自分で決める。
           </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {["対話から始まる採用", "電話一切なし", "メンター30分無料"].map((tag) => (
+              <span key={tag} style={{
+                fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 100,
+                background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}>
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
+      </div>
 
+      <div style={{ maxWidth: 820, margin: "0 auto", padding: "48px 24px 96px" }}>
         {/* Mission */}
         <div style={{
           background: "#fff", borderRadius: 16, padding: "40px 40px",
