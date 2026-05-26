@@ -4,7 +4,6 @@ import Link from "next/link";
 import { fetchGenresWithCompanies } from "@/lib/genres";
 import { fetchDistinctIndustries, fetchDistinctLocations } from "@/lib/search/companies";
 import { createClient } from "@/lib/supabase/server";
-import { GenreSection } from "@/components/companies/GenreSection";
 import { GenreTabs } from "@/components/companies/GenreTabs";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
