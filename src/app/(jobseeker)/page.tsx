@@ -1518,12 +1518,12 @@ function MentorsSection() {
               </div>
 
               {/* デュアルCTA: 相談する（予約）+ プロフィールを見る */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8 }}>
                 <Link
                   href={`/mentors/${m.id}/reserve`}
                   style={{
-                    display: "block", width: "100%", padding: "11px 0", borderRadius: 8,
-                    fontSize: 14, fontWeight: 700,
+                    flex: 1, display: "block", padding: "11px 0", borderRadius: 8,
+                    fontSize: 13, fontWeight: 700,
                     background: "linear-gradient(135deg, #F59E0B, #D97706)",
                     color: "#fff", textAlign: "center",
                     boxShadow: "0 3px 10px rgba(245,158,11,0.3)",
@@ -1535,15 +1535,16 @@ function MentorsSection() {
                 <Link
                   href={`/mentors/${m.id}`}
                   style={{
-                    display: "block", width: "100%", padding: "8px 0", borderRadius: 8,
-                    fontSize: 12, fontWeight: 600,
+                    flex: 1, display: "block", padding: "11px 0", borderRadius: 8,
+                    fontSize: 13, fontWeight: 600,
                     background: "transparent",
-                    color: "var(--ink-mute)", textAlign: "center",
+                    color: "var(--ink-soft)", textAlign: "center",
                     textDecoration: "none",
                     border: "1px solid var(--line)",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  プロフィールを詳しく見る →
+                  詳しく見る →
                 </Link>
               </div>
             </div>
