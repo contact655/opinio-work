@@ -5,6 +5,7 @@ import { fetchGenresWithCompanies } from "@/lib/genres";
 import { fetchDistinctIndustries, fetchDistinctLocations } from "@/lib/search/companies";
 import { createClient } from "@/lib/supabase/server";
 import { GenreSection } from "@/components/companies/GenreSection";
+import { GenreTabs } from "@/components/companies/GenreTabs";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 
@@ -139,10 +140,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
             location={location}
           />
         ) : (
-          <div style={{ marginTop: 4 }}>
-            {genresWithCompanies.map((genre) => (
-              <GenreSection key={genre.id} genre={genre} />
-            ))}
+          <div style={{ marginTop: 16 }}>
+            <GenreTabs genres={genresWithCompanies} />
           </div>
         )}
 
