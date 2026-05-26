@@ -3566,10 +3566,10 @@ export default async function CompanyDetailPage({
       <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} isAuthenticated={isAuthenticated} recruiters={recruiters} />
       <CompanyStickyNav items={[
         { id: "about",            label: "企業概要" },
+        ...((detail.fit_positives && detail.fit_positives.length > 0) || (detail.fit_negatives && detail.fit_negatives.length > 0) ? [{ id: "fit", label: "編集部の見立て" }] : []),
         { id: "current-employees",label: employees.current.length > 0 ? `現役社員 ${employees.current.length}名` : "現役社員" },
         ...(employees.alumni.length > 0 ? [{ id: "alumni", label: `OB/OG ${employees.alumni.length}名` }] : []),
         ...(detail.company_features.length > 0 ? [{ id: "opinion", label: "特徴・評判" }] : []),
-        ...((detail.fit_positives && detail.fit_positives.length > 0) || (detail.fit_negatives && detail.fit_negatives.length > 0) ? [{ id: "fit", label: "向き・不向き" }] : []),
         { id: "jobs",             label: company.job_count > 0 ? `求人 ${company.job_count}件` : "求人" },
         { id: "benefits",         label: "福利厚生" },
         { id: "work-style",       label: "働き方" },
@@ -3598,14 +3598,14 @@ export default async function CompanyDetailPage({
 
             {/* 4. OPINIO編集部より（現役社員の直上） */}
             <OpinioOpinionCard detail={detail} />
+            <FitSection detail={detail} />
 
             {/* 5. 現役社員・OBOGプロフィール（閲覧のみ・直接連絡不可） */}
             <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
             {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
 
-            {/* 6. 特徴・評判・向き不向き */}
+            {/* 6. 特徴・評判 */}
             <CompanyFeaturesSection company={company} detail={detail} />
-            <FitSection detail={detail} />
 
             {/* 7. 発信・記事・採用担当 */}
             {posts.length > 0 && (
