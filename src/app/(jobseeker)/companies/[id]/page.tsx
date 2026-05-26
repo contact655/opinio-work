@@ -1112,134 +1112,59 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
   );
 }
 
-// ─── InsiderWidget ── 「この企業を知る3つの方法」 ──────────────────────────────
+// ─── MentorCTAWidget ── メンター相談のみ（運営経由） ────────────────────────────
 
-function InsiderWidget({
-  employeeCount,
-  alumniCount,
-}: {
-  employeeCount: number;
-  alumniCount: number;
-}) {
-  const items = [
-    {
-      href: "#current-employees",
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-      ),
-      color: "var(--royal)",
-      bg: "var(--royal-50)",
-      border: "var(--royal-100)",
-      label: "現役社員に聞く",
-      count: employeeCount > 0 ? `${employeeCount}名が登録中` : "登録準備中",
-      countColor: employeeCount > 0 ? "var(--royal)" : "var(--ink-mute)",
-      active: employeeCount > 0,
-    },
-    {
-      href: "#alumni",
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-          <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-        </svg>
-      ),
-      color: "#7C3AED",
-      bg: "#F3E8FF",
-      border: "#DDD6FE",
-      label: "OB・OGに聞く",
-      count: alumniCount > 0 ? `${alumniCount}名が登録中` : "登録準備中",
-      countColor: alumniCount > 0 ? "#7C3AED" : "var(--ink-mute)",
-      active: alumniCount > 0,
-    },
-    {
-      href: "/mentors",
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-      ),
-      color: "#D97706",
-      bg: "#FEF3C7",
-      border: "#FDE68A",
-      label: "メンターに相談",
-      count: "30分・無料",
-      countColor: "#D97706",
-      active: true,
-    },
-  ];
-
+function MentorCTAWidget() {
   return (
-    <div
+    <Link
+      href="/mentors"
       style={{
-        background: "#fff",
-        borderRadius: 16,
-        border: "1px solid var(--line)",
-        padding: "18px 20px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16,
+        background: "linear-gradient(135deg, #FFFBEB 0%, var(--warm-soft) 100%)",
+        border: "1.5px solid #FDE68A",
+        borderRadius: 14,
+        padding: "16px 20px",
         marginBottom: 20,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.05)",
+        textDecoration: "none",
+        boxShadow: "0 2px 10px rgba(245,158,11,0.1)",
+        transition: "transform 0.15s, box-shadow 0.15s",
       }}
+      className="mentor-cta-widget"
     >
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{
+          width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+          background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 3px 10px rgba(245,158,11,0.3)",
+        }}>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+            気になることは、OPINIOのメンターに相談
+          </div>
+          <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+            編集部が声がけした先輩が対応 · 30分・完全無料 · 運営が仲介します
+          </div>
+        </div>
+      </div>
       <div style={{
-        fontSize: 11, fontWeight: 700, letterSpacing: "0.1em",
-        color: "var(--ink-mute)", textTransform: "uppercase",
-        marginBottom: 14,
-        fontFamily: "Inter, sans-serif",
+        display: "flex", alignItems: "center", gap: 5,
+        fontSize: 12, fontWeight: 700, color: "#D97706",
+        flexShrink: 0, whiteSpace: "nowrap" as const,
       }}>
-        この企業を「内側から」知る
+        相談する
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}
-        className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(3,1fr)]"
-      >
-        {items.map((item) => (
-          <a
-            key={item.label}
-            href={item.href}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 8,
-              padding: "16px 12px",
-              borderRadius: 12,
-              background: item.active ? item.bg : "var(--bg-tint)",
-              border: `1px solid ${item.active ? item.border : "var(--line)"}`,
-              textDecoration: "none",
-              transition: "transform 0.15s, box-shadow 0.15s",
-              opacity: item.active ? 1 : 0.6,
-            }}
-            className="insider-widget-item"
-          >
-            <div style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: item.active ? item.color : "var(--ink-mute)",
-              color: "#fff",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
-            }}>
-              {item.icon}
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>
-                {item.label}
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: item.countColor }}>
-                {item.count}
-              </div>
-            </div>
-          </a>
-        ))}
-      </div>
-      <style>{`
-        .insider-widget-item:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-        }
-      `}</style>
-    </div>
+    </Link>
   );
 }
 
@@ -3631,26 +3556,29 @@ export default async function CompanyDetailPage({
         >
           {/* γ-7: モバイルで fixed bottom bar 分の余白を確保 */}
           <main className="pb-28 md:pb-0">
-            {/* この企業を内側から知るウィジェット */}
-            <InsiderWidget
-              employeeCount={employees.current.length}
-              alumniCount={employees.alumni.length}
-            />
-            {/* 編集部の見立てカード */}
+            {/* 1. OPINIO編集部の見立てカード（最上位） */}
             <OpinioOpinionCard detail={detail} />
+
+            {/* 2. 企業について（基本情報）*/}
             <AboutSection detail={detail} photos={photos} />
 
-            {/* ── 現役社員・OBOGを上位に配置（OPINIOの最大差別化ポイント） ── */}
-            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
-            <AlumniSection alumni={employees.alumni} />
-
-            <CompanyFeaturesSection company={company} detail={detail} />
-            <FitSection detail={detail} />
-            <MentorSuggestionBanner companyName={company.name} />
-            <JobsSection company={company} detail={detail} />
+            {/* 3. 企業の数値・働き方・福利厚生（企業についての直下） */}
             <NumbersSection numbers={detail.numbers} />
             <WorkStyleSection detail={detail} />
             <BenefitsSection detail={detail} />
+
+            {/* 4. メンターCTA（運営経由の相談のみ） */}
+            <MentorCTAWidget />
+
+            {/* 5. 現役社員・OBOGプロフィール（閲覧のみ・直接連絡不可） */}
+            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
+            <AlumniSection alumni={employees.alumni} />
+
+            {/* 6. 特徴・評判・向き不向き */}
+            <CompanyFeaturesSection company={company} detail={detail} />
+            <FitSection detail={detail} />
+
+            {/* 7. 発信・記事・採用担当 */}
             {posts.length > 0 && (
               <CompanyPostsSection
                 companyId={params.id}
@@ -3658,12 +3586,16 @@ export default async function CompanyDetailPage({
                 postsCount={postsCount}
               />
             )}
+            <MentorSuggestionBanner companyName={company.name} />
             {recruiters.length > 0 && (
               <RecruitersSection recruiters={recruiters} />
             )}
             {companyArticles.length > 0 && (
               <CompanyArticlesSection articles={companyArticles} />
             )}
+
+            {/* 8. 募集中の求人（一番下） */}
+            <JobsSection company={company} detail={detail} />
           </main>
 
           <Sidebar company={company} detail={detail} />
@@ -3690,6 +3622,10 @@ export default async function CompanyDetailPage({
         main > *:nth-child(n+6){ animation-delay: 0.25s; }
 
         /* ── Job cards ── */
+        .mentor-cta-widget:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(245,158,11,0.18) !important;
+        }
         .job-item-link {
           transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
         }
