@@ -719,7 +719,7 @@ export default function JobsClient({
                 fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
                 color: "#fff", margin: 0, lineHeight: 1.4, marginBottom: 18,
               }}>
-                IT/SaaS 求人を探す
+                求人を探す
               </h1>
 
               {/* ── Search bar in hero ── */}

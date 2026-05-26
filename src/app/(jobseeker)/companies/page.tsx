@@ -84,7 +84,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                 fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
                 color: "#fff", margin: 0, lineHeight: 1.4, marginBottom: 18,
               }}>
-                IT/SaaS 業界の企業を知る
+                企業を知る
               </h1>
             </div>
             <Link href="/jobs" style={{
