@@ -102,7 +102,8 @@ export function GenreCarousel({ companies }: Props) {
           background: #ffffff;
           border-radius: 18px;
           overflow: hidden;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 6px 20px rgba(15, 23, 42, 0.07);
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07), 0 4px 16px rgba(15, 23, 42, 0.08);
           text-decoration: none;
           color: inherit;
           transition: box-shadow 0.24s cubic-bezier(0.22, 1, 0.36, 1), transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);

@@ -52,7 +52,8 @@ export async function CompanySearchResults({ q, industry, size, workStyle, hirin
           background: #ffffff;
           border-radius: 16px;
           overflow: hidden;
-          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.06);
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07), 0 4px 16px rgba(15, 23, 42, 0.08);
           text-decoration: none;
           color: inherit;
           transition: box-shadow 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
