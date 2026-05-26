@@ -407,25 +407,59 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
 
   return (
     <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
-      {/* ── Page header ───────────────────────────────────────────────────── */}
+      {/* ── Page hero ─────────────────────────────────────────────────────── */}
       <div style={{
-        background: "#fff", borderBottom: "1px solid var(--line)",
-        padding: "40px 48px 32px",
-      }} className="px-5 md:px-12">
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10 }}>
-            OPINIO / 企業を知る
+        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
+        padding: "40px 0 36px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Decorative circles */}
+        <div style={{ position: "absolute", right: -80, top: -120, width: 440, height: 440, borderRadius: "50%", background: "rgba(59,95,217,0.12)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -60, bottom: -80, width: 280, height: 280, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
+        <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-5 md:px-12">
+          {/* Eyebrow */}
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 12, textTransform: "uppercase" }}>
+            COMPANIES
           </div>
           <h1 style={{
-            fontFamily: 'var(--font-noto-serif)',
-            fontSize: "clamp(28px, 4vw, 40px)",
-            fontWeight: 500, color: "var(--ink)", lineHeight: 1.3, marginBottom: 12,
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: "clamp(24px, 3.5vw, 34px)",
+            fontWeight: 700, color: "#fff", lineHeight: 1.35, marginBottom: 16,
           }}>
-            企業を、知る。
+            IT/SaaS 企業を探す
           </h1>
-          <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.8, maxWidth: "var(--max-w-form)" }}>
-            IT/SaaS業界の求人・組織文化・カジュアル面談情報を、まとめて確認。
-          </p>
+          {/* Stats chips */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              {companies.length}社掲載中
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5"/></svg>
+              編集部が取材・審査済み
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              全社カジュアル面談受付中
+            </span>
+          </div>
+          {/* OPINIO differentiators */}
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            {[
+              { icon: "👥", label: "現役社員に相談できる" },
+              { icon: "🎓", label: "OB・OGの話が聞ける" },
+              { icon: "🌟", label: "メンターにも相談可能" },
+            ].map(({ icon, label }) => (
+              <span key={label} style={{
+                fontSize: 12, fontWeight: 500,
+                color: "rgba(255,255,255,0.7)",
+                display: "inline-flex", alignItems: "center", gap: 5,
+              }}>
+                <span>{icon}</span>
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 

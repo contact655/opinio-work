@@ -152,7 +152,7 @@ export default async function ForCompaniesPage() {
             }}>
               {[
                 { value: "¥0", unit: "", label: "掲載・スカウト費用", sub: "入社決定まで完全無料" },
-                { value: "13", unit: "社", label: "掲載企業数", sub: "IT/SaaS特化" },
+                { value: "36", unit: "社", label: "掲載企業数", sub: "IT/SaaS特化" },
                 { value: "30", unit: "分", label: "無料カジュアル面談", sub: "採用前に候補者と対話" },
               ].map(({ value, unit, label, sub }, i) => (
                 <div key={label} style={{
