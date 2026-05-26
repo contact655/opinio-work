@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import type { CompanyPhoto } from "@/lib/supabase/queries";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
@@ -59,6 +60,49 @@ function CaptionOverlay({ text, category }: { text?: string; category?: string }
         </span>
       )}
     </div>
+  );
+}
+
+// ─── User chip ─────────────────────────────────────────────────────────────────
+
+function UserChip({ user }: { user: { id: string; name: string } }) {
+  return (
+    <Link
+      href={`/u/${user.id}`}
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        position: "absolute",
+        bottom: 8,
+        right: 8,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "4px 8px 4px 4px",
+        borderRadius: 20,
+        background: "rgba(0,0,0,0.62)",
+        backdropFilter: "blur(6px)",
+        color: "#fff",
+        textDecoration: "none",
+        zIndex: 2,
+        maxWidth: "80%",
+      }}
+    >
+      {/* Mini avatar */}
+      <div style={{
+        width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+        background: "rgba(255,255,255,0.25)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 9, fontWeight: 800, color: "#fff",
+      }}>
+        {user.name[0]?.toUpperCase() ?? "?"}
+      </div>
+      <span style={{
+        fontSize: 10, fontWeight: 600, letterSpacing: "0.01em",
+        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+      }}>
+        {user.name}
+      </span>
+    </Link>
   );
 }
 
@@ -323,6 +367,7 @@ function PhotoStrip({
                 style={{ objectFit: "cover" }}
               />
               <CaptionOverlay text={photo.caption ?? undefined} category={photo.category ?? undefined} />
+              {photo.tagged_user && <UserChip user={photo.tagged_user} />}
             </div>
           ))}
         </div>

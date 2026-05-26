@@ -29,6 +29,9 @@ export async function PATCH(
     const updates: Record<string, unknown> = {};
     if (typeof body.caption === "string") updates.caption = body.caption;
     if (typeof body.display_order === "number") updates.display_order = body.display_order;
+    if ('tagged_user_id' in body) {
+      updates.tagged_user_id = body.tagged_user_id ?? null; // allow null to clear
+    }
 
     if (Object.keys(updates).length === 0) {
       return Response.json({ error: "No valid updates" }, { status: 400 });

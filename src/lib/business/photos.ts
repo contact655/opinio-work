@@ -10,6 +10,7 @@ export type DbOfficePhoto = {
   caption: string | null;
   display_order: number;
   created_at: string;
+  tagged_user_id: string | null;
 };
 
 export type OfficePhoto = {
@@ -17,6 +18,7 @@ export type OfficePhoto = {
   url: string;
   caption: string;
   category: PhotoCategory;
+  tagged_user_id: string | null;
 };
 
 export const MAX_PHOTOS_PER_CATEGORY = 5;
@@ -27,6 +29,7 @@ export function dbPhotoToForm(db: DbOfficePhoto): OfficePhoto {
     url: db.image_url,
     caption: db.caption ?? "",
     category: db.category,
+    tagged_user_id: db.tagged_user_id ?? null,
   };
 }
 
@@ -47,6 +50,12 @@ export async function fetchOfficePhotosForCompany(
   }
   return (data ?? []).map((row) => dbPhotoToForm(row as DbOfficePhoto));
 }
+
+export type CompanyMember = {
+  userId: string;
+  name: string;
+  roleTitle: string | null;
+};
 
 export function buildStoragePath(companyId: string, filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase() ?? "jpg";

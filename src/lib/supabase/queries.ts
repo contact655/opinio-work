@@ -590,20 +590,36 @@ export type CompanyPhoto = {
   category: string | null;
   caption: string | null;
   display_order: number;
+  tagged_user_id: string | null;
+  tagged_user: { id: string; name: string } | null;
 };
 
 export async function getCompanyPhotos(companyId: string): Promise<CompanyPhoto[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("ow_company_office_photos")
-    .select("id, image_url, category, caption, display_order")
+    .select("id, image_url, category, caption, display_order, tagged_user_id")
     .eq("company_id", companyId)
     .order("display_order", { ascending: true })
-    .limit(10);
+    .limit(20);
   if (error) {
     console.error("[getCompanyPhotos]", error.message);
     return [];
   }
+
+  // Fetch tagged user info in a single batch query
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const taggedUserIds = (data ?? []).map((r: any) => r.tagged_user_id).filter((id: unknown): id is string => !!id);
+  const userMap = new Map<string, { id: string; name: string }>();
+  if (taggedUserIds.length > 0) {
+    const { data: users } = await supabase
+      .from("ow_users")
+      .select("id, name")
+      .in("id", taggedUserIds);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (users ?? []).forEach((u: any) => userMap.set(u.id as string, { id: u.id as string, name: (u.name as string) ?? "" }));
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data ?? []).map((row: Record<string, any>): CompanyPhoto => ({
     id: row.id as string,
@@ -611,6 +627,8 @@ export async function getCompanyPhotos(companyId: string): Promise<CompanyPhoto[
     category: (row.category as string) ?? null,
     caption: (row.caption as string) ?? null,
     display_order: (row.display_order as number) ?? 0,
+    tagged_user_id: (row.tagged_user_id as string) ?? null,
+    tagged_user: row.tagged_user_id ? (userMap.get(row.tagged_user_id as string) ?? null) : null,
   }));
 }
 

@@ -8,6 +8,7 @@ import {
   type OfficePhoto,
   type PhotoCategory,
 } from "@/lib/business/photos";
+import type { CompanyMember } from "@/lib/business/photos";
 
 // ─── 定数 ───────────────────────────────────────────────────────────────────
 
@@ -87,19 +88,32 @@ type Props = {
 function PhotoCard({
   photo,
   isDragging,
+  taggedUserId,
+  taggedUserName,
+  members,
+  membersLoading,
   onCaptionChange,
   onDelete,
   onDragStart,
   onDragEnter,
+  onTagChange,
+  onLoadMembers,
 }: {
   photo: OfficePhoto;
   isDragging: boolean;
+  taggedUserId: string | null;
+  taggedUserName: string | null;
+  members: CompanyMember[];
+  membersLoading: boolean;
   onCaptionChange: (caption: string) => void;
   onDelete: () => void;
   onDragStart: () => void;
   onDragEnter: () => void;
+  onTagChange: (userId: string | null) => void;
+  onLoadMembers: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const [showSelector, setShowSelector] = useState(false);
 
   return (
     <div
@@ -245,6 +259,88 @@ function PhotoCard({
           }}
         />
       </div>
+
+      {/* タグ付け */}
+      <div style={{ padding: "4px 10px 8px", borderTop: "1px solid var(--line-soft)" }}>
+        {taggedUserId ? (
+          /* Tagged state: show chip with × */
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{
+              width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+              background: "var(--royal-50)", color: "var(--royal)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 9, fontWeight: 800,
+            }}>
+              {taggedUserName?.[0]?.toUpperCase() ?? "?"}
+            </div>
+            <span style={{ fontSize: 11, color: "var(--ink)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {taggedUserName}
+            </span>
+            <button
+              type="button"
+              onClick={() => onTagChange(null)}
+              title="タグを外す"
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 14, padding: "0 2px", lineHeight: 1 }}
+            >×</button>
+          </div>
+        ) : showSelector ? (
+          /* Selector state: show inline select + cancel */
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            {membersLoading ? (
+              <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>読み込み中…</span>
+            ) : (
+              <select
+                autoFocus
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) {
+                    onTagChange(e.target.value);
+                    setShowSelector(false);
+                  }
+                }}
+                style={{
+                  flex: 1, fontSize: 11, padding: "3px 6px",
+                  border: "1px solid var(--royal)", borderRadius: 5,
+                  color: "var(--ink)", background: "#fff", outline: "none",
+                }}
+              >
+                <option value="" disabled>メンバーを選択…</option>
+                {members.map((m) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.name}{m.roleTitle ? ` · ${m.roleTitle}` : ""}
+                  </option>
+                ))}
+                {members.length === 0 && (
+                  <option value="" disabled>メンバーが見つかりません</option>
+                )}
+              </select>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowSelector(false)}
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "var(--ink-mute)", padding: "2px 4px" }}
+            >×</button>
+          </div>
+        ) : (
+          /* Default state: show tag button */
+          <button
+            type="button"
+            onClick={() => { onLoadMembers(); setShowSelector(true); }}
+            style={{
+              background: "none", border: "none", cursor: "pointer", padding: 0,
+              fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 4,
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-mute)"; }}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            写っているメンバーをタグ付け
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -331,9 +427,13 @@ function PhotoCategorySection({
   photos,
   draggingId,
   uploadingCategory,
+  members,
+  membersLoading,
   onAdd,
   onDelete,
   onCaptionChange,
+  onTagChange,
+  onLoadMembers,
   onDragStart,
   onDragEnter,
   onDragEnd,
@@ -342,9 +442,13 @@ function PhotoCategorySection({
   photos: OfficePhoto[];
   draggingId: string | null;
   uploadingCategory: PhotoCategory | null;
+  members: CompanyMember[];
+  membersLoading: boolean;
   onAdd: () => void;
   onDelete: (id: string) => void;
   onCaptionChange: (id: string, caption: string) => void;
+  onTagChange: (id: string, userId: string | null) => void;
+  onLoadMembers: () => void;
   onDragStart: (id: string) => void;
   onDragEnter: (id: string) => void;
   onDragEnd: () => void;
@@ -392,17 +496,28 @@ function PhotoCategorySection({
         onDragOver={(e) => e.preventDefault()}
         onDrop={onDragEnd}
       >
-        {photos.map((photo) => (
-          <PhotoCard
-            key={photo.id}
-            photo={photo}
-            isDragging={draggingId === photo.id}
-            onCaptionChange={(caption) => onCaptionChange(photo.id, caption)}
-            onDelete={() => onDelete(photo.id)}
-            onDragStart={() => onDragStart(photo.id)}
-            onDragEnter={() => onDragEnter(photo.id)}
-          />
-        ))}
+        {photos.map((photo) => {
+          const taggedMember = photo.tagged_user_id
+            ? members.find(m => m.userId === photo.tagged_user_id) ?? null
+            : null;
+          return (
+            <PhotoCard
+              key={photo.id}
+              photo={photo}
+              isDragging={draggingId === photo.id}
+              taggedUserId={photo.tagged_user_id ?? null}
+              taggedUserName={taggedMember?.name ?? null}
+              members={members}
+              membersLoading={membersLoading}
+              onCaptionChange={(caption) => onCaptionChange(photo.id, caption)}
+              onDelete={() => onDelete(photo.id)}
+              onDragStart={() => onDragStart(photo.id)}
+              onDragEnter={() => onDragEnter(photo.id)}
+              onTagChange={(userId) => onTagChange(photo.id, userId)}
+              onLoadMembers={onLoadMembers}
+            />
+          );
+        })}
         {/* 追加スロット */}
         {addSlots > 0 && (
           <PhotoAddCard
@@ -423,6 +538,9 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [uploadingCategory, setUploadingCategory] = useState<PhotoCategory | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [members, setMembers] = useState<CompanyMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const membersLoadedRef = useRef(false);
   const dragOverIdRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pendingCategoryRef = useRef<PhotoCategory | null>(null);
@@ -431,6 +549,38 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
 
   function byCategory(cat: PhotoCategory) {
     return photos.filter((p) => p.category === cat);
+  }
+
+  async function loadMembers() {
+    if (membersLoadedRef.current || membersLoading) return;
+    setMembersLoading(true);
+    try {
+      const res = await fetch("/api/biz/company/members");
+      if (res.ok) {
+        const { members: data } = await res.json();
+        setMembers(data ?? []);
+        membersLoadedRef.current = true;
+      }
+    } catch (err) {
+      console.error("[OfficePhotoSection] load members failed:", err);
+    } finally {
+      setMembersLoading(false);
+    }
+  }
+
+  async function handleTagChange(photoId: string, userId: string | null) {
+    // Optimistic update
+    onPhotosChange(photos.map((p) => (p.id === photoId ? { ...p, tagged_user_id: userId } : p)));
+    // Persist to DB
+    try {
+      await fetch(`/api/biz/company/photos/${photoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tagged_user_id: userId }),
+      });
+    } catch (err) {
+      console.error("[OfficePhotoSection] tag PATCH failed:", err);
+    }
   }
 
   function handleAdd(category: PhotoCategory) {
@@ -498,6 +648,7 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
         url: data.image_url,
         caption: data.caption ?? "",
         category: data.category,
+        tagged_user_id: data.tagged_user_id ?? null,
       };
       onPhotosChange([...photos, newPhoto]);
     } catch (err) {
@@ -641,9 +792,13 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
           photos={byCategory(def.id)}
           draggingId={draggingId}
           uploadingCategory={uploadingCategory}
+          members={members}
+          membersLoading={membersLoading}
           onAdd={() => handleAdd(def.id)}
           onDelete={handleDelete}
           onCaptionChange={handleCaptionChange}
+          onTagChange={handleTagChange}
+          onLoadMembers={loadMembers}
           onDragStart={handleDragStart}
           onDragEnter={handleDragEnter}
           onDragEnd={handleDragEnd}
