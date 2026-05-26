@@ -609,11 +609,9 @@ function SecTitle({
 function AboutSection({
   detail,
   photos,
-  opinioCard,
 }: {
   detail: CompanyDetail;
   photos: CompanyPhoto[];
-  opinioCard?: React.ReactNode;
 }) {
   return (
     <section
@@ -692,7 +690,6 @@ function AboutSection({
         </div>
       )}
 
-      {opinioCard}
       <PhotoCarousel photos={photos} />
 
       {detail.about && (
@@ -3573,20 +3570,22 @@ export default async function CompanyDetailPage({
         >
           {/* γ-7: モバイルで fixed bottom bar 分の余白を確保 */}
           <main className="pb-28 md:pb-0">
-            {/* 1. 企業について（OPINIO編集部カードを写真の直前に埋め込み）*/}
+            {/* 1. 企業について */}
             <AboutSection
               detail={detail}
               photos={photos}
-              opinioCard={<OpinioOpinionCard detail={detail} />}
             />
 
-            {/* 3. 企業の数値・働き方・福利厚生（企業についての直下） */}
+            {/* 2. 企業の数値・働き方・福利厚生 */}
             <NumbersSection numbers={detail.numbers} numbersUpdatedAt={detail.numbersUpdatedAt} />
             <WorkStyleSection detail={detail} />
             <BenefitsSection detail={detail} />
 
-            {/* 4. メンターCTA（運営経由の相談のみ） */}
+            {/* 3. メンターCTA */}
             <MentorCTAWidget />
+
+            {/* 4. OPINIO編集部より（現役社員の直上） */}
+            <OpinioOpinionCard detail={detail} />
 
             {/* 5. 現役社員・OBOGプロフィール（閲覧のみ・直接連絡不可） */}
             <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
