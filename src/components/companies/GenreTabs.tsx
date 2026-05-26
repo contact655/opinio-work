@@ -13,8 +13,9 @@ type Props = {
 };
 
 export function GenreTabs({ genres }: Props) {
-  const [activeId, setActiveId] = useState(genres[0]?.id ?? "");
-  const active = genres.find((g) => g.id === activeId) ?? genres[0];
+  // null = 全表示（選択なし）
+  const [activeId, setActiveId] = useState<string | null>(genres[0]?.id ?? null);
+  const active = activeId ? genres.find((g) => g.id === activeId) ?? null : null;
 
   if (!genres.length) return null;
 
@@ -98,7 +99,7 @@ export function GenreTabs({ genres }: Props) {
             aria-selected={genre.id === activeId}
             data-active={String(genre.id === activeId)}
             className="genre-tab-btn"
-            onClick={() => setActiveId(genre.id)}
+            onClick={() => setActiveId(genre.id === activeId ? null : genre.id)}
           >
             {genre.name}
             <span className="genre-tab-count">{genre.total_count}</span>
@@ -106,10 +107,10 @@ export function GenreTabs({ genres }: Props) {
         ))}
       </div>
 
-      {/* アクティブジャンルのコンテンツ */}
-      {active && (
+      {/* コンテンツ */}
+      {active ? (
+        /* 単一ジャンル表示 */
         <div key={activeId} className="genre-tab-content" style={{ marginTop: 24 }}>
-          {/* セクションヘッダー */}
           <div style={{
             display: "flex",
             justifyContent: "space-between",
@@ -141,9 +142,47 @@ export function GenreTabs({ genres }: Props) {
               </Link>
             )}
           </div>
-
-          {/* カルーセル */}
           <GenreCarousel companies={active.companies} />
+        </div>
+      ) : (
+        /* 全ジャンル表示（タブ選択解除時） */
+        <div key="all" className="genre-tab-content" style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 40 }}>
+          {genres.map((genre) => (
+            <div key={genre.id}>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                marginBottom: 18,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{
+                    width: 4, height: 20, borderRadius: 2, flexShrink: 0,
+                    background: "linear-gradient(180deg, var(--royal) 0%, var(--accent) 100%)",
+                  }} />
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>
+                    {genre.name}
+                  </span>
+                  {(genre.description || genre.total_count > 0) && (
+                    <span style={{ fontSize: 13, color: "var(--ink-soft)", fontWeight: 400 }}>
+                      {genre.description && genre.description}
+                      {genre.description && genre.total_count > 0 && " ・ "}
+                      {genre.total_count > 0 && `${genre.total_count}社`}
+                    </span>
+                  )}
+                </div>
+                {genre.total_count > 0 && (
+                  <Link
+                    href={`/companies?genre=${genre.slug}`}
+                    style={{ fontSize: 13, color: "var(--accent)", textDecoration: "none", flexShrink: 0 }}
+                  >
+                    すべて見る →
+                  </Link>
+                )}
+              </div>
+              <GenreCarousel companies={genre.companies} />
+            </div>
+          ))}
         </div>
       )}
     </>
