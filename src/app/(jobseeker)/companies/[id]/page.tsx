@@ -3564,18 +3564,18 @@ export default async function CompanyDetailPage({
       />
       <Breadcrumb company={company} />
       <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} isAuthenticated={isAuthenticated} recruiters={recruiters} />
-      <CompanyStickyNav items={[
-        { id: "about",            label: "企業概要" },
-        ...((detail.fit_positives && detail.fit_positives.length > 0) || (detail.fit_negatives && detail.fit_negatives.length > 0) ? [{ id: "fit", label: "編集部の見立て" }] : []),
-        { id: "current-employees",label: employees.current.length > 0 ? `現役社員 ${employees.current.length}名` : "現役社員" },
-        ...(employees.alumni.length > 0 ? [{ id: "alumni", label: `OB/OG ${employees.alumni.length}名` }] : []),
-        ...(detail.company_features.length > 0 ? [{ id: "opinion", label: "特徴・評判" }] : []),
-        { id: "jobs",             label: company.job_count > 0 ? `求人 ${company.job_count}件` : "求人" },
-        { id: "benefits",         label: "福利厚生" },
-        { id: "work-style",       label: "働き方" },
-      ]} />
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
+        <CompanyStickyNav items={[
+          { id: "about",            label: "企業概要" },
+          ...((detail.fit_positives && detail.fit_positives.length > 0) || (detail.fit_negatives && detail.fit_negatives.length > 0) ? [{ id: "fit", label: "編集部の見立て" }] : []),
+          { id: "current-employees",label: employees.current.length > 0 ? `現役社員 ${employees.current.length}名` : "現役社員" },
+          ...(employees.alumni.length > 0 ? [{ id: "alumni", label: `OB/OG ${employees.alumni.length}名` }] : []),
+          ...(detail.company_features.length > 0 ? [{ id: "opinion", label: "特徴・評判" }] : []),
+          { id: "jobs",             label: company.job_count > 0 ? `求人 ${company.job_count}件` : "求人" },
+          { id: "benefits",         label: "福利厚生" },
+          { id: "work-style",       label: "働き方" },
+        ]} />
         <div
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
           className="px-5 md:px-12 py-7 grid gap-7 [grid-template-columns:1fr] lg:[grid-template-columns:1fr_320px]"
