@@ -618,11 +618,11 @@ function AboutSection({
       id="about"
       style={{
         background: "#fff",
-        border: "none",
+        border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header with subtle gradient */}
@@ -853,11 +853,11 @@ function CompanyFeaturesSection({
       id="opinion"
       style={{
         background: "#fff",
-        border: "none",
+        border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
@@ -983,11 +983,11 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
       id="fit"
       style={{
         background: "#fff",
-        border: "none",
+        border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
@@ -1242,11 +1242,11 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
       id="benefits"
       style={{
         background: "#fff",
-        border: "none",
+        border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
@@ -1368,11 +1368,11 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
       id="work-style"
       style={{
         background: "#fff",
-        border: "none",
+        border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
@@ -1761,11 +1761,11 @@ function CompanyPostsSection({
       id="posts"
       style={{
         background: "#fff",
-        border: "none",
+        border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
@@ -1890,11 +1890,11 @@ function CurrentEmployeesSection({
       id="current-employees"
       style={{
         background: "#fff",
-        border: "none",
+        border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
@@ -2212,11 +2212,11 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
       id="alumni"
       style={{
         background: "#fff",
-        border: "none",
+        border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
@@ -2292,11 +2292,11 @@ function JobsSection({
         id="jobs"
         style={{
           background: "#fff",
-          border: "none",
+          border: "1px solid var(--line)",
           borderRadius: 18,
           overflow: "hidden",
           marginBottom: 24,
-          boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+          boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
         }}
       >
         <div style={{ padding: "22px 28px 18px", borderBottom: "1px solid var(--line-soft)", background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)" }}>
@@ -2457,11 +2457,11 @@ function JobsSection({
       id="jobs"
       style={{
         background: "#fff",
-        border: "none",
+        border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
@@ -2604,11 +2604,11 @@ function RecruitersSection({
     <section
       style={{
         background: "#fff",
-        border: "none",
+        border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
@@ -2733,11 +2733,11 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
     <section
       style={{
         background: "#fff",
-        border: "none",
+        border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
@@ -2893,10 +2893,10 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
       style={{
         background: "#fff",
         borderRadius: 18,
-        border: "none",
+        border: "1px solid var(--line)",
         overflow: "hidden",
         marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
@@ -3299,10 +3299,10 @@ function Sidebar({
         <div
           style={{
             background: "#fff",
-            border: "none",
+            border: "1px solid var(--line)",
             borderRadius: 16,
             padding: "18px 20px",
-            boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
           }}
         >
           <div
@@ -3369,10 +3369,10 @@ function Sidebar({
       <div
         style={{
           background: "#fff",
-          border: "none",
+          border: "1px solid var(--line)",
           borderRadius: 16,
           padding: 22,
-          boxShadow: "0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.06)",
+          boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
         }}
       >
         <div
