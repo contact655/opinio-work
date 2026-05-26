@@ -213,6 +213,28 @@ function Hero({
               >
                 {company.tagline}
               </p>
+              {/* ジャンルチップ */}
+              {company.genres.length > 0 && (
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 }}>
+                  {company.genres.map((g) => (
+                    <span
+                      key={g.id}
+                      style={{
+                        display: "inline-flex", alignItems: "center",
+                        padding: "3px 10px", borderRadius: 999,
+                        fontSize: 11, fontWeight: 700,
+                        background: "var(--royal-50)",
+                        color: "var(--royal)",
+                        border: "1px solid var(--royal-100)",
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      {g.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {/* バッジ1: 従業員 */}
                 <span
