@@ -73,7 +73,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
         <div style={{ position: "absolute", right: -100, top: -100, width: 480, height: 480, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", left: -60, bottom: -80, width: 320, height: 320, borderRadius: "50%", background: "rgba(255,255,255,0.025)", pointerEvents: "none" }} />
 
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-[1440px] mx-auto px-4">
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.65)", marginBottom: 10, textTransform: "uppercase" as const }}>
@@ -119,14 +119,14 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
       {/* ── Search bar panel ── */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-[1440px] mx-auto px-4">
           <Suspense>
             <CompanySearchBar industries={industries} locations={locations} />
           </Suspense>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 pt-6 pb-8">
+      <div className="max-w-[1440px] mx-auto px-4 pt-6 pb-8">
         {/* ── 2カラムグリッド（lg以上）── */}
         <div className="[grid-template-columns:1fr] lg:[grid-template-columns:1fr_264px]"
           style={{ display: "grid", gap: 28, alignItems: "flex-start" }}>

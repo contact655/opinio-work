@@ -41,8 +41,11 @@ export async function CompanySearchResults({ q, industry, size, workStyle, hirin
         @media (min-width: 1025px) and (max-width: 1280px) {
           .search-results-grid { grid-template-columns: repeat(3, 1fr); }
         }
-        @media (min-width: 1281px) {
+        @media (min-width: 1281px) and (max-width: 1499px) {
           .search-results-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        @media (min-width: 1500px) {
+          .search-results-grid { grid-template-columns: repeat(5, 1fr); }
         }
 
         /* genre-card が GenreCarousel の <style> に依存しているため、ここでも定義 */

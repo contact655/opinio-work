@@ -91,8 +91,11 @@ export function GenreCarousel({ companies }: Props) {
         @media (min-width: 1025px) and (max-width: 1280px) {
           .genre-carousel { grid-auto-columns: calc((100% - 14px * 2) / 3); }
         }
-        @media (min-width: 1281px) {
+        @media (min-width: 1281px) and (max-width: 1499px) {
           .genre-carousel { grid-auto-columns: calc((100% - 14px * 3) / 4); }
+        }
+        @media (min-width: 1500px) {
+          .genre-carousel { grid-auto-columns: calc((100% - 14px * 4) / 5); }
         }
 
         /* ── カードスタイル ──────────────────────────────────────── */
