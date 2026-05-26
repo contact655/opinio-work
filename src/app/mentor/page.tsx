@@ -80,11 +80,15 @@ export default function MentorPage() {
         {/* ─── Section 1: Hero ───────────────────────────────────────────────── */}
         <section
           style={{
-            background: "var(--royal)",
+            background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
             padding: "100px 24px 88px",
             textAlign: "center",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
+          <div style={{ position: "absolute", right: -80, top: -80, width: 440, height: 440, borderRadius: "50%", background: "rgba(59,95,217,0.1)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", left: -60, bottom: -80, width: 280, height: 280, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
           <div style={{ maxWidth: 720, margin: "0 auto" }}>
             <p
               style={{
