@@ -127,197 +127,66 @@ export default async function CompaniesPage({ searchParams }: Props) {
       </div>
 
       <div className="max-w-[1440px] mx-auto px-4 pt-6 pb-8">
-        {/* ── 2カラムグリッド（lg以上）── */}
-        <div className="[grid-template-columns:1fr] lg:[grid-template-columns:1fr_264px]"
-          style={{ display: "grid", gap: 28, alignItems: "flex-start" }}>
 
-          {/* ── メインカラム ── */}
-          <div>
-            {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル */}
-            {hasFilter ? (
-              <CompanySearchResults
-                q={q}
-                industry={industry}
-                size={size}
-                workStyle={workStyle}
-                hiring={hiring}
-                location={location}
-              />
-            ) : (
-              <div style={{ marginTop: 4 }}>
-                {genresWithCompanies.map((genre) => (
-                  <GenreSection key={genre.id} genre={genre} />
-                ))}
-              </div>
-            )}
-
-            {/* ── 先輩に相談 CTA（モバイルでも表示） ── */}
-            <div style={{
-              marginTop: 32, marginBottom: 8,
-              padding: "28px 32px",
-              background: "var(--royal-50)",
-              border: "1.5px solid var(--royal-100)",
-              borderRadius: 16,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 20,
-              flexWrap: "wrap",
-            }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: 8, textTransform: "uppercase" as const }}>
-                  OPINIO MENTOR
-                </div>
-                <p style={{
-                  fontFamily: "var(--font-noto-serif)",
-                  fontSize: "clamp(14px, 1.5vw, 17px)", fontWeight: 500,
-                  color: "var(--ink)", margin: 0, lineHeight: 1.55,
-                }}>
-                  企業を絞り込んだら、その会社の先輩に話を聞いてみよう。
-                </p>
-                <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
-                  OPINIOのメンターは編集部が個別に声がけした現役・元社員のみ。30分・完全無料で相談できます。
-                </p>
-              </div>
-              <Link href="/mentors" style={{
-                display: "inline-flex", alignItems: "center", gap: 8,
-                padding: "11px 22px", borderRadius: 8, fontSize: 13, fontWeight: 700,
-                background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-                color: "#fff", textDecoration: "none",
-                boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
-                flexShrink: 0,
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                先輩に相談する（無料）
-              </Link>
-            </div>
+        {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル */}
+        {hasFilter ? (
+          <CompanySearchResults
+            q={q}
+            industry={industry}
+            size={size}
+            workStyle={workStyle}
+            hiring={hiring}
+            location={location}
+          />
+        ) : (
+          <div style={{ marginTop: 4 }}>
+            {genresWithCompanies.map((genre) => (
+              <GenreSection key={genre.id} genre={genre} />
+            ))}
           </div>
+        )}
 
-          {/* ── サイドバー（lg以上のみ表示） ── */}
-          <aside className="hidden lg:block" style={{ position: "sticky", top: 88, alignSelf: "flex-start" }}>
-
-            {/* ジャンルで探す */}
-            <div style={{
-              background: "#fff", border: "1px solid var(--line)",
-              borderRadius: 14, padding: "18px 16px", marginBottom: 14,
-            }}>
-              <div style={{
-                fontSize: 10.5, fontWeight: 700, letterSpacing: "0.12em",
-                color: "var(--ink-mute)", marginBottom: 12,
-                textTransform: "uppercase" as const,
-              }}>
-                ジャンルで探す
-              </div>
-              <nav style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {genresWithCompanies.map((genre) => (
-                  <a
-                    key={genre.id}
-                    href={`#genre-${genre.slug}`}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "7px 8px", borderRadius: 7, fontSize: 13, fontWeight: 500,
-                      color: "var(--ink)", textDecoration: "none",
-                    }}
-                    className="sidebar-genre-link"
-                  >
-                    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{
-                        width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
-                        background: "linear-gradient(135deg, var(--royal), var(--accent))",
-                      }} />
-                      {genre.name}
-                    </span>
-                    <span style={{
-                      fontSize: 11, fontWeight: 600,
-                      color: "var(--ink-mute)",
-                      background: "var(--bg-tint)",
-                      padding: "1px 7px", borderRadius: 100,
-                    }}>
-                      {genre.total_count}
-                    </span>
-                  </a>
-                ))}
-              </nav>
+        {/* ── 先輩に相談 CTA ── */}
+        <div style={{
+          marginTop: 48, marginBottom: 16,
+          padding: "32px 36px",
+          background: "var(--royal-50)",
+          border: "1.5px solid var(--royal-100)",
+          borderRadius: 16,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 24,
+          flexWrap: "wrap",
+        }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: 8, textTransform: "uppercase" as const }}>
+              OPINIO MENTOR
             </div>
-
-            {/* メンター相談 CTA */}
-            <div style={{
-              background: "linear-gradient(160deg, #001233 0%, #002366 60%, #1e3a8a 100%)",
-              borderRadius: 14, padding: "18px 16px", marginBottom: 14,
+            <p style={{
+              fontFamily: "var(--font-noto-serif)",
+              fontSize: "clamp(15px, 2vw, 18px)", fontWeight: 500,
+              color: "var(--ink)", margin: 0, lineHeight: 1.55,
             }}>
-              <div style={{
-                fontSize: 10, fontWeight: 700, letterSpacing: "0.13em",
-                color: "rgba(255,255,255,0.55)", marginBottom: 6,
-                textTransform: "uppercase" as const,
-              }}>
-                OPINIO MENTOR
-              </div>
-              <p style={{
-                fontFamily: "var(--font-noto-serif)",
-                fontSize: 13.5, fontWeight: 600, color: "#fff",
-                lineHeight: 1.55, marginBottom: 14,
-              }}>
-                気になる企業の先輩に<br />話を聞いてみよう
-              </p>
-              <Link href="/mentors" style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "10px 0", borderRadius: 8, fontSize: 12.5, fontWeight: 700,
-                background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-                color: "#fff", textDecoration: "none",
-                boxShadow: "0 4px 12px rgba(245,158,11,0.35)",
-              }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                先輩に相談する（無料）
-              </Link>
-            </div>
-
-            {/* 掲載統計 */}
-            <div style={{
-              background: "#fff", border: "1px solid var(--line)",
-              borderRadius: 14, padding: "16px",
-            }}>
-              <div style={{
-                fontSize: 10.5, fontWeight: 700, letterSpacing: "0.12em",
-                color: "var(--ink-mute)", marginBottom: 12,
-                textTransform: "uppercase" as const,
-              }}>
-                掲載状況
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>掲載企業</span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 800, color: "var(--royal)", lineHeight: 1 }}>
-                    {totalCount}<span style={{ fontSize: 11, fontWeight: 600, marginLeft: 2 }}>社</span>
-                  </span>
-                </div>
-                <div style={{ height: 1, background: "var(--line-soft)" }} />
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>面談受付中</span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 800, color: "var(--success)", lineHeight: 1 }}>
-                    {casualCount}<span style={{ fontSize: 11, fontWeight: 600, marginLeft: 2 }}>社</span>
-                  </span>
-                </div>
-                <div style={{ height: 1, background: "var(--line-soft)" }} />
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>編集部審査済み</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>✓ 全社</span>
-                </div>
-              </div>
-            </div>
-
-            {/* ホバーCSS */}
-            <style>{`
-              .sidebar-genre-link:hover {
-                background: var(--royal-50);
-                color: var(--royal) !important;
-              }
-            `}</style>
-          </aside>
-
+              企業を絞り込んだら、その会社の先輩に話を聞いてみよう。
+            </p>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8, lineHeight: 1.7 }}>
+              OPINIOのメンターは編集部が個別に声がけした現役・元社員のみ。30分・完全無料で相談できます。
+            </p>
+          </div>
+          <Link href="/mentors" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
+            background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+            color: "#fff", textDecoration: "none",
+            boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
+            flexShrink: 0,
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            先輩に相談する（無料）
+          </Link>
         </div>
       </div>
     </div>
