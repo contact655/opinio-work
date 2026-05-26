@@ -8,14 +8,24 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 // ─── Shared constants ──────────────────────────────────────────────────────────
 
 /** すべての写真カードを同じサイズで表示
- *  幅は CSS calc で「コンテナ幅 ÷ 2.3」 → 常に 2.3 枚だけ見える（スクロール必須） */
+ *  幅は CSS calc で「コンテナ幅 ÷ 3」 → デフォルト3枚表示 */
 const CARD_H = 280; // px — 全カード共通の高さ（固定）
 const GAP = 12;     // px — カード間隔
 // カード幅は CSS class .ps-card で管理（calc 使用）
 
+// カテゴリ表示ラベル（biz側と統一）
+const CATEGORY_LABEL: Record<string, string> = {
+  workspace: "オフィス",
+  meeting:   "働く様子",
+  welfare:   "休憩・食事スペース",
+  event:     "チーム・イベント",
+};
+
 // ─── Caption overlay ───────────────────────────────────────────────────────────
 
-function CaptionOverlay({ text }: { text: string }) {
+function CaptionOverlay({ text, category }: { text?: string; category?: string }) {
+  const catLabel = category ? (CATEGORY_LABEL[category] ?? null) : null;
+  if (!text && !catLabel) return null;
   return (
     <div
       style={{
@@ -23,18 +33,31 @@ function CaptionOverlay({ text }: { text: string }) {
         bottom: 0,
         left: 0,
         right: 0,
-        padding: "28px 12px 10px",
-        background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.65) 100%)",
-        color: "#fff",
-        fontSize: 11,
-        fontWeight: 500,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
+        padding: "28px 10px 10px",
+        background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%)",
         pointerEvents: "none",
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
       }}
     >
-      {text}
+      {catLabel && (
+        <span style={{
+          fontSize: 9, fontWeight: 700, letterSpacing: "0.1em",
+          textTransform: "uppercase" as const,
+          color: "rgba(255,255,255,0.65)",
+        }}>
+          {catLabel}
+        </span>
+      )}
+      {text && (
+        <span style={{
+          color: "#fff", fontSize: 11, fontWeight: 500,
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {text}
+        </span>
+      )}
     </div>
   );
 }
@@ -299,7 +322,7 @@ function PhotoStrip({
                 sizes="320px"
                 style={{ objectFit: "cover" }}
               />
-              {photo.caption && <CaptionOverlay text={photo.caption} />}
+              <CaptionOverlay text={photo.caption ?? undefined} category={photo.category ?? undefined} />
             </div>
           ))}
         </div>
