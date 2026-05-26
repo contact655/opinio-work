@@ -306,6 +306,19 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </span>
               </div>
 
+              {/* HOT badge */}
+              {job.urgency === "hot" && (
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "4px 10px", borderRadius: 6, marginBottom: 10,
+                  background: "#FEE2E2", color: "#DC2626",
+                  fontSize: 11, fontWeight: 800, letterSpacing: "0.08em",
+                  fontFamily: "Inter, sans-serif", border: "1px solid #FECACA",
+                }}>
+                  🔥 積極採用中
+                </div>
+              )}
+
               {/* NEW badge */}
               {job.is_new && (
                 <span style={{

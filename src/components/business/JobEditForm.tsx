@@ -56,6 +56,7 @@ type FormState = {
   selectionDuration: string;
   startDatePreference: string;
   assigneeIds: string[];
+  urgency: "open" | "hot";
 };
 
 function jobToForm(job: BizJob | null): FormState {
@@ -65,7 +66,7 @@ function jobToForm(job: BizJob | null): FormState {
     probationPeriod: "", descriptionMarkdown: "", messageToCandidates: "",
     requiredSkills: [], preferredSkills: [], cultureFit: "",
     selectionSteps: ["書類選考", "カジュアル面談", "1次面接", "最終面接"],
-    selectionDuration: "", startDatePreference: "応相談", assigneeIds: [],
+    selectionDuration: "", startDatePreference: "応相談", assigneeIds: [], urgency: "open",
   };
   return {
     title: job.title,
@@ -87,6 +88,7 @@ function jobToForm(job: BizJob | null): FormState {
     selectionDuration: job.selectionDuration ?? "",
     startDatePreference: job.startDatePreference ?? "応相談",
     assigneeIds: job.assigneeNames.map((_, i) => MOCK_TEAM[i]?.id ?? `member-${i + 1}`),
+    urgency: job.urgency ?? "open",
   };
 }
 
@@ -623,6 +625,42 @@ export function JobEditForm({
           <>
             <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>公開設定</h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>求人の公開状態を選択してください。新規・編集後は運営審査を経て公開されます。</p>
+            <FormSection title="採用温度感" desc="「HOT」にすると求職者側の求人カードに強調バッジが表示されます。積極的に採用したいポジションに設定してください。">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {([
+                  { value: "open", label: "OPEN", sublabel: "通常募集", color: "var(--success)", bg: "var(--success-soft)" },
+                  { value: "hot",  label: "HOT",  sublabel: "積極採用中", color: "#DC2626", bg: "#FEE2E2" },
+                ] as const).map((opt) => {
+                  const isSelected = form.urgency === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => updateForm("urgency", opt.value)}
+                      style={{
+                        padding: "14px 16px",
+                        border: `2px solid ${isSelected ? opt.color : "var(--line)"}`,
+                        borderRadius: 10,
+                        background: isSelected ? opt.bg : "#fff",
+                        cursor: "pointer",
+                        textAlign: "left" as const,
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <div style={{
+                        fontSize: 15, fontWeight: 800, color: isSelected ? opt.color : "var(--ink-mute)",
+                        fontFamily: "Inter, sans-serif", letterSpacing: "0.05em", marginBottom: 3,
+                      }}>
+                        {opt.label}
+                      </div>
+                      <div style={{ fontSize: 11, color: isSelected ? opt.color : "var(--ink-mute)", fontWeight: 600 }}>
+                        {opt.sublabel}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </FormSection>
             <FormSection title="公開状態">
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[

@@ -185,6 +185,24 @@ function JobCard({
         </div>
       )}
 
+      {/* HOT badge */}
+      {job.urgency === "hot" && (
+        <span style={{
+          position: "absolute",
+          top: 10,
+          left: 10,
+          display: "inline-flex", alignItems: "center", gap: 3,
+          padding: "2px 7px", borderRadius: 4,
+          background: "#FEE2E2", color: "#DC2626",
+          fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
+          fontFamily: "Inter, sans-serif",
+          border: "1px solid #FECACA",
+          zIndex: 2,
+        }}>
+          🔥 HOT
+        </span>
+      )}
+
       {/* Head */}
       <div
         style={{

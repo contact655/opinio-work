@@ -55,6 +55,7 @@ export async function PUT(
       selection_steps: Array.isArray(body.selectionSteps) ? body.selectionSteps : [],
       selection_duration: body.selectionDuration as string || null,
       start_date_preference: body.startDatePreference as string || null,
+      urgency: (body.urgency === "hot") ? "hot" : "open",
       updated_at: now,
     })
     .eq("id", jobId);

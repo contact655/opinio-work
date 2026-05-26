@@ -41,6 +41,7 @@ export type Job = {
   highlight: string;
   updated_days_ago: number;
   is_new: boolean;
+  urgency: "open" | "hot";
   dept_members: number;
   member_avatars: { initial: string; gradient: string }[];
   // detail
@@ -88,6 +89,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "FinTechユニコーン。Fact & Logicの文化と、週5で顧客に会うPdM制度が特徴。プロダクト思考を磨きたい方へ。",
     updated_days_ago: 1,
     is_new: true,
+    urgency: "hot",
     dept_members: 4,
     member_avatars: [
       { initial: "田", gradient: G[0] },
@@ -152,6 +154,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "Go + AWS でバクラク基盤を支えるバックエンドエンジニア。高負荷環境での設計経験が活かせます。",
     updated_days_ago: 1,
     is_new: true,
+    urgency: "hot",
     dept_members: 8,
     member_avatars: [
       { initial: "鈴", gradient: G[0] },
@@ -217,6 +220,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "国内シェアNo.1のクラウド人事労務ソフト。プラットフォーム化が加速中で、技術的にも面白いフェーズ。",
     updated_days_ago: 4,
     is_new: false,
+    urgency: "open",
     dept_members: 15,
     member_avatars: [
       { initial: "山", gradient: G[0] },
@@ -281,6 +285,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "労務DXのリーダー企業でエンタープライズCSMを担当。大企業の人事変革を伴走できる希少ポジション。",
     updated_days_ago: 4,
     is_new: false,
+    urgency: "open",
     dept_members: 9,
     member_avatars: [
       { initial: "林", gradient: G[5] },
@@ -346,6 +351,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "米国本社のCRM/MA SaaS。日本オフィスはフルリモート前提、グローバルとの連携が日常的。テクニカルな提案力が活きます。",
     updated_days_ago: 3,
     is_new: false,
+    urgency: "open",
     dept_members: 3,
     member_avatars: [
       { initial: "林", gradient: G[5] },
@@ -411,6 +417,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "世界No.1 CRM。大企業のDXを推進するAEポジション。インセンティブ込みで年収2000万超も可能。",
     updated_days_ago: 20,
     is_new: false,
+    urgency: "open",
     dept_members: 22,
     member_avatars: [
       { initial: "松", gradient: G[0] },
@@ -476,6 +483,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "AI問診のヘルステック。ホラクラシー型組織で、役職ではなく役割で動く文化。医療×テクノロジーの最前線。",
     updated_days_ago: 7,
     is_new: false,
+    urgency: "open",
     dept_members: 6,
     member_avatars: [
       { initial: "本", gradient: G[1] },
@@ -542,6 +550,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "東証グロース上場のクラウド会計。スモールビジネスの成長を支えるミッション。SaaS CSのキャリアを伸ばせます。",
     updated_days_ago: 10,
     is_new: false,
+    urgency: "open",
     dept_members: 11,
     member_avatars: [
       { initial: "小", gradient: G[7] },
@@ -605,6 +614,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "会計SaaSのインフラ基盤をKubernetesとRubyで支えるプラットフォームエンジニア。信頼性とスケールを両立する仕事。",
     updated_days_ago: 10,
     is_new: false,
+    urgency: "open",
     dept_members: 7,
     member_avatars: [
       { initial: "野", gradient: G[0] },
@@ -669,6 +679,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "名刺DXから請求書・契約書管理へ拡張する東証プライム企業。BtoB SaaSのPdMとして幅広いプロダクト経験が積めます。",
     updated_days_ago: 18,
     is_new: false,
+    urgency: "open",
     dept_members: 5,
     member_avatars: [
       { initial: "加", gradient: G[4] },
@@ -734,6 +745,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "東証プライム上場のFinTechインフラ。会計・給与・経費が揃うプラットフォームのバックエンドを支える。",
     updated_days_ago: 14,
     is_new: false,
+    urgency: "open",
     dept_members: 12,
     member_avatars: [
       { initial: "原", gradient: G[6] },
@@ -799,6 +811,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "クラウド可観測性のグローバルリーダー。NASDAQ上場企業でエンタープライズ新規開拓を担う。インセンティブ込みで高収入を狙える。",
     updated_days_ago: 5,
     is_new: false,
+    urgency: "open",
     dept_members: 4,
     member_avatars: [
       { initial: "赤", gradient: G[2] },
@@ -864,6 +877,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "300万社が使うビジネスチャット。レガシーPHPをGoにマイグレーション中。技術的挑戦とユーザーへの影響が大きいフェーズ。",
     updated_days_ago: 8,
     is_new: false,
+    urgency: "open",
     dept_members: 7,
     member_avatars: [
       { initial: "福", gradient: G[0] },
@@ -928,6 +942,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "Series C / 評価額100億ドル超のグローバルSaaS。日本の大手企業向けNotionの定着・拡大を担うCSM。英語力が直接活かせる環境。",
     updated_days_ago: 2,
     is_new: true,
+    urgency: "open",
     dept_members: 2,
     member_avatars: [
       { initial: "北", gradient: G[0] },
@@ -991,6 +1006,7 @@ export const MOCK_JOBS: Job[] = [
     highlight: "東証グロース上場のAI企業。LLM/NLPを使ったエンタープライズ向けAIアプリケーション開発。裁量労働制で研究×実装両立。",
     updated_days_ago: 32,
     is_new: false,
+    urgency: "open",
     dept_members: 3,
     member_avatars: [
       { initial: "新", gradient: G[4] },

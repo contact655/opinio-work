@@ -39,6 +39,7 @@ type DbJobFull = {
   selection_duration: string | null;
   start_date_preference: string | null;
   status: string | null;
+  urgency: string | null;
   published_at: string | null;
   updated_at: string | null;
   submitted_at: string | null;
@@ -63,6 +64,7 @@ type DbJob = {
   preferred_skills: string[] | null;    // m031 TEXT[]
   selection_steps: string[] | null;     // m031 TEXT[] (旧: selection_process JSONB)
   status: string | null;
+  urgency: string | null;
   published_at: string | null;
   updated_at: string | null;
 };
@@ -129,6 +131,7 @@ function transformJob(row: DbJob, meetingCount: number, applicationCount: number
     status,
     meetingCount,
     applicationCount,
+    urgency: (row.urgency as "open" | "hot") ?? "open",
     completionPercent: computeCompletionPercent(row),
     lastEditedAt: formatRelativeDate(row.updated_at),
     publishedAt: row.published_at ? formatRelativeDate(row.published_at) : undefined,
@@ -148,7 +151,7 @@ export async function fetchJobsForCompany(
   const { data: rows, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description_markdown, required_skills, preferred_skills, selection_steps, status, published_at, updated_at"
+      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description_markdown, required_skills, preferred_skills, selection_steps, status, urgency, published_at, updated_at"
     )
     .eq("company_id", tenantId)
     .order("updated_at", { ascending: false });
@@ -196,7 +199,7 @@ export async function fetchJobById(
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, ow_job_assignees!job_id(user_id)"
+      "id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, ow_job_assignees!job_id(user_id)"
     )
     .eq("id", jobId)
     .single();
@@ -231,6 +234,7 @@ export async function fetchJobById(
     status: toJobStatus(row.status),
     meetingCount: 0,
     applicationCount: 0,
+    urgency: (row.urgency as "open" | "hot") ?? "open",
     completionPercent: 0,
     lastEditedAt: formatRelativeDate(row.updated_at),
     publishedAt: row.published_at ? formatRelativeDate(row.published_at) : undefined,

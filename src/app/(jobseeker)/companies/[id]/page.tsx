@@ -2350,7 +2350,7 @@ function JobsSection({
     catId,
     index,
   }: {
-    job: { id?: string; title: string; salary: string; is_new?: boolean };
+    job: { id?: string; title: string; salary: string; is_new?: boolean; urgency?: "open" | "hot" };
     catName: string;
     catId?: string;
     index: number;
@@ -2382,6 +2382,18 @@ function JobsSection({
               {job.title}
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {job.urgency === "hot" && (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 3,
+                  padding: "2px 7px", borderRadius: 4,
+                  background: "#FEE2E2", color: "#DC2626",
+                  fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
+                  fontFamily: "Inter, sans-serif",
+                  border: "1px solid #FECACA",
+                }}>
+                  🔥 HOT
+                </span>
+              )}
               {job.is_new && (
                 <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: "var(--success-soft,#ECFDF5)", color: "var(--success)", fontWeight: 700, border: "1px solid #A7F3D0" }}>
                   新着

@@ -14,6 +14,7 @@ export type JobItem = {
   tags: string[];
   salary: string;
   is_new?: boolean;
+  urgency?: "open" | "hot";
 };
 
 export type JobCat = {

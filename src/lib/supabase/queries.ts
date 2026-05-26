@@ -136,6 +136,7 @@ function mapJob(row: Record<string, any>): Job {
     highlight: (row.catch_copy as string) ?? (row.one_liner as string) ?? "",
     updated_days_ago: daysSince(row.updated_at as string),
     is_new: isNew,
+    urgency: (row.urgency as "open" | "hot") ?? "open",
     dept_members: 0,
     member_avatars: [],
     // detail fields
@@ -196,6 +197,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
             };
             const pub = j.published_at as string | null;
             if (pub && daysSince(pub) <= 7) item.is_new = true;
+            if (j.urgency === "hot") item.urgency = "hot";
             return item;
           }),
         }));
@@ -453,7 +455,7 @@ export async function getCompanyById(
   const [{ data: jobRows }, { data: roleRows }, employeeCategories, { data: genreRows }] = await Promise.all([
     supabase
       .from("ow_jobs")
-      .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at")
+      .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at, urgency")
       .eq("company_id", id),
     supabase
       .from("ow_roles")
@@ -499,7 +501,7 @@ export async function getParentRoles(): Promise<{ id: string; name: string }[]> 
 const JOB_LIST_COLS = [
   "id", "company_id", "title", "job_category", "role_category_id", "employment_type",
   "location", "work_style", "salary_min", "salary_max",
-  "catch_copy", "one_liner", "published_at", "updated_at", "remote_work_status",
+  "catch_copy", "one_liner", "published_at", "updated_at", "remote_work_status", "urgency",
 ].join(", ");
 
 const JOB_DETAIL_COLS = [

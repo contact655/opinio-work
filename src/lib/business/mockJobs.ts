@@ -24,6 +24,7 @@ export type BizJob = {
   status: JobStatus;
   meetingCount: number;
   applicationCount: number;
+  urgency: "open" | "hot";
   completionPercent: number;
   lastEditedAt: string;
   publishedAt?: string;
@@ -54,6 +55,7 @@ export const MOCK_JOBS: BizJob[] = [
     status: "rejected",
     meetingCount: 0,
     applicationCount: 0,
+    urgency: "hot",
     completionPercent: 85,
     lastEditedAt: "4/20 16:30",
     rejectionReason:
@@ -79,6 +81,7 @@ export const MOCK_JOBS: BizJob[] = [
     status: "published",
     meetingCount: 12,
     applicationCount: 0,
+    urgency: "hot",
     completionPercent: 100,
     lastEditedAt: "3/10 09:00",
     publishedAt: "2026/3/15",
@@ -101,6 +104,7 @@ export const MOCK_JOBS: BizJob[] = [
     status: "published",
     meetingCount: 8,
     applicationCount: 0,
+    urgency: "open",
     completionPercent: 100,
     lastEditedAt: "2/20 11:00",
     publishedAt: "2026/2/28",
@@ -123,6 +127,7 @@ export const MOCK_JOBS: BizJob[] = [
     status: "published",
     meetingCount: 5,
     applicationCount: 0,
+    urgency: "open",
     completionPercent: 100,
     lastEditedAt: "2/01 14:00",
     publishedAt: "2026/2/10",
@@ -146,6 +151,7 @@ export const MOCK_JOBS: BizJob[] = [
     status: "pending_review",
     meetingCount: 0,
     applicationCount: 0,
+    urgency: "open",
     completionPercent: 100,
     lastEditedAt: "4/22 10:00",
     submittedAt: "2026/4/22",
@@ -163,6 +169,7 @@ export const MOCK_JOBS: BizJob[] = [
     status: "draft",
     meetingCount: 0,
     applicationCount: 0,
+    urgency: "open",
     completionPercent: 40,
     lastEditedAt: "4/22 11:18",
   },
@@ -184,6 +191,7 @@ export const MOCK_JOBS: BizJob[] = [
     status: "draft",
     meetingCount: 0,
     applicationCount: 0,
+    urgency: "open",
     completionPercent: 100,
     lastEditedAt: "4/18 09:42",
   },
@@ -204,6 +212,7 @@ export const MOCK_JOBS: BizJob[] = [
     status: "private",
     meetingCount: 14,
     applicationCount: 0,
+    urgency: "open",
     completionPercent: 100,
     lastEditedAt: "3/01 09:00",
     publishedAt: "2026/3/05",
