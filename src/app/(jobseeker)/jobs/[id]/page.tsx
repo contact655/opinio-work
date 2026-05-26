@@ -663,6 +663,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     </div>
                   ))}
                 </div>
+                {job.selection_note && (
                 <p style={{
                   marginTop: 14, fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.7,
                   background: "var(--bg-tint)", padding: "10px 14px", borderRadius: 8,
@@ -670,6 +671,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 }}>
                   {job.selection_note}
                 </p>
+                )}
               </section>
               )}
 
@@ -824,7 +826,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                           </div>
                           <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
                             {(rj.salary_min || rj.salary_max)
-                              ? `¥${rj.salary_min && rj.salary_max ? `${rj.salary_min}〜${rj.salary_max}万` : rj.salary_min ? `${rj.salary_min}万〜` : `〜${rj.salary_max}万`} · `
+                              ? `${rj.salary_min && rj.salary_max ? `${rj.salary_min}〜${rj.salary_max}万` : rj.salary_min ? `${rj.salary_min}万〜` : `〜${rj.salary_max}万`} · `
                               : ""}{rj.work_style}
                           </div>
                         </div>
@@ -976,10 +978,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     fontFamily: "Inter, sans-serif", textAlign: "right" as const,
                   }}>
                     {job.salary_min && job.salary_max
-                      ? `${job.salary_min}〜${job.salary_max}`
-                      : job.salary_min ? `${job.salary_min}〜`
-                      : `〜${job.salary_max}`}
-                    <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 2 }}>万円</span>
+                      ? `${job.salary_min}〜${job.salary_max}万`
+                      : job.salary_min ? `${job.salary_min}万〜`
+                      : `〜${job.salary_max}万`}
                   </span>
                 </div>
                 )}
@@ -1053,6 +1054,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
       <div className="lg:hidden" style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
         padding: "12px 16px",
+        paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
         background: "rgba(255,255,255,0.96)", backdropFilter: "blur(10px)",
         borderTop: "1px solid var(--line)",
         display: "flex", gap: 8,

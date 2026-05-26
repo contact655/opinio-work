@@ -2547,8 +2547,8 @@ function JobsSection({
           ))}
 
           <div style={{ textAlign: "center", marginTop: 20 }}>
-            <a
-              href="#jobs"
+            <Link
+              href={`/companies/${company.id}/jobs`}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -2564,7 +2564,7 @@ function JobsSection({
               }}
             >
               {company.job_count}件すべての求人を見る →
-            </a>
+            </Link>
           </div>
         </>
       )}
@@ -3555,9 +3555,9 @@ export default async function CompanyDetailPage({
       <CompanyStickyNav items={[
         { id: "about",            label: "企業概要" },
         { id: "current-employees",label: employees.current.length > 0 ? `現役社員 ${employees.current.length}名` : "現役社員" },
-        { id: "alumni",           label: employees.alumni.length > 0 ? `OB/OG ${employees.alumni.length}名` : "OB/OG" },
-        { id: "opinion",          label: "特徴・評判" },
-        { id: "fit",              label: "向き・不向き" },
+        ...(employees.alumni.length > 0 ? [{ id: "alumni", label: `OB/OG ${employees.alumni.length}名` }] : []),
+        ...(detail.company_features.length > 0 ? [{ id: "opinion", label: "特徴・評判" }] : []),
+        ...((detail.fit_positives && detail.fit_positives.length > 0) || (detail.fit_negatives && detail.fit_negatives.length > 0) ? [{ id: "fit", label: "向き・不向き" }] : []),
         { id: "jobs",             label: company.job_count > 0 ? `求人 ${company.job_count}件` : "求人" },
         { id: "benefits",         label: "福利厚生" },
         { id: "work-style",       label: "働き方" },
@@ -3589,7 +3589,7 @@ export default async function CompanyDetailPage({
 
             {/* 5. 現役社員・OBOGプロフィール（閲覧のみ・直接連絡不可） */}
             <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
-            <AlumniSection alumni={employees.alumni} />
+            {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
 
             {/* 6. 特徴・評判・向き不向き */}
             <CompanyFeaturesSection company={company} detail={detail} />

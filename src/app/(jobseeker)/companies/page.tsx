@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { fetchGenresWithCompanies } from "@/lib/genres";
 import { fetchDistinctIndustries, fetchDistinctLocations } from "@/lib/search/companies";
+import { createClient } from "@/lib/supabase/server";
 import { GenreSection } from "@/components/companies/GenreSection";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
@@ -44,13 +45,20 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const hasFilter = Boolean(q || industry || size || workStyle || hiring || location);
 
   // 全データを並列取得（genresWithCompanies は常に取得してヒーロー統計に使う）
-  const [industries, locations, genresWithCompanies] = await Promise.all([
+  const supabase = createClient();
+  const [industries, locations, genresWithCompanies, casualResult] = await Promise.all([
     fetchDistinctIndustries(),
     fetchDistinctLocations(),
     fetchGenresWithCompanies(),
+    supabase
+      .from("ow_companies")
+      .select("id", { count: "exact", head: true })
+      .eq("accepting_casual_meetings", true)
+      .eq("is_published", true),
   ]);
 
   const totalCount = genresWithCompanies.reduce((s, g) => s + g.total_count, 0);
+  const casualCount = casualResult.count ?? totalCount;
 
   return (
     <div>
@@ -88,7 +96,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                 )}
                 <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  全社カジュアル面談受付中
+                  {casualCount}社がカジュアル面談受付中
                 </span>
                 <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
                   ✓ 編集部審査済み
@@ -166,7 +174,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
               OPINIOのメンターは編集部が個別に声がけした現役・元社員のみ。30分・完全無料で相談できます。
             </p>
           </div>
-          <a href="/mentors" style={{
+          <Link href="/mentors" style={{
             display: "inline-flex", alignItems: "center", gap: 8,
             padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
             background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
@@ -178,7 +186,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             先輩に相談する（無料）
-          </a>
+          </Link>
         </div>
       </div>
     </div>
