@@ -400,16 +400,88 @@ function PhotoStrip({
   );
 }
 
+// ─── Category tabs ─────────────────────────────────────────────────────────────
+
+const ALL_CATEGORIES = [
+  { value: "all",       label: "すべて" },
+  { value: "workspace", label: "オフィス" },
+  { value: "meeting",   label: "働く様子" },
+  { value: "welfare",   label: "休憩・食事" },
+  { value: "event",     label: "チーム" },
+] as const;
+
 // ─── Main export ───────────────────────────────────────────────────────────────
 
 export function PhotoCarousel({ photos }: { photos: CompanyPhoto[] }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
 
   if (photos.length === 0) return null;
 
+  // Compute available categories (only show tabs with at least 1 photo)
+  const categoryCounts = photos.reduce<Record<string, number>>((acc, p) => {
+    const cat = p.category ?? "workspace";
+    acc[cat] = (acc[cat] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const availableTabs = ALL_CATEGORIES.filter(
+    (tab) => tab.value === "all" || (categoryCounts[tab.value] ?? 0) > 0
+  );
+
+  const filteredPhotos =
+    activeCategory === "all"
+      ? photos
+      : photos.filter((p) => (p.category ?? "workspace") === activeCategory);
+
+  // Correct lightbox index: from filtered photos back to full photos array
+  function openLightbox(filteredIdx: number) {
+    const photo = filteredPhotos[filteredIdx];
+    const fullIdx = photos.indexOf(photo);
+    setLightboxIndex(fullIdx >= 0 ? fullIdx : filteredIdx);
+  }
+
   return (
     <>
-      <PhotoStrip photos={photos} onOpen={setLightboxIndex} />
+      {/* Category tabs — show only when more than one category exists */}
+      {availableTabs.length > 2 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+          {availableTabs.map((tab) => {
+            const active = activeCategory === tab.value;
+            const count = tab.value === "all" ? photos.length : (categoryCounts[tab.value] ?? 0);
+            return (
+              <button
+                type="button"
+                key={tab.value}
+                onClick={() => setActiveCategory(tab.value)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "5px 13px", borderRadius: 999, fontSize: 12.5,
+                  border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
+                  background: active ? "var(--royal)" : "#fff",
+                  color: active ? "#fff" : "var(--ink-soft)",
+                  fontWeight: active ? 700 : 400,
+                  cursor: "pointer", whiteSpace: "nowrap",
+                  transition: "background 0.12s, border-color 0.12s, color 0.12s",
+                  fontFamily: "inherit",
+                }}
+              >
+                {tab.label}
+                <span style={{
+                  fontSize: 10, fontFamily: "Inter, sans-serif",
+                  background: active ? "rgba(255,255,255,0.25)" : "var(--royal-50)",
+                  color: active ? "#fff" : "var(--royal)",
+                  borderRadius: 99, padding: "1px 5px", fontWeight: 700,
+                }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <PhotoStrip photos={filteredPhotos} onOpen={openLightbox} />
 
       {lightboxIndex !== null && (
         <Lightbox

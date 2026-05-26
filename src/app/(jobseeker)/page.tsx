@@ -196,12 +196,13 @@ type PreviewJob = {
 };
 
 function formatSalary(min: number | null, max: number | null): string | null {
-  if (!min && !max) return null;
-  const fmt = (v: number) => `${Math.round(v / 10000)}`;
-  if (min && max) return `¥${fmt(min)}-${fmt(max)}万`;
-  if (min) return `¥${fmt(min)}万〜`;
-  if (max) return `〜¥${fmt(max)}万`;
-  return null;
+  // DB は万円単位で格納（例: 500 = 500万円）
+  const validMin = min && min > 0 ? min : null;
+  const validMax = max && max > 0 ? max : null;
+  if (!validMin && !validMax) return null;
+  if (validMin && validMax) return `${validMin}〜${validMax}万`;
+  if (validMin) return `${validMin}万〜`;
+  return `〜${validMax}万`;
 }
 
 function Hero({ stats }: { stats: SiteStats }) {

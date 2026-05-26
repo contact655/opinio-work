@@ -6,7 +6,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { Job } from "@/app/jobs/mockJobData";
-import { SALARY_PRESETS } from "@/app/jobs/mockJobData";
+// SALARY_PRESETS kept for compatibility but pills use simplified tiers
+const SALARY_PILL_TIERS = [
+  { value: "500", label: "500万〜" },
+  { value: "700", label: "700万〜" },
+  { value: "1000", label: "1000万〜" },
+  { value: "1500", label: "1500万〜" },
+] as const;
 import type { Company } from "@/app/companies/mockCompanies";
 import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
 
@@ -878,105 +884,98 @@ export default function JobsClient({
 
             <div style={{ width: 1, height: 18, background: "var(--line)", flexShrink: 0 }} />
 
-            {/* Salary filter */}
-            <select
-              id="jobs-salary"
-              value={salary}
-              onChange={(e) => setParam("salary", e.target.value)}
-              aria-label="年収で絞り込み"
-              style={{
-                padding: "5px 10px",
-                border: `1.5px solid ${salary ? "var(--royal)" : "var(--line)"}`,
-                borderRadius: 8,
-                background: salary ? "var(--royal-50)" : "#fff",
-                color: salary ? "var(--royal)" : "var(--ink-soft)",
-                fontSize: 12.5,
-                cursor: "pointer",
-                outline: "none",
-                fontWeight: salary ? 600 : 400,
-                fontFamily: "inherit",
-                appearance: "none" as const,
-                WebkitAppearance: "none" as const,
-                paddingRight: 28,
-                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
-                backgroundRepeat: "no-repeat",
-                backgroundPosition: "right 8px center",
-              }}
-            >
-              <option value="">年収指定なし</option>
-              {SALARY_PRESETS.map((s) => (
-                <option key={s} value={String(s)}>
-                  {s}万〜
-                </option>
-              ))}
-            </select>
+            {/* 年収ピル */}
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>年収</span>
+            {SALARY_PILL_TIERS.map(({ value: v, label }) => {
+              const isActive = salary === v;
+              return (
+                <button
+                  type="button"
+                  key={v}
+                  onClick={() => setParam("salary", isActive ? "" : v)}
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: 999,
+                    border: `1.5px solid ${isActive ? "var(--success)" : "var(--line)"}`,
+                    background: isActive ? "var(--success)" : "#fff",
+                    color: isActive ? "#fff" : "var(--ink-soft)",
+                    fontSize: 12,
+                    fontWeight: isActive ? 700 : 400,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    transition: "background 0.12s, border-color 0.12s, color 0.12s",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
 
-            {/* Industry filter */}
-            <select
-              id="jobs-industry"
-              value={industry}
-              onChange={(e) => setParam("industry", e.target.value)}
-              aria-label="業界で絞り込み"
-              style={{
-                padding: "5px 10px",
-                border: `1.5px solid ${industry ? "var(--royal)" : "var(--line)"}`,
-                borderRadius: 8,
-                background: industry ? "var(--royal-50)" : "#fff",
-                color: industry ? "var(--royal)" : "var(--ink-soft)",
-                fontSize: 12.5,
-                cursor: "pointer",
-                outline: "none",
-                fontWeight: industry ? 600 : 400,
-                fontFamily: "inherit",
-                appearance: "none" as const,
-                WebkitAppearance: "none" as const,
-                paddingRight: 28,
-                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
-                backgroundRepeat: "no-repeat",
-                backgroundPosition: "right 8px center",
-              }}
-            >
-              <option value="">すべての業界</option>
-              {industries.map((ind) => (
-                <option key={ind} value={ind}>
-                  {ind}
-                </option>
-              ))}
-            </select>
+            {/* 業界ピル */}
+            {industries.length > 0 && (
+              <>
+                <div style={{ width: 1, height: 18, background: "var(--line)", flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>業界</span>
+                {industries.map((ind) => {
+                  const isActive = industry === ind;
+                  return (
+                    <button
+                      type="button"
+                      key={ind}
+                      onClick={() => setParam("industry", isActive ? "" : ind)}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: 999,
+                        border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
+                        background: isActive ? "var(--royal)" : "#fff",
+                        color: isActive ? "#fff" : "var(--ink-soft)",
+                        fontSize: 12,
+                        fontWeight: isActive ? 700 : 400,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        transition: "background 0.12s, border-color 0.12s, color 0.12s",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {ind}
+                    </button>
+                  );
+                })}
+              </>
+            )}
 
-            {/* 都道府県 filter */}
+            {/* 都道府県ピル */}
             {availablePrefectures.length > 0 && (
-              <select
-                value={prefecture}
-                onChange={(e) => setParam("prefecture", e.target.value)}
-                style={{
-                  padding: "5px 10px",
-                  border: `1.5px solid ${prefecture ? "var(--royal)" : "var(--line)"}`,
-                  borderRadius: 8,
-                  background: prefecture ? "var(--royal-50)" : "#fff",
-                  color: prefecture ? "var(--royal)" : "var(--ink-soft)",
-                  fontSize: 12.5,
-                  cursor: "pointer",
-                  outline: "none",
-                  fontWeight: prefecture ? 600 : 400,
-                  fontFamily: "inherit",
-                  appearance: "none" as const,
-                  WebkitAppearance: "none" as const,
-                  paddingRight: 28,
-                  backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 8px center",
-                }}
-                id="jobs-prefecture"
-                aria-label="都道府県で絞り込み"
-              >
-                <option value="">都道府県</option>
-                {availablePrefectures.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
+              <>
+                <div style={{ width: 1, height: 18, background: "var(--line)", flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>地域</span>
+                {availablePrefectures.map((p) => {
+                  const isActive = prefecture === p;
+                  return (
+                    <button
+                      type="button"
+                      key={p}
+                      onClick={() => setParam("prefecture", isActive ? "" : p)}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: 999,
+                        border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
+                        background: isActive ? "var(--royal)" : "#fff",
+                        color: isActive ? "#fff" : "var(--ink-soft)",
+                        fontSize: 12,
+                        fontWeight: isActive ? 700 : 400,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        transition: "background 0.12s, border-color 0.12s, color 0.12s",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </>
             )}
 
             {hasFilter && (

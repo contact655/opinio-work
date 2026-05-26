@@ -451,6 +451,15 @@ export default async function MentorDetailPage({ params }: Props) {
           50% { opacity: 0.5; transform: scale(1.4); }
         }
         .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
+        @media (max-width: 768px) {
+          .mentor-detail-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .mentor-detail-grid > div:last-child {
+            position: static !important;
+            order: -1;
+          }
+        }
       `}</style>
       <FloatingCTA href={`/mentors/${mentor.id}/reserve`} label={`${mentor.name}さんに相談する`} subLabel="完全無料 · 編集部が事前確認" />
     </>
