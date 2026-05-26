@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 // ─── Sticky Section Navigation ────────────────────────────────────────────────
@@ -9,6 +9,8 @@ type NavItem = { id: string; label: string };
 
 export function CompanyStickyNav({ items }: { items: NavItem[] }) {
   const [activeId, setActiveId] = useState<string>("");
+  const navRef = useRef<HTMLDivElement>(null);
+  const btnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -30,6 +32,17 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
     return () => observer.disconnect();
   }, [items]);
 
+  // アクティブなタブを自動スクロールで中央に表示
+  useEffect(() => {
+    if (!activeId) return;
+    const nav = navRef.current;
+    const btn = btnRefs.current.get(activeId);
+    if (!nav || !btn) return;
+    const navCenter = nav.scrollLeft + nav.clientWidth / 2;
+    const btnCenter = btn.offsetLeft + btn.offsetWidth / 2;
+    nav.scrollTo({ left: btnCenter - navCenter + nav.scrollLeft, behavior: "smooth" });
+  }, [activeId]);
+
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -38,26 +51,35 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
   };
 
   return (
-    <nav style={{
-      position: "sticky", top: 68, zIndex: 40,
-      background: "rgba(255,255,255,0.97)",
-      backdropFilter: "blur(12px)",
-      borderBottom: "1px solid var(--line)",
-      overflowX: "auto",
-      scrollbarWidth: "none",
-      WebkitOverflowScrolling: "touch" as unknown as undefined,
-    }}>
-      <div style={{
-        display: "flex", gap: 4, padding: "6px 24px",
-        maxWidth: "var(--max-w-page)", margin: "0 auto",
-        alignItems: "center",
-      }} className="px-5 md:px-12">
+    <nav
+      ref={navRef}
+      style={{
+        position: "sticky", top: 68, zIndex: 40,
+        background: "rgba(255,255,255,0.97)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid var(--line)",
+        overflowX: "auto",
+        scrollbarWidth: "none",
+      }}
+    >
+      {/* webkit スクロールバー非表示 */}
+      <style>{`.sticky-nav::-webkit-scrollbar { display: none; }`}</style>
+      <div
+        className="sticky-nav"
+        style={{
+          display: "flex", gap: 4, padding: "6px 16px",
+          maxWidth: "var(--max-w-page)", margin: "0 auto",
+          alignItems: "center",
+          width: "max-content", minWidth: "100%",
+        }}
+      >
         {items.map(({ id, label }) => {
           const active = activeId === id;
           return (
             <button
               type="button"
               key={id}
+              ref={(el) => { if (el) btnRefs.current.set(id, el); }}
               onClick={() => scrollTo(id)}
               style={{
                 padding: "6px 13px",
@@ -71,6 +93,7 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
                 whiteSpace: "nowrap",
                 transition: "color 0.18s, background 0.18s",
                 letterSpacing: active ? "0.01em" : 0,
+                flexShrink: 0,
               }}
             >
               {label}

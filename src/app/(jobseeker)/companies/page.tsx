@@ -47,7 +47,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
   // 全データを並列取得（genresWithCompanies は常に取得してヒーロー統計に使う）
   const supabase = createClient();
-  const [industries, locations, genresWithCompanies, casualResult] = await Promise.all([
+  const [industries, locations, genresWithCompanies, casualResult, companyNamesResult] = await Promise.all([
     fetchDistinctIndustries(),
     fetchDistinctLocations(),
     fetchGenresWithCompanies(),
@@ -56,7 +56,15 @@ export default async function CompaniesPage({ searchParams }: Props) {
       .select("id", { count: "exact", head: true })
       .eq("accepting_casual_meetings", true)
       .eq("is_published", true),
+    supabase
+      .from("ow_companies")
+      .select("id, name")
+      .eq("is_published", true)
+      .order("name"),
   ]);
+
+  const companySuggestions: { id: string; name: string }[] =
+    (companyNamesResult.data ?? []) as { id: string; name: string }[];
 
   const totalCount = genresWithCompanies.reduce((s, g) => s + g.total_count, 0);
   const casualCount = casualResult.count ?? totalCount;
@@ -122,7 +130,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
         <div className="max-w-[1440px] mx-auto px-4">
           <Suspense>
-            <CompanySearchBar industries={industries} locations={locations} />
+            <CompanySearchBar industries={industries} locations={locations} companySuggestions={companySuggestions} />
           </Suspense>
         </div>
       </div>

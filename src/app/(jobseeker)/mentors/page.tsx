@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { getMentors, type MentorData } from "@/lib/supabase/queries";
 import { fetchCategoriesWithMentors } from "@/lib/mentors";
-import { ConsultationSection } from "@/components/mentors/ConsultationSection";
+import { MentorTabs } from "@/components/mentors/MentorTabs";
 import MentorFilterBar from "./MentorFilterBar";
 
 // 5分間ページキャッシュ（ISR）
@@ -335,13 +335,11 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
       {/* メンターが 1 名以上いる場合のみ [2][3] を表示 */}
       {hasMentors && (
         <>
-          {/* [2] 悩みカテゴリ別カルーセル */}
+          {/* [2] 悩みカテゴリ別タブ */}
           {hasAnyCategory && (
             <div style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
               <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
-                {categoriesWithMentors.map((category) => (
-                  <ConsultationSection key={category.id} category={category} />
-                ))}
+                <MentorTabs categories={categoriesWithMentors} />
               </div>
             </div>
           )}

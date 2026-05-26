@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 type Props = {
   industries: string[];
   locations: string[];
+  companySuggestions?: { id: string; name: string }[];
 };
 
 const SIZE_PILLS = [
@@ -62,12 +63,32 @@ function PillGroup({
   );
 }
 
-export function CompanySearchBar({ industries, locations }: Props) {
+export function CompanySearchBar({ industries, locations, companySuggestions = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [inputValue, setInputValue] = useState(searchParams.get("q") ?? "");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // 外クリックでサジェストを閉じる
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // 入力にマッチする企業名（最大6件）
+  const filtered = inputValue.length >= 1
+    ? companySuggestions
+        .filter((c) => c.name.toLowerCase().includes(inputValue.toLowerCase()))
+        .slice(0, 6)
+    : [];
 
   useEffect(() => {
     setInputValue(searchParams.get("q") ?? "");
@@ -86,14 +107,23 @@ export function CompanySearchBar({ industries, locations }: Props) {
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
     setInputValue(val);
+    setShowSuggestions(true);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       updateParam("q", val || null);
     }, 300);
   }
 
+  function handleSuggestionClick(name: string) {
+    setInputValue(name);
+    setShowSuggestions(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    updateParam("q", name);
+  }
+
   function handleClear() {
     setInputValue("");
+    setShowSuggestions(false);
     router.push("?");
   }
 
@@ -199,6 +229,34 @@ export function CompanySearchBar({ industries, locations }: Props) {
           font-family: inherit;
         }
         .csb-clear:hover { color: var(--ink); }
+        /* オートサジェスト */
+        .csb-suggestions {
+          position: absolute;
+          top: calc(100% + 4px);
+          left: 0; right: 0;
+          background: #fff;
+          border: 1.5px solid var(--royal);
+          border-radius: 10px;
+          box-shadow: 0 8px 28px rgba(0,35,102,0.12);
+          overflow: hidden;
+          z-index: 100;
+        }
+        .csb-suggestion-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 16px;
+          font-size: 14px;
+          color: var(--ink);
+          cursor: pointer;
+          transition: background 0.1s;
+          border: none;
+          background: none;
+          width: 100%;
+          text-align: left;
+          font-family: inherit;
+        }
+        .csb-suggestion-item:hover { background: var(--royal-50); }
         .csb-divider {
           width: 1px;
           height: 18px;
@@ -332,29 +390,54 @@ export function CompanySearchBar({ industries, locations }: Props) {
           </div>
         )}
 
-        {/* 検索ボックス */}
-        <div className="csb-input-wrap">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            type="search"
-            className="csb-input"
-            placeholder="キーワードで企業を探す（例: SaaS, セールス, AI）"
-            value={inputValue}
-            onChange={handleInputChange}
-            aria-label="企業を検索"
-          />
-          {inputValue && (
-            <button
-              type="button"
-              onClick={() => { setInputValue(""); updateParam("q", null); }}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", color: "#8b95a3", lineHeight: 1 }}
-              aria-label="クリア"
-            >
-              ✕
-            </button>
+        {/* 検索ボックス + オートサジェスト */}
+        <div ref={wrapRef} style={{ position: "relative" }}>
+          <div className="csb-input-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              type="search"
+              className="csb-input"
+              placeholder="キーワードで企業を探す（例: SaaS, セールス, AI）"
+              value={inputValue}
+              onChange={handleInputChange}
+              onFocus={() => setShowSuggestions(true)}
+              aria-label="企業を検索"
+              aria-autocomplete="list"
+              autoComplete="off"
+            />
+            {inputValue && (
+              <button
+                type="button"
+                onClick={handleClear}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", color: "#8b95a3", lineHeight: 1 }}
+                aria-label="クリア"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* サジェストドロップダウン */}
+          {showSuggestions && filtered.length > 0 && (
+            <div className="csb-suggestions" role="listbox">
+              {filtered.map((c) => (
+                <button
+                  key={c.id}
+                  role="option"
+                  className="csb-suggestion-item"
+                  onMouseDown={(e) => { e.preventDefault(); handleSuggestionClick(c.name); }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <rect x="2" y="7" width="20" height="14" rx="2"/>
+                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                  </svg>
+                  <span>{c.name}</span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
