@@ -14,7 +14,7 @@ type Props = {
 
 export function GenreTabs({ genres }: Props) {
   // null = 全表示（選択なし）
-  const [activeId, setActiveId] = useState<string | null>(genres[0]?.id ?? null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const active = activeId ? genres.find((g) => g.id === activeId) ?? null : null;
 
   if (!genres.length) return null;
