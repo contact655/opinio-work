@@ -16,11 +16,6 @@ const DEFAULT_STATS: SiteStats = { companies: 36, jobs: 30, mentors: 10 };
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
-const LOGOS = [
-  "SmartHR", "LayerX", "Ubie", "Sansan", "Salesforce",
-  "HubSpot", "freee", "Money Forward", "kubell", "PKSHA", "Datadog",
-];
-
 const _MENTORS = [
   {
     name: "田中 翔太",
@@ -614,39 +609,253 @@ function DiffStrip() {
   );
 }
 
-// ─── Logo Marquee ─────────────────────────────────────────────────────────────
+// ─── Featured Companies ────────────────────────────────────────────────────────
 
-function LogoMarquee() {
-  const doubled = [...LOGOS, ...LOGOS];
+type PreviewCompany = {
+  id: string;
+  name: string;
+  industry: string | null;
+  phase: string | null;
+  gradient: string;
+  letter: string;
+  logoUrl: string | null;
+  acceptingMeeting: boolean;
+  employeeCount: number | null;
+};
+
+const PHASE_COLORS: Record<string, { bg: string; color: string }> = {
+  "シリーズA": { bg: "#EFF3FC", color: "#002366" },
+  "シリーズB": { bg: "#F3E8FF", color: "#7C3AED" },
+  "シリーズC": { bg: "#ECFDF5", color: "#059669" },
+  "上場": { bg: "#FEF3C7", color: "#D97706" },
+  "グロース": { bg: "#FEF3C7", color: "#D97706" },
+  "プライム": { bg: "#FEF3C7", color: "#B45309" },
+};
+
+function CompanyMiniCard({ c }: { c: PreviewCompany }) {
+  const phaseStyle = c.phase ? (PHASE_COLORS[c.phase] ?? { bg: "var(--line-soft)", color: "var(--ink-mute)" }) : null;
+  return (
+    <Link href={`/companies/${c.id}`} style={{ textDecoration: "none" }}>
+      <div className="company-mini-card" style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 16,
+        padding: "20px 20px 18px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        height: "100%",
+        cursor: "pointer",
+        transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* 面談受付中バッジ */}
+        {c.acceptingMeeting && (
+          <div style={{
+            position: "absolute", top: 12, right: 12,
+            display: "inline-flex", alignItems: "center", gap: 4,
+            padding: "3px 8px", borderRadius: 100,
+            background: "#ECFDF5", border: "1px solid #A7F3D0",
+            fontSize: 9, fontWeight: 700, color: "var(--success)",
+          }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: "50%",
+              background: "var(--success)", flexShrink: 0,
+              animation: "pulse-dot 2s ease-in-out infinite",
+            }} />
+            面談受付中
+          </div>
+        )}
+
+        {/* Logo + Name */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: c.gradient,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fff", fontSize: 16, fontWeight: 700,
+            flexShrink: 0, overflow: "hidden",
+          }}>
+            {c.logoUrl
+              ? <img src={c.logoUrl} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              : c.letter
+            }
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{
+              fontSize: 14, fontWeight: 700, color: "var(--ink)",
+              lineHeight: 1.3,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {c.name}
+            </div>
+            {c.industry && (
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+                {c.industry}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Phase + insider hint */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          {phaseStyle && c.phase && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+              background: phaseStyle.bg, color: phaseStyle.color,
+              border: `1px solid ${phaseStyle.color}33`,
+            }}>
+              {c.phase}
+            </span>
+          )}
+          <span style={{
+            fontSize: 10, fontWeight: 600, color: "var(--royal)",
+            display: "flex", alignItems: "center", gap: 3,
+          }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            社員・OBに聞ける
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function CompanyMiniCardSkeleton() {
+  return (
+    <div style={{
+      background: "#fff", border: "1px solid var(--line)", borderRadius: 16, padding: "20px 20px 18px",
+      display: "flex", flexDirection: "column", gap: 12,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="skeleton-shimmer" style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div className="skeleton-shimmer" style={{ height: 14, width: "65%", marginBottom: 6 }} />
+          <div className="skeleton-shimmer" style={{ height: 11, width: "45%" }} />
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <div className="skeleton-shimmer" style={{ height: 18, width: 60, borderRadius: 100 }} />
+        <div className="skeleton-shimmer" style={{ height: 18, width: 80, borderRadius: 100 }} />
+      </div>
+    </div>
+  );
+}
+
+function FeaturedCompaniesSection() {
+  const [companies, setCompanies] = useState<PreviewCompany[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/companies/preview")
+      .then((r) => r.json())
+      .then((d) => { setCompanies(Array.isArray(d.companies) ? d.companies : []); })
+      .catch(() => setCompanies([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // 6件に絞る
+  const displayed = companies.slice(0, 6);
+
   return (
     <section style={{
-      borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)",
-      padding: "32px 0", overflow: "hidden", background: "#fff",
+      background: "#fff",
+      borderTop: "1px solid var(--line)",
+      borderBottom: "1px solid var(--line)",
+      padding: "56px 0",
     }}>
-      <p style={{
-        textAlign: "center", fontSize: 12, fontWeight: 600, letterSpacing: "0.08em",
-        color: "var(--ink-mute)", textTransform: "uppercase",
-        marginBottom: 20,
-      }}>
-        IT / SaaS 業界を代表する企業が、OPINIO に集まっています
-      </p>
-      <div style={{ position: "relative", overflow: "hidden" }}>
-        {/* fade masks */}
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to right, #fff, transparent)", zIndex: 1 }} />
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to left, #fff, transparent)", zIndex: 1 }} />
-        <div className="animate-marquee">
-          {doubled.map((name, i) => (
-            <span key={i} style={{
-              display: "inline-flex", alignItems: "center",
-              padding: "6px 20px", margin: "0 4px",
-              borderRadius: 100, border: "1.5px solid var(--line)",
-              fontSize: 13, fontWeight: 500, color: "var(--ink-soft)",
-              whiteSpace: "nowrap",
+      <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-5 md:px-12">
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 32, flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <div style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: "0.12em",
+              color: "var(--royal)", textTransform: "uppercase" as const, marginBottom: 8,
             }}>
-              {name}
-            </span>
-          ))}
+              COMPANIES
+            </div>
+            <h2 style={{
+              fontSize: "clamp(20px,2.5vw,28px)", fontWeight: 700, color: "var(--ink)",
+              lineHeight: 1.35, margin: 0,
+              fontFamily: "var(--font-noto-serif)",
+            }}>
+              IT/SaaS業界を代表する企業が集まっています
+            </h2>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8, lineHeight: 1.7 }}>
+              編集部が取材・審査した企業のみ掲載。現役社員やOBに直接聞くこともできます。
+            </p>
+          </div>
+          <Link href="/companies" style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+            border: "1.5px solid var(--royal)", color: "var(--royal)",
+            textDecoration: "none", flexShrink: 0,
+          }}>
+            全企業を見る →
+          </Link>
         </div>
+
+        {/* Grid */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3" style={{ gridAutoRows: "1fr" }}>
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => <CompanyMiniCardSkeleton key={i} />)
+            : displayed.map((c) => <CompanyMiniCard key={c.id} c={c} />)
+          }
+        </div>
+
+        {/* Bottom CTA bar */}
+        {!loading && companies.length > 6 && (
+          <div style={{ textAlign: "center", marginTop: 24 }}>
+            <Link href="/companies" style={{
+              fontSize: 13, color: "var(--ink-mute)", textDecoration: "none",
+              display: "inline-flex", alignItems: "center", gap: 4,
+            }}>
+              他 {companies.length - 6} 社を見る →
+            </Link>
+          </div>
+        )}
+
+        {/* Insider value prop strip */}
+        <div style={{
+          marginTop: 32, padding: "16px 24px",
+          background: "var(--royal-50)", borderRadius: 12,
+          border: "1px solid var(--royal-100)",
+          display: "flex", alignItems: "center", gap: 16,
+          flexWrap: "wrap",
+        }}>
+          {[
+            { icon: "👥", text: "現役社員のリアルな声が聞ける" },
+            { icon: "🎓", text: "OB・OGの転職経験談も" },
+            { icon: "🌟", text: "第三者メンターにも相談できる" },
+          ].map(({ icon, text }) => (
+            <div key={text} style={{
+              display: "flex", alignItems: "center", gap: 8,
+              fontSize: 12, fontWeight: 600, color: "var(--royal)",
+            }}>
+              <span style={{ fontSize: 16 }}>{icon}</span>
+              {text}
+            </div>
+          ))}
+          <Link href="/mentors" style={{
+            marginLeft: "auto", fontSize: 11, fontWeight: 700,
+            color: "var(--royal)", textDecoration: "none",
+            display: "flex", alignItems: "center", gap: 4,
+          }}>
+            メンターを探す →
+          </Link>
+        </div>
+
+        <style>{`
+          .company-mini-card:hover {
+            border-color: var(--royal-100) !important;
+            box-shadow: 0 8px 24px rgba(0,35,102,0.08) !important;
+            transform: translateY(-2px) !important;
+          }
+        `}</style>
       </div>
     </section>
   );
@@ -1613,7 +1822,7 @@ export default function HomePage() {
     <>
       <Hero stats={stats} />
       <DiffStrip />
-      <LogoMarquee />
+      <FeaturedCompaniesSection />
       <StatsStrip stats={stats} />
       <InfraSection />
       <HowItWorks />

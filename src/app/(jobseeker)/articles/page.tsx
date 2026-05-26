@@ -258,60 +258,46 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
       </nav>
 
       {/* Hero */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "48px 0 40px" }}>
-        <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto", textAlign: "center" }} className="px-5">
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
+        padding: "44px 0 40px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Decorative circles */}
+        <div style={{ position: "absolute", right: -60, top: -80, width: 360, height: 360, borderRadius: "50%", background: "rgba(59,95,217,0.1)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -40, bottom: -60, width: 200, height: 200, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
 
-          {/* Category stats */}
-          <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
-            {[
-              { label: "社員インタビュー", count: counts.employee, color: "var(--success)", bg: "var(--success-soft)" },
-              { label: "メンターの声",     count: counts.mentor,   color: "#B45309", bg: "var(--warm-soft)" },
-              { label: "CEO・経営陣",      count: counts.ceo,      color: "var(--royal)", bg: "var(--royal-50)" },
-              { label: "取材レポート",     count: counts.report,   color: "var(--purple)", bg: "#F3E8FF" },
-            ].map(({ label, count, color, bg }) => (
-              <div key={label} style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "5px 12px", borderRadius: 100,
-                background: bg, color, fontSize: 11.5, fontWeight: 600,
-              }}>
-                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 15, fontWeight: 700 }}>{count}</span>
-                {label}
-              </div>
-            ))}
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", position: "relative" }} className="px-5 md:px-12">
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.5)", marginBottom: 10, textTransform: "uppercase" }}>
+            ARTICLES
           </div>
-
           <h1 style={{
-            fontFamily: 'var(--font-noto-serif)',
-            fontSize: "clamp(26px, 4vw, 36px)", fontWeight: 500,
-            color: "var(--ink)", letterSpacing: "0.04em",
-            marginBottom: 16, lineHeight: 1.4,
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: "clamp(24px, 3.5vw, 34px)",
+            fontWeight: 700, color: "#fff",
+            marginBottom: 14, lineHeight: 1.35,
           }}>
             取材で、知る。
           </h1>
-
-          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8, maxWidth: 480, margin: "0 auto 24px" }}>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.72)", lineHeight: 1.85, marginBottom: 20, maxWidth: 500 }}>
             IT/SaaS業界で働く人たちのリアルな声を、4つの視点でお届けします。
-            転職を考える前に、まず「人」を知ることから始めましょう。
           </p>
 
-          {/* Article type grid */}
-          <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-            {([
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label: "社員インタビュー", desc: "現場の声" },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, label: "メンターの声", desc: "経験談" },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: "CEO・経営陣", desc: "ビジョン" },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>, label: "取材レポート", desc: "組織分析" },
-            ] as { icon: React.ReactNode; label: string; desc: string }[]).map(({ icon, label, desc }) => (
-              <div key={label} style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-                padding: "10px 16px", borderRadius: 12,
-                border: "1px solid var(--line)", background: "var(--bg-tint)",
-                minWidth: 90,
+          {/* Category chips */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {[
+              { label: `社員インタビュー ${counts.employee}件`, color: "#4ADE80", bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.3)" },
+              { label: `メンターの声 ${counts.mentor}件`,     color: "#FCD34D", bg: "rgba(252,211,77,0.15)", border: "rgba(252,211,77,0.3)" },
+              { label: `CEO・経営陣 ${counts.ceo}件`,         color: "#93C5FD", bg: "rgba(147,197,253,0.15)", border: "rgba(147,197,253,0.3)" },
+              { label: `取材レポート ${counts.report}件`,     color: "#C4B5FD", bg: "rgba(196,181,253,0.15)", border: "rgba(196,181,253,0.3)" },
+            ].map(({ label, color, bg, border }) => (
+              <span key={label} style={{
+                fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 100,
+                background: bg, color, border: `1px solid ${border}`,
               }}>
-                <span>{icon}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)" }}>{label}</span>
-                <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>{desc}</span>
-              </div>
+                {label}
+              </span>
             ))}
           </div>
         </div>
