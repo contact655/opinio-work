@@ -62,6 +62,7 @@ export type BizCompany = {
   lastPublishedAt: string;    // "2026年4月12日 14:32"
   lastPublishedAgo: string;   // "14日前"
   hasDraftChanges: boolean;
+  numbersUpdatedAt: string;   // ISO date string or "" — 数値アンケートの最終回答日時
 };
 
 export const MOCK_COMPANY: BizCompany = {
@@ -141,6 +142,7 @@ export const MOCK_COMPANY: BizCompany = {
   lastPublishedAt: "2026年4月12日 14:32",
   lastPublishedAgo: "14日前",
   hasDraftChanges: true,
+  numbersUpdatedAt: "",
 };
 
 // セクション定義

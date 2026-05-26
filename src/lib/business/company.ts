@@ -41,6 +41,7 @@ export type DbCompany = {
   published_at: string | null;
   draft_data: Record<string, unknown> | null;
   updated_at: string | null;
+  numbers_updated_at: string | null;
 };
 
 const SELECT_COLUMNS = [
@@ -50,7 +51,7 @@ const SELECT_COLUMNS = [
   "avg_age", "avg_salary", "funding_total", "gender_ratio", "evaluation_system", "benefits", "fit_positives", "fit_negatives", "location", "nearest_station",
   "remote_work_status", "work_time_system", "avg_overtime_hours", "paid_leave_rate",
   "workstyle_description", "is_published", "accepting_casual_meetings", "notification_emails", "show_fit_negatives",
-  "published_at", "draft_data", "updated_at",
+  "published_at", "draft_data", "updated_at", "numbers_updated_at",
 ].join(", ");
 
 function formatPublishedAt(iso: string | null): string {
@@ -119,6 +120,7 @@ export function transformDbToForm(row: DbCompany, currentPublishedGenres: string
     lastPublishedAt: formatPublishedAt(row.published_at),
     lastPublishedAgo: formatPublishedAgo(row.published_at),
     hasDraftChanges: row.draft_data != null && Object.keys(row.draft_data).length > 0,
+    numbersUpdatedAt: row.numbers_updated_at ?? "",
   };
 }
 

@@ -305,6 +305,8 @@ export function CompanyEditClient({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [isPublishing, setIsPublishing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isRegisteringNumbers, setIsRegisteringNumbers] = useState(false);
+  const [numbersRegisteredAt, setNumbersRegisteredAt] = useState(initialCompany.numbersUpdatedAt);
 
   const showError = (msg: string) => {
     setErrorMessage(msg);
@@ -366,6 +368,22 @@ export function CompanyEditClient({
 
   function handlePhotosChange(next: OfficePhoto[]) {
     setPhotos(next);
+  }
+
+  async function handleRegisterNumbers() {
+    setIsRegisteringNumbers(true);
+    try {
+      const res = await fetch("/api/biz/company", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update_numbers_timestamp" }),
+      });
+      if (res.ok) {
+        setNumbersRegisteredAt(new Date().toISOString());
+      }
+    } finally {
+      setIsRegisteringNumbers(false);
+    }
   }
 
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -779,9 +797,45 @@ export function CompanyEditClient({
             <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               数値データ
             </h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
-              求職者側の企業詳細ページの「数値データ」セクションに表示されます。空欄の項目は表示されません。
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.9 }}>
+              求職者側の「数値で見る企業」セクションに表示されます。入力後「回答として登録する」ボタンを押すと、求職者側に更新日時が表示されます。
             </p>
+            {/* 回答状態バー */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "12px 16px", borderRadius: 10,
+              background: numbersRegisteredAt ? "var(--success-soft)" : "var(--bg-tint)",
+              border: `1px solid ${numbersRegisteredAt ? "#A7F3D0" : "var(--line)"}`,
+              marginBottom: 24,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {numbersRegisteredAt ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 600 }}>
+                      回答済み · {new Date(numbersRegisteredAt).toLocaleDateString("ja-JP", { year: "numeric", month: "long" })}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                    <span style={{ fontSize: 13, color: "var(--ink-mute)" }}>未回答（数値を入力後、下のボタンで登録してください）</span>
+                  </>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleRegisterNumbers}
+                disabled={isRegisteringNumbers}
+                style={{
+                  padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700,
+                  background: "var(--royal)", color: "#fff", border: "none", cursor: "pointer",
+                  opacity: isRegisteringNumbers ? 0.6 : 1,
+                }}
+              >
+                {isRegisteringNumbers ? "登録中..." : "回答として登録する"}
+              </button>
+            </div>
             <SectionCard title="基本情報">
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup>
@@ -829,6 +883,20 @@ export function CompanyEditClient({
                 <FormHint>求職者側ではタグ形式で表示されます</FormHint>
               </FormGroup>
             </SectionCard>
+            <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={handleRegisterNumbers}
+                disabled={isRegisteringNumbers}
+                style={{
+                  padding: "10px 24px", borderRadius: 8, fontSize: 13, fontWeight: 700,
+                  background: "var(--royal)", color: "#fff", border: "none", cursor: "pointer",
+                  opacity: isRegisteringNumbers ? 0.6 : 1,
+                }}
+              >
+                {isRegisteringNumbers ? "登録中..." : "✓ この数値を回答として登録する"}
+              </button>
+            </div>
           </>
         );
 

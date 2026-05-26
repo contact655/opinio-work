@@ -261,6 +261,8 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
       }
       return null;
     })(),
+    // Numbers survey timestamp
+    numbersUpdatedAt: (row.numbers_updated_at as string | null) ?? null,
   };
 }
 
@@ -410,6 +412,8 @@ const COMPANY_DETAIL_COLS = [
   "benefits", "evaluation_system",
   // Fit section
   "fit_positives", "fit_negatives", "show_fit_negatives",
+  // Numbers survey timestamp
+  "numbers_updated_at",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {

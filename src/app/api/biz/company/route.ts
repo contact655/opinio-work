@@ -57,13 +57,14 @@ export async function PUT(req: Request) {
 }
 
 // PATCH /api/biz/company — 「変更を公開する」（draft_data → 本番カラム展開 + is_published=true）
+// または { action: "update_numbers_timestamp" } で numbers_updated_at を now() に更新
 export async function PATCH(req: Request) {
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { isPublished: boolean };
+  let body: { isPublished?: boolean; action?: string };
   try {
     body = await req.json();
   } catch {
@@ -76,6 +77,20 @@ export async function PATCH(req: Request) {
   const { companyId } = ctx;
 
   try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+
+  // ── 数値アンケート登録タイムスタンプ更新 ─────────────────────────────────
+  if (body.action === "update_numbers_timestamp") {
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("ow_companies")
+      .update({ numbers_updated_at: now, updated_at: now })
+      .eq("id", companyId);
+    if (error) {
+      console.error("[company PATCH update_numbers_timestamp]", error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, numbersUpdatedAt: now });
+  }
 
   const now = new Date().toISOString();
 

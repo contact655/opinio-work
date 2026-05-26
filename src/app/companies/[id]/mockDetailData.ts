@@ -98,6 +98,8 @@ export type CompanyDetail = {
   show_fit_negatives?: boolean;
   // Why join (separate from about/description)
   why_join: string | null;
+  // Numbers survey timestamp
+  numbersUpdatedAt: string | null;
 };
 
 // ─── Full data ─────────────────────────────────────────────────────────────
@@ -227,6 +229,7 @@ const LAYERX: CompanyDetail = {
     "まだスタートアップの不確実性や変化に慣れておらず、安定した業務フローを好む人",
   ],
   why_join: null,
+  numbersUpdatedAt: null,
 };
 
 const SMARTHR: CompanyDetail = {
@@ -355,6 +358,7 @@ const SMARTHR: CompanyDetail = {
     "スタートアップの変化スピードや、制度整備の過渡期をストレスに感じやすい人",
   ],
   why_join: null,
+  numbersUpdatedAt: null,
 };
 
 // ─── Template generator (for the other 10 companies) ─────────────────────────
@@ -479,6 +483,8 @@ function makeDetail(c: Company, overrides: Partial<CompanyDetail> = {}): Company
     fit_positives: null,
     fit_negatives: null,
     why_join: null,
+    // Numbers survey timestamp
+    numbersUpdatedAt: null,
   };
 
   return { ...base, ...overrides };

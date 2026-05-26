@@ -2878,7 +2878,7 @@ const NUMBER_ITEMS: {
   { label: "累計調達額", key: "fundingTotal", format: (v) => String(v), icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0891B2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>, accentColor: "#0891B2", accentBg: "#ECFEFF" },
 ];
 
-function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
+function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers; numbersUpdatedAt?: string | null }) {
   return (
     <section
       style={{
@@ -2899,15 +2899,29 @@ function NumbersSection({ numbers }: { numbers: CompanyNumbers }) {
         alignItems: "center",
         justifyContent: "space-between",
       }}>
-        <SecTitle
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 20V10M12 20V4M6 20v-6" />
-            </svg>
-          }
-        >
-          数値で見る企業
-        </SecTitle>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <SecTitle
+            icon={
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 20V10M12 20V4M6 20v-6" />
+              </svg>
+            }
+          >
+            数値で見る企業
+          </SecTitle>
+          {numbersUpdatedAt && (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              fontSize: 11, fontWeight: 600,
+              color: "var(--success)", padding: "3px 10px", borderRadius: 100,
+              background: "var(--success-soft)", border: "1px solid #A7F3D0",
+              marginLeft: 8,
+            }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              企業が直接回答 · {new Date(numbersUpdatedAt).toLocaleDateString("ja-JP", { year: "numeric", month: "long" })}
+            </div>
+          )}
+        </div>
         <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
           企業アンケート回答
         </span>
@@ -3567,7 +3581,7 @@ export default async function CompanyDetailPage({
             />
 
             {/* 3. 企業の数値・働き方・福利厚生（企業についての直下） */}
-            <NumbersSection numbers={detail.numbers} />
+            <NumbersSection numbers={detail.numbers} numbersUpdatedAt={detail.numbersUpdatedAt} />
             <WorkStyleSection detail={detail} />
             <BenefitsSection detail={detail} />
 
