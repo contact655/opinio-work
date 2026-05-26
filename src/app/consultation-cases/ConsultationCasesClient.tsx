@@ -202,32 +202,42 @@ export default function ConsultationCasesClient({
   return (
     <>
       {/* ─── Hero ─── */}
-      <section className="bg-white" style={{ borderBottom: "0.5px solid #e5e7eb" }}>
-        <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-          <div
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium mb-5"
-            style={{ background: "#E1F5EE", color: "#0F6E56", border: "0.5px solid #5DCAA5" }}
-          >
-            実際の相談事例を公開中
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
+        padding: "44px 0 40px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        <div style={{ position: "absolute", right: -80, top: -80, width: 360, height: 360, borderRadius: "50%", background: "rgba(59,95,217,0.1)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -40, bottom: -50, width: 220, height: 220, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
+        <div className="max-w-[960px] mx-auto px-5 md:px-12" style={{ position: "relative" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.5)", marginBottom: 10, textTransform: "uppercase" as const }}>
+            CONSULTATION CASES
           </div>
-          <h1
-            className="text-[28px] md:text-[34px] leading-tight mb-4"
-            style={{
-              fontFamily: "var(--font-noto-serif)",
-              fontWeight: 400,
-            }}
-          >
-            相談して、
-            <span style={{ color: "#1D9E75", fontWeight: 500 }}>気づきが変わった</span>
-            人たち。
+          <h1 style={{
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: "clamp(22px, 3vw, 32px)",
+            fontWeight: 700, color: "#fff",
+            marginBottom: 12, lineHeight: 1.4,
+          }}>
+            相談して、気づきが変わった人たち。
           </h1>
-          <p className="text-[14px] text-gray-600 leading-relaxed max-w-md mx-auto">
-            実際にOPINIOのキャリア相談を利用した方の
-            <br className="hidden sm:block" />
-            相談内容と気づきをご紹介します。
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.72)", lineHeight: 1.85, maxWidth: 480, margin: "0 0 20px" }}>
+            実際にOPINIOのキャリア相談を利用した方の相談内容と気づきをご紹介します。
           </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+            {[`${cases.length}件の相談事例`, "完全無料", "実名・匿名を選べる"].map((label) => (
+              <span key={label} style={{
+                fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 100,
+                background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}>
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
-      </section>
+      </div>
 
       {/* ─── Filters ─── */}
       <section className="max-w-4xl mx-auto px-4 pt-8 pb-2">
