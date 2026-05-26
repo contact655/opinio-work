@@ -168,7 +168,7 @@ function HeroRoleRotator() {
       </span>
       <span style={{
         position: "absolute", left: 0, top: 0,
-        color: "var(--royal)",
+        color: "inherit",
         opacity: visible ? 1 : 0,
         transition: "opacity 400ms ease-in-out",
         whiteSpace: "nowrap",
