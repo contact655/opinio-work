@@ -61,7 +61,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const casualCount = casualResult.count ?? totalCount;
 
   return (
-    <div>
+    <div style={{ background: "#f0f4f8" }}>
       {/* ── Gradient hero header ── */}
       <div style={{
         background: "linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1e3a8a 100%)",
