@@ -55,29 +55,36 @@ export default function SelectionCriteriaPage() {
   ];
 
   return (
-    <div className="pt-16 min-h-screen" style={{ background: "var(--bg-tint)" }}>
-      <div className="max-w-[820px] mx-auto px-4 sm:px-6 lg:px-8" style={{ paddingTop: 32, paddingBottom: 64 }}>
-        {/* Breadcrumb */}
-        <nav aria-label="パンくずリスト" className="flex items-center gap-2" style={{ fontSize: 13, marginBottom: 20 }}>
-          <Link href="/" style={{ color: "var(--royal)", textDecoration: "none" }}>ホーム</Link>
-          <span style={{ color: "var(--line)" }}>›</span>
-          <Link href="/about" style={{ color: "var(--royal)", textDecoration: "none" }}>OPINIOについて</Link>
-          <span style={{ color: "var(--line)" }}>›</span>
-          <span aria-current="page" style={{ color: "var(--ink-soft)" }}>審査基準</span>
-        </nav>
-
-        <header style={{ marginBottom: 28 }}>
-          <p style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, letterSpacing: "0.05em", marginBottom: 8 }}>
-            ABOUT — SELECTION CRITERIA
-          </p>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--ink)", margin: 0, marginBottom: 10, lineHeight: 1.4 }}>
+    <div className="min-h-screen" style={{ background: "var(--bg-tint)" }}>
+      {/* Breadcrumb */}
+      <nav aria-label="パンくずリスト" style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
+        <div className="max-w-[820px] mx-auto px-4 sm:px-6">
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
+            <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
+            <span>/</span>
+            <Link href="/about" style={{ color: "var(--ink-mute)" }}>OPINIOについて</Link>
+            <span>/</span>
+            <span aria-current="page" style={{ color: "var(--ink-soft)" }}>審査基準</span>
+          </div>
+        </div>
+      </nav>
+      {/* Hero */}
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
+        padding: "44px 0 40px", position: "relative", overflow: "hidden",
+      }}>
+        <div style={{ position: "absolute", right: -60, top: -60, width: 300, height: 300, borderRadius: "50%", background: "rgba(59,95,217,0.1)", pointerEvents: "none" }} />
+        <div className="max-w-[820px] mx-auto px-4 sm:px-6" style={{ position: "relative" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.5)", marginBottom: 10, textTransform: "uppercase" as const }}>ABOUT — SELECTION CRITERIA</div>
+          <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3vw, 30px)", fontWeight: 700, color: "#fff", marginBottom: 12, lineHeight: 1.4 }}>
             掲載企業の審査基準
           </h1>
-          <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.8, margin: 0 }}>
-            OPINIOはエージェント仲介ではなく、編集部による独自の審査を経た企業のみを掲載しています。
-            「ユーザーに自信を持って紹介できる企業か」を編集会議で判断し、基準を満たす企業のみ求人を公開します。
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.72)", lineHeight: 1.85, maxWidth: 480 }}>
+            編集部による独自の審査を経た企業のみを掲載。「ユーザーに自信を持って紹介できる企業か」を3軸で評価します。
           </p>
-        </header>
+        </div>
+      </div>
+      <div className="max-w-[820px] mx-auto px-4 sm:px-6 lg:px-8" style={{ paddingTop: 40, paddingBottom: 64 }}>
 
         {/* 3軸の評価基準 */}
         <section style={{ background: "#fff", borderRadius: 14, padding: 28, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: 20 }}>
