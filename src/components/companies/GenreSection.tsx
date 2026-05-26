@@ -12,7 +12,7 @@ type Props = {
 
 export function GenreSection({ genre }: Props) {
   return (
-    <section style={{ marginBottom: 56 }}>
+    <section id={`genre-${genre.slug}`} style={{ marginBottom: 56 }}>
       {/* セクションヘッダー */}
       <div style={{
         display: 'flex',
