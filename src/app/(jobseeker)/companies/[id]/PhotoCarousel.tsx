@@ -226,10 +226,10 @@ function PhotoStrip({
   return (
     <>
       <style>{`
-        /* カード幅: コンテナの 1/2.3 → 常に 2.3 枚しか見えない */
+        /* カード幅: コンテナの 1/3 → デフォルトで3枚表示 */
         .ps-card {
-          width: calc((100% - ${GAP}px * 1.3) / 2.3);
-          min-width: 200px; /* モバイル最小幅 */
+          width: calc((100% - ${GAP * 2}px) / 3);
+          min-width: 160px; /* モバイル最小幅 */
           flex-shrink: 0;
           transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
