@@ -609,9 +609,11 @@ function SecTitle({
 function AboutSection({
   detail,
   photos,
+  opinioCard,
 }: {
   detail: CompanyDetail;
   photos: CompanyPhoto[];
+  opinioCard?: React.ReactNode;
 }) {
   return (
     <section
@@ -690,6 +692,7 @@ function AboutSection({
         </div>
       )}
 
+      {opinioCard}
       <PhotoCarousel photos={photos} />
 
       {detail.about && (
@@ -3556,11 +3559,12 @@ export default async function CompanyDetailPage({
         >
           {/* γ-7: モバイルで fixed bottom bar 分の余白を確保 */}
           <main className="pb-28 md:pb-0">
-            {/* 1. OPINIO編集部の見立てカード（最上位） */}
-            <OpinioOpinionCard detail={detail} />
-
-            {/* 2. 企業について（基本情報）*/}
-            <AboutSection detail={detail} photos={photos} />
+            {/* 1. 企業について（OPINIO編集部カードを写真の直前に埋め込み）*/}
+            <AboutSection
+              detail={detail}
+              photos={photos}
+              opinioCard={<OpinioOpinionCard detail={detail} />}
+            />
 
             {/* 3. 企業の数値・働き方・福利厚生（企業についての直下） */}
             <NumbersSection numbers={detail.numbers} />
