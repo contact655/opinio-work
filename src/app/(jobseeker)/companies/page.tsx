@@ -46,15 +46,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
   // 全データを並列取得（genresWithCompanies は常に取得してヒーロー統計に使う）
   const supabase = createClient();
-  const [industries, locations, genresWithCompanies, casualResult, companyNamesResult] = await Promise.all([
+  const [industries, locations, genresWithCompanies, companyNamesResult] = await Promise.all([
     fetchDistinctIndustries(),
     fetchDistinctLocations(),
     fetchGenresWithCompanies(),
-    supabase
-      .from("ow_companies")
-      .select("id", { count: "exact", head: true })
-      .eq("accepting_casual_meetings", true)
-      .eq("is_published", true),
     supabase
       .from("ow_companies")
       .select("id, name")
@@ -64,9 +59,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
   const companySuggestions: { id: string; name: string }[] =
     (companyNamesResult.data ?? []) as { id: string; name: string }[];
-
-  const totalCount = genresWithCompanies.reduce((s, g) => s + g.total_count, 0);
-  const casualCount = casualResult.count ?? totalCount;
 
   return (
     <div style={{ background: "#f0f4f8" }}>
@@ -94,22 +86,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
               }}>
                 IT/SaaS 業界の企業を知る
               </h1>
-              {/* Stats chips */}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {totalCount > 0 && (
-                  <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    {totalCount}社掲載中
-                  </span>
-                )}
-                <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  {casualCount}社がカジュアル面談受付中
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  ✓ 編集部審査済み
-                </span>
-              </div>
             </div>
             <Link href="/jobs" style={{
               display: "inline-flex", alignItems: "center", gap: 6,

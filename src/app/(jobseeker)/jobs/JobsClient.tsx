@@ -693,7 +693,6 @@ export default function JobsClient({
   const safePage = Math.min(page, totalPages);
   const paged = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
-  const newThisWeek = allJobs.filter((j) => j.updated_days_ago <= 7).length;
   const hasFilter = !!(category || dept || work_style || salary || industry || prefecture);
 
   return (
@@ -722,22 +721,6 @@ export default function JobsClient({
               }}>
                 IT/SaaS 求人を探す
               </h1>
-              {/* Stats chips */}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8l-2 4h12z"/></svg>
-                  {allJobs.length}件掲載中
-                </span>
-                {newThisWeek > 0 && (
-                  <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    今週{newThisWeek}件新着
-                  </span>
-                )}
-                <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  ✓ 全社カジュアル面談受付中
-                </span>
-              </div>
 
               {/* ── Search bar in hero ── */}
               <div role="search" style={{ position: "relative", maxWidth: 560 }}>
