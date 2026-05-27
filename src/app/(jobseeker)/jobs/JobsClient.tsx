@@ -601,10 +601,20 @@ export default function JobsClient({
     [companies]
   );
 
+  // 業界名の正規化マップ（DB の表記ゆれを統一）
+  const INDUSTRY_NORMALIZE: Record<string, string> = {
+    "IT": "IT / SaaS",
+    "SaaS": "IT / SaaS",
+  };
+  const normalizeIndustry = (v: string | null) =>
+    v ? (INDUSTRY_NORMALIZE[v] ?? v) : null;
+
   // Derive unique industry values from loaded companies
   const industries = useMemo(
     () =>
-      Array.from(new Set(companies.map((c) => c.industry).filter(Boolean))).sort(),
+      Array.from(
+        new Set(companies.map((c) => normalizeIndustry(c.industry)).filter(Boolean))
+      ).sort() as string[],
     [companies]
   );
 
@@ -670,7 +680,7 @@ export default function JobsClient({
 
     if (industry) {
       const companyIds = companies
-        .filter((c) => c.industry === industry)
+        .filter((c) => normalizeIndustry(c.industry) === industry)
         .map((c) => c.id);
       list = list.filter((j) => companyIds.includes(j.company_id));
     }
