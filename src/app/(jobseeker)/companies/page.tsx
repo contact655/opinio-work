@@ -8,8 +8,9 @@ import { GenreTabs } from "@/components/companies/GenreTabs";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSection";
-import { CompanyCardCompact } from "@/components/companies/CompanyCardCompact";
 import { ViewToggle } from "@/components/companies/ViewToggle";
+import { GridSortBar } from "@/components/companies/GridSortBar";
+import { CompanyCardHoverWrap } from "@/components/companies/CompanyCardHoverWrap";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 300;
@@ -37,6 +38,7 @@ type SearchParams = {
   hiring?: string;
   location?: string;
   view?: string;
+  sort?: string;
 };
 
 type Props = {
@@ -44,7 +46,7 @@ type Props = {
 };
 
 export default async function CompaniesPage({ searchParams }: Props) {
-  const { q, phase, workStyle, hiring, location, view } = searchParams;
+  const { q, phase, workStyle, hiring, location, view, sort } = searchParams;
   const hasFilter = Boolean(q || phase || workStyle || hiring || location);
   const isGridView = !hasFilter && view === "grid";
 
@@ -118,15 +120,33 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     .companies-compact-grid { grid-template-columns: repeat(2, 1fr); }
                   }
                 `}</style>
-                <div className="companies-compact-grid">
-                  {Array.from(
+                {(() => {
+                  const allCompanies = Array.from(
                     new Map(
                       genresWithCompanies.flatMap(g => g.companies).map(c => [c.id, c])
                     ).values()
-                  ).map(c => (
-                    <CompanyCardCompact key={c.id} company={c} />
-                  ))}
-                </div>
+                  );
+                  if (sort === "jobs") allCompanies.sort((a, b) => b.job_count - a.job_count);
+                  else if (sort === "employees") {
+                    allCompanies.sort((a, b) => {
+                      const numA = parseInt(String(a.employee_count ?? "0").replace(/\D/g, "")) || 0;
+                      const numB = parseInt(String(b.employee_count ?? "0").replace(/\D/g, "")) || 0;
+                      return numB - numA;
+                    });
+                  }
+                  return (
+                    <>
+                      <Suspense fallback={null}>
+                        <GridSortBar totalCount={allCompanies.length} />
+                      </Suspense>
+                      <div className="companies-compact-grid">
+                        {allCompanies.map(c => (
+                          <CompanyCardHoverWrap key={c.id} company={c} />
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
               </>
             ) : (
               <GenreTabs genres={genresWithCompanies} />

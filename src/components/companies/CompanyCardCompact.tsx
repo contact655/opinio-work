@@ -28,6 +28,7 @@ function getStageCfg(stage: string | null) {
 
 type Props = {
   company: CompanyForCarousel;
+  compact?: boolean;
 };
 
 // モックと同じ6色パステル（企業名のハッシュで決定論的に選択）
@@ -46,7 +47,7 @@ function getPlaceholderColor(name: string) {
 }
 
 
-export function CompanyCardCompact({ company }: Props) {
+export function CompanyCardCompact({ company, compact }: Props) {
   const ph = getPlaceholderColor(company.name);
   const initial = company.logo_letter ?? company.name.slice(0, 1);
   const router = useRouter();
@@ -102,9 +103,9 @@ export function CompanyCardCompact({ company }: Props) {
 
   return (
     <Link href={`/companies/${company.id}`} className="genre-card">
-      {/* ロゴエリア — 16:10 アスペクト比 */}
+      {/* ロゴエリア — 16:10 アスペクト比（compact時は 2:1） */}
       <div style={{
-        aspectRatio: '16 / 10',
+        aspectRatio: compact ? '2 / 1' : '16 / 10',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -122,7 +123,7 @@ export function CompanyCardCompact({ company }: Props) {
           />
         ) : (
           <span style={{
-            fontSize: 44,
+            fontSize: compact ? 32 : 44,
             fontWeight: 700,
             color: ph.text,
             letterSpacing: '-0.02em',
