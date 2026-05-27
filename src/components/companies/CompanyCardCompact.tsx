@@ -26,9 +26,12 @@ function getStageCfg(stage: string | null) {
   return STAGE_CONFIG[key] ?? { label: stage, color: "#4a5260", bg: "#f1f5f9" };
 }
 
+export type MemberPreview = { id: string; name: string };
+
 type Props = {
   company: CompanyForCarousel;
   compact?: boolean;
+  members?: MemberPreview[];
 };
 
 // モックと同じ6色パステル（企業名のハッシュで決定論的に選択）
@@ -47,7 +50,7 @@ function getPlaceholderColor(name: string) {
 }
 
 
-export function CompanyCardCompact({ company, compact }: Props) {
+export function CompanyCardCompact({ company, compact, members }: Props) {
   const ph = getPlaceholderColor(company.name);
   const initial = company.logo_letter ?? company.name.slice(0, 1);
   const router = useRouter();
@@ -253,6 +256,51 @@ export function CompanyCardCompact({ company, compact }: Props) {
                 {item.label}
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Member avatar strip */}
+        {members && members.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 2 }}>
+            {members.slice(0, 4).map((m, i) => {
+              const avatarColors = [
+                { bg: "#d8e6ff", text: "#1e63d8" },
+                { bg: "#e8dcf5", text: "#6b3b9e" },
+                { bg: "#d4f0e3", text: "#1f7a48" },
+                { bg: "#fce8b8", text: "#8b5e0f" },
+              ];
+              const c = avatarColors[i % avatarColors.length];
+              return (
+                <div key={m.id} style={{
+                  width: 22, height: 22, borderRadius: "50%",
+                  background: c.bg, color: c.text,
+                  fontSize: 9, fontWeight: 700,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  border: "2px solid #fff",
+                  marginLeft: i > 0 ? -6 : 0,
+                  zIndex: members.length - i,
+                  position: "relative",
+                  flexShrink: 0,
+                }}>
+                  {m.name.charAt(0)}
+                </div>
+              );
+            })}
+            {members.length > 4 && (
+              <div style={{
+                width: 22, height: 22, borderRadius: "50%",
+                background: "var(--line)", color: "var(--ink-mute)",
+                fontSize: 8, fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                border: "2px solid #fff",
+                marginLeft: -6, zIndex: 0, position: "relative", flexShrink: 0,
+              }}>
+                +{members.length - 4}
+              </div>
+            )}
+            <span style={{ marginLeft: 6, fontSize: 10, color: "var(--ink-mute)" }}>
+              在籍
+            </span>
           </div>
         )}
 

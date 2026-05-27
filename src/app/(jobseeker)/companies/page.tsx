@@ -11,6 +11,9 @@ import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSect
 import { ViewToggle } from "@/components/companies/ViewToggle";
 import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardHoverWrap } from "@/components/companies/CompanyCardHoverWrap";
+import { CompanyCardList } from "@/components/companies/CompanyCardList";
+
+type MemberPreview = { id: string; name: string };
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 300;
@@ -49,6 +52,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const { q, phase, workStyle, hiring, location, view, sort } = searchParams;
   const hasFilter = Boolean(q || phase || workStyle || hiring || location);
   const isGridView = !hasFilter && view === "grid";
+  const isListView = !hasFilter && view === "list";
 
   // 全データを並列取得（genresWithCompanies は常に取得してヒーロー統計に使う）
   const supabase = createClient();
@@ -64,6 +68,36 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
   const companySuggestions: { id: string; name: string }[] =
     (companyNamesResult.data ?? []) as { id: string; name: string }[];
+
+  // Fetch current employees for grid/list views
+  const membersByCompany: Record<string, MemberPreview[]> = {};
+  if (isGridView || isListView) {
+    const { data: experienceData } = await supabase
+      .from("ow_experiences")
+      .select("company_id, user_id, ow_users(id, name)")
+      .eq("is_current", true)
+      .not("company_id", "is", null)
+      .limit(300);
+
+    if (experienceData) {
+      for (const exp of experienceData) {
+        const companyId = exp.company_id as string;
+        if (!membersByCompany[companyId]) membersByCompany[companyId] = [];
+        if (membersByCompany[companyId].length < 8) {
+          const user = exp.ow_users as { id: string; name: string } | { id: string; name: string }[] | null;
+          if (user) {
+            const u = Array.isArray(user) ? user[0] : user;
+            if (u) {
+              membersByCompany[companyId].push({
+                id: u.id,
+                name: u.name ?? "?",
+              });
+            }
+          }
+        }
+      }
+    }
+  }
 
   return (
     <div style={{ background: "#f0f4f8" }}>
@@ -102,24 +136,26 @@ export default async function CompaniesPage({ searchParams }: Props) {
               </Suspense>
             </div>
 
-            {isGridView ? (
+            {isGridView || isListView ? (
               <>
-                <style>{`
-                  .companies-compact-grid {
-                    display: grid;
-                    grid-template-columns: repeat(5, 1fr);
-                    gap: 14px;
-                  }
-                  @media (max-width: 1279px) {
-                    .companies-compact-grid { grid-template-columns: repeat(4, 1fr); }
-                  }
-                  @media (max-width: 1023px) {
-                    .companies-compact-grid { grid-template-columns: repeat(3, 1fr); }
-                  }
-                  @media (max-width: 639px) {
-                    .companies-compact-grid { grid-template-columns: repeat(2, 1fr); }
-                  }
-                `}</style>
+                {isGridView && (
+                  <style>{`
+                    .companies-compact-grid {
+                      display: grid;
+                      grid-template-columns: repeat(5, 1fr);
+                      gap: 14px;
+                    }
+                    @media (max-width: 1279px) {
+                      .companies-compact-grid { grid-template-columns: repeat(4, 1fr); }
+                    }
+                    @media (max-width: 1023px) {
+                      .companies-compact-grid { grid-template-columns: repeat(3, 1fr); }
+                    }
+                    @media (max-width: 639px) {
+                      .companies-compact-grid { grid-template-columns: repeat(2, 1fr); }
+                    }
+                  `}</style>
+                )}
                 {(() => {
                   const allCompanies = Array.from(
                     new Map(
@@ -139,11 +175,27 @@ export default async function CompaniesPage({ searchParams }: Props) {
                       <Suspense fallback={null}>
                         <GridSortBar totalCount={allCompanies.length} />
                       </Suspense>
-                      <div className="companies-compact-grid">
-                        {allCompanies.map(c => (
-                          <CompanyCardHoverWrap key={c.id} company={c} />
-                        ))}
-                      </div>
+                      {isGridView ? (
+                        <div className="companies-compact-grid">
+                          {allCompanies.map(c => (
+                            <CompanyCardHoverWrap
+                              key={c.id}
+                              company={c}
+                              members={membersByCompany[c.id] ?? []}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {allCompanies.map(c => (
+                            <CompanyCardList
+                              key={c.id}
+                              company={c}
+                              members={membersByCompany[c.id] ?? []}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </>
                   );
                 })()}
