@@ -109,10 +109,6 @@ export function GenreTabs({ genres }: Props) {
 
   const clearAll = () => setActiveIds([]);
 
-  const selectedGenres = activeIds.length > 0
-    ? genres.filter((g) => activeIds.includes(g.id))
-    : genres;
-
   const contentKey = [...activeIds].sort().join(",") || "all";
 
   if (!genres.length) return null;
@@ -129,6 +125,13 @@ export function GenreTabs({ genres }: Props) {
   const industryGenres = INDUSTRY_SLUGS
     .map((slug) => genreBySlug.get(slug))
     .filter((g): g is GenreWithCompanies => g !== undefined);
+
+  // コンテンツ表示用: 特徴+業種の順（レガシージャンルは除外）
+  const allDisplayGenres = [...featureGenres, ...industryGenres];
+
+  const selectedGenres = activeIds.length > 0
+    ? allDisplayGenres.filter((g) => activeIds.includes(g.id))
+    : allDisplayGenres;
 
   // いずれかのタブ行でも表示するジャンルがあれば render
   const hasFeature = featureGenres.length > 0;
