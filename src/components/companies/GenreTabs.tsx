@@ -78,9 +78,28 @@ function GenreSectionHeader({ genre }: { genre: GenreWithCompanies }) {
 }
 
 export function GenreTabs({ genres }: Props) {
-  // null = 全表示（選択なし）
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const active = activeId ? genres.find((g) => g.id === activeId) ?? null : null;
+  // 複数選択対応: Set で管理。空 = 全表示
+  const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
+
+  const toggle = (id: string) => {
+    setActiveIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const clearAll = () => setActiveIds(new Set());
+
+  const selectedGenres = activeIds.size > 0
+    ? genres.filter((g) => activeIds.has(g.id))
+    : genres;
+
+  const contentKey = Array.from(activeIds).sort().join(",") || "all";
 
   if (!genres.length) return null;
 
@@ -138,58 +157,77 @@ export function GenreTabs({ genres }: Props) {
         .genre-tab-content {
           animation: genreFadeIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
         }
+
+        /* クリアボタン */
+        .genre-clear-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 7px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 600;
+          white-space: nowrap;
+          cursor: pointer;
+          flex-shrink: 0;
+          background: var(--error-soft);
+          border: 1px solid var(--error);
+          color: var(--error);
+          transition: opacity 0.15s;
+        }
+        .genre-clear-btn:hover { opacity: 0.8; }
       `}</style>
 
       {/* タブバー */}
-      <div className="genre-tab-bar" role="tablist" aria-label="ジャンルで絞る">
-        {genres.map((genre) => {
-          const active = genre.id === activeId;
-          const cfg = getGenreConfig(genre.slug);
-          return (
-            <button
-              key={genre.id}
-              role="tab"
-              aria-selected={active}
-              data-active={String(active)}
-              className="genre-tab-btn"
-              onClick={() => setActiveId(genre.id === activeId ? null : genre.id)}
-              style={active ? {
-                background: cfg.activeBg,
-                border: "1px solid transparent",
-                color: "#fff",
-                boxShadow: `0 4px 14px ${cfg.color}44`,
-              } : {
-                background: cfg.bg,
-                border: `1px solid ${cfg.color}33`,
-                color: cfg.color,
-              }}
-            >
-              <span style={{ fontSize: 14, lineHeight: 1 }}>{cfg.icon}</span>
-              {genre.name}
-              <span className="genre-tab-count">{genre.total_count}</span>
-            </button>
-          );
-        })}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="genre-tab-bar" role="tablist" aria-label="ジャンルで絞る" style={{ flex: 1 }}>
+          {genres.map((genre) => {
+            const isActive = activeIds.has(genre.id);
+            const cfg = getGenreConfig(genre.slug);
+            return (
+              <button
+                key={genre.id}
+                role="tab"
+                aria-selected={isActive}
+                data-active={String(isActive)}
+                className="genre-tab-btn"
+                onClick={() => toggle(genre.id)}
+                style={isActive ? {
+                  background: cfg.activeBg,
+                  border: "1px solid transparent",
+                  color: "#fff",
+                  boxShadow: `0 4px 14px ${cfg.color}44`,
+                } : {
+                  background: cfg.bg,
+                  border: `1px solid ${cfg.color}33`,
+                  color: cfg.color,
+                }}
+              >
+                <span style={{ fontSize: 14, lineHeight: 1 }}>{cfg.icon}</span>
+                {genre.name}
+                <span className="genre-tab-count">{genre.total_count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 選択中のとき「クリア」ボタンを表示 */}
+        {activeIds.size > 0 && (
+          <button className="genre-clear-btn" onClick={clearAll} title="選択を解除">
+            ✕ {activeIds.size}件選択中
+          </button>
+        )}
       </div>
 
       {/* コンテンツ */}
-      {active ? (
-        /* 単一ジャンル表示 */
-        <div key={activeId} className="genre-tab-content" style={{ marginTop: 24 }}>
-          <GenreSectionHeader genre={active} />
-          <GenreCarousel companies={active.companies} />
-        </div>
-      ) : (
-        /* 全ジャンル表示（タブ選択解除時） */
-        <div key="all" className="genre-tab-content" style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 40 }}>
-          {genres.map((genre) => (
-            <div key={genre.id}>
-              <GenreSectionHeader genre={genre} />
-              <GenreCarousel companies={genre.companies} />
-            </div>
-          ))}
-        </div>
-      )}
+      <div key={contentKey} className="genre-tab-content" style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 40 }}>
+        {selectedGenres.map((genre) => (
+          <div key={genre.id}>
+            <GenreSectionHeader genre={genre} />
+            <GenreCarousel companies={genre.companies} />
+          </div>
+        ))}
+      </div>
     </>
   );
 }
