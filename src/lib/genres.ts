@@ -18,6 +18,13 @@ import type { GenreWithCompanies, CompanyForCarousel } from "@/types/genre";
 /** カルーセル1行あたりの最大表示社数 */
 const CAROUSEL_LIMIT = 9;
 
+/**
+ * フェーズフィルター（CompanySearchBar）と重複するジャンルを除外するスラッグ一覧。
+ * 「業種・タイプ」と「資金調達ステージ」の軸を分離するための措置。
+ * DBのジャンルレコードは残したまま、表示レイヤーで非表示にする。
+ */
+const PHASE_GENRE_SLUGS = ["early-stage", "ipo-ready"];
+
 export async function fetchGenresWithCompanies(): Promise<GenreWithCompanies[]> {
   const supabase = createClient();
 
@@ -33,7 +40,12 @@ export async function fetchGenresWithCompanies(): Promise<GenreWithCompanies[]> 
     return [];
   }
 
-  const genreIds = genres.map((g) => g.id);
+  // フェーズ系ジャンルを除外（フェーズはフィルターチップで管理）
+  const filteredGenres = genres.filter(
+    (g) => !PHASE_GENRE_SLUGS.includes(g.slug) && !PHASE_GENRE_SLUGS.includes(g.name)
+  );
+
+  const genreIds = filteredGenres.map((g) => g.id);
 
   // ── Query 2: 全ジャンルの company-genre リンクを一括取得 ─────────────────────
   const { data: allLinks } = await supabase
@@ -82,7 +94,7 @@ export async function fetchGenresWithCompanies(): Promise<GenreWithCompanies[]> 
     linksByGenre.get(gid)!.push(link);
   }
 
-  return genres.map((genre) => {
+  return filteredGenres.map((genre) => {
     const links = linksByGenre.get(genre.id) ?? [];
     const limited = links.slice(0, CAROUSEL_LIMIT);
 
