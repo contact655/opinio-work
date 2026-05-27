@@ -78,12 +78,13 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
       {/* webkit スクロールバー非表示 */}
       <style>{`.sticky-nav::-webkit-scrollbar { display: none; }`}</style>
       <div
-        className="sticky-nav"
+        className="sticky-nav px-5 md:px-12"
         style={{
-          display: "flex", gap: 4, padding: "6px 16px",
+          display: "flex", gap: 4, padding: "6px 0",
           maxWidth: "var(--max-w-page)", margin: "0 auto",
           alignItems: "center",
           width: "max-content", minWidth: "100%",
+          boxSizing: "border-box",
         }}
       >
         {items.map(({ id, label }) => {
