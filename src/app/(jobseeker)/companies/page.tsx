@@ -76,9 +76,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
         <div className="max-w-[1440px] mx-auto px-4">
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.65)", marginBottom: 10, textTransform: "uppercase" as const }}>
-                COMPANIES
-              </div>
               <h1 style={{
                 fontFamily: "var(--font-noto-serif)",
                 fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,

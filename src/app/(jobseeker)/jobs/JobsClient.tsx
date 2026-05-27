@@ -711,9 +711,6 @@ export default function JobsClient({
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "0 20px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.65)", marginBottom: 10, textTransform: "uppercase" as const }}>
-                JOBS
-              </div>
               <h1 style={{
                 fontFamily: "var(--font-noto-serif)",
                 fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
