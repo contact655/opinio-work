@@ -18,6 +18,7 @@ import type { CompanyDetail, CompanyNumbers } from "@/app/companies/[id]/mockDet
 import { PhotoCarousel } from "./PhotoCarousel";
 import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker } from "./CompanyDetailClient";
 import { CompanyCardCompact } from "@/components/companies/CompanyCardCompact";
+import { GenreCarousel } from "@/components/companies/GenreCarousel";
 import EvaluationText from "./EvaluationText";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
@@ -3713,17 +3714,9 @@ async function SimilarCompanies({ currentId, phase }: { currentId: string; phase
         </a>
       </div>
 
-      {/* Card grid */}
-      <div style={{ padding: "20px 24px 24px" }}>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-          gap: 14,
-        }}>
-          {companies.map((c) => (
-            <CompanyCardCompact key={c.id} company={c} />
-          ))}
-        </div>
+      {/* Carousel */}
+      <div style={{ padding: "16px 0 20px" }}>
+        <GenreCarousel companies={companies} />
       </div>
     </section>
   );
