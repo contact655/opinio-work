@@ -78,28 +78,22 @@ function GenreSectionHeader({ genre }: { genre: GenreWithCompanies }) {
 }
 
 export function GenreTabs({ genres }: Props) {
-  // 複数選択対応: Set で管理。空 = 全表示
-  const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
+  // 複数選択対応: string[] で管理。空配列 = 全表示
+  const [activeIds, setActiveIds] = useState<string[]>([]);
 
   const toggle = (id: string) => {
-    setActiveIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+    setActiveIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
-  const clearAll = () => setActiveIds(new Set());
+  const clearAll = () => setActiveIds([]);
 
-  const selectedGenres = activeIds.size > 0
-    ? genres.filter((g) => activeIds.has(g.id))
+  const selectedGenres = activeIds.length > 0
+    ? genres.filter((g) => activeIds.includes(g.id))
     : genres;
 
-  const contentKey = Array.from(activeIds).sort().join(",") || "all";
+  const contentKey = [...activeIds].sort().join(",") || "all";
 
   if (!genres.length) return null;
 
@@ -182,7 +176,7 @@ export function GenreTabs({ genres }: Props) {
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div className="genre-tab-bar" role="tablist" aria-label="ジャンルで絞る" style={{ flex: 1 }}>
           {genres.map((genre) => {
-            const isActive = activeIds.has(genre.id);
+            const isActive = activeIds.includes(genre.id);
             const cfg = getGenreConfig(genre.slug);
             return (
               <button
@@ -212,9 +206,9 @@ export function GenreTabs({ genres }: Props) {
         </div>
 
         {/* 選択中のとき「クリア」ボタンを表示 */}
-        {activeIds.size > 0 && (
+        {activeIds.length > 0 && (
           <button className="genre-clear-btn" onClick={clearAll} title="選択を解除">
-            ✕ {activeIds.size}件選択中
+            ✕ {activeIds.length}件選択中
           </button>
         )}
       </div>
