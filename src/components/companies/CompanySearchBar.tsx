@@ -11,12 +11,15 @@ type Props = {
 type PhaseOption = { value: string; label: string; color: string; bg: string; dot: string; desc: string };
 
 const PHASE_OPTIONS: PhaseOption[] = [
+  { value: "プレシード",      label: "プレシード",      color: "#78350f", bg: "#fff7ed", dot: "#fb923c", desc: "創業初期・アイデア段階" },
   { value: "ブートストラップ", label: "ブートストラップ", color: "#92400e", bg: "#fef3c7", dot: "#f59e0b", desc: "自己資金・非資金調達" },
-  { value: "シード",          label: "シード",          color: "#6b5b2e", bg: "#fef9e7", dot: "#d97706", desc: "アイデア検証・初期段階" },
-  { value: "シリーズA",       label: "シリーズA",       color: "#1e63d8", bg: "#dbeafe", dot: "#3b82f6", desc: "PMF〜グロース開始" },
-  { value: "シリーズB",       label: "シリーズB",       color: "#6b3b9e", bg: "#ede9fe", dot: "#8b5cf6", desc: "事業拡大・組織化" },
-  { value: "シリーズC",       label: "シリーズC",       color: "#0f766e", bg: "#d1fae5", dot: "#10b981", desc: "上場準備・スケール" },
-  { value: "上場",            label: "上場",            color: "#1f7a48", bg: "#d4f0e3", dot: "#059669", desc: "東証・グロース・プライム" },
+  { value: "シード",          label: "シード",          color: "#713f12", bg: "#fef9e7", dot: "#ca8a04", desc: "PMF検証・プロダクト開発期" },
+  { value: "シリーズA",       label: "シリーズA",       color: "#1e40af", bg: "#dbeafe", dot: "#3b82f6", desc: "グロース開始・急成長期" },
+  { value: "シリーズB",       label: "シリーズB",       color: "#5b21b6", bg: "#ede9fe", dot: "#8b5cf6", desc: "事業拡大・組織化" },
+  { value: "シリーズC",       label: "シリーズC",       color: "#065f46", bg: "#d1fae5", dot: "#10b981", desc: "スケール・上場準備" },
+  { value: "シリーズD以降",   label: "シリーズD以降",   color: "#064e3b", bg: "#ccfbf1", dot: "#14b8a6", desc: "レイトステージ・大規模化" },
+  { value: "IPO準備中",       label: "IPO準備中",       color: "#9a3412", bg: "#ffedd5", dot: "#ea580c", desc: "上場直前・承認申請段階" },
+  { value: "上場",            label: "上場",            color: "#14532d", bg: "#dcfce7", dot: "#16a34a", desc: "東証グロース・スタンダード・プライム" },
 ];
 
 const WORK_STYLE_OPTIONS = [
@@ -92,11 +95,11 @@ function FilterChip({
           background: "#fff",
           border: "1.5px solid var(--royal)",
           borderRadius: 12,
-          padding: phaseStyle ? "10px" : listStyle ? "8px 0" : "12px 16px",
+          padding: phaseStyle ? "8px" : listStyle ? "8px 0" : "12px 16px",
           boxShadow: "0 8px 28px rgba(0,35,102,0.14)",
-          minWidth: phaseStyle ? 260 : listStyle ? 140 : 180,
-          maxHeight: listStyle ? 280 : "none",
-          overflowY: listStyle ? "auto" : "visible",
+          minWidth: phaseStyle ? 268 : listStyle ? 140 : 180,
+          maxHeight: phaseStyle ? 420 : listStyle ? 280 : "none",
+          overflowY: (phaseStyle || listStyle) ? "auto" : "visible",
         }}>
           {phaseStyle ? (
             // フェーズ専用: カラーバッジ + 説明付きカード
