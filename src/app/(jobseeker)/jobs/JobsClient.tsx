@@ -550,6 +550,100 @@ function Pagination({
   );
 }
 
+// ─── Filter chip (dropdown) ───────────────────────────────────────────────────
+
+function FilterChip({
+  label,
+  value,
+  options,
+  onSelect,
+  isOpen,
+  onToggle,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onSelect: (v: string | null) => void;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const isActive = !!value;
+  const activeLabel = options.find((o) => o.value === value)?.label;
+
+  return (
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          padding: "7px 14px",
+          borderRadius: 999,
+          border: `1.5px solid ${isActive ? "var(--royal)" : "#e2e8f0"}`,
+          background: isActive ? "var(--royal)" : "#fff",
+          color: isActive ? "#fff" : "var(--ink-soft)",
+          fontSize: 13, fontWeight: isActive ? 600 : 400,
+          cursor: "pointer", whiteSpace: "nowrap",
+          transition: "all 0.12s",
+          fontFamily: "inherit",
+        }}
+      >
+        {isActive ? activeLabel : label}
+        {isActive ? (
+          <span
+            onClick={(e) => { e.stopPropagation(); onSelect(null); }}
+            style={{ fontSize: 10, marginLeft: 1, opacity: 0.85, lineHeight: 1 }}
+            aria-label="クリア"
+          >
+            ✕
+          </span>
+        ) : (
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        )}
+      </button>
+
+      {isOpen && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200,
+          background: "#fff",
+          border: "1.5px solid var(--royal)",
+          borderRadius: 12,
+          padding: "12px 16px",
+          boxShadow: "0 8px 28px rgba(0,35,102,0.14)",
+          minWidth: 180,
+        }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {options.map((o) => {
+              const sel = value === o.value;
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => { onSelect(sel ? null : o.value); onToggle(); }}
+                  style={{
+                    padding: "6px 14px", borderRadius: 999,
+                    border: `1.5px solid ${sel ? "var(--royal)" : "var(--line)"}`,
+                    background: sel ? "var(--royal)" : "#fff",
+                    color: sel ? "#fff" : "var(--ink)",
+                    fontSize: 13, fontWeight: sel ? 700 : 400,
+                    cursor: "pointer", whiteSpace: "nowrap",
+                    fontFamily: "inherit",
+                    transition: "all 0.1s",
+                  }}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main client component ─────────────────────────────────────────────────────
 
 export default function JobsClient({
@@ -576,12 +670,27 @@ export default function JobsClient({
   // Local-only keyword search
   const [q, setQ] = useState("");
 
+  // Which filter chip dropdown is open
+  const [openChip, setOpenChip] = useState<string | null>(null);
+  const filterBarRef = useRef<HTMLDivElement>(null);
+
   // Scroll shadow for sticky filter bar
   const [filterBarScrolled, setFilterBarScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => setFilterBarScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Close chip dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (filterBarRef.current && !filterBarRef.current.contains(e.target as Node)) {
+        setOpenChip(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Bookmarks: load once on mount
@@ -601,22 +710,13 @@ export default function JobsClient({
     [companies]
   );
 
-  // 業界名の正規化マップ（DB の表記ゆれを統一）
+  // 業界名の正規化マップ（フィルター用）
   const INDUSTRY_NORMALIZE: Record<string, string> = {
     "IT": "IT / SaaS",
     "SaaS": "IT / SaaS",
   };
   const normalizeIndustry = (v: string | null) =>
     v ? (INDUSTRY_NORMALIZE[v] ?? v) : null;
-
-  // Derive unique industry values from loaded companies
-  const industries = useMemo(
-    () =>
-      Array.from(
-        new Set(companies.map((c) => normalizeIndustry(c.industry)).filter(Boolean))
-      ).sort() as string[],
-    [companies]
-  );
 
   function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -709,289 +809,142 @@ export default function JobsClient({
     <>
       <h1 className="sr-only">求人を探す</h1>
 
-      {/* ── Search bar ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "14px 0", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "0 20px" }}>
-          <div role="search" style={{ position: "relative", maxWidth: 600 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2.2} strokeLinecap="round" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} aria-hidden="true">
-              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-            </svg>
-            <input
-              type="search"
-              aria-label="求人を検索"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="職種・企業名・スキルで検索…"
-              style={{
-                width: "100%",
-                padding: "11px 14px 11px 44px",
-                fontSize: 14,
-                border: "1.5px solid var(--line)",
-                borderRadius: 10,
-                outline: "none",
-                background: "#fff",
-                color: "var(--ink)",
-                boxSizing: "border-box" as const,
-              }}
-              className="job-search-input"
-            />
-            {q && (
-              <button type="button" onClick={() => setQ("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 16, padding: "4px" }}>×</button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Category pills bar ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "0 20px" }}>
-          <div style={{ padding: "10px 0", display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
-            <button
-              type="button"
-              onClick={() => setParam("category", "")}
-              style={{
-                padding: "6px 16px", borderRadius: 999,
-                border: `1.5px solid ${!category ? "var(--royal)" : "var(--line)"}`,
-                background: !category ? "var(--royal)" : "#fff",
-                color: !category ? "#fff" : "var(--ink-soft)",
-                fontSize: 13, fontWeight: !category ? 700 : 400,
-                cursor: "pointer", whiteSpace: "nowrap",
-                transition: "background 0.12s, border-color 0.12s, color 0.12s",
-                fontFamily: "inherit",
-              }}
-            >
-              すべて
-            </button>
-            {parentRoles.map((role) => {
-              const active = category === role.id;
-              return (
-                <button
-                  type="button"
-                  key={role.id}
-                  onClick={() => setParam("category", role.id)}
-                  style={{
-                    padding: "6px 16px", borderRadius: 999,
-                    border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
-                    background: active ? "var(--royal)" : "#fff",
-                    color: active ? "#fff" : "var(--ink-soft)",
-                    fontSize: 13, fontWeight: active ? 700 : 400,
-                    cursor: "pointer", whiteSpace: "nowrap",
-                    transition: "background 0.12s, border-color 0.12s, color 0.12s",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  {role.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Filter bar */}
+      {/* ── コンパクトフィルターバー（1段） ── */}
       <div
+        ref={filterBarRef}
         style={{
           position: "sticky",
           top: 64,
           zIndex: 50,
-          background: "rgba(255,255,255,0.96)",
+          background: "rgba(255,255,255,0.97)",
           backdropFilter: "blur(8px)",
           borderBottom: "1px solid var(--line)",
           boxShadow: filterBarScrolled ? "0 4px 12px rgba(0,35,102,0.07)" : "none",
           transition: "box-shadow 0.2s ease",
         }}
       >
-        <div
-          style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
-          className="px-5 md:px-12"
-        >
-          <div
-            style={{
-              padding: "10px 0",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flexWrap: "wrap",
-            }}
-          >
-              {/* 勤務形態ピル */}
-            {(["フルリモート", "ハイブリッド", "フレックス"] as const).map((ws) => {
-              const isActive = work_style === ws;
-              return (
-                <button
-                  type="button"
-                  key={ws}
-                  onClick={() => setParam("work_style", isActive ? "" : ws)}
-                  style={{
-                    padding: "5px 14px",
-                    borderRadius: 999,
-                    border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
-                    background: isActive ? "var(--royal)" : "#fff",
-                    color: isActive ? "#fff" : "var(--ink-soft)",
-                    fontSize: 12.5,
-                    fontWeight: isActive ? 700 : 400,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    transition: "background 0.12s, border-color 0.12s, color 0.12s",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  {ws}
-                </button>
-              );
-            })}
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
+          <div style={{ padding: "10px 0", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
 
-            <div style={{ width: 1, height: 18, background: "var(--line)", flexShrink: 0 }} />
+            {/* 検索インプット */}
+            <div role="search" style={{ position: "relative", flex: "1 1 200px", minWidth: 160 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2.2} strokeLinecap="round" style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+              </svg>
+              <input
+                type="search"
+                aria-label="求人を検索"
+                value={q}
+                onChange={(e) => { setQ(e.target.value); setOpenChip(null); }}
+                placeholder="職種・企業名で検索"
+                style={{
+                  width: "100%",
+                  padding: "8px 32px 8px 36px",
+                  fontSize: 13.5,
+                  border: "1.5px solid var(--line)",
+                  borderRadius: 999,
+                  outline: "none",
+                  background: "#fff",
+                  color: "var(--ink)",
+                  boxSizing: "border-box" as const,
+                  transition: "border-color 0.15s, box-shadow 0.15s",
+                }}
+                onFocus={(e) => { e.target.style.borderColor = "var(--royal)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
+                onBlur={(e) => { e.target.style.borderColor = "var(--line)"; e.target.style.boxShadow = "none"; }}
+              />
+              {q && (
+                <button type="button" onClick={() => setQ("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 14, padding: "4px", lineHeight: 1 }}>×</button>
+              )}
+            </div>
 
-            {/* 年収ピル */}
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>年収</span>
-            {SALARY_PILL_TIERS.map(({ value: v, label }) => {
-              const isActive = salary === v;
-              return (
-                <button
-                  type="button"
-                  key={v}
-                  onClick={() => setParam("salary", isActive ? "" : v)}
-                  style={{
-                    padding: "5px 12px",
-                    borderRadius: 999,
-                    border: `1.5px solid ${isActive ? "var(--success)" : "var(--line)"}`,
-                    background: isActive ? "var(--success)" : "#fff",
-                    color: isActive ? "#fff" : "var(--ink-soft)",
-                    fontSize: 12,
-                    fontWeight: isActive ? 700 : 400,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    transition: "background 0.12s, border-color 0.12s, color 0.12s",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
+            {/* 職種 chip */}
+            <FilterChip
+              label="職種"
+              value={category}
+              options={parentRoles.map((r) => ({ value: r.id, label: r.name }))}
+              onSelect={(v) => { setParam("category", v ?? ""); setOpenChip(null); }}
+              isOpen={openChip === "category"}
+              onToggle={() => setOpenChip(openChip === "category" ? null : "category")}
+            />
 
-            {/* 業界ピル */}
-            {industries.length > 0 && (
-              <>
-                <div style={{ width: 1, height: 18, background: "var(--line)", flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>業界</span>
-                {industries.map((ind) => {
-                  const isActive = industry === ind;
-                  return (
-                    <button
-                      type="button"
-                      key={ind}
-                      onClick={() => setParam("industry", isActive ? "" : ind)}
-                      style={{
-                        padding: "5px 12px",
-                        borderRadius: 999,
-                        border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
-                        background: isActive ? "var(--royal)" : "#fff",
-                        color: isActive ? "#fff" : "var(--ink-soft)",
-                        fontSize: 12,
-                        fontWeight: isActive ? 700 : 400,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        transition: "background 0.12s, border-color 0.12s, color 0.12s",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      {ind}
-                    </button>
-                  );
-                })}
-              </>
-            )}
+            {/* 勤務形態 chip */}
+            <FilterChip
+              label="勤務形態"
+              value={work_style}
+              options={[
+                { value: "フルリモート", label: "フルリモート" },
+                { value: "ハイブリッド", label: "ハイブリッド" },
+                { value: "フレックス",   label: "フレックス" },
+              ]}
+              onSelect={(v) => { setParam("work_style", v ?? ""); setOpenChip(null); }}
+              isOpen={openChip === "work_style"}
+              onToggle={() => setOpenChip(openChip === "work_style" ? null : "work_style")}
+            />
 
-            {/* 都道府県ピル */}
+            {/* 年収 chip */}
+            <FilterChip
+              label="年収"
+              value={salary}
+              options={SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label }))}
+              onSelect={(v) => { setParam("salary", v ?? ""); setOpenChip(null); }}
+              isOpen={openChip === "salary"}
+              onToggle={() => setOpenChip(openChip === "salary" ? null : "salary")}
+            />
+
+            {/* 地域 chip */}
             {availablePrefectures.length > 0 && (
-              <>
-                <div style={{ width: 1, height: 18, background: "var(--line)", flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>地域</span>
-                {availablePrefectures.map((p) => {
-                  const isActive = prefecture === p;
-                  return (
-                    <button
-                      type="button"
-                      key={p}
-                      onClick={() => setParam("prefecture", isActive ? "" : p)}
-                      style={{
-                        padding: "5px 12px",
-                        borderRadius: 999,
-                        border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
-                        background: isActive ? "var(--royal)" : "#fff",
-                        color: isActive ? "#fff" : "var(--ink-soft)",
-                        fontSize: 12,
-                        fontWeight: isActive ? 700 : 400,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        transition: "background 0.12s, border-color 0.12s, color 0.12s",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      {p}
-                    </button>
-                  );
-                })}
-              </>
+              <FilterChip
+                label="地域"
+                value={prefecture}
+                options={availablePrefectures.map((p) => ({ value: p, label: p }))}
+                onSelect={(v) => { setParam("prefecture", v ?? ""); setOpenChip(null); }}
+                isOpen={openChip === "prefecture"}
+                onToggle={() => setOpenChip(openChip === "prefecture" ? null : "prefecture")}
+              />
             )}
 
-            {hasFilter && (
+            {(hasFilter || q) && (
               <button
                 type="button"
-                onClick={() => {
-                  setQ("");
-                  router.replace("/jobs");
-                }}
+                onClick={() => { setQ(""); router.replace("/jobs"); }}
                 style={{
-                  padding: "5px 10px",
-                  border: "none",
-                  background: "none",
-                  color: "var(--ink-mute)",
-                  fontSize: 12,
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  fontFamily: "inherit",
+                  fontSize: 12.5, color: "var(--ink-mute)",
+                  background: "none", border: "none", cursor: "pointer",
+                  padding: "5px 4px", whiteSpace: "nowrap",
+                  fontFamily: "inherit", transition: "color 0.15s",
                 }}
               >
-                リセット
+                ✕ リセット
               </button>
             )}
 
             <div style={{ flex: 1 }} />
 
-            {/* Result count */}
+            {/* 件数 */}
             <span
               aria-live="polite"
               aria-atomic="true"
               style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                padding: hasFilter ? "4px 12px" : "0",
-                borderRadius: 100, whiteSpace: "nowrap",
-                background: hasFilter ? "var(--royal-50)" : "transparent",
-                border: hasFilter ? "1px solid var(--royal-100)" : "none",
-                transition: "all 0.2s",
-              }}>
+                display: "inline-flex", alignItems: "center", gap: 3,
+                whiteSpace: "nowrap",
+              }}
+            >
               <strong style={{ color: "var(--royal)", fontSize: 15, fontFamily: "Inter, sans-serif" }}>
                 {filtered.length}
               </strong>
-              <span style={{ fontSize: 12.5, color: hasFilter ? "var(--royal)" : "var(--ink-mute)" }}>
-                {hasFilter ? "件 該当" : "件"}
-              </span>
+              <span style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>件</span>
             </span>
 
-            {/* Sort */}
+            {/* 並び順 */}
             <select
-              id="jobs-sort"
               value={sort}
               onChange={(e) => setParam("sort", e.target.value)}
               aria-label="並び順"
               style={{
-                padding: "5px 10px",
+                padding: "6px 26px 6px 10px",
                 border: "1.5px solid var(--line)",
                 borderRadius: 8,
-                background: "#fff",
+                background: "#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\") no-repeat right 8px center",
                 fontSize: 12.5,
                 color: "var(--ink-soft)",
                 cursor: "pointer",
@@ -999,10 +952,6 @@ export default function JobsClient({
                 fontFamily: "inherit",
                 appearance: "none" as const,
                 WebkitAppearance: "none" as const,
-                paddingRight: 28,
-                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
-                backgroundRepeat: "no-repeat",
-                backgroundPosition: "right 8px center",
               }}
             >
               <option value="updated">新着順</option>
