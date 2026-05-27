@@ -3807,21 +3807,24 @@ export default async function CompanyDetailPage({
             {/* 4. メンターCTA */}
             <MentorCTAWidget />
 
-            {/* 4. OPINIO編集部より（現役社員の直上） */}
+            {/* 4. OPINIO編集部より */}
             <OpinioOpinionCard detail={detail} />
             <FitSection detail={detail} />
 
-            {/* 5. 現役社員・OBOGプロフィール（閲覧のみ・直接連絡不可） */}
+            {/* 5. 募集中の求人 */}
+            <JobsSection company={company} detail={detail} />
+
+            {/* 6. 現役社員・OBOGプロフィール（閲覧のみ・直接連絡不可） */}
             <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
             {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
 
-            {/* 5b. メンターに相談する */}
+            {/* 6b. メンターに相談する */}
             <CompanyMentorsSection companyId={params.id} companyName={company.name} />
 
-            {/* 6. 特徴・評判 */}
+            {/* 7. 特徴・評判 */}
             <CompanyFeaturesSection company={company} detail={detail} />
 
-            {/* 7. 発信・記事・採用担当 */}
+            {/* 8. 発信・記事・採用担当 */}
             {posts.length > 0 && (
               <CompanyPostsSection
                 companyId={params.id}
@@ -3836,9 +3839,6 @@ export default async function CompanyDetailPage({
             {companyArticles.length > 0 && (
               <CompanyArticlesSection articles={companyArticles} />
             )}
-
-            {/* 8. 募集中の求人 */}
-            <JobsSection company={company} detail={detail} />
 
             {/* 9. 同じフェーズの企業 */}
             <SimilarCompanies currentId={params.id} phase={company.phase ?? null} />
