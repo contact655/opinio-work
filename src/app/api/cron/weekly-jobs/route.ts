@@ -89,7 +89,7 @@ export async function GET(request: Request) {
         await getResend().emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "contact@opinio.co.jp",
           to: email,
-          subject: `【OPINIO】今週の新着求人 ${totalCount}件をお届けします`,
+          subject: `今週の注目求人・企業${totalCount}選 — OPINIO`,
           html,
         });
         sent++;
@@ -130,7 +130,10 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
         .join(" &middot; ");
 
       return `
-      <div style="border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:12px;background:#fff">
+      <div style="border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:12px;background:#fff;position:relative">
+        <div style="display:inline-block;background:#002366;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;margin-bottom:8px;letter-spacing:0.05em">
+          &#x1F4BC; 新着
+        </div>
         <div style="font-size:12px;color:#6b7280;margin-bottom:4px">${company?.name ?? "企業名"}</div>
         <div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:8px">${j.title}</div>
         <div style="font-size:12px;color:#6b7280;margin-bottom:12px">${meta}</div>
@@ -161,17 +164,38 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
         <span style="font-size:11px;color:#64748b;margin-left:8px">IT/SaaS業界のキャリアインフラ</span>
       </div>
 
-      <h1 style="font-size:20px;font-weight:700;color:#111827;margin-bottom:4px">
-        今週の新着求人 ${totalCount}件
-      </h1>
-      <p style="font-size:14px;color:#6b7280;margin-bottom:24px">
-        この1週間で追加された求人をお届けします。
-      </p>
+      <!-- 今週の注目バナー -->
+      <div style="background:#002366;border-radius:12px;padding:20px 24px;margin-bottom:24px;color:#fff">
+        <div style="font-size:11px;letter-spacing:0.1em;opacity:0.7;margin-bottom:6px;text-transform:uppercase">Weekly Picks</div>
+        <div style="font-size:20px;font-weight:700;line-height:1.3">
+          今週の注目求人 ${totalCount}選
+        </div>
+        <div style="font-size:13px;opacity:0.8;margin-top:6px">
+          IT/SaaS業界の最新キャリアチャンスをお届けします
+        </div>
+      </div>
 
       ${jobCards}
       ${moreLink}
 
+      <!-- メンター相談CTA -->
+      <div style="background:#fff8f0;border:1px solid #fde68a;border-radius:12px;padding:20px 24px;margin-top:24px;text-align:center">
+        <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:6px">
+          &#x1F3AF; キャリアの悩み、メンターに相談してみませんか？
+        </div>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:14px">
+          IT/SaaS業界のプロフェッショナルが無料で相談に乗ります
+        </div>
+        <a href="${BASE_URL}/mentors"
+           style="display:inline-block;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;padding:10px 28px;border-radius:8px;font-size:14px;text-decoration:none;font-weight:700;box-shadow:0 2px 8px rgba(245,158,11,0.3)">
+          メンターに相談する →
+        </a>
+      </div>
+
       <div style="border-top:1px solid #e5e7eb;padding-top:20px;margin-top:24px">
+        <p style="font-size:12px;color:#6b7280;margin-bottom:4px">
+          OPINIOは IT/SaaS業界専門のキャリアプラットフォームです
+        </p>
         <p style="font-size:11px;color:#9ca3af;line-height:1.6">
           OPINIO &middot; IT/SaaS業界のキャリアインフラ<br>
           配信停止は<a href="${BASE_URL}/mypage" style="color:#9ca3af">マイページ</a>から設定できます

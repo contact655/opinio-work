@@ -747,6 +747,89 @@ function CompanyMiniCardSkeleton() {
   );
 }
 
+// ─── Logo Strip Section ───────────────────────────────────────────────────────
+
+function LogoStripSection() {
+  const [companies, setCompanies] = useState<PreviewCompany[]>([]);
+
+  useEffect(() => {
+    fetch("/api/companies/preview")
+      .then((r) => r.json())
+      .then((d) => { setCompanies(Array.isArray(d.companies) ? d.companies : []); })
+      .catch(() => setCompanies([]));
+  }, []);
+
+  if (companies.length === 0) return null;
+
+  return (
+    <section style={{
+      background: "#fff",
+      borderBottom: "1px solid var(--line)",
+      padding: "20px 0",
+    }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-5 md:px-12">
+        <div style={{
+          fontSize: 11, fontWeight: 700, letterSpacing: "0.12em",
+          color: "var(--ink-mute)", textTransform: "uppercase" as const,
+          marginBottom: 12,
+        }}>
+          掲載企業
+        </div>
+        <div style={{
+          display: "flex",
+          gap: 12,
+          overflowX: "auto",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+        }}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          className="no-scrollbar"
+        >
+          {companies.map((c) => (
+            <Link
+              key={c.id}
+              href={`/companies/${c.id}`}
+              style={{
+                flexShrink: 0,
+                width: 60,
+                height: 40,
+                borderRadius: 8,
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: c.logoUrl ? "#f5f7fa" : c.gradient,
+                border: "1px solid var(--line)",
+                position: "relative",
+                textDecoration: "none",
+              }}
+              title={c.name}
+            >
+              {c.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={c.logoUrl}
+                  alt={c.name}
+                  style={{ width: "80%", height: "80%", objectFit: "contain" }}
+                />
+              ) : (
+                <span style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: "#fff",
+                  lineHeight: 1,
+                }}>
+                  {c.letter}
+                </span>
+              )}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function FeaturedCompaniesSection() {
   const [companies, setCompanies] = useState<PreviewCompany[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1823,6 +1906,7 @@ export default function HomePage() {
   return (
     <>
       <Hero stats={stats} />
+      <LogoStripSection />
       <DiffStrip />
       <FeaturedCompaniesSection />
       <StatsStrip stats={stats} />

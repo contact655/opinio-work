@@ -16,7 +16,8 @@ import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail, CompanyNumbers } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
-import BookmarkButton, { CompanyStickyNav } from "./CompanyDetailClient";
+import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker } from "./CompanyDetailClient";
+import { CompanyCardCompact } from "@/components/companies/CompanyCardCompact";
 import EvaluationText from "./EvaluationText";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
@@ -2300,6 +2301,124 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
   );
 }
 
+async function CompanyMentorsSection({ companyId: _companyId, companyName: _companyName }: { companyId: string; companyName: string }) {
+  const supabase = createClient();
+  const { data: mentors } = await supabase
+    .from("ow_mentors")
+    .select("id, name, current_role, avatar_initial, avatar_color, is_available, success_count")
+    .eq("is_available", true)
+    .limit(4);
+
+  if (!mentors || mentors.length === 0) return null;
+
+  return (
+    <section
+      id="mentors"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      {/* Section header */}
+      <div style={{ padding: "22px 28px 18px", background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 700, color: "var(--ink)" }}>
+                メンターに相談する
+              </div>
+              <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
+                OPINIOのメンターにキャリアの悩みを相談できます
+              </div>
+            </div>
+          </div>
+          <Link href="/mentors" style={{
+            fontSize: 12, color: "var(--royal)", textDecoration: "none", fontWeight: 600,
+            display: "flex", alignItems: "center", gap: 4,
+          }}>
+            全員を見る
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+          </Link>
+        </div>
+      </div>
+      <div style={{ padding: "22px 28px 28px" }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: 14,
+        }}>
+          {mentors.map((mentor) => (
+            <Link
+              key={mentor.id}
+              href={`/mentors/${mentor.id}`}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+                padding: "18px 14px 14px",
+                border: "1px solid var(--line)", borderRadius: 12,
+                textDecoration: "none", background: "var(--bg-tint)",
+                transition: "all 0.2s",
+              }}
+              className="mentor-card-link"
+            >
+              <div style={{
+                width: 52, height: 52, borderRadius: "50%",
+                background: mentor.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
+                color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 20, flexShrink: 0,
+              }}>
+                {mentor.avatar_initial ?? (mentor.name ? mentor.name[0] : "M")}
+              </div>
+              <div style={{ textAlign: "center", minWidth: 0, width: "100%" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+                  {mentor.name}
+                </div>
+                {mentor.current_role && (
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.4 }}>
+                    {mentor.current_role}
+                  </div>
+                )}
+                {typeof mentor.success_count === "number" && mentor.success_count > 0 && (
+                  <div style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    fontSize: 10, color: "var(--success)", background: "var(--success-soft)",
+                    padding: "2px 8px", borderRadius: 100, marginBottom: 8,
+                  }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                    {mentor.success_count}件の相談実績
+                  </div>
+                )}
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "6px 14px", borderRadius: 8, width: "100%", justifyContent: "center",
+                  background: "linear-gradient(135deg, var(--warm), #FBBF24)",
+                  color: "#fff", fontSize: 11, fontWeight: 700,
+                  boxShadow: "0 2px 6px rgba(245,158,11,0.25)",
+                }}>
+                  相談する →
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function JobsSection({
   company,
   detail,
@@ -3501,6 +3620,75 @@ function Sidebar({
   );
 }
 
+// ─── SimilarCompanies ─────────────────────────────────────────────────────────
+
+async function SimilarCompanies({ currentId, phase }: { currentId: string; phase: string | null }) {
+  if (!phase) return null;
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("ow_companies")
+    .select("id, name, tagline, industry, phase, logo_url, logo_letter, logo_gradient, accepting_casual_meetings, employee_count, current_member_count, obog_count, funding_stage, location")
+    .eq("is_published", true)
+    .eq("phase", phase)
+    .neq("id", currentId)
+    .limit(6);
+
+  if (!data || data.length === 0) return null;
+
+  // CompanyForCarousel 型に合わせて変換
+  const companies = data.map((c) => ({
+    id: c.id,
+    name: c.name,
+    tagline: c.tagline ?? null,
+    industry: c.industry ?? null,
+    funding_stage: c.funding_stage ?? null,
+    employee_count: c.employee_count ?? null,
+    description: null,
+    accepting_casual_meetings: c.accepting_casual_meetings ?? false,
+    remote_work_status: null,
+    location: c.location ?? null,
+    logo_letter: c.logo_letter ?? null,
+    logo_gradient: c.logo_gradient ?? null,
+    logo_url: c.logo_url ?? null,
+    updated_at: "",
+    job_count: 0,
+    current_member_count: (c as Record<string, unknown>).current_member_count as number ?? 0,
+    obog_count: (c as Record<string, unknown>).obog_count as number ?? 0,
+  }));
+
+  return (
+    <section style={{ marginBottom: 32, marginTop: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 3, height: 20, background: "var(--royal)", borderRadius: 2 }} />
+          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>同じフェーズの企業</span>
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 100,
+            background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
+          }}>
+            {phase}
+          </span>
+        </div>
+        <a
+          href={`/companies?phase=${encodeURIComponent(phase)}`}
+          style={{ fontSize: 13, color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}
+        >
+          すべて見る →
+        </a>
+      </div>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+        gap: 14,
+      }}>
+        {companies.map((c) => (
+          <CompanyCardCompact key={c.id} company={c} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function CompanyDetailPage({
@@ -3584,6 +3772,7 @@ export default async function CompanyDetailPage({
           }),
         }}
       />
+      <RecentlyViewedTracker id={params.id} name={company.name} logoUrl={company.logo_url ?? null} logoLetter={company.logo_letter ?? undefined} />
       <Breadcrumb company={company} />
       <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} isAuthenticated={isAuthenticated} recruiters={recruiters} />
 
@@ -3615,7 +3804,10 @@ export default async function CompanyDetailPage({
             <WorkStyleSection detail={detail} />
             <BenefitsSection detail={detail} />
 
-            {/* 3. メンターCTA */}
+            {/* 3. 似た企業サジェスト */}
+            <SimilarCompanies currentId={params.id} phase={company.phase ?? null} />
+
+            {/* 4. メンターCTA */}
             <MentorCTAWidget />
 
             {/* 4. OPINIO編集部より（現役社員の直上） */}
@@ -3625,6 +3817,9 @@ export default async function CompanyDetailPage({
             {/* 5. 現役社員・OBOGプロフィール（閲覧のみ・直接連絡不可） */}
             <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
             {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
+
+            {/* 5b. メンターに相談する */}
+            <CompanyMentorsSection companyId={params.id} companyName={company.name} />
 
             {/* 6. 特徴・評判 */}
             <CompanyFeaturesSection company={company} detail={detail} />

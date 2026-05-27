@@ -377,6 +377,16 @@ function ProfileCompletenessCard({
         ))}
       </div>
 
+      {/* 面談承認率UPバナー */}
+      <div style={{
+        fontSize: 12, color: "var(--ink-soft)",
+        background: "var(--royal-50)", borderRadius: 8,
+        padding: "8px 12px", marginTop: 8, marginBottom: 14,
+        lineHeight: 1.6,
+      }}>
+        プロフィールを完成させると、企業担当者からの面談承認率が上がります
+      </div>
+
       {/* Next step CTA */}
       {firstMissing && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -573,6 +583,66 @@ function DashboardView({
 
 // ─── VIEW: Casual meetings ────────────────────────────────────────────────────
 
+// ─── Casual meeting step indicator ────────────────────────────────────────────
+
+const CASUAL_STEPS = ["申込完了", "企業確認中", "日程調整", "面談実施"] as const;
+
+function getStepIndex(status: string): number {
+  if (status === "pending") return 0;
+  if (status === "company_contacted") return 1;
+  if (status === "scheduled") return 2;
+  if (status === "completed") return 3;
+  return -1; // declined or unknown
+}
+
+function CasualMeetingSteps({ status }: { status: string }) {
+  if (status === "declined") {
+    return (
+      <div style={{
+        paddingLeft: 54, paddingTop: 4, paddingBottom: 2,
+        fontSize: 9, color: "var(--ink-mute)",
+        fontFamily: "Inter, sans-serif",
+      }}>
+        見送り
+      </div>
+    );
+  }
+  const activeStep = getStepIndex(status);
+  if (activeStep < 0) return null;
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 0,
+      paddingLeft: 54, paddingTop: 5, paddingBottom: 2,
+    }}>
+      {CASUAL_STEPS.map((label, i) => (
+        <div key={label} style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+            <div style={{
+              width: 6, height: 6, borderRadius: "50%",
+              background: i <= activeStep ? "var(--royal)" : "var(--line)",
+              flexShrink: 0,
+            }} />
+            <span style={{
+              fontSize: 9, color: i <= activeStep ? "var(--royal)" : "var(--ink-mute)",
+              fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
+              fontWeight: i === activeStep ? 700 : 400,
+            }}>
+              {label}
+            </span>
+          </div>
+          {i < CASUAL_STEPS.length - 1 && (
+            <div style={{
+              width: 18, height: 1,
+              background: i < activeStep ? "var(--royal)" : "var(--line)",
+              marginBottom: 14, flexShrink: 0,
+            }} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function CasualView({ casualMeetings }: { casualMeetings: CasualMeeting[] }) {
   const statusMeta: Record<string, string> = {
     pending: "通常 3営業日以内に連絡",
@@ -616,22 +686,24 @@ function CasualView({ casualMeetings }: { casualMeetings: CasualMeeting[] }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {casualMeetings.map((m: CasualMeeting) => (
-              <RequestItem
-                key={m.id}
-                avatar={<CompanyAvatar initial={m.company_initial} gradient={m.company_gradient} />}
-                title={`${m.company_name} · ${m.job_title}`}
-                meta={
-                  <span>
-                    {m.applied_at} 申込
-                    {m.scheduled_at
-                      ? <span style={{ color: "var(--ink-mute)" }}> · {m.scheduled_at}</span>
-                      : statusMeta[m.status]
-                      ? <span style={{ color: "var(--ink-mute)" }}> · {statusMeta[m.status]}</span>
-                      : null}
-                  </span>
-                }
-                statusKey={m.status}
-              />
+              <div key={m.id}>
+                <RequestItem
+                  avatar={<CompanyAvatar initial={m.company_initial} gradient={m.company_gradient} />}
+                  title={`${m.company_name} · ${m.job_title}`}
+                  meta={
+                    <span>
+                      {m.applied_at} 申込
+                      {m.scheduled_at
+                        ? <span style={{ color: "var(--ink-mute)" }}> · {m.scheduled_at}</span>
+                        : statusMeta[m.status]
+                        ? <span style={{ color: "var(--ink-mute)" }}> · {statusMeta[m.status]}</span>
+                        : null}
+                    </span>
+                  }
+                  statusKey={m.status}
+                />
+                <CasualMeetingSteps status={m.status} />
+              </div>
             ))}
           </div>
         )}

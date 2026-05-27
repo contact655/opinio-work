@@ -2,6 +2,19 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
+
+// ─── RecentlyViewedTracker ─────────────────────────────────────────────────────
+
+export function RecentlyViewedTracker({ id, name, logoUrl, logoLetter }: {
+  id: string; name: string; logoUrl?: string | null; logoLetter?: string;
+}) {
+  const { addItem } = useRecentlyViewed();
+  useEffect(() => {
+    addItem({ type: "company", id, name, logoUrl, logoLetter });
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
 
 // ─── Sticky Section Navigation ────────────────────────────────────────────────
 

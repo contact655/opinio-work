@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { GenreTabs } from "@/components/companies/GenreTabs";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
+import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSection";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 300;
@@ -84,6 +85,9 @@ export default async function CompaniesPage({ searchParams }: Props) {
           />
         ) : (
           <div style={{ marginTop: 16 }}>
+            <Suspense fallback={null}>
+              <RecentlyViewedSection />
+            </Suspense>
             <GenreTabs genres={genresWithCompanies} />
           </div>
         )}

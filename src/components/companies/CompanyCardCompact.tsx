@@ -1,5 +1,9 @@
+"use client";
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { MapPin, Users } from 'lucide-react';
 import type { CompanyForCarousel } from '@/types/genre';
 
@@ -45,6 +49,48 @@ function getPlaceholderColor(name: string) {
 export function CompanyCardCompact({ company }: Props) {
   const ph = getPlaceholderColor(company.name);
   const initial = company.logo_letter ?? company.name.slice(0, 1);
+  const router = useRouter();
+  const [bookmarked, setBookmarked] = useState(false);
+  const bookmarkingRef = useRef(false);
+
+  useEffect(() => {
+    fetch('/api/bookmarks?target_type=company')
+      .then((r) => {
+        if (r.status === 401) return null;
+        return r.json();
+      })
+      .then((d) => {
+        if (d && Array.isArray(d.ids)) {
+          setBookmarked(d.ids.includes(company.id));
+        }
+      })
+      .catch(() => {/* ignore */});
+  }, [company.id]);
+
+  const handleBookmark = useCallback(async () => {
+    if (bookmarkingRef.current) return;
+    bookmarkingRef.current = true;
+    const prev = bookmarked;
+    setBookmarked(!prev);
+    try {
+      const method = prev ? 'DELETE' : 'POST';
+      const res = await fetch('/api/bookmarks', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_type: 'company', target_id: company.id }),
+      });
+      if (res.status === 401) {
+        setBookmarked(prev);
+        router.push(`/auth?next=/companies/${company.id}`);
+      } else if (!res.ok) {
+        setBookmarked(prev);
+      }
+    } catch {
+      setBookmarked(prev);
+    } finally {
+      bookmarkingRef.current = false;
+    }
+  }, [bookmarked, company.id, router]);
 
   // メタ: 所在地 ・ 従業員数
   type MetaItem = { icon?: React.ReactNode; label: string };
@@ -125,6 +171,30 @@ export function CompanyCardCompact({ company }: Props) {
             面談OK
           </span>
         )}
+        {/* Bookmark (heart) button */}
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBookmark(); }}
+          style={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.9)',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: 0,
+          }}
+          aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarked ? 'var(--warm)' : 'none'} stroke={bookmarked ? 'var(--warm)' : '#94a3b8'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+        </button>
       </div>
 
       {/* カード本体 */}
