@@ -8,11 +8,15 @@ type Props = {
   companySuggestions?: { id: string; name: string }[];
 };
 
-const PHASE_OPTIONS = [
-  { value: "シリーズA", label: "シリーズA" },
-  { value: "シリーズB", label: "シリーズB" },
-  { value: "シリーズC", label: "シリーズC" },
-  { value: "上場",      label: "上場" },
+type PhaseOption = { value: string; label: string; color: string; bg: string; dot: string; desc: string };
+
+const PHASE_OPTIONS: PhaseOption[] = [
+  { value: "ブートストラップ", label: "ブートストラップ", color: "#92400e", bg: "#fef3c7", dot: "#f59e0b", desc: "自己資金・非資金調達" },
+  { value: "シード",          label: "シード",          color: "#6b5b2e", bg: "#fef9e7", dot: "#d97706", desc: "アイデア検証・初期段階" },
+  { value: "シリーズA",       label: "シリーズA",       color: "#1e63d8", bg: "#dbeafe", dot: "#3b82f6", desc: "PMF〜グロース開始" },
+  { value: "シリーズB",       label: "シリーズB",       color: "#6b3b9e", bg: "#ede9fe", dot: "#8b5cf6", desc: "事業拡大・組織化" },
+  { value: "シリーズC",       label: "シリーズC",       color: "#0f766e", bg: "#d1fae5", dot: "#10b981", desc: "上場準備・スケール" },
+  { value: "上場",            label: "上場",            color: "#1f7a48", bg: "#d4f0e3", dot: "#059669", desc: "東証・グロース・プライム" },
 ];
 
 const WORK_STYLE_OPTIONS = [
@@ -30,17 +34,20 @@ function FilterChip({
   isOpen,
   onToggle,
   listStyle = false,
+  phaseStyle = false,
 }: {
   label: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; color?: string; bg?: string; dot?: string; desc?: string }[];
   onSelect: (v: string | null) => void;
   isOpen: boolean;
   onToggle: () => void;
-  listStyle?: boolean; // 縦リスト表示（都道府県など選択肢が多い場合）
+  listStyle?: boolean;
+  phaseStyle?: boolean; // フェーズ専用カラー表示
 }) {
   const isActive = !!value;
-  const activeLabel = options.find((o) => o.value === value)?.label;
+  const activeOpt = options.find((o) => o.value === value);
+  const activeLabel = activeOpt?.label;
 
   return (
     <div style={{ position: "relative", flexShrink: 0 }}>
@@ -51,20 +58,23 @@ function FilterChip({
           display: "inline-flex", alignItems: "center", gap: 5,
           padding: "7px 14px",
           borderRadius: 999,
-          border: `1.5px solid ${isActive ? "var(--royal)" : "#e2e8f0"}`,
-          background: isActive ? "var(--royal)" : "#fff",
-          color: isActive ? "#fff" : "var(--ink-soft)",
+          border: `1.5px solid ${isActive && !phaseStyle ? "var(--royal)" : isActive && phaseStyle ? activeOpt?.color ?? "var(--royal)" : "#e2e8f0"}`,
+          background: isActive && phaseStyle ? (activeOpt?.bg ?? "var(--royal-50)") : isActive ? "var(--royal)" : "#fff",
+          color: isActive && phaseStyle ? (activeOpt?.color ?? "var(--royal)") : isActive ? "#fff" : "var(--ink-soft)",
           fontSize: 13, fontWeight: isActive ? 600 : 400,
           cursor: "pointer", whiteSpace: "nowrap",
           transition: "all 0.12s",
           fontFamily: "inherit",
         }}
       >
+        {isActive && phaseStyle && activeOpt?.dot && (
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: activeOpt.dot, display: "inline-block", flexShrink: 0 }} />
+        )}
         {isActive ? activeLabel : label}
         {isActive ? (
           <span
             onClick={(e) => { e.stopPropagation(); onSelect(null); }}
-            style={{ fontSize: 10, marginLeft: 1, opacity: 0.85, lineHeight: 1 }}
+            style={{ fontSize: 10, marginLeft: 1, opacity: 0.75, lineHeight: 1 }}
             aria-label="クリア"
           >
             ✕
@@ -82,13 +92,63 @@ function FilterChip({
           background: "#fff",
           border: "1.5px solid var(--royal)",
           borderRadius: 12,
-          padding: listStyle ? "8px 0" : "12px 16px",
+          padding: phaseStyle ? "10px" : listStyle ? "8px 0" : "12px 16px",
           boxShadow: "0 8px 28px rgba(0,35,102,0.14)",
-          minWidth: listStyle ? 140 : 180,
+          minWidth: phaseStyle ? 260 : listStyle ? 140 : 180,
           maxHeight: listStyle ? 280 : "none",
           overflowY: listStyle ? "auto" : "visible",
         }}>
-          {listStyle ? (
+          {phaseStyle ? (
+            // フェーズ専用: カラーバッジ + 説明付きカード
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {options.map((o) => {
+                const sel = value === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => { onSelect(sel ? null : o.value); onToggle(); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "9px 12px", borderRadius: 8,
+                      background: sel ? (o.bg ?? "var(--royal-50)") : "transparent",
+                      border: `1.5px solid ${sel ? (o.color ?? "var(--royal)") : "transparent"}`,
+                      cursor: "pointer", width: "100%", textAlign: "left",
+                      fontFamily: "inherit",
+                      transition: "background 0.1s",
+                    }}
+                    onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLElement).style.background = "#f8fafc"; }}
+                    onMouseLeave={(e) => { if (!sel) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                  >
+                    <span style={{
+                      width: 10, height: 10, borderRadius: "50%", flexShrink: 0,
+                      background: o.dot ?? o.color ?? "#94a3b8",
+                      boxShadow: sel ? `0 0 0 3px ${o.bg ?? "#f1f5f9"}` : "none",
+                    }} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{
+                        display: "block", fontSize: 13.5, fontWeight: sel ? 700 : 600,
+                        color: sel ? (o.color ?? "var(--royal)") : "var(--ink)",
+                        lineHeight: 1.3,
+                      }}>
+                        {o.label}
+                      </span>
+                      {o.desc && (
+                        <span style={{ display: "block", fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>
+                          {o.desc}
+                        </span>
+                      )}
+                    </span>
+                    {sel && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={o.color ?? "var(--royal)"} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : listStyle ? (
             // 縦リスト形式（都道府県など）
             options.map((o) => {
               const sel = value === o.value;
@@ -115,7 +175,7 @@ function FilterChip({
               );
             })
           ) : (
-            // ピル形式（フェーズ・勤務形態など）
+            // ピル形式（勤務形態など）
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {options.map((o) => {
                 const sel = value === o.value;
@@ -394,6 +454,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
             onSelect={(v) => { updateParam("phase", v); setOpenChip(null); }}
             isOpen={openChip === "phase"}
             onToggle={() => toggleChip("phase")}
+            phaseStyle
           />
 
           {/* 勤務形態 */}
