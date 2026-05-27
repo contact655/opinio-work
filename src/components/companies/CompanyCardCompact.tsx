@@ -284,7 +284,7 @@ export function CompanyCardCompact({ company }: Props) {
               whiteSpace: 'nowrap', flexShrink: 0,
             }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--royal)', display: 'inline-block' }} />
-              求人 {company.job_count}
+              募集中 {company.job_count}
             </span>
           )}
         </div>
