@@ -98,31 +98,7 @@ export function GenreCarousel({ companies }: Props) {
           .genre-carousel { grid-auto-columns: calc((100% - 14px * 4) / 5); }
         }
 
-        /* ── カードスタイル ──────────────────────────────────────── */
-        .genre-card {
-          display: flex;
-          flex-direction: column;
-          background: #ffffff;
-          border-radius: 18px;
-          overflow: hidden;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07), 0 4px 16px rgba(15, 23, 42, 0.08);
-          text-decoration: none;
-          color: inherit;
-          transition: box-shadow 0.24s cubic-bezier(0.22, 1, 0.36, 1), transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
-          cursor: pointer;
-          height: 100%;
-          will-change: transform;
-        }
-        .genre-card:hover {
-          box-shadow: 0 12px 36px rgba(0, 35, 102, 0.18), 0 2px 8px rgba(0, 35, 102, 0.08);
-          transform: translateY(-6px);
-        }
-        .genre-card:active {
-          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.10);
-          transform: translateY(-2px);
-          transition-duration: 0.06s;
-        }
+        /* ── カードスタイル — globals.css の .genre-card を継承 ── */
 
         /* ── 矢印ボタン ─────────────────────────────────────────── */
         .carousel-arrow {
