@@ -17,7 +17,6 @@ import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail, CompanyNumbers } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
 import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker } from "./CompanyDetailClient";
-import { CompanyCardCompact } from "@/components/companies/CompanyCardCompact";
 import { GenreCarousel } from "@/components/companies/GenreCarousel";
 import EvaluationText from "./EvaluationText";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
