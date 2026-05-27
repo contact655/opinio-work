@@ -3657,33 +3657,73 @@ async function SimilarCompanies({ currentId, phase }: { currentId: string; phase
   }));
 
   return (
-    <section style={{ marginBottom: 32, marginTop: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+    <section
+      id="similar"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      {/* Section header */}
+      <div style={{
+        padding: "20px 28px 16px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 3, height: 20, background: "var(--royal)", borderRadius: 2 }} />
-          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>同じフェーズの企業</span>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8,
+            background: "var(--royal-50)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2"/>
+              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
+              同じフェーズの企業
+            </div>
+            <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 1 }}>
+              {phase} の他の企業と比較してみよう
+            </div>
+          </div>
           <span style={{
-            fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 100,
+            fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
             background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
+            marginLeft: 4,
           }}>
             {phase}
           </span>
         </div>
         <a
           href={`/companies?phase=${encodeURIComponent(phase)}`}
-          style={{ fontSize: 13, color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}
+          style={{ fontSize: 13, color: "var(--royal)", textDecoration: "none", fontWeight: 600, flexShrink: 0 }}
         >
           すべて見る →
         </a>
       </div>
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-        gap: 14,
-      }}>
-        {companies.map((c) => (
-          <CompanyCardCompact key={c.id} company={c} />
-        ))}
+
+      {/* Card grid */}
+      <div style={{ padding: "20px 24px 24px" }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: 14,
+        }}>
+          {companies.map((c) => (
+            <CompanyCardCompact key={c.id} company={c} />
+          ))}
+        </div>
       </div>
     </section>
   );
