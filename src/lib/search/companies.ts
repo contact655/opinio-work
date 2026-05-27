@@ -146,23 +146,33 @@ export async function fetchDistinctIndustries(): Promise<string[]> {
   return result;
 }
 
-/** 公開企業の distinct location リスト（都道府県フィルタ選択肢） */
+// 北から南順の都道府県リスト（表示順制御用）
+const PREFECTURE_ORDER = [
+  "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
+  "茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県",
+  "新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県",
+  "静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県",
+  "奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県",
+  "徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県",
+  "熊本県","大分県","宮崎県","鹿児島県","沖縄県",
+];
+
+/** 公開企業の distinct location リスト（北から南順） */
 export async function fetchDistinctLocations(): Promise<string[]> {
   const supabase = createClient();
   const { data } = await supabase
     .from("ow_companies")
     .select("location")
     .eq("is_published", true)
-    .not("location", "is", null)
-    .order("location");
+    .not("location", "is", null);
 
   const seen = new Set<string>();
-  const result: string[] = [];
   for (const row of data ?? []) {
-    if (row.location && !seen.has(row.location)) {
-      seen.add(row.location);
-      result.push(row.location);
-    }
+    if (row.location) seen.add(row.location);
   }
-  return result;
+
+  // 北から南順でソート、リストにない値は末尾に追加
+  const ordered = PREFECTURE_ORDER.filter((p) => seen.has(p));
+  seen.forEach((p) => { if (!PREFECTURE_ORDER.includes(p)) ordered.push(p); });
+  return ordered;
 }

@@ -29,6 +29,7 @@ function FilterChip({
   onSelect,
   isOpen,
   onToggle,
+  listStyle = false,
 }: {
   label: string;
   value: string;
@@ -36,6 +37,7 @@ function FilterChip({
   onSelect: (v: string | null) => void;
   isOpen: boolean;
   onToggle: () => void;
+  listStyle?: boolean; // 縦リスト表示（都道府県など選択肢が多い場合）
 }) {
   const isActive = !!value;
   const activeLabel = options.find((o) => o.value === value)?.label;
@@ -80,12 +82,15 @@ function FilterChip({
           background: "#fff",
           border: "1.5px solid var(--royal)",
           borderRadius: 12,
-          padding: "12px 16px",
+          padding: listStyle ? "8px 0" : "12px 16px",
           boxShadow: "0 8px 28px rgba(0,35,102,0.14)",
-          minWidth: 180,
+          minWidth: listStyle ? 140 : 180,
+          maxHeight: listStyle ? 280 : "none",
+          overflowY: listStyle ? "auto" : "visible",
         }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {options.map((o) => {
+          {listStyle ? (
+            // 縦リスト形式（都道府県など）
+            options.map((o) => {
               const sel = value === o.value;
               return (
                 <button
@@ -93,21 +98,49 @@ function FilterChip({
                   type="button"
                   onClick={() => { onSelect(sel ? null : o.value); onToggle(); }}
                   style={{
-                    padding: "6px 14px", borderRadius: 999,
-                    border: `1.5px solid ${sel ? "var(--royal)" : "var(--line)"}`,
-                    background: sel ? "var(--royal)" : "#fff",
-                    color: sel ? "#fff" : "var(--ink)",
-                    fontSize: 13, fontWeight: sel ? 700 : 400,
-                    cursor: "pointer", whiteSpace: "nowrap",
+                    display: "block", width: "100%", textAlign: "left",
+                    padding: "9px 16px",
+                    background: sel ? "var(--royal-50)" : "none",
+                    color: sel ? "var(--royal)" : "var(--ink)",
+                    fontSize: 13.5, fontWeight: sel ? 700 : 400,
+                    cursor: "pointer", border: "none",
                     fontFamily: "inherit",
-                    transition: "all 0.1s",
+                    transition: "background 0.08s",
                   }}
+                  onMouseEnter={(e) => { if (!sel) (e.target as HTMLElement).style.background = "var(--bg-tint)"; }}
+                  onMouseLeave={(e) => { if (!sel) (e.target as HTMLElement).style.background = "none"; }}
                 >
                   {o.label}
                 </button>
               );
-            })}
-          </div>
+            })
+          ) : (
+            // ピル形式（フェーズ・勤務形態など）
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {options.map((o) => {
+                const sel = value === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => { onSelect(sel ? null : o.value); onToggle(); }}
+                    style={{
+                      padding: "6px 14px", borderRadius: 999,
+                      border: `1.5px solid ${sel ? "var(--royal)" : "var(--line)"}`,
+                      background: sel ? "var(--royal)" : "#fff",
+                      color: sel ? "#fff" : "var(--ink)",
+                      fontSize: 13, fontWeight: sel ? 700 : 400,
+                      cursor: "pointer", whiteSpace: "nowrap",
+                      fontFamily: "inherit",
+                      transition: "all 0.1s",
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -382,6 +415,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
               onSelect={(v) => { updateParam("location", v); setOpenChip(null); }}
               isOpen={openChip === "location"}
               onToggle={() => toggleChip("location")}
+              listStyle
             />
           )}
 
