@@ -480,7 +480,7 @@ function Hero({
               label: "募集中の求人",
               value: String(company.job_count),
               unit: "件",
-              sub: company.job_count > 0 ? "現在公開中" : "",
+              sub: "",
             },
           ].map(({ iconBg, iconColor, icon, label, value, unit, sub, isText }) => (
             <div key={label} style={{
