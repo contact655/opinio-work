@@ -6,11 +6,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { Job } from "@/app/jobs/mockJobData";
-// SALARY_PRESETS kept for compatibility but pills use simplified tiers
 const SALARY_PILL_TIERS = [
-  { value: "500", label: "500万〜" },
-  { value: "700", label: "700万〜" },
+  { value: "400",  label: "400万〜" },
+  { value: "500",  label: "500万〜" },
+  { value: "600",  label: "600万〜" },
+  { value: "700",  label: "700万〜" },
+  { value: "800",  label: "800万〜" },
   { value: "1000", label: "1000万〜" },
+  { value: "1200", label: "1200万〜" },
   { value: "1500", label: "1500万〜" },
 ] as const;
 import type { Company } from "@/app/companies/mockCompanies";
@@ -550,6 +553,27 @@ function Pagination({
   );
 }
 
+// ─── Role color map for colorStyle chips ─────────────────────────────────────
+
+const ROLE_COLORS: Record<string, { color: string; bg: string }> = {
+  "エンジニア":         { color: "#1D4ED8", bg: "#EFF6FF" },
+  "デザイン":           { color: "#7C3AED", bg: "#F5F3FF" },
+  "プロダクト":         { color: "#7C3AED", bg: "#F5F3FF" },
+  "PdM / PM":           { color: "#7C3AED", bg: "#F5F3FF" },
+  "営業":               { color: "#059669", bg: "#ECFDF5" },
+  "カスタマーサクセス": { color: "#059669", bg: "#ECFDF5" },
+  "マーケティング":     { color: "#B45309", bg: "#FEF3C7" },
+  "コーポレート":       { color: "#16A34A", bg: "#F0FDF4" },
+  "経営":               { color: "#DC2626", bg: "#FEF2F2" },
+};
+
+function getRoleColor(name: string): { color: string; bg: string } {
+  for (const [key, style] of Object.entries(ROLE_COLORS)) {
+    if (name.includes(key)) return style;
+  }
+  return { color: "var(--royal)", bg: "var(--royal-50)" };
+}
+
 // ─── Filter chip (dropdown) ───────────────────────────────────────────────────
 
 function FilterChip({
@@ -559,6 +583,8 @@ function FilterChip({
   onSelect,
   isOpen,
   onToggle,
+  listStyle = false,
+  colorStyle = false,
 }: {
   label: string;
   value: string;
@@ -566,9 +592,23 @@ function FilterChip({
   onSelect: (v: string | null) => void;
   isOpen: boolean;
   onToggle: () => void;
+  listStyle?: boolean;
+  colorStyle?: boolean;
 }) {
   const isActive = !!value;
-  const activeLabel = options.find((o) => o.value === value)?.label;
+  const activeOption = options.find((o) => o.value === value);
+  const activeLabel = activeOption?.label;
+  const activeRoleColor = colorStyle && activeOption ? getRoleColor(activeOption.label) : null;
+
+  const chipBg = colorStyle && activeRoleColor && isActive
+    ? activeRoleColor.bg
+    : isActive ? "var(--royal)" : "#fff";
+  const chipColor = colorStyle && activeRoleColor && isActive
+    ? activeRoleColor.color
+    : isActive ? "#fff" : "var(--ink-soft)";
+  const chipBorder = colorStyle && activeRoleColor && isActive
+    ? activeRoleColor.color
+    : isActive ? "var(--royal)" : "#e2e8f0";
 
   return (
     <div style={{ position: "relative", flexShrink: 0 }}>
@@ -579,9 +619,9 @@ function FilterChip({
           display: "inline-flex", alignItems: "center", gap: 5,
           padding: "7px 14px",
           borderRadius: 999,
-          border: `1.5px solid ${isActive ? "var(--royal)" : "#e2e8f0"}`,
-          background: isActive ? "var(--royal)" : "#fff",
-          color: isActive ? "#fff" : "var(--ink-soft)",
+          border: `1.5px solid ${chipBorder}`,
+          background: chipBg,
+          color: chipColor,
           fontSize: 13, fontWeight: isActive ? 600 : 400,
           cursor: "pointer", whiteSpace: "nowrap",
           transition: "all 0.12s",
@@ -610,34 +650,116 @@ function FilterChip({
           background: "#fff",
           border: "1.5px solid var(--royal)",
           borderRadius: 12,
-          padding: "12px 16px",
+          padding: colorStyle ? "8px" : listStyle ? "8px" : "12px 16px",
           boxShadow: "0 8px 28px rgba(0,35,102,0.14)",
-          minWidth: 180,
+          minWidth: colorStyle ? 230 : listStyle ? 160 : 180,
         }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {options.map((o) => {
-              const sel = value === o.value;
-              return (
-                <button
-                  key={o.value}
-                  type="button"
-                  onClick={() => { onSelect(sel ? null : o.value); onToggle(); }}
-                  style={{
-                    padding: "6px 14px", borderRadius: 999,
-                    border: `1.5px solid ${sel ? "var(--royal)" : "var(--line)"}`,
-                    background: sel ? "var(--royal)" : "#fff",
-                    color: sel ? "#fff" : "var(--ink)",
-                    fontSize: 13, fontWeight: sel ? 700 : 400,
-                    cursor: "pointer", whiteSpace: "nowrap",
-                    fontFamily: "inherit",
-                    transition: "all 0.1s",
-                  }}
-                >
-                  {o.label}
-                </button>
-              );
-            })}
-          </div>
+          {/* colorStyle: colored card rows */}
+          {colorStyle ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {options.map((o) => {
+                const sel = value === o.value;
+                const rc = getRoleColor(o.label);
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => { onSelect(sel ? null : o.value); onToggle(); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "9px 12px",
+                      borderRadius: 8,
+                      border: `1.5px solid ${sel ? rc.color : "transparent"}`,
+                      background: sel ? rc.bg : "transparent",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontFamily: "inherit",
+                      transition: "all 0.1s",
+                      width: "100%",
+                    }}
+                    onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                    onMouseLeave={(e) => { if (!sel) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                  >
+                    <span style={{
+                      width: 8, height: 8, borderRadius: "50%",
+                      background: rc.color, flexShrink: 0,
+                    }} />
+                    <span style={{
+                      fontSize: 13, fontWeight: sel ? 700 : 500,
+                      color: sel ? rc.color : "var(--ink)",
+                      flex: 1,
+                    }}>
+                      {o.label}
+                    </span>
+                    {sel && (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : listStyle ? (
+            /* listStyle: scrollable vertical list */
+            <div style={{
+              display: "flex", flexDirection: "column", gap: 2,
+              maxHeight: 280, overflowY: "auto",
+            }}>
+              {options.map((o) => {
+                const sel = value === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => { onSelect(sel ? null : o.value); onToggle(); }}
+                    style={{
+                      padding: "7px 12px",
+                      borderRadius: 6,
+                      border: "none",
+                      background: sel ? "var(--royal-50)" : "transparent",
+                      color: sel ? "var(--royal)" : "var(--ink)",
+                      fontSize: 13, fontWeight: sel ? 700 : 400,
+                      cursor: "pointer", textAlign: "left",
+                      fontFamily: "inherit",
+                      transition: "background 0.1s",
+                      whiteSpace: "nowrap",
+                    }}
+                    onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                    onMouseLeave={(e) => { if (!sel) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                  >
+                    {sel ? "✓ " : ""}{o.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            /* default: pill wrap */
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {options.map((o) => {
+                const sel = value === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => { onSelect(sel ? null : o.value); onToggle(); }}
+                    style={{
+                      padding: "6px 14px", borderRadius: 999,
+                      border: `1.5px solid ${sel ? "var(--royal)" : "var(--line)"}`,
+                      background: sel ? "var(--royal)" : "#fff",
+                      color: sel ? "#fff" : "var(--ink)",
+                      fontSize: 13, fontWeight: sel ? 700 : 400,
+                      cursor: "pointer", whiteSpace: "nowrap",
+                      fontFamily: "inherit",
+                      transition: "all 0.1s",
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -865,6 +987,7 @@ export default function JobsClient({
               onSelect={(v) => { setParam("category", v ?? ""); setOpenChip(null); }}
               isOpen={openChip === "category"}
               onToggle={() => setOpenChip(openChip === "category" ? null : "category")}
+              colorStyle
             />
 
             {/* 勤務形態 chip */}
@@ -872,9 +995,9 @@ export default function JobsClient({
               label="勤務形態"
               value={work_style}
               options={[
-                { value: "フルリモート", label: "フルリモート" },
-                { value: "ハイブリッド", label: "ハイブリッド" },
-                { value: "フレックス",   label: "フレックス" },
+                { value: "フルリモート", label: "🏠 フルリモート" },
+                { value: "ハイブリッド", label: "🔀 ハイブリッド" },
+                { value: "出社",         label: "🏢 出社" },
               ]}
               onSelect={(v) => { setParam("work_style", v ?? ""); setOpenChip(null); }}
               isOpen={openChip === "work_style"}
@@ -900,6 +1023,7 @@ export default function JobsClient({
                 onSelect={(v) => { setParam("prefecture", v ?? ""); setOpenChip(null); }}
                 isOpen={openChip === "prefecture"}
                 onToggle={() => setOpenChip(openChip === "prefecture" ? null : "prefecture")}
+                listStyle
               />
             )}
 
