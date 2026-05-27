@@ -72,21 +72,14 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
         backdropFilter: "blur(12px)",
         borderBottom: "1px solid var(--line)",
         overflowX: "auto",
-        scrollbarWidth: "none",
       }}
     >
-      {/* webkit スクロールバー非表示 + レスポンシブ横パディング */}
-      <style>{`
-        .sticky-nav::-webkit-scrollbar { display: none; }
-        .sticky-nav { padding-left: 20px; padding-right: 20px; }
-        @media (min-width: 768px) { .sticky-nav { padding-left: 48px; padding-right: 48px; } }
-      `}</style>
       <div
         className="sticky-nav"
         style={{
           display: "flex", gap: 4,
           paddingTop: "6px", paddingBottom: "6px",
-          maxWidth: "var(--max-w-page)", margin: "0 auto",
+          maxWidth: "var(--max-w-wide)", margin: "0 auto",
           alignItems: "center",
           width: "max-content", minWidth: "100%",
           boxSizing: "border-box",

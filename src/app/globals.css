@@ -443,6 +443,20 @@ details > summary:hover { background: var(--bg-tint); }
   border-color: var(--royal-100) !important;
 }
 
+/* ── Sticky Section Nav (Company Detail) ─────────────── */
+.sticky-nav {
+  padding-left: 20px;
+  padding-right: 20px;
+  scrollbar-width: none;
+}
+.sticky-nav::-webkit-scrollbar { display: none; }
+@media (min-width: 768px) {
+  .sticky-nav {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+}
+
 /* ── genre-card (CompanyCardCompact) — 全ページ共通 ── */
 .genre-card {
   display: flex;
