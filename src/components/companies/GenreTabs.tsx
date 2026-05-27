@@ -1,6 +1,6 @@
 "use client";
 
-// ジャンルタブ — クリックで切り替え表示
+// ジャンルタブ — 特徴 / 業種 2段レイアウト
 // Server から genresWithCompanies を受け取り、Client でタブ状態を管理
 
 import { useState } from "react";
@@ -14,25 +14,45 @@ type Props = {
 
 // ジャンルごとのアイコン・カラー設定（slugはDBの ow_genres.slug に対応）
 const GENRE_CONFIG: Record<string, { icon: string; color: string; bg: string; activeBg: string }> = {
-  // 既存8ジャンル
+  // 特徴タブ
   "foreign-capital":  { icon: "🌍", color: "#0D9488", bg: "#F0FDFA",  activeBg: "linear-gradient(135deg, #0F766E, #0D9488)" },
-  "horizontal-saas":  { icon: "🔗", color: "#4F46E5", bg: "#EEF2FF",  activeBg: "linear-gradient(135deg, #3730A3, #4F46E5)" },
-  "vertical-saas":    { icon: "🏗️", color: "#002366", bg: "#EFF3FC",  activeBg: "linear-gradient(135deg, #002366, #3B5FD9)" },
-  "mega-venture":     { icon: "🚀", color: "#DC2626", bg: "#FEE2E2",  activeBg: "linear-gradient(135deg, #B91C1C, #DC2626)" },
-  "early-stage":      { icon: "🌱", color: "#059669", bg: "#ECFDF5",  activeBg: "linear-gradient(135deg, #047857, #059669)" },
-  "ai-llm":           { icon: "🤖", color: "#0891B2", bg: "#ECFEFF",  activeBg: "linear-gradient(135deg, #0E7490, #0891B2)" },
-  "dx-consulting":    { icon: "📊", color: "#7C3AED", bg: "#F3E8FF",  activeBg: "linear-gradient(135deg, #6D28D9, #7C3AED)" },
-  "ipo-ready":        { icon: "📈", color: "#D97706", bg: "#FEF3C7",  activeBg: "linear-gradient(135deg, #B45309, #D97706)" },
-  // Migration 122 で追加する4ジャンル
+  "startup":          { icon: "🦄", color: "#7C3AED", bg: "#F3E8FF",  activeBg: "linear-gradient(135deg, #6D28D9, #7C3AED)" },
+  "mega-venture":     { icon: "🏢", color: "#DC2626", bg: "#FEE2E2",  activeBg: "linear-gradient(135deg, #B91C1C, #DC2626)" },
+  "public-company":   { icon: "🏛", color: "#002366", bg: "#EFF3FC",  activeBg: "linear-gradient(135deg, #001233, #002366)" },
+  // 業種タブ
   "hrtech":           { icon: "👥", color: "#059669", bg: "#ECFDF5",  activeBg: "linear-gradient(135deg, #047857, #059669)" },
   "fintech":          { icon: "💰", color: "#D97706", bg: "#FEF3C7",  activeBg: "linear-gradient(135deg, #B45309, #D97706)" },
   "edtech":           { icon: "📚", color: "#0284C7", bg: "#E0F2FE",  activeBg: "linear-gradient(135deg, #0369A1, #0284C7)" },
-  "ma-investment":    { icon: "🤝", color: "#9333EA", bg: "#FAF5FF",  activeBg: "linear-gradient(135deg, #7E22CE, #9333EA)" },
+  "ai-llm":           { icon: "🤖", color: "#0891B2", bg: "#ECFEFF",  activeBg: "linear-gradient(135deg, #0E7490, #0891B2)" },
+  "healthtech":       { icon: "🏥", color: "#059669", bg: "#ECFDF5",  activeBg: "linear-gradient(135deg, #047857, #059669)" },
+  "martech":          { icon: "📣", color: "#EA580C", bg: "#FFF7ED",  activeBg: "linear-gradient(135deg, #C2410C, #EA580C)" },
+  "proptech":         { icon: "🏠", color: "#D97706", bg: "#FEF3C7",  activeBg: "linear-gradient(135deg, #B45309, #D97706)" },
+  "legaltech":        { icon: "⚖️", color: "#475569", bg: "#F1F5F9",  activeBg: "linear-gradient(135deg, #334155, #475569)" },
+  "data-analytics":   { icon: "📊", color: "#7C3AED", bg: "#F3E8FF",  activeBg: "linear-gradient(135deg, #6D28D9, #7C3AED)" },
+  "ec-distribution":  { icon: "🛒", color: "#0369A1", bg: "#E0F2FE",  activeBg: "linear-gradient(135deg, #0C4A6E, #0369A1)" },
+  "ma-investment":    { icon: "📈", color: "#9333EA", bg: "#FAF5FF",  activeBg: "linear-gradient(135deg, #7E22CE, #9333EA)" },
+  "business-dx":      { icon: "🔧", color: "#0891B2", bg: "#ECFEFF",  activeBg: "linear-gradient(135deg, #0E7490, #0891B2)" },
+  // レガシー（表示はしないが config として残す）
+  "horizontal-saas":  { icon: "🔗", color: "#4F46E5", bg: "#EEF2FF",  activeBg: "linear-gradient(135deg, #3730A3, #4F46E5)" },
+  "vertical-saas":    { icon: "🏗️", color: "#002366", bg: "#EFF3FC",  activeBg: "linear-gradient(135deg, #002366, #3B5FD9)" },
+  "early-stage":      { icon: "🌱", color: "#059669", bg: "#ECFDF5",  activeBg: "linear-gradient(135deg, #047857, #059669)" },
+  "dx-consulting":    { icon: "📊", color: "#7C3AED", bg: "#F3E8FF",  activeBg: "linear-gradient(135deg, #6D28D9, #7C3AED)" },
+  "ipo-ready":        { icon: "📈", color: "#D97706", bg: "#FEF3C7",  activeBg: "linear-gradient(135deg, #B45309, #D97706)" },
 };
 
 function getGenreConfig(slug: string) {
   return GENRE_CONFIG[slug] ?? { icon: "🏢", color: "#002366", bg: "#EFF3FC", activeBg: "linear-gradient(135deg, #002366, #3B5FD9)" };
 }
+
+// 特徴タブに表示するslug（表示順）
+const FEATURE_SLUGS = ["foreign-capital", "startup", "mega-venture", "public-company"];
+
+// 業種タブに表示するslug（表示順）
+const INDUSTRY_SLUGS = [
+  "hrtech", "fintech", "edtech", "ai-llm",
+  "healthtech", "martech", "proptech", "legaltech",
+  "data-analytics", "ec-distribution", "ma-investment", "business-dx",
+];
 
 function GenreSectionHeader({ genre }: { genre: GenreWithCompanies }) {
   const cfg = getGenreConfig(genre.slug);
@@ -96,6 +116,53 @@ export function GenreTabs({ genres }: Props) {
   const contentKey = [...activeIds].sort().join(",") || "all";
 
   if (!genres.length) return null;
+
+  // slugでindexしたマップ
+  const genreBySlug = new Map(genres.map((g) => [g.slug, g]));
+
+  // 特徴タブ: FEATURE_SLUGS 順でDBに存在するもの
+  const featureGenres = FEATURE_SLUGS
+    .map((slug) => genreBySlug.get(slug))
+    .filter((g): g is GenreWithCompanies => g !== undefined);
+
+  // 業種タブ: INDUSTRY_SLUGS 順でDBに存在するもの
+  const industryGenres = INDUSTRY_SLUGS
+    .map((slug) => genreBySlug.get(slug))
+    .filter((g): g is GenreWithCompanies => g !== undefined);
+
+  // いずれかのタブ行でも表示するジャンルがあれば render
+  const hasFeature = featureGenres.length > 0;
+  const hasIndustry = industryGenres.length > 0;
+
+  const renderTabRow = (rowGenres: GenreWithCompanies[]) =>
+    rowGenres.map((genre) => {
+      const isActive = activeIds.includes(genre.id);
+      const cfg = getGenreConfig(genre.slug);
+      return (
+        <button
+          key={genre.id}
+          role="tab"
+          aria-selected={isActive}
+          data-active={String(isActive)}
+          className="genre-tab-btn"
+          onClick={() => toggle(genre.id)}
+          style={isActive ? {
+            background: cfg.activeBg,
+            border: "1px solid transparent",
+            color: "#fff",
+            boxShadow: `0 4px 14px ${cfg.color}44`,
+          } : {
+            background: cfg.bg,
+            border: `1px solid ${cfg.color}33`,
+            color: cfg.color,
+          }}
+        >
+          <span style={{ fontSize: 14, lineHeight: 1 }}>{cfg.icon}</span>
+          {genre.name}
+          <span className="genre-tab-count">{genre.total_count}</span>
+        </button>
+      );
+    });
 
   return (
     <>
@@ -170,46 +237,48 @@ export function GenreTabs({ genres }: Props) {
           transition: opacity 0.15s;
         }
         .genre-clear-btn:hover { opacity: 0.8; }
+
+        /* セクションラベル */
+        .genre-section-label {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          color: var(--ink-mute);
+          text-transform: uppercase;
+          margin-bottom: 6px;
+          padding-left: 2px;
+        }
       `}</style>
 
-      {/* タブバー */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div className="genre-tab-bar" role="tablist" aria-label="ジャンルで絞る" style={{ flex: 1 }}>
-          {genres.map((genre) => {
-            const isActive = activeIds.includes(genre.id);
-            const cfg = getGenreConfig(genre.slug);
-            return (
-              <button
-                key={genre.id}
-                role="tab"
-                aria-selected={isActive}
-                data-active={String(isActive)}
-                className="genre-tab-btn"
-                onClick={() => toggle(genre.id)}
-                style={isActive ? {
-                  background: cfg.activeBg,
-                  border: "1px solid transparent",
-                  color: "#fff",
-                  boxShadow: `0 4px 14px ${cfg.color}44`,
-                } : {
-                  background: cfg.bg,
-                  border: `1px solid ${cfg.color}33`,
-                  color: cfg.color,
-                }}
-              >
-                <span style={{ fontSize: 14, lineHeight: 1 }}>{cfg.icon}</span>
-                {genre.name}
-                <span className="genre-tab-count">{genre.total_count}</span>
-              </button>
-            );
-          })}
-        </div>
+      {/* タブ2段 + クリアボタン */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        {/* 特徴タブ行 */}
+        {hasFeature && (
+          <div style={{ marginBottom: 10 }}>
+            <div className="genre-section-label">特徴</div>
+            <div className="genre-tab-bar" role="tablist" aria-label="特徴で絞る">
+              {renderTabRow(featureGenres)}
+            </div>
+          </div>
+        )}
 
-        {/* 選択中のとき「クリア」ボタンを表示 */}
+        {/* 業種タブ行 */}
+        {hasIndustry && (
+          <div style={{ marginBottom: 0 }}>
+            <div className="genre-section-label">業種</div>
+            <div className="genre-tab-bar" role="tablist" aria-label="業種で絞る">
+              {renderTabRow(industryGenres)}
+            </div>
+          </div>
+        )}
+
+        {/* 選択中のとき「クリア」ボタン */}
         {activeIds.length > 0 && (
-          <button className="genre-clear-btn" onClick={clearAll} title="選択を解除">
-            ✕ {activeIds.length}件選択中
-          </button>
+          <div style={{ marginTop: 10 }}>
+            <button className="genre-clear-btn" onClick={clearAll} title="選択を解除">
+              ✕ {activeIds.length}件選択中
+            </button>
+          </div>
         )}
       </div>
 
