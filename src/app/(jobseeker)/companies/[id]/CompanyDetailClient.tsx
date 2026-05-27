@@ -80,7 +80,8 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
       <div
         className="sticky-nav px-5 md:px-12"
         style={{
-          display: "flex", gap: 4, padding: "6px 0",
+          display: "flex", gap: 4,
+          paddingTop: "6px", paddingBottom: "6px",
           maxWidth: "var(--max-w-page)", margin: "0 auto",
           alignItems: "center",
           width: "max-content", minWidth: "100%",
