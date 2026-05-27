@@ -19,13 +19,11 @@ import type { CompanyForCarousel } from "@/types/genre";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────────
 
-export type SizeRange = "under-50" | "50-200" | "200-1000" | "1000-plus";
 export type WorkStyleValue = "on_site" | "hybrid" | "full_remote";
 
 export type CompanySearchParams = {
   q?: string;
-  industry?: string;
-  size?: SizeRange;
+  phase?: string;     // フェーズフィルタ（例: "シリーズA", "上場"）
   workStyle?: WorkStyleValue;
   hiring?: boolean;
   location?: string;  // 都道府県フィルタ（例: "東京都", "大阪府"）
@@ -36,35 +34,6 @@ export type CompanySearchResult = {
   totalCount: number;
   appliedFilters: CompanySearchParams;
 };
-
-// ── 内部ユーティリティ ─────────────────────────────────────────────────────────
-
-/**
- * employee_count テキストから数値を抽出する。
- * "300"   → 300 （純粋な数値文字列、大多数のパターン）
- * "1-10名" → 1   （範囲文字列の先頭数値）
- * null    → null
- */
-function parseEmployeeCount(val: string | null): number | null {
-  if (!val) return null;
-  const trimmed = val.trim();
-  // 純粋な数値文字列 ("20", "300" 等)
-  if (/^\d+$/.test(trimmed)) return parseInt(trimmed, 10);
-  // 範囲文字列 ("1-10名", "11-50名" 等) → 先頭の数字グループ
-  const match = trimmed.match(/^(\d+)/);
-  return match ? parseInt(match[1], 10) : null;
-}
-
-function matchesSize(employeeCount: string | null, size: SizeRange): boolean {
-  const num = parseEmployeeCount(employeeCount);
-  if (num === null) return false;
-  switch (size) {
-    case "under-50":   return num < 50;
-    case "50-200":     return num >= 50 && num < 200;
-    case "200-1000":   return num >= 200 && num < 1000;
-    case "1000-plus":  return num >= 1000;
-  }
-}
 
 // ── メイン検索関数（将来の差し替えポイント）────────────────────────────────────
 
@@ -97,9 +66,9 @@ export async function searchCompanies(
     );
   }
 
-  // 業種フィルタ（完全一致）
-  if (params.industry) {
-    query = query.eq("industry", params.industry);
+  // フェーズフィルタ（完全一致）
+  if (params.phase) {
+    query = query.eq("phase", params.phase);
   }
 
   // 勤務形態フィルタ（ow_companies.remote_work_status）
@@ -136,10 +105,9 @@ export async function searchCompanies(
     });
   }
 
-  // ── Step 3: アプリ側フィルタ（employee_count レンジ、募集中フラグ）
+  // ── Step 3: アプリ側フィルタ（募集中フラグ）
   const companies: CompanyForCarousel[] = companyList
     .filter((c) => {
-      if (params.size && !matchesSize(c.employee_count, params.size)) return false;
       if (params.hiring && !hiringSet.has(c.id)) return false;
       return true;
     })

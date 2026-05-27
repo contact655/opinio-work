@@ -3,23 +3,21 @@
 // キーワード / フィルタが適用されているときのみ表示（カルーセルの代わり）
 
 import { searchCompanies } from "@/lib/search/companies";
-import type { SizeRange, WorkStyleValue } from "@/lib/search/companies";
+import type { WorkStyleValue } from "@/lib/search/companies";
 import { CompanyCardCompact } from "./CompanyCardCompact";
 
 type Props = {
   q?: string;
-  industry?: string;
-  size?: string;
+  phase?: string;
   workStyle?: string;
   hiring?: string;
   location?: string;
 };
 
-export async function CompanySearchResults({ q, industry, size, workStyle, hiring, location }: Props) {
+export async function CompanySearchResults({ q, phase, workStyle, hiring, location }: Props) {
   const params = {
     q: q || undefined,
-    industry: industry || undefined,
-    size: (size as SizeRange) || undefined,
+    phase: phase || undefined,
     workStyle: (workStyle as WorkStyleValue) || undefined,
     hiring: hiring === "1" ? true : undefined,
     location: location || undefined,

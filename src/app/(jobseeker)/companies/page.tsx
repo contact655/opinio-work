@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { fetchGenresWithCompanies } from "@/lib/genres";
-import { fetchDistinctIndustries, fetchDistinctLocations } from "@/lib/search/companies";
+import { fetchDistinctLocations } from "@/lib/search/companies";
 import { createClient } from "@/lib/supabase/server";
 import { GenreTabs } from "@/components/companies/GenreTabs";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
@@ -29,8 +29,7 @@ export const metadata: Metadata = {
 
 type SearchParams = {
   q?: string;
-  industry?: string;
-  size?: string;
+  phase?: string;
   workStyle?: string;
   hiring?: string;
   location?: string;
@@ -41,13 +40,12 @@ type Props = {
 };
 
 export default async function CompaniesPage({ searchParams }: Props) {
-  const { q, industry, size, workStyle, hiring, location } = searchParams;
-  const hasFilter = Boolean(q || industry || size || workStyle || hiring || location);
+  const { q, phase, workStyle, hiring, location } = searchParams;
+  const hasFilter = Boolean(q || phase || workStyle || hiring || location);
 
   // 全データを並列取得（genresWithCompanies は常に取得してヒーロー統計に使う）
   const supabase = createClient();
-  const [industries, locations, genresWithCompanies, companyNamesResult] = await Promise.all([
-    fetchDistinctIndustries(),
+  const [locations, genresWithCompanies, companyNamesResult] = await Promise.all([
     fetchDistinctLocations(),
     fetchGenresWithCompanies(),
     supabase
@@ -68,7 +66,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
         <div className="max-w-[1440px] mx-auto px-4">
           <Suspense>
-            <CompanySearchBar industries={industries} locations={locations} companySuggestions={companySuggestions} />
+            <CompanySearchBar locations={locations} companySuggestions={companySuggestions} />
           </Suspense>
         </div>
       </div>
@@ -79,8 +77,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
         {hasFilter ? (
           <CompanySearchResults
             q={q}
-            industry={industry}
-            size={size}
+            phase={phase}
             workStyle={workStyle}
             hiring={hiring}
             location={location}

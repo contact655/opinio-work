@@ -4,16 +4,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 type Props = {
-  industries: string[];
   locations: string[];
   companySuggestions?: { id: string; name: string }[];
 };
 
-const SIZE_PILLS = [
-  { value: "under-50",  label: "〜50名" },
-  { value: "50-200",    label: "50〜200名" },
-  { value: "200-1000",  label: "200〜1000名" },
-  { value: "1000-plus", label: "1000名〜" },
+const PHASE_PILLS = [
+  { value: "シリーズA", label: "シリーズA" },
+  { value: "シリーズB", label: "シリーズB" },
+  { value: "シリーズC", label: "シリーズC" },
+  { value: "上場",      label: "上場" },
 ] as const;
 
 const WORK_STYLE_PILLS = [
@@ -63,7 +62,7 @@ function PillGroup({
   );
 }
 
-export function CompanySearchBar({ industries, locations, companySuggestions = [] }: Props) {
+export function CompanySearchBar({ locations, companySuggestions = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -72,7 +71,6 @@ export function CompanySearchBar({ industries, locations, companySuggestions = [
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  // 外クリックでサジェストを閉じる
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
@@ -83,7 +81,6 @@ export function CompanySearchBar({ industries, locations, companySuggestions = [
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 入力にマッチする企業名（最大6件）
   const filtered = inputValue.length >= 1
     ? companySuggestions
         .filter((c) => c.name.toLowerCase().includes(inputValue.toLowerCase()))
@@ -96,11 +93,8 @@ export function CompanySearchBar({ industries, locations, companySuggestions = [
 
   function updateParam(key: string, value: string | null) {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
+    if (value) params.set(key, value);
+    else params.delete(key);
     router.push(`?${params.toString()}`);
   }
 
@@ -127,22 +121,18 @@ export function CompanySearchBar({ industries, locations, companySuggestions = [
     router.push("?");
   }
 
-  const currentIndustry  = searchParams.get("industry") ?? "";
+  const currentPhase     = searchParams.get("phase") ?? "";
   const currentLocation  = searchParams.get("location") ?? "";
-  const currentSize      = searchParams.get("size") ?? "";
   const currentWorkStyle = searchParams.get("workStyle") ?? "";
   const currentHiring    = searchParams.get("hiring") === "1";
 
   const hasAnyFilter = Boolean(
     searchParams.get("q") ||
-    currentIndustry ||
-    currentSize ||
+    currentPhase ||
     currentWorkStyle ||
     currentHiring ||
     currentLocation
   );
-
-  const hasPills = !!(currentSize || currentWorkStyle);
 
   return (
     <>
@@ -229,7 +219,6 @@ export function CompanySearchBar({ industries, locations, companySuggestions = [
           font-family: inherit;
         }
         .csb-clear:hover { color: var(--ink); }
-        /* オートサジェスト */
         .csb-suggestions {
           position: absolute;
           top: calc(100% + 4px);
@@ -271,21 +260,30 @@ export function CompanySearchBar({ industries, locations, companySuggestions = [
 
       <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 10 }}>
 
-        {/* Row 1: ドロップダウン + 募集中トグル + クリア */}
+        {/* Row 1: フェーズ */}
         <div className="csb-filter-row" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11.5, color: "var(--ink-soft)", whiteSpace: "nowrap", fontWeight: 600 }}>
+            フェーズ
+          </span>
+          <PillGroup
+            options={PHASE_PILLS}
+            active={currentPhase}
+            onChange={(v) => updateParam("phase", v)}
+          />
+        </div>
 
-          {/* 業種 */}
-          <select
-            className={`csb-select${currentIndustry ? " active" : ""}`}
-            value={currentIndustry}
-            onChange={(e) => updateParam("industry", e.target.value || null)}
-            aria-label="業種フィルタ"
-          >
-            <option value="">業種</option>
-            {industries.map((ind) => (
-              <option key={ind} value={ind}>{ind}</option>
-            ))}
-          </select>
+        {/* Row 2: 勤務形態 + 都道府県 + 募集中 + クリア */}
+        <div className="csb-filter-row" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11.5, color: "var(--ink-soft)", whiteSpace: "nowrap", fontWeight: 600 }}>
+            勤務形態
+          </span>
+          <PillGroup
+            options={WORK_STYLE_PILLS}
+            active={currentWorkStyle}
+            onChange={(v) => updateParam("workStyle", v)}
+          />
+
+          <div className="csb-divider" />
 
           {/* 都道府県 */}
           {locations.length > 0 && (
@@ -304,91 +302,22 @@ export function CompanySearchBar({ industries, locations, companySuggestions = [
 
           <div className="csb-divider" />
 
-          {/* 募集中のみトグル（ピル風） */}
+          {/* 募集中のみ */}
           <label className={`csb-hiring${currentHiring ? " active" : ""}`}>
             <input
               type="checkbox"
               checked={currentHiring}
               onChange={(e) => updateParam("hiring", e.target.checked ? "1" : null)}
             />
-            募集中のみ
+            面談受付中のみ
           </label>
 
-          {/* クリアボタン */}
           {hasAnyFilter && (
             <button type="button" className="csb-clear" onClick={handleClear}>
               ✕ クリア
             </button>
           )}
         </div>
-
-        {/* Row 2: ピルフィルター（勤務形態 + 規模） */}
-        <div className="csb-filter-row" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-
-          {/* 勤務形態ピル */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 11.5, color: "var(--ink-soft)", whiteSpace: "nowrap", fontWeight: 600 }}>
-              勤務形態
-            </span>
-            <PillGroup
-              options={WORK_STYLE_PILLS}
-              active={currentWorkStyle}
-              onChange={(v) => updateParam("workStyle", v)}
-            />
-          </div>
-
-          <div className="csb-divider" />
-
-          {/* 規模ピル */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 11.5, color: "var(--ink-soft)", whiteSpace: "nowrap", fontWeight: 600 }}>
-              規模
-            </span>
-            <PillGroup
-              options={SIZE_PILLS}
-              active={currentSize}
-              onChange={(v) => updateParam("size", v)}
-            />
-          </div>
-        </div>
-
-        {/* アクティブなピルのサマリーバッジ（選択中の場合のみ） */}
-        {hasPills && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {currentWorkStyle && (
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                fontSize: 11, padding: "3px 10px", borderRadius: 999,
-                background: "var(--royal-50)", color: "var(--royal)",
-                border: "1px solid var(--royal-100)", fontWeight: 600,
-              }}>
-                {WORK_STYLE_PILLS.find(p => p.value === currentWorkStyle)?.label}
-                <button
-                  type="button"
-                  onClick={() => updateParam("workStyle", null)}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--royal)", lineHeight: 1, fontSize: 13 }}
-                  aria-label="勤務形態フィルタを解除"
-                >×</button>
-              </span>
-            )}
-            {currentSize && (
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                fontSize: 11, padding: "3px 10px", borderRadius: 999,
-                background: "var(--royal-50)", color: "var(--royal)",
-                border: "1px solid var(--royal-100)", fontWeight: 600,
-              }}>
-                {SIZE_PILLS.find(p => p.value === currentSize)?.label}
-                <button
-                  type="button"
-                  onClick={() => updateParam("size", null)}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--royal)", lineHeight: 1, fontSize: 13 }}
-                  aria-label="規模フィルタを解除"
-                >×</button>
-              </span>
-            )}
-          </div>
-        )}
 
         {/* 検索ボックス + オートサジェスト */}
         <div ref={wrapRef} style={{ position: "relative" }}>
@@ -420,7 +349,6 @@ export function CompanySearchBar({ industries, locations, companySuggestions = [
             )}
           </div>
 
-          {/* サジェストドロップダウン */}
           {showSuggestions && filtered.length > 0 && (
             <div className="csb-suggestions" role="listbox">
               {filtered.map((c) => (
