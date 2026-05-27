@@ -8,6 +8,8 @@ import { GenreTabs } from "@/components/companies/GenreTabs";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSection";
+import { CompanyCardCompact } from "@/components/companies/CompanyCardCompact";
+import { ViewToggle } from "@/components/companies/ViewToggle";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 300;
@@ -34,6 +36,7 @@ type SearchParams = {
   workStyle?: string;
   hiring?: string;
   location?: string;
+  view?: string;
 };
 
 type Props = {
@@ -41,8 +44,9 @@ type Props = {
 };
 
 export default async function CompaniesPage({ searchParams }: Props) {
-  const { q, phase, workStyle, hiring, location } = searchParams;
+  const { q, phase, workStyle, hiring, location, view } = searchParams;
   const hasFilter = Boolean(q || phase || workStyle || hiring || location);
+  const isGridView = !hasFilter && view === "grid";
 
   // 全データを並列取得（genresWithCompanies は常に取得してヒーロー統計に使う）
   const supabase = createClient();
@@ -74,7 +78,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
       <div className="max-w-[1440px] mx-auto px-4 pt-6 pb-8">
 
-        {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル */}
+        {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル or コンパクトグリッド */}
         {hasFilter ? (
           <CompanySearchResults
             q={q}
@@ -88,7 +92,45 @@ export default async function CompaniesPage({ searchParams }: Props) {
             <Suspense fallback={null}>
               <RecentlyViewedSection />
             </Suspense>
-            <GenreTabs genres={genresWithCompanies} />
+
+            {/* ── View toggle row ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 12 }}>
+              <Suspense fallback={null}>
+                <ViewToggle />
+              </Suspense>
+            </div>
+
+            {isGridView ? (
+              <>
+                <style>{`
+                  .companies-compact-grid {
+                    display: grid;
+                    grid-template-columns: repeat(5, 1fr);
+                    gap: 14px;
+                  }
+                  @media (max-width: 1279px) {
+                    .companies-compact-grid { grid-template-columns: repeat(4, 1fr); }
+                  }
+                  @media (max-width: 1023px) {
+                    .companies-compact-grid { grid-template-columns: repeat(3, 1fr); }
+                  }
+                  @media (max-width: 639px) {
+                    .companies-compact-grid { grid-template-columns: repeat(2, 1fr); }
+                  }
+                `}</style>
+                <div className="companies-compact-grid">
+                  {Array.from(
+                    new Map(
+                      genresWithCompanies.flatMap(g => g.companies).map(c => [c.id, c])
+                    ).values()
+                  ).map(c => (
+                    <CompanyCardCompact key={c.id} company={c} />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <GenreTabs genres={genresWithCompanies} />
+            )}
           </div>
         )}
 
