@@ -697,68 +697,37 @@ export default function JobsClient({
 
   return (
     <>
-      {/* ── Gradient hero header ── */}
-      <div style={{
-        background: "linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1e3a8a 100%)",
-        padding: "36px 0 32px",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        {/* Background decorations */}
-        <div style={{ position: "absolute", right: -100, top: -100, width: 480, height: 480, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", left: -60, bottom: -80, width: 320, height: 320, borderRadius: "50%", background: "rgba(255,255,255,0.025)", pointerEvents: "none" }} />
+      <h1 className="sr-only">求人を探す</h1>
 
+      {/* ── Search bar ── */}
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "14px 0", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "0 20px" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-            <div>
-              <h1 style={{
-                fontFamily: "var(--font-noto-serif)",
-                fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
-                color: "#fff", margin: 0, lineHeight: 1.4, marginBottom: 18,
-              }}>
-                求人を探す
-              </h1>
-
-              {/* ── Search bar in hero ── */}
-              <div role="search" style={{ position: "relative", maxWidth: 560 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2.2} strokeLinecap="round" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} aria-hidden="true">
-                  <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                </svg>
-                <input
-                  type="search"
-                  aria-label="求人を検索"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="職種・企業名・スキルで検索…"
-                  style={{
-                    width: "100%",
-                    padding: "13px 14px 13px 44px",
-                    fontSize: 14,
-                    border: "none",
-                    borderRadius: 10,
-                    outline: "none",
-                    background: "rgba(255,255,255,0.97)",
-                    color: "var(--ink)",
-                    boxSizing: "border-box" as const,
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-                  }}
-                  className="job-search-input"
-                />
-                {q && (
-                  <button type="button" onClick={() => setQ("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 16, padding: "4px" }}>×</button>
-                )}
-              </div>
-            </div>
-
-            <Link href="/companies" style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "9px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-              background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)",
-              border: "1px solid rgba(255,255,255,0.22)", textDecoration: "none",
-              flexShrink: 0, alignSelf: "flex-start", marginTop: 4,
-            }}>
-              企業を見る →
-            </Link>
+          <div role="search" style={{ position: "relative", maxWidth: 600 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2.2} strokeLinecap="round" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input
+              type="search"
+              aria-label="求人を検索"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="職種・企業名・スキルで検索…"
+              style={{
+                width: "100%",
+                padding: "11px 14px 11px 44px",
+                fontSize: 14,
+                border: "1.5px solid var(--line)",
+                borderRadius: 10,
+                outline: "none",
+                background: "#fff",
+                color: "var(--ink)",
+                boxSizing: "border-box" as const,
+              }}
+              className="job-search-input"
+            />
+            {q && (
+              <button type="button" onClick={() => setQ("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 16, padding: "4px" }}>×</button>
+            )}
           </div>
         </div>
       </div>

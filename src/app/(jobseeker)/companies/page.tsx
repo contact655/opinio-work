@@ -62,41 +62,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
   return (
     <div style={{ background: "#f0f4f8" }}>
-      {/* ── Gradient hero header ── */}
-      <div style={{
-        background: "linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1e3a8a 100%)",
-        padding: "36px 0 32px",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        {/* Background decorations */}
-        <div style={{ position: "absolute", right: -100, top: -100, width: 480, height: 480, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", left: -60, bottom: -80, width: 320, height: 320, borderRadius: "50%", background: "rgba(255,255,255,0.025)", pointerEvents: "none" }} />
-
-        <div className="max-w-[1440px] mx-auto px-4">
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-            <div>
-              <h1 style={{
-                fontFamily: "var(--font-noto-serif)",
-                fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
-                color: "#fff", margin: 0, lineHeight: 1.4, marginBottom: 18,
-              }}>
-                企業を知る
-              </h1>
-            </div>
-            <Link href="/jobs" style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "9px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-              background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)",
-              border: "1px solid rgba(255,255,255,0.22)", textDecoration: "none",
-              flexShrink: 0, alignSelf: "flex-start",
-              marginTop: 4,
-            }}>
-              求人を探す →
-            </Link>
-          </div>
-        </div>
-      </div>
+      <h1 className="sr-only">企業を知る</h1>
 
       {/* ── Search bar panel ── */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
