@@ -3804,9 +3804,6 @@ export default async function CompanyDetailPage({
             <WorkStyleSection detail={detail} />
             <BenefitsSection detail={detail} />
 
-            {/* 3. 似た企業サジェスト */}
-            <SimilarCompanies currentId={params.id} phase={company.phase ?? null} />
-
             {/* 4. メンターCTA */}
             <MentorCTAWidget />
 
@@ -3840,8 +3837,11 @@ export default async function CompanyDetailPage({
               <CompanyArticlesSection articles={companyArticles} />
             )}
 
-            {/* 8. 募集中の求人（一番下） */}
+            {/* 8. 募集中の求人 */}
             <JobsSection company={company} detail={detail} />
+
+            {/* 9. 同じフェーズの企業 */}
+            <SimilarCompanies currentId={params.id} phase={company.phase ?? null} />
           </main>
 
           <Sidebar company={company} detail={detail} />
