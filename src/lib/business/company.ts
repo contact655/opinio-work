@@ -38,6 +38,9 @@ export type DbCompany = {
   is_published: boolean;
   accepting_casual_meetings: boolean;
   notification_emails: string[] | null;
+  availability_days: string[] | null;
+  availability_times: string[] | null;
+  availability_notes: string | null;
   published_at: string | null;
   draft_data: Record<string, unknown> | null;
   updated_at: string | null;
@@ -51,6 +54,7 @@ const SELECT_COLUMNS = [
   "avg_age", "avg_salary", "funding_total", "gender_ratio", "evaluation_system", "benefits", "fit_positives", "fit_negatives", "location", "nearest_station",
   "remote_work_status", "work_time_system", "avg_overtime_hours", "paid_leave_rate",
   "workstyle_description", "is_published", "accepting_casual_meetings", "notification_emails", "show_fit_negatives",
+  "availability_days", "availability_times", "availability_notes",
   "published_at", "draft_data", "updated_at", "numbers_updated_at",
 ].join(", ");
 
@@ -117,6 +121,9 @@ export function transformDbToForm(row: DbCompany, currentPublishedGenres: string
     notificationEmails: Array.isArray(row.notification_emails)
       ? row.notification_emails.join(", ")
       : "",
+    availabilityDays: Array.isArray(row.availability_days) ? row.availability_days : [],
+    availabilityTimes: Array.isArray(row.availability_times) ? row.availability_times : [],
+    availabilityNotes: row.availability_notes ?? "",
     lastPublishedAt: formatPublishedAt(row.published_at),
     lastPublishedAgo: formatPublishedAgo(row.published_at),
     hasDraftChanges: row.draft_data != null && Object.keys(row.draft_data).length > 0,
@@ -164,6 +171,9 @@ export function transformFormToDb(form: BizCompany): Record<string, unknown> {
     notification_emails: form.notificationEmails
       ? form.notificationEmails.split(/[,\n]/).map((e) => e.trim()).filter(Boolean)
       : null,
+    availability_days: form.availabilityDays.length > 0 ? form.availabilityDays : null,
+    availability_times: form.availabilityTimes.length > 0 ? form.availabilityTimes : null,
+    availability_notes: form.availabilityNotes || null,
     updated_at: new Date().toISOString(),
   };
 }

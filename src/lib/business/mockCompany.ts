@@ -58,6 +58,11 @@ export type BizCompany = {
   acceptingCasualMeetings: boolean;
   notificationEmails: string;
 
+  // ── 面談スケジュール ──────────────────────────────────
+  availabilityDays: string[];    // 例: ["月","水","金"]
+  availabilityTimes: string[];   // 例: ["朝（9〜12時）","夜（18〜21時）"]
+  availabilityNotes: string;     // 補足コメント（任意）
+
   // ── モック用メタ ────────────────────────────────────────
   lastPublishedAt: string;    // "2026年4月12日 14:32"
   lastPublishedAgo: string;   // "14日前"
@@ -137,6 +142,9 @@ export const MOCK_COMPANY: BizCompany = {
   isPublished: true,
   acceptingCasualMeetings: true,
   notificationEmails: "recruiting@timee.co.jp",
+  availabilityDays: ["月", "水", "金"],
+  availabilityTimes: ["朝（9〜12時）", "昼（12〜15時）"],
+  availabilityNotes: "",
 
   // メタ
   lastPublishedAt: "2026年4月12日 14:32",

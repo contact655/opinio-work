@@ -7,6 +7,7 @@ import { CompanyEditSubNav, type CompanySubNavSection } from "@/components/busin
 import { CompanyPublishStatusBar } from "@/components/business/CompanyPublishStatusBar";
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
 import { OfficePhotoSection } from "@/components/business/OfficePhotoSection";
+import { AvailabilityEditor } from "@/components/business/AvailabilityEditor";
 import { RequirementsTagInput } from "@/components/business/RequirementsTagInput";
 import {
   COMPANY_SECTIONS,
@@ -996,6 +997,24 @@ export function CompanyEditClient({
                 />
                 <FormHint>「一時停止」中は、求職者側のページから「カジュアル面談を申し込む」ボタンが非表示になります。</FormHint>
               </FormGroup>
+              {form.acceptingCasualMeetings && (
+                <FormGroup>
+                  <FormLabel>面談スケジュール設定</FormLabel>
+                  <FormHint>求職者側の企業ページに「いつ頃話せるか」が表示されます。</FormHint>
+                  <div style={{ marginTop: 8 }}>
+                    <AvailabilityEditor
+                      days={form.availabilityDays}
+                      times={form.availabilityTimes}
+                      notes={form.availabilityNotes}
+                      onChange={(field, value) => {
+                        if (field === "availability_days") update("availabilityDays", value as string[]);
+                        else if (field === "availability_times") update("availabilityTimes", value as string[]);
+                        else update("availabilityNotes", value as string);
+                      }}
+                    />
+                  </div>
+                </FormGroup>
+              )}
             </SectionCard>
             <SectionCard title="通知設定">
               <FormGroup>
