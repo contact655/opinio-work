@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 export function ViewToggle() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentView = searchParams.get("view") ?? "genre";
+  const currentView = searchParams.get("view") ?? "grid";
 
   const toggle = (view: "genre" | "grid" | "list") => {
     const params = new URLSearchParams(searchParams.toString());

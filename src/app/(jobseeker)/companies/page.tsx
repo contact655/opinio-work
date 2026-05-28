@@ -51,7 +51,7 @@ type Props = {
 export default async function CompaniesPage({ searchParams }: Props) {
   const { q, phase, workStyle, hiring, location, view, sort } = searchParams;
   const hasFilter = Boolean(q || phase || workStyle || hiring || location);
-  const isGridView = !hasFilter && view === "grid";
+  const isGridView = !hasFilter && (view === "grid" || !view);
   const isListView = !hasFilter && view === "list";
 
   // 全データを並列取得（genresWithCompanies は常に取得してヒーロー統計に使う）
@@ -132,7 +132,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
             </Suspense>
 
             {/* ── View toggle row ── */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", marginBottom: 12 }}>
               <Suspense fallback={null}>
                 <ViewToggle />
               </Suspense>
