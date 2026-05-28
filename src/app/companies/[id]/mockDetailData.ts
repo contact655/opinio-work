@@ -99,6 +99,8 @@ export type CompanyDetail = {
   show_fit_negatives?: boolean;
   // Why join (separate from about/description)
   why_join: string | null;
+  // Culture description
+  culture_description?: string | null;
   // Numbers survey timestamp
   numbersUpdatedAt: string | null;
 };
@@ -484,6 +486,7 @@ function makeDetail(c: Company, overrides: Partial<CompanyDetail> = {}): Company
     fit_positives: null,
     fit_negatives: null,
     why_join: null,
+    culture_description: null,
     // Numbers survey timestamp
     numbersUpdatedAt: null,
   };
