@@ -1059,45 +1059,6 @@ export default function JobsClient({
               </button>
             )}
 
-            <div style={{ flex: 1 }} />
-
-            {/* 件数 */}
-            <span
-              aria-live="polite"
-              aria-atomic="true"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 3,
-                whiteSpace: "nowrap",
-              }}
-            >
-              <strong style={{ color: "var(--royal)", fontSize: 15, fontFamily: "Inter, sans-serif" }}>
-                {filtered.length}
-              </strong>
-              <span style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>件</span>
-            </span>
-
-            {/* 並び順 */}
-            <select
-              value={sort}
-              onChange={(e) => setParam("sort", e.target.value)}
-              aria-label="並び順"
-              style={{
-                padding: "6px 26px 6px 10px",
-                border: "1.5px solid var(--line)",
-                borderRadius: 8,
-                background: "#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\") no-repeat right 8px center",
-                fontSize: 12.5,
-                color: "var(--ink-soft)",
-                cursor: "pointer",
-                outline: "none",
-                fontFamily: "inherit",
-                appearance: "none" as const,
-                WebkitAppearance: "none" as const,
-              }}
-            >
-              <option value="updated">新着順</option>
-              <option value="salary">年収順</option>
-            </select>
           </div>
         </div>
       </div>
@@ -1108,6 +1069,30 @@ export default function JobsClient({
           style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
           className="px-5 py-8 md:px-12 md:py-10"
         >
+          {/* 件数・並び順（企業ページと同じくコンテンツ内に配置） */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <span aria-live="polite" aria-atomic="true" style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+              <strong style={{ color: "var(--royal)", fontSize: 15, fontFamily: "Inter, sans-serif" }}>{filtered.length}</strong>
+              <span style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>件</span>
+            </span>
+            <select
+              value={sort}
+              onChange={(e) => setParam("sort", e.target.value)}
+              aria-label="並び順"
+              style={{
+                padding: "6px 26px 6px 10px",
+                border: "1.5px solid var(--line)",
+                borderRadius: 8,
+                background: "#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\") no-repeat right 8px center",
+                fontSize: 12.5, color: "var(--ink-soft)", cursor: "pointer",
+                outline: "none", fontFamily: "inherit",
+                appearance: "none" as const, WebkitAppearance: "none" as const,
+              }}
+            >
+              <option value="updated">新着順</option>
+              <option value="salary">年収順</option>
+            </select>
+          </div>
           {paged.length === 0 ? (
             <div style={{
               textAlign: "center", padding: "48px 24px", background: "#fff",
