@@ -1886,11 +1886,21 @@ function CompanyPostsSection({
       </div>
       <div style={{ padding: "22px 28px 28px" }}>
       {/* PostCard 一覧 */}
+      {posts.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "32px 0", color: "var(--ink-mute)" }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" style={{ margin: "0 auto 10px", display: "block", opacity: 0.4 }}>
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 4 }}>まだ発信が登録されていません</div>
+          <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>企業からの記事・SNS投稿などが順次公開されます</div>
+        </div>
+      ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}
       </div>
+      )}
 
       {postsCount > 5 && (
         <Link
@@ -2938,6 +2948,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
 
   return (
     <section
+      id="articles"
       style={{
         background: "#fff",
         border: "1px solid var(--line)",
@@ -2969,108 +2980,60 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
         </SecTitle>
       </div>
       <div style={{ padding: "22px 28px 28px" }}>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-          gap: 16,
-        }}
-      >
-        {displayed.map((article) => {
-          const badge = TYPE_BADGE[article.type];
-          const icon  = TYPE_EYECATCH_ICON[article.type];
-          return (
-            <Link
-              key={article.slug}
-              href={`/articles/${article.slug}`}
-              style={{ textDecoration: "none" }}
-            >
-              <div
-                style={{
-                  border: "1px solid var(--line)",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  background: "#fff",
-                  transition: "border-color 0.15s, box-shadow 0.15s",
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-                className="article-card"
-              >
-                {/* Eyecatch */}
-                <div
-                  style={{
-                    height: 100,
-                    background: article.eyecatch_gradient,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    position: "relative",
-                    flexShrink: 0,
-                  }}
-                >
-                  <span style={{ fontSize: 36, opacity: 0.3 }}>{icon}</span>
-                  <div
-                    style={{
-                      position: "absolute", top: 8, left: 10,
-                      display: "inline-flex", alignItems: "center",
-                      padding: "3px 8px", borderRadius: 100,
-                      background: badge.bg, color: badge.color,
-                      fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em",
-                    }}
-                  >
-                    {badge.label}
-                  </div>
-                  <div
-                    style={{
-                      position: "absolute", bottom: 7, right: 10,
-                      fontSize: 9, color: "rgba(255,255,255,0.8)",
-                      fontFamily: "Inter, sans-serif", fontWeight: 500,
-                    }}
-                  >
-                    {article.read_min} min read
-                  </div>
-                </div>
-
-                {/* Title */}
-                <div style={{ padding: "12px 14px", flex: 1 }}>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontFamily: 'var(--font-noto-serif)',
-                      fontSize: 12, fontWeight: 700, lineHeight: 1.6,
-                      color: "var(--ink)",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    } as React.CSSProperties}
-                  >
-                    {article.title}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
-      {articles.length > 0 && (
-        <div style={{ marginTop: 16, textAlign: "right" }}>
-          <Link
-            href="/articles"
-            style={{
-              fontSize: 12, color: "var(--accent)", textDecoration: "none",
-              fontFamily: "Inter, sans-serif", fontWeight: 600,
-              display: "inline-flex", alignItems: "center", gap: 4,
-            }}
-          >
-            記事一覧を見る
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <polyline points="9 18 15 12 9 6"/>
+        {articles.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "32px 0", color: "var(--ink-mute)" }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" style={{ margin: "0 auto 10px", display: "block", opacity: 0.4 }}>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
             </svg>
-          </Link>
-        </div>
-      )}
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 4 }}>まだ取材記事がありません</div>
+            <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>OPINIO編集部による取材記事が順次公開されます</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
+              {displayed.map((article) => {
+                const badge = TYPE_BADGE[article.type];
+                const icon  = TYPE_EYECATCH_ICON[article.type];
+                return (
+                  <Link key={article.slug} href={`/articles/${article.slug}`} style={{ textDecoration: "none" }}>
+                    <div
+                      style={{
+                        border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden",
+                        background: "#fff", transition: "border-color 0.15s, box-shadow 0.15s",
+                        height: "100%", display: "flex", flexDirection: "column",
+                      }}
+                      className="article-card"
+                    >
+                      <div style={{ height: 100, background: article.eyecatch_gradient, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", flexShrink: 0 }}>
+                        <span style={{ fontSize: 36, opacity: 0.3 }}>{icon}</span>
+                        <div style={{ position: "absolute", top: 8, left: 10, display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em" }}>
+                          {badge.label}
+                        </div>
+                        <div style={{ position: "absolute", bottom: 7, right: 10, fontSize: 9, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+                          {article.read_min} min read
+                        </div>
+                      </div>
+                      <div style={{ padding: "12px 14px", flex: 1 }}>
+                        <p style={{ margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 12, fontWeight: 700, lineHeight: 1.6, color: "var(--ink)", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
+                          {article.title}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: 16, textAlign: "right" }}>
+              <Link href="/articles" style={{ fontSize: 12, color: "var(--accent)", textDecoration: "none", fontFamily: "Inter, sans-serif", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                記事一覧を見る
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </Link>
+            </div>
+          </>
+        )}
       </div>
     </section>
   );
@@ -3883,6 +3846,8 @@ export default async function CompanyDetailPage({
           { id: "benefits",         label: "福利厚生・評価制度" },
           { id: "jobs",             label: company.job_count > 0 ? `募集中の求人 ${company.job_count}件` : "募集中の求人" },
           ...(employees.current.length > 0 ? [{ id: "current-employees", label: `現役社員 ${employees.current.length}名` }] : [{ id: "current-employees", label: "現役社員" }]),
+          { id: "articles",         label: companyArticles.length > 0 ? `記事 ${companyArticles.length}件` : "記事" },
+          { id: "posts",            label: postsCount > 0 ? `発信 ${postsCount}件` : "発信" },
           { id: "mentors",          label: "メンターに相談する" },
         ]} />
         <div
@@ -3913,35 +3878,34 @@ export default async function CompanyDetailPage({
             <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
             {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
 
-            {/* 7. メンターに相談する */}
+            {/* 7. 記事（OPINIO取材記事） */}
+            <CompanyArticlesSection articles={companyArticles} />
+
+            {/* 8. 発信（企業の外部リンク） */}
+            <CompanyPostsSection
+              companyId={params.id}
+              posts={posts}
+              postsCount={postsCount}
+            />
+
+            {/* 9. メンターに相談する */}
             <CompanyMentorsSection companyId={params.id} companyName={company.name} />
 
             {/* 編集部の見立て（タブなし・コンテンツ末尾） */}
             <FitSection detail={detail} />
 
-            {/* 7. OPINIO編集部より */}
+            {/* OPINIO編集部より */}
             <OpinioOpinionCard detail={detail} />
 
-            {/* 8. 特徴・評判 */}
+            {/* 特徴・評判 */}
             <CompanyFeaturesSection company={company} detail={detail} />
 
-            {/* 9. 発信・記事・採用担当 */}
-            {posts.length > 0 && (
-              <CompanyPostsSection
-                companyId={params.id}
-                posts={posts}
-                postsCount={postsCount}
-              />
-            )}
             <MentorSuggestionBanner companyName={company.name} />
             {recruiters.length > 0 && (
               <RecruitersSection recruiters={recruiters} />
             )}
-            {companyArticles.length > 0 && (
-              <CompanyArticlesSection articles={companyArticles} />
-            )}
 
-            {/* 10. 同じフェーズの企業 */}
+            {/* 同じフェーズの企業 */}
             <SimilarCompanies currentId={params.id} phase={company.phase ?? null} />
           </main>
 
