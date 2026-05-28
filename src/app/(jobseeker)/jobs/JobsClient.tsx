@@ -942,11 +942,11 @@ export default function JobsClient({
           background: "#fff",
           borderBottom: "1px solid var(--line)",
           boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-          padding: "8px 0 0",
+          padding: "20px 0 0",
         }}
       >
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-4">
-          <div style={{ padding: "4px 0 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
+          <div style={{ padding: "0 0 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
 
             {/* 検索インプット — 企業側と同スタイル */}
             <div
