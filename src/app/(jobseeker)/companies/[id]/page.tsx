@@ -3031,6 +3031,7 @@ const NUMBER_ITEMS: {
 function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers; numbersUpdatedAt?: string | null }) {
   return (
     <section
+      id="numbers"
       style={{
         background: "#fff",
         borderRadius: 18,
@@ -3811,14 +3812,12 @@ export default async function CompanyDetailPage({
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
           { id: "about",            label: "企業概要" },
+          { id: "work-style",       label: "働き方の選択肢" },
+          { id: "numbers",          label: "数値で見る企業" },
+          { id: "benefits",         label: "福利厚生・評価制度" },
+          { id: "jobs",             label: company.job_count > 0 ? `募集中の求人 ${company.job_count}件` : "募集中の求人" },
           ...(employees.current.length > 0 ? [{ id: "current-employees", label: `現役社員 ${employees.current.length}名` }] : [{ id: "current-employees", label: "現役社員" }]),
-          ...(employees.alumni.length > 0 ? [{ id: "alumni", label: `OB/OG ${employees.alumni.length}名` }] : []),
-          { id: "mentors",          label: "メンターに相談" },
-          ...((detail.fit_positives && detail.fit_positives.length > 0) || (detail.fit_negatives && detail.fit_negatives.length > 0) ? [{ id: "fit", label: "編集部の見立て" }] : []),
-          { id: "jobs",             label: company.job_count > 0 ? `求人 ${company.job_count}件` : "求人" },
-          { id: "work-style",       label: "働き方" },
-          { id: "benefits",         label: "福利厚生" },
-          ...(detail.company_features.length > 0 ? [{ id: "opinion", label: "特徴・評判" }] : []),
+          { id: "mentors",          label: "メンターに相談する" },
         ]} />
         <div
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
@@ -3826,29 +3825,33 @@ export default async function CompanyDetailPage({
         >
           {/* γ-7: モバイルで fixed bottom bar 分の余白を確保 */}
           <main className="pb-28 md:pb-0">
-            {/* 1. 企業について */}
+            {/* 1. 企業概要 */}
             <AboutSection
               detail={detail}
               photos={photos}
             />
 
-            {/* 2. 現役社員・OBOGプロフィール（閲覧のみ・直接連絡不可） */}
-            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
-            {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
+            {/* 2. 働き方の選択肢 */}
+            <WorkStyleSection detail={detail} />
 
-            {/* 3. メンターに相談する */}
-            <CompanyMentorsSection companyId={params.id} companyName={company.name} />
+            {/* 3. 数値で見る企業 */}
+            <NumbersSection numbers={detail.numbers} numbersUpdatedAt={detail.numbersUpdatedAt} />
 
-            {/* 4. 編集部の見立て */}
-            <FitSection detail={detail} />
+            {/* 4. 福利厚生・評価制度 */}
+            <BenefitsSection detail={detail} />
 
             {/* 5. 募集中の求人 */}
             <JobsSection company={company} detail={detail} />
 
-            {/* 6. 企業の数値・働き方・福利厚生 */}
-            <NumbersSection numbers={detail.numbers} numbersUpdatedAt={detail.numbersUpdatedAt} />
-            <WorkStyleSection detail={detail} />
-            <BenefitsSection detail={detail} />
+            {/* 6. 現役社員・OBOGプロフィール */}
+            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
+            {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
+
+            {/* 7. メンターに相談する */}
+            <CompanyMentorsSection companyId={params.id} companyName={company.name} />
+
+            {/* 編集部の見立て（タブなし・コンテンツ末尾） */}
+            <FitSection detail={detail} />
 
             {/* 7. OPINIO編集部より */}
             <OpinioOpinionCard detail={detail} />
