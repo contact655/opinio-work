@@ -947,11 +947,24 @@ export default function JobsClient({
         }}
       >
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-          <div style={{ padding: "10px 0", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ padding: "12px 0 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
 
-            {/* 検索インプット */}
-            <div role="search" style={{ position: "relative", flex: "1 1 200px", minWidth: 160 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2.2} strokeLinecap="round" style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} aria-hidden="true">
+            {/* 検索インプット — 企業側と同スタイル */}
+            <div
+              role="search"
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                background: "#fff",
+                border: "1.5px solid #e6e9ef",
+                borderRadius: 999,
+                padding: "0 14px",
+                transition: "border-color 0.15s, box-shadow 0.15s",
+                flex: "1 1 220px",
+                minWidth: 0,
+              }}
+              onFocus={() => {}}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2.2} strokeLinecap="round" style={{ flexShrink: 0 }} aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
               </svg>
               <input
@@ -961,22 +974,26 @@ export default function JobsClient({
                 onChange={(e) => { setQ(e.target.value); setOpenChip(null); }}
                 placeholder="職種・企業名で検索"
                 style={{
-                  width: "100%",
-                  padding: "8px 32px 8px 36px",
-                  fontSize: 13.5,
-                  border: "1.5px solid var(--line)",
-                  borderRadius: 999,
+                  flex: 1,
+                  border: "none",
                   outline: "none",
-                  background: "#fff",
+                  fontSize: 13.5,
                   color: "var(--ink)",
-                  boxSizing: "border-box" as const,
-                  transition: "border-color 0.15s, box-shadow 0.15s",
+                  background: "transparent",
+                  padding: "9px 0",
+                  minWidth: 0,
                 }}
-                onFocus={(e) => { e.target.style.borderColor = "var(--royal)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
-                onBlur={(e) => { e.target.style.borderColor = "var(--line)"; e.target.style.boxShadow = "none"; }}
+                onFocus={(e) => {
+                  const wrap = e.currentTarget.parentElement as HTMLElement;
+                  if (wrap) { wrap.style.borderColor = "var(--royal)"; wrap.style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }
+                }}
+                onBlur={(e) => {
+                  const wrap = e.currentTarget.parentElement as HTMLElement;
+                  if (wrap) { wrap.style.borderColor = "#e6e9ef"; wrap.style.boxShadow = "none"; }
+                }}
               />
               {q && (
-                <button type="button" onClick={() => setQ("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 14, padding: "4px", lineHeight: 1 }}>×</button>
+                <button type="button" onClick={() => setQ("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 14, padding: "2px", lineHeight: 1, flexShrink: 0 }}>×</button>
               )}
             </div>
 
