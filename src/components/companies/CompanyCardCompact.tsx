@@ -149,28 +149,6 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             {initial}
           </span>
         )}
-        {/* Funding stage badge */}
-        {(() => {
-          const cfg = getStageCfg(company.funding_stage);
-          if (!cfg) return null;
-          return (
-            <span style={{
-              position: 'absolute',
-              top: 8,
-              left: 8,
-              fontSize: 9.5,
-              fontWeight: 700,
-              padding: '2px 7px',
-              borderRadius: 100,
-              background: cfg.bg,
-              color: cfg.color,
-              letterSpacing: '0.03em',
-              fontFamily: 'Inter, sans-serif',
-            }}>
-              {cfg.label}
-            </span>
-          );
-        })()}
         {/* Casual meeting badge */}
         {company.accepting_casual_meetings && (
           <span style={{
@@ -216,10 +194,37 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
       </div>
 
       {/* カード本体 */}
-      <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {/* 業種 + フェーズ バッジ行 */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {company.industry && (
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              padding: '2px 8px', borderRadius: 100,
+              background: 'var(--royal-50)', color: 'var(--royal)',
+              border: '1px solid var(--royal-100)',
+            }}>
+              {company.industry}
+            </span>
+          )}
+          {(() => {
+            const cfg = getStageCfg(company.funding_stage);
+            if (!cfg) return null;
+            return (
+              <span style={{
+                fontSize: 10, fontWeight: 700,
+                padding: '2px 8px', borderRadius: 100,
+                background: cfg.bg, color: cfg.color,
+              }}>
+                {cfg.label}
+              </span>
+            );
+          })()}
+        </div>
+
         {/* 社名 */}
         <div style={{
-          fontSize: 15,
+          fontSize: 14,
           fontWeight: 700,
           color: 'var(--ink)',
           lineHeight: 1.35,
@@ -231,25 +236,11 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
           {company.name}
         </div>
 
-        {/* 業種タグ */}
-        {company.industry && (
-          <div style={{
-            display: 'inline-flex', alignItems: 'center',
-            fontSize: 10.5, fontWeight: 600,
-            padding: '2px 9px', borderRadius: 100,
-            background: 'var(--royal-50)', color: 'var(--royal)',
-            border: '1px solid var(--royal-100)',
-            alignSelf: 'flex-start',
-          }}>
-            {company.industry}
-          </div>
-        )}
-
         {/* タグライン */}
         {company.tagline && (
           <div style={{
-            fontSize: 12.5,
-            color: '#334155',
+            fontSize: 12,
+            color: 'var(--ink-soft)',
             lineHeight: 1.55,
             overflow: 'hidden',
             display: '-webkit-box',
