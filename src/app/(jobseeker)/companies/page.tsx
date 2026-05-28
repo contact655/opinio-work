@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { fetchGenresWithCompanies } from "@/lib/genres";
-import { fetchDistinctLocations } from "@/lib/search/companies";
+import { fetchDistinctLocations, searchCompanies } from "@/lib/search/companies";
 import { createClient } from "@/lib/supabase/server";
 import { GenreTabs } from "@/components/companies/GenreTabs";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
@@ -54,9 +54,9 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const isGridView = !hasFilter && (view === "grid" || !view);
   const isListView = !hasFilter && view === "list";
 
-  // 全データを並列取得（genresWithCompanies は常に取得してヒーロー統計に使う）
+  // 全データを並列取得
   const supabase = createClient();
-  const [locations, genresWithCompanies, companyNamesResult] = await Promise.all([
+  const [locations, genresWithCompanies, companyNamesResult, allCompaniesResult] = await Promise.all([
     fetchDistinctLocations(),
     fetchGenresWithCompanies(),
     supabase
@@ -64,6 +64,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
       .select("id, name")
       .eq("is_published", true)
       .order("name"),
+    // コンパクト/リスト表示用: ジャンル紐付けに依存せず全公開企業を取得
+    (isGridView || isListView) ? searchCompanies({}) : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
   ]);
 
   const companySuggestions: { id: string; name: string }[] =
@@ -159,11 +161,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
                   `}</style>
                 )}
                 {(() => {
-                  const allCompanies = Array.from(
-                    new Map(
-                      genresWithCompanies.flatMap(g => g.companies).map(c => [c.id, c])
-                    ).values()
-                  );
+                  // ジャンル紐付けに関係なく全公開企業を表示
+                  const allCompanies = [...allCompaniesResult.companies];
                   if (sort === "jobs") allCompanies.sort((a, b) => b.job_count - a.job_count);
                   else if (sort === "employees") {
                     allCompanies.sort((a, b) => {
