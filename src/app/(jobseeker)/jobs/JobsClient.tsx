@@ -796,14 +796,6 @@ export default function JobsClient({
   const [openChip, setOpenChip] = useState<string | null>(null);
   const filterBarRef = useRef<HTMLDivElement>(null);
 
-  // Scroll shadow for sticky filter bar
-  const [filterBarScrolled, setFilterBarScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setFilterBarScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   // Close chip dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
