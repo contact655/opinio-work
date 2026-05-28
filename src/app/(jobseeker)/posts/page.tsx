@@ -188,47 +188,6 @@ export default async function PostsPage({ searchParams }: Props) {
         </div>
       </nav>
 
-      {/* Hero */}
-      <div style={{
-        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
-        padding: "40px 0 36px",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        {/* Decorative circles */}
-        <div style={{ position: "absolute", right: -80, top: -100, width: 400, height: 400, borderRadius: "50%", background: "rgba(59,95,217,0.12)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", left: -60, bottom: -80, width: 260, height: 260, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
-        <div
-          style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", position: "relative" }}
-          className="px-5 md:px-12"
-        >
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 12, textTransform: "uppercase" }}>
-            POSTS
-          </div>
-          <h1 style={{
-            fontFamily: "var(--font-noto-serif)",
-            fontSize: "clamp(24px, 3.5vw, 34px)",
-            fontWeight: 700,
-            color: "#fff",
-            marginBottom: 16,
-            lineHeight: 1.35,
-          }}>
-            企業の発信を読む
-          </h1>
-          {/* Stats chips */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              {totalCount}件の発信
-            </span>
-            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)" }}>
-              note · YouTube · SNS · Podcast
-            </span>
-          </div>
-        </div>
-      </div>
 
       {/* Grid */}
       <div style={{ background: "var(--bg-tint)" }}>

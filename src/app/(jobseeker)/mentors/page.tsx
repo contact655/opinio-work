@@ -247,90 +247,12 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
   ]);
 
   const hasMentors = allMentors.length > 0;
-  // アバタープレビューは 5 名以上いるときのみ表示（1〜2名の重なりデザイン崩れ防止）
-  const hasEnoughMentorsForPreview = allMentors.length >= 5;
 
   // カテゴリ中、メンターが 1 名以上いるものだけ表示（0名カテゴリは ConsultationSection 内で null）
   const hasAnyCategory = categoriesWithMentors.some((c) => c.mentors.length > 0);
 
   return (
     <>
-      {/* ── Gradient hero header ── */}
-      <div style={{
-        background: "linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1e3a8a 100%)",
-        padding: "44px 0 40px",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        {/* Background decorations */}
-        <div style={{ position: "absolute", right: -100, top: -100, width: 480, height: 480, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", left: -60, bottom: -80, width: 320, height: 320, borderRadius: "50%", background: "rgba(255,255,255,0.025)", pointerEvents: "none" }} />
-
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "0 20px", textAlign: "center", position: "relative" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.65)", marginBottom: 12, textTransform: "uppercase" as const }}>
-            MENTORS
-          </div>
-
-          {/* Avatar stack */}
-          {hasEnoughMentorsForPreview && (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 0, marginBottom: 20 }}>
-              {allMentors.slice(0, 8).map((m, i) => (
-                <div key={m.id} style={{
-                  width: 42, height: 42, borderRadius: 12,
-                  background: m.gradient,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontSize: 14, fontWeight: 700,
-                  border: "2.5px solid rgba(255,255,255,0.9)",
-                  marginLeft: i === 0 ? 0 : -10,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
-                  position: "relative", zIndex: 10 - i,
-                }}>
-                  {m.initial}
-                </div>
-              ))}
-              {allMentors.length > 8 && (
-                <div style={{
-                  width: 42, height: 42, borderRadius: 12,
-                  background: "rgba(255,255,255,0.15)", border: "2.5px solid rgba(255,255,255,0.4)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.9)",
-                  marginLeft: -10, position: "relative", zIndex: 1,
-                }}>
-                  +{allMentors.length - 8}
-                </div>
-              )}
-            </div>
-          )}
-
-          <h1 style={{
-            fontFamily: "var(--font-noto-serif)",
-            fontSize: "clamp(24px, 3.5vw, 36px)", fontWeight: 700,
-            color: "#fff", margin: "0 0 12px", lineHeight: 1.4,
-          }}>
-            先輩に、相談する。
-          </h1>
-          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.8, marginBottom: 24 }}>
-            30分の無料相談 · OPINIO 編集部が最適な先輩をご紹介します
-          </p>
-
-          {/* Trust chips */}
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-            {["編集部が個別に声がけした厳選メンター", "申請フォームなし", "完全無料"].map((label) => (
-              <span key={label} style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.88)",
-                padding: "5px 13px", borderRadius: 999,
-                background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)",
-              }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* ── 相談の流れ（5ステップ） ── */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "32px 0" }}>

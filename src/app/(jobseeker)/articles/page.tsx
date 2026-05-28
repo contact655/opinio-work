@@ -225,18 +225,11 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
   const qParam    = typeof searchParams.q    === "string" ? searchParams.q    : undefined;
   const pageParam  = typeof searchParams.page === "string" ? Math.max(1, parseInt(searchParams.page, 10)) : 1;
 
-  const [allArticles, filteredArticles] = await Promise.all([
+  const [_allArticles, filteredArticles] = await Promise.all([
     getArticles(),
     getArticles({ type: typeParam, sort: sortParam, q: qParam }),
   ]);
 
-  // Stats per type
-  const counts = {
-    employee: allArticles.filter((a) => a.type === "employee").length,
-    mentor:   allArticles.filter((a) => a.type === "mentor").length,
-    ceo:      allArticles.filter((a) => a.type === "ceo").length,
-    report:   allArticles.filter((a) => a.type === "report").length,
-  };
 
   // Pagination (フィーチャー記事を除いたグリッド分を対象)
   const gridArticles = typeParam ? filteredArticles : filteredArticles.slice(1);
@@ -257,51 +250,6 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
         </div>
       </nav>
 
-      {/* Hero */}
-      <div style={{
-        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
-        padding: "44px 0 40px",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        {/* Decorative circles */}
-        <div style={{ position: "absolute", right: -60, top: -80, width: 360, height: 360, borderRadius: "50%", background: "rgba(59,95,217,0.1)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", left: -40, bottom: -60, width: 200, height: 200, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
-
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", position: "relative" }} className="px-5 md:px-12">
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.5)", marginBottom: 10, textTransform: "uppercase" }}>
-            ARTICLES
-          </div>
-          <h1 style={{
-            fontFamily: "var(--font-noto-serif)",
-            fontSize: "clamp(24px, 3.5vw, 34px)",
-            fontWeight: 700, color: "#fff",
-            marginBottom: 14, lineHeight: 1.35,
-          }}>
-            取材で、知る。
-          </h1>
-          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.72)", lineHeight: 1.85, marginBottom: 20, maxWidth: 500 }}>
-            IT/SaaS業界で働く人たちのリアルな声を、4つの視点でお届けします。
-          </p>
-
-          {/* Category chips */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {[
-              { label: `社員インタビュー ${counts.employee}件`, color: "#4ADE80", bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.3)" },
-              { label: `メンターの声 ${counts.mentor}件`,     color: "#FCD34D", bg: "rgba(252,211,77,0.15)", border: "rgba(252,211,77,0.3)" },
-              { label: `CEO・経営陣 ${counts.ceo}件`,         color: "#93C5FD", bg: "rgba(147,197,253,0.15)", border: "rgba(147,197,253,0.3)" },
-              { label: `取材レポート ${counts.report}件`,     color: "#C4B5FD", bg: "rgba(196,181,253,0.15)", border: "rgba(196,181,253,0.3)" },
-            ].map(({ label, color, bg, border }) => (
-              <span key={label} style={{
-                fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 100,
-                background: bg, color, border: `1px solid ${border}`,
-              }}>
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* Filter bar */}
       <Suspense fallback={<div style={{ height: 52, background: "#fff", borderBottom: "1px solid var(--line)" }} />}>
