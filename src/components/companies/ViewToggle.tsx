@@ -32,17 +32,6 @@ export function ViewToggle() {
 
   const options: { value: "genre" | "grid" | "list"; label: string; icon: React.ReactNode }[] = [
     {
-      value: "genre",
-      label: "ジャンル別",
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <rect x="2" y="5" width="4" height="14" rx="1"/>
-          <rect x="10" y="5" width="4" height="14" rx="1"/>
-          <rect x="18" y="5" width="4" height="14" rx="1"/>
-        </svg>
-      ),
-    },
-    {
       value: "grid",
       label: "コンパクト",
       icon: (
@@ -51,6 +40,17 @@ export function ViewToggle() {
           <rect x="14" y="3" width="7" height="7" rx="1"/>
           <rect x="3" y="14" width="7" height="7" rx="1"/>
           <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+      ),
+    },
+    {
+      value: "genre",
+      label: "ジャンル別",
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <rect x="2" y="5" width="4" height="14" rx="1"/>
+          <rect x="10" y="5" width="4" height="14" rx="1"/>
+          <rect x="18" y="5" width="4" height="14" rx="1"/>
         </svg>
       ),
     },
