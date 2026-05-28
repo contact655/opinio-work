@@ -39,6 +39,19 @@ function getPlaceholderColor(name: string) {
   return PLACEHOLDER_COLORS[hash % PLACEHOLDER_COLORS.length];
 }
 
+/** 法人名サフィックス除去（"Salesforce Japan Co., Ltd." → "Salesforce"） */
+function cleanEnName(nameEn: string | null | undefined): string | null {
+  if (!nameEn) return null;
+  const cleaned = nameEn
+    .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, '')
+    .replace(/\s+Co\.,?\s*Ltd\.?$/i, '')
+    .replace(/\s*,\s*Inc\.?$/i, '')
+    .replace(/\s+Inc\.?$/i, '')
+    .replace(/\s+Corp\.?$/i, '')
+    .trim();
+  return cleaned || null;
+}
+
 type Props = {
   company: CompanyForCarousel;
   members?: MemberPreview[];
@@ -106,6 +119,11 @@ export function CompanyCardList({ company, members }: Props) {
             <span className="clc-name" style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", transition: "color 0.15s" }}>
               {company.name}
             </span>
+            {cleanEnName(company.name_en) && (
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontWeight: 400 }}>
+                {cleanEnName(company.name_en)}
+              </span>
+            )}
             {company.industry && (
               <span style={{
                 fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 100,

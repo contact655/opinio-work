@@ -71,6 +71,19 @@ function getPlaceholderColor(name: string) {
   return PLACEHOLDER_COLORS[hash % PLACEHOLDER_COLORS.length];
 }
 
+/** 法人名サフィックス除去（"Salesforce Japan Co., Ltd." → "Salesforce"） */
+function cleanEnName(nameEn: string | null | undefined): string | null {
+  if (!nameEn) return null;
+  const cleaned = nameEn
+    .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, '')   // "Salesforce Japan Co., Ltd." → "Salesforce"
+    .replace(/\s+Co\.,?\s*Ltd\.?$/i, '')             // "〇〇 Co., Ltd." → "〇〇"
+    .replace(/\s*,\s*Inc\.?$/i, '')                  // "Timee, Inc." → "Timee"
+    .replace(/\s+Inc\.?$/i, '')                      // "AnyTrail Inc." → "AnyTrail"
+    .replace(/\s+Corp\.?$/i, '')
+    .trim();
+  return cleaned || null;
+}
+
 
 export function CompanyCardCompact({ company, compact, members }: Props) {
   const ph = getPlaceholderColor(company.name);
@@ -235,6 +248,11 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         }}>
           {company.name}
         </div>
+        {cleanEnName(company.name_en) && (
+          <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 1, letterSpacing: '0.02em', fontFamily: 'Inter, sans-serif', lineHeight: 1.3 }}>
+            {cleanEnName(company.name_en)}
+          </div>
+        )}
 
         {/* タグライン */}
         {company.tagline && (

@@ -20,6 +20,7 @@ export type Genre = {
 export type CompanyForCarousel = {
   id: string;
   name: string;
+  name_en?: string | null;             // 英語社名（ブランド表記用）
   tagline: string | null;              // 企業キャッチコピー（1行）
   industry: string | null;
   funding_stage: string | null;
