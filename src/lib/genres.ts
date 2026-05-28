@@ -12,7 +12,8 @@
 //   旧: 1(genres) + N×2(companies+jobs per genre) = N*2+1 クエリ
 //   新: 3クエリ（genres / company_genres一括 / jobs一括）
 
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createPublicClient } from "@/lib/supabase/public";
 import type { GenreWithCompanies, CompanyForCarousel } from "@/types/genre";
 
 /** カルーセル1行あたりの最大表示社数 */
@@ -25,8 +26,8 @@ const CAROUSEL_LIMIT = 9;
  */
 const PHASE_GENRE_SLUGS = ["early-stage", "ipo-ready"];
 
-export async function fetchGenresWithCompanies(): Promise<GenreWithCompanies[]> {
-  const supabase = createClient();
+async function _fetchGenresWithCompanies(): Promise<GenreWithCompanies[]> {
+  const supabase = createPublicClient();
 
   // ── Query 1: アクティブなジャンルを表示順で取得 ──────────────────────────────
   const { data: genres, error: genresError } = await supabase
@@ -111,3 +112,10 @@ export async function fetchGenresWithCompanies(): Promise<GenreWithCompanies[]> 
     };
   });
 }
+
+// 5分間キャッシュ（公開データ。企業追加後は自動で反映される）
+export const fetchGenresWithCompanies = unstable_cache(
+  _fetchGenresWithCompanies,
+  ["genres-with-companies"],
+  { revalidate: 300 }
+);

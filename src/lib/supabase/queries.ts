@@ -6,7 +6,9 @@
  * Articles: mock継続 (ow_articles テーブルなし)
  */
 
+import { unstable_cache } from "next/cache";
 import { createClient } from "./server";
+import { createPublicClient } from "./public";
 import type { Company, CompanyGenre, WorkStyle } from "@/app/companies/mockCompanies";
 import type { Job } from "@/app/jobs/mockJobData";
 import type {
@@ -510,32 +512,35 @@ const JOB_DETAIL_COLS = [
   "message_to_candidates", "what_youll_do_intro", "who_we_want_intro",
 ].join(", ");
 
-export async function getJobs(): Promise<{ jobs: Job[]; companies: Company[] }> {
-  const supabase = createClient();
+export const getJobs = unstable_cache(
+  async (): Promise<{ jobs: Job[]; companies: Company[] }> => {
+    const supabase = createPublicClient();
 
-  // dev: 全件表示（テスト用）/ prod: 公開済みのみ（active は migration 113 適用前の互換値）
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let jobQuery: any = supabase
-    .from("ow_jobs")
-    .select(JOB_LIST_COLS)
-    .order("updated_at", { ascending: false });
-  if (process.env.NODE_ENV !== "development") {
-    jobQuery = jobQuery.in("status", ["active", "published"]);
-  }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let jobQuery: any = supabase
+      .from("ow_jobs")
+      .select(JOB_LIST_COLS)
+      .order("updated_at", { ascending: false });
+    if (process.env.NODE_ENV !== "development") {
+      jobQuery = jobQuery.in("status", ["active", "published"]);
+    }
 
-  const [{ data: jobRows, error: jobErr }, { data: compRows }] = await Promise.all([
-    jobQuery,
-    supabase.from("ow_companies").select(COMPANY_LIST_COLS),
-  ]);
+    const [{ data: jobRows, error: jobErr }, { data: compRows }] = await Promise.all([
+      jobQuery,
+      supabase.from("ow_companies").select(COMPANY_LIST_COLS),
+    ]);
 
-  if (jobErr) console.error("[getJobs]", jobErr.message);
+    if (jobErr) console.error("[getJobs]", jobErr.message);
 
-  const companies = (compRows ?? []).map((row) => mapCompany(row));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const jobs = (jobRows ?? []).map((row: Record<string, any>) => mapJob(row));
+    const companies = (compRows ?? []).map((row) => mapCompany(row));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const jobs = (jobRows ?? []).map((row: Record<string, any>) => mapJob(row));
 
-  return { jobs, companies };
-}
+    return { jobs, companies };
+  },
+  ["jobs-list"],
+  { revalidate: 300 }
+);
 
 export async function getJobById(
   id: string
@@ -963,20 +968,24 @@ export type MentorFilter = {
   q?: string;
 };
 
+// 全メンターを一括取得してキャッシュ（フィルターはアプリ側で適用）
+const getAllMentorsCached = unstable_cache(
+  async (): Promise<MentorData[]> => {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("ow_mentors")
+      .select(MENTOR_COLS)
+      .order("display_order", { ascending: true });
+    if (error) { console.error("[getMentors]", error.message); return []; }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data ?? []).map((row: Record<string, any>) => mapMentor(row));
+  },
+  ["mentors-all"],
+  { revalidate: 300 }
+);
+
 export async function getMentors(filter?: MentorFilter): Promise<MentorData[]> {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("ow_mentors")
-    .select(MENTOR_COLS)
-    .order("display_order", { ascending: true });
-
-  if (error) {
-    console.error("[getMentors]", error.message);
-    return [];
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let rows = (data ?? []).map((row: Record<string, any>) => mapMentor(row));
+  let rows = await getAllMentorsCached();
 
   if (filter?.dept) {
     const dept = filter.dept;
@@ -997,7 +1006,7 @@ export async function getMentors(filter?: MentorFilter): Promise<MentorData[]> {
     );
   }
   if (filter?.sort === "sessions") {
-    rows = rows.sort((a, b) => (b.success_count ?? 0) - (a.success_count ?? 0));
+    rows = [...rows].sort((a, b) => (b.success_count ?? 0) - (a.success_count ?? 0));
   }
 
   return rows;
@@ -1074,39 +1083,36 @@ function mapDbArticle(row: Record<string, any>): Article {
 
 export type ArticleFilter = { type?: string; sort?: string; q?: string };
 
+// 全記事を一括取得してキャッシュ（フィルターはアプリ側で適用）
+const getAllArticlesCached = unstable_cache(
+  async (): Promise<Article[]> => {
+    const supabase = createPublicClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = supabase
+      .from("ow_articles")
+      .select(ARTICLE_LIST_COLS)
+      .order("published_at", { ascending: false });
+    if (process.env.NODE_ENV !== "development") {
+      query = query.eq("is_published", true);
+    }
+    const { data, error } = await query;
+    if (error) {
+      console.warn("[getArticles] falling back to mock:", error.message);
+      return [...MOCK_ARTICLES];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data ?? []).map((row: Record<string, any>) => mapDbArticle(row));
+  },
+  ["articles-all"],
+  { revalidate: 300 }
+);
+
 export async function getArticles(filter?: ArticleFilter): Promise<Article[]> {
-  const supabase = createClient();
+  let articles = await getAllArticlesCached();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query: any = supabase
-    .from("ow_articles")
-    .select(ARTICLE_LIST_COLS)
-    .order("published_at", { ascending: false });
-
-  if (process.env.NODE_ENV !== "development") {
-    query = query.eq("is_published", true);
-  }
   if (filter?.type && filter.type !== "all") {
-    query = query.eq("type", filter.type);
+    articles = articles.filter((a) => a.type === filter!.type);
   }
-
-  const { data, error } = await query;
-  if (error) {
-    // ow_articles テーブル未作成の場合は mock にフォールバック
-    console.warn("[getArticles] falling back to mock:", error.message);
-    let mockResult = [...MOCK_ARTICLES];
-    if (filter?.type && filter.type !== "all") {
-      mockResult = mockResult.filter((a) => a.type === filter!.type);
-    }
-    if (filter?.sort === "popular") {
-      mockResult = mockResult.sort((a, b) => b.read_min - a.read_min);
-    }
-    return mockResult;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let articles = (data ?? []).map((row: Record<string, any>) => mapDbArticle(row));
-
   if (filter?.q) {
     const q = filter.q.toLowerCase();
     articles = articles.filter((a: Article) =>
@@ -1116,7 +1122,7 @@ export async function getArticles(filter?: ArticleFilter): Promise<Article[]> {
     );
   }
   if (filter?.sort === "popular") {
-    articles = articles.sort((a: Article, b: Article) => b.read_min - a.read_min);
+    articles = [...articles].sort((a: Article, b: Article) => b.read_min - a.read_min);
   }
 
   return articles;

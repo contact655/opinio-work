@@ -14,7 +14,8 @@
 //   Phase 3: pgvector + embedding → embedding 類似度スコアを統合
 //   Phase 4: LLM によるクエリ解釈 → params を前処理してからこの関数へ渡す
 
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createPublicClient } from "@/lib/supabase/public";
 import type { CompanyForCarousel } from "@/types/genre";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────────
@@ -46,7 +47,7 @@ export type CompanySearchResult = {
 export async function searchCompanies(
   params: CompanySearchParams
 ): Promise<CompanySearchResult> {
-  const supabase = createClient();
+  const supabase = createPublicClient();
 
   // ── Step 1: Supabase クエリ（is_published=true + Supabase で処理可能な条件）
   let query = supabase
@@ -127,7 +128,7 @@ export async function searchCompanies(
 
 /** 公開企業の distinct industry リスト（ドロップダウン選択肢） */
 export async function fetchDistinctIndustries(): Promise<string[]> {
-  const supabase = createClient();
+  const supabase = createPublicClient();
   const { data } = await supabase
     .from("ow_companies")
     .select("industry")
@@ -157,22 +158,25 @@ const PREFECTURE_ORDER = [
   "熊本県","大分県","宮崎県","鹿児島県","沖縄県",
 ];
 
-/** 公開企業の distinct location リスト（北から南順） */
-export async function fetchDistinctLocations(): Promise<string[]> {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from("ow_companies")
-    .select("location")
-    .eq("is_published", true)
-    .not("location", "is", null);
+/** 公開企業の distinct location リスト（北から南順） — 5分間キャッシュ */
+export const fetchDistinctLocations = unstable_cache(
+  async (): Promise<string[]> => {
+    const supabase = createPublicClient();
+    const { data } = await supabase
+      .from("ow_companies")
+      .select("location")
+      .eq("is_published", true)
+      .not("location", "is", null);
 
-  const seen = new Set<string>();
-  for (const row of data ?? []) {
-    if (row.location) seen.add(row.location);
-  }
+    const seen = new Set<string>();
+    for (const row of data ?? []) {
+      if (row.location) seen.add(row.location);
+    }
 
-  // 北から南順でソート、リストにない値は末尾に追加
-  const ordered = PREFECTURE_ORDER.filter((p) => seen.has(p));
-  seen.forEach((p) => { if (!PREFECTURE_ORDER.includes(p)) ordered.push(p); });
-  return ordered;
-}
+    const ordered = PREFECTURE_ORDER.filter((p) => seen.has(p));
+    seen.forEach((p) => { if (!PREFECTURE_ORDER.includes(p)) ordered.push(p); });
+    return ordered;
+  },
+  ["distinct-locations"],
+  { revalidate: 300 }
+);
