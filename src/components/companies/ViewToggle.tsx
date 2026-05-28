@@ -8,8 +8,8 @@ export function ViewToggle() {
 
   const toggle = (view: "genre" | "grid" | "list") => {
     const params = new URLSearchParams(searchParams.toString());
-    if (view === "genre") {
-      params.delete("view");
+    if (view === "grid") {
+      params.delete("view"); // grid = デフォルト（パラメータなし）
     } else {
       params.set("view", view);
     }
