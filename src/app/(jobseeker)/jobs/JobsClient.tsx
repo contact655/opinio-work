@@ -939,15 +939,14 @@ export default function JobsClient({
           position: "sticky",
           top: 64,
           zIndex: 50,
-          background: "rgba(255,255,255,0.97)",
-          backdropFilter: "blur(8px)",
+          background: "#fff",
           borderBottom: "1px solid var(--line)",
-          boxShadow: filterBarScrolled ? "0 4px 12px rgba(0,35,102,0.07)" : "none",
-          transition: "box-shadow 0.2s ease",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+          padding: "8px 0 0",
         }}
       >
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-          <div style={{ padding: "12px 0 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-4">
+          <div style={{ padding: "4px 0 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
 
             {/* 検索インプット — 企業側と同スタイル */}
             <div
