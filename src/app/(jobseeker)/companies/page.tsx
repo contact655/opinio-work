@@ -132,7 +132,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
             </Suspense>
 
             {/* ── View toggle row ── */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 12 }}>
               <Suspense fallback={null}>
                 <ViewToggle />
               </Suspense>
