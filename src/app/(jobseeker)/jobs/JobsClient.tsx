@@ -931,6 +931,51 @@ export default function JobsClient({
     <>
       <h1 className="sr-only">求人を探す</h1>
 
+      {/* ── Page hero header ── */}
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
+        padding: "28px 0 24px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Decorative circles */}
+        <div style={{ position: "absolute", right: -60, top: -60, width: 280, height: 280, borderRadius: "50%", background: "rgba(59,95,217,0.12)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -40, bottom: -40, width: 180, height: 180, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", position: "relative" }} className="px-5 md:px-12">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.5)", marginBottom: 8, textTransform: "uppercase" as const }}>
+                JOBS
+              </div>
+              <h1 style={{
+                fontFamily: "var(--font-noto-serif)",
+                fontSize: "clamp(20px, 2.5vw, 26px)", fontWeight: 700,
+                color: "#fff", margin: "0 0 6px", lineHeight: 1.35,
+              }}>
+                IT/SaaS業界の求人を探す
+              </h1>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", margin: 0, lineHeight: 1.6 }}>
+                職種・年収・勤務形態で絞り込んで、自分にあった求人を見つけましょう
+              </p>
+            </div>
+            {/* Stats */}
+            <div style={{ display: "flex", gap: 0, background: "rgba(255,255,255,0.08)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)", overflow: "hidden", flexShrink: 0 }}>
+              {[
+                { value: String(allJobs.length), unit: "件", label: "公開求人" },
+              ].map((s) => (
+                <div key={s.label} style={{ padding: "12px 24px", textAlign: "center" as const }}>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 2 }}>
+                    <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "#fff" }}>{s.value}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#F59E0B" }}>{s.unit}</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 500, marginTop: 2 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ── コンパクトフィルターバー（1段） ── */}
       <div
         ref={filterBarRef}

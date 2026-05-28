@@ -581,24 +581,30 @@ function DiffStrip() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)" }}
           className="grid-cols-1 sm:grid-cols-3">
           {DIFFS.map((d, i) => (
-            <div key={i} style={{
-              display: "flex", alignItems: "flex-start", gap: 16,
-              padding: "32px 28px",
-              borderRight: i < 2 ? "1px solid var(--line)" : "none",
-            }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                background: d.bg,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 22,
+            <div key={i}
+              className="diff-strip-item"
+              style={{
+                display: "flex", alignItems: "flex-start", gap: 18,
+                padding: "36px 28px",
+                borderRight: i < 2 ? "1px solid var(--line)" : "none",
+                transition: "background 0.2s",
               }}>
+              <div
+                className="diff-icon"
+                style={{
+                  width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                  background: d.bg,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 24,
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                }}>
                 {d.icon}
               </div>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", marginBottom: 8, letterSpacing: "-0.01em" }}>
                   {d.title}
                 </div>
-                <div style={{ fontSize: 13, lineHeight: 1.7, color: "var(--ink-soft)" }}>
+                <div style={{ fontSize: 13, lineHeight: 1.75, color: "var(--ink-soft)" }}>
                   {d.desc}
                 </div>
               </div>
@@ -606,6 +612,13 @@ function DiffStrip() {
           ))}
         </div>
       </div>
+      <style>{`
+        .diff-strip-item:hover { background: var(--bg-tint); }
+        .diff-strip-item:hover .diff-icon {
+          transform: scale(1.1) translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0,0,0,0.10);
+        }
+      `}</style>
     </section>
   );
 }
@@ -765,43 +778,59 @@ function LogoStripSection() {
     <section style={{
       background: "#fff",
       borderBottom: "1px solid var(--line)",
-      padding: "20px 0",
+      padding: "16px 0",
+      overflow: "hidden",
     }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-5 md:px-12">
         <div style={{
-          fontSize: 11, fontWeight: 700, letterSpacing: "0.12em",
+          fontSize: 10, fontWeight: 700, letterSpacing: "0.14em",
           color: "var(--ink-mute)", textTransform: "uppercase" as const,
-          marginBottom: 12,
+          marginBottom: 12, display: "flex", alignItems: "center", gap: 8,
         }}>
-          掲載企業
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          編集部が取材・審査した掲載企業
         </div>
+      </div>
+
+      {/* Auto-scrolling marquee */}
+      <div style={{ overflow: "hidden", position: "relative" }}>
+        {/* Fade edges */}
         <div style={{
-          display: "flex",
-          gap: 12,
-          overflowX: "auto",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-        }}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          className="no-scrollbar"
+          position: "absolute", left: 0, top: 0, bottom: 0, width: 72,
+          background: "linear-gradient(to right, #fff 0%, transparent 100%)",
+          zIndex: 2, pointerEvents: "none",
+        }} />
+        <div style={{
+          position: "absolute", right: 0, top: 0, bottom: 0, width: 72,
+          background: "linear-gradient(to left, #fff 0%, transparent 100%)",
+          zIndex: 2, pointerEvents: "none",
+        }} />
+
+        <div
+          className="logo-marquee-track"
+          style={{ display: "flex", gap: 12, width: "max-content", paddingLeft: 24 }}
         >
-          {companies.map((c) => (
+          {/* Duplicate for seamless loop */}
+          {[...companies, ...companies].map((c, i) => (
             <Link
-              key={c.id}
+              key={i}
               href={`/companies/${c.id}`}
               style={{
                 flexShrink: 0,
-                width: 60,
-                height: 40,
-                borderRadius: 8,
+                width: 72,
+                height: 44,
+                borderRadius: 10,
                 overflow: "hidden",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 background: c.logoUrl ? "#f5f7fa" : c.gradient,
                 border: "1px solid var(--line)",
-                position: "relative",
                 textDecoration: "none",
+                transition: "opacity 0.15s, transform 0.15s",
               }}
               title={c.name}
             >
@@ -813,12 +842,7 @@ function LogoStripSection() {
                   style={{ width: "80%", height: "80%", objectFit: "contain" }}
                 />
               ) : (
-                <span style={{
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: "#fff",
-                  lineHeight: 1,
-                }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
                   {c.letter}
                 </span>
               )}
@@ -826,6 +850,22 @@ function LogoStripSection() {
           ))}
         </div>
       </div>
+
+      <style>{`
+        .logo-marquee-track {
+          animation: logoMarquee 30s linear infinite;
+        }
+        .logo-marquee-track:hover {
+          animation-play-state: paused;
+        }
+        @keyframes logoMarquee {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .logo-marquee-track { animation: none; overflow-x: auto; }
+        }
+      `}</style>
     </section>
   );
 }

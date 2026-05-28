@@ -4,6 +4,22 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
+function getCompanyGradient(str: string): string {
+  const gradients = [
+    "linear-gradient(135deg, #002366, #3B5FD9)",
+    "linear-gradient(135deg, #7C3AED, #A855F7)",
+    "linear-gradient(135deg, #059669, #10B981)",
+    "linear-gradient(135deg, #F59E0B, #FBBF24)",
+    "linear-gradient(135deg, #0EA5E9, #38BDF8)",
+    "linear-gradient(135deg, #D97706, #F59E0B)",
+    "linear-gradient(135deg, #7C3AED, #002366)",
+    "linear-gradient(135deg, #DC2626, #F87171)",
+  ];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  return gradients[Math.abs(hash) % gradients.length];
+}
+
 const STATUS_TABS = [
   { key: "all",       label: "すべて" },
   { key: "published", label: "公開中" },
@@ -111,16 +127,27 @@ export default function AdminCompaniesPage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", margin: 0 }}>企業管理</h1>
-          <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>企業管理</h1>
+            <span style={{
+              fontSize: 10, fontWeight: 800, letterSpacing: "0.1em",
+              background: "var(--error)", color: "#fff",
+              padding: "2px 7px", borderRadius: 4,
+            }}>ADMIN</span>
+          </div>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4 }}>
             登録企業の公開状態と基本情報を管理します
           </p>
         </div>
-        <div style={{ fontSize: 13, color: "#64748B" }}>
-          全 {companies.length} 社 ·{" "}
-          <span style={{ color: "#059669", fontWeight: 600 }}>
-            {companies.filter((c) => c.is_published).length} 社公開中
-          </span>
+        <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+          全{" "}
+          <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
+            {companies.length}
+          </strong>{" "}社 ·{" "}
+          <span style={{ color: "var(--success)", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>
+            {companies.filter((c) => c.is_published).length}
+          </span>{" "}
+          <span style={{ color: "var(--success)" }}>社公開中</span>
         </div>
       </div>
 
@@ -198,15 +225,15 @@ export default function AdminCompaniesPage() {
       </div>
 
       {/* Table */}
-      <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+      <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
-            <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+            <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
               {["企業名", "業界", "所在地", "従業員数", "求人数", "カジュアル面談", "公開状態", "更新日", "操作"].map((h) => (
                 <th key={h} scope="col" style={{
                   textAlign: "left", padding: "10px 14px",
-                  fontSize: 11, color: "#64748B", fontWeight: 600,
-                  letterSpacing: "0.04em", whiteSpace: "nowrap",
+                  fontSize: 11, color: "var(--ink-mute)", fontWeight: 700,
+                  letterSpacing: "0.05em", whiteSpace: "nowrap",
                 }}>
                   {h}
                 </th>
@@ -216,31 +243,55 @@ export default function AdminCompaniesPage() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: "center", padding: "48px 0", color: "#94A3B8", fontSize: 14 }}>
+                <td colSpan={9} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
+                  <div style={{ marginBottom: 8, fontSize: 28 }}>🏢</div>
                   企業が見つかりません
                 </td>
               </tr>
             ) : (
               filtered.map((c) => (
-                <tr key={c.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                <tr key={c.id} style={{ borderBottom: "1px solid var(--line-soft)" }} className="admin-row">
                   {/* 企業名 */}
-                  <td style={{ padding: "12px 14px", fontWeight: 600, color: "#0F172A" }}>
-                    <Link href={`/admin/companies/${c.id}`} style={{ color: "#002366", textDecoration: "none" }}>
-                      {c.name || "—"}
+                  <td style={{ padding: "10px 14px" }}>
+                    <Link
+                      href={`/admin/companies/${c.id}`}
+                      style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
+                    >
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                        background: getCompanyGradient(c.id),
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 13, fontWeight: 800, color: "#fff",
+                      }}>
+                        {(c.name || "?")[0]}
+                      </div>
+                      <span style={{ fontWeight: 600, color: "var(--royal)" }}>
+                        {c.name || "—"}
+                      </span>
                     </Link>
                   </td>
                   {/* 業界 */}
-                  <td style={{ padding: "12px 14px", color: "#475569" }}>{c.industry || "—"}</td>
+                  <td style={{ padding: "10px 14px", color: "var(--ink-soft)" }}>{c.industry || <span style={{ color: "var(--ink-mute)" }}>—</span>}</td>
                   {/* 所在地 */}
-                  <td style={{ padding: "12px 14px", color: "#475569" }}>{c.location || "—"}</td>
+                  <td style={{ padding: "10px 14px", color: "var(--ink-soft)" }}>{c.location || <span style={{ color: "var(--ink-mute)" }}>—</span>}</td>
                   {/* 従業員数 */}
-                  <td style={{ padding: "12px 14px", color: "#475569" }}>{c.employee_count || "—"}</td>
+                  <td style={{ padding: "10px 14px", color: "var(--ink-soft)" }}>{c.employee_count || <span style={{ color: "var(--ink-mute)" }}>—</span>}</td>
                   {/* 求人数 */}
-                  <td style={{ padding: "12px 14px", color: "#475569", fontFamily: "Inter, sans-serif" }}>
-                    {c.job_count ?? 0}
+                  <td style={{ padding: "10px 14px" }}>
+                    {(c.job_count ?? 0) > 0 ? (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100,
+                        background: "var(--royal-50)", color: "var(--royal)",
+                        fontFamily: "Inter, sans-serif",
+                      }}>
+                        {c.job_count}件
+                      </span>
+                    ) : (
+                      <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>—</span>
+                    )}
                   </td>
                   {/* カジュアル面談 */}
-                  <td style={{ padding: "12px 14px" }}>
+                  <td style={{ padding: "10px 14px" }}>
                     <span style={{
                       fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
                       background: c.accepting_casual_meetings ? "#ECFDF5" : "#F1F5F9",
@@ -250,7 +301,7 @@ export default function AdminCompaniesPage() {
                     </span>
                   </td>
                   {/* 公開状態 */}
-                  <td style={{ padding: "12px 14px" }}>
+                  <td style={{ padding: "10px 14px" }}>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
                       background: c.is_published ? "#ECFDF5" : "#F1F5F9",
@@ -261,11 +312,11 @@ export default function AdminCompaniesPage() {
                     </span>
                   </td>
                   {/* 更新日 */}
-                  <td style={{ padding: "12px 14px", color: "#94A3B8", fontSize: 11, whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "10px 14px", color: "var(--ink-mute)", fontSize: 11, whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
                     {new Date(c.updated_at).toLocaleDateString("ja-JP")}
                   </td>
                   {/* 操作 */}
-                  <td style={{ padding: "12px 14px" }}>
+                  <td style={{ padding: "10px 14px" }}>
                     <button
                       type="button"
                       onClick={() => handleTogglePublish(c)}
@@ -288,6 +339,11 @@ export default function AdminCompaniesPage() {
           </tbody>
         </table>
       </div>
+
+      <style>{`
+        .admin-row:hover { background: var(--bg-tint); }
+        .admin-row:last-child { border-bottom: none; }
+      `}</style>
     </div>
   );
 }

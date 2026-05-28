@@ -3811,13 +3811,14 @@ export default async function CompanyDetailPage({
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
           { id: "about",            label: "企業概要" },
-          ...((detail.fit_positives && detail.fit_positives.length > 0) || (detail.fit_negatives && detail.fit_negatives.length > 0) ? [{ id: "fit", label: "編集部の見立て" }] : []),
-          { id: "current-employees",label: employees.current.length > 0 ? `現役社員 ${employees.current.length}名` : "現役社員" },
+          ...(employees.current.length > 0 ? [{ id: "current-employees", label: `現役社員 ${employees.current.length}名` }] : [{ id: "current-employees", label: "現役社員" }]),
           ...(employees.alumni.length > 0 ? [{ id: "alumni", label: `OB/OG ${employees.alumni.length}名` }] : []),
-          ...(detail.company_features.length > 0 ? [{ id: "opinion", label: "特徴・評判" }] : []),
+          { id: "mentors",          label: "メンターに相談" },
+          ...((detail.fit_positives && detail.fit_positives.length > 0) || (detail.fit_negatives && detail.fit_negatives.length > 0) ? [{ id: "fit", label: "編集部の見立て" }] : []),
           { id: "jobs",             label: company.job_count > 0 ? `求人 ${company.job_count}件` : "求人" },
-          { id: "benefits",         label: "福利厚生" },
           { id: "work-style",       label: "働き方" },
+          { id: "benefits",         label: "福利厚生" },
+          ...(detail.company_features.length > 0 ? [{ id: "opinion", label: "特徴・評判" }] : []),
         ]} />
         <div
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
@@ -3831,32 +3832,31 @@ export default async function CompanyDetailPage({
               photos={photos}
             />
 
-            {/* 2. 企業の数値・働き方・福利厚生 */}
-            <NumbersSection numbers={detail.numbers} numbersUpdatedAt={detail.numbersUpdatedAt} />
-            <WorkStyleSection detail={detail} />
-            <BenefitsSection detail={detail} />
+            {/* 2. 現役社員・OBOGプロフィール（閲覧のみ・直接連絡不可） */}
+            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
+            {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
 
-            {/* 4. メンターCTA */}
-            <MentorCTAWidget />
+            {/* 3. メンターに相談する */}
+            <CompanyMentorsSection companyId={params.id} companyName={company.name} />
 
-            {/* 4. OPINIO編集部より */}
-            <OpinioOpinionCard detail={detail} />
+            {/* 4. 編集部の見立て */}
             <FitSection detail={detail} />
 
             {/* 5. 募集中の求人 */}
             <JobsSection company={company} detail={detail} />
 
-            {/* 6. 現役社員・OBOGプロフィール（閲覧のみ・直接連絡不可） */}
-            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
-            {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
+            {/* 6. 企業の数値・働き方・福利厚生 */}
+            <NumbersSection numbers={detail.numbers} numbersUpdatedAt={detail.numbersUpdatedAt} />
+            <WorkStyleSection detail={detail} />
+            <BenefitsSection detail={detail} />
 
-            {/* 6b. メンターに相談する */}
-            <CompanyMentorsSection companyId={params.id} companyName={company.name} />
+            {/* 7. OPINIO編集部より */}
+            <OpinioOpinionCard detail={detail} />
 
-            {/* 7. 特徴・評判 */}
+            {/* 8. 特徴・評判 */}
             <CompanyFeaturesSection company={company} detail={detail} />
 
-            {/* 8. 発信・記事・採用担当 */}
+            {/* 9. 発信・記事・採用担当 */}
             {posts.length > 0 && (
               <CompanyPostsSection
                 companyId={params.id}
@@ -3872,7 +3872,7 @@ export default async function CompanyDetailPage({
               <CompanyArticlesSection articles={companyArticles} />
             )}
 
-            {/* 9. 同じフェーズの企業 */}
+            {/* 10. 同じフェーズの企業 */}
             <SimilarCompanies currentId={params.id} phase={company.phase ?? null} />
           </main>
 

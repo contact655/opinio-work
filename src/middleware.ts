@@ -16,6 +16,9 @@ import { updateSession } from "@/lib/supabase/middleware";
  */
 const BIZ_PUBLIC_PATHS = ["/biz", "/biz/auth", "/biz/auth/signup", "/biz/auth/accept-invite"];
 
+// Agent portal: /agent/auth is public; other /agent/* pages handle auth themselves (redirect to /agent/auth)
+const AGENT_PUBLIC_PATHS = ["/agent/auth"];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -24,6 +27,12 @@ export async function middleware(request: NextRequest) {
 
   // BIZ_MOCK_MODE=true の場合は /biz/ 認証チェックをスキップ（dev 専用）
   if (process.env.BIZ_MOCK_MODE === "true") {
+    return response;
+  }
+
+  // Agent portal: /agent/auth is public; other /agent/* pages handle auth themselves
+  if (pathname.startsWith("/agent") && !AGENT_PUBLIC_PATHS.includes(pathname)) {
+    // Let the page components handle auth (they call createClient().auth.getUser() and redirect)
     return response;
   }
 

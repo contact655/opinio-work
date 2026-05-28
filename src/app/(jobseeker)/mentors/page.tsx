@@ -332,6 +332,57 @@ export default async function MentorsPage({ searchParams }: { searchParams: Sear
         </div>
       </div>
 
+      {/* ── 相談の流れ（5ステップ） ── */}
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "32px 0" }}>
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", textTransform: "uppercase" as const, marginBottom: 8 }}>
+              HOW IT WORKS
+            </div>
+            <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(16px, 2vw, 18px)", fontWeight: 700, color: "var(--ink)", margin: 0 }}>
+              申し込みから相談まで、5つのステップ
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 0, alignItems: "flex-start", overflowX: "auto", paddingBottom: 4 }}>
+            {[
+              { step: "1", icon: "📋", title: "相談を申し込む", desc: "フォームから気軽に申請。電話不要・完全オンライン" },
+              { step: "2", icon: "✅", title: "編集部が確認", desc: "OPINIO編集部がリクエストを精査し、最適な先輩を選びます" },
+              { step: "3", icon: "👋", title: "メンターが承認", desc: "先輩メンターが相談を受け入れ、日程調整の準備へ" },
+              { step: "4", icon: "📅", title: "日程調整", desc: "お互いの都合に合わせて、30分のビデオ通話を設定します" },
+              { step: "5", icon: "💬", title: "相談スタート", desc: "気になることを何でも。営業一切なし・完全無料です" },
+            ].map((s, i) => (
+              <div key={s.step} style={{ flex: "1 1 0", minWidth: 130, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "0 8px", position: "relative" }}>
+                {i > 0 && (
+                  <div style={{
+                    position: "absolute", left: 0, top: 22,
+                    width: "50%", height: 2,
+                    background: "linear-gradient(90deg, var(--royal-100), var(--royal-50))",
+                  }} />
+                )}
+                <div style={{
+                  width: 44, height: 44, borderRadius: "50%",
+                  background: "linear-gradient(135deg, var(--royal-50), #dce5f7)",
+                  border: "2px solid var(--royal-100)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 20, marginBottom: 10, position: "relative", zIndex: 1,
+                }}>
+                  {s.icon}
+                </div>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", color: "var(--royal)", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
+                  STEP {s.step}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 4, lineHeight: 1.4 }}>
+                  {s.title}
+                </div>
+                <div style={{ fontSize: 10.5, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+                  {s.desc}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* メンターが 1 名以上いる場合のみ [2][3] を表示 */}
       {hasMentors && (
         <>

@@ -66,43 +66,102 @@ function formatDate(iso?: string | null): string {
   }
 }
 
+// ─── Type icon emoji map ──────────────────────────────────────────────────────
+
+const TYPE_ICONS: Record<ContentType, string> = {
+  article: "📄",
+  video:   "🎬",
+  audio:   "🎙️",
+  social:  "💬",
+  event:   "🗓️",
+  other:   "🔗",
+};
+
 // ─── Empty state ─────────────────────────────────────────────────────────────
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", padding: "80px 20px", gap: 16,
+      justifyContent: "center", padding: "60px 20px", gap: 0,
       color: "var(--ink-mute)",
     }}>
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"
-        style={{ opacity: 0.35 }}>
-        <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2z"/>
-        <polyline points="17 21 17 13 7 13 7 21"/>
-        <polyline points="7 3 7 8 15 8"/>
-      </svg>
-      <div style={{ textAlign: "center" }}>
-        <p style={{ margin: "0 0 4px", fontSize: 14, color: "var(--ink-soft)", fontWeight: 600 }}>
-          発信リンクがありません
-        </p>
-        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>
-          記事・動画・イベントなど、自社の外部発信を登録しましょう
-        </p>
+      <div style={{
+        width: 64, height: 64, borderRadius: "50%",
+        background: "var(--royal-50)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        marginBottom: 20,
+      }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+          stroke="var(--royal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <line x1="10" y1="9" x2="8" y2="9"/>
+        </svg>
       </div>
+      <p style={{ margin: "0 0 6px", fontSize: 15, color: "var(--ink)", fontWeight: 700 }}>
+        まだ発信コンテンツがありません
+      </p>
+      <p style={{ margin: "0 0 28px", fontSize: 13, color: "var(--ink-mute)", textAlign: "center", lineHeight: 1.7 }}>
+        記事・動画・イベントなど、自社の外部発信を登録して<br/>企業ページをリッチにしましょう
+      </p>
+
+      {/* 3-step guide */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 0,
+        marginBottom: 28, flexWrap: "wrap", justifyContent: "center",
+      }}>
+        {[
+          { step: "1", icon: "🔗", label: "リンクを貼る" },
+          { step: "→", icon: null, label: null },
+          { step: "2", icon: "✨", label: "OGP 自動取得" },
+          { step: "→", icon: null, label: null },
+          { step: "3", icon: "🏢", label: "企業ページに反映" },
+        ].map((item, i) =>
+          item.label ? (
+            <div key={i} style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              padding: "12px 16px",
+              background: "#fff",
+              border: "1px solid var(--line)",
+              borderRadius: 10,
+              minWidth: 100,
+            }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: "50%",
+                background: "var(--royal-50)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 13, fontWeight: 700, color: "var(--royal)",
+                fontFamily: "'Inter', sans-serif",
+                marginBottom: 6,
+              }}>
+                {item.step}
+              </div>
+              <span style={{ fontSize: 13 }}>{item.icon}</span>
+              <span style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 600, marginTop: 4, whiteSpace: "nowrap" }}>{item.label}</span>
+            </div>
+          ) : (
+            <div key={i} style={{ padding: "0 8px", color: "var(--ink-mute)", fontSize: 16 }}>→</div>
+          )
+        )}
+      </div>
+
       <button
         type="button"
         onClick={onAdd}
         style={{
           display: "inline-flex", alignItems: "center", gap: 6,
-          padding: "8px 18px",
+          padding: "10px 22px",
           background: "var(--royal)", color: "#fff",
           border: "none", borderRadius: "var(--radius-md)",
           fontSize: 13, fontWeight: 600, cursor: "pointer",
+          boxShadow: "0 2px 8px rgba(0,35,102,0.25)",
         }}
       >
         <Plus size={15} strokeWidth={2.5} />
-        最初の発信を登録
+        最初の発信を登録する
       </button>
     </div>
   );
@@ -242,7 +301,6 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
     setPublishedAt(post.published_at ? post.published_at.split("T")[0] : "");
     setType(post.type as ContentType);
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // ─── 削除 ──
@@ -284,17 +342,26 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
       )}
       {/* ── ヘッダー ── */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 16 }}>
           <div>
-            <h1 style={{
-              margin: 0, fontSize: "var(--text-h3)", fontWeight: 700,
-              color: "var(--ink)", letterSpacing: "var(--tracking-tight)",
-              fontFamily: "'Noto Serif JP', serif",
-            }}>
-              発信リンク管理
-            </h1>
-            <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.5 }}>
-              {companyName} の外部発信コンテンツを管理します。記事・動画・イベントなどを登録してください。
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
+              <h1 style={{
+                margin: 0, fontSize: 22, fontWeight: 700,
+                color: "var(--ink)", letterSpacing: "-0.02em",
+                fontFamily: "'Noto Serif JP', serif",
+              }}>
+                外部発信
+              </h1>
+              <span style={{
+                fontSize: 13, fontWeight: 600, letterSpacing: "0.08em",
+                color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif",
+                textTransform: "uppercase",
+              }}>
+                Posts
+              </span>
+            </div>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+              記事・動画・イベントなど自社の発信コンテンツを登録して、企業ページをリッチにしましょう
             </p>
           </div>
           {!showForm && (
@@ -303,50 +370,111 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
               onClick={openNewForm}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
-                padding: "8px 16px",
+                padding: "9px 18px",
                 background: "var(--royal)", color: "#fff",
                 border: "none", borderRadius: "var(--radius-md)",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
                 transition: "background 0.15s",
+                boxShadow: "0 2px 6px rgba(0,35,102,0.2)",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#001233"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "var(--royal)"; }}
             >
               <Plus size={15} strokeWidth={2.5} />
-              新規追加
+              追加する
             </button>
           )}
         </div>
+
+        {/* Stats row */}
+        {posts.length > 0 && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+            padding: "10px 14px",
+            background: "#fff",
+            border: "1px solid var(--line)",
+            borderRadius: "var(--radius-md)",
+          }}>
+            <span style={{
+              fontSize: 13, fontWeight: 600, color: "var(--ink-soft)",
+              fontFamily: "'Inter', sans-serif",
+              paddingRight: 10,
+              borderRight: "1px solid var(--line)",
+              marginRight: 2,
+            }}>
+              合計 {posts.length} 件
+            </span>
+            {(Object.entries(TYPE_LABELS) as [ContentType, string][]).map(([t, label]) => {
+              const count = posts.filter((p) => p.type === t).length;
+              if (count === 0) return null;
+              const c = TYPE_COLORS[t];
+              return (
+                <span key={t} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "3px 9px", borderRadius: 100,
+                  fontSize: 11, fontWeight: 700,
+                  background: c.bg, color: c.color,
+                  fontFamily: "'Inter', sans-serif",
+                }}>
+                  {TYPE_ICONS[t]} {label} {count}件
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* ── 新規追加 / 編集フォーム ── */}
+      {/* ── 新規追加 / 編集フォーム（モーダル） ── */}
       {showForm && (
+        <div
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(15,23,42,0.45)",
+            zIndex: 500,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "20px",
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget && !isPending) closeForm(); }}
+        >
         <div style={{
           background: "#fff",
           border: "1px solid var(--line)",
-          borderRadius: "var(--radius-lg)",
-          padding: 24,
-          marginBottom: 24,
+          borderRadius: 16,
+          padding: 28,
+          width: "100%",
+          maxWidth: 600,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
-              {editingId ? "発信リンクを編集" : "新しい発信リンクを追加"}
-            </h2>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <div>
+              <h2 style={{ margin: "0 0 2px", fontSize: 17, fontWeight: 700, color: "var(--ink)", fontFamily: "'Noto Serif JP', serif" }}>
+                {editingId ? "発信リンクを編集" : "発信コンテンツを追加"}
+              </h2>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)" }}>
+                URL を入力して OGP を自動取得するか、手動で入力してください
+              </p>
+            </div>
             <button
               type="button"
               onClick={closeForm}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
-                width: 28, height: 28, borderRadius: "50%",
-                background: "transparent", border: "none", cursor: "pointer",
-                color: "var(--ink-mute)",
+                width: 32, height: 32, borderRadius: "50%",
+                background: "var(--line-soft)", border: "none", cursor: "pointer",
+                color: "var(--ink-mute)", flexShrink: 0, marginLeft: 12,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--line-soft)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--line)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "var(--line-soft)"; }}
             >
               <X size={16} strokeWidth={2} />
             </button>
           </div>
+
+          <div style={{
+            height: 1, background: "var(--line)", margin: "16px 0 20px",
+          }} />
 
           {/* URL + OGP 取得 */}
           <div style={{ marginBottom: 16 }}>
@@ -557,13 +685,16 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
           )}
 
           {/* アクションボタン */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end",
+            paddingTop: 16, borderTop: "1px solid var(--line)", marginTop: 4,
+          }}>
             <button
               type="button"
               onClick={closeForm}
               disabled={isPending}
               style={{
-                padding: "8px 16px",
+                padding: "9px 18px",
                 background: "transparent", color: "var(--ink-soft)",
                 border: "1px solid var(--line)", borderRadius: "var(--radius-md)",
                 fontSize: 13, fontWeight: 500, cursor: "pointer",
@@ -577,12 +708,13 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
               disabled={isPending || !url.trim() || !title.trim()}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 20px",
+                padding: "9px 22px",
                 background: isPending ? "var(--line)" : "var(--royal)", color: "#fff",
                 border: "none", borderRadius: "var(--radius-md)",
                 fontSize: 13, fontWeight: 600,
                 cursor: isPending ? "not-allowed" : "pointer",
                 transition: "background 0.15s",
+                boxShadow: isPending ? "none" : "0 2px 6px rgba(0,35,102,0.2)",
               }}
               onMouseEnter={(e) => { if (!isPending) e.currentTarget.style.background = "#001233"; }}
               onMouseLeave={(e) => { if (!isPending) e.currentTarget.style.background = "var(--royal)"; }}
@@ -594,6 +726,7 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
               )}
             </button>
           </div>
+        </div>
         </div>
       )}
 
@@ -612,12 +745,15 @@ export function PostsClient({ companyId, companyName, initialPosts }: Props) {
         }}>
           {/* 件数ヘッダー */}
           <div style={{
-            padding: "12px 20px",
+            padding: "11px 20px",
             borderBottom: "1px solid var(--line-soft)",
-            display: "flex", alignItems: "center", gap: 8,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
-            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
-              {posts.length} 件
+            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>
+              {posts.length} 件の発信コンテンツ
+            </span>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+              最新順
             </span>
           </div>
 
@@ -706,31 +842,35 @@ function PostCard({
         transition: "background 0.12s",
       }}
     >
-      {/* サムネイル */}
-      <div style={{
-        width: 96, height: 64, flexShrink: 0, borderRadius: "var(--radius-sm)",
-        background: "var(--line-soft)", overflow: "hidden",
-        display: "flex", alignItems: "center", justifyContent: "center",
-      }}>
-        {post.thumbnail_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={post.thumbnail_url}
-            alt=""
-            loading="lazy"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-          />
-        ) : (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-            style={{ opacity: 0.5 }}>
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21 15 16 10 5 21"/>
-          </svg>
-        )}
-      </div>
+      {/* サムネイル / タイプアイコン */}
+      {(() => {
+        const t = post.type as ContentType;
+        const c = TYPE_COLORS[t] ?? TYPE_COLORS.other;
+        return (
+          <div style={{
+            width: 80, height: 56, flexShrink: 0, borderRadius: 8,
+            overflow: "hidden",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: post.thumbnail_url ? "var(--line-soft)" : c.bg,
+            border: post.thumbnail_url ? "none" : `1px solid ${c.color}22`,
+          }}>
+            {post.thumbnail_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={post.thumbnail_url}
+                alt=""
+                loading="lazy"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : (
+              <span style={{ fontSize: 24, lineHeight: 1 }}>
+                {TYPE_ICONS[t] ?? "🔗"}
+              </span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 本文 */}
       <div style={{ flex: 1, minWidth: 0 }}>

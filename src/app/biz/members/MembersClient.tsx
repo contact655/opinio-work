@@ -775,19 +775,35 @@ function PendingInvitesSection({
         gap: 8,
         marginBottom: 12,
       }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-          招待中
-        </span>
-        <span style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 11,
-          fontWeight: 700,
-          padding: "1px 6px",
-          borderRadius: 100,
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "5px 12px 5px 10px",
           background: "var(--warm-soft)",
-          color: "var(--warm)",
+          border: "1px solid #F59E0B44",
+          borderRadius: 100,
         }}>
-          {invites.length}
+          {/* envelope + clock icon */}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--warm)", letterSpacing: "0.04em" }}>
+            招待中
+          </span>
+          <span style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 11,
+            fontWeight: 700,
+            padding: "0px 6px",
+            borderRadius: 100,
+            background: "var(--warm)",
+            color: "#fff",
+          }}>
+            {invites.length}
+          </span>
+        </div>
+        <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+          メールで招待済み・承認待ち
         </span>
       </div>
 
@@ -805,8 +821,9 @@ function PendingInvitesSection({
         </div>
       ) : (
         <div style={{
-          background: "#fff",
-          border: "1px solid var(--line)",
+          background: "#FFFBEB",
+          border: "1px solid #F59E0B44",
+          borderLeft: "3px solid var(--warm)",
           borderRadius: 12,
           overflow: "hidden",
         }}>
@@ -827,8 +844,8 @@ function PendingInvitesSection({
                   alignItems: "center",
                   gap: 14,
                   padding: "14px 20px",
-                  borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
-                  background: isExpired ? "var(--bg-tint)" : "#fff",
+                  borderBottom: isLast ? "none" : "1px solid #F59E0B22",
+                  background: isExpired ? "var(--bg-tint)" : "#FFFBEB",
                   opacity: isCancelling ? 0.5 : 1,
                 }}
               >
@@ -1160,21 +1177,30 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         display: "flex",
         justifyContent: "space-between",
         alignItems: "flex-start",
-        marginBottom: 20,
+        marginBottom: 16,
       }}>
         <div>
-          <h1 style={{
-            fontFamily: "var(--font-noto-serif)",
-            fontWeight: 500,
-            fontSize: 26,
-            color: "var(--ink)",
-            letterSpacing: "0.02em",
-            marginBottom: 6,
-          }}>
-            チーム管理
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-            自社の採用担当メンバーを管理します。
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
+            <h1 style={{
+              fontFamily: "'Noto Serif JP', serif",
+              fontWeight: 700,
+              fontSize: 22,
+              color: "var(--ink)",
+              letterSpacing: "-0.02em",
+              margin: 0,
+            }}>
+              チームメンバー
+            </h1>
+            <span style={{
+              fontSize: 13, fontWeight: 600, letterSpacing: "0.08em",
+              color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif",
+              textTransform: "uppercase",
+            }}>
+              Members
+            </span>
+          </div>
+          <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.6, margin: 0 }}>
+            採用担当メンバーを管理・招待します。現在 {activeMembers.length} 名がアクティブです。
           </p>
         </div>
         {isAdmin && (
@@ -1184,58 +1210,65 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 6,
-            padding: "10px 18px",
+            gap: 7,
+            padding: "9px 18px",
             background: "var(--royal)",
             color: "#fff",
-            border: "1px solid var(--royal)",
+            border: "none",
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 600,
             cursor: "pointer",
             flexShrink: 0,
             marginLeft: 24,
+            boxShadow: "0 2px 6px rgba(0,35,102,0.2)",
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
+          {/* Mail icon */}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
           </svg>
-          メンバーを追加
+          招待する
         </button>
         )}
       </div>
 
-      {/* ── Stats strip ─────────────────────────────────────────── */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+      {/* ── Inline stats summary bar ─────────────────────────────────────────── */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 0,
+        padding: "10px 16px",
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 10,
+        marginBottom: 20,
+        flexWrap: "wrap",
+        rowGap: 8,
+      }}>
         {[
-          { label: "アクティブ", value: activeMembers.length, color: "var(--royal)" },
-          { label: "管理者", value: adminCount, color: "var(--accent)" },
-          { label: "招待中", value: pendingInvites.length, color: "var(--warm)" },
-          { label: "無効化済み", value: inactiveMembers.length, color: "var(--ink-mute)" },
-        ].map(({ label, value, color }) => (
-          <div key={label} style={{
-            flex: 1,
-            padding: "14px 18px",
-            background: "#fff",
-            border: "1px solid var(--line)",
-            borderRadius: 10,
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-          }}>
-            <div style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 24,
-              fontWeight: 700,
-              color,
-              lineHeight: 1,
+          { label: "管理者", value: adminCount, bg: "var(--royal-50)", color: "var(--royal)" },
+          { label: "メンバー", value: activeMembers.length - adminCount, bg: "var(--line-soft)", color: "var(--ink-soft)" },
+          { label: "招待待ち", value: pendingInvites.length, bg: "var(--warm-soft)", color: "var(--warm)" },
+          { label: "無効化済み", value: inactiveMembers.length, bg: "var(--line-soft)", color: "var(--ink-mute)" },
+        ].map(({ label, value, bg, color }, i) => (
+          <div key={label} style={{ display: "flex", alignItems: "center" }}>
+            {i > 0 && (
+              <span style={{ margin: "0 12px", color: "var(--line)", fontSize: 16, fontWeight: 300 }}>·</span>
+            )}
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              fontSize: 12, color: "var(--ink-soft)", fontWeight: 500,
             }}>
-              {value}
-            </div>
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
+              <span style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 14, fontWeight: 700,
+                padding: "1px 7px", borderRadius: 100,
+                background: bg, color,
+              }}>
+                {value}
+              </span>
               {label}
-            </div>
+            </span>
           </div>
         ))}
       </div>

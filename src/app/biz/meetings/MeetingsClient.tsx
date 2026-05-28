@@ -269,6 +269,9 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
     : "";
   const currentMemoSaveState = selectedId ? (memoSaveStates[selectedId] ?? "idle") : "idle";
 
+  const pendingCount = counts["pending"] ?? 0;
+  const totalCount = meetings.length;
+
   const listPanel = (
     <>
       {/* パネルヘッダ */}
@@ -276,18 +279,63 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
         padding: "16px 20px 12px",
         borderBottom: "1px solid var(--line)",
         flexShrink: 0,
+        position: "relative",
       }}>
+        {/* Royal gradient accent line on left edge */}
+        <div style={{
+          position: "absolute",
+          left: 0, top: 0, bottom: 0,
+          width: 3,
+          background: "linear-gradient(180deg, var(--royal) 0%, var(--accent) 100%)",
+          borderRadius: "0 0 0 0",
+        }} />
+
         <div style={{
           fontFamily: "var(--font-noto-serif)",
           fontSize: 16, fontWeight: 600, color: "var(--ink)",
           display: "flex", alignItems: "center", gap: 8,
+          marginLeft: 8,
         }}>
           カジュアル面談
           <span style={{
             fontFamily: "'Inter', sans-serif",
             fontSize: 9, fontWeight: 700, letterSpacing: "0.15em",
             textTransform: "uppercase", color: "var(--ink-mute)",
-          }}>Meetings</span>
+            opacity: 0.7,
+          }}>MEETINGS</span>
+        </div>
+
+        {/* Stats bar */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          marginTop: 8, marginLeft: 8,
+        }}>
+          <span style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 11, color: "var(--ink-mute)",
+          }}>
+            合計 <strong style={{ color: "var(--ink)", fontWeight: 700 }}>{totalCount}</strong> 件
+          </span>
+          {pendingCount > 0 && (
+            <>
+              <span style={{ color: "var(--line)", fontSize: 11 }}>·</span>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "2px 8px", borderRadius: 100,
+                background: "#FEF3C7",
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 11, fontWeight: 700,
+                color: "#D97706",
+              }}>
+                <span style={{
+                  width: 5, height: 5, borderRadius: "50%",
+                  background: "#D97706", display: "inline-block",
+                  animation: "pulseDot 1.8s ease-in-out infinite",
+                }} />
+                未対応 {pendingCount} 件
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -307,14 +355,28 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
             isAllEmpty={meetings.length === 0 && activeStatus === "pending"}
           />
         ) : (
-          filtered.map((m) => (
-            <MeetingCard
-              key={m.id}
-              meeting={m}
-              isSelected={m.id === selectedId}
-              onClick={() => handleSelectMeeting(m.id)}
-            />
-          ))
+          <>
+            {filtered.map((m) => (
+              <MeetingCard
+                key={m.id}
+                meeting={m}
+                isSelected={m.id === selectedId}
+                onClick={() => handleSelectMeeting(m.id)}
+              />
+            ))}
+            {/* List footer */}
+            <div style={{
+              padding: "14px 0 18px",
+              textAlign: "center",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 11,
+              color: "var(--ink-mute)",
+              letterSpacing: "0.05em",
+              userSelect: "none",
+            }}>
+              ── 以上 {filtered.length} 件 ──
+            </div>
+          </>
         )}
       </div>
     </>

@@ -43,153 +43,645 @@ async function getStats() {
   };
 }
 
+const AVATAR_GRADIENTS = [
+  "linear-gradient(135deg, #002366, #3B5FD9)",
+  "linear-gradient(135deg, #7C3AED, #C4B5FD)",
+  "linear-gradient(135deg, #059669, #34D399)",
+  "linear-gradient(135deg, #F59E0B, #FCD34D)",
+  "linear-gradient(135deg, #DC2626, #FCA5A5)",
+];
+
 export default async function AdminDashboard() {
   const stats = await getStats();
+  const totalPending = stats.pendingJobsCount + stats.pendingMeetingsCount + stats.pendingReservationsCount;
+
+  const kpis = [
+    {
+      label: "登録ユーザー数",
+      sublabel: "Total Users",
+      value: stats.usersCount,
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      ),
+      iconBg: "#EFF3FC",
+      iconColor: "#002366",
+      accentBar: "#002366",
+      href: "/admin/candidates",
+    },
+    {
+      label: "公開中の企業数",
+      sublabel: "Active Companies",
+      value: stats.activeCompaniesCount,
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      ),
+      iconBg: "#ECFDF5",
+      iconColor: "#059669",
+      accentBar: "#059669",
+      href: "/admin/companies",
+    },
+    {
+      label: "公開中の求人数",
+      sublabel: "Active Jobs",
+      value: stats.activeJobsCount,
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
+        </svg>
+      ),
+      iconBg: "#F3E8FF",
+      iconColor: "#7C3AED",
+      accentBar: "#7C3AED",
+      href: "/admin/jobs",
+    },
+    {
+      label: "累計応募数",
+      sublabel: "Total Applications",
+      value: stats.totalApplicationsCount,
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+      ),
+      iconBg: "#FEF3C7",
+      iconColor: "#B45309",
+      accentBar: "#F59E0B",
+      href: "/admin/candidates",
+    },
+  ];
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-6">ダッシュボード</h1>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        {[
-          { label: "登録ユーザー数", value: stats.usersCount, color: "text-blue-600" },
-          { label: "公開中の企業数", value: stats.activeCompaniesCount, color: "text-green-600" },
-          { label: "公開中の求人数", value: stats.activeJobsCount, color: "text-purple-600" },
-          { label: "累計応募数", value: stats.totalApplicationsCount, color: "text-orange-500" },
-        ].map((kpi) => (
-          <div key={kpi.label} className="bg-white rounded-card p-5 border border-card-border">
-            <p className="text-xs text-gray-500 mb-1">{kpi.label}</p>
-            <p className={`text-3xl font-bold ${kpi.color}`}>{kpi.value}</p>
+    <div style={{ padding: "32px 36px", maxWidth: 1100, margin: "0 auto" }}>
+      {/* ── Header ── */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        marginBottom: 28,
+      }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <span style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 9, fontWeight: 800,
+              letterSpacing: "0.18em", textTransform: "uppercase",
+              background: "#DC2626", color: "#fff",
+              padding: "3px 8px", borderRadius: 4,
+            }}>ADMIN</span>
+            <h1 style={{
+              fontFamily: "var(--font-noto-serif, 'Noto Serif JP', serif)",
+              fontSize: 22, fontWeight: 600, color: "#0F172A",
+              margin: 0,
+            }}>ダッシュボード</h1>
           </div>
+          <p style={{ fontSize: 12, color: "#94A3B8", margin: 0 }}>
+            OPINIO 管理画面 — {new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "short" })}
+          </p>
+        </div>
+
+        {/* Pending tasks badge */}
+        {totalPending > 0 && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            background: "#FEF3C7", border: "1px solid #FCD34D",
+            borderRadius: 10, padding: "10px 16px",
+          }}>
+            <div style={{
+              width: 8, height: 8, borderRadius: "50%",
+              background: "#F59E0B",
+              boxShadow: "0 0 0 3px rgba(245,158,11,0.25)",
+            }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#92400E" }}>
+              要対応タスク {totalPending}件
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ── KPI Cards ── */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+        gap: 12, marginBottom: 24,
+      }}>
+        {kpis.map((kpi) => (
+          <Link key={kpi.label} href={kpi.href} style={{ textDecoration: "none", display: "block" }}>
+            <div
+              style={{
+                background: "#fff",
+                border: "1px solid #E2E8F0",
+                borderRadius: 14,
+                padding: "20px 22px 16px",
+                transition: "all 0.18s ease",
+                position: "relative",
+                overflow: "hidden",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLDivElement;
+                el.style.boxShadow = "0 6px 20px rgba(15,23,42,0.08)";
+                el.style.transform = "translateY(-2px)";
+                el.style.borderColor = "#DCE5F7";
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLDivElement;
+                el.style.boxShadow = "none";
+                el.style.transform = "none";
+                el.style.borderColor = "#E2E8F0";
+              }}
+            >
+              {/* Top accent bar */}
+              <div style={{
+                position: "absolute", top: 0, left: 0, right: 0,
+                height: 3, background: kpi.accentBar, borderRadius: "14px 14px 0 0",
+              }} />
+
+              {/* Icon + value */}
+              <div style={{
+                display: "flex", alignItems: "flex-start",
+                justifyContent: "space-between", marginBottom: 12,
+              }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  background: kpi.iconBg, color: kpi.iconColor,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {kpi.icon}
+                </div>
+                <div style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 34, fontWeight: 800, color: "#0F172A",
+                  lineHeight: 1, letterSpacing: "-0.02em",
+                }}>
+                  {kpi.value}
+                </div>
+              </div>
+
+              {/* Label */}
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#0F172A", marginBottom: 2 }}>
+                {kpi.label}
+              </div>
+              <div style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 9, fontWeight: 700,
+                color: "#94A3B8", letterSpacing: "0.14em", textTransform: "uppercase",
+                borderTop: "1px solid #F1F5F9", paddingTop: 8, marginTop: 8,
+              }}>
+                {kpi.sublabel} →
+              </div>
+            </div>
+          </Link>
         ))}
       </div>
 
-      {/* Action Tasks + Recent Users */}
-      <div className="grid grid-cols-2 gap-6 mb-8">
-        {/* Quick Actions */}
-        <div className="bg-white rounded-card p-5 border border-card-border">
-          <h2 className="text-sm font-bold mb-4">クイックアクション</h2>
-          <div className="space-y-2">
-            <Link href="/admin/invite" className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors">
-              <span className="text-base">✉</span>
-              <div>
-                <p className="text-sm font-medium text-blue-700">ユーザーを招待する</p>
-                <p className="text-xs text-blue-600">求職者・企業担当者をメール招待</p>
-              </div>
-            </Link>
-            <Link href="/api/admin/test-email?type=casual_meeting" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
-              <span className="text-base">🧪</span>
-              <div>
-                <p className="text-sm font-medium text-gray-700">メール送信テスト</p>
-                <p className="text-xs text-gray-500">/api/admin/test-email でメールテンプレートを確認</p>
-              </div>
-            </Link>
+      {/* ── Tasks + Quick Actions ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        {/* Pending Tasks */}
+        <div style={{
+          background: "#fff", border: "1px solid #E2E8F0",
+          borderRadius: 14, padding: "20px 22px",
+        }}>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid #F1F5F9",
+          }}>
+            <h2 style={{
+              fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0,
+              display: "flex", alignItems: "center", gap: 6,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              要対応タスク
+            </h2>
+            {totalPending > 0 && (
+              <span style={{
+                background: "#FEF3C7", color: "#92400E",
+                fontSize: 10, fontWeight: 700,
+                padding: "2px 8px", borderRadius: 100,
+              }}>
+                {totalPending}件
+              </span>
+            )}
           </div>
-        </div>
 
-        {/* Tasks */}
-        <div className="bg-white rounded-card p-5 border border-card-border">
-          <h2 className="text-sm font-bold mb-4">要対応タスク</h2>
-          <div className="space-y-2">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {stats.pendingJobsCount > 0 && (
-              <Link href="/admin/jobs" className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-100 hover:bg-yellow-100 transition-colors">
-                <span className="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-yellow-700">求人審査待ち</p>
-                  <p className="text-xs text-yellow-600">{stats.pendingJobsCount}件の求人審査が必要</p>
+              <Link href="/admin/jobs" style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "#FFFBEB", border: "1px solid #FDE68A",
+                  transition: "background 0.15s",
+                  cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#FEF3C7", color: "#B45309",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#92400E", margin: 0, marginBottom: 2 }}>求人審査待ち</p>
+                    <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>{stats.pendingJobsCount}件の求人審査が必要</p>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
                 </div>
               </Link>
             )}
+
             {stats.pendingMeetingsCount > 0 && (
-              <Link href="/admin/candidates" className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors">
-                <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-700">カジュアル面談 申込待ち</p>
-                  <p className="text-xs text-blue-600">{stats.pendingMeetingsCount}件</p>
+              <Link href="/admin/candidates" style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "#EFF3FC", border: "1px solid #DCE5F7",
+                  cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#DCE5F7", color: "#002366",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#002366", margin: 0, marginBottom: 2 }}>カジュアル面談 申込待ち</p>
+                    <p style={{ fontSize: 11, color: "#3B5FD9", margin: 0 }}>{stats.pendingMeetingsCount}件</p>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#002366" strokeWidth="2" strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
                 </div>
               </Link>
             )}
+
             {stats.pendingReservationsCount > 0 && (
-              <Link href="/admin/reservations" className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-100 hover:bg-purple-100 transition-colors">
-                <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-purple-700">メンター相談 転送待ち</p>
-                  <p className="text-xs text-purple-600">{stats.pendingReservationsCount}件</p>
+              <Link href="/admin/reservations" style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "#F3E8FF", border: "1px solid #E9D5FF",
+                  cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#E9D5FF", color: "#7C3AED",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#6D28D9", margin: 0, marginBottom: 2 }}>メンター相談 転送待ち</p>
+                    <p style={{ fontSize: 11, color: "#7C3AED", margin: 0 }}>{stats.pendingReservationsCount}件</p>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
                 </div>
               </Link>
             )}
-            {stats.pendingJobsCount === 0 && stats.pendingMeetingsCount === 0 && stats.pendingReservationsCount === 0 && (
-              <p className="text-sm text-gray-400 text-center py-4">対応が必要なタスクはありません</p>
+
+            {totalPending === 0 && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "16px 14px", borderRadius: 10,
+                background: "#ECFDF5", border: "1px solid #A7F3D0",
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
+                </svg>
+                <p style={{ fontSize: 13, color: "#065F46", fontWeight: 600, margin: 0 }}>
+                  対応が必要なタスクはありません
+                </p>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Recent Users */}
-        <div className="bg-white rounded-card p-5 border border-card-border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold">最近の登録ユーザー</h2>
-            <Link href="/admin/candidates" className="text-xs text-primary hover:underline">すべて見る →</Link>
+        {/* Quick Actions */}
+        <div style={{
+          background: "#fff", border: "1px solid #E2E8F0",
+          borderRadius: 14, padding: "20px 22px",
+        }}>
+          <h2 style={{
+            fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0,
+            marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid #F1F5F9",
+            display: "flex", alignItems: "center", gap: 6,
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3B5FD9" strokeWidth="2.5" strokeLinecap="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            クイックアクション
+          </h2>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Link href="/admin/invite" style={{ textDecoration: "none" }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "12px 14px", borderRadius: 10,
+                background: "#EFF3FC", border: "1px solid #DCE5F7",
+                cursor: "pointer", transition: "background 0.15s",
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 8,
+                  background: "#002366", color: "#fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#002366", margin: 0, marginBottom: 2 }}>ユーザーを招待する</p>
+                  <p style={{ fontSize: 11, color: "#475569", margin: 0 }}>求職者・企業担当者をメール招待</p>
+                </div>
+              </div>
+            </Link>
+
+            {[
+              { href: "/admin/companies", label: "企業を管理する", desc: "掲載企業の承認・編集", icon: "🏢" },
+              { href: "/admin/jobs", label: "求人を審査する", desc: "掲載求人のレビューと承認", icon: "📋" },
+              { href: "/admin/mentors", label: "メンターを管理する", desc: "メンター登録・承認", icon: "🎓" },
+              { href: "/admin/candidates", label: "候補者を確認する", desc: "登録ユーザーの一覧", icon: "👤" },
+            ].map(({ href, label, desc, icon }) => (
+              <Link key={href} href={href} style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "10px 14px", borderRadius: 10,
+                  border: "1px solid #F1F5F9",
+                  cursor: "pointer", transition: "background 0.15s, border-color 0.15s",
+                }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.background = "#F8FAFC";
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "#E2E8F0";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "#F1F5F9";
+                  }}
+                >
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#0F172A", margin: 0, marginBottom: 1 }}>{label}</p>
+                    <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>{desc}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
+        </div>
+      </div>
+
+      {/* ── Recent Users ── */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16,
+      }}>
+        <div style={{
+          background: "#fff", border: "1px solid #E2E8F0",
+          borderRadius: 14, padding: "20px 22px",
+        }}>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid #F1F5F9",
+          }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0 }}>最近の登録ユーザー</h2>
+            <Link href="/admin/candidates" style={{ fontSize: 11, color: "#002366", fontWeight: 600, textDecoration: "none" }}>
+              すべて見る →
+            </Link>
+          </div>
+
           {stats.recentUsers.length > 0 ? (
-            <div className="space-y-3">
-              {stats.recentUsers.map((u: any) => (
-                <div key={u.id} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {stats.recentUsers.map((u: any, i: number) => (
+                <div key={u.id} style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "8px 10px", borderRadius: 8,
+                  background: "#F8FAFC",
+                }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: "50%",
+                    background: AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length],
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 13, fontWeight: 700, color: "#fff",
+                    flexShrink: 0,
+                  }}>
                     {u.name?.[0] || "?"}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-medium truncate">{u.name || "未入力"}</p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: "#0F172A", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {u.name || "未入力"}
+                      </p>
                       {u.is_mentor && (
-                        <span className="text-[9px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full flex-shrink-0">メンター</span>
+                        <span style={{
+                          fontSize: 9, fontWeight: 700,
+                          background: "#F3E8FF", color: "#7C3AED",
+                          padding: "1px 6px", borderRadius: 100,
+                          flexShrink: 0,
+                        }}>メンター</span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                    <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {u.email}
+                    </p>
                   </div>
-                  <span className="text-[10px] text-gray-400 flex-shrink-0">{new Date(u.created_at).toLocaleDateString("ja-JP")}</span>
+                  <span style={{
+                    fontSize: 10, color: "#94A3B8", flexShrink: 0,
+                    fontFamily: "'Inter', sans-serif",
+                  }}>
+                    {new Date(u.created_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}
+                  </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-4">ユーザーはまだいません</p>
+            <p style={{ fontSize: 13, color: "#94A3B8", textAlign: "center", padding: "24px 0" }}>
+              ユーザーはまだいません
+            </p>
           )}
+        </div>
+
+        {/* Stats summary */}
+        <div style={{
+          background: "#fff", border: "1px solid #E2E8F0",
+          borderRadius: 14, padding: "20px 22px",
+        }}>
+          <h2 style={{
+            fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0,
+            marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid #F1F5F9",
+          }}>プラットフォーム概況</h2>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              {
+                label: "登録ユーザー",
+                value: stats.usersCount,
+                color: "#002366",
+                bg: "#EFF3FC",
+                bar: stats.usersCount,
+                max: Math.max(stats.usersCount, 1),
+              },
+              {
+                label: "公開中の企業",
+                value: stats.activeCompaniesCount,
+                color: "#059669",
+                bg: "#ECFDF5",
+                bar: stats.activeCompaniesCount,
+                max: Math.max(stats.usersCount, 1),
+              },
+              {
+                label: "公開中の求人",
+                value: stats.activeJobsCount,
+                color: "#7C3AED",
+                bg: "#F3E8FF",
+                bar: stats.activeJobsCount,
+                max: Math.max(stats.usersCount, 1),
+              },
+              {
+                label: "累計応募数",
+                value: stats.totalApplicationsCount,
+                color: "#B45309",
+                bg: "#FEF3C7",
+                bar: stats.totalApplicationsCount,
+                max: Math.max(stats.usersCount, 1),
+              },
+            ].map(({ label, value, color, bg, bar, max }) => (
+              <div key={label}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: "#475569", fontWeight: 500 }}>{label}</span>
+                  <span style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: 14, fontWeight: 700, color,
+                  }}>{value}</span>
+                </div>
+                <div style={{
+                  height: 6, borderRadius: 3,
+                  background: "#F1F5F9", overflow: "hidden",
+                }}>
+                  <div style={{
+                    height: "100%",
+                    width: `${Math.min(100, (bar / max) * 100)}%`,
+                    background: color,
+                    borderRadius: 3,
+                    transition: "width 0.5s ease",
+                    minWidth: value > 0 ? 8 : 0,
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            marginTop: 20, paddingTop: 14, borderTop: "1px solid #F1F5F9",
+            display: "flex", flexDirection: "column", gap: 6,
+          }}>
+            <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
+              審査待ち求人: <strong style={{ color: stats.pendingJobsCount > 0 ? "#B45309" : "#059669" }}>
+                {stats.pendingJobsCount}件
+              </strong>
+            </p>
+            <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
+              面談申込待ち: <strong style={{ color: stats.pendingMeetingsCount > 0 ? "#002366" : "#059669" }}>
+                {stats.pendingMeetingsCount}件
+              </strong>
+            </p>
+            <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
+              メンター相談転送待ち: <strong style={{ color: stats.pendingReservationsCount > 0 ? "#7C3AED" : "#059669" }}>
+                {stats.pendingReservationsCount}件
+              </strong>
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Recent Companies */}
-      <div className="bg-white rounded-card p-5 border border-card-border">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold">企業一覧</h2>
-          <Link href="/admin/companies" className="text-xs text-primary hover:underline">すべて見る →</Link>
+      {/* ── Recent Companies Table ── */}
+      <div style={{
+        background: "#fff", border: "1px solid #E2E8F0",
+        borderRadius: 14, padding: "20px 22px",
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid #F1F5F9",
+        }}>
+          <h2 style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0 }}>企業一覧</h2>
+          <Link href="/admin/companies" style={{ fontSize: 11, color: "#002366", fontWeight: 600, textDecoration: "none" }}>
+            すべて見る →
+          </Link>
         </div>
+
         {stats.recentCompanies.length > 0 ? (
-          <table className="w-full text-sm">
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
-              <tr className="border-b border-gray-100">
-                <th scope="col" className="text-left py-2 text-xs text-gray-400 font-medium">企業名</th>
-                <th scope="col" className="text-left py-2 text-xs text-gray-400 font-medium">業界</th>
-                <th scope="col" className="text-left py-2 text-xs text-gray-400 font-medium">ステータス</th>
-                <th scope="col" className="text-left py-2 text-xs text-gray-400 font-medium">登録日</th>
+              <tr>
+                {["企業名", "業界", "ステータス", "登録日"].map((h) => (
+                  <th key={h} style={{
+                    textAlign: "left", padding: "6px 10px",
+                    fontSize: 10, fontWeight: 700, color: "#94A3B8",
+                    letterSpacing: "0.06em", textTransform: "uppercase",
+                    borderBottom: "1px solid #F1F5F9",
+                  }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {stats.recentCompanies.map((c: any) => (
-                <tr key={c.id} className="border-b border-gray-50">
-                  <td className="py-2.5 font-medium">{c.name}</td>
-                  <td className="py-2.5 text-gray-500">{c.industry || "-"}</td>
-                  <td className="py-2.5">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      c.is_published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                    }`}>{c.is_published ? "公開中" : "非公開"}</span>
+                <tr key={c.id} style={{ borderBottom: "1px solid #F8FAFC" }}>
+                  <td style={{ padding: "10px 10px", fontWeight: 600, color: "#0F172A" }}>
+                    <Link href={`/admin/companies`} style={{ textDecoration: "none", color: "inherit" }}>
+                      {c.name}
+                    </Link>
                   </td>
-                  <td className="py-2.5 text-gray-400">{new Date(c.created_at).toLocaleDateString("ja-JP")}</td>
+                  <td style={{ padding: "10px 10px", color: "#475569" }}>{c.industry || "—"}</td>
+                  <td style={{ padding: "10px 10px" }}>
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "3px 10px", borderRadius: 100, fontSize: 11, fontWeight: 600,
+                      background: c.is_published ? "#ECFDF5" : "#F8FAFC",
+                      color: c.is_published ? "#059669" : "#94A3B8",
+                      border: `1px solid ${c.is_published ? "#A7F3D0" : "#E2E8F0"}`,
+                    }}>
+                      <span style={{
+                        width: 5, height: 5, borderRadius: "50%",
+                        background: c.is_published ? "#059669" : "#94A3B8",
+                      }} />
+                      {c.is_published ? "公開中" : "非公開"}
+                    </span>
+                  </td>
+                  <td style={{
+                    padding: "10px 10px", color: "#94A3B8",
+                    fontFamily: "'Inter', sans-serif", fontSize: 12,
+                  }}>
+                    {new Date(c.created_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" })}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-          <p className="text-sm text-gray-400 text-center py-4">企業はまだ登録されていません</p>
+          <p style={{ fontSize: 13, color: "#94A3B8", textAlign: "center", padding: "24px 0" }}>
+            企業はまだ登録されていません
+          </p>
         )}
       </div>
     </div>

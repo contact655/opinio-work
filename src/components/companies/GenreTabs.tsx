@@ -64,16 +64,11 @@ function GenreSectionHeader({ genre }: { genre: GenreWithCompanies }) {
       marginBottom: 18,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {/* アイコン付きカラーバー */}
+        {/* カラーアクセントバー */}
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "center",
-          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-          background: cfg.bg,
-          border: `1px solid ${cfg.color}22`,
-          fontSize: 16,
-        }}>
-          {cfg.icon}
-        </div>
+          width: 4, height: 22, borderRadius: 2, flexShrink: 0,
+          background: cfg.activeBg,
+        }} />
         <span style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>
           {genre.name}
         </span>
@@ -121,21 +116,15 @@ export function GenreTabs({ genres }: Props) {
     .map((slug) => genreBySlug.get(slug))
     .filter((g): g is GenreWithCompanies => g !== undefined);
 
-  // 業種タブ: INDUSTRY_SLUGS 順でDBに存在するもの
-  const industryGenres = INDUSTRY_SLUGS
-    .map((slug) => genreBySlug.get(slug))
-    .filter((g): g is GenreWithCompanies => g !== undefined);
-
-  // コンテンツ表示用: 特徴+業種の順（レガシージャンルは除外）
-  const allDisplayGenres = [...featureGenres, ...industryGenres];
+  // コンテンツ表示用: 特徴ジャンルのみ（業種は除外）
+  const allDisplayGenres = [...featureGenres];
 
   const selectedGenres = activeIds.length > 0
     ? allDisplayGenres.filter((g) => activeIds.includes(g.id))
     : allDisplayGenres;
 
-  // いずれかのタブ行でも表示するジャンルがあれば render
+  // 特徴ジャンルが存在するかチェック
   const hasFeature = featureGenres.length > 0;
-  const hasIndustry = industryGenres.length > 0;
 
   const renderTabRow = (rowGenres: GenreWithCompanies[]) =>
     rowGenres.map((genre) => {
@@ -160,7 +149,6 @@ export function GenreTabs({ genres }: Props) {
             color: cfg.color,
           }}
         >
-          <span style={{ fontSize: 14, lineHeight: 1 }}>{cfg.icon}</span>
           {genre.name}
           <span className="genre-tab-count">{genre.total_count}</span>
         </button>
@@ -261,16 +249,6 @@ export function GenreTabs({ genres }: Props) {
             <div className="genre-section-label">特徴</div>
             <div className="genre-tab-bar" role="tablist" aria-label="特徴で絞る">
               {renderTabRow(featureGenres)}
-            </div>
-          </div>
-        )}
-
-        {/* 業種タブ行 */}
-        {hasIndustry && (
-          <div style={{ marginBottom: 0 }}>
-            <div className="genre-section-label">業種</div>
-            <div className="genre-tab-bar" role="tablist" aria-label="業種で絞る">
-              {renderTabRow(industryGenres)}
             </div>
           </div>
         )}

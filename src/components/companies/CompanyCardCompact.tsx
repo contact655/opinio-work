@@ -34,6 +34,28 @@ type Props = {
   members?: MemberPreview[];
 };
 
+// ── Bookmark fetch deduplication ─────────────────────────────────────────────
+// 同一ページの複数カードが同じAPIを叩かないように、module-level Promise キャッシュを使う
+type BookmarkCache = { ids: Set<string>; expiresAt: number };
+let _bookmarkPromise: Promise<BookmarkCache> | null = null;
+
+function fetchCompanyBookmarks(): Promise<BookmarkCache> {
+  const now = Date.now();
+  if (_bookmarkPromise) return _bookmarkPromise;
+  _bookmarkPromise = fetch('/api/bookmarks?target_type=company')
+    .then((r) => {
+      if (r.status === 401) return { ids: new Set<string>(), expiresAt: now + 60_000 };
+      return r.json().then((d) => ({
+        ids: new Set<string>(Array.isArray(d.ids) ? d.ids : []),
+        expiresAt: now + 60_000,
+      }));
+    })
+    .catch(() => ({ ids: new Set<string>(), expiresAt: now + 60_000 }));
+  // 60秒後にキャッシュをクリア
+  setTimeout(() => { _bookmarkPromise = null; }, 60_000);
+  return _bookmarkPromise;
+}
+
 // モックと同じ6色パステル（企業名のハッシュで決定論的に選択）
 const PLACEHOLDER_COLORS = [
   { bg: '#d4f0e3', text: '#1f7a48' }, // green
@@ -58,17 +80,9 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
   const bookmarkingRef = useRef(false);
 
   useEffect(() => {
-    fetch('/api/bookmarks?target_type=company')
-      .then((r) => {
-        if (r.status === 401) return null;
-        return r.json();
-      })
-      .then((d) => {
-        if (d && Array.isArray(d.ids)) {
-          setBookmarked(d.ids.includes(company.id));
-        }
-      })
-      .catch(() => {/* ignore */});
+    fetchCompanyBookmarks().then((cache) => {
+      setBookmarked(cache.ids.has(company.id));
+    });
   }, [company.id]);
 
   const handleBookmark = useCallback(async () => {

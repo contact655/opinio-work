@@ -1,6 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUserAge } from "@/lib/age";
 
+/** Deterministic gradient from a string (same pattern used elsewhere in the app) */
+function getAvatarGradient(str: string): string {
+  const gradients = [
+    "linear-gradient(135deg, #002366, #3B5FD9)",
+    "linear-gradient(135deg, #7C3AED, #A855F7)",
+    "linear-gradient(135deg, #059669, #10B981)",
+    "linear-gradient(135deg, #F59E0B, #FBBF24)",
+    "linear-gradient(135deg, #DC2626, #F87171)",
+    "linear-gradient(135deg, #0EA5E9, #38BDF8)",
+    "linear-gradient(135deg, #D97706, #F59E0B)",
+    "linear-gradient(135deg, #7C3AED, #002366)",
+  ];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  return gradients[Math.abs(hash) % gradients.length];
+}
+
 async function getUsers(query?: string) {
   const supabase = createClient();
   let q = supabase
@@ -22,79 +39,195 @@ export default async function AdminCandidatesPage({
   searchParams: { q?: string };
 }) {
   const users = await getUsers(searchParams.q);
+  const mentorCount = users.filter((u: any) => u.is_mentor).length;
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">候補者管理</h1>
-        <span className="text-sm text-gray-500">{users.length}名</span>
+    <div style={{ padding: 32 }}>
+      {/* ── Header ────────────────────────────────────────────────── */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
+            候補者管理
+          </h1>
+          <span style={{
+            fontSize: 10, fontWeight: 800, letterSpacing: "0.1em",
+            background: "var(--error)", color: "#fff",
+            padding: "2px 7px", borderRadius: 4,
+          }}>
+            ADMIN
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 6 }}>
+          <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+            登録ユーザー{" "}
+            <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
+              {users.length}
+            </strong>{" "}名
+          </span>
+          {mentorCount > 0 && (
+            <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+              うちメンター{" "}
+              <strong style={{ color: "#7C3AED", fontFamily: "Inter, sans-serif" }}>
+                {mentorCount}
+              </strong>{" "}名
+            </span>
+          )}
+          {searchParams.q && (
+            <span style={{
+              fontSize: 12, padding: "2px 10px", borderRadius: 100,
+              background: "var(--royal-50)", color: "var(--royal)",
+              fontWeight: 600,
+            }}>
+              「{searchParams.q}」の検索結果
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Search */}
-      <form action="/admin/candidates" method="GET" className="mb-6">
-        <input
-          type="search"
-          name="q"
-          defaultValue={searchParams.q}
-          placeholder="名前・メール・所在地で検索..."
-          aria-label="候補者を検索"
-          className="w-full max-w-md px-4 py-2.5 bg-white border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+      {/* ── Search ────────────────────────────────────────────────── */}
+      <form action="/admin/candidates" method="GET" style={{ marginBottom: 24 }}>
+        <div style={{ position: "relative", maxWidth: 440 }}>
+          <svg
+            style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+            width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="search"
+            name="q"
+            defaultValue={searchParams.q}
+            placeholder="名前・メール・所在地で検索..."
+            aria-label="候補者を検索"
+            style={{
+              width: "100%", padding: "9px 16px 9px 36px",
+              border: "1.5px solid var(--line)", borderRadius: 8,
+              fontSize: 13, color: "var(--ink)", background: "#fff",
+              outline: "none", boxSizing: "border-box", fontFamily: "inherit",
+            }}
+          />
+        </div>
       </form>
 
-      {/* Table */}
-      <div className="bg-white rounded-card border border-card-border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">名前</th>
-              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">メール</th>
-              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">居住地</th>
-              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">年代</th>
-              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">公開設定</th>
-              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">メンター</th>
-              <th scope="col" className="text-left px-4 py-3 text-xs text-gray-500 font-medium">登録日</th>
+      {/* ── Table ─────────────────────────────────────────────────── */}
+      <div style={{
+        background: "#fff", borderRadius: 12,
+        border: "1px solid var(--line)", overflow: "hidden",
+      }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
+              {["名前", "メール", "居住地", "年代", "公開設定", "メンター", "登録日"].map((h) => (
+                <th
+                  key={h}
+                  scope="col"
+                  style={{
+                    textAlign: "left", padding: "10px 14px",
+                    fontSize: 11, color: "var(--ink-mute)", fontWeight: 700,
+                    letterSpacing: "0.05em", whiteSpace: "nowrap",
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-gray-400">
+                <td
+                  colSpan={7}
+                  style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}
+                >
+                  <div style={{ marginBottom: 8, fontSize: 28 }}>👤</div>
                   ユーザーが見つかりません
                 </td>
               </tr>
             ) : (
               users.map((u: any) => (
-                <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <a href={`/u/${u.id}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:underline group">
-                      <div className="w-7 h-7 rounded-full bg-primary-light flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
-                        {u.name?.[0] || "?"}
+                <tr
+                  key={u.id}
+                  style={{ borderBottom: "1px solid var(--line-soft)" }}
+                  className="admin-row"
+                >
+                  {/* 名前 */}
+                  <td style={{ padding: "11px 14px" }}>
+                    <a
+                      href={`/u/${u.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        textDecoration: "none", color: "inherit",
+                      }}
+                    >
+                      {/* Avatar */}
+                      <div style={{
+                        width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                        background: getAvatarGradient(u.id || u.name || ""),
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 12, fontWeight: 700, color: "#fff",
+                        letterSpacing: "0.02em",
+                      }}>
+                        {u.name?.[0]?.toUpperCase() || "?"}
                       </div>
-                      <span className="font-medium group-hover:text-primary">{u.name || "未入力"}</span>
+                      <span style={{ fontWeight: 600, color: "var(--royal)" }}>
+                        {u.name || "未入力"}
+                      </span>
                     </a>
                   </td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{u.email}</td>
-                  <td className="px-4 py-3 text-gray-600">{u.location || "-"}</td>
-                  <td className="px-4 py-3 text-gray-600">{u.birth_date ? `${getUserAge(u.birth_date)}歳` : "-"}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      u.visibility === "public" ? "bg-green-100 text-green-700" :
-                      u.visibility === "login_only" ? "bg-blue-100 text-blue-700" :
-                      "bg-gray-100 text-gray-500"
-                    }`}>
-                      {u.visibility === "public" ? "公開" :
-                       u.visibility === "login_only" ? "ログイン限定" : "非公開"}
-                    </span>
+                  {/* メール */}
+                  <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontSize: 12 }}>
+                    {u.email}
                   </td>
-                  <td className="px-4 py-3">
-                    {u.is_mentor ? (
-                      <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">メンター</span>
+                  {/* 居住地 */}
+                  <td style={{ padding: "11px 14px", color: "var(--ink-soft)" }}>
+                    {u.location || <span style={{ color: "var(--ink-mute)" }}>—</span>}
+                  </td>
+                  {/* 年代 */}
+                  <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
+                    {u.birth_date
+                      ? `${getUserAge(u.birth_date)}歳`
+                      : <span style={{ color: "var(--ink-mute)" }}>—</span>}
+                  </td>
+                  {/* 公開設定 */}
+                  <td style={{ padding: "11px 14px" }}>
+                    {u.visibility === "public" ? (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100,
+                        background: "var(--success-soft)", color: "var(--success)",
+                        border: "1px solid #A7F3D0",
+                      }}>公開</span>
+                    ) : u.visibility === "login_only" ? (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100,
+                        background: "var(--royal-50)", color: "var(--royal)",
+                        border: "1px solid var(--royal-100)",
+                      }}>ログイン限定</span>
                     ) : (
-                      <span className="text-gray-300 text-xs">—</span>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100,
+                        background: "var(--line-soft)", color: "var(--ink-mute)",
+                        border: "1px solid var(--line)",
+                      }}>非公開</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">
+                  {/* メンター */}
+                  <td style={{ padding: "11px 14px" }}>
+                    {u.is_mentor ? (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100,
+                        background: "var(--purple-soft)", color: "var(--purple)",
+                        border: "1px solid #DDD6FE",
+                      }}>メンター</span>
+                    ) : (
+                      <span style={{ color: "var(--ink-mute)", fontSize: 13 }}>—</span>
+                    )}
+                  </td>
+                  {/* 登録日 */}
+                  <td style={{ padding: "11px 14px", color: "var(--ink-mute)", fontSize: 11, whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
                     {new Date(u.created_at).toLocaleDateString("ja-JP")}
                   </td>
                 </tr>
@@ -103,6 +236,11 @@ export default async function AdminCandidatesPage({
           </tbody>
         </table>
       </div>
+
+      <style>{`
+        .admin-row:hover { background: var(--bg-tint); }
+        .admin-row:last-child { border-bottom: none; }
+      `}</style>
     </div>
   );
 }

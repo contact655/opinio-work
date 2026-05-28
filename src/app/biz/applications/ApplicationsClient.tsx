@@ -214,31 +214,92 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
   }
 
   // ─── Layout ───────────────────────────────────────────────────────────────
+  const totalApplications = applications.length;
+  const pendingApplications = counts["pending"] ?? 0;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0, height: "100%" }}>
-      <style>{`.app-row:hover { background: var(--bg-tint) !important; outline-color: var(--royal-100) !important; }`}</style>
+      <style>{`
+        .app-row:hover { background: var(--bg-tint) !important; outline-color: var(--royal-100) !important; }
+        .app-tab-pill:hover { background: var(--line-soft) !important; }
+        .app-tab-pill[aria-selected="true"]:hover { background: var(--royal) !important; }
+      `}</style>
 
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{
-          fontFamily: "var(--font-noto-serif)",
-          fontSize: 22, fontWeight: 700, color: "var(--royal)", margin: "0 0 4px",
-        }}>
-          選考管理
-        </h1>
-        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>
-          自社求人への応募を確認し、選考状況を管理します。
-        </p>
+      {/* Page-level header */}
+      <div style={{
+        marginBottom: 24, paddingBottom: 20,
+        borderBottom: "1px solid var(--line-soft)",
+        display: "flex", alignItems: "flex-end", justifyContent: "space-between",
+        gap: 16, flexWrap: "wrap",
+      }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
+            <h1 style={{
+              fontFamily: "var(--font-noto-serif)",
+              fontSize: 22, fontWeight: 700, color: "var(--royal)", margin: 0,
+            }}>
+              応募管理
+            </h1>
+            <span style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 11, fontWeight: 700, letterSpacing: "0.15em",
+              textTransform: "uppercase", color: "var(--ink-mute)", opacity: 0.6,
+            }}>
+              Applications
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>
+            求人への応募者を管理しましょう
+          </p>
+        </div>
+
+        {/* Total count badge */}
+        {totalApplications > 0 && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "8px 16px", borderRadius: 10,
+            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+          }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 22, fontWeight: 800, color: "var(--royal)",
+                lineHeight: 1,
+              }}>
+                {totalApplications}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+                総応募数
+              </div>
+            </div>
+            {pendingApplications > 0 && (
+              <>
+                <div style={{ width: 1, height: 32, background: "var(--royal-100)" }} />
+                <div style={{ textAlign: "right" }}>
+                  <div style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: 22, fontWeight: 800, color: "#D97706",
+                    lineHeight: 1,
+                  }}>
+                    {pendingApplications}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#D97706", marginTop: 2 }}>
+                    未確認
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Status tabs */}
+      {/* Status tabs — pill style */}
       <div
         role="tablist"
         aria-label="応募ステータス"
         style={{
-          display: "flex", gap: 4, marginBottom: 20,
-          borderBottom: "1px solid var(--line)", paddingBottom: 0,
-          overflowX: "auto",
+          display: "flex", gap: 6, marginBottom: 20,
+          overflowX: "auto", flexWrap: "wrap",
         }}>
         {APPLICATION_STATUS_TABS.map((tab: ApplicationStatusTab) => {
           const isActive = activeStatus === tab.status;
@@ -253,22 +314,25 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
                 setActiveStatus(tab.status as ApplicationStatus | "all");
                 setSelectedId(null);
               }}
+              className="app-tab-pill"
               style={{
-                padding: "8px 14px",
-                background: "none", border: "none", cursor: "pointer",
-                borderBottom: isActive ? `2px solid var(--royal)` : "2px solid transparent",
-                color: isActive ? "var(--royal)" : "var(--ink-mute)",
-                fontFamily: "'Inter', sans-serif",
+                padding: "7px 14px",
+                background: isActive ? "var(--royal)" : "var(--line-soft)",
+                border: "none", borderRadius: 100,
+                cursor: "pointer",
+                color: isActive ? "#fff" : "var(--ink-soft)",
+                fontFamily: "'Noto Sans JP', sans-serif",
                 fontSize: 13, fontWeight: isActive ? 700 : 500,
-                display: "flex", alignItems: "center", gap: 6,
-                whiteSpace: "nowrap", transition: "color .15s",
+                display: "inline-flex", alignItems: "center", gap: 6,
+                whiteSpace: "nowrap",
+                transition: "background .15s, color .15s",
               }}
             >
               {tab.labelJa}
               {count > 0 && (
                 <span style={{
                   minWidth: 18, height: 18, borderRadius: 9,
-                  background: isActive ? "var(--royal)" : "var(--line)",
+                  background: isActive ? "rgba(255,255,255,0.25)" : "var(--line)",
                   color: isActive ? "#fff" : "var(--ink-mute)",
                   fontSize: 10, fontWeight: 700,
                   display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -302,6 +366,9 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
           }}>
             {filtered.map((app) => {
               const isSelected = app.id === selectedId;
+              const appliedDate = new Date(app.createdAt).toLocaleDateString("ja-JP", {
+                month: "short", day: "numeric",
+              });
               return (
                 <button
                   key={app.id}
@@ -310,43 +377,51 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
                   className={isSelected ? undefined : "app-row"}
                   style={{
                     display: "flex", gap: 12, alignItems: "flex-start",
-                    padding: "12px 14px", borderRadius: 10, border: "none", cursor: "pointer",
+                    padding: "13px 14px", borderRadius: 10, border: "none", cursor: "pointer",
                     background: isSelected ? "var(--royal-50)" : "#fff",
                     outline: isSelected ? `2px solid var(--royal)` : "1px solid var(--line)",
                     outlineOffset: -1,
                     textAlign: "left", transition: "background .12s",
                   }}
                 >
-                  {/* Avatar */}
+                  {/* Avatar — 40px */}
                   <div style={{
-                    width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                    width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
                     background: avatarGradient(app.id),
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 14,
+                    color: "#fff", fontWeight: 800, fontSize: 15,
                     fontFamily: "'Noto Sans JP', sans-serif",
+                    boxShadow: isSelected ? "0 0 0 2px #fff, 0 0 0 4px var(--royal)" : "none",
+                    transition: "box-shadow .12s",
                   }}>
                     {nameInitial(app.name)}
                   </div>
 
                   {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Name — 16px bold */}
                     <div style={{
-                      fontSize: 14, fontWeight: 600, color: "var(--ink)",
+                      fontSize: 16, fontWeight: 700, color: "var(--ink)",
                       marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      fontFamily: "'Noto Sans JP', sans-serif",
                     }}>
                       {app.name}
                     </div>
+                    {/* Job title below name in muted color */}
                     <div style={{
-                      fontSize: 12, color: "var(--ink-mute)",
+                      fontSize: 11, color: "var(--ink-mute)",
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      marginBottom: 4,
+                      marginBottom: 6,
                     }}>
                       {app.jobTitle}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <StatusPill status={app.status} />
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>
-                        {app.appliedAtLabel}
+                      <span style={{
+                        fontSize: 11, color: "var(--ink-mute)",
+                        fontFamily: "'Inter', sans-serif",
+                      }}>
+                        {appliedDate}
                       </span>
                     </div>
                   </div>
@@ -404,33 +479,54 @@ function DetailPanel({ app, isUpdating, onStatusChange }: DetailProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-      {/* Header row */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 14, justifyContent: "space-between" }}>
-        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+      {/* Profile header — improved visual hierarchy */}
+      <div style={{
+        background: "linear-gradient(135deg, var(--royal-50) 0%, #f8faff 100%)",
+        borderRadius: 12, border: "1px solid var(--royal-100)",
+        padding: "20px 20px 18px",
+        display: "flex", alignItems: "flex-start", gap: 16,
+        justifyContent: "space-between",
+      }}>
+        <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 0 }}>
+          {/* Large avatar with ring */}
           <div style={{
-            width: 52, height: 52, borderRadius: "50%",
+            width: 60, height: 60, borderRadius: "50%", flexShrink: 0,
             background: avatarGradient(app.id),
             display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontWeight: 700, fontSize: 20,
+            color: "#fff", fontWeight: 800, fontSize: 22,
             fontFamily: "'Noto Sans JP', sans-serif",
-            flexShrink: 0,
+            boxShadow: "0 0 0 3px #fff, 0 0 0 5px var(--royal-100)",
           }}>
             {nameInitial(app.name)}
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{
-              fontSize: 18, fontWeight: 700, color: "var(--ink)",
-              fontFamily: "'Noto Sans JP', sans-serif", marginBottom: 4,
+              fontSize: 20, fontWeight: 800, color: "var(--ink)",
+              fontFamily: "'Noto Sans JP', sans-serif", marginBottom: 6,
+              letterSpacing: "-0.01em",
             }}>
               {app.name}
             </div>
-            <StatusPill status={app.status} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <StatusPill status={app.status} />
+              <span style={{
+                fontSize: 12, color: "var(--ink-mute)",
+                fontFamily: "'Inter', sans-serif",
+              }}>
+                {new Date(app.createdAt).toLocaleDateString("ja-JP", {
+                  year: "numeric", month: "short", day: "numeric",
+                })} 応募
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Status selector */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-          <label htmlFor={`app-status-${app.id}`} style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+          <label htmlFor={`app-status-${app.id}`} style={{
+            fontSize: 10, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif",
+            fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase",
+          }}>
             ステータス変更
           </label>
           <select
@@ -444,13 +540,14 @@ function DetailPanel({ app, isUpdating, onStatusChange }: DetailProps) {
               }
             }}
             style={{
-              padding: "6px 10px", borderRadius: 8,
-              border: "1px solid var(--line)",
+              padding: "7px 12px", borderRadius: 8,
+              border: "1px solid var(--royal-100)",
               background: isUpdating ? "var(--bg-tint)" : "#fff",
               fontSize: 13, color: "var(--ink)",
               fontFamily: "'Noto Sans JP', sans-serif",
               cursor: isUpdating ? "not-allowed" : "pointer",
               outline: "none",
+              boxShadow: "0 1px 3px rgba(0,35,102,0.06)",
             }}
           >
             {statusOptions.map((opt) => (

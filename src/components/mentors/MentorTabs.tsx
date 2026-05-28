@@ -6,6 +6,16 @@ import { useState } from "react";
 import { MentorCarousel } from "./MentorCarousel";
 import type { CategoryWithMentors } from "@/lib/mentors";
 
+// カテゴリ別アイコン（slug → emoji）
+const CATEGORY_ICONS: Record<string, string> = {
+  career_direction:  "🧭",
+  market_value:      "📊",
+  job_change_timing: "⏰",
+  current_company:   "🏢",
+  side_business:     "💼",
+  relationship:      "👥",
+};
+
 type Props = {
   categories: CategoryWithMentors[];
 };
@@ -84,20 +94,29 @@ export function MentorTabs({ categories }: Props) {
       `}</style>
 
       {/* タブバー */}
-      <div className="mentor-tab-bar" role="tablist" aria-label="相談カテゴリで絞る">
-        {active_categories.map((cat) => (
-          <button
-            key={cat.id}
-            role="tab"
-            aria-selected={cat.id === activeId}
-            data-active={String(cat.id === activeId)}
-            className="mentor-tab-btn"
-            onClick={() => setActiveId(cat.id)}
-          >
-            {cat.name}
-            <span className="mentor-tab-count">{cat.mentors.length}</span>
-          </button>
-        ))}
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "var(--ink-mute)", textTransform: "uppercase", marginBottom: 8, paddingLeft: 2 }}>
+          あなたの悩みに近い先輩を探す
+        </div>
+        <div className="mentor-tab-bar" role="tablist" aria-label="相談カテゴリで絞る">
+          {active_categories.map((cat) => {
+            const icon = CATEGORY_ICONS[cat.slug] ?? "💬";
+            return (
+              <button
+                key={cat.id}
+                role="tab"
+                aria-selected={cat.id === activeId}
+                data-active={String(cat.id === activeId)}
+                className="mentor-tab-btn"
+                onClick={() => setActiveId(cat.id)}
+              >
+                <span style={{ fontSize: 14, lineHeight: 1 }}>{icon}</span>
+                {cat.name}
+                <span className="mentor-tab-count">{cat.mentors.length}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* アクティブカテゴリのコンテンツ */}

@@ -42,6 +42,12 @@ async function NoTenantPage() {
   const userName = user?.email ? user.email.split("@")[0] : "ご担当者";
   return (
     <BusinessLayout userName={userName}>
+      <style>{`
+        .setup-step-card:hover {
+          border-color: var(--royal-100) !important;
+          box-shadow: 0 4px 12px rgba(0,35,102,0.08) !important;
+        }
+      `}</style>
       <div style={{
         background: "#fff",
         borderRadius: 14,
@@ -114,6 +120,9 @@ export default async function BizDashboardPage() {
     ? ctx.userName.split(" ").slice(-1)[0]
     : ctx.userName;
 
+  // Determine if this is a "new" company with nothing set up yet
+  const isNewCompany = jobStatusCounts.active === 0 && jobStatusCounts.draft === 0 && activities.length === 0;
+
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -125,99 +134,58 @@ export default async function BizDashboardPage() {
     >
       {/* ── Greeting header ── */}
       <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "baseline",
-        marginBottom: 24,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: 20,
       }}>
-        <h1 style={{
-          fontFamily: "var(--font-noto-serif)",
-          fontWeight: 500, fontSize: 24,
-          color: "var(--ink)", letterSpacing: "0.02em",
-          margin: 0,
-        }}>
-          {greeting}、{greetingName}さん。
-        </h1>
-        <span style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 12, color: "var(--ink-mute)", fontWeight: 500,
-        }}>
-          {today}
-        </span>
-      </div>
+        <div>
+          <h1 style={{
+            fontFamily: "var(--font-noto-serif)",
+            fontWeight: 500, fontSize: 22,
+            color: "var(--ink)", letterSpacing: "0.02em",
+            margin: 0, marginBottom: 2,
+          }}>
+            {greeting}、{greetingName}さん。
+          </h1>
+          <span style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 11, color: "var(--ink-mute)", fontWeight: 500,
+          }}>
+            {today}
+          </span>
+        </div>
 
-      {/* ── Quick actions ── */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        {[
-          {
-            href: "/biz/jobs/new",
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-            ),
-            label: "新規求人を作成",
-            color: "var(--royal)",
-            primary: true,
-          },
-          {
-            href: "/biz/meetings",
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-            ),
-            label: "面談を確認",
-            color: "var(--ink-soft)",
-            primary: false,
-          },
-          {
-            href: "/biz/company",
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            ),
-            label: "企業情報を編集",
-            color: "var(--ink-soft)",
-            primary: false,
-          },
-          {
-            href: "/biz/members",
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
-              </svg>
-            ),
-            label: "メンバーを管理",
-            color: "var(--ink-soft)",
-            primary: false,
-          },
-        ].map(({ href, icon, label, color, primary }) => (
+        {/* Quick action buttons */}
+        <div style={{ display: "flex", gap: 8 }}>
           <Link
-            key={href}
-            href={href}
+            href="/biz/jobs/new"
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              padding: primary ? "10px 18px" : "10px 16px",
-              background: primary ? "var(--royal)" : "#fff",
-              border: `1px solid ${primary ? "var(--royal)" : "var(--line)"}`,
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              color: primary ? "#fff" : color,
-              textDecoration: "none",
-              flexShrink: 0,
-              transition: "opacity 0.15s",
+              display: "inline-flex", alignItems: "center", gap: 7,
+              padding: "9px 16px",
+              background: "var(--royal)",
+              border: "1px solid var(--royal)",
+              borderRadius: 8, fontSize: 13, fontWeight: 600,
+              color: "#fff", textDecoration: "none",
             }}
           >
-            {icon}
-            {label}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            新規求人を作成
           </Link>
-        ))}
+          {[
+            { href: "/biz/meetings", label: "面談" },
+            { href: "/biz/candidates", label: "候補者" },
+          ].map(({ href, label }) => (
+            <Link key={href} href={href} style={{
+              display: "inline-flex", alignItems: "center", gap: 7,
+              padding: "9px 14px", background: "#fff",
+              border: "1px solid var(--line)", borderRadius: 8,
+              fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", textDecoration: "none",
+            }}>
+              {label}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* ── Company card ── */}
@@ -230,6 +198,91 @@ export default async function BizDashboardPage() {
 
       {/* ── Upgrade banner ── */}
       <UpgradeBanner />
+
+      {/* ── Getting Started (新規企業のみ) ── */}
+      {isNewCompany && (
+        <div style={{
+          background: "linear-gradient(135deg, #EFF3FC 0%, #F8FAFC 100%)",
+          border: "1px solid var(--royal-100)",
+          borderRadius: 14,
+          padding: "22px 26px",
+          marginBottom: 20,
+        }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, marginBottom: 14,
+          }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: "var(--royal)", color: "#fff",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4l3 3"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--royal)" }}>
+                スタートアップガイド
+              </div>
+              <div style={{ fontSize: 11, color: "var(--ink-soft)" }}>
+                以下のステップで求人掲載を開始しましょう
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+            {[
+              {
+                step: "1",
+                title: "企業情報を完成させる",
+                desc: "ミッション・写真・カルチャーを入力",
+                href: "/biz/company",
+                done: false,
+              },
+              {
+                step: "2",
+                title: "求人を作成・公開する",
+                desc: "審査後 OPINIO に掲載されます",
+                href: "/biz/jobs/new",
+                done: false,
+              },
+              {
+                step: "3",
+                title: "カジュアル面談を受け付ける",
+                desc: "候補者からの申込が届き始めます",
+                href: "/biz/company",
+                done: false,
+              },
+            ].map(({ step, title, desc, href }) => (
+              <Link key={step} href={href} className="setup-step-card" style={{
+                display: "block", textDecoration: "none",
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 10, padding: "14px 16px",
+                transition: "box-shadow 0.15s, border-color 0.15s",
+              }}
+              >
+                <div style={{
+                  width: 22, height: 22, borderRadius: "50%",
+                  background: "var(--royal-50)", color: "var(--royal)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 700, marginBottom: 8,
+                }}>
+                  {step}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                  {title}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5 }}>
+                  {desc}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, marginTop: 8 }}>
+                  設定する →
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Stat cards (4枚) ── */}
       <DashboardStatCards
@@ -252,7 +305,7 @@ export default async function BizDashboardPage() {
         <ActivityList activities={activities} />
       </div>
 
-      {/* ── Match candidates (Supabase なし → 空ロック状態) ── */}
+      {/* ── Match candidates ── */}
       <div style={{ marginTop: 16 }}>
         <MatchCandidates candidates={[]} />
       </div>
@@ -267,9 +320,6 @@ export default async function BizDashboardPage() {
         <JobStatusCards counts={jobStatusCounts} />
         <TeamMembers members={teamMembers} />
       </div>
-
-      {/* ── Recruiter profile widget ── */}
-      {/* S1c: RecruiterProfile は ow_users から実装予定 */}
 
       {/* ── Job performance ── */}
       <section style={{
