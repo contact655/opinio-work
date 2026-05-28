@@ -1137,7 +1137,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
 
 // ─── MentorCTAWidget ── メンター相談のみ（運営経由） ────────────────────────────
 
-function MentorCTAWidget() {
+function _MentorCTAWidget() {
   return (
     <Link
       href="/mentors"

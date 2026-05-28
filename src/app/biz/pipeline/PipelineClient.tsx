@@ -659,7 +659,7 @@ function AddCandidateModal({
     }
 
     const { application } = await res.json();
-    const stage = stages.find((s) => s.id === stageId);
+    const _stage = stages.find((s) => s.id === stageId); void _stage;
     const job = jobs.find((j) => j.id === jobId);
 
     onAdded({

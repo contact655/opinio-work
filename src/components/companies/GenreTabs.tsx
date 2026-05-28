@@ -47,12 +47,6 @@ function getGenreConfig(slug: string) {
 // 特徴タブに表示するslug（表示順）
 const FEATURE_SLUGS = ["foreign-capital", "startup", "mega-venture", "public-company"];
 
-// 業種タブに表示するslug（表示順）
-const INDUSTRY_SLUGS = [
-  "hrtech", "fintech", "edtech", "ai-llm",
-  "healthtech", "martech", "proptech", "legaltech",
-  "data-analytics", "ec-distribution", "ma-investment", "business-dx",
-];
 
 function GenreSectionHeader({ genre }: { genre: GenreWithCompanies }) {
   const cfg = getGenreConfig(genre.slug);

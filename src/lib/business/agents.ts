@@ -172,7 +172,7 @@ export async function fetchAgencyByContactEmail(email: string): Promise<AgentPor
 
   // 6. Resolve job titles for candidates
   const candidateJobIds = Array.from(new Set((appRows ?? []).map((a) => a.job_id).filter(Boolean)));
-  let jobTitleMap: Record<string, string> = {};
+  const jobTitleMap: Record<string, string> = {};
   if (candidateJobIds.length > 0) {
     const { data: jRows } = await admin
       .from("ow_jobs")

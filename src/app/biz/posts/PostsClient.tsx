@@ -169,7 +169,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function PostsClient({ companyId, companyName, initialPosts }: Props) {
+export function PostsClient({ companyId, companyName: _companyName, initialPosts }: Props) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

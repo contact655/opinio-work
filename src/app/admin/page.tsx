@@ -566,7 +566,7 @@ export default async function AdminDashboard() {
                 bar: stats.totalApplicationsCount,
                 max: Math.max(stats.usersCount, 1),
               },
-            ].map(({ label, value, color, bg, bar, max }) => (
+            ].map(({ label, value, color, bg: _bg, bar, max }) => (
               <div key={label}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 12, color: "#475569", fontWeight: 500 }}>{label}</span>
