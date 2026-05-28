@@ -267,6 +267,13 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     })(),
     // Culture description
     culture_description: (row.culture_description as string | null) ?? null,
+    // Products & Customers
+    main_products: Array.isArray(row.main_products) && (row.main_products as string[]).length > 0
+      ? (row.main_products as string[])
+      : null,
+    main_customers: Array.isArray(row.main_customers) && (row.main_customers as string[]).length > 0
+      ? (row.main_customers as string[])
+      : null,
     // Numbers survey timestamp
     numbersUpdatedAt: (row.numbers_updated_at as string | null) ?? null,
   };
@@ -420,6 +427,8 @@ const COMPANY_DETAIL_COLS = [
   "fit_positives", "fit_negatives", "show_fit_negatives",
   // Culture description
   "culture_description",
+  // Products & Customers
+  "main_products", "main_customers",
   // Numbers survey timestamp
   "numbers_updated_at",
 ].join(", ");

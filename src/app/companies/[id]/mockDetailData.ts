@@ -101,6 +101,9 @@ export type CompanyDetail = {
   why_join: string | null;
   // Culture description
   culture_description?: string | null;
+  // Products & Customers
+  main_products?: string[] | null;
+  main_customers?: string[] | null;
   // Numbers survey timestamp
   numbersUpdatedAt: string | null;
 };

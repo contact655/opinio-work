@@ -721,6 +721,66 @@ function AboutSection({
         </p>
       )}
 
+      {/* Products & Customers */}
+      {(detail.main_products?.length || detail.main_customers?.length) ? (
+        <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          {detail.main_products && detail.main_products.length > 0 && (
+            <div style={{
+              padding: "16px 18px",
+              background: "var(--royal-50)",
+              border: "1px solid var(--royal-100)",
+              borderRadius: 12,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2"/>
+                  <path d="M8 21h8M12 17v4"/>
+                </svg>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
+                  PRODUCTS / 主な製品・サービス
+                </span>
+              </div>
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                {detail.main_products.map((p, i) => (
+                  <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                    <span style={{ color: "var(--royal)", fontWeight: 700, marginTop: 2, flexShrink: 0 }}>▸</span>
+                    <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.6 }}>{p}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {detail.main_customers && detail.main_customers.length > 0 && (
+            <div style={{
+              padding: "16px 18px",
+              background: "var(--warm-soft)",
+              border: "1px solid #fde68a",
+              borderRadius: 12,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} strokeLinecap="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "#B45309", fontFamily: "Inter, sans-serif" }}>
+                  CLIENTS / 主な顧客・事例企業
+                </span>
+              </div>
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                {detail.main_customers.map((c, i) => (
+                  <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                    <span style={{ color: "#B45309", fontWeight: 700, marginTop: 2, flexShrink: 0 }}>▸</span>
+                    <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.6 }}>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : null}
+
       {/* Culture / 社風 */}
       {detail.culture_description != null && detail.culture_description && (
         <div
