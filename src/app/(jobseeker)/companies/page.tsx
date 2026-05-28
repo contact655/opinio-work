@@ -99,64 +99,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
     }
   }
 
-  // 統計: ジャンル付き企業数（重複なし）
-  const totalCompanies = new Set(genresWithCompanies.flatMap(g => g.companies.map(c => c.id))).size;
-  const totalJobs = genresWithCompanies.reduce((acc, g) => acc + g.companies.reduce((a, c) => a + c.job_count, 0), 0);
 
   return (
     <div style={{ background: "#f0f4f8" }}>
       <h1 className="sr-only">企業を知る</h1>
 
-      {/* ── Page hero header ── */}
-      {!hasFilter && (
-        <div style={{
-          background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
-          padding: "28px 0 24px",
-          position: "relative",
-          overflow: "hidden",
-        }}>
-          {/* Decorative circles */}
-          <div style={{ position: "absolute", right: -60, top: -60, width: 280, height: 280, borderRadius: "50%", background: "rgba(59,95,217,0.12)", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", left: -40, bottom: -40, width: 180, height: 180, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
-          <div className="max-w-[1440px] mx-auto px-4" style={{ position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.5)", marginBottom: 8, textTransform: "uppercase" }}>
-                  COMPANIES
-                </div>
-                <h1 style={{
-                  fontFamily: "var(--font-noto-serif)",
-                  fontSize: "clamp(20px, 2.5vw, 26px)", fontWeight: 700,
-                  color: "#fff", margin: "0 0 6px", lineHeight: 1.35,
-                }}>
-                  IT/SaaS業界の企業を知る
-                </h1>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", margin: 0, lineHeight: 1.6 }}>
-                  ジャンル・働き方・フェーズで絞り込んで、自分にあった企業を見つけましょう
-                </p>
-              </div>
-              {/* Stats strip */}
-              <div style={{ display: "flex", gap: 0, background: "rgba(255,255,255,0.08)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)", overflow: "hidden", flexShrink: 0 }}>
-                {[
-                  { value: String(totalCompanies), unit: "社", label: "掲載企業" },
-                  { value: String(totalJobs), unit: "件", label: "公開求人" },
-                ].map((s, i) => (
-                  <div key={s.label} style={{
-                    padding: "12px 20px", textAlign: "center",
-                    borderRight: i === 0 ? "1px solid rgba(255,255,255,0.1)" : "none",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 2 }}>
-                      <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "#fff" }}>{s.value}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#F59E0B" }}>{s.unit}</span>
-                    </div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 500, marginTop: 2 }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Search bar panel (sticky) ── */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 64, zIndex: 30 }}>
