@@ -6,7 +6,7 @@ import Image from "next/image";
 import type { CompanyForCarousel } from "@/types/genre";
 import type { MemberPreview } from "./CompanyCardCompact";
 
-// Funding stage badge config (same as CompanyCardCompact)
+// Funding stage badge config
 const STAGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   "pre-seed":  { label: "Pre-Seed",  color: "#6b5b2e", bg: "#fef9e7" },
   seed:        { label: "Seed",      color: "#6b5b2e", bg: "#fef9e7" },
@@ -39,13 +39,6 @@ function getPlaceholderColor(name: string) {
   return PLACEHOLDER_COLORS[hash % PLACEHOLDER_COLORS.length];
 }
 
-const AVATAR_COLORS = [
-  { bg: "#d8e6ff", text: "#1e63d8" },
-  { bg: "#e8dcf5", text: "#6b3b9e" },
-  { bg: "#d4f0e3", text: "#1f7a48" },
-  { bg: "#fce8b8", text: "#8b5e0f" },
-];
-
 type Props = {
   company: CompanyForCarousel;
   members?: MemberPreview[];
@@ -55,13 +48,18 @@ export function CompanyCardList({ company, members }: Props) {
   const ph = getPlaceholderColor(company.name);
   const initial = company.logo_letter ?? company.name.slice(0, 1);
   const stageCfg = getStageCfg(company.funding_stage);
+  const memberCount = company.current_member_count ?? (members?.length ?? 0);
+  const obogCount = company.obog_count ?? 0;
 
   return (
     <>
       <style>{`
-        .company-list-card:hover {
-          box-shadow: 0 4px 16px rgba(0,35,102,0.12) !important;
-          transform: translateY(-1px);
+        .company-list-card:hover { box-shadow: 0 4px 20px rgba(0,35,102,0.10) !important; }
+        .company-list-card:hover .clc-name { color: var(--royal) !important; }
+        .clc-stat-divider { width: 1px; height: 32px; background: var(--line); }
+        @media (max-width: 767px) {
+          .clc-stats { display: none !important; }
+          .clc-stat-divider { display: none !important; }
         }
       `}</style>
       <Link
@@ -70,20 +68,20 @@ export function CompanyCardList({ company, members }: Props) {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 14,
-          padding: "14px 18px",
+          gap: 16,
+          padding: "16px 20px",
           background: "#fff",
           borderRadius: 12,
           border: "1px solid var(--line)",
-          boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+          boxShadow: "0 1px 3px rgba(15,23,42,0.05)",
           textDecoration: "none",
           color: "inherit",
-          transition: "box-shadow 0.18s, transform 0.18s",
+          transition: "box-shadow 0.18s",
         }}
       >
-        {/* Logo area: 52x52 rounded square */}
+        {/* ── ロゴ ── */}
         <div style={{
-          width: 52, height: 52, borderRadius: 10, flexShrink: 0,
+          width: 56, height: 56, borderRadius: 10, flexShrink: 0,
           background: company.logo_url ? "#f5f7fa" : ph.bg,
           display: "flex", alignItems: "center", justifyContent: "center",
           overflow: "hidden", position: "relative",
@@ -94,124 +92,87 @@ export function CompanyCardList({ company, members }: Props) {
               alt={`${company.name}のロゴ`}
               fill
               style={{ objectFit: "contain", padding: "10%" }}
-              sizes="52px"
+              sizes="56px"
             />
           ) : (
-            <span style={{ fontSize: 22, fontWeight: 700, color: ph.text }}>
-              {initial}
-            </span>
+            <span style={{ fontSize: 22, fontWeight: 700, color: ph.text }}>{initial}</span>
           )}
         </div>
 
-        {/* Main content */}
+        {/* ── 企業情報 ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Row 1: name + tags */}
+          {/* 会社名 + バッジ */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+            <span className="clc-name" style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", transition: "color 0.15s" }}>
               {company.name}
             </span>
             {company.industry && (
               <span style={{
-                fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
-                background: "var(--royal-50)", color: "var(--royal)",
-                border: "1px solid var(--royal-100)",
-              }}>
-                {company.industry}
-              </span>
+                fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 100,
+                background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
+              }}>{company.industry}</span>
             )}
             {stageCfg && (
               <span style={{
-                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
                 background: stageCfg.bg, color: stageCfg.color,
-              }}>
-                {stageCfg.label}
-              </span>
+              }}>{stageCfg.label}</span>
             )}
             {company.accepting_casual_meetings && (
               <span style={{
-                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                background: "#fff7ed", color: "#c2410c",
-                border: "1px solid #fed7aa",
-              }}>
-                面談OK
-              </span>
+                fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
+                background: "#fff7ed", color: "#c2410c", border: "1px solid #fed7aa",
+              }}>面談OK</span>
             )}
           </div>
-
-          {/* Row 2: tagline */}
+          {/* タグライン */}
           {company.tagline && (
             <div style={{
-              fontSize: 12, color: "var(--ink-soft)", marginTop: 3,
+              fontSize: 12.5, color: "var(--ink-soft)", marginTop: 3,
               overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
             }}>
               {company.tagline}
             </div>
           )}
-
-          {/* Row 3: meta chips + member avatars */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 5, flexWrap: "wrap" }}>
+          {/* 所在地 + 従業員数 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
             {company.location && (
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 3 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" strokeWidth={2} strokeLinecap="round">
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2 }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" strokeWidth={2} strokeLinecap="round">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                 </svg>
                 {company.location}
               </span>
             )}
             {company.employee_count && (
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 3 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#639922" strokeWidth={2} strokeLinecap="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2 }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth={2} strokeLinecap="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                {company.employee_count}
+                {company.employee_count}名規模
               </span>
-            )}
-            {/* Member avatars */}
-            {members && members.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center" }}>
-                {members.slice(0, 4).map((m, i) => {
-                  const ac = AVATAR_COLORS[i % AVATAR_COLORS.length];
-                  return (
-                    <div key={m.id} style={{
-                      width: 20, height: 20, borderRadius: "50%",
-                      background: ac.bg, color: ac.text,
-                      fontSize: 8, fontWeight: 700,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      border: "2px solid #fff",
-                      marginLeft: i > 0 ? -5 : 0,
-                      zIndex: (members.length - i),
-                      position: "relative", flexShrink: 0,
-                    }}>
-                      {m.name.charAt(0)}
-                    </div>
-                  );
-                })}
-                {members.length > 4 && (
-                  <div style={{
-                    width: 20, height: 20, borderRadius: "50%",
-                    background: "var(--line)", color: "var(--ink-mute)",
-                    fontSize: 8, fontWeight: 700,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    border: "2px solid #fff",
-                    marginLeft: -5, zIndex: 0, position: "relative", flexShrink: 0,
-                  }}>
-                    +{members.length - 4}
-                  </div>
-                )}
-                <span style={{ marginLeft: 5, fontSize: 10, color: "var(--ink-mute)" }}>在籍</span>
-              </div>
             )}
           </div>
         </div>
 
-        {/* Right side: CTA buttons */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-          {company.accepting_casual_meetings && (
+        {/* ── スタット列（OpenWork 参考） ── */}
+        <div className="clc-stats" style={{ display: "flex", alignItems: "center", gap: 0, flexShrink: 0 }}>
+          <StatCol label="現役社員" value={memberCount} unit="名" />
+          <div className="clc-stat-divider" />
+          <StatCol label="OB・OG" value={obogCount} unit="名" />
+          <div className="clc-stat-divider" />
+          <StatCol label="求人" value={company.job_count} unit="件" highlight={company.job_count > 0} />
+        </div>
+
+        {/* ── CTA ── */}
+        <div style={{ flexShrink: 0 }}>
+          {company.accepting_casual_meetings ? (
             <a
               href={`/companies/${company.id}/casual-meeting`}
               style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                padding: "6px 14px", borderRadius: 7, fontSize: 11, fontWeight: 700,
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "8px 18px", borderRadius: 8, fontSize: 12.5, fontWeight: 700,
                 background: "linear-gradient(135deg, #F59E0B, #D97706)",
                 color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
               }}
@@ -219,23 +180,41 @@ export function CompanyCardList({ company, members }: Props) {
             >
               話を聞く →
             </a>
-          )}
-          {company.job_count > 0 && (
+          ) : (
             <a
-              href={`/companies/${company.id}#jobs`}
+              href={`/companies/${company.id}`}
               style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                padding: "6px 14px", borderRadius: 7, fontSize: 11, fontWeight: 700,
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "8px 18px", borderRadius: 8, fontSize: 12.5, fontWeight: 700,
                 background: "var(--royal-50)", color: "var(--royal)",
                 border: "1px solid var(--royal-100)", textDecoration: "none", whiteSpace: "nowrap",
               }}
               onClick={e => e.stopPropagation()}
             >
-              求人 {company.job_count}件
+              詳細を見る →
             </a>
           )}
         </div>
       </Link>
     </>
+  );
+}
+
+function StatCol({ label, value, unit, highlight }: { label: string; value: number; unit: string; highlight?: boolean }) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      padding: "0 20px", gap: 2,
+    }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
+        <span style={{
+          fontSize: 18, fontWeight: 700,
+          fontFamily: "Inter, sans-serif",
+          color: highlight ? "var(--royal)" : "var(--ink)",
+        }}>{value}</span>
+        <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{unit}</span>
+      </div>
+      <div style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{label}</div>
+    </div>
   );
 }
