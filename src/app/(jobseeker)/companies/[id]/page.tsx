@@ -667,7 +667,7 @@ function AboutSection({
       </div>
       <div style={{ padding: "22px 28px 28px" }}>
 
-      {detail.mission && (
+        {/* MISSION — 常に表示 */}
         <div
           style={{
             padding: "28px 32px",
@@ -678,51 +678,28 @@ function AboutSection({
             overflow: "hidden",
           }}
         >
-          {/* Decorative circles */}
           <div style={{ position: "absolute", right: -40, top: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", left: -20, bottom: -60, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
-          {/* Left accent bar */}
           <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "linear-gradient(180deg, #F59E0B 0%, #3B5FD9 100%)", borderRadius: "14px 0 0 14px" }} />
           <div style={{ paddingLeft: 12 }}>
-            <div
-              style={{
-                fontFamily: "Inter, sans-serif",
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: "0.2em",
-                color: "rgba(255,255,255,0.45)",
-                marginBottom: 12,
-                textTransform: "uppercase" as const,
-              }}
-            >
+            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.45)", marginBottom: 12, textTransform: "uppercase" as const }}>
               MISSION
             </div>
-            <div
-              style={{
-                fontFamily: 'var(--font-noto-serif)',
-                fontSize: "clamp(18px, 2.2vw, 23px)",
-                fontWeight: 500,
-                color: "#fff",
-                lineHeight: 1.7,
-                letterSpacing: "0.02em",
-              }}
-            >
-              {detail.mission}
+            <div style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(18px, 2.2vw, 23px)", fontWeight: 500, color: detail.mission ? "#fff" : "rgba(255,255,255,0.35)", lineHeight: 1.7, letterSpacing: "0.02em", fontStyle: detail.mission ? "normal" : "italic" }}>
+              {detail.mission ?? "ミッションは現在準備中です。"}
             </div>
           </div>
         </div>
-      )}
 
-      <PhotoCarousel photos={photos} />
+        {/* オフィス写真 */}
+        <PhotoCarousel photos={photos} />
 
-      {detail.about && (
-        <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, marginTop: 20 }}>
-          {detail.about}
+        {/* 会社説明 — 常に表示 */}
+        <p style={{ fontSize: 15, color: detail.about ? "var(--ink)" : "var(--ink-soft)", lineHeight: 1.9, marginTop: 20, fontStyle: detail.about ? "normal" : "italic" }}>
+          {detail.about ?? "会社説明は現在準備中です。"}
         </p>
-      )}
 
-      {/* 会社の特徴・強み */}
-      {detail.company_features && detail.company_features.length > 0 && (
+        {/* FEATURES / 会社の特徴・強み — 常に表示 */}
         <div style={{ marginTop: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
@@ -732,24 +709,29 @@ function AboutSection({
               FEATURES / 会社の特徴・強み
             </span>
           </div>
-          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-            {detail.company_features.map((f, i) => (
-              <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <span style={{
-                  flexShrink: 0, marginTop: 3,
-                  width: 20, height: 20, borderRadius: "50%",
-                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 10, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif",
-                }}>
-                  {i + 1}
-                </span>
-                <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.8 }}>{f}</span>
-              </li>
-            ))}
-          </ul>
+          {detail.company_features && detail.company_features.length > 0 ? (
+            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+              {detail.company_features.map((f, i) => (
+                <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <span style={{
+                    flexShrink: 0, marginTop: 3,
+                    width: 20, height: 20, borderRadius: "50%",
+                    background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 10, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif",
+                  }}>
+                    {i + 1}
+                  </span>
+                  <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.8 }}>{f}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+              会社の特徴・強みは現在準備中です。
+            </p>
+          )}
         </div>
-      )}
 
       </div>
     </section>

@@ -416,7 +416,24 @@ export function PhotoCarousel({ photos }: { photos: CompanyPhoto[] }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
-  if (photos.length === 0) return null;
+  if (photos.length === 0) {
+    return (
+      <div style={{
+        marginTop: 20, marginBottom: 4,
+        padding: "28px 20px",
+        background: "var(--bg-tint)",
+        border: "1px dashed var(--line)",
+        borderRadius: 12,
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+      }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={1.5} strokeLinecap="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)" }}>オフィス写真は現在準備中です。</p>
+      </div>
+    );
+  }
 
   // Compute available categories (only show tabs with at least 1 photo)
   const categoryCounts = photos.reduce<Record<string, number>>((acc, p) => {
