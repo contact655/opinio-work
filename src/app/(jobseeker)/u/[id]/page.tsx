@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import MergedTimeline from "@/components/profile/MergedTimeline";
@@ -85,6 +85,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .eq("id", params.id)
       .maybeSingle(),
   ]);
+
+  // 未ログインはプロフィールページ自体を閲覧不可 → /auth へリダイレクト
+  if (!authUser) redirect(`/auth?next=/u/${params.id}`);
 
   if (!user) notFound();
 
@@ -418,71 +421,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   educations={timelineEdus}
                   future={futureData}
                   viewerIsOwner={viewerIsOwner}
-                  isAuthenticated={!!authUser}
                 />
-              </section>
-            )}
-
-            {/* Non-auth CTA in main column (below timeline on mobile, sticky sidebar on desktop) */}
-            {!authUser && !viewerIsOwner && (
-              <section style={{
-                background: "linear-gradient(135deg, var(--royal) 0%, #3B5FD9 100%)",
-                borderRadius: 16, padding: "32px 28px", marginBottom: 20,
-                textAlign: "center", position: "relative", overflow: "hidden",
-              }}>
-                <div style={{
-                  position: "absolute", inset: 0, opacity: 0.06,
-                  backgroundImage: "radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 20%, #fff 1px, transparent 1px)",
-                  backgroundSize: "40px 40px",
-                }} />
-                <div style={{ position: "relative" }}>
-                  <div style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "4px 12px", borderRadius: 100,
-                    background: "rgba(255,255,255,0.15)",
-                    fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.9)",
-                    letterSpacing: "0.06em", marginBottom: 16,
-                  }}>
-                    完全無料 · メール登録のみ
-                  </div>
-                  <h3 style={{
-                    fontFamily: 'var(--font-noto-serif)',
-                    fontSize: "clamp(17px,2vw,21px)", fontWeight: 700,
-                    color: "#fff", marginBottom: 10, lineHeight: 1.5,
-                  }}>
-                    {owUser.name}さんが働く職場の<br />リアルを知ろう
-                  </h3>
-                  <p style={{
-                    fontSize: 13, color: "rgba(255,255,255,0.75)",
-                    marginBottom: 24, lineHeight: 1.7,
-                  }}>
-                    企業の特徴・評判・社員インタビューを<br />
-                    無料で読める。先輩に相談することもできます。
-                  </p>
-                  <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                    <Link href="/auth" style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      padding: "12px 24px", borderRadius: 8,
-                      background: "#fff", color: "var(--royal)",
-                      fontSize: 14, fontWeight: 700, textDecoration: "none",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
-                    }}>
-                      無料で登録する →
-                    </Link>
-                    {currentCareer && (
-                      <Link href={`/companies/${currentCareer.company_id}`} style={{
-                        display: "inline-flex", alignItems: "center", gap: 6,
-                        padding: "12px 24px", borderRadius: 8,
-                        background: "rgba(255,255,255,0.15)",
-                        border: "1.5px solid rgba(255,255,255,0.35)",
-                        color: "#fff",
-                        fontSize: 14, fontWeight: 600, textDecoration: "none",
-                      }}>
-                        在籍企業を見る
-                      </Link>
-                    )}
-                  </div>
-                </div>
               </section>
             )}
 
@@ -643,25 +582,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 </div>
               )}
 
-              {/* Non-auth compact CTA */}
-              {!authUser && !viewerIsOwner && (
-                <div style={{
-                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                  borderRadius: 14, padding: "18px 20px", textAlign: "center",
-                }}>
-                  <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 12, lineHeight: 1.6 }}>
-                    OPINIOに登録して<br />企業情報を無料でチェック
-                  </div>
-                  <Link href="/auth" style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    padding: "9px 16px", background: "var(--royal)", color: "#fff",
-                    borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none",
-                  }}>
-                    無料で登録する →
-                  </Link>
-                </div>
-              )}
-
             </div>
           </aside>
 
@@ -673,14 +593,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
             OPINIO
           </Link>
           {" "}のプロフィールページ
-          {!authUser && (
-            <>
-              {" "}·{" "}
-              <Link href="/auth" style={{ color: "var(--royal)", textDecoration: "none" }}>
-                登録して情報収集を始める
-              </Link>
-            </>
-          )}
         </div>
 
       </div>
