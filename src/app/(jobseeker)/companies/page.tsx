@@ -204,11 +204,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     <style>{`
                       .companies-compact-grid {
                         display: grid;
-                        grid-template-columns: repeat(4, 1fr);
+                        grid-template-columns: repeat(5, 1fr);
                         gap: 14px;
                       }
                       @media (max-width: 1279px) {
-                        .companies-compact-grid { grid-template-columns: repeat(3, 1fr); }
+                        .companies-compact-grid { grid-template-columns: repeat(4, 1fr); }
                       }
                       @media (max-width: 1023px) {
                         .companies-compact-grid { grid-template-columns: repeat(3, 1fr); }
