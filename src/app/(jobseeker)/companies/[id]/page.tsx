@@ -728,12 +728,12 @@ function AboutSection({
 
 // ─── ProductsCultureSection ────────────────────────────────────────────────────
 
-function ProductsCultureSection({ detail }: { detail: CompanyDetail }) {
+// ─── ProductsClientsSection ───────────────────────────────────────────────────
+
+function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
   const hasProducts = detail.main_products && detail.main_products.length > 0;
   const hasCustomers = detail.main_customers && detail.main_customers.length > 0;
-  const hasCulture = !!detail.culture_description;
 
-  // 空欄プレースホルダー（データ未登録時）
   const EmptyPlaceholder = ({ label }: { label: string }) => (
     <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
       {label}は現在準備中です。
@@ -742,7 +742,7 @@ function ProductsCultureSection({ detail }: { detail: CompanyDetail }) {
 
   return (
     <section
-      id="products-culture"
+      id="products-clients"
       style={{
         background: "#fff",
         border: "1px solid var(--line)",
@@ -752,11 +752,7 @@ function ProductsCultureSection({ detail }: { detail: CompanyDetail }) {
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
-      <div style={{
-        padding: "22px 28px 18px",
-        background: "#f5f8ff",
-        borderBottom: "1px solid #dde4f5",
-      }}>
+      <div style={{ padding: "22px 28px 18px", background: "#f5f8ff", borderBottom: "1px solid #dde4f5" }}>
         <SecTitle
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -765,35 +761,29 @@ function ProductsCultureSection({ detail }: { detail: CompanyDetail }) {
             </svg>
           }
         >
-          製品・社風
+          製品・顧客
         </SecTitle>
       </div>
-      <div style={{ padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ padding: "22px 28px 28px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
 
-        {/* Products & Customers grid — 常に表示 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           {/* PRODUCTS */}
-          <div style={{
-            padding: "18px 20px",
-            background: "var(--royal-50)",
-            border: "1px solid var(--royal-100)",
-            borderRadius: 12,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
+          <div style={{ padding: "20px 22px", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
                 <rect x="2" y="3" width="20" height="14" rx="2"/>
                 <path d="M8 21h8M12 17v4"/>
               </svg>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
                 PRODUCTS / 主な製品・サービス
               </span>
             </div>
             {hasProducts ? (
-              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 7 }}>
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
                 {detail.main_products!.map((p, i) => (
-                  <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                  <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
                     <span style={{ color: "var(--royal)", fontWeight: 700, marginTop: 2, flexShrink: 0 }}>▸</span>
-                    <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.6 }}>{p}</span>
+                    <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.7 }}>{p}</span>
                   </li>
                 ))}
               </ul>
@@ -803,29 +793,24 @@ function ProductsCultureSection({ detail }: { detail: CompanyDetail }) {
           </div>
 
           {/* CLIENTS */}
-          <div style={{
-            padding: "18px 20px",
-            background: "var(--warm-soft)",
-            border: "1px solid #fde68a",
-            borderRadius: 12,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} strokeLinecap="round">
+          <div style={{ padding: "20px 22px", background: "var(--warm-soft)", border: "1px solid #fde68a", borderRadius: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} strokeLinecap="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "#B45309", fontFamily: "Inter, sans-serif" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#B45309", fontFamily: "Inter, sans-serif" }}>
                 CLIENTS / 主な顧客・事例企業
               </span>
             </div>
             {hasCustomers ? (
-              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 7 }}>
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
                 {detail.main_customers!.map((c, i) => (
-                  <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                  <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
                     <span style={{ color: "#B45309", fontWeight: 700, marginTop: 2, flexShrink: 0 }}>▸</span>
-                    <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.6 }}>{c}</span>
+                    <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.7 }}>{c}</span>
                   </li>
                 ))}
               </ul>
@@ -833,34 +818,70 @@ function ProductsCultureSection({ detail }: { detail: CompanyDetail }) {
               <EmptyPlaceholder label="顧客・事例情報" />
             )}
           </div>
-        </div>
 
-        {/* Culture / 社風 — 常に表示 */}
-        <div
-          style={{
-            padding: "20px 24px 20px 28px",
-            borderLeft: "4px solid var(--success)",
-            background: "linear-gradient(135deg, #f0fdf8 0%, #ecfdf5 100%)",
-            borderRadius: "0 12px 12px 0",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── CultureSection ───────────────────────────────────────────────────────────
+
+function CultureSection({ detail }: { detail: CompanyDetail }) {
+  const hasCulture = !!detail.culture_description;
+
+  return (
+    <section
+      id="culture"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      <div style={{ padding: "22px 28px 18px", background: "#f5f8ff", borderBottom: "1px solid #dde4f5" }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
               <circle cx="9" cy="7" r="4"/>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "var(--success)", fontFamily: "Inter, sans-serif" }}>
+          }
+        >
+          カルチャー
+        </SecTitle>
+      </div>
+      <div style={{ padding: "22px 28px 28px" }}>
+        <div style={{
+          padding: "24px 28px 24px 32px",
+          borderLeft: "4px solid var(--success)",
+          background: "linear-gradient(135deg, #f0fdf8 0%, #ecfdf5 100%)",
+          borderRadius: "0 12px 12px 0",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "var(--success)", fontFamily: "Inter, sans-serif" }}>
               CULTURE / 社風
             </span>
           </div>
           {hasCulture ? (
-            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.9, color: "var(--ink)", fontFamily: "var(--font-noto-serif)" }}>
+            <p style={{ margin: 0, fontSize: 15, lineHeight: 2, color: "var(--ink)", fontFamily: "var(--font-noto-serif)" }}>
               {detail.culture_description}
             </p>
           ) : (
-            <EmptyPlaceholder label="社風・カルチャー情報" />
+            <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+              社風・カルチャー情報は現在準備中です。
+            </p>
           )}
         </div>
       </div>
@@ -3879,7 +3900,8 @@ export default async function CompanyDetailPage({
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
           { id: "about",            label: "企業概要" },
-          { id: "products-culture", label: "製品・社風" },
+          { id: "products-clients", label: "製品・顧客" },
+          { id: "culture",          label: "カルチャー" },
           { id: "work-style",       label: "働き方の選択肢" },
           { id: "numbers",          label: "数値で見る企業" },
           { id: "benefits",         label: "福利厚生・評価制度" },
@@ -3901,10 +3923,13 @@ export default async function CompanyDetailPage({
               photos={photos}
             />
 
-            {/* 2. 製品・社風 */}
-            <ProductsCultureSection detail={detail} />
+            {/* 2. 製品・顧客 */}
+            <ProductsClientsSection detail={detail} />
 
-            {/* 3. 働き方の選択肢 */}
+            {/* 3. カルチャー */}
+            <CultureSection detail={detail} />
+
+            {/* 4. 働き方の選択肢 */}
             <WorkStyleSection detail={detail} />
 
             {/* 4. 数値で見る企業 */}
