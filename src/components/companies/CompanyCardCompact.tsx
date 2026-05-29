@@ -245,12 +245,13 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
           display: '-webkit-box',
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical' as const,
+          fontFamily: cleanEnName(company.name_en) ? 'Inter, sans-serif' : undefined,
         }}>
-          {company.name}
+          {cleanEnName(company.name_en) ?? company.name}
         </div>
         {cleanEnName(company.name_en) && (
-          <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 1, letterSpacing: '0.02em', fontFamily: 'Inter, sans-serif', lineHeight: 1.3 }}>
-            {cleanEnName(company.name_en)}
+          <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 1, lineHeight: 1.3 }}>
+            {company.name}
           </div>
         )}
 
