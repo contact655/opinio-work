@@ -112,33 +112,36 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const hasFilter = Boolean(q || phase || workStyle || hiring || location);
   const isGridView = !hasFilter && (view === "grid" || !view);
   const isListView = !hasFilter && view === "list";
+  const needsGrid = isGridView || isListView;
 
-  // 全データを並列取得
+  // ── 並列フェッチ（不要なクエリはスキップ）──────────────────────────────────
   const supabase = createClient();
+
   const [locations, genresWithCompanies, companyNamesResult, allCompaniesResult] = await Promise.all([
+    // フィルターバー用ロケーション（キャッシュ済み）
     fetchDistinctLocations(),
-    fetchGenresWithCompanies(),
-    supabase
-      .from("ow_companies")
-      .select("id, name")
-      .eq("is_published", true)
-      .order("name"),
-    // コンパクト/リスト表示用: ジャンル紐付けに依存せず全公開企業を取得
-    (isGridView || isListView) ? searchCompanies({}) : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
+    // GenreTabs はグリッド/リスト表示中は不要 → スキップ
+    needsGrid ? Promise.resolve([]) : fetchGenresWithCompanies(),
+    // 検索サジェスト用企業名リスト
+    supabase.from("ow_companies").select("id, name").eq("is_published", true).order("name"),
+    // グリッド/リスト表示: DB側でページ分だけ取得（総件数も同時取得）
+    needsGrid
+      ? searchCompanies({ limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE })
+      : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
   ]);
 
   const companySuggestions: { id: string; name: string }[] =
     (companyNamesResult.data ?? []) as { id: string; name: string }[];
 
-  // Fetch current employees for grid/list views
+  // ── 在籍メンバー取得（表示企業分のみ）─────────────────────────────────────
   const membersByCompany: Record<string, MemberPreview[]> = {};
-  if (isGridView || isListView) {
+  if (needsGrid && allCompaniesResult.companies.length > 0) {
+    const pageCompanyIds = allCompaniesResult.companies.map((c) => c.id);
     const { data: experienceData } = await supabase
       .from("ow_experiences")
       .select("company_id, user_id, ow_users(id, name)")
       .eq("is_current", true)
-      .not("company_id", "is", null)
-      .limit(300);
+      .in("company_id", pageCompanyIds);  // ページ内企業のみ
 
     if (experienceData) {
       for (const exp of experienceData) {
@@ -148,12 +151,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
           const user = exp.ow_users as { id: string; name: string } | { id: string; name: string }[] | null;
           if (user) {
             const u = Array.isArray(user) ? user[0] : user;
-            if (u) {
-              membersByCompany[companyId].push({
-                id: u.id,
-                name: u.name ?? "?",
-              });
-            }
+            if (u) membersByCompany[companyId].push({ id: u.id, name: u.name ?? "?" });
           }
         }
       }
@@ -219,20 +217,21 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     `}</style>
                   )}
                   {(() => {
-                    const allCompanies = [...allCompaniesResult.companies];
-                    if (sort === "jobs") allCompanies.sort((a, b) => b.job_count - a.job_count);
+                    // DB側でページ分だけ取得済み。ソートは名前順のみDB側で完結。
+                    // job数・社員数ソートはアプリ側（ページ内のみ再ソート）
+                    const paged = [...allCompaniesResult.companies];
+                    if (sort === "jobs") paged.sort((a, b) => b.job_count - a.job_count);
                     else if (sort === "employees") {
-                      allCompanies.sort((a, b) => {
+                      paged.sort((a, b) => {
                         const numA = parseInt(String(a.employee_count ?? "0").replace(/\D/g, "")) || 0;
                         const numB = parseInt(String(b.employee_count ?? "0").replace(/\D/g, "")) || 0;
                         return numB - numA;
                       });
                     }
 
-                    // ── ページネーション ──
-                    const totalPages = Math.max(1, Math.ceil(allCompanies.length / PAGE_SIZE));
-                    const safePage = Math.min(currentPage, totalPages);
-                    const paged = allCompanies.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+                    // totalCount は DB の COUNT クエリから取得済み
+                    const totalPages = Math.max(1, Math.ceil(allCompaniesResult.totalCount / PAGE_SIZE));
+                    const safePage   = Math.min(currentPage, totalPages);
 
                     // ページネーション用ベースURL（page= を除いたクエリ）
                     const baseParams = new URLSearchParams();
@@ -243,7 +242,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     return (
                       <>
                         <Suspense fallback={null}>
-                          <GridSortBar totalCount={allCompanies.length} />
+                          <GridSortBar totalCount={allCompaniesResult.totalCount} />
                         </Suspense>
                         {/* 上部ページネーション（2ページ目以降のみ表示） */}
                         {safePage > 1 && (
@@ -270,7 +269,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                             ))}
                           </div>
                         )}
-                        {/* 下部ページネーション（常に表示） */}
+                        {/* 下部ページネーション */}
                         <Pagination currentPage={safePage} totalPages={totalPages} baseHref={baseHref} />
                       </>
                     );

@@ -28,11 +28,14 @@ export type CompanySearchParams = {
   workStyle?: WorkStyleValue;
   hiring?: boolean;
   location?: string;  // 都道府県フィルタ（例: "東京都", "大阪府"）
+  // DB側ページネーション（hiring フィルターなしの場合のみ有効）
+  limit?: number;
+  offset?: number;
 };
 
 export type CompanySearchResult = {
   companies: CompanyForCarousel[];
-  totalCount: number;
+  totalCount: number;       // フィルター適用後の総件数
   appliedFilters: CompanySearchParams;
 };
 
@@ -49,48 +52,61 @@ export async function searchCompanies(
 ): Promise<CompanySearchResult> {
   const supabase = createPublicClient();
 
-  // ── Step 1: Supabase クエリ（is_published=true + Supabase で処理可能な条件）
-  let query = supabase
-    .from("ow_companies")
-    .select(
-      "id, name, name_en, tagline, industry, funding_stage, employee_count, description, " +
-      "accepting_casual_meetings, remote_work_status, location, logo_letter, logo_gradient, logo_url, updated_at, " +
-      "current_member_count, obog_count"
-    )
-    .eq("is_published", true);
+  // ── DB側ページネーションを使うか判定
+  // hiring フィルターはアプリ側で処理するため、DB ページネーションと併用不可
+  const useDbPagination = !params.hiring && params.limit !== undefined;
 
-  // フリーワード: name / description / industry を ILIKE（大文字小文字無視）
-  if (params.q && params.q.trim()) {
-    const pattern = `%${params.q.trim()}%`;
-    query = query.or(
-      `name.ilike.${pattern},description.ilike.${pattern},industry.ilike.${pattern}`
+  // ── フィルター条件を組み立てるヘルパー
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function applyFilters(q: any) {
+    if (params.q?.trim()) {
+      const pattern = `%${params.q.trim()}%`;
+      q = q.or(`name.ilike.${pattern},description.ilike.${pattern},industry.ilike.${pattern}`);
+    }
+    if (params.phase)     q = q.eq("phase", params.phase);
+    if (params.workStyle) q = q.eq("remote_work_status", params.workStyle);
+    if (params.location)  q = q.eq("location", params.location);
+    return q;
+  }
+
+  // ── Step 1a: 総件数取得（DB ページネーション時のみ）
+  let totalCount = 0;
+  if (useDbPagination) {
+    const countQuery = applyFilters(
+      supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true)
     );
+    const { count } = await countQuery;
+    totalCount = count ?? 0;
   }
 
-  // フェーズフィルタ（完全一致）
-  if (params.phase) {
-    query = query.eq("phase", params.phase);
+  // ── Step 1b: データ取得
+  let dataQuery = applyFilters(
+    supabase
+      .from("ow_companies")
+      .select(
+        "id, name, name_en, tagline, industry, funding_stage, employee_count, description, " +
+        "accepting_casual_meetings, remote_work_status, location, logo_letter, logo_gradient, logo_url, updated_at, " +
+        "current_member_count, obog_count"
+      )
+      .eq("is_published", true)
+  ).order("name");
+
+  // DB ページネーション適用
+  if (useDbPagination) {
+    const offset = params.offset ?? 0;
+    const limit  = params.limit!;
+    dataQuery = dataQuery.range(offset, offset + limit - 1);
   }
 
-  // 勤務形態フィルタ（ow_companies.remote_work_status）
-  if (params.workStyle) {
-    query = query.eq("remote_work_status", params.workStyle);
-  }
-
-  // 所在地フィルタ（都道府県）
-  if (params.location) {
-    query = query.eq("location", params.location);
-  }
-
-  const { data: rawCompanies, error } = await query.order("name");
+  const { data: rawCompanies, error } = await dataQuery;
   if (error) throw error;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const companyList: CompanyForCarousel[] = (rawCompanies ?? []) as any[];
 
-  // ── Step 2: 全 active jobs の company_id セットを取得（hiring / job_count 両用）
+  // ── Step 2: 求人件数 + hiring フラグ（表示企業分のみ）
   const companyIds = companyList.map((c) => c.id);
-  const hiringSet = new Set<string>();
+  const hiringSet  = new Set<string>();
   const jobCountMap: Record<string, number> = {};
 
   if (companyIds.length > 0) {
@@ -106,7 +122,7 @@ export async function searchCompanies(
     });
   }
 
-  // ── Step 3: アプリ側フィルタ（募集中フラグ）
+  // ── Step 3: アプリ側フィルタ（hiring のみ、DB ページネーション時は不要）
   const companies: CompanyForCarousel[] = companyList
     .filter((c) => {
       if (params.hiring && !hiringSet.has(c.id)) return false;
@@ -119,7 +135,7 @@ export async function searchCompanies(
 
   return {
     companies,
-    totalCount: companies.length,
+    totalCount: useDbPagination ? totalCount : companies.length,
     appliedFilters: params,
   };
 }
