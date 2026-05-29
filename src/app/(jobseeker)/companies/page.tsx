@@ -245,8 +245,12 @@ export default async function CompaniesPage({ searchParams }: Props) {
                         <Suspense fallback={null}>
                           <GridSortBar totalCount={allCompanies.length} />
                         </Suspense>
+                        {/* 上部ページネーション（2ページ目以降のみ表示） */}
+                        {safePage > 1 && (
+                          <Pagination currentPage={safePage} totalPages={totalPages} baseHref={baseHref} />
+                        )}
                         {isGridView ? (
-                          <div className="companies-compact-grid">
+                          <div className="companies-compact-grid" style={{ marginTop: safePage > 1 ? 24 : 0 }}>
                             {paged.map(c => (
                               <CompanyCardHoverWrap
                                 key={c.id}
@@ -256,7 +260,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                             ))}
                           </div>
                         ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: safePage > 1 ? 24 : 0 }}>
                             {paged.map(c => (
                               <CompanyCardList
                                 key={c.id}
@@ -266,6 +270,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                             ))}
                           </div>
                         )}
+                        {/* 下部ページネーション（常に表示） */}
                         <Pagination currentPage={safePage} totalPages={totalPages} baseHref={baseHref} />
                       </>
                     );
