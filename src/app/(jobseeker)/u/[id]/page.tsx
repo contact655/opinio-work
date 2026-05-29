@@ -210,7 +210,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         }
       `}</style>
 
-      <div style={{ maxWidth: 1060, margin: "0 auto", padding: "32px 24px 80px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px 80px" }}>
 
         {/* Cover + Avatar header — full width above grid */}
         <div style={{
@@ -286,6 +286,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </span>
                   )}
                 </div>
+                {/* Current role subtitle */}
+                {currentCareer && (
+                  <div style={{ fontSize: 14, color: "var(--ink-soft)", marginBottom: 8, lineHeight: 1.4 }}>
+                    {currentCareer.role_label}
+                    {currentCareer.company_name && (
+                      <> @ {currentCareer.company_id
+                        ? <Link href={`/companies/${currentCareer.company_id}`} style={{ color: "var(--ink-soft)", textDecoration: "none", borderBottom: "1px solid var(--line)" }}>{currentCareer.company_name}</Link>
+                        : currentCareer.company_name
+                      }</>
+                    )}
+                  </div>
+                )}
                 <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                   {ageDisplay && (
                     <span style={{ fontSize: 13, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 5 }}>
@@ -350,16 +362,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "24px 28px", marginBottom: 20,
               }}>
-                <div style={{
-                  display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16,
-                  paddingBottom: 14, borderBottom: "1px solid var(--line)",
-                  borderLeft: "3px solid var(--royal)", paddingLeft: 12,
-                }}>
-                  <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
                     About Me
                   </span>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                    SELF INTRO
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
-                <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0 }}>
+                <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.85, whiteSpace: "pre-wrap", margin: 0 }}>
                   {owUser.about_me}
                 </p>
               </section>
@@ -392,17 +404,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "24px 28px", marginBottom: 20,
               }}>
-                <div style={{
-                  display: "flex", alignItems: "baseline", gap: 10, marginBottom: 20,
-                  paddingBottom: 14, borderBottom: "1px solid var(--line)",
-                  borderLeft: "3px solid var(--royal)", paddingLeft: 12,
-                }}>
-                  <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
                     経歴
                   </span>
-                  <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
                     TIMELINE
                   </span>
+                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
                 <MergedTimeline
                   careers={timelineCareers}
@@ -485,19 +494,19 @@ export default async function UserProfilePage({ params }: { params: { id: string
               {/* Current company card */}
               {currentCareer && (
                 <div style={{
-                  background: "#fff", border: "1px solid var(--line)",
+                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
                   borderRadius: 14, padding: "18px 20px",
                 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 12, textTransform: "uppercase" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
                     現在の在籍企業
                   </div>
                   <Link href={`/companies/${currentCareer.company_id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 12 }}>
                     {/* Logo */}
                     <div style={{
-                      width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                      width: 52, height: 52, borderRadius: 12, flexShrink: 0,
                       background: currentCareer.logo_gradient ?? "linear-gradient(135deg, #002366, #3B5FD9)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 18, fontWeight: 700,
+                      color: "#fff", fontSize: 20, fontWeight: 700,
                       border: "1px solid rgba(0,0,0,0.06)",
                     }}>
                       {currentCareer.logo_letter ?? currentCareer.company_name.charAt(0)}
@@ -505,7 +514,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     <div style={{ minWidth: 0 }}>
                       <div style={{
                         fontFamily: "'Noto Serif JP', serif",
-                        fontSize: 14, fontWeight: 700, color: "var(--ink)",
+                        fontSize: 15, fontWeight: 700, color: "var(--ink)",
                         marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                       }}>
                         {currentCareer.company_name}
@@ -514,7 +523,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         {currentCareer.role_label}
                       </div>
                     </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginLeft: "auto" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginLeft: "auto" }}>
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                   </Link>
@@ -558,7 +567,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   background: "#fff", border: "1px solid var(--line)",
                   borderRadius: 14, padding: "18px 20px",
                 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 12, textTransform: "uppercase" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
                     スキル
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -568,8 +577,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         style={{
                           display: "inline-flex", alignItems: "center",
                           padding: "4px 10px", borderRadius: 100,
-                          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                          fontSize: 12, color: "var(--royal)", fontWeight: 500,
+                          background: "#EFF6FF", border: "1px solid #BFDBFE",
+                          fontSize: 12, color: "#1D4ED8", fontWeight: 500,
                         }}
                       >
                         {tag.label as string}
@@ -585,7 +594,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   background: "#fff", border: "1px solid var(--line)",
                   borderRadius: 14, padding: "18px 20px",
                 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 12, textTransform: "uppercase" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
                     資格・認定
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -608,7 +617,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   background: "#fff", border: "1px solid var(--line)",
                   borderRadius: 14, padding: "18px 20px",
                 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 12, textTransform: "uppercase" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
                     リンク
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
