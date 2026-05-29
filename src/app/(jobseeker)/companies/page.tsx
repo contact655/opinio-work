@@ -128,82 +128,90 @@ export default async function CompaniesPage({ searchParams }: Props) {
             location={location}
           />
         ) : (
-          <div style={{ marginTop: 16 }}>
-            <Suspense fallback={null}>
-              <RecentlyViewedSection />
-            </Suspense>
+          /* ── 2カラムレイアウト: メイン (flex:1) + 右サイドバー (220px) ── */
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 20, marginTop: 16 }}>
 
-            {/* ── View toggle row ── */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 12 }}>
+            {/* ── メインコンテンツ ── */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {/* ── View toggle row ── */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 12 }}>
+                <Suspense fallback={null}>
+                  <ViewToggle />
+                </Suspense>
+              </div>
+
+              {isGridView || isListView ? (
+                <>
+                  {isGridView && (
+                    <style>{`
+                      .companies-compact-grid {
+                        display: grid;
+                        grid-template-columns: repeat(4, 1fr);
+                        gap: 14px;
+                      }
+                      @media (max-width: 1279px) {
+                        .companies-compact-grid { grid-template-columns: repeat(3, 1fr); }
+                      }
+                      @media (max-width: 1023px) {
+                        .companies-compact-grid { grid-template-columns: repeat(3, 1fr); }
+                      }
+                      @media (max-width: 639px) {
+                        .companies-compact-grid { grid-template-columns: repeat(2, 1fr); }
+                      }
+                    `}</style>
+                  )}
+                  {(() => {
+                    const allCompanies = [...allCompaniesResult.companies];
+                    if (sort === "jobs") allCompanies.sort((a, b) => b.job_count - a.job_count);
+                    else if (sort === "employees") {
+                      allCompanies.sort((a, b) => {
+                        const numA = parseInt(String(a.employee_count ?? "0").replace(/\D/g, "")) || 0;
+                        const numB = parseInt(String(b.employee_count ?? "0").replace(/\D/g, "")) || 0;
+                        return numB - numA;
+                      });
+                    }
+                    return (
+                      <>
+                        <Suspense fallback={null}>
+                          <GridSortBar totalCount={allCompanies.length} />
+                        </Suspense>
+                        {isGridView ? (
+                          <div className="companies-compact-grid">
+                            {allCompanies.map(c => (
+                              <CompanyCardHoverWrap
+                                key={c.id}
+                                company={c}
+                                members={membersByCompany[c.id] ?? []}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {allCompanies.map(c => (
+                              <CompanyCardList
+                                key={c.id}
+                                company={c}
+                                members={membersByCompany[c.id] ?? []}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </>
+              ) : (
+                <GenreTabs genres={genresWithCompanies} />
+              )}
+            </div>
+
+            {/* ── 右サイドバー: 最近見た企業 (sticky) ── */}
+            <div style={{ width: 220, flexShrink: 0, position: "sticky", top: "calc(64px + 80px + 16px)" }}>
               <Suspense fallback={null}>
-                <ViewToggle />
+                <RecentlyViewedSection />
               </Suspense>
             </div>
 
-            {isGridView || isListView ? (
-              <>
-                {isGridView && (
-                  <style>{`
-                    .companies-compact-grid {
-                      display: grid;
-                      grid-template-columns: repeat(5, 1fr);
-                      gap: 14px;
-                    }
-                    @media (max-width: 1279px) {
-                      .companies-compact-grid { grid-template-columns: repeat(4, 1fr); }
-                    }
-                    @media (max-width: 1023px) {
-                      .companies-compact-grid { grid-template-columns: repeat(3, 1fr); }
-                    }
-                    @media (max-width: 639px) {
-                      .companies-compact-grid { grid-template-columns: repeat(2, 1fr); }
-                    }
-                  `}</style>
-                )}
-                {(() => {
-                  // ジャンル紐付けに関係なく全公開企業を表示
-                  const allCompanies = [...allCompaniesResult.companies];
-                  if (sort === "jobs") allCompanies.sort((a, b) => b.job_count - a.job_count);
-                  else if (sort === "employees") {
-                    allCompanies.sort((a, b) => {
-                      const numA = parseInt(String(a.employee_count ?? "0").replace(/\D/g, "")) || 0;
-                      const numB = parseInt(String(b.employee_count ?? "0").replace(/\D/g, "")) || 0;
-                      return numB - numA;
-                    });
-                  }
-                  return (
-                    <>
-                      <Suspense fallback={null}>
-                        <GridSortBar totalCount={allCompanies.length} />
-                      </Suspense>
-                      {isGridView ? (
-                        <div className="companies-compact-grid">
-                          {allCompanies.map(c => (
-                            <CompanyCardHoverWrap
-                              key={c.id}
-                              company={c}
-                              members={membersByCompany[c.id] ?? []}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          {allCompanies.map(c => (
-                            <CompanyCardList
-                              key={c.id}
-                              company={c}
-                              members={membersByCompany[c.id] ?? []}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </>
-            ) : (
-              <GenreTabs genres={genresWithCompanies} />
-            )}
           </div>
         )}
 

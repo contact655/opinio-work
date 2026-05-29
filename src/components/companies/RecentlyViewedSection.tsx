@@ -3,41 +3,72 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
 
+/** 縦並び固定幅カード（右サイドバー用） */
 export function RecentlyViewedSection() {
   const { items, clearItems } = useRecentlyViewed();
   const companies = items.filter((i) => i.type === "company");
   if (companies.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 24, padding: "16px 0" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>最近見た企業</span>
-        <button type="button" onClick={clearItems} style={{ fontSize: 11.5, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+    <div style={{
+      background: "#fff",
+      border: "1px solid var(--line)",
+      borderRadius: 12,
+      padding: "14px 14px 10px",
+      width: "100%",
+    }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", letterSpacing: "0.02em" }}>最近見た企業</span>
+        <button
+          type="button"
+          onClick={clearItems}
+          style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+        >
           クリア
         </button>
       </div>
-      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+
+      {/* Vertical list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {companies.map((c) => (
-          <Link key={c.id} href={`/companies/${c.id}`} style={{ textDecoration: "none", flexShrink: 0 }}>
+          <Link key={c.id} href={`/companies/${c.id}`} style={{ textDecoration: "none" }}>
             <div style={{
               display: "flex", alignItems: "center", gap: 8,
-              padding: "8px 12px", borderRadius: 10,
-              background: "#fff", border: "1px solid var(--line)",
-              transition: "border-color 0.15s",
-            }}>
-              {/* ロゴ */}
-              <div style={{ width: 28, height: 28, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: c.gradient || "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              padding: "7px 8px", borderRadius: 8,
+              border: "1px solid var(--line)",
+              background: "#fff",
+              transition: "border-color 0.15s, background 0.15s",
+            }}
+              className="recently-viewed-item"
+            >
+              {/* Logo */}
+              <div style={{
+                width: 26, height: 26, borderRadius: 5, overflow: "hidden",
+                flexShrink: 0,
+                background: c.gradient || "var(--royal-50)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
                 {c.logoUrl ? (
-                  <Image src={c.logoUrl} alt={c.name} width={28} height={28} style={{ objectFit: "contain" }} />
+                  <Image src={c.logoUrl} alt={c.name} width={26} height={26} style={{ objectFit: "contain" }} />
                 ) : (
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--royal)" }}>{c.logoLetter ?? c.name[0]}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)" }}>{c.logoLetter ?? c.name[0]}</span>
                 )}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap" }}>{c.name}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", lineHeight: 1.35, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {c.name}
+              </span>
             </div>
           </Link>
         ))}
       </div>
+
+      <style>{`
+        .recently-viewed-item:hover {
+          border-color: var(--royal-100) !important;
+          background: var(--royal-50) !important;
+        }
+      `}</style>
     </div>
   );
 }
