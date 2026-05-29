@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { ARTICLE_TYPES } from "@/app/articles/mockArticleData";
 
 const LINE = "var(--line)";
@@ -19,12 +19,6 @@ export default function ArticleFilterBar({ total }: { total: number }) {
 
   const [localQ, setLocalQ] = useState(currentQ);
   const qTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   const updateParam = useCallback((key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());

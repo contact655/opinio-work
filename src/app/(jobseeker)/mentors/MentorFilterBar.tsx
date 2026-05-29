@@ -135,12 +135,6 @@ export default function MentorFilterBar({ total }: { total: number }) {
 
   const [localQ, setLocalQ] = useState(q);
   const qTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   const updateParam = useCallback((key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
