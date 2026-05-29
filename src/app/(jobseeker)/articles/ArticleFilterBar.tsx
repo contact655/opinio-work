@@ -47,14 +47,13 @@ export default function ArticleFilterBar({ total }: { total: number }) {
   return (
     <div style={{
       position: "sticky", top: 64, zIndex: 50,
-      background: "rgba(255,255,255,0.96)",
-      backdropFilter: "blur(8px)",
+      background: "#fff",
       borderBottom: `1px solid ${LINE}`,
-      boxShadow: scrolled ? "0 4px 12px rgba(0,35,102,0.07)" : "none",
-      transition: "box-shadow 0.2s ease",
+      boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+      padding: "20px 0 0",
     }}>
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-        <div style={{ padding: "10px 0", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        <div style={{ padding: "0 0 14px", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
 
           {/* Keyword search */}
           <div style={{ position: "relative", minWidth: 160, flex: "0 1 200px" }}>

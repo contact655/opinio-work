@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import PostCard from "@/components/jobseeker/PostCard";
+import PostsFilterBar from "./PostsFilterBar";
 import type { Database } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -141,34 +143,39 @@ function Pagination({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 type Props = {
-  searchParams: { page?: string };
+  searchParams: { page?: string; q?: string };
 };
 
 export default async function PostsPage({ searchParams }: Props) {
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+  const q = searchParams.q?.trim() ?? "";
   const offset = (currentPage - 1) * PAGE_SIZE;
 
   const supabase = createClient();
 
-  // 総件数
-  const { count } = await supabase
+  // 総件数（キーワードフィルタ込み）
+  let countQuery = supabase
     .from("ow_company_external_links")
-    .select("*", { count: "exact", head: true })
+    .select("*, ow_companies!inner(name)", { count: "exact", head: true })
     .eq("is_published", true);
+  if (q) countQuery = countQuery.or(`title.ilike.%${q}%,ow_companies.name.ilike.%${q}%`);
+  const { count } = await countQuery;
 
   const totalCount = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
 
   // 該当ページのデータ (ow_companies を JOIN)
-  const { data: rawPosts } = await supabase
+  let dataQuery = supabase
     .from("ow_company_external_links")
     .select("*, ow_companies(id, name)")
     .eq("is_published", true)
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .range(offset, offset + PAGE_SIZE - 1);
+  if (q) dataQuery = (dataQuery as typeof dataQuery).or(`title.ilike.%${q}%`);
 
+  const { data: rawPosts } = await dataQuery;
   const posts = (rawPosts ?? []) as PostWithCompany[];
 
   return (
@@ -188,6 +195,10 @@ export default async function PostsPage({ searchParams }: Props) {
         </div>
       </nav>
 
+      {/* Filter bar */}
+      <Suspense fallback={null}>
+        <PostsFilterBar totalCount={totalCount} />
+      </Suspense>
 
       {/* Grid */}
       <div style={{ background: "var(--bg-tint)" }}>
