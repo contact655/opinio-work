@@ -63,8 +63,8 @@ function FilterChip({
           borderRadius: 999,
           border: `1.5px solid ${isActive && !phaseStyle ? "var(--royal)" : isActive && phaseStyle ? activeOpt?.color ?? "var(--royal)" : "#e2e8f0"}`,
           background: isActive && phaseStyle ? (activeOpt?.bg ?? "var(--royal-50)") : isActive ? "var(--royal)" : "#fff",
-          color: isActive && phaseStyle ? (activeOpt?.color ?? "var(--royal)") : isActive ? "#fff" : "var(--ink-soft)",
-          fontSize: 13, fontWeight: isActive ? 600 : 400,
+          color: isActive && phaseStyle ? (activeOpt?.color ?? "var(--royal)") : isActive ? "#fff" : "var(--ink)",
+          fontSize: 13, fontWeight: isActive ? 600 : 500,
           cursor: "pointer", whiteSpace: "nowrap",
           transition: "all 0.12s",
           fontFamily: "inherit",
@@ -325,13 +325,13 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
           padding: 9px 0;
           min-width: 0;
         }
-        .csb-input::placeholder { color: #8b95a3; }
+        .csb-input::placeholder { color: #6b7280; }
         .csb-hiring {
           display: inline-flex;
           align-items: center;
           gap: 5px;
           font-size: 13px;
-          color: var(--ink-soft);
+          color: var(--ink);
           cursor: pointer;
           white-space: nowrap;
           border: 1.5px solid #e2e8f0;
@@ -342,7 +342,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
           font-family: inherit;
           background: #fff;
           flex-shrink: 0;
-          font-weight: 400;
+          font-weight: 500;
         }
         .csb-hiring.active {
           border-color: var(--royal);
