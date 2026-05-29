@@ -721,6 +721,36 @@ function AboutSection({
         </p>
       )}
 
+      {/* 会社の特徴・強み */}
+      {detail.company_features && detail.company_features.length > 0 && (
+        <div style={{ marginTop: 28 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const }}>
+              FEATURES / 会社の特徴・強み
+            </span>
+          </div>
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+            {detail.company_features.map((f, i) => (
+              <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <span style={{
+                  flexShrink: 0, marginTop: 3,
+                  width: 20, height: 20, borderRadius: "50%",
+                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 10, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif",
+                }}>
+                  {i + 1}
+                </span>
+                <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.8 }}>{f}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       </div>
     </section>
   );
