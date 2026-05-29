@@ -735,7 +735,7 @@ function ProductsCultureSection({ detail }: { detail: CompanyDetail }) {
 
   // 空欄プレースホルダー（データ未登録時）
   const EmptyPlaceholder = ({ label }: { label: string }) => (
-    <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", fontStyle: "italic" }}>
+    <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
       {label}は現在準備中です。
     </p>
   );
