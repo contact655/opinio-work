@@ -187,11 +187,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
             location={location}
           />
         ) : (
-          /* ── 2カラムレイアウト: メイン (flex:1) + 右サイドバー (220px) ── */
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 20, marginTop: 16 }}>
+          <div style={{ marginTop: 16 }}>
 
             {/* ── メインコンテンツ ── */}
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div>
               {/* ── View toggle row ── */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 12 }}>
                 <Suspense fallback={null}>
@@ -277,14 +276,14 @@ export default async function CompaniesPage({ searchParams }: Props) {
               )}
             </div>
 
-            {/* ── 右サイドバー: 最近見た企業 (sticky) ── */}
-            <div style={{ width: 220, flexShrink: 0, position: "sticky", top: "calc(64px + 80px + 16px)" }}>
-              <Suspense fallback={null}>
-                <RecentlyViewedSection />
-              </Suspense>
-            </div>
-
           </div>
+        )}
+
+        {/* ── 最近見た企業 ── */}
+        {!hasFilter && (
+          <Suspense fallback={null}>
+            <RecentlyViewedSection />
+          </Suspense>
         )}
 
         {/* ── 先輩に相談 CTA ── */}
