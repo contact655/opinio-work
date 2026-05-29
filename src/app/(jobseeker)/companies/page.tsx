@@ -90,7 +90,7 @@ function Pagination({
   const disabled: React.CSSProperties = { ...base, opacity: 0.4, cursor: "not-allowed" };
 
   return (
-    <nav aria-label="ページネーション" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 40, flexWrap: "wrap" }}>
+    <nav aria-label="ページネーション" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 32, flexWrap: "wrap" }}>
       {currentPage > 1
         ? <a href={href(currentPage - 1)} style={{ ...base, minWidth: 72 }}>← 前へ</a>
         : <span style={{ ...disabled, minWidth: 72 }}>← 前へ</span>}
@@ -284,26 +284,28 @@ export default async function CompaniesPage({ searchParams }: Props) {
           </div>
         )}
 
-        {/* ── 最近見た企業 ── */}
-        {!hasFilter && (
-          <Suspense fallback={null}>
-            <RecentlyViewedSection />
-          </Suspense>
-        )}
+        {/* ── フッターエリア: 最近見た企業 + CTA ── */}
+        <div style={{ marginTop: 48, display: "flex", flexDirection: "column", gap: 16, marginBottom: 16 }}>
 
-        {/* ── 先輩に相談 CTA ── */}
-        <div style={{
-          marginTop: 48, marginBottom: 16,
-          padding: "32px 36px",
-          background: "var(--royal-50)",
-          border: "1.5px solid var(--royal-100)",
-          borderRadius: 16,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 24,
-          flexWrap: "wrap",
-        }}>
+          {/* 最近見た企業 */}
+          {!hasFilter && (
+            <Suspense fallback={null}>
+              <RecentlyViewedSection />
+            </Suspense>
+          )}
+
+          {/* ── 先輩に相談 CTA ── */}
+          <div style={{
+            padding: "32px 36px",
+            background: "var(--royal-50)",
+            border: "1.5px solid var(--royal-100)",
+            borderRadius: 16,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 24,
+            flexWrap: "wrap",
+          }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: 8, textTransform: "uppercase" as const }}>
               OPINIO MENTOR
@@ -332,7 +334,9 @@ export default async function CompaniesPage({ searchParams }: Props) {
             </svg>
             先輩に相談する（無料）
           </Link>
-        </div>
+          </div>
+
+        </div>{/* フッターエリア end */}
       </div>
     </div>
   );

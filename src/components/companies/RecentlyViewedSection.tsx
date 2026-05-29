@@ -9,7 +9,7 @@ export function RecentlyViewedSection() {
   if (companies.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 24, padding: "20px 24px", background: "#fff", borderRadius: 12, border: "1px solid var(--line)" }}>
+    <div style={{ padding: "20px 24px", background: "#fff", borderRadius: 12, border: "1px solid var(--line)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>最近見た企業</span>
         <button type="button" onClick={clearItems} style={{ fontSize: 11.5, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
