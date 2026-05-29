@@ -34,6 +34,8 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
+const PAGE_SIZE = 40;
+
 type SearchParams = {
   q?: string;
   phase?: string;
@@ -42,14 +44,71 @@ type SearchParams = {
   location?: string;
   view?: string;
   sort?: string;
+  page?: string;
 };
 
 type Props = {
   searchParams: SearchParams;
 };
 
+// ── ページネーション (Link ベース) ──────────────────────────────────────────────
+function Pagination({
+  currentPage,
+  totalPages,
+  baseHref,
+}: {
+  currentPage: number;
+  totalPages: number;
+  baseHref: string; // "?view=grid&sort=jobs" など（page= を除いたクエリ文字列）
+}) {
+  if (totalPages <= 1) return null;
+
+  const items: (number | "ellipsis")[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) items.push(i);
+  } else {
+    items.push(1);
+    if (currentPage > 3) items.push("ellipsis");
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      items.push(i);
+    }
+    if (currentPage < totalPages - 2) items.push("ellipsis");
+    items.push(totalPages);
+  }
+
+  const sep = baseHref.includes("?") ? "&" : "?";
+  const href = (p: number) => `${baseHref}${sep}page=${p}`;
+
+  const base: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    minWidth: 36, height: 36, padding: "0 10px", borderRadius: 8,
+    border: "1px solid var(--line)", background: "#fff",
+    color: "var(--ink-soft)", fontSize: 13, fontWeight: 500,
+    textDecoration: "none", fontFamily: "Inter, sans-serif",
+  };
+  const active: React.CSSProperties = { ...base, background: "var(--royal)", borderColor: "var(--royal)", color: "#fff" };
+  const disabled: React.CSSProperties = { ...base, opacity: 0.4, cursor: "not-allowed" };
+
+  return (
+    <nav aria-label="ページネーション" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 40, flexWrap: "wrap" }}>
+      {currentPage > 1
+        ? <a href={href(currentPage - 1)} style={{ ...base, minWidth: 72 }}>← 前へ</a>
+        : <span style={{ ...disabled, minWidth: 72 }}>← 前へ</span>}
+      {items.map((item, idx) =>
+        item === "ellipsis"
+          ? <span key={`e-${idx}`} style={{ color: "var(--ink-mute)", padding: "0 4px", fontSize: 13 }}>…</span>
+          : <a key={item} href={href(item)} style={item === currentPage ? active : base} aria-current={item === currentPage ? "page" : undefined}>{item}</a>
+      )}
+      {currentPage < totalPages
+        ? <a href={href(currentPage + 1)} style={{ ...base, minWidth: 72 }}>次へ →</a>
+        : <span style={{ ...disabled, minWidth: 72 }}>次へ →</span>}
+    </nav>
+  );
+}
+
 export default async function CompaniesPage({ searchParams }: Props) {
   const { q, phase, workStyle, hiring, location, view, sort } = searchParams;
+  const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const hasFilter = Boolean(q || phase || workStyle || hiring || location);
   const isGridView = !hasFilter && (view === "grid" || !view);
   const isListView = !hasFilter && view === "list";
@@ -170,6 +229,18 @@ export default async function CompaniesPage({ searchParams }: Props) {
                         return numB - numA;
                       });
                     }
+
+                    // ── ページネーション ──
+                    const totalPages = Math.max(1, Math.ceil(allCompanies.length / PAGE_SIZE));
+                    const safePage = Math.min(currentPage, totalPages);
+                    const paged = allCompanies.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+                    // ページネーション用ベースURL（page= を除いたクエリ）
+                    const baseParams = new URLSearchParams();
+                    if (view) baseParams.set("view", view);
+                    if (sort) baseParams.set("sort", sort);
+                    const baseHref = `/companies${baseParams.toString() ? `?${baseParams.toString()}` : ""}`;
+
                     return (
                       <>
                         <Suspense fallback={null}>
@@ -177,7 +248,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                         </Suspense>
                         {isGridView ? (
                           <div className="companies-compact-grid">
-                            {allCompanies.map(c => (
+                            {paged.map(c => (
                               <CompanyCardHoverWrap
                                 key={c.id}
                                 company={c}
@@ -187,7 +258,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                           </div>
                         ) : (
                           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                            {allCompanies.map(c => (
+                            {paged.map(c => (
                               <CompanyCardList
                                 key={c.id}
                                 company={c}
@@ -196,6 +267,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                             ))}
                           </div>
                         )}
+                        <Pagination currentPage={safePage} totalPages={totalPages} baseHref={baseHref} />
                       </>
                     );
                   })()}
