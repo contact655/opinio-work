@@ -64,6 +64,8 @@ export interface MergedTimelineProps {
   future?: FutureData | null;
   /** プロフィールオーナー本人が閲覧中かどうか（CTA 表示制御） */
   viewerIsOwner?: boolean;
+  /** ログイン済みかどうか（false の場合、経歴の詳細説明をゲート） */
+  isAuthenticated?: boolean;
 }
 
 // ─── Internal discriminated union ─────────────────────────────────────────────
@@ -548,14 +550,53 @@ function DateCol({
   );
 }
 
+// ─── Description gate (未ログイン時) ─────────────────────────────────────────
+
+function DescriptionGate() {
+  return (
+    <div style={{ position: "relative", marginTop: 8, borderRadius: 8, overflow: "hidden" }}>
+      {/* Blurred dummy text */}
+      <p style={{
+        fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75, margin: 0,
+        filter: "blur(4px)", userSelect: "none", pointerEvents: "none",
+        whiteSpace: "pre-wrap",
+      }}>
+        {"業務内容の詳細は登録後にご覧いただけます。\nこの経歴での具体的な職務内容・成果・担当領域について確認できます。"}
+      </p>
+      {/* Overlay CTA */}
+      <div style={{
+        position: "absolute", inset: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: "rgba(248,250,252,0.7)", backdropFilter: "blur(1px)",
+      }}>
+        <a href="/auth" style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "6px 16px", borderRadius: 100,
+          background: "var(--royal)", color: "#fff",
+          fontSize: 12, fontWeight: 600, textDecoration: "none",
+          boxShadow: "0 2px 8px rgba(0,35,102,0.25)",
+          whiteSpace: "nowrap",
+        }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          登録して続きを読む
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // ─── Content sub-components ───────────────────────────────────────────────────
 
 function CareerContent({
   data,
   isParallel,
+  isAuthenticated = true,
 }: {
   data: CareerEntry;
   isParallel: boolean;
+  isAuthenticated?: boolean;
 }) {
   const duration = formatDuration(data.started_at, data.ended_at);
 
@@ -637,17 +678,13 @@ function CareerContent({
 
       {/* Description */}
       {data.description && (
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--ink-soft)",
-            lineHeight: 1.75,
-            margin: "6px 0 0",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {data.description}
-        </p>
+        isAuthenticated ? (
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75, margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+            {data.description}
+          </p>
+        ) : (
+          <DescriptionGate />
+        )
       )}
     </div>
   );
@@ -705,7 +742,7 @@ function EducationContent({ data }: { data: EducationEntry }) {
  * CareerContent と同内容だが、padding 規則と border-left は CSS クラスで制御する。
  * H-iii: グループアイコン列はそのまま維持し、各カードの会社名左に 24px 小ロゴを表示する。
  */
-function ParallelCareerCard({ data }: { data: CareerEntry }) {
+function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntry; isAuthenticated?: boolean }) {
   const duration = formatDuration(data.started_at, data.ended_at);
 
   // 小ロゴ 24px（H-iii 方針: 各カード固有の企業アイコン）
@@ -808,17 +845,13 @@ function ParallelCareerCard({ data }: { data: CareerEntry }) {
 
       {/* Description */}
       {data.description && (
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--ink-soft)",
-            lineHeight: 1.75,
-            margin: "6px 0 0",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {data.description}
-        </p>
+        isAuthenticated ? (
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75, margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+            {data.description}
+          </p>
+        ) : (
+          <DescriptionGate />
+        )
       )}
     </div>
   );
@@ -833,6 +866,7 @@ export default function MergedTimeline({
   educations,
   future,
   viewerIsOwner = false,
+  isAuthenticated = true,
 }: MergedTimelineProps) {
   const hasFuture = future != null && (!!(future.text?.trim()) || viewerIsOwner);
   const parallelIds = buildParallelMap(careers);
@@ -989,7 +1023,7 @@ export default function MergedTimeline({
                     logo_gradient={c.logo_gradient}
                   />
                 </div>
-                <CareerContent data={c} isParallel={entry.isParallel} />
+                <CareerContent data={c} isParallel={entry.isParallel} isAuthenticated={isAuthenticated} />
               </div>
             );
           }
@@ -1034,7 +1068,7 @@ export default function MergedTimeline({
                 <div style={{ paddingTop: 8, paddingBottom: 20, paddingLeft: 12 }}>
                   <div className="d2-parallel-inner">
                     {items.map((c) => (
-                      <ParallelCareerCard key={c.id} data={c} />
+                      <ParallelCareerCard key={c.id} data={c} isAuthenticated={isAuthenticated} />
                     ))}
                   </div>
                 </div>
@@ -1186,17 +1220,13 @@ export default function MergedTimeline({
                             )}
                             {/* description */}
                             {c.description && (
-                              <p
-                                style={{
-                                  fontSize: 13,
-                                  color: "var(--ink-soft)",
-                                  lineHeight: 1.75,
-                                  margin: "6px 0 0",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {c.description}
-                              </p>
+                              isAuthenticated ? (
+                                <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75, margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+                                  {c.description}
+                                </p>
+                              ) : (
+                                <DescriptionGate />
+                              )
                             )}
                           </div>
                         );

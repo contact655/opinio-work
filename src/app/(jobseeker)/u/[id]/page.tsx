@@ -418,6 +418,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   educations={timelineEdus}
                   future={futureData}
                   viewerIsOwner={viewerIsOwner}
+                  isAuthenticated={!!authUser}
                 />
               </section>
             )}
