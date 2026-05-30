@@ -207,6 +207,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
     mentorQuestionTags = (mentorRow?.question_tags as string[] | null) ?? [];
   }
 
+  // 在籍企業の募集中求人（サイドバー表示用）
+  let currentCompanyJobs: Array<{ id: string; title: string }> = [];
+  if (currentCareer?.company_id) {
+    const { data: jobsData } = await supabase
+      .from("ow_jobs")
+      .select("id, title")
+      .eq("company_id", currentCareer.company_id)
+      .in("status", ["published", "active"])
+      .limit(3);
+    currentCompanyJobs = (jobsData ?? []) as Array<{ id: string; title: string }>;
+  }
+
   // OPINIO掲載記事（ow_articles.user_id でリンクされたもの）
   const { data: featuredArticlesRaw } = await supabase
     .from("ow_articles")
@@ -300,6 +312,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
           .profile-sidebar-sticky {
             position: static !important;
           }
+          .profile-cover { height: 140px !important; }
+          .profile-avatar { width: 88px !important; height: 88px !important; font-size: 32px !important; }
+          .profile-avatar-wrap { margin-top: -44px !important; }
+          .profile-name { font-size: 22px !important; }
+          .profile-header-body { padding: 0 20px 24px !important; }
+          .profile-header-cta { font-size: 12px !important; padding: 8px 14px !important; }
+          .tl-node-label { font-size: 10px !important; }
+          .tl-node-year { font-size: 8px !important; }
         }
       `}</style>
 
@@ -311,7 +331,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           borderRadius: 16, overflow: "hidden", marginBottom: 24,
         }}>
           {/* Cover area: photo or gradient */}
-          <div style={{ height: 200, position: "relative", background: owUser.cover_photo_url ? undefined : coverColor, overflow: "hidden" }}>
+          <div className="profile-cover" style={{ height: 200, position: "relative", background: owUser.cover_photo_url ? undefined : coverColor, overflow: "hidden" }}>
             {owUser.cover_photo_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -334,9 +354,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
             }} />
           </div>
 
-          <div style={{ padding: "0 32px 32px", marginTop: -56, position: "relative" }}>
+          <div className="profile-header-body" style={{ padding: "0 32px 32px", marginTop: -56, position: "relative" }}>
             {/* Avatar: photo or gradient letter */}
-            <div style={{
+            <div className="profile-avatar profile-avatar-wrap" style={{
               width: 112, height: 112, borderRadius: "50%",
               background: owUser.avatar_url ? undefined : avatarColor,
               color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
@@ -373,7 +393,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
               <div>
-                <div style={{
+                <div className="profile-name" style={{
                   fontFamily: 'var(--font-noto-serif)',
                   fontSize: 30, fontWeight: 700, color: "var(--ink)",
                   marginBottom: 6, display: "flex", alignItems: "center", gap: 10,
@@ -540,6 +560,55 @@ export default async function UserProfilePage({ params }: { params: { id: string
           {/* ── Main column ─────────────────────────────────────────── */}
           <div>
 
+            {/* ── プロフィール完成度ガイド (owners only) ── */}
+            {viewerIsOwner && (() => {
+              const items = [
+                { label: "自己紹介", done: !!owUser.about_me, tab: "basic", icon: "✍️" },
+                { label: "職歴", done: timelineCareers.length > 0, tab: "career", icon: "🏢" },
+                { label: "スキル", done: skillTags.length > 0, tab: "skills", icon: "⚡" },
+                { label: "目指していること", done: !!owUser.future_aspirations, tab: "basic", icon: "🎯" },
+                { label: "発信コンテンツ", done: contentLinks.length > 0, tab: "content", icon: "📝" },
+                { label: "資格・認定", done: certifications.length > 0, tab: "certs", icon: "🏅" },
+              ];
+              const completedCount = items.filter((i) => i.done).length;
+              const percentage = Math.round((completedCount / items.length) * 100);
+              if (percentage === 100) return null;
+              return (
+                <section style={{
+                  background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                  border: "1px solid #fde68a", borderRadius: 14,
+                  padding: "18px 22px", marginBottom: 20,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round">
+                        <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+                      </svg>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#92400E" }}>
+                        プロフィール完成度 {percentage}%
+                      </span>
+                    </div>
+                    {/* Progress bar */}
+                    <div style={{ flex: 1, minWidth: 120, height: 6, background: "#FDE68A", borderRadius: 100, overflow: "hidden" }}>
+                      <div style={{ width: `${percentage}%`, height: "100%", background: "#D97706", borderRadius: 100, transition: "width 0.4s ease" }} />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {items.filter((i) => !i.done).map((item) => (
+                      <Link key={item.tab + item.label} href={`/profile/edit?tab=${item.tab}`} style={{
+                        display: "inline-flex", alignItems: "center", gap: 5,
+                        padding: "5px 12px", borderRadius: 100,
+                        background: "#fff", border: "1px solid #FDE68A",
+                        fontSize: 12, color: "#92400E", fontWeight: 600, textDecoration: "none",
+                      }}>
+                        <span>{item.icon}</span> {item.label}を追加
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
+
             {/* ── 目指していること (Wantedly-style aspirations card) ── */}
             {owUser.future_aspirations && (
               <section style={{
@@ -589,13 +658,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
-                <div style={{ position: "relative", paddingLeft: 20 }}>
-                  <div style={{
-                    position: "absolute", left: 0, top: -4,
-                    fontSize: 48, lineHeight: 1, color: "var(--royal-100)",
-                    fontFamily: "Georgia, serif", fontWeight: 700, userSelect: "none",
-                  }}>❝</div>
-                  <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0, paddingLeft: 8 }}>
+                <div style={{ position: "relative", paddingLeft: 24 }}>
+                  {/* SVG quotation mark — reliable cross-browser rendering */}
+                  <svg width="18" height="14" viewBox="0 0 18 14" fill="var(--royal-100)" style={{ position: "absolute", left: 0, top: 3 }}>
+                    <path d="M0 14V8.4C0 3.6 3 1 9 0l1.35 2.1C7.5 2.7 6 4.05 5.7 6.3H8.1V14H0zm10 0V8.4C10 3.6 13 1 19 0l1.35 2.1c-2.85.6-4.35 1.95-4.65 4.2H18V14H10z" />
+                  </svg>
+                  <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0, paddingLeft: 4 }}>
                     {owUser.about_me}
                   </p>
                 </div>
@@ -1101,6 +1169,42 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
                         {currentCareer.company_name}の担当者が返信します
                       </p>
+                    </>
+                  )}
+
+                  {/* 募集中求人リスト */}
+                  {currentCompanyJobs.length > 0 && (
+                    <>
+                      <div style={{ height: 1, background: "var(--line)", margin: "14px 0 12px" }} />
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 8 }}>
+                        募集中の求人 {currentCompanyJobs.length}件
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {currentCompanyJobs.map((job) => (
+                          <Link key={job.id} href={`/jobs/${job.id}`} style={{
+                            display: "flex", alignItems: "center", gap: 8,
+                            padding: "7px 10px", borderRadius: 7,
+                            background: "var(--bg-tint)", border: "1px solid var(--line)",
+                            textDecoration: "none",
+                          }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                            </svg>
+                            <span style={{
+                              fontSize: 12, color: "var(--ink)", fontWeight: 500,
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>
+                              {job.title}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                      <Link href={`/companies/${currentCareer.company_id}`} style={{
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                        marginTop: 8, fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
+                      }}>
+                        すべての求人を見る →
+                      </Link>
                     </>
                   )}
                 </div>
