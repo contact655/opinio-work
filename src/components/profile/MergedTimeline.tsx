@@ -711,18 +711,11 @@ function EducationContent({ data }: { data: EducationEntry }) {
       </div>
 
       {/* Faculty / Degree */}
-      {(() => {
-        const noFacultyDegrees = ["小学校卒", "中学校卒", "高校卒"];
-        const isNoFaculty = data.degree && noFacultyDegrees.includes(data.degree);
-        const parts = isNoFaculty
-          ? [data.degree].filter(Boolean)
-          : [data.faculty, data.degree].filter(Boolean);
-        return parts.length > 0 ? (
-          <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 4 }}>
-            {parts.join(" · ")}
-          </div>
-        ) : null;
-      })()}
+      {(data.faculty || data.degree) && (
+        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 4 }}>
+          {[data.faculty, data.degree].filter(Boolean).join(" · ")}
+        </div>
+      )}
 
       {/* Duration (mobile) */}
       {duration && (

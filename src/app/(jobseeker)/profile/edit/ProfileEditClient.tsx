@@ -1148,22 +1148,20 @@ function EducationForm({
         </select>
       </div>
 
-      {/* 学部・学科 — 高等教育のみ表示 */}
-      {!["小学校卒", "中学校卒", "高校卒"].includes(draft.degree) && (
-        <div>
-          <label htmlFor="edu-faculty" style={el()}>学部・学科（任意）</label>
-          <input
-            id="edu-faculty"
-            type="text"
-            value={draft.faculty}
-            onChange={(e) => set("faculty", e.target.value)}
-            placeholder="例：経済学部 経営学科"
-            maxLength={100}
-            disabled={isSaving}
-            style={ef()}
-          />
-        </div>
-      )}
+      {/* 学部・学科 */}
+      <div>
+        <label htmlFor="edu-faculty" style={el()}>学部・学科（任意）</label>
+        <input
+          id="edu-faculty"
+          type="text"
+          value={draft.faculty}
+          onChange={(e) => set("faculty", e.target.value)}
+          placeholder="例：経済学部 経営学科"
+          maxLength={100}
+          disabled={isSaving}
+          style={ef()}
+        />
+      </div>
 
       {/* 入学年月 */}
       <div>
