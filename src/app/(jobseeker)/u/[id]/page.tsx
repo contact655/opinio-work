@@ -240,7 +240,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           borderRadius: 16, overflow: "hidden", marginBottom: 24,
         }}>
           {/* Cover area: photo or gradient */}
-          <div style={{ height: 180, position: "relative", background: owUser.cover_photo_url ? undefined : coverColor, overflow: "hidden" }}>
+          <div style={{ height: 200, position: "relative", background: owUser.cover_photo_url ? undefined : coverColor, overflow: "hidden" }}>
             {owUser.cover_photo_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -250,9 +250,20 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             )}
+            {/* Subtle dot pattern overlay */}
+            <div style={{
+              position: "absolute", inset: 0,
+              backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+            }} />
+            {/* Bottom fade gradient */}
+            <div style={{
+              position: "absolute", bottom: 0, left: 0, right: 0, height: 80,
+              background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.15))",
+            }} />
           </div>
 
-          <div style={{ padding: "0 32px 28px", marginTop: -56, position: "relative" }}>
+          <div style={{ padding: "0 32px 32px", marginTop: -56, position: "relative" }}>
             {/* Avatar: photo or gradient letter */}
             <div style={{
               width: 112, height: 112, borderRadius: "50%",
@@ -261,7 +272,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
               fontSize: 42, fontWeight: 600,
               border: "5px solid #fff",
               boxShadow: "0 4px 16px rgba(15,23,42,0.12)",
-              marginBottom: 16, position: "relative",
+              marginBottom: 12, position: "relative",
               overflow: owUser.avatar_url ? "hidden" : "visible",
             }}>
               {owUser.avatar_url ? (
@@ -276,7 +287,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
               {owUser.is_mentor && (
                 <div style={{
                   position: "absolute", bottom: 4, right: 4,
-                  width: 28, height: 28,
+                  width: 30, height: 30,
                   background: "linear-gradient(135deg, var(--royal), var(--accent))",
                   borderRadius: "50%", border: "3px solid #fff",
                   display: "flex", alignItems: "center", justifyContent: "center",
@@ -341,20 +352,24 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 </div>
                 {/* Career stats strip */}
                 {careerSummary && (
-                  <div style={{ display: "flex", gap: 20, marginTop: 12, flexWrap: "wrap" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 0, marginTop: 14, flexWrap: "wrap" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)", padding: "4px 12px 4px 0" }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
                       <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{careerSummary.companyCount}</strong>社の経験
                     </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)" }}>
+                    <span style={{ width: 1, height: 14, background: "var(--line)", margin: "0 4px", flexShrink: 0 }} />
+                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)", padding: "4px 12px" }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                       <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{careerSummary.totalYears}</strong>年のキャリア
                     </span>
                     {skillTags.length > 0 && (
-                      <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)" }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                        <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{skillTags.length}</strong>スキル
-                      </span>
+                      <>
+                        <span style={{ width: 1, height: 14, background: "var(--line)", margin: "0 4px", flexShrink: 0 }} />
+                        <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)", padding: "4px 0 4px 12px" }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                          <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{skillTags.length}</strong>スキル
+                        </span>
+                      </>
                     )}
                   </div>
                 )}
@@ -420,6 +435,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                   <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
@@ -430,9 +446,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
-                <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.85, whiteSpace: "pre-wrap", margin: 0 }}>
-                  {owUser.about_me}
-                </p>
+                <div style={{ borderLeft: "3px solid var(--royal-100)", paddingLeft: 16 }}>
+                  <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0 }}>
+                    {owUser.about_me}
+                  </p>
+                </div>
               </section>
             ) : viewerIsOwner ? (
               <section style={{
@@ -462,6 +480,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
                   <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
@@ -475,13 +494,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
                 {/* ── 視覚的キャリアパス ── */}
                 {timelineCareers.length >= 2 && (
-                  <div style={{ marginBottom: 28, overflowX: "auto", paddingBottom: 4 }}>
+                  <div style={{ marginBottom: 28, overflowX: "auto", paddingBottom: 8, padding: "0 2px 8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 0, minWidth: "max-content" }}>
                       {[...timelineCareers].reverse().map((c, i) => (
                         <div key={c.id} style={{ display: "flex", alignItems: "center" }}>
                           {i > 0 && (
                             <div style={{ display: "flex", alignItems: "center", gap: 0, padding: "0 4px" }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--line)" strokeWidth="2" strokeLinecap="round">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round">
                                 <path d="M5 12h14M12 5l7 7-7 7" />
                               </svg>
                             </div>
@@ -493,6 +512,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                             border: `1.5px solid ${c.is_current ? "var(--royal-100)" : "var(--line)"}`,
                             minWidth: 100, maxWidth: 130,
                             position: "relative",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                            transition: "box-shadow 0.15s",
                           }}>
                             {c.is_current && (
                               <span style={{
@@ -546,47 +567,60 @@ export default async function UserProfilePage({ params }: { params: { id: string
               {/* ── この人と話す CTA ── */}
               {!viewerIsOwner && (owUser.is_mentor || currentCareer?.company_id) && (
                 <div style={{
-                  background: "linear-gradient(160deg, var(--royal) 0%, #1a3aad 100%)",
-                  borderRadius: 14, padding: "20px",
-                  boxShadow: "0 4px 20px rgba(0,35,102,0.18)",
+                  background: "linear-gradient(160deg, #001a5c 0%, var(--royal) 60%, #2d4ed8 100%)",
+                  borderRadius: 16, padding: "22px 20px",
+                  boxShadow: "0 8px 32px rgba(0,35,102,0.22)",
+                  position: "relative",
                 }}>
+                  {/* Subtle dot pattern overlay */}
                   <div style={{
-                    fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.7)",
-                    letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6,
-                  }}>この人と話す</div>
-                  <div style={{ fontSize: 13, color: "#fff", fontWeight: 600, marginBottom: 16, lineHeight: 1.5 }}>
-                    {owUser.name.split(" ")[0]}さんにキャリア相談してみませんか？
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {owUser.is_mentor && mentorId && (
-                      <Link href={`/mentors/${mentorId}/reserve`} style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                        padding: "11px 16px", borderRadius: 8,
-                        background: "#fff", color: "var(--royal)",
-                        fontSize: 13, fontWeight: 700, textDecoration: "none",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                      }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                        </svg>
-                        メンター相談を申し込む →
-                      </Link>
-                    )}
-                    {currentCareer?.company_id && (
-                      <Link href={`/companies/${currentCareer.company_id}/casual-meeting`} style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                        padding: "10px 16px", borderRadius: 8,
-                        background: "rgba(255,255,255,0.12)",
-                        border: "1.5px solid rgba(255,255,255,0.3)",
-                        color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none",
-                      }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg>
-                        カジュアル面談を申し込む
-                      </Link>
-                    )}
+                    position: "absolute", inset: 0, borderRadius: 16,
+                    backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)",
+                    backgroundSize: "20px 20px",
+                    pointerEvents: "none",
+                  }} />
+                  <div style={{ position: "relative" }}>
+                    <div style={{
+                      fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.6)",
+                      letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8,
+                    }}>この人と話す</div>
+                    <div style={{ fontSize: 14, color: "#fff", fontWeight: 700, marginBottom: 4, lineHeight: 1.4 }}>
+                      {owUser.name.split(" ")[0]}さんに<br/>キャリア相談してみませんか？
+                    </div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginBottom: 18, lineHeight: 1.5 }}>
+                      完全無料 · メール登録のみ · 30分から
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {owUser.is_mentor && mentorId && (
+                        <Link href={`/mentors/${mentorId}/reserve`} style={{
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                          padding: "11px 16px", borderRadius: 8,
+                          background: "#fff", color: "var(--royal)",
+                          fontSize: 13, fontWeight: 700, textDecoration: "none",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                        }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                          </svg>
+                          メンター相談を申し込む →
+                        </Link>
+                      )}
+                      {currentCareer?.company_id && (
+                        <Link href={`/companies/${currentCareer.company_id}/casual-meeting`} style={{
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                          padding: "10px 16px", borderRadius: 8,
+                          background: "rgba(255,255,255,0.12)",
+                          border: "1.5px solid rgba(255,255,255,0.3)",
+                          color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none",
+                        }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                          </svg>
+                          カジュアル面談を申し込む
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -618,8 +652,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
               {/* Current company card */}
               {currentCareer && (
                 <div style={{
-                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                  background: "linear-gradient(135deg, var(--royal-50), #f0f4ff)",
+                  border: "1px solid var(--royal-100)",
                   borderRadius: 14, padding: "18px 20px",
+                  boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
                 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
                     現在の在籍企業
@@ -670,8 +706,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         style={{
                           display: "inline-flex", alignItems: "center",
                           padding: "4px 10px", borderRadius: 100,
-                          background: "#EFF6FF", border: "1px solid #BFDBFE",
-                          fontSize: 12, color: "#1D4ED8", fontWeight: 500,
+                          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                          fontSize: 12, color: "var(--royal)", fontWeight: 500,
                         }}
                       >
                         {tag.label as string}
@@ -741,7 +777,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         </div>{/* /profile-grid */}
 
         {/* Footer note */}
-        <div style={{ textAlign: "center", padding: "32px 0 0", fontSize: 12, color: "var(--ink-mute)" }}>
+        <div style={{ textAlign: "center", padding: "40px 0 0", fontSize: 12, color: "var(--ink-mute)", opacity: 0.7 }}>
           <Link href="/companies" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>
             OPINIO
           </Link>
