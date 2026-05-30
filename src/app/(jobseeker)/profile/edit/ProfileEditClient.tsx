@@ -93,7 +93,37 @@ type MediaAppearance = {
   sort_order: number;
 };
 
-type ProfileTab = "basic" | "career" | "skills" | "preferences" | "certs" | "achievements" | "socials" | "account";
+type ContentLink = {
+  id: string;
+  url: string;
+  platform: string | null;
+  title: string | null;
+  description: string | null;
+  thumbnail_url: string | null;
+  sort_order: number;
+};
+
+const PLATFORM_OPTIONS = [
+  { value: "youtube",     label: "YouTube" },
+  { value: "note",        label: "note" },
+  { value: "zenn",        label: "Zenn" },
+  { value: "speakerdeck", label: "Speaker Deck" },
+  { value: "podcast",     label: "Podcast" },
+  { value: "github",      label: "GitHub" },
+  { value: "other",       label: "その他（Web記事など）" },
+] as const;
+
+function detectPlatform(url: string): string {
+  if (/youtube\.com|youtu\.be/.test(url)) return "youtube";
+  if (/note\.com/.test(url)) return "note";
+  if (/zenn\.dev/.test(url)) return "zenn";
+  if (/speakerdeck\.com/.test(url)) return "speakerdeck";
+  if (/anchor\.fm|spotify\.com\/show|podcasts\.apple\.com/.test(url)) return "podcast";
+  if (/github\.com/.test(url)) return "github";
+  return "other";
+}
+
+type ProfileTab = "basic" | "career" | "skills" | "preferences" | "certs" | "achievements" | "socials" | "content" | "account";
 
 type OwUser = {
   id: string;
@@ -399,6 +429,7 @@ const PROFILE_TABS: TabItem[] = [
   { key: "certs",        label: "資格" },
   { key: "achievements", label: "実績・受賞" },
   { key: "socials",      label: "SNS" },
+  { key: "content",      label: "発信コンテンツ" },
   { key: "account",      label: "アカウント設定" },
 ];
 
@@ -2553,6 +2584,7 @@ export default function ProfileEditClient({
   initialAwards,
   initialMediaAppearances,
   initialExperiences,
+  initialContentLinks,
   roles,
   isWelcome = false,
   initialProfilePrefs = null,
@@ -2567,6 +2599,7 @@ export default function ProfileEditClient({
   initialAwards: Award[];
   initialMediaAppearances: MediaAppearance[];
   initialExperiences: Stint[];
+  initialContentLinks: ContentLink[];
   roles: RoleItem[];
   isWelcome?: boolean;
   initialProfilePrefs?: {
@@ -2595,6 +2628,50 @@ export default function ProfileEditClient({
   const [prefSaving, setPrefSaving] = useState(false);
   const [prefSaved, setPrefSaved] = useState(false);
   const prefSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── 発信コンテンツリンク state ──────────────────────────────────────────────
+  const [contentLinks, setContentLinks] = useState<ContentLink[]>(initialContentLinks);
+  const [newLinkUrl, setNewLinkUrl] = useState("");
+  const [newLinkTitle, setNewLinkTitle] = useState("");
+  const [newLinkDesc, setNewLinkDesc] = useState("");
+  const [newLinkPlatform, setNewLinkPlatform] = useState("other");
+  const [linkSaving, setLinkSaving] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  const handleAddContentLink = async () => {
+    const url = newLinkUrl.trim();
+    if (!url) { setLinkError("URLを入力してください"); return; }
+    setLinkSaving(true); setLinkError(null);
+    try {
+      const res = await fetch("/api/jobseeker/content-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url,
+          platform: newLinkPlatform,
+          title: newLinkTitle.trim() || null,
+          description: newLinkDesc.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        setLinkError(err.message ?? "保存に失敗しました");
+        return;
+      }
+      const inserted: ContentLink = await res.json();
+      setContentLinks((prev) => [...prev, inserted]);
+      setNewLinkUrl(""); setNewLinkTitle(""); setNewLinkDesc(""); setNewLinkPlatform("other");
+    } catch {
+      setLinkError("通信エラーが発生しました");
+    } finally {
+      setLinkSaving(false);
+    }
+  };
+
+  const handleDeleteContentLink = async (id: string) => {
+    setContentLinks((prev) => prev.filter((l) => l.id !== id));
+    await fetch(`/api/jobseeker/content-links/${id}`, { method: "DELETE" });
+  };
 
   // ── グローバル保存ステータス（全タブ共通のインジケーター用） ─────────────
   // isSaving: いずれかのタブで保存中, justSaved: 直近3秒以内に保存完了
@@ -2836,6 +2913,7 @@ export default function ProfileEditClient({
     certs:        certifications.length > 0,
     achievements: achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0,
     socials:      Object.values(socialLinks).some((v) => !!v),
+    content:      contentLinks.length > 0,
     account:      true, // 設定タブは常に「入力済み」とみなす
   };
 
@@ -3464,6 +3542,130 @@ export default function ProfileEditClient({
               />
             )}
           </>
+        )}
+
+        {/* 発信コンテンツ タブ */}
+        {activeTab === "content" && (
+          <div style={{ maxWidth: 680 }}>
+            <FormSection
+              title="発信コンテンツ"
+              desc="note・Zenn・YouTube・Speaker Deck・GitHub など、外部で発信しているコンテンツのURLを登録できます。プロフィールページに表示されます。"
+            >
+              {/* 既存リスト */}
+              {contentLinks.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                  {contentLinks.map((link) => (
+                    <div key={link.id} style={{
+                      display: "flex", alignItems: "flex-start", gap: 12,
+                      padding: "12px 14px", borderRadius: 10,
+                      border: "1px solid var(--line)", background: "var(--bg-tint)",
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, color: "var(--royal)", fontWeight: 700, marginBottom: 2 }}>
+                          {PLATFORM_OPTIONS.find(p => p.value === link.platform)?.label ?? link.platform ?? "Web"}
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {link.title || link.url}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {link.url}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteContentLink(link.id)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 4, flexShrink: 0 }}
+                        title="削除"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 新規追加フォーム */}
+              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "16px" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>新しいコンテンツを追加</div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>URL *</label>
+                    <input
+                      type="url"
+                      value={newLinkUrl}
+                      onChange={(e) => {
+                        setNewLinkUrl(e.target.value);
+                        if (e.target.value.trim()) {
+                          setNewLinkPlatform(detectPlatform(e.target.value.trim()));
+                        }
+                      }}
+                      placeholder="https://note.com/..."
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>プラットフォーム（URL入力で自動判定）</label>
+                    <select
+                      value={newLinkPlatform}
+                      onChange={(e) => setNewLinkPlatform(e.target.value)}
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", background: "#fff", cursor: "pointer" }}
+                    >
+                      {PLATFORM_OPTIONS.map((p) => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>タイトル（任意）</label>
+                    <input
+                      type="text"
+                      value={newLinkTitle}
+                      onChange={(e) => setNewLinkTitle(e.target.value)}
+                      placeholder="例：SaaS営業で学んだこと"
+                      maxLength={200}
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>説明（任意）</label>
+                    <input
+                      type="text"
+                      value={newLinkDesc}
+                      onChange={(e) => setNewLinkDesc(e.target.value)}
+                      placeholder="一言コメント"
+                      maxLength={500}
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
+                    />
+                  </div>
+
+                  {linkError && (
+                    <p style={{ fontSize: 12, color: "var(--error)", margin: 0 }}>{linkError}</p>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleAddContentLink}
+                    disabled={linkSaving || !newLinkUrl.trim()}
+                    style={{
+                      padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 700,
+                      background: linkSaving || !newLinkUrl.trim() ? "var(--bg-tint)" : "var(--royal)",
+                      color: linkSaving || !newLinkUrl.trim() ? "var(--ink-mute)" : "#fff",
+                      border: "none", cursor: linkSaving || !newLinkUrl.trim() ? "default" : "pointer",
+                      fontFamily: "inherit", alignSelf: "flex-start",
+                    }}
+                  >
+                    {linkSaving ? "保存中..." : "追加する"}
+                  </button>
+                </div>
+              </div>
+            </FormSection>
+          </div>
         )}
 
         {/* アカウント設定タブ（動作） */}

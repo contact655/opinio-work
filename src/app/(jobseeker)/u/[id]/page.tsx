@@ -108,10 +108,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
     (k) => socialLinks[k] && socialLinks[k]!.trim() !== ""
   );
 
-  // Fetch experiences + skill tags + educations + certifications in parallel（RLS select_all=true のため認証不問で読める）
+  // Fetch experiences + skill tags + educations + certifications + content links in parallel
   const [
     { data: expRows }, { data: allRoles }, { data: skillTagsRaw },
-    { data: educationsRaw }, { data: certificationsRaw },
+    { data: educationsRaw }, { data: certificationsRaw }, { data: contentLinksRaw },
   ] = await Promise.all([
     supabase
       .from("ow_experiences")
@@ -135,11 +135,21 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .select("id, name, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
+    supabase
+      .from("ow_user_content_links")
+      .select("id, url, platform, title, description, thumbnail_url, sort_order")
+      .eq("user_id", owUser.id)
+      .order("sort_order", { ascending: true }),
   ]);
 
   const skillTags      = skillTagsRaw      ?? [];
   const educations     = (educationsRaw     ?? []) as Education[];
   const certifications = (certificationsRaw ?? []) as Certification[];
+  const contentLinks   = (contentLinksRaw  ?? []) as Array<{
+    id: string; url: string; platform: string | null;
+    title: string | null; description: string | null;
+    thumbnail_url: string | null; sort_order: number;
+  }>;
 
   // ロール表示名を直接参照（ow_roles.name が日本語表示ラベルそのもの、slug 変換不要）
   const roleNameById = new Map<string, string>();
@@ -197,6 +207,20 @@ export default async function UserProfilePage({ params }: { params: { id: string
     mentorQuestionTags = (mentorRow?.question_tags as string[] | null) ?? [];
   }
 
+  // OPINIO掲載記事（ow_articles.user_id でリンクされたもの）
+  const { data: featuredArticlesRaw } = await supabase
+    .from("ow_articles")
+    .select("id, slug, title, subtitle, type, eyecatch_gradient, read_min, published_at")
+    .eq("user_id", owUser.id)
+    .eq("is_published", true)
+    .order("published_at", { ascending: false })
+    .limit(6);
+  const featuredArticles = (featuredArticlesRaw ?? []) as Array<{
+    id: string; slug: string; title: string; subtitle: string | null;
+    type: string; eyecatch_gradient: string | null; read_min: number | null;
+    published_at: string | null;
+  }>;
+
   // キャリアサマリー自動計算
   const careerSummary = (() => {
     if (timelineCareers.length === 0) return null;
@@ -236,6 +260,25 @@ export default async function UserProfilePage({ params }: { params: { id: string
     if (isCurrent) return `${sy}年〜`;
     const ey = new Date(endedAt!).getFullYear();
     return sy === ey ? `${sy}年` : `${sy}〜${ey}年`;
+  };
+
+  // プラットフォームメタ（アイコン色・表示名）
+  const PLATFORM_META: Record<string, { label: string; color: string; bg: string }> = {
+    youtube:      { label: "YouTube",      color: "#FF0000", bg: "#FFF0F0" },
+    note:         { label: "note",         color: "#41C9B4", bg: "#F0FDFB" },
+    zenn:         { label: "Zenn",         color: "#3EA8FF", bg: "#EFF8FF" },
+    speakerdeck:  { label: "Speaker Deck", color: "#009287", bg: "#EEFAF8" },
+    podcast:      { label: "Podcast",      color: "#8B5CF6", bg: "#F5F0FF" },
+    github:       { label: "GitHub",       color: "#24292F", bg: "#F6F8FA" },
+    other:        { label: "Web",          color: "var(--ink-soft)", bg: "var(--bg-tint)" },
+  };
+
+  // 記事タイプ日本語ラベル
+  const ARTICLE_TYPE_LABEL: Record<string, string> = {
+    employee: "社員インタビュー",
+    mentor:   "メンターインタビュー",
+    ceo:      "創業者インタビュー",
+    report:   "取材レポート",
   };
 
   return (
@@ -713,6 +756,188 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   future={futureData}
                   viewerIsOwner={viewerIsOwner}
                 />
+              </section>
+            )}
+
+            {/* ── OPINIO掲載記事 ── */}
+            {featuredArticles.length > 0 && (
+              <section style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                    OPINIO掲載記事
+                  </span>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                    FEATURED
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {featuredArticles.map((article) => (
+                    <Link
+                      key={article.id}
+                      href={`/articles/${article.slug}`}
+                      style={{ textDecoration: "none", display: "flex", gap: 14, alignItems: "flex-start",
+                        padding: "12px", borderRadius: 10, border: "1px solid var(--line)",
+                        background: "var(--bg-tint)", transition: "border-color 0.15s",
+                      }}
+                    >
+                      {/* Eyecatch gradient strip */}
+                      <div style={{
+                        width: 56, height: 56, borderRadius: 8, flexShrink: 0,
+                        background: article.eyecatch_gradient ?? "linear-gradient(135deg, var(--royal), var(--accent))",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.8" strokeLinecap="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                          <polyline points="10 9 9 9 8 9" />
+                        </svg>
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                          {article.type && ARTICLE_TYPE_LABEL[article.type] && (
+                            <span style={{
+                              fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
+                              background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
+                            }}>
+                              {ARTICLE_TYPE_LABEL[article.type]}
+                            </span>
+                          )}
+                          {article.read_min && (
+                            <span style={{ fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                              {article.read_min}分で読める
+                            </span>
+                          )}
+                        </div>
+                        <div style={{
+                          fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.5,
+                          overflow: "hidden", display: "-webkit-box",
+                          WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                        }}>
+                          {article.title}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ── 発信コンテンツ (外部リンク) ── */}
+            {(contentLinks.length > 0 || viewerIsOwner) && (
+              <section style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                    発信コンテンツ
+                  </span>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                    CONTENT
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                  {viewerIsOwner && (
+                    <Link href="/profile/edit" style={{
+                      fontSize: 11, fontWeight: 600, color: "var(--royal)",
+                      textDecoration: "none", display: "flex", alignItems: "center", gap: 4,
+                    }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                      追加
+                    </Link>
+                  )}
+                </div>
+
+                {contentLinks.length === 0 && viewerIsOwner && (
+                  <div style={{ textAlign: "center", padding: "20px 0" }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: 8 }}>
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                    </svg>
+                    <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 10px" }}>
+                      note・Zenn・YouTube等の発信URLを登録しましょう
+                    </p>
+                    <Link href="/profile/edit" style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "7px 16px", borderRadius: 8,
+                      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                      color: "var(--royal)", fontSize: 12, fontWeight: 600, textDecoration: "none",
+                    }}>
+                      コンテンツを追加する →
+                    </Link>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {contentLinks.map((link) => {
+                    const meta = PLATFORM_META[link.platform ?? "other"] ?? PLATFORM_META.other;
+                    return (
+                      <a
+                        key={link.id}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "flex", alignItems: "flex-start", gap: 12,
+                          padding: "12px", borderRadius: 10,
+                          border: "1px solid var(--line)", background: "var(--bg-tint)",
+                          textDecoration: "none", transition: "border-color 0.15s",
+                        }}
+                      >
+                        {/* Platform badge */}
+                        <div style={{
+                          width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                          background: meta.bg, border: `1.5px solid ${meta.color}22`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={meta.color} strokeWidth="2" strokeLinecap="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                          </svg>
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                            <span style={{
+                              fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
+                              background: meta.bg, color: meta.color,
+                            }}>
+                              {meta.label}
+                            </span>
+                          </div>
+                          <div style={{
+                            fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.5,
+                            overflow: "hidden", display: "-webkit-box",
+                            WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                          }}>
+                            {link.title || link.url}
+                          </div>
+                          {link.description && (
+                            <div style={{
+                              fontSize: 11, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.5,
+                              overflow: "hidden", display: "-webkit-box",
+                              WebkitLineClamp: 1, WebkitBoxOrient: "vertical",
+                            }}>
+                              {link.description}
+                            </div>
+                          )}
+                        </div>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                      </a>
+                    );
+                  })}
+                </div>
               </section>
             )}
 

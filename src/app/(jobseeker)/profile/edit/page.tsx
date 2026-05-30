@@ -34,6 +34,7 @@ export default async function ProfileEditPage({
     { data: mediaAppearancesRaw },
     { data: expRows },
     { data: allRoles },
+    { data: contentLinksRaw },
   ] = await Promise.all([
     owUser
       ? supabase
@@ -86,6 +87,13 @@ export default async function ProfileEditPage({
           .order("started_at", { ascending: false })
       : Promise.resolve({ data: [] }),
     supabase.from("ow_roles").select("id, name, parent_id, display_order").order("display_order"),
+    owUser
+      ? supabase
+          .from("ow_user_content_links")
+          .select("id, url, platform, title, description, thumbnail_url, sort_order")
+          .eq("user_id", owUser.id)
+          .order("sort_order", { ascending: true })
+      : Promise.resolve({ data: [] }),
   ]);
 
   // Build typed roles array for dynamic dropdown (Phase 2-A)
@@ -197,6 +205,7 @@ export default async function ProfileEditPage({
       initialAwards={awardsRaw ?? []}
       initialMediaAppearances={mediaAppearancesRaw ?? []}
       initialExperiences={initialExperiences}
+      initialContentLinks={contentLinksRaw ?? []}
       roles={roles}
       isWelcome={isWelcome}
       initialProfilePrefs={profilePrefs}
