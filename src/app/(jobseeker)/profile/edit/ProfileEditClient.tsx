@@ -378,7 +378,6 @@ function ProfilePhotoUploader({
   );
 }
 
-const DEGREE_OPTIONS = ["小学校卒", "中学校卒", "高校卒", "専門卒", "短大卒", "学士", "修士", "博士", "その他"] as const;
 const EDU_YEAR_OPTS  = Array.from({ length: 61 }, (_, i) => new Date().getFullYear() + 4 - i);
 
 function parseDateToYM(s: string | null): { year: string; month: string } {
