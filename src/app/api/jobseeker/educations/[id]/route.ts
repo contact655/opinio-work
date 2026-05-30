@@ -39,7 +39,7 @@ export async function PUT(
   }
 
   // バリデーション 3: degree enum
-  const VALID_DEGREES = ["高校卒", "専門卒", "短大卒", "学士", "修士", "博士", "その他"] as const;
+  const VALID_DEGREES = ["小学校卒", "中学校卒", "高校卒", "専門卒", "短大卒", "学士", "修士", "博士", "その他"] as const;
   const degree = typeof body.degree === "string" && (VALID_DEGREES as readonly string[]).includes(body.degree)
     ? body.degree
     : null;

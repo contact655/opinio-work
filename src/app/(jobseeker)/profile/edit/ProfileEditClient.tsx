@@ -378,7 +378,7 @@ function ProfilePhotoUploader({
   );
 }
 
-const DEGREE_OPTIONS = ["高校卒", "専門卒", "短大卒", "学士", "修士", "博士", "その他"] as const;
+const DEGREE_OPTIONS = ["小学校卒", "中学校卒", "高校卒", "専門卒", "短大卒", "学士", "修士", "博士", "その他"] as const;
 const EDU_YEAR_OPTS  = Array.from({ length: 61 }, (_, i) => new Date().getFullYear() + 4 - i);
 
 function parseDateToYM(s: string | null): { year: string; month: string } {
@@ -1121,24 +1121,9 @@ function EducationForm({
         </datalist>
       </div>
 
-      {/* 学部・学科 */}
-      <div>
-        <label htmlFor="edu-faculty" style={el()}>学部・学科（任意）</label>
-        <input
-          id="edu-faculty"
-          type="text"
-          value={draft.faculty}
-          onChange={(e) => set("faculty", e.target.value)}
-          placeholder="例：経済学部 経営学科"
-          maxLength={100}
-          disabled={isSaving}
-          style={ef()}
-        />
-      </div>
-
       {/* 学位 */}
       <div>
-        <label htmlFor="edu-degree" style={el()}>学位（任意）</label>
+        <label htmlFor="edu-degree" style={el()}>学校種別・学位（任意）</label>
         <select
           id="edu-degree"
           value={draft.degree}
@@ -1147,9 +1132,38 @@ function EducationForm({
           style={{ ...ef(), ...selectExtra, cursor: isSaving ? "default" : "pointer" }}
         >
           <option value="">選択してください（任意）</option>
-          {DEGREE_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+          <optgroup label="初等・中等教育">
+            <option value="小学校卒">小学校卒</option>
+            <option value="中学校卒">中学校卒</option>
+            <option value="高校卒">高校卒</option>
+          </optgroup>
+          <optgroup label="高等教育">
+            <option value="専門卒">専門卒</option>
+            <option value="短大卒">短大卒</option>
+            <option value="学士">学士</option>
+            <option value="修士">修士</option>
+            <option value="博士">博士</option>
+          </optgroup>
+          <option value="その他">その他</option>
         </select>
       </div>
+
+      {/* 学部・学科 — 高等教育のみ表示 */}
+      {!["小学校卒", "中学校卒", "高校卒"].includes(draft.degree) && (
+        <div>
+          <label htmlFor="edu-faculty" style={el()}>学部・学科（任意）</label>
+          <input
+            id="edu-faculty"
+            type="text"
+            value={draft.faculty}
+            onChange={(e) => set("faculty", e.target.value)}
+            placeholder="例：経済学部 経営学科"
+            maxLength={100}
+            disabled={isSaving}
+            style={ef()}
+          />
+        </div>
+      )}
 
       {/* 入学年月 */}
       <div>
