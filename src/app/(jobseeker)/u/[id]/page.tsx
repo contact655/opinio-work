@@ -153,10 +153,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
     .map((r) => r.company_id as string);
 
   const companyInfoById = new Map<string, CompanyLogoInfo>();
+  const companyPhaseById = new Map<string, string | null>();
   if (expCompanyIds.length > 0) {
     const { data: expCompanies } = await supabase
       .from("ow_companies")
-      .select("id, name, logo_url, logo_letter, logo_gradient")
+      .select("id, name, logo_url, logo_letter, logo_gradient, phase")
       .in("id", expCompanyIds);
     for (const c of expCompanies ?? []) {
       companyInfoById.set(c.id as string, {
@@ -165,6 +166,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
         logoLetter: (c.logo_letter as string | null) ?? null,
         logoGradient: (c.logo_gradient as string | null) ?? null,
       });
+    }
+    for (const c of expCompanies ?? []) {
+      companyPhaseById.set(c.id as string, (c.phase as string | null) ?? null);
     }
   }
 
@@ -209,6 +213,30 @@ export default async function UserProfilePage({ params }: { params: { id: string
     const totalYears = Math.max(1, Math.round(totalMonths / 12));
     return { totalYears, companyCount: companySet.size };
   })();
+
+  // 在籍期間計算（currentCareer）
+  const currentCareerTenure = (() => {
+    if (!currentCareer) return null;
+    const start = new Date(currentCareer.started_at);
+    const now = new Date();
+    const months = (now.getFullYear() - start.getFullYear()) * 12 + now.getMonth() - start.getMonth();
+    const years = Math.floor(months / 12);
+    const rem = months % 12;
+    if (years === 0) return `${rem}ヶ月`;
+    if (rem === 0) return `${years}年`;
+    return `${years}年${rem}ヶ月`;
+  })();
+
+  // 現職企業フェーズ
+  const currentCompanyPhase = currentCareer?.company_id ? (companyPhaseById.get(currentCareer.company_id) ?? null) : null;
+
+  // キャリアパスノード用 年表示
+  const fmtYearRange = (startedAt: string, endedAt: string | null, isCurrent: boolean) => {
+    const sy = new Date(startedAt).getFullYear();
+    if (isCurrent) return `${sy}年〜`;
+    const ey = new Date(endedAt!).getFullYear();
+    return sy === ey ? `${sy}年` : `${sy}〜${ey}年`;
+  };
 
   return (
     <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
@@ -352,7 +380,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 </div>
                 {/* Career stats strip */}
                 {careerSummary && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 0, marginTop: 14, flexWrap: "wrap" }}>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 0, marginTop: 14, flexWrap: "wrap", background: "var(--bg-tint)", borderRadius: 100, padding: "4px 8px", border: "1px solid var(--line)" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)", padding: "4px 12px 4px 0" }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
                       <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{careerSummary.companyCount}</strong>社の経験
@@ -447,11 +475,29 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
-                <div style={{ borderLeft: "3px solid var(--royal-100)", paddingLeft: 16 }}>
-                  <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0 }}>
+                <div style={{ position: "relative", paddingLeft: 20 }}>
+                  <div style={{
+                    position: "absolute", left: 0, top: -4,
+                    fontSize: 48, lineHeight: 1, color: "var(--royal-100)",
+                    fontFamily: "Georgia, serif", fontWeight: 700, userSelect: "none",
+                  }}>❝</div>
+                  <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0, paddingLeft: 8 }}>
                     {owUser.about_me}
                   </p>
                 </div>
+                {owUser.future_aspirations && (
+                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--purple)", letterSpacing: "0.06em" }}>目指していること</span>
+                    </div>
+                    <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8, whiteSpace: "pre-wrap", margin: 0 }}>
+                      {owUser.future_aspirations}
+                    </p>
+                  </div>
+                )}
               </section>
             ) : viewerIsOwner ? (
               <section style={{
@@ -524,13 +570,22 @@ export default async function UserProfilePage({ params }: { params: { id: string
                                 padding: "2px 8px", borderRadius: 100,
                               }}>現在</span>
                             )}
-                            <div style={{
-                              width: 32, height: 32, borderRadius: 8, marginBottom: 6, flexShrink: 0,
-                              background: c.logo_gradient ?? (c.is_current ? "var(--royal)" : "var(--line)"),
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              color: "#fff", fontSize: 13, fontWeight: 700,
-                            }}>
-                              {c.logo_letter ?? c.company_name.charAt(0)}
+                            <div style={{ position: "relative", marginBottom: 6 }}>
+                              {c.is_current && (
+                                <div style={{
+                                  position: "absolute", inset: -4, borderRadius: 10,
+                                  border: "2px solid var(--royal)", opacity: 0.4,
+                                  animation: "pulseDot 2s ease-in-out infinite",
+                                }} />
+                              )}
+                              <div style={{
+                                width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                                background: c.logo_gradient ?? (c.is_current ? "var(--royal)" : "var(--line)"),
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                color: "#fff", fontSize: 13, fontWeight: 700,
+                              }}>
+                                {c.logo_letter ?? c.company_name.charAt(0)}
+                              </div>
                             </div>
                             <div style={{
                               fontSize: 11, fontWeight: 600, color: c.is_current ? "var(--royal)" : "var(--ink)",
@@ -542,6 +597,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
                             </div>
                             <div style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center", marginTop: 3, lineHeight: 1.2 }}>
                               {c.role_label.length > 12 ? c.role_label.slice(0, 12) + "…" : c.role_label}
+                            </div>
+                            <div style={{ fontSize: 9, color: "var(--ink-mute)", textAlign: "center", marginTop: 2, fontFamily: "Inter, sans-serif", opacity: 0.7 }}>
+                              {fmtYearRange(c.started_at, c.ended_at ?? null, c.is_current)}
                             </div>
                           </div>
                         </div>
@@ -646,7 +704,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   {/* Company link */}
                   <Link href={`/companies/${currentCareer.company_id}`} style={{
                     textDecoration: "none", display: "flex", alignItems: "center", gap: 12,
-                    marginBottom: !viewerIsOwner ? 14 : 0,
+                    marginBottom: 12,
                   }}>
                     <div style={{
                       width: 48, height: 48, borderRadius: 10, flexShrink: 0,
@@ -673,6 +731,31 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                   </Link>
+
+                  {/* 在籍期間 + フェーズ */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: !viewerIsOwner ? 10 : 0 }}>
+                    {currentCareerTenure && (
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        fontSize: 11, color: "var(--ink-mute)",
+                        background: "var(--bg-tint)", border: "1px solid var(--line)",
+                        padding: "2px 8px", borderRadius: 100,
+                      }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        在籍 {currentCareerTenure}
+                      </span>
+                    )}
+                    {currentCompanyPhase && (
+                      <span style={{
+                        display: "inline-flex", alignItems: "center",
+                        fontSize: 11, color: "var(--royal)",
+                        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                        padding: "2px 8px", borderRadius: 100, fontWeight: 600,
+                      }}>
+                        {currentCompanyPhase}
+                      </span>
+                    )}
+                  </div>
 
                   {/* カジュアル面談CTA — 企業へのアクション（非オーナーのみ） */}
                   {!viewerIsOwner && (
