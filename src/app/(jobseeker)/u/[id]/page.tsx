@@ -391,6 +391,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   プロフィールを編集
                 </Link>
               ) : owUser.is_mentor && mentorId ? (
+                /* メンターのみ: 相談申込ボタン */
                 <Link href={`/mentors/${mentorId}/reserve`} style={{
                   display: "inline-flex", alignItems: "center", gap: 8,
                   padding: "11px 22px", borderRadius: 10,
@@ -405,18 +406,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   メンター相談を申し込む
                 </Link>
               ) : currentCareer?.company_id ? (
-                <Link href={`/companies/${currentCareer.company_id}/casual-meeting`} style={{
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  padding: "11px 22px", borderRadius: 10,
-                  background: "linear-gradient(135deg, var(--warm) 0%, #D97706 100%)",
-                  color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none",
-                  boxShadow: "0 4px 20px rgba(245,158,11,0.3)", flexShrink: 0,
-                  letterSpacing: "0.02em",
+                /* 一般社員: 企業ページへの控えめなリンク */
+                <Link href={`/companies/${currentCareer.company_id}`} style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "9px 18px", borderRadius: 8,
+                  border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
+                  color: "var(--royal)", fontSize: 13, fontWeight: 600, textDecoration: "none",
+                  flexShrink: 0,
                 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                   </svg>
-                  カジュアル面談を申し込む
+                  {currentCareer.company_name} の企業ページを見る
                 </Link>
               ) : null
               }
@@ -564,63 +565,46 @@ export default async function UserProfilePage({ params }: { params: { id: string
           <aside className="profile-sidebar">
             <div className="profile-sidebar-sticky" style={{ position: "sticky", top: 24, display: "flex", flexDirection: "column", gap: 16 }}>
 
-              {/* ── この人と話す CTA ── */}
-              {!viewerIsOwner && (owUser.is_mentor || currentCareer?.company_id) && (
+              {/* ── メンターのみ: この人と話す CTA ── */}
+              {!viewerIsOwner && owUser.is_mentor && mentorId && (
                 <div style={{
                   background: "linear-gradient(160deg, #001a5c 0%, var(--royal) 60%, #2d4ed8 100%)",
                   borderRadius: 16, padding: "22px 20px",
                   boxShadow: "0 8px 32px rgba(0,35,102,0.22)",
                   position: "relative",
                 }}>
-                  {/* Subtle dot pattern overlay */}
                   <div style={{
                     position: "absolute", inset: 0, borderRadius: 16,
                     backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)",
-                    backgroundSize: "20px 20px",
-                    pointerEvents: "none",
+                    backgroundSize: "20px 20px", pointerEvents: "none",
                   }} />
                   <div style={{ position: "relative" }}>
                     <div style={{
-                      fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.6)",
-                      letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8,
-                    }}>この人と話す</div>
-                    <div style={{ fontSize: 14, color: "#fff", fontWeight: 700, marginBottom: 4, lineHeight: 1.4 }}>
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      background: "rgba(255,255,255,0.15)", borderRadius: 100,
+                      padding: "3px 10px", marginBottom: 10,
+                    }}>
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="#FCD34D"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#FCD34D", letterSpacing: "0.08em" }}>MENTOR</span>
+                    </div>
+                    <div style={{ fontSize: 14, color: "#fff", fontWeight: 700, marginBottom: 4, lineHeight: 1.45 }}>
                       {owUser.name.split(" ")[0]}さんに<br/>キャリア相談してみませんか？
                     </div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginBottom: 18, lineHeight: 1.5 }}>
-                      完全無料 · メール登録のみ · 30分から
+                      完全無料 · 30分から · 編集部が仲介
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {owUser.is_mentor && mentorId && (
-                        <Link href={`/mentors/${mentorId}/reserve`} style={{
-                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                          padding: "11px 16px", borderRadius: 8,
-                          background: "#fff", color: "var(--royal)",
-                          fontSize: 13, fontWeight: 700, textDecoration: "none",
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                        }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                          </svg>
-                          メンター相談を申し込む →
-                        </Link>
-                      )}
-                      {currentCareer?.company_id && (
-                        <Link href={`/companies/${currentCareer.company_id}/casual-meeting`} style={{
-                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                          padding: "10px 16px", borderRadius: 8,
-                          background: "rgba(255,255,255,0.12)",
-                          border: "1.5px solid rgba(255,255,255,0.3)",
-                          color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none",
-                        }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                          </svg>
-                          カジュアル面談を申し込む
-                        </Link>
-                      )}
-                    </div>
+                    <Link href={`/mentors/${mentorId}/reserve`} style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      padding: "12px 16px", borderRadius: 8,
+                      background: "#fff", color: "var(--royal)",
+                      fontSize: 13, fontWeight: 700, textDecoration: "none",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      メンター相談を申し込む →
+                    </Link>
                   </div>
                 </div>
               )}
@@ -649,32 +633,34 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 </div>
               )}
 
-              {/* Current company card */}
-              {currentCareer && (
+              {/* Current company card — 企業ページへ + カジュアル面談CTA */}
+              {currentCareer && currentCareer.company_id && (
                 <div style={{
-                  background: "linear-gradient(135deg, var(--royal-50), #f0f4ff)",
-                  border: "1px solid var(--royal-100)",
+                  background: "#fff", border: "1px solid var(--line)",
                   borderRadius: 14, padding: "18px 20px",
                   boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
                 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
-                    現在の在籍企業
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
+                    在籍企業
                   </div>
-                  <Link href={`/companies/${currentCareer.company_id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 12 }}>
-                    {/* Logo */}
+                  {/* Company link */}
+                  <Link href={`/companies/${currentCareer.company_id}`} style={{
+                    textDecoration: "none", display: "flex", alignItems: "center", gap: 12,
+                    marginBottom: !viewerIsOwner ? 14 : 0,
+                  }}>
                     <div style={{
-                      width: 52, height: 52, borderRadius: 12, flexShrink: 0,
+                      width: 48, height: 48, borderRadius: 10, flexShrink: 0,
                       background: currentCareer.logo_gradient ?? "linear-gradient(135deg, #002366, #3B5FD9)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 20, fontWeight: 700,
+                      color: "#fff", fontSize: 18, fontWeight: 700,
                       border: "1px solid rgba(0,0,0,0.06)",
                     }}>
                       {currentCareer.logo_letter ?? currentCareer.company_name.charAt(0)}
                     </div>
-                    <div style={{ minWidth: 0 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{
                         fontFamily: "'Noto Serif JP', serif",
-                        fontSize: 15, fontWeight: 700, color: "var(--ink)",
+                        fontSize: 14, fontWeight: 700, color: "var(--ink)",
                         marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                       }}>
                         {currentCareer.company_name}
@@ -683,10 +669,33 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         {currentCareer.role_label}
                       </div>
                     </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginLeft: "auto" }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                   </Link>
+
+                  {/* カジュアル面談CTA — 企業へのアクション（非オーナーのみ） */}
+                  {!viewerIsOwner && (
+                    <>
+                      <div style={{ height: 1, background: "var(--line)", margin: "0 0 14px" }} />
+                      <Link href={`/companies/${currentCareer.company_id}/casual-meeting`} style={{
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                        padding: "10px 14px", borderRadius: 8,
+                        background: "linear-gradient(135deg, var(--warm) 0%, #D97706 100%)",
+                        color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                        boxShadow: "0 2px 10px rgba(245,158,11,0.25)",
+                      }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                        カジュアル面談を申し込む
+                      </Link>
+                      <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
+                        {currentCareer.company_name}の担当者が返信します
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
 
