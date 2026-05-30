@@ -332,7 +332,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
               <div>
                 <div style={{
                   fontFamily: 'var(--font-noto-serif)',
-                  fontSize: 26, fontWeight: 700, color: "var(--ink)",
+                  fontSize: 30, fontWeight: 700, color: "var(--ink)",
                   marginBottom: 6, display: "flex", alignItems: "center", gap: 10,
                 }}>
                   {owUser.name}
@@ -401,6 +401,44 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     )}
                   </div>
                 )}
+                {skillTags.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                    {skillTags.slice(0, 5).map((tag) => (
+                      <span key={tag.id as string} style={{
+                        display: "inline-flex", alignItems: "center",
+                        padding: "3px 10px", borderRadius: 100,
+                        background: "#fff", border: "1.5px solid var(--line)",
+                        fontSize: 12, color: "var(--ink-soft)", fontWeight: 500,
+                      }}>
+                        {tag.label as string}
+                      </span>
+                    ))}
+                    {skillTags.length > 5 && (
+                      <span style={{
+                        display: "inline-flex", alignItems: "center",
+                        padding: "3px 10px", borderRadius: 100,
+                        background: "var(--bg-tint)", border: "1.5px solid var(--line)",
+                        fontSize: 12, color: "var(--ink-mute)", fontWeight: 500,
+                      }}>
+                        +{skillTags.length - 5}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {activeSocials.length > 0 && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                    {activeSocials.map((platform) => {
+                      const url = socialLinks[platform]!;
+                      const label = SOCIAL_META[platform].label;
+                      return (
+                        <a key={platform} href={url} target="_blank" rel="noopener noreferrer"
+                          aria-label={label} title={label} className="sns-icon-link">
+                          <SocialIcon platform={platform} variant="display" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Right-side CTA: context-aware */}
@@ -459,6 +497,39 @@ export default async function UserProfilePage({ params }: { params: { id: string
           {/* ── Main column ─────────────────────────────────────────── */}
           <div>
 
+            {/* ── 目指していること (Wantedly-style aspirations card) ── */}
+            {owUser.future_aspirations && (
+              <section style={{
+                background: "linear-gradient(135deg, #f8f4ff 0%, #eff6ff 100%)",
+                border: "1px solid #e8e0ff",
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(124,58,237,0.08)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                    background: "linear-gradient(135deg, var(--purple), #a855f7)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", fontFamily: "'Noto Serif JP', serif" }}>
+                      目指していること
+                    </div>
+                    <div style={{ fontSize: 10, color: "var(--purple)", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                      ASPIRATION
+                    </div>
+                  </div>
+                </div>
+                <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0, paddingLeft: 42 }}>
+                  {owUser.future_aspirations}
+                </p>
+              </section>
+            )}
+
             {/* About Me */}
             {owUser.about_me ? (
               <section style={{
@@ -485,19 +556,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     {owUser.about_me}
                   </p>
                 </div>
-                {owUser.future_aspirations && (
-                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                      </svg>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--purple)", letterSpacing: "0.06em" }}>目指していること</span>
-                    </div>
-                    <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8, whiteSpace: "pre-wrap", margin: 0 }}>
-                      {owUser.future_aspirations}
-                    </p>
-                  </div>
-                )}
               </section>
             ) : viewerIsOwner ? (
               <section style={{
@@ -521,6 +579,47 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 </Link>
               </section>
             ) : null}
+
+            {/* ── スキル・専門性 (LinkedIn-style skills section in main column) ── */}
+            {skillTags.length > 0 && (
+              <section style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                    スキル・専門性
+                  </span>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                    SKILLS
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
+                    {skillTags.length}件
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {skillTags.map((tag) => (
+                    <span
+                      key={tag.id as string}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        padding: "7px 14px", borderRadius: 8,
+                        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                        fontSize: 13, color: "var(--royal)", fontWeight: 600,
+                        transition: "background 0.15s",
+                      }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      {tag.label as string}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* 経歴 — キャリア + 学歴 + 未来を MergedTimeline で統合表示 */}
             {(timelineCareers.length > 0 || timelineEdus.length > 0 || futureData != null) && (
@@ -782,33 +881,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 </div>
               )}
 
-              {/* Skills */}
-              {skillTags.length > 0 && (
-                <div style={{
-                  background: "#fff", border: "1px solid var(--line)",
-                  borderRadius: 14, padding: "18px 20px",
-                }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
-                    スキル
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {skillTags.map((tag) => (
-                      <span
-                        key={tag.id as string}
-                        style={{
-                          display: "inline-flex", alignItems: "center",
-                          padding: "4px 10px", borderRadius: 100,
-                          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                          fontSize: 12, color: "var(--royal)", fontWeight: 500,
-                        }}
-                      >
-                        {tag.label as string}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Certifications */}
               {certifications.length > 0 && (
                 <div style={{
@@ -818,50 +890,30 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
                     資格・認定
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {certifications.map((cert) => (
-                      <div key={cert.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                          <circle cx="12" cy="8" r="6" />
-                          <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-                        </svg>
-                        <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{cert.name}</span>
+                      <div key={cert.id} style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "8px 10px", borderRadius: 8,
+                        background: "var(--bg-tint)", border: "1px solid var(--line)",
+                      }}>
+                        <div style={{
+                          width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                          background: "linear-gradient(135deg, var(--warm) 0%, #D97706 100%)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff">
+                            <circle cx="12" cy="8" r="6" />
+                            <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+                          </svg>
+                        </div>
+                        <span style={{ fontSize: 12, color: "var(--ink)", fontWeight: 500, lineHeight: 1.4 }}>{cert.name}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Social links */}
-              {activeSocials.length > 0 && (
-                <div style={{
-                  background: "#fff", border: "1px solid var(--line)",
-                  borderRadius: 14, padding: "18px 20px",
-                }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
-                    リンク
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {activeSocials.map((platform) => {
-                      const url = socialLinks[platform]!;
-                      const label = SOCIAL_META[platform].label;
-                      return (
-                        <a
-                          key={platform}
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={label}
-                          title={label}
-                          className="sns-icon-link"
-                        >
-                          <SocialIcon platform={platform} variant="display" />
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
             </div>
           </aside>
