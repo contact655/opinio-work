@@ -688,12 +688,19 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
-                <div style={{ position: "relative", paddingLeft: 24 }}>
-                  {/* SVG quotation mark — reliable cross-browser rendering (viewBox wide enough for both marks) */}
-                  <svg width="22" height="14" viewBox="0 0 22 14" fill="var(--royal-100)" style={{ position: "absolute", left: 0, top: 3 }}>
-                    <path d="M0 14V8.4C0 3.6 3 1 9 0l1.35 2.1C7.5 2.7 6 4.05 5.7 6.3H8.1V14H0zm12 0V8.4C12 3.6 15 1 21 0l1.35 2.1c-2.85.6-4.35 1.95-4.65 4.2H20V14H12z" />
-                  </svg>
-                  <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0, paddingLeft: 4 }}>
+                <div style={{ position: "relative", paddingLeft: 28 }}>
+                  {/* Decorative open-quote: Unicode U+201C at large scale — universally rendered */}
+                  <span aria-hidden="true" style={{
+                    position: "absolute", left: -4, top: -10,
+                    fontSize: 56, lineHeight: 1,
+                    fontFamily: "Georgia, 'Noto Serif JP', serif",
+                    color: "var(--royal-100)",
+                    userSelect: "none",
+                    fontWeight: 700,
+                  }}>
+                    {"“"}
+                  </span>
+                  <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0 }}>
                     {owUser.about_me}
                   </p>
                 </div>
