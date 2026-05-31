@@ -958,16 +958,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
                             <div style={{ position: "relative", marginBottom: 6 }}>
                               {c.is_current && (
                                 <div style={{
-                                  position: "absolute", inset: -4, borderRadius: 10,
+                                  position: "absolute", inset: -5, borderRadius: 12,
                                   border: "2px solid var(--royal)", opacity: 0.4,
                                   animation: "pulseDot 2s ease-in-out infinite",
                                 }} />
                               )}
                               <div style={{
-                                width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                                width: 40, height: 40, borderRadius: 9, flexShrink: 0,
                                 background: c.logo_gradient ?? (c.is_current ? "var(--royal)" : "var(--line)"),
                                 display: "flex", alignItems: "center", justifyContent: "center",
-                                color: "#fff", fontSize: 13, fontWeight: 700,
+                                color: "#fff", fontSize: 16, fontWeight: 700,
                               }}>
                                 {c.logo_letter ?? c.company_name.charAt(0)}
                               </div>

@@ -389,9 +389,9 @@ function CompanyLogoIcon({
   logo_gradient?: string | null;
 }) {
   const wrapStyle: React.CSSProperties = {
-    width: 36,
-    height: 36,
-    borderRadius: 7,
+    width: 44,
+    height: 44,
+    borderRadius: 9,
     flexShrink: 0,
     margin: "0 auto",
     position: "relative",
@@ -409,7 +409,7 @@ function CompanyLogoIcon({
           logoUrl={logo_url}
           logoLetter={logo_letter ?? null}
           logoGradient={logo_gradient ?? null}
-          size={36}
+          size={44}
         />
       </div>
     );
@@ -419,7 +419,7 @@ function CompanyLogoIcon({
   if (logo_letter && logo_gradient) {
     return (
       <div style={wrapStyle}>
-        <LetterCircle letter={logo_letter} gradient={logo_gradient} size={36} />
+        <LetterCircle letter={logo_letter} gradient={logo_gradient} size={44} />
       </div>
     );
   }
@@ -432,7 +432,7 @@ function CompanyLogoIcon({
         background: isCurrent ? "var(--royal)" : "var(--ink-mute)",
       }}
     >
-      <Briefcase size={16} color="#fff" strokeWidth={2} />
+      <Briefcase size={20} color="#fff" strokeWidth={2} />
     </div>
   );
 }
@@ -442,9 +442,9 @@ function CareerIcon({ isCurrent }: { isCurrent: boolean }) {
   return (
     <div
       style={{
-        width: 36,
-        height: 36,
-        borderRadius: 7,
+        width: 44,
+        height: 44,
+        borderRadius: 9,
         background: isCurrent ? "var(--royal)" : "var(--ink-mute)",
         display: "flex",
         alignItems: "center",
@@ -455,7 +455,7 @@ function CareerIcon({ isCurrent }: { isCurrent: boolean }) {
         zIndex: 1,
       }}
     >
-      <Briefcase size={16} color="#fff" strokeWidth={2} />
+      <Briefcase size={20} color="#fff" strokeWidth={2} />
     </div>
   );
 }
@@ -890,7 +890,7 @@ export default function MergedTimeline({
           position: absolute;
           top: 18px;
           bottom: 18px;
-          left: 86px; /* 64px date col + center of 44px icon col */
+          left: 92px; /* 64px date col + center of 56px icon col */
           width: 2px;
           background: var(--line);
           z-index: 0;
@@ -898,7 +898,7 @@ export default function MergedTimeline({
 
         .tl-row {
           display: grid;
-          grid-template-columns: 64px 44px 1fr;
+          grid-template-columns: 64px 56px 1fr;
           align-items: start;
           min-height: 60px;
         }
@@ -928,11 +928,11 @@ export default function MergedTimeline({
 
         @media (max-width: 639px) {
           .merged-timeline::before {
-            left: 22px; /* center of 44px icon col */
+            left: 28px; /* center of 56px icon col */
           }
 
           .tl-row {
-            grid-template-columns: 44px 1fr;
+            grid-template-columns: 56px 1fr;
           }
 
           .tl-date-col {
@@ -1261,7 +1261,7 @@ export default function MergedTimeline({
                     paddingTop: 8,
                   }}
                 >
-                  <SchoolLogoImg schoolMaster={e.school_master ?? null} size={36} />
+                  <SchoolLogoImg schoolMaster={e.school_master ?? null} size={44} />
                 </div>
                 <EducationContent data={e} />
               </div>
