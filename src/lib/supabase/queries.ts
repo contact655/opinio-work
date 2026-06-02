@@ -325,7 +325,7 @@ export type CompanyListRow = {
   accepting_casual_meetings: boolean;
   remote_work_status: string | null;
   is_published: boolean;
-  /** 求人・面談OKを実際に表示するか（engagement_status が permitted/contracted の企業のみ true 可） */
+  /** 求人・面談OKを実際に表示するか（engagement_status = contracted の企業のみ true 可） */
   jobs_public: boolean;
   updated_at: string;
   job_count: number;

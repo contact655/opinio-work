@@ -1,5 +1,6 @@
--- Migration 135: 企業掲載ステータス管理 (法的整理対応)
+-- Migration 135: 企業掲載ステータス管理 (法的整理対応 v2)
 -- 「ディレクトリとして広く掲載、求人と課金は契約済みに絞る」設計原則に基づく
+-- engagement_status: none → verified（会社ドメイン認証済み）→ contracted（規約同意・求人公開中）
 
 -- ── 1. ENUM 型の作成 ──────────────────────────────────────────────────────────
 
@@ -8,7 +9,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE TYPE engagement_status_enum AS ENUM ('none', 'permitted', 'contracted');
+  CREATE TYPE engagement_status_enum AS ENUM ('none', 'verified', 'contracted');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── 2. ow_companies へのカラム追加 ────────────────────────────────────────────
@@ -17,18 +18,18 @@ ALTER TABLE ow_companies
   ADD COLUMN IF NOT EXISTS listing_status    listing_status_enum    NOT NULL DEFAULT 'listed',
   ADD COLUMN IF NOT EXISTS engagement_status engagement_status_enum NOT NULL DEFAULT 'none',
   ADD COLUMN IF NOT EXISTS jobs_public       BOOLEAN                NOT NULL DEFAULT FALSE,
-  ADD COLUMN IF NOT EXISTS permitted_at      TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS contracted_at     TIMESTAMPTZ;
+  ADD COLUMN IF NOT EXISTS verified_at       TIMESTAMPTZ,   -- ドメイン認証完了日時
+  ADD COLUMN IF NOT EXISTS contracted_at     TIMESTAMPTZ;   -- 規約同意 = 契約成立日時
 
 -- 既存企業の初期値設定:
 --   - 全社: listing_status = 'listed'（事実情報として掲載済み）
---   - テスト段階で jobs_public = true にしていた企業 → そのまま
---     （accepting_casual_meetings = true の企業はテスト公開中とみなす）
+--   - accepting_casual_meetings = true の企業 = テスト公開中とみなし jobs_public = true
 UPDATE ow_companies
 SET jobs_public = TRUE
 WHERE accepting_casual_meetings = TRUE;
 
 -- ── 3. ow_company_members テーブル（社員本人同意管理） ─────────────────────────
+-- ow_company_admins（管理権限）とは別:  こちらは「所属表示」
 
 CREATE TABLE IF NOT EXISTS ow_company_members (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -48,14 +49,31 @@ ALTER TABLE ow_company_members
   ADD CONSTRAINT check_public_requires_consent
   CHECK (is_public = FALSE OR display_consent = TRUE);
 
--- ── 4. インデックス ───────────────────────────────────────────────────────────
+-- ── 4. ow_company_domain_verifications テーブル（会社ドメイン認証） ────────────
+-- 会社メールドメインで企業関係者であることを確認する（フリーメールはアプリ側でブロック）
+-- 認証完了 → engagement_status = 'verified' に更新
 
-CREATE INDEX IF NOT EXISTS idx_ow_company_members_company ON ow_company_members(company_id);
-CREATE INDEX IF NOT EXISTS idx_ow_company_members_user    ON ow_company_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_ow_companies_engagement    ON ow_companies(engagement_status);
-CREATE INDEX IF NOT EXISTS idx_ow_companies_jobs_public   ON ow_companies(jobs_public);
+CREATE TABLE IF NOT EXISTS ow_company_domain_verifications (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id   UUID        NOT NULL REFERENCES ow_companies(id) ON DELETE CASCADE,
+  email        TEXT        NOT NULL,                   -- 認証に使った会社メールアドレス
+  domain       TEXT        NOT NULL,                   -- 抽出したドメイン (例: kaisha.co.jp)
+  token        TEXT        NOT NULL UNIQUE,             -- 確認リンク用トークン (UUID等)
+  verified_at  TIMESTAMPTZ,                            -- 認証完了日時 (null = 未完了)
+  expires_at   TIMESTAMPTZ NOT NULL,                   -- トークン有効期限
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
--- ── 5. RLS ────────────────────────────────────────────────────────────────────
+-- ── 5. インデックス ───────────────────────────────────────────────────────────
+
+CREATE INDEX IF NOT EXISTS idx_ow_company_members_company        ON ow_company_members(company_id);
+CREATE INDEX IF NOT EXISTS idx_ow_company_members_user           ON ow_company_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_ow_companies_engagement           ON ow_companies(engagement_status);
+CREATE INDEX IF NOT EXISTS idx_ow_companies_jobs_public          ON ow_companies(jobs_public);
+CREATE INDEX IF NOT EXISTS idx_ow_domain_verif_company           ON ow_company_domain_verifications(company_id);
+CREATE INDEX IF NOT EXISTS idx_ow_domain_verif_token             ON ow_company_domain_verifications(token);
+
+-- ── 6. RLS ────────────────────────────────────────────────────────────────────
 
 ALTER TABLE ow_company_members ENABLE ROW LEVEL SECURITY;
 
@@ -76,7 +94,18 @@ CREATE POLICY "admin_full_access_members" ON ow_company_members
     )
   );
 
--- ── 6. updated_at 自動更新トリガー ────────────────────────────────────────────
+ALTER TABLE ow_company_domain_verifications ENABLE ROW LEVEL SECURITY;
+
+-- domain_verifications: 管理者のみアクセス可（トークンはサーバーサイドのみ）
+CREATE POLICY "admin_full_access_domain_verif" ON ow_company_domain_verifications
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM ow_user_roles
+      WHERE user_id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- ── 7. updated_at 自動更新トリガー ────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION update_company_members_updated_at()
 RETURNS TRIGGER AS $$
@@ -91,11 +120,12 @@ CREATE TRIGGER trg_company_members_updated_at
   BEFORE UPDATE ON ow_company_members
   FOR EACH ROW EXECUTE FUNCTION update_company_members_updated_at();
 
--- ── 7. コメント ───────────────────────────────────────────────────────────────
+-- ── 8. コメント ───────────────────────────────────────────────────────────────
 
-COMMENT ON COLUMN ow_companies.listing_status    IS '掲載状態: draft=非掲載, listed=事実情報として掲載';
-COMMENT ON COLUMN ow_companies.engagement_status IS '企業との関係: none=未連絡, permitted=求人公開許可済, contracted=求人申込契約済';
-COMMENT ON COLUMN ow_companies.jobs_public       IS '求人・面談OKを実際に表示するか（engagement_status が permitted/contracted のときのみ true 可）';
-COMMENT ON COLUMN ow_companies.permitted_at      IS '求人公開許可取得日時';
-COMMENT ON COLUMN ow_companies.contracted_at     IS '求人申込契約成立日時';
+COMMENT ON COLUMN ow_companies.listing_status    IS '掲載状態: draft=非掲載, listed=事実情報として掲載（ディレクトリ）';
+COMMENT ON COLUMN ow_companies.engagement_status IS '企業との関係: none=未認証, verified=会社ドメイン認証済み, contracted=規約同意・求人公開中・成果報酬請求可';
+COMMENT ON COLUMN ow_companies.jobs_public       IS '求人・面談OKを実際に表示するか（engagement_status = contracted のときのみ true 可）';
+COMMENT ON COLUMN ow_companies.verified_at       IS '会社ドメイン認証完了日時';
+COMMENT ON COLUMN ow_companies.contracted_at     IS '規約同意 = 求人申込契約成立日時';
 COMMENT ON TABLE  ow_company_members             IS '社員アカウントの企業紐づけと本人同意管理（ow_company_admins とは別：こちらは「所属表示」、admins は「管理権限」）';
+COMMENT ON TABLE  ow_company_domain_verifications IS '会社メールドメイン認証テーブル。認証完了で engagement_status を verified に更新する。フリーメールはアプリ側でブロック。';

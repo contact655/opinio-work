@@ -20,20 +20,20 @@ function getCompanyGradient(str: string): string {
   return gradients[Math.abs(hash) % gradients.length];
 }
 
-type EngagementStatus = "none" | "permitted" | "contracted";
+type EngagementStatus = "none" | "verified" | "contracted";
 type ListingStatus = "draft" | "listed";
 
 const ENGAGEMENT_CONFIG: Record<EngagementStatus, { label: string; bg: string; color: string; border: string; dot: string }> = {
-  none:       { label: "未連絡",         bg: "#F1F5F9", color: "#64748B", border: "#E2E8F0", dot: "#94A3B8" },
-  permitted:  { label: "許可済み",       bg: "#FEF3C7", color: "#B45309", border: "#FDE68A", dot: "#D97706" },
+  none:       { label: "未認証",         bg: "#F1F5F9", color: "#64748B", border: "#E2E8F0", dot: "#94A3B8" },
+  verified:   { label: "ドメイン認証済", bg: "#EFF3FC", color: "#002366", border: "#DCE5F7", dot: "#3B5FD9" },
   contracted: { label: "契約済み",       bg: "#ECFDF5", color: "#059669", border: "#A7F3D0", dot: "#059669" },
 };
 
 const STATUS_TABS = [
   { key: "all",        label: "すべて" },
   { key: "contracted", label: "契約済み" },
-  { key: "permitted",  label: "許可済み" },
-  { key: "none",       label: "未連絡" },
+  { key: "verified",   label: "ドメイン認証済" },
+  { key: "none",       label: "未認証" },
 ];
 
 type Company = {
@@ -47,7 +47,7 @@ type Company = {
   listing_status: ListingStatus | null;
   engagement_status: EngagementStatus | null;
   jobs_public: boolean;
-  permitted_at: string | null;
+  verified_at: string | null;
   contracted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -67,7 +67,7 @@ export default function AdminCompaniesPage() {
     const [{ data: companyRows }, { data: jobRows }] = await Promise.all([
       supabase
         .from("ow_companies")
-        .select("id, name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, permitted_at, contracted_at, created_at, updated_at")
+        .select("id, name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at")
         .order("updated_at", { ascending: false }),
       supabase
         .from("ow_jobs")
@@ -100,25 +100,28 @@ export default function AdminCompaniesPage() {
       engagement_status: newStatus,
       updated_at: now,
     };
-    if (newStatus === "permitted" && !company.permitted_at)  updates.permitted_at  = now;
+    if (newStatus === "verified"   && !company.verified_at)   updates.verified_at   = now;
     if (newStatus === "contracted" && !company.contracted_at) updates.contracted_at = now;
-    // contracted → none に戻す時は jobs_public も false に
+    // contracted/verified → none に戻す時は jobs_public も false に
     if (newStatus === "none") updates.jobs_public = false;
+    // verified に戻す時も jobs_public = false（contracted のみ可）
+    if (newStatus === "verified") updates.jobs_public = false;
 
     await supabase.from("ow_companies").update(updates).eq("id", company.id);
     setCompanies((prev) => prev.map((c) => c.id === company.id
-      ? { ...c, engagement_status: newStatus, jobs_public: newStatus === "none" ? false : c.jobs_public,
-          permitted_at: (newStatus === "permitted" && !c.permitted_at) ? now : c.permitted_at,
+      ? { ...c, engagement_status: newStatus,
+          jobs_public: newStatus === "contracted" ? c.jobs_public : false,
+          verified_at:  (newStatus === "verified"   && !c.verified_at)   ? now : c.verified_at,
           contracted_at: (newStatus === "contracted" && !c.contracted_at) ? now : c.contracted_at }
       : c
     ));
     setActionLoading(null);
   }
 
-  // jobs_public トグル（engagement_status が none のときは操作不可）
+  // jobs_public トグル（engagement_status が contracted のときのみ操作可）
   async function handleJobsPublicToggle(company: Company) {
     const es = company.engagement_status ?? "none";
-    if (es === "none") return; // ガード
+    if (es !== "contracted") return; // contracted のみ可
     const newValue = !company.jobs_public;
     setActionLoading(company.id);
     const supabase = createClient();
@@ -140,7 +143,7 @@ export default function AdminCompaniesPage() {
   const filtered = companies.filter((c) => {
     const es = c.engagement_status ?? "none";
     if (activeTab === "contracted" && es !== "contracted") return false;
-    if (activeTab === "permitted"  && es !== "permitted")  return false;
+    if (activeTab === "verified"   && es !== "verified")   return false;
     if (activeTab === "none"       && es !== "none")       return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -154,7 +157,7 @@ export default function AdminCompaniesPage() {
   });
 
   const contractedCount = companies.filter((c) => (c.engagement_status ?? "none") === "contracted").length;
-  const permittedCount  = companies.filter((c) => (c.engagement_status ?? "none") === "permitted").length;
+  const verifiedCount   = companies.filter((c) => (c.engagement_status ?? "none") === "verified").length;
   const noneCount       = companies.filter((c) => (c.engagement_status ?? "none") === "none").length;
 
   if (loading) {
@@ -184,9 +187,9 @@ export default function AdminCompaniesPage() {
         {/* KPI バッジ */}
         <div style={{ display: "flex", gap: 10 }}>
           {[
-            { label: "契約済み", count: contractedCount, bg: "#ECFDF5", color: "#059669", border: "#A7F3D0" },
-            { label: "許可済み", count: permittedCount,  bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
-            { label: "未連絡",   count: noneCount,       bg: "#F1F5F9", color: "#64748B", border: "#E2E8F0" },
+            { label: "契約済み",         count: contractedCount, bg: "#ECFDF5", color: "#059669", border: "#A7F3D0" },
+            { label: "ドメイン認証済",   count: verifiedCount,   bg: "#EFF3FC", color: "#002366", border: "#DCE5F7" },
+            { label: "未認証",           count: noneCount,       bg: "#F1F5F9", color: "#64748B", border: "#E2E8F0" },
           ].map(({ label, count, bg, color, border }) => (
             <div key={label} style={{ textAlign: "center", padding: "8px 16px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
               <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "Inter, sans-serif", lineHeight: 1.2 }}>{count}</div>
@@ -199,8 +202,8 @@ export default function AdminCompaniesPage() {
       {/* 法的整理コール */}
       <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
         <strong style={{ color: "var(--ink)" }}>設計原則:</strong> 企業概要は広く掲載可（ディレクトリ）。
-        求人・面談OKの表示は <code style={{ background: "#EFF3FC", color: "var(--royal)", padding: "1px 5px", borderRadius: 4 }}>jobs_public = true</code> の企業のみ。
-        成果報酬の請求対象は <code style={{ background: "#ECFDF5", color: "#059669", padding: "1px 5px", borderRadius: 4 }}>contracted</code> のみ。
+        ドメイン認証（<code style={{ background: "#EFF3FC", color: "var(--royal)", padding: "1px 5px", borderRadius: 4 }}>verified</code>）で企業情報の編集が可能。
+        規約同意（<code style={{ background: "#ECFDF5", color: "#059669", padding: "1px 5px", borderRadius: 4 }}>contracted</code>）のみ求人・面談OK公開・成果報酬請求可。
       </div>
 
       {/* Search */}
@@ -220,7 +223,7 @@ export default function AdminCompaniesPage() {
       {/* Tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {STATUS_TABS.map((tab) => {
-          const count = tab.key === "all" ? companies.length : tab.key === "contracted" ? contractedCount : tab.key === "permitted" ? permittedCount : noneCount;
+          const count = tab.key === "all" ? companies.length : tab.key === "contracted" ? contractedCount : tab.key === "verified" ? verifiedCount : noneCount;
           const active = activeTab === tab.key;
           return (
             <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)} style={{
@@ -302,21 +305,26 @@ export default function AdminCompaniesPage() {
                             opacity: isLoading ? 0.5 : 1,
                           }}
                         >
-                          <option value="none">未連絡</option>
-                          <option value="permitted">許可済み</option>
+                          <option value="none">未認証</option>
+                          <option value="verified">ドメイン認証済</option>
                           <option value="contracted">契約済み</option>
                         </select>
+                        {es === "verified" && c.verified_at && (
+                          <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "Inter, sans-serif" }}>
+                            認証: {new Date(c.verified_at).toLocaleDateString("ja-JP")}
+                          </div>
+                        )}
                         {es === "contracted" && c.contracted_at && (
                           <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "Inter, sans-serif" }}>
-                            {new Date(c.contracted_at).toLocaleDateString("ja-JP")}
+                            契約: {new Date(c.contracted_at).toLocaleDateString("ja-JP")}
                           </div>
                         )}
                       </td>
 
                       {/* 求人・面談公開 (jobs_public) */}
                       <td style={{ padding: "10px 14px" }}>
-                        {es === "none" ? (
-                          <span style={{ fontSize: 11, color: "var(--ink-mute)" }} title="許可済み以上が必要">🔒 要許可</span>
+                        {es !== "contracted" ? (
+                          <span style={{ fontSize: 11, color: "var(--ink-mute)" }} title="契約済みのみ有効">🔒 {es === "verified" ? "要規約同意" : "要認証"}</span>
                         ) : (
                           <button type="button" onClick={() => handleJobsPublicToggle(c)} disabled={isLoading}
                             style={{
