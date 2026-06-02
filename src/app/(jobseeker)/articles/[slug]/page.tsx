@@ -14,6 +14,7 @@ import {
   getArticleBySlug,
   getArticlesBySlugs,
 } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 
@@ -533,6 +534,147 @@ function RelatedArticles({ articles }: { articles: Article[] }) {
   );
 }
 
+// ─── ArticleMentorCTA ─────────────────────────────────────────────────────────
+
+type CtaMentor = {
+  id: string;
+  name: string;
+  current_company: string | null;
+  catchphrase: string | null;
+  roles: string[] | null;
+  avatar_initial: string | null;
+  avatar_color: string | null;
+  photo_url: string | null;
+  is_available: boolean;
+};
+
+function ArticleMentorCTA({ mentors }: { mentors: CtaMentor[] }) {
+  if (!mentors || mentors.length === 0) return null;
+  return (
+    <div style={{
+      background: "var(--royal-50)",
+      border: "1px solid var(--royal-100)",
+      borderRadius: 16,
+      padding: "36px 28px 32px",
+      margin: "48px 0 0",
+    }}>
+      {/* Heading */}
+      <div style={{ textAlign: "center", marginBottom: 28 }}>
+        <div style={{
+          fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
+          letterSpacing: "0.14em", color: "var(--royal)", textTransform: "uppercase",
+          marginBottom: 10,
+        }}>
+          ASK A MENTOR
+        </div>
+        <h3 style={{
+          fontFamily: "var(--font-noto-serif)", fontSize: "clamp(16px, 2.2vw, 20px)",
+          fontWeight: 700, color: "var(--ink)", margin: "0 0 10px",
+          lineHeight: 1.5,
+        }}>
+          この記事を読んで気になったら、先輩に直接聞いてみよう
+        </h3>
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.8 }}>
+          OPINIOのメンターは第三者として、転職の疑問にリアルに答えます。30分・完全無料。
+        </p>
+      </div>
+
+      {/* Mentor cards */}
+      <div style={{
+        display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center",
+        marginBottom: 24,
+      }}>
+        {mentors.map((m) => (
+          <div key={m.id} style={{
+            background: "#fff",
+            borderRadius: 14,
+            padding: "20px 18px",
+            display: "flex", flexDirection: "column", alignItems: "center",
+            gap: 8, textAlign: "center",
+            minWidth: 160, flex: "1 1 160px", maxWidth: 220,
+            boxShadow: "0 1px 4px rgba(0,35,102,0.07)",
+          }}>
+            {/* Avatar */}
+            {m.photo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={m.photo_url}
+                alt={m.name}
+                width={56}
+                height={56}
+                style={{
+                  width: 56, height: 56, borderRadius: "50%",
+                  objectFit: "cover", objectPosition: "center top",
+                  boxShadow: "0 0 0 2px var(--royal), 0 0 0 4px rgba(0,35,102,0.1)",
+                }}
+              />
+            ) : (
+              <div style={{
+                width: 56, height: 56, borderRadius: "50%",
+                background: m.avatar_color ?? "linear-gradient(135deg,#002366,#3B5FD9)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontSize: 20, fontWeight: 700,
+                boxShadow: "0 0 0 2px var(--royal), 0 0 0 4px rgba(0,35,102,0.1)",
+              }}>
+                {m.avatar_initial ?? m.name.charAt(0)}
+              </div>
+            )}
+            {/* Name */}
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+              {m.name}さん
+            </div>
+            {/* Company */}
+            {m.current_company && (
+              <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: -4 }}>
+                {m.current_company}
+              </div>
+            )}
+            {/* Catchphrase */}
+            {m.catchphrase && (
+              <div style={{
+                fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6,
+                overflow: "hidden", display: "-webkit-box",
+                WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const,
+              }}>
+                {m.catchphrase}
+              </div>
+            )}
+            {/* CTA button */}
+            <Link
+              href={`/mentors/${m.id}`}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                marginTop: 4,
+                background: "linear-gradient(135deg, #F59E0B, #D97706)",
+                color: "#fff",
+                borderRadius: 8, textDecoration: "none",
+                fontSize: 12, fontWeight: 700, padding: "8px 14px",
+                boxShadow: "0 2px 8px rgba(245,158,11,0.28)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              相談する →
+            </Link>
+          </div>
+        ))}
+      </div>
+
+      {/* All mentors link */}
+      <div style={{ textAlign: "center" }}>
+        <Link href="/mentors" style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none",
+        }}>
+          全てのメンターを見る
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function ArticlePage({ params }: { params: { slug: string } }) {
@@ -546,6 +688,13 @@ export default async function ArticlePage({ params }: { params: { slug: string }
   const relatedArticles = await getArticlesBySlugs(
     (article.related_article_slugs ?? []).slice(0, 4)
   );
+
+  // Fetch top 3 available mentors for article bottom CTA
+  const { data: ctaMentors } = await createClient()
+    .from("ow_mentors")
+    .select("id, name, current_company, catchphrase, roles, avatar_initial, avatar_color, photo_url, is_available")
+    .eq("is_available", true)
+    .limit(3);
 
   const badge = TYPE_BADGE[article.type];
   const icon  = TYPE_EYECATCH_ICON[article.type];
@@ -772,11 +921,19 @@ export default async function ArticlePage({ params }: { params: { slug: string }
         )}
       </article>
 
+      {/* Mentor CTA section */}
+      {ctaMentors && ctaMentors.length > 0 && (
+        <div style={{ padding: "0 24px", maxWidth: "var(--max-w-text)", margin: "0 auto" }}>
+          <ArticleMentorCTA mentors={ctaMentors} />
+        </div>
+      )}
+
       {/* Related section */}
       <div style={{
         background: "var(--bg-tint)",
         padding: "56px 24px 72px",
         borderTop: `1px solid ${LINE}`,
+        marginTop: 48,
       }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <RelatedArticles articles={relatedArticles} />

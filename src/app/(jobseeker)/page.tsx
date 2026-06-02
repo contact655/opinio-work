@@ -12,7 +12,7 @@ import { CountUp } from "@/components/jobseeker/CountUp";
 // ─── Site stats type ─────────────────────────────────────────────────────────
 
 type SiteStats = { companies: number; jobs: number; mentors: number };
-const DEFAULT_STATS: SiteStats = { companies: 36, jobs: 30, mentors: 10 };
+const DEFAULT_STATS: SiteStats = { companies: 13, jobs: 0, mentors: 13 };
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -120,66 +120,6 @@ function ArrowIcon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>;
 }
 
-// ─── Hero Role Rotator ────────────────────────────────────────────────────────
-
-const ROLE_LIST = [
-  "エンタープライズセールス",
-  "カスタマーサクセス",
-  "プロダクトマーケティング",
-  "インサイドセールス",
-  "プロダクトマネージャー",
-  "フィールドセールス",
-  "ビジネス開発",
-  "マーケティング",
-];
-
-// 最長職種名（レイアウトシフト防止の基準）
-const LONGEST_ROLE = "プロダクトマーケティング";
-
-function HeroRoleRotator() {
-  const [index, setIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
-  const prefersReducedMotion =
-    typeof window !== "undefined"
-      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      : false;
-
-  useEffect(() => {
-    if (prefersReducedMotion) return;
-
-    const interval = setInterval(() => {
-      // フェードアウト
-      setVisible(false);
-      setTimeout(() => {
-        setIndex((i) => (i + 1) % ROLE_LIST.length);
-        // フェードイン
-        setVisible(true);
-      }, 400);
-    }, 2800);
-
-    return () => clearInterval(interval);
-  }, [prefersReducedMotion]);
-
-  return (
-    <span style={{ position: "relative", display: "inline-block" }}>
-      {/* 最長職種名で幅を確保（レイアウトシフト防止） */}
-      <span aria-hidden style={{ visibility: "hidden", display: "inline-block" }}>
-        {LONGEST_ROLE}
-      </span>
-      <span style={{
-        position: "absolute", left: 0, top: 0,
-        color: "inherit",
-        opacity: visible ? 1 : 0,
-        transition: "opacity 400ms ease-in-out",
-        whiteSpace: "nowrap",
-      }}>
-        {ROLE_LIST[index]}
-      </span>
-      <style>{`@media (prefers-reduced-motion: reduce) { .hero-role-rotator { transition: none !important; } }`}</style>
-    </span>
-  );
-}
-
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 type PreviewJob = {
@@ -249,16 +189,15 @@ function Hero({ stats }: { stats: SiteStats }) {
             IT / SaaS 業界に、特化している。
           </div>
 
-          {/* Title with role rotator */}
+          {/* Title */}
           <h1 style={{
             fontSize: "clamp(28px,4.5vw,52px)",
             fontWeight: 500, lineHeight: 1.4, letterSpacing: "0.01em",
             color: "#fff", marginBottom: 24,
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            <span style={{ color: "#F59E0B" }}><HeroRoleRotator /></span>
-            <br />
-            <span style={{ color: "rgba(255,255,255,0.95)" }}>の求人と企業を、先輩と話しながら選ぶ。</span>
+            <span style={{ color: "#F59E0B" }}>IT/SaaS業界</span>の求人と企業を、<br />
+            先輩と話しながら選ぶ。
           </h1>
 
           {/* Lead */}
@@ -269,31 +208,34 @@ function Hero({ stats }: { stats: SiteStats }) {
 
           {/* CTAs */}
           <div style={{ marginBottom: 40 }}>
+            {/* 主導線: 登録不要でまず見る */}
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const, marginBottom: 14 }}>
-              <Link href="/auth" style={{
+              <Link href="/companies" style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
                 padding: "16px 28px", background: "#fff", color: "var(--royal)",
                 fontWeight: 700, fontSize: 15, borderRadius: 8, textDecoration: "none",
                 boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
               }}>
-                無料登録する <ArrowIcon />
+                まず企業を見てみる <ArrowIcon />
               </Link>
               <Link href="/mentors" style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
-                padding: "16px 28px",
-                background: "linear-gradient(135deg, #F59E0B, #D97706)",
+                padding: "15px 24px",
+                background: "rgba(255,255,255,0.12)",
+                border: "1.5px solid rgba(255,255,255,0.35)",
                 color: "#fff",
-                fontWeight: 700, fontSize: 15, borderRadius: 8, textDecoration: "none",
-                boxShadow: "0 4px 16px rgba(245,158,11,0.4)",
+                fontWeight: 600, fontSize: 14, borderRadius: 8, textDecoration: "none",
+                backdropFilter: "blur(6px)",
               }}>
                 先輩に相談する（無料）
               </Link>
             </div>
-            <Link href="/companies" style={{
+            {/* 副導線: 登録 */}
+            <Link href="/auth" style={{
               display: "inline-flex", alignItems: "center", gap: 4,
               fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none",
             }}>
-              まず企業・求人を見てみる
+              無料で会員登録する
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                 <path d="M9 18l6-6-6-6"/>
               </svg>
@@ -454,33 +396,40 @@ function Hero({ stats }: { stats: SiteStats }) {
             </div>
 
             {/* Result count */}
-            <div style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              fontSize: 12, marginBottom: 12, color: "var(--ink-soft)",
-            }}>
-              <span><strong style={{ color: "var(--ink)", fontSize: 14 }}>47</strong> 件が該当</span>
-              <span style={{ color: "var(--success)", fontSize: 11 }}>今日更新</span>
-            </div>
+            {jobs.length > 0 && (
+              <div style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                fontSize: 12, marginBottom: 12, color: "var(--ink-soft)",
+              }}>
+                <span><strong style={{ color: "var(--ink)", fontSize: 14 }}>{jobs.length}</strong> 件が該当</span>
+                <span style={{ color: "var(--success)", fontSize: 11 }}>今日更新</span>
+              </div>
+            )}
 
             {/* Job list */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {jobs.length === 0
-                ? [0, 1, 2].map((i) => (
-                    <div key={i} style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "10px 12px", borderRadius: 8, background: "var(--line-soft)",
+                ? (
+                    <div style={{
+                      padding: "20px 16px", borderRadius: 12,
+                      background: "var(--line-soft)", textAlign: "center",
                     }}>
-                      <div style={{
-                        width: 32, height: 32, borderRadius: 8, background: "var(--line)",
-                        flexShrink: 0,
-                      }} />
-                      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}>
-                        <div style={{ height: 9, width: "40%", borderRadius: 4, background: "var(--line)" }} />
-                        <div style={{ height: 11, width: "70%", borderRadius: 4, background: "var(--line)" }} />
+                      <div style={{ fontSize: 28, marginBottom: 8 }}>🏗️</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 4 }}>
+                        求人は近日公開予定です
                       </div>
-                      <div style={{ height: 9, width: 48, borderRadius: 4, background: "var(--line)", flexShrink: 0 }} />
+                      <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 12 }}>
+                        企業担当者が準備中。まずは企業情報を見てみましょう。
+                      </div>
+                      <Link href="/companies" style={{
+                        display: "inline-block", padding: "7px 16px",
+                        borderRadius: 20, background: "var(--royal)", color: "#fff",
+                        fontSize: 12, fontWeight: 600, textDecoration: "none",
+                      }}>
+                        企業を見てみる →
+                      </Link>
                     </div>
-                  ))
+                  )
                 : jobs.map((job) => {
                     const salary = formatSalary(job.salaryMin, job.salaryMax);
                     return (
@@ -512,7 +461,11 @@ function Hero({ stats }: { stats: SiteStats }) {
                           </div>
                         </div>
                         {salary && (
-                          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", flexShrink: 0 }}>{salary}</div>
+                          <div style={{
+                            fontSize: 13, fontWeight: 700,
+                            color: "var(--success)", flexShrink: 0,
+                            fontFamily: "Inter, sans-serif",
+                          }}>{salary}</div>
                         )}
                       </div>
                     );
@@ -635,6 +588,8 @@ type PreviewCompany = {
   logoUrl: string | null;
   acceptingMeeting: boolean;
   employeeCount: number | null;
+  articleCount?: number;
+  memberCount?: number;
 };
 
 const PHASE_COLORS: Record<string, { bg: string; color: string }> = {
@@ -712,8 +667,8 @@ function CompanyMiniCard({ c }: { c: PreviewCompany }) {
           </div>
         </div>
 
-        {/* Phase + insider hint */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        {/* Phase + badges */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" as const }}>
           {phaseStyle && c.phase && (
             <span style={{
               fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
@@ -723,16 +678,48 @@ function CompanyMiniCard({ c }: { c: PreviewCompany }) {
               {c.phase}
             </span>
           )}
-          <span style={{
-            fontSize: 10, fontWeight: 600, color: "var(--royal)",
-            display: "flex", alignItems: "center", gap: 3,
-          }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            社員・OBに聞ける
-          </span>
+          {/* OPINIO取材済みバッジ（記事が紐づいている場合） */}
+          {(c.articleCount ?? 0) > 0 && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 100,
+              background: "var(--warm-soft)", color: "#92400E",
+              border: "1px solid #FDE68A",
+              display: "flex", alignItems: "center", gap: 3,
+              whiteSpace: "nowrap" as const,
+            }}>
+              ✍ 取材済み
+            </span>
+          )}
+          {/* 登録メンバーバッジ */}
+          {(c.memberCount ?? 0) > 0 ? (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 100,
+              background: "var(--royal-50)", color: "var(--royal)",
+              border: "1px solid var(--royal-100)",
+              display: "flex", alignItems: "center", gap: 3,
+              whiteSpace: "nowrap" as const,
+            }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              {c.memberCount}名登録中
+            </span>
+          ) : (
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 100,
+              background: "var(--royal-50)", color: "var(--royal)",
+              border: "1px solid var(--royal-100)",
+              display: "flex", alignItems: "center", gap: 3,
+              whiteSpace: "nowrap" as const,
+            }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              社員・OBに聞ける
+            </span>
+          )}
         </div>
       </div>
     </Link>
@@ -1030,219 +1017,95 @@ function StatsStrip({ stats }: { stats: SiteStats }) {
   );
 }
 
-// ─── Infrastructure Section ───────────────────────────────────────────────────
-
-function InfraBlock({
-  num, title, desc, points, visual, reverse = false,
-}: {
-  num: string; title: React.ReactNode; desc: string;
-  points: { icon: React.ReactNode; html: React.ReactNode }[];
-  visual: React.ReactNode; reverse?: boolean;
-}) {
-  return (
-    <div className={`grid grid-cols-1 gap-12 items-center md:grid-cols-2 md:gap-16 ${reverse ? "md:[direction:rtl]" : ""}`}
-      style={{ paddingTop: 80, paddingBottom: 80, borderTop: "1px solid var(--line)" }}>
-      {/* Text */}
-      <div style={{ direction: "ltr" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase" as const }}>{num}</span>
-        <h3 style={{ fontSize: "clamp(22px,2.5vw,30px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, margin: "12px 0 16px", fontFamily: 'var(--font-noto-serif)' }}>
-          {title}
-        </h3>
-        <p style={{ fontSize: 15, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 24 }}>{desc}</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {points.map((p, i) => (
-            <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <span style={{ color: "var(--royal)", flexShrink: 0, marginTop: 2 }}>{p.icon}</span>
-              <div style={{ fontSize: 14, lineHeight: 1.8, color: "var(--ink-soft)" }}>{p.html}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* Visual */}
-      <div style={{ direction: "ltr" }}>{visual}</div>
-    </div>
-  );
-}
+// ─── Infrastructure Section (simplified) ─────────────────────────────────────
 
 function InfraSection() {
+  const points = [
+    {
+      num: "01",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+      ),
+      title: "取材された「今」の情報",
+      body: "OPINIO編集部が企業を定期取材。求人票には載らない、現場のリアルな情報をお届けします。",
+      color: "var(--royal)",
+      bg: "var(--royal-50)",
+    },
+    {
+      num: "02",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      ),
+      title: "第三者の先輩に相談できる",
+      body: "転職エージェントではなく、中立な現役社員・OBOGメンターに本音を聞けます。完全無料・30分。",
+      color: "var(--warm)",
+      bg: "var(--warm-soft)",
+    },
+    {
+      num: "03",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+        </svg>
+      ),
+      title: "現役社員・OBOGが見える",
+      body: "企業ページには実際にその会社で働く人・働いた人のプロフィールが掲載。入社後のイメージが描けます。",
+      color: "var(--success)",
+      bg: "var(--success-soft)",
+    },
+  ];
+
   return (
-    <section style={{ padding: "0 48px" }} className="px-5 md:px-12">
+    <section style={{ padding: "80px 48px" }} className="px-5 md:px-12">
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        {/* Header */}
-        <div style={{ textAlign: "center", padding: "80px 0 0" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
           <SectionTag>WHAT MAKES OPINIO DIFFERENT</SectionTag>
-          <h2 style={{ fontSize: "clamp(26px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: 16 }}>
+          <h2 style={{ fontSize: "clamp(24px,3vw,34px)", fontWeight: 700, color: "var(--ink)", marginTop: 16, marginBottom: 12 }}>
             他のキャリアサービスと、ここが違う。
           </h2>
-          <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: 600, margin: "0 auto" }}>
-            求人の<strong>鮮度</strong>、検索の<strong>網羅性</strong>、相談できる<strong>先輩の存在</strong>。<br />
-            キャリア判断に必要な 3 つを、ひとつの場所に揃えました。
+          <p style={{ fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.8 }}>
+            求人の鮮度、第三者への相談、現役社員の声。3つを1つにまとめました。
           </p>
         </div>
 
-        {/* Block 01: FRESH */}
-        <InfraBlock
-          num="01 / FRESH"
-          title={<>企業の<em style={{ fontStyle: "normal", color: "var(--royal)" }}>「今」</em>を、<br />取材とアンケートで更新し続ける。</>}
-          desc="求人票に書かれている情報は、いつのものか分からない──そんな不安を解消します。OPINIO編集部が企業を定期的に取材し、企業からも定期アンケートで最新情報を集めます。"
-          points={[
-            { icon: <ClockIcon />, html: <><strong>編集部による定期取材：</strong>経営層・現場メンバーに会いにいき、生の言葉をお届けします。</> },
-            { icon: <ChatIcon />, html: <><strong>企業からの定期アンケート：</strong>リモート比率、残業時間、組織変更などを企業自身に更新してもらう仕組み。</> },
-            { icon: <CheckMark />, html: <><strong>更新日の明示：</strong>各求人・企業情報に「最終更新日」を表示。古い情報は透明に。</> },
-          ]}
-          visual={
-            <div style={{
-              background: "var(--royal-50)", borderRadius: 16, padding: 24,
-              border: "1px solid var(--royal-100)",
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {points.map((p) => (
+            <div key={p.num} style={{
+              background: "#fff",
+              border: "1px solid var(--line)",
+              borderRadius: 20,
+              padding: "32px 28px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
             }}>
-              {[
-                { label: "STEP 1 · 編集部", title: "企業への訪問取材", desc: "経営者・現場メンバーに直接会いに", date: "4月", v: 1 },
-                { label: "STEP 2 · 企業", title: "定期アンケート回答", desc: "リモート比率・残業・組織情報を更新", date: "毎月", v: 2 },
-                { label: "STEP 3 · ユーザー", title: "常に最新の情報", desc: "「○日前に更新」と明示して表示", date: "今日", v: 3 },
-              ].map((step, i) => (
-                <div key={i}>
-                  <div style={{
-                    background: "#fff", borderRadius: 12, padding: "14px 16px",
-                    display: "flex", alignItems: "center", gap: 12,
-                    boxShadow: "0 2px 8px rgba(0,35,102,0.06)",
-                  }}>
-                    <div style={{
-                      width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      background: step.v === 1 ? "var(--royal-50)" : step.v === 2 ? "#F5F3FF" : "var(--success-soft)",
-                      color: step.v === 1 ? "var(--royal)" : step.v === 2 ? "var(--purple)" : "var(--success)",
-                    }}>
-                      {step.v === 1 ? <ClockIcon /> : step.v === 2 ? <ChatIcon /> : <CheckMark />}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em" }}>{step.label}</div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{step.title}</div>
-                      <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>{step.desc}</div>
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--royal)", flexShrink: 0 }}>{step.date}</span>
-                  </div>
-                  {i < 2 && <div style={{ textAlign: "center", fontSize: 18, color: "var(--ink-mute)", padding: "4px 0" }}>↓</div>}
-                </div>
-              ))}
-            </div>
-          }
-        />
-
-        {/* Block 02: COVERED (reversed) */}
-        <InfraBlock
-          reverse
-          num="02 / COVERED"
-          title={<>ライフスタイルに合う求人を、<br /><em style={{ fontStyle: "normal", color: "var(--royal)" }}>抜け漏れなく</em>探せる。</>}
-          desc="働き方が多様化した今、「フルリモートで副業OK」「子育てと両立できる週4日勤務」──条件の組み合わせで求人を探すのが難しくなっています。OPINIOは、ライフスタイル起点で絞り込める場所を目指します。"
-          points={[
-            { icon: <CheckMark />, html: <><strong>働き方で絞れる：</strong>フルリモート・副業OK・フレックス・週3/4日勤務など、多様なタグを標準装備。</> },
-            { icon: <CheckMark />, html: <><strong>勤務地で絞れる：</strong>地方在住でも、自分のペースに合う場所で働ける会社を見つけられます。</> },
-            { icon: <CheckMark />, html: <><strong>業界の網羅性：</strong>IT/SaaS業界の求人を、外資・国内スタートアップ・上場企業まで集約。</> },
-          ]}
-          visual={
-            <div style={{
-              background: "#fff", borderRadius: 16, padding: 24,
-              boxShadow: "0 8px 32px rgba(0,35,102,0.08), 0 0 0 1px var(--line)",
-            }}>
-              {[
-                { label: "働き方", chips: [{ t: "フルリモート", on: true }, { t: "副業OK", on: true }, { t: "フレックス", on: false }, { t: "週4日勤務", on: false }] },
-                { label: "勤務地", chips: [{ t: "全国どこでも", on: true }, { t: "東京", on: false }, { t: "大阪", on: false }, { t: "福岡", on: false }] },
-                { label: "企業タイプ", chips: [{ t: "外資", on: true }, { t: "スタートアップ", on: false }, { t: "上場", on: false }] },
-              ].map((group, gi) => (
-                <div key={gi} style={{ marginBottom: gi < 2 ? 16 : 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", marginBottom: 8 }}>{group.label}</div>
-                  <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
-                    {group.chips.map((c, ci) => (
-                      <span key={ci} style={{
-                        display: "inline-flex", alignItems: "center", gap: 4,
-                        padding: "5px 12px", borderRadius: 100, fontSize: 12, fontWeight: 500,
-                        background: c.on ? "var(--royal)" : "#fff",
-                        color: c.on ? "#fff" : "var(--ink-soft)",
-                        border: c.on ? "none" : "1.5px solid var(--line)",
-                      }}>
-                        {c.on && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>}
-                        {c.t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
               <div style={{
-                marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line)",
-                display: "flex", justifyContent: "space-between", alignItems: "center",
+                width: 48, height: 48, borderRadius: 14,
+                background: p.bg,
+                color: p.color,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
               }}>
-                <span style={{ fontSize: 14, color: "var(--ink-soft)" }}>
-                  <strong style={{ fontSize: 20, color: "var(--ink)" }}>47</strong> 件の求人が該当
-                </span>
-                <Link href="/jobs" style={{ fontSize: 13, color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>
-                  すべて見る →
-                </Link>
+                {p.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: p.color, letterSpacing: "0.08em", marginBottom: 6 }}>
+                  {p.num}
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)", marginBottom: 10, lineHeight: 1.4 }}>
+                  {p.title}
+                </h3>
+                <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8 }}>
+                  {p.body}
+                </p>
               </div>
             </div>
-          }
-        />
-
-        {/* Block 03: MENTOR */}
-        <InfraBlock
-          num="03 / MENTOR"
-          title={<>数年先を歩く先輩に、<br /><em style={{ fontStyle: "normal", color: "var(--royal)" }}>カジュアルに</em>話を聞ける。</>}
-          desc="キャリアの悩みは、家族や社内の人には聞きづらい。OPINIOには、あなたと似た経歴を持ち、少し先を歩く先輩がいます。30分のオンライン対話で気軽に話せます。"
-          points={[
-            { icon: <PersonIcon />, html: <><strong>似た経歴の先輩とマッチング：</strong>あなたの職種・経験年数・志向に近い先輩を自動で提案します。</> },
-            { icon: <CheckMark />, html: <><strong>応募の強制なし：</strong>相談がそのまま求人提案に繋がることはありません。フラットな対話を大切に。</> },
-            { icon: <CheckMark />, html: <><strong>オンラインで30分から：</strong>勤務時間外でもOK。お昼休みや移動中にも気軽に。</> },
-          ]}
-          visual={
-            <div style={{
-              background: "var(--royal-50)", borderRadius: 16, padding: 24,
-              border: "1px solid var(--royal-100)",
-            }}>
-              {/* You */}
-              <div style={{
-                background: "#fff", borderRadius: 12, padding: "12px 16px",
-                display: "flex", alignItems: "center", gap: 12, marginBottom: 12,
-                boxShadow: "0 2px 8px rgba(0,35,102,0.06)",
-              }}>
-                <Avatar name="あ" size="sm" gradient="royal" />
-                <div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>あなた</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>SaaS営業 · 5年 · CS転向希望</div>
-                </div>
-              </div>
-              <div style={{ textAlign: "center", fontSize: 12, color: "var(--ink-soft)", padding: "4px 0 8px", fontWeight: 500 }}>
-                ↓ 似た経歴の先輩
-              </div>
-              {[
-                { name: "佐藤 美咲", path: "元HubSpot営業 → 現SaaS CSM", sim: "同じ転向経験あり", gradient: "pink" as const },
-                { name: "田中 翔太", path: "元Salesforce営業 → 現CRO", sim: "営業キャリア5年以上", gradient: "royal" as const },
-              ].map((m, i) => (
-                <div key={i} style={{
-                  background: "#fff", borderRadius: 12, padding: "12px 16px",
-                  display: "flex", alignItems: "center", gap: 12, marginBottom: i < 1 ? 8 : 0,
-                  boxShadow: "0 2px 8px rgba(0,35,102,0.06)",
-                }}>
-                  <Avatar name={m.name} size="sm" gradient={m.gradient} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{m.name}</div>
-                    <div style={{ fontSize: 11, color: "var(--ink-soft)" }}>{m.path}</div>
-                    <span style={{
-                      display: "inline-block", marginTop: 4,
-                      fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 3,
-                      background: "var(--royal-50)", color: "var(--royal)",
-                    }}>{m.sim}</span>
-                  </div>
-                  <button
-                    type="button"
-                    style={{
-                    padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 600,
-                    background: "var(--royal)", color: "#fff", border: "none", cursor: "pointer",
-                    flexShrink: 0,
-                  }}>相談</button>
-                </div>
-              ))}
-            </div>
-          }
-        />
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1253,24 +1116,27 @@ function InfraSection() {
 function HowItWorks() {
   const STEPS = [
     {
-      step: "STEP 01", title: "探す", en: "Find",
-      desc: "ライフスタイルに合う条件で、最新の求人と企業情報を探せます。",
-      action: "→ 求人・企業を検索",
+      step: "STEP 01", title: "登録なしで見る", en: "Browse",
+      desc: "会員登録不要。企業の取材記事・求人・先輩プロフィールを自由に閲覧できます。",
+      action: "→ まず企業・求人を見てみる",
+      href: "/companies",
       iconBg: "linear-gradient(135deg, var(--royal), var(--accent))",
       icon: <SearchIcon />,
     },
     {
-      step: "STEP 02", title: "相談する", en: "Talk",
-      desc: "気になった会社について、似た経歴の先輩に気軽に話を聞けます。",
-      action: "→ 先輩と30分オンライン対話",
-      iconBg: "linear-gradient(135deg, #F472B6, #DB2777)",
+      step: "STEP 02", title: "先輩に相談する", en: "Talk",
+      desc: "気になった会社のことを、似た経歴の先輩に30分オンラインで気軽に聞けます。完全無料。",
+      action: "→ 先輩を探す",
+      href: "/mentors",
+      iconBg: "linear-gradient(135deg, #F59E0B, #D97706)",
       icon: <ChatIcon />,
       highlight: true,
     },
     {
-      step: "STEP 03", title: "決める", en: "Decide",
-      desc: "応募する、今の会社に残る、もう少し考える。どの選択もあなたの自由です。",
-      action: "→ 自分のペースで判断",
+      step: "STEP 03", title: "自分で決める", en: "Decide",
+      desc: "応募する、今の会社に残る、もう少し考える。どの選択肢もあなたが主役です。",
+      action: "→ 自分のペースで転職を判断",
+      href: "/jobs",
       iconBg: "linear-gradient(135deg, #059669, #047857)",
       icon: <CheckMark />,
     },
@@ -1310,7 +1176,9 @@ function HowItWorks() {
                   {s.title} <span style={{ fontSize: 13, fontWeight: 400, color: "var(--ink-mute)" }}>{s.en}</span>
                 </div>
                 <p style={{ fontSize: 14, lineHeight: 1.8, color: "var(--ink-soft)", marginBottom: 12 }}>{s.desc}</p>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>{s.action}</div>
+                <Link href={s.href} style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                  {s.action}
+                </Link>
               </div>
               {i < 2 && (
                 <div className="hidden md:flex justify-center" style={{ fontSize: 24, color: "var(--line)", fontWeight: 300 }}>→</div>
@@ -1375,126 +1243,171 @@ function PainPoints() {
   );
 }
 
-// ─── User Testimonials ────────────────────────────────────────────────────────
+// ─── Use Cases ────────────────────────────────────────────────────────────────
+// 架空の声ではなく、編集部が想定するリアルな使い方シナリオを正直に提示する
 
-const TESTIMONIALS = [
+const USE_CASES = [
   {
-    quote: "メンターの方に話を聞いて、ずっと迷っていた転職に踏み切れました。求人情報だけでは分からない「社内の雰囲気」を教えてもらえたのが大きかったです。",
-    role: "SaaS営業 → CSM",
-    tag: "転職成功",
-    tagColor: "var(--success)",
-    tagBg: "var(--success-soft)",
-    avatar: "佐",
-    gradient: "linear-gradient(135deg, #7C3AED, #A78BFA)",
-  },
-  {
-    quote: "転職を考えているわけではなかったけど、業界の最新トレンドや他社の様子を知れて、現職でのキャリア戦略が整理できました。求人サイトというより情報プラットフォームに近い感覚。",
-    role: "プロダクトマネージャー・5年目",
-    tag: "情報収集",
+    persona: "転職を迷っている",
+    detail: "SaaS営業 · 3〜5年目",
+    scene: "「今すぐ転職したいわけじゃないけど、このままでいいのか不安」",
+    how: "企業の取材記事で文化を把握 → 似たキャリアの先輩に30分相談 → 応募するかどうかは自分で判断",
+    outcome: "焦らず、比較しながら、納得して動ける",
+    tag: "キャリア探索",
     tagColor: "var(--royal)",
     tagBg: "var(--royal-50)",
-    avatar: "田",
-    gradient: "linear-gradient(135deg, #002366, #3B5FD9)",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+    ),
+    gradient: "linear-gradient(135deg, var(--royal), var(--accent))",
+    href: "/companies",
+    cta: "企業を探す →",
   },
   {
-    quote: "自分と似たキャリアの先輩が実際にいて、30分話すだけで悩みが整理できました。「応募しなきゃ」というプレッシャーがないのがよかった。",
-    role: "エンジニア・3年目",
-    tag: "メンター相談",
+    persona: "転職活動を本格化したい",
+    detail: "PdM / エンジニア · 実績あり",
+    scene: "「スカウトも来てるけど、自分から動くならOPINIOの企業が気になる」",
+    how: "求人を条件で絞り込み → 気になる企業の現役社員・OBに相談 → カジュアル面談で雰囲気を確認",
+    outcome: "入社後ギャップを減らして、ミスマッチのない転職を",
+    tag: "転職活動",
+    tagColor: "var(--success)",
+    tagBg: "var(--success-soft)",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+    ),
+    gradient: "linear-gradient(135deg, #059669, #34D399)",
+    href: "/jobs",
+    cta: "求人を見る →",
+  },
+  {
+    persona: "転職はまだ先だけど準備したい",
+    detail: "現職満足中 · 情報収集フェーズ",
+    scene: "「今の会社は好きだけど、3年後どうなるかは不安。業界の感覚を磨きたい」",
+    how: "取材記事で業界トレンドをキャッチ → メンターに「今の選択は正しいか」を相談 → 登録なしで閲覧できる",
+    outcome: "転職せずに終わってもOK。視野が広がるだけで価値がある",
+    tag: "情報収集",
     tagColor: "#d97706",
     tagBg: "var(--warm-soft)",
-    avatar: "鈴",
-    gradient: "linear-gradient(135deg, #059669, #34D399)",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+      </svg>
+    ),
+    gradient: "linear-gradient(135deg, #F59E0B, #D97706)",
+    href: "/mentors",
+    cta: "先輩を探す →",
   },
 ];
 
 function UserTestimonials() {
   return (
-    <section style={{ background: "var(--bg-tint)", padding: "96px 48px" }} className="px-5 py-16 md:py-24 md:px-12">
+    <section style={{ background: "#fff", padding: "96px 48px", borderTop: "1px solid var(--line)" }} className="px-5 py-16 md:py-24 md:px-12">
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <SectionTag>VOICES</SectionTag>
+          <SectionTag>USE CASES</SectionTag>
           <h2 style={{
             fontSize: "clamp(24px,3vw,34px)", fontWeight: 700,
             color: "var(--ink)", marginBottom: 12,
             fontFamily: "var(--font-noto-serif)",
           }}>
-            使ってみた方の声
+            こんな人が使っています
           </h2>
           <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-            転職活動中でも、情報収集中でも。キャリアの悩みを持つすべての方に。
+            転職を決意していなくても、使えるキャリアサービスを目指しています。
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {TESTIMONIALS.map((t, i) => (
+          {USE_CASES.map((c, i) => (
             <div
               key={i}
               style={{
-                background: "#fff",
+                background: "var(--bg-tint)",
                 border: "1px solid var(--line)",
-                borderRadius: 16,
-                padding: "24px 24px 22px",
+                borderRadius: 20,
+                padding: "26px 24px 22px",
                 display: "flex", flexDirection: "column",
-                boxShadow: "0 2px 12px rgba(15,23,42,0.06)",
-                position: "relative",
+                transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
               }}
-              className="testimonial-card"
+              className="usecase-card"
             >
-              {/* Large quote mark */}
-              <div style={{
-                position: "absolute", top: 18, right: 22,
-                fontSize: 56, fontWeight: 900, lineHeight: 1,
-                color: "var(--line)",
-                fontFamily: "Georgia, serif",
-                pointerEvents: "none",
-              }}>
-                &ldquo;
+              {/* アイコン + タグ */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: c.gradient,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", flexShrink: 0,
+                }}>
+                  {c.icon}
+                </div>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: "3px 10px",
+                  borderRadius: 100, background: c.tagBg, color: c.tagColor,
+                  letterSpacing: "0.04em", border: `1px solid ${c.tagColor}33`,
+                }}>
+                  {c.tag}
+                </span>
               </div>
 
-              {/* Tag */}
-              <span style={{
-                display: "inline-flex", alignItems: "center",
-                fontSize: 10, fontWeight: 700, padding: "3px 10px",
-                borderRadius: 100, marginBottom: 16,
-                background: t.tagBg, color: t.tagColor,
-                letterSpacing: "0.04em", alignSelf: "flex-start",
-                border: `1px solid ${t.tagColor}22`,
-              }}>
-                {t.tag}
-              </span>
+              {/* ペルソナ */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{c.persona}</div>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{c.detail}</div>
+              </div>
 
-              {/* Quote */}
+              {/* 心の声 */}
               <p style={{
-                fontSize: 14, lineHeight: 1.9, color: "var(--ink-soft)",
-                flex: 1, marginBottom: 20,
+                fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)",
+                marginBottom: 14, fontStyle: "italic",
+                borderLeft: "3px solid var(--line)", paddingLeft: 10,
               }}>
-                {t.quote}
+                {c.scene}
               </p>
 
-              {/* Author */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: "50%",
-                  background: t.gradient,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontSize: 13, fontWeight: 700, flexShrink: 0,
-                }}>
-                  {t.avatar}
-                </div>
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 500 }}>
-                  {t.role}
-                </div>
+              {/* 使い方 */}
+              <p style={{
+                fontSize: 12, lineHeight: 1.8, color: "var(--ink-soft)",
+                marginBottom: 16, flex: 1,
+              }}>
+                {c.how}
+              </p>
+
+              {/* アウトカム */}
+              <div style={{
+                padding: "10px 12px",
+                borderRadius: 8, marginBottom: 16,
+                background: "#fff", border: "1px solid var(--line)",
+                fontSize: 12, fontWeight: 600, color: "var(--ink)",
+                display: "flex", alignItems: "flex-start", gap: 6,
+              }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+                {c.outcome}
               </div>
+
+              {/* CTA */}
+              <Link href={c.href} style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 12, fontWeight: 700, color: c.tagColor,
+                textDecoration: "none",
+              }}>
+                {c.cta}
+              </Link>
             </div>
           ))}
         </div>
       </div>
       <style>{`
-        .testimonial-card:hover {
+        .usecase-card:hover {
           border-color: var(--royal-100) !important;
-          box-shadow: 0 8px 24px rgba(0,35,102,0.07) !important;
-          transform: translateY(-2px);
-          transition: all 0.2s;
+          box-shadow: 0 8px 24px rgba(0,35,102,0.08) !important;
+          transform: translateY(-2px) !important;
         }
       `}</style>
     </section>
@@ -1508,10 +1421,13 @@ type PreviewMentor = {
   name: string;
   initial: string;
   gradient: string;
+  photoUrl: string | null;
   currentCompany: string;
   currentRole: string;
   path: string;
   tags: string[];
+  roles: string[];
+  catchphrase: string | null;
   successCount: number;
   isAvailable: boolean;
 };
@@ -1583,7 +1499,22 @@ function MentorsSection() {
               {/* ヘッダー：アバター + 受付中バッジ */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
                 <div style={{ display: "flex", gap: 14, alignItems: "center", flex: 1, minWidth: 0 }}>
-                  <Avatar name={m.name} size="lg" gradient={m.gradient} />
+                  {/* 写真 or グラデーションアバター */}
+                  {m.photoUrl ? (
+                    <img
+                      src={m.photoUrl}
+                      alt={m.name}
+                      width={52}
+                      height={52}
+                      style={{
+                        width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
+                        objectFit: "cover", objectPosition: "center top",
+                        boxShadow: "0 0 0 2px var(--royal-100)",
+                      }}
+                    />
+                  ) : (
+                    <Avatar name={m.name} size="lg" gradient={m.gradient} />
+                  )}
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{m.name}</div>
                     <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.5 }}>{m.path || m.currentRole}</div>
@@ -1946,12 +1877,12 @@ export default function HomePage() {
   return (
     <>
       <Hero stats={stats} />
+      <HowItWorks />
       <LogoStripSection />
       <DiffStrip />
       <FeaturedCompaniesSection />
       <StatsStrip stats={stats} />
       <InfraSection />
-      <HowItWorks />
       <PainPoints />
       <UserTestimonials />
       <MentorsSection />

@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { Job } from "@/app/jobs/mockJobData";
+import { showToast } from "@/lib/toast";
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
   { value: "500",  label: "500万〜" },
@@ -110,13 +111,19 @@ function JobCard({
         router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
       } else if (!res.ok) {
         setBookmarked(!next); // revert on error
+      } else {
+        if (next) {
+          showToast(`${job.role} を気になりリストに追加しました`, 'warm');
+        } else {
+          showToast('気になりリストから削除しました');
+        }
       }
     } catch {
       setBookmarked(!next);
     } finally {
       bookmarkingRef.current = false;
     }
-  }, [bookmarked, job.id, router]);
+  }, [bookmarked, job.id, job.role, router]);
 
   if (!company) return null;
 
@@ -320,8 +327,54 @@ function JobCard({
         </div>
       </div>
 
-      {/* Tags */}
-      {job.tags.length > 0 && (
+      {/* 勤務地 + リモート区分（1行目に明示） */}
+      {(job.location || job.work_style) && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          marginBottom: 10, flexWrap: "wrap" as const,
+        }}>
+          {job.location && (
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 12, color: "var(--ink-soft)", fontWeight: 500,
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+              {job.location.split("・")[0]}
+            </span>
+          )}
+          {job.location && job.work_style && (
+            <span style={{ fontSize: 10, color: "var(--line)", userSelect: "none" }}>|</span>
+          )}
+          {job.work_style && (
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 12, fontWeight: 600,
+              color: job.work_style.includes("リモート") || job.work_style.includes("フルリモート")
+                ? "var(--success)" : "var(--ink-soft)",
+            }}>
+              {job.work_style.includes("リモート") ? (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+              ) : (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                </svg>
+              )}
+              {job.work_style}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Tags（勤務地・リモート以外） */}
+      {job.tags.filter((t) => {
+        const isWorkStyle = t === job.work_style || t.includes("リモート") || t.includes("原則出社") || t.includes("ハイブリッド");
+        const isLocation = job.location ? job.location.split("・")[0] === t : false;
+        return !isWorkStyle && !isLocation;
+      }).length > 0 && (
         <div
           style={{
             display: "flex",
@@ -330,7 +383,11 @@ function JobCard({
             marginBottom: 10,
           }}
         >
-          {job.tags.map((tag) => {
+          {job.tags.filter((t) => {
+            const ws = t === job.work_style || t.includes("リモート") || t.includes("原則出社") || t.includes("ハイブリッド");
+            const loc = job.location ? job.location.split("・")[0] === t : false;
+            return !ws && !loc;
+          }).map((tag) => {
             const isRemote = tag.includes("リモート") || tag === "全国どこでも";
             const isOffice = tag.includes("原則出社") || tag.includes("オフィス");
             const isHybrid = tag.includes("ハイブリッド");

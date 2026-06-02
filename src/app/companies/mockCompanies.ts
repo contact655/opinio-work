@@ -9,6 +9,7 @@ export type CompanyGenre = {
 export type Company = {
   id: string;
   name: string;
+  name_en?: string | null;
   tagline: string;
   industry: string;
   phase: string;

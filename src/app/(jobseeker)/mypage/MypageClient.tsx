@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import MypageLayout, { type MypageActiveKey } from "./_components/MypageLayout";
 import { useMypageMock } from "./_components/MypageMockContext";
@@ -801,6 +801,103 @@ function BookmarkGrid({ items }: { items: Bookmark[] }) {
   );
 }
 
+// Slim mentor card for bookmarks matched mentors section
+type SlimMentor = { id: string; name: string; roles: string[]; current_company: string; catchphrase: string | null; photo_url: string | null; avatar_color: string | null; avatar_initial: string | null };
+
+function BookmarksMentorMatch({ companyBookmarks }: { companyBookmarks: Bookmark[] }) {
+  const [mentors, setMentors] = useState<SlimMentor[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (companyBookmarks.length === 0) return;
+    // Extract company names from bookmark titles (strip 株式会社 prefix)
+    const names = companyBookmarks.map((b) =>
+      b.title.replace(/^株式会社\s*/, "").replace(/\s*株式会社$/, "").trim()
+    ).filter(Boolean);
+    if (names.length === 0) return;
+
+    setLoading(true);
+    // Fetch mentors matching these company names
+    fetch(`/api/mentors/preview?limit=20`)
+      .then((r) => r.json())
+      .then((d) => {
+        const all: SlimMentor[] = Array.isArray(d.mentors) ? d.mentors.map((m: { id: string; name: string; roles?: string[]; currentCompany?: string; catchphrase?: string | null; photoUrl?: string | null; gradient?: string | null; initial?: string | null }) => ({
+          id: m.id, name: m.name,
+          roles: m.roles ?? [],
+          current_company: m.currentCompany ?? "",
+          catchphrase: m.catchphrase ?? null,
+          photo_url: m.photoUrl ?? null,
+          avatar_color: m.gradient ?? null,
+          avatar_initial: m.initial ?? null,
+        })) : [];
+        // Filter to those whose current_company matches any bookmarked company name
+        const matched = all.filter((m) =>
+          names.some((n) => m.current_company && m.current_company.toLowerCase().includes(n.toLowerCase()))
+        );
+        setMentors(matched.slice(0, 3));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [companyBookmarks]);
+
+  if (loading || mentors.length === 0) return null;
+
+  return (
+    <SectionBlock
+      title="気になり企業の先輩"
+      titleEn="Matched Mentors"
+      right={
+        <Link href="/mentors" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+          全員を見る →
+        </Link>
+      }
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {mentors.map((m) => (
+          <Link key={m.id} href={`/mentors/${m.id}`} style={{ textDecoration: "none", display: "block" }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 14,
+              padding: "14px 16px", borderRadius: 12,
+              border: "1px solid var(--line)", background: "#fff",
+              transition: "border-color 0.15s, box-shadow 0.15s",
+            }} className="bookmark-card-hover">
+              {m.photo_url ? (
+                <img src={m.photo_url} alt={m.name} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0, objectPosition: "center top" }} />
+              ) : (
+                <div style={{
+                  width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+                  background: m.avatar_color ?? "var(--royal)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 16, fontWeight: 700, color: "#fff",
+                }}>
+                  {m.avatar_initial ?? m.name[0]}
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{m.name}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: "var(--warm-soft)", color: "#b45309", border: "1px solid #FDE68A", whiteSpace: "nowrap" }}>
+                    現職
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 3 }}>
+                  {m.current_company} {m.roles[0] ? `· ${m.roles[0]}` : ""}
+                </div>
+                {m.catchphrase && (
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {m.catchphrase}
+                  </div>
+                )}
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--royal)", flexShrink: 0 }}>相談する →</span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </SectionBlock>
+  );
+}
+
 function BookmarksView({ companyBookmarks, jobBookmarks, mentorBookmarks }: { companyBookmarks: Bookmark[]; jobBookmarks: Bookmark[]; mentorBookmarks: Bookmark[] }) {
   const sections = [
     { title: "企業", titleEn: "Companies", items: companyBookmarks },
@@ -830,6 +927,8 @@ function BookmarksView({ companyBookmarks, jobBookmarks, mentorBookmarks }: { co
           )}
         </SectionBlock>
       ))}
+      {/* スキルマッチ: 気になり企業の先輩メンターを表示 */}
+      <BookmarksMentorMatch companyBookmarks={companyBookmarks} />
     </div>
   );
 }

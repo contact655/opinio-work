@@ -13,7 +13,242 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🎯 次のセッションでやること（2026-05-23 セッション8 更新）
+## 🎯 次のセッションでやること（2026-06-02 セッション12 更新）
+
+### ✅ 完了 2026-06-02 セッション12: 競合比較UX改善 7項目
+
+  **③ 活躍している人セクション強化（`mentors/page.tsx`）:**
+  - メンター一覧カード: `roles[0]` の職種ロールを royal blue ピルタグとして追加
+  - `photo_url` 円形写真・`catchphrase` は前セッションで実装済み、ロールタグを追加
+
+  **④ 企業→メンター導線 強化（`companies/[id]/page.tsx`, `jobs/[id]/page.tsx`）:**
+  - `CompanyMentorsSection`: `_companyId`/`_companyName`（未使用）→ 実際に Supabase でテキストマッチング
+  - `ow_mentors.current_company ILIKE '%{company_name}%'` で企業固有メンターを取得
+  - 企業固有メンターあり時は「この企業のことを知る先輩に相談」ヘッダー + "現職" バッジ
+  - `ow_mentors.current_role` が "supabase_read_only_user" になっているバグを発見 → `roles[0]` で代替
+
+  **⑤ 企業比較機能（新規3ファイル）:**
+  - `src/components/companies/CompareBar.tsx` 新規作成:
+    - `position: fixed; bottom: 0` (desktop) / `bottom: 64px` (mobile、ボトムナビの上)
+    - `localStorage` + `CustomEvent('compare-update')` でクロスコンポーネント状態同期
+    - 最大3社まで追加可能、「比較する (N社) →」ボタン
+  - `src/app/(jobseeker)/companies/compare/page.tsx` 新規作成
+  - `CompanyCardCompact.tsx`: 比較ボタン追加、`companies/page.tsx`: `<CompareBar />` 追加
+
+  **⑦ 記事統合導線（`articles/[slug]/page.tsx`）:**
+  - `ArticleMentorCTA` コンポーネント（記事末尾）: 3名のメンターカード + 「全員を見る →」
+
+  **① 気になるトースト通知（全面）:**
+  - `src/lib/toast.ts` グローバルトーストイベントバス新規作成
+  - `src/components/ui/GlobalToast.tsx` 新規作成（jobseeker layout に配置）
+  - `CompanyCardCompact.tsx`: ブックマーク時に「{企業名} を気になりリストに追加しました ♥」トースト
+  - `JobsClient.tsx`: 求人ブックマーク時にトースト
+
+  **⑥ メール通知設定 UI（`/profile/edit` アカウント設定タブ）:**
+  - `NotificationSettingsSection` コンポーネント新規追加
+  - 3項目: 新着企業のお知らせ / マッチング求人のお知らせ / メンター関連のお知らせ
+  - トグルスイッチ UI、localStorage に保存（将来 DB 移行可能な設計）
+  - 保存時「✓ 保存済み」フラッシュ表示
+
+  **⑧ スキルマッチング（`/mypage` ブックマークタブ）:**
+  - `BookmarksMentorMatch` コンポーネント新規追加
+  - 気になり企業のブックマークがある場合、その企業に在籍するメンターを表示
+  - `ow_mentors.current_company` テキストマッチで照合、最大3名表示
+  - `/api/mentors/preview`: `?limit=N` パラメータ追加、`roles`・`catchphrase` フィールド追加
+
+  **バグ修正:**
+  - `admin/mentors/page.tsx`: 未使用 `fetchMentors` → `_fetchMentors` にリネーム（ESLint エラー解消）
+
+  **バグ発見（継続中）:**
+  - `ow_mentors.current_role` = "supabase_read_only_user"（全メンター）— `roles[0]` で代替中
+  - `ow_mentors.user_id` = null（全メンター）— テキストマッチで代替中
+
+### 🟢 次の優先候補（2026-06-02 セッション12後 更新）
+- **ow_articles に company_id を設定** — Admin記事管理画面（`/admin/articles`）でカンパニー紐づけを設定すると「OPINIO取材済み」バッジが自動表示
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- **企業担当者による求人登録** — `/biz/jobs` から直接登録（テスト求人は削除済み）
+
+### ✅ 完了 2026-06-02 セッション11: UI/UX 6項目全面改善
+
+  **① Hero アニメーション削除 → 固定コピー（`page.tsx`）:**
+  - `HeroRoleRotator` コンポーネント（ローテーションアニメーション）を削除
+  - 固定 h1: `IT/SaaS業界の求人と企業を、先輩と話しながら選ぶ。`（amber + serif）
+  - `DEFAULT_STATS` を実データに修正: `{ companies: 13, jobs: 0, mentors: 13 }`
+  - jobs.length === 0 のとき求人スケルトン表示 → 正直な空状態カード（🏗️）に変更
+
+  **② 企業カード: 多色グラデーション → navy 統一（`CompanyCardCompact.tsx`）:**
+  - `PLACEHOLDER_COLORS`（6色パステル）を削除
+  - `NAVY_PLACEHOLDER = { bg: 'linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)', text: 'rgba(255,255,255,0.85)' }` に統一
+  - 全企業ロゴなし（`logo_url = null`）のため全カードに適用 → 統一感ある navy ヘッダー
+
+  **③ モバイルボトムナビ追加（`MobileBottomNav.tsx` 新規作成）:**
+  - 5タブ: 企業 / 求人 / 先輩相談 / 記事 / マイページ（アイコン+ラベル）
+  - `position: fixed; bottom: 0; height: 64px; env(safe-area-inset-bottom)` padding
+  - `md:hidden` + `globals.css` の `.mobile-bottom-nav-root` で desktop非表示（二重制御）
+  - biz/admin/auth/onboarding/profile では非表示
+  - `(jobseeker)/layout.tsx` の `<JobseekerFooter />` 後に追加
+
+  **④ ナビ「フィード」削除（`JobseekerHeader.tsx`）:**
+  - `NAV_LINKS` から `{ href: "/feed", label: "フィード" }` を削除
+
+  **⑤ InfraSection 簡素化（`page.tsx`）:**
+  - 旧: 重厚な `InfraBlock` + `InfraSection`（~250行）
+  - 新: 3カードシンプルレイアウト（取材情報 / 第三者相談 / 現役社員OBOG）
+  - `grid-cols-1 md:grid-cols-3` Tailwind グリッド、色は royal/warm/success でブランドカラー統一
+
+  **⑥ 企業バッジをより目立つスタイルに（`page.tsx`）:**
+  - 「✍ OPINIO取材済み」: `warm-soft` 背景 + `#92400E` テキスト + `#FDE68A` ボーダー
+  - 「X名登録中」: `royal-50` 背景 + `var(--royal)` テキスト + `var(--royal-100)` ボーダー
+  - 両方とも `fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 100` のピルスタイル
+
+  **バグ修正:**
+  - `/api/admin/invite`: biz ユーザー招待の redirect を `/biz/auth/callback`（存在しない）→ `/auth/callback?biz=1` に修正
+  - `api/stats/route.ts`: catch フォールバック値を実データに合わせて修正
+  - welcome email の企業数テキスト修正
+
+### 🟢 次の優先候補（2026-06-02 セッション11後 更新）
+- **ow_articles に company_id を設定** — Admin記事管理画面（`/admin/articles`）でカンパニー紐づけを設定すると「OPINIO取材済み」バッジが自動表示
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- **企業担当者による求人登録** — `/biz/jobs` から直接登録（テスト求人は削除済み）
+
+### ✅ 完了 2026-06-02 セッション10後半: テストデータ完全削除・OGP自動取得・Admin記事ユーザー紐づけ
+
+  **テストデータ完全削除（Migration 133・134）:**
+  - Migration 133: テスト企業31社・求人・テスト担当者30名・テストユーザー10名・現役社員サンプル120名を削除
+  - Migration 134: test-mentor-01〜10@opinio.local の ow_users レコード10件を削除（auth_idなしのため auth.users 削除は不要）
+  - 現在のDB状態: 企業13社・求人0件・メンター13名・ユーザー96名
+
+  **発信コンテンツ OGP 自動取得（`/api/jobseeker/content-links/ogp/route.ts`）:**
+  - `GET /api/jobseeker/content-links/ogp?url=...` 新規APIルート作成
+  - サーバーサイドで外部URLをfetch（タイムアウト8秒）、og:title/og:image/og:description を regex で抽出
+  - twitter:title/twitter:image もフォールバックとして対応
+  - 最初の50KBのみ読み込んで高速化
+  - ProfileEditClient の URL 入力欄に `onBlur` を追加 → OGP取得 → タイトル・説明を自動補完
+  - `newLinkThumbnail` state を追加、POST時に `thumbnail_url` として送信
+  - 「ページ情報を取得中...」スピナー、「✓ タイトル・サムネイルを自動取得しました」サクセス表示
+
+  **Admin 記事画面: ユーザー紐づけ UI（`/admin/articles/page.tsx`）:**
+  - `ow_articles.user_id` カラムの設定をAdmin画面から直接操作可能に
+  - `ow_users` 一覧をロードし、各記事行に select ドロップダウンを追加
+  - 変更即時保存（onChange で supabase.update）、フラッシュトースト通知
+  - ヘッダーに「ユーザー紐づけ N/10件」バッジを追加
+  - 紐づけ済み行は royal blue のスタイルで視覚的に区別
+
+### 🟢 次の優先候補（2026-06-02 後半更新）
+
+### ✅ 完了 2026-06-02 セッション10: メンター会社名リンク化・メンター実データ移行・写真表示対応
+
+  **メンター詳細ページ: 会社名 → リンク化（`/mentors/[id]/page.tsx`）:**
+  - `career_chain` の会社名テキストを `ow_companies.name` で一括照合 → UUID を解決
+  - 現職会社名ヘッダーと career breadcrumb の両方を `<Link href="/companies/{id}">` でラップ
+  - `company-name-link` CSS クラスでホバーアンダーライン（Session 8 の MergedTimeline 修正と同パターン）
+  - TypeScript エラー `Set<string>` spread → `Array.from(names)` に修正
+
+  **メンター実データ移行（`supabase/migrations/132_mentor_real_data.sql`）:**
+  - `ow_mentors` に `photo_url TEXT` カラム追加（`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`）
+  - 既存テスト10名削除（予約・ブックマーク → メンターの順にカスケード削除）
+  - CSVから実メンター13名をINSERT（柴久人・木村勇人・松本圭史・木村雅樹・生藤弘樹・山本博之・小島良介・山崎華奈・藤岡正樹・岡田達哉・木村拓哉・金澤啓太郎・片山幹大）
+  - 各メンターの color, roles, question_tags, bio, catchphrase, concerns を CSV から充実
+  - ⚠️ **柴さんが手動適用必要**: `supabase db push` or Supabase ダッシュボードで実行
+
+  **写真アップロードスクリプト（`scripts/upload-mentor-photos.mjs`）:**
+  - Node.js 18+ ネイティブ fetch で Airtable 一時URLから画像をダウンロード
+  - `ow-uploads` バケット `mentors/photos/{slug}.{ext}` にアップロード
+  - `ow_mentors.photo_url` を公開URLで更新
+  - 山本博之は写真なしでスキップ（12枚対応）
+  - ⚠️ **柴さんがMigration適用後に実行**: `node scripts/upload-mentor-photos.mjs`
+  - ⚠️ Airtable URL は有効期限あり（期限切れなら再取得が必要）
+
+  **フロントエンド: 写真表示対応（3ファイル）:**
+  - `src/lib/supabase/queries.ts`: `MENTOR_COLS` に `"photo_url"` 追加、`MentorData` 型に `photo_url: string | null` 追加、`mapMentor()` でフィールドマッピング追加
+  - `src/app/(jobseeker)/mentors/page.tsx`: `MentorCard` の avatar 部分を `photo_url` 優先表示に変更（fallback: gradient + initial）
+  - `src/app/(jobseeker)/mentors/[id]/page.tsx`: `Avatar` コンポーネントを `photo_url` 優先の `<img>` + fallback gradient に変更
+
+### ✅ 完了 2026-06-02 セッション10後半（後続）: ホームページ UX 全面改善
+
+  **Hero CTA 再設計:**
+  - 旧: 「無料登録する」（主白ボタン）+ 「先輩に相談する」（橙ボタン）+ 小さなリンク
+  - 新: 「まず企業を見てみる →」（主白ボタン）+ 「先輩に相談する」（半透明ガラスボタン）+ 「無料で会員登録する」（小リンク）
+  - 登録ハードルを下げ、まず見ることを促す設計に変更
+
+  **HowItWorks セクションをヒーロー直下に移動:**
+  - 旧順序: Hero → LogoStrip → DiffStrip → Companies → Stats → Infra → HowItWorks
+  - 新順序: Hero → **HowItWorks** → LogoStrip → DiffStrip → Companies → Stats → Infra
+  - ファーストビュー後すぐに「3ステップで使い方がわかる」設計に
+
+  **HowItWorks コンテンツ刷新:**
+  - STEP 01: 「探す」→「登録なしで見る」（登録不要を明示）
+  - STEP 02: 「相談する」→「先輩に相談する」（30分・無料を明記）
+  - STEP 03: 「決める」→「自分で決める」（ユーザーが主役を強調）
+  - 各ステップの action テキストをクリック可能な Link に変更（href 付き）
+  - STEP 02 アイコン色を warm orange に変更（相談のイメージを統一）
+
+  **メンターカード: 写真表示対応（ホームページ）:**
+  - `PreviewMentor` 型に `photoUrl: string | null` を追加
+  - `/api/mentors/preview` に `photo_url` を追加
+  - MentorCard: photo_url がある場合は 52px 円形写真、なければ gradient+initial フォールバック
+
+  **企業カード: バッジインフラ整備:**
+  - `PreviewCompany` 型に `articleCount?: number`, `memberCount?: number` を追加
+  - `/api/companies/preview` に article_count（ow_articles.company_id 集計）と member_count（ow_experiences.company_id 集計）を追加
+  - CompanyMiniCard: articleCount > 0 で「✍ OPINIO取材済み」バッジ表示
+  - CompanyMiniCard: memberCount > 0 で「X名登録中」バッジ表示（なければ「社員・OBに聞ける」）
+  - 記事の company_id 紐づけが進むと自動で表示される
+
+  **求人カード: 給与を成功グリーンで大きく表示:**
+  - 旧: `font-size: 11px, color: var(--ink-soft)`
+  - 新: `font-size: 13px, font-weight: 700, color: var(--success), font-family: Inter`
+
+### 🟢 次の優先候補（2026-06-02 後半更新）
+- ~~Migration 132 の手動適用~~ ✅ 完了済み（MCP経由で適用）
+- ~~写真アップロードスクリプトの実行~~ ✅ 完了済み（13名分アップロード完了）
+- ~~Admin UI: ow_articles.user_id 設定~~ ✅ 完了済み（2026-06-02 セッション10後半）
+- ~~発信コンテンツ OGP サムネイル取得~~ ✅ 完了済み（2026-06-02 セッション10後半）
+- ~~ホームページ UX 改善（Phase A + B）~~ ✅ 完了済み（2026-06-02 セッション10後半）
+- ~~求人カード改善（勤務地・リモート専用行）~~ ✅ 完了済み（2026-06-02 セッション10後半）
+- ~~UserTestimonials 架空の声 → 「こんな人が使っています」シナリオカードに転換~~ ✅ 完了済み（2026-06-02 セッション10後半）
+- **ow_articles に company_id を設定** — Admin記事管理画面でカンパニー紐づけを設定すると「OPINIO取材済み」バッジが自動表示
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- **企業担当者による求人登録** — `/biz/jobs` から直接登録（テスト求人は削除済み）
+- **モバイルボトムナビ（Phase C）** — ユーザーが増えてから
+
+### ✅ 完了 2026-05-30 セッション9: 学歴degree拡充・発信コンテンツ機能・/u/[id] UIUX全面刷新
+
+  **学歴 degree ドロップダウン拡充:**
+  - 「小学校卒」「中学校卒」を `VALID_DEGREES` に追加（`educations/route.ts` + `educations/[id]/route.ts`）
+  - ProfileEditClient の degree 選択肢を `<optgroup>` 形式に変更（初等・中等教育 / 高等教育 グループ）
+  - Faculty（学部）はすべての degree で表示（高校以下も含む）
+
+  **発信コンテンツ機能（ow_user_content_links）:**
+  - Migration 126: `ow_user_content_links` テーブル作成（url / platform / title / description / thumbnail_url / sort_order / RLS）
+  - Migration 126: `ow_articles.user_id UUID` カラム追加（OPINIO掲載記事の紐づけ用）
+  - API: `GET/POST /api/jobseeker/content-links` + `PUT/DELETE /api/jobseeker/content-links/[id]`
+  - ProfileEditClient: 「発信コンテンツ」タブ追加（URL入力 → platform自動判定 → YouTube/note/Zenn/SpeakerDeck/Podcast/GitHub/other）
+  - `/u/[id]`: 「OPINIO掲載記事」セクション（ow_articles.user_id でフィルタ）+ 「発信コンテンツ」セクション
+
+  **`/u/[id]` プロフィールページ UIUX 全面刷新（LinkedIn/Wantedly/YOUTRUST 参照）:**
+  - 名前フォントサイズ 26→30px、ヘッダーにスキルチップ TOP5 表示、SNSリンクをヘッダーへ移動
+  - Stats 行をピルスタイル（背景付き）に変更
+  - 「目指していること」を目立つ standalone カード（purple グラデーション）に変更
+  - 「スキル・専門性」セクションをメインカラムに追加（サイドバーから移動）
+  - 経歴タイムライン: パスノードにパルスリングアニメーション、在籍年数表示
+  - サイドバー在籍企業カード: 在籍年数 + フェーズバッジ表示
+  - ❝ 引用記号: U+275D（環境依存）→ SVG path（クロスブラウザ確実）に変更
+  - モバイル CSS 追加（`profile-cover` / `profile-avatar` / `profile-name` 等のクラスでレスポンシブ）
+  - プロフィール完成度ガイド: オーナー本人のみ表示（黄色バナー + % プログレスバー + 未完了項目チップ）
+  - サイドバー求人リンク: 在籍企業の公開求人を最大3件表示 + 「すべての求人を見る →」
+
+  **管理者向け（将来の改善候補）:**
+  - `ow_articles.user_id` カラム追加済みだが、既存記事への user_id 設定 UI は未実装
+  - 現状は SQL 直接実行で紐づけ可能（`UPDATE ow_articles SET user_id = ... WHERE slug = ...`）
+
+### 🟢 次の優先候補
+- **Admin UI: ow_articles.user_id 設定** — 記事詳細管理画面に「紐づけユーザー」選択フィールドを追加
+- **発信コンテンツ OGP サムネイル取得** — URL 追加時に OGP メタ取得 → thumbnail_url / title を自動補完
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- ~~学歴 degree 小中高追加~~ ✅ 完了済み（2026-05-30 セッション9）
+- ~~発信コンテンツ URL 紐づけ~~ ✅ 完了済み（2026-05-30 セッション9）
+- ~~/u/[id] UIUX 刷新（LinkedIn/Wantedly/YOUTRUST 参照）~~ ✅ 完了済み（2026-05-30 セッション9）
 
 ### ✅ 完了 2026-05-23 セッション8: /u/[id] サイドバー化・会社名リンク・loading skeleton 更新
 

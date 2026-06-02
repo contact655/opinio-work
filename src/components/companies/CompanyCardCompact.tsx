@@ -6,6 +6,19 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { MapPin, Users } from 'lucide-react';
 import type { CompanyForCarousel } from '@/types/genre';
+import { registerCompareName } from './CompareBar';
+import { showToast } from '@/lib/toast';
+
+// ── Compare localStorage helpers (local copies — avoids circular dep) ────────
+function _getCompareIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem('opinio-compare') ?? '[]'); } catch { return []; }
+}
+function _setCompareIds(ids: string[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('opinio-compare', JSON.stringify(ids.slice(0, 3)));
+  window.dispatchEvent(new CustomEvent('compare-update'));
+}
 
 // Funding stage → display label + color
 const STAGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -56,19 +69,11 @@ function fetchCompanyBookmarks(): Promise<BookmarkCache> {
   return _bookmarkPromise;
 }
 
-// モックと同じ6色パステル（企業名のハッシュで決定論的に選択）
-const PLACEHOLDER_COLORS = [
-  { bg: '#d4f0e3', text: '#1f7a48' }, // green
-  { bg: '#fce8b8', text: '#8b5e0f' }, // yellow
-  { bg: '#fcd5dc', text: '#a8324a' }, // pink
-  { bg: '#d8e6ff', text: '#1e63d8' }, // blue
-  { bg: '#e8dcf5', text: '#6b3b9e' }, // purple
-  { bg: '#f5f7fa', text: '#5b6471' }, // gray
-];
+// ロゴなし企業のカードヘッダーは navy グラデーションで統一（多色バラバラを防ぐ）
+const NAVY_PLACEHOLDER = { bg: 'linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)', text: 'rgba(255,255,255,0.85)' };
 
-function getPlaceholderColor(name: string) {
-  const hash = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return PLACEHOLDER_COLORS[hash % PLACEHOLDER_COLORS.length];
+function getPlaceholderColor(_name: string) {
+  return NAVY_PLACEHOLDER;
 }
 
 /** 法人名サフィックス除去（"Salesforce Japan Co., Ltd." → "Salesforce"） */
@@ -91,6 +96,20 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
   const router = useRouter();
   const [bookmarked, setBookmarked] = useState(false);
   const bookmarkingRef = useRef(false);
+  const [inCompare, setInCompare] = useState(false);
+
+  // Register name for CompareBar chip display
+  useEffect(() => {
+    registerCompareName(company.id, company.name);
+  }, [company.id, company.name]);
+
+  // Sync compare state from localStorage (including cross-card updates)
+  useEffect(() => {
+    const sync = () => setInCompare(_getCompareIds().includes(company.id));
+    sync();
+    window.addEventListener('compare-update', sync);
+    return () => window.removeEventListener('compare-update', sync);
+  }, [company.id]);
 
   useEffect(() => {
     fetchCompanyBookmarks().then((cache) => {
@@ -115,13 +134,20 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         router.push(`/auth?next=/companies/${company.id}`);
       } else if (!res.ok) {
         setBookmarked(prev);
+      } else {
+        // Show toast feedback
+        if (!prev) {
+          showToast(`${company.name} を気になりリストに追加しました`, 'warm');
+        } else {
+          showToast('気になりリストから削除しました');
+        }
       }
     } catch {
       setBookmarked(prev);
     } finally {
       bookmarkingRef.current = false;
     }
-  }, [bookmarked, company.id, router]);
+  }, [bookmarked, company.id, company.name, router]);
 
   // メタ: 所在地 ・ 従業員数
   type MetaItem = { icon?: React.ReactNode; label: string };
@@ -180,6 +206,54 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             面談OK
           </span>
         )}
+        {/* Compare toggle button */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const current = _getCompareIds();
+            if (current.includes(company.id)) {
+              _setCompareIds(current.filter((x) => x !== company.id));
+            } else if (current.length < 3) {
+              _setCompareIds([...current, company.id]);
+            }
+          }}
+          style={{
+            position: 'absolute',
+            bottom: 8,
+            right: 42,
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: inCompare ? 'var(--royal)' : 'rgba(255,255,255,0.9)',
+            border: inCompare ? 'none' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: 0,
+          }}
+          aria-label={inCompare ? '比較から外す' : '比較に追加'}
+          title={inCompare ? '比較から外す' : '比較に追加'}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={inCompare ? '#fff' : '#94a3b8'}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {/* Balance scale icon */}
+            <path d="M12 3v18" />
+            <path d="M3 9l9-6 9 6" />
+            <path d="M6 12H2l2 5h4l2-5H6z" />
+            <path d="M18 12h-4l2 5h4l2-5h-4z" />
+          </svg>
+        </button>
+
         {/* Bookmark (heart) button */}
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBookmark(); }}

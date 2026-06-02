@@ -19,7 +19,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SkillTag = { id: string; label: string; sort_order: number };
+type SkillTag = { id: string; label: string; category?: string | null; sort_order: number };
 
 type EducationSchoolMaster = {
   id: string;
@@ -137,6 +137,7 @@ type OwUser = {
   birth_date: string | null;
   about_me: string | null;
   future_aspirations: string | null;
+  strengths_finder: string[] | null;
   social_links: Record<string, string> | null;
 } | null;
 
@@ -146,6 +147,7 @@ type BasicInfo = {
   name: string;
   location: string;
   aboutMe: string;
+  strengthsFinder: string[];
 };
 
 type SettingsState = {
@@ -508,6 +510,104 @@ function selectStyle(): React.CSSProperties {
   };
 }
 
+// ─── Notification Settings Section ───────────────────────────────────────────
+
+const NOTIF_KEY = "opinio-notif-prefs";
+type NotifPrefs = { newCompanies: boolean; weeklyMatch: boolean; mentorNews: boolean };
+const DEFAULT_NOTIF: NotifPrefs = { newCompanies: true, weeklyMatch: true, mentorNews: false };
+
+function loadNotifPrefs(): NotifPrefs {
+  if (typeof window === "undefined") return DEFAULT_NOTIF;
+  try {
+    const stored = localStorage.getItem(NOTIF_KEY);
+    if (!stored) return DEFAULT_NOTIF;
+    return { ...DEFAULT_NOTIF, ...JSON.parse(stored) };
+  } catch { return DEFAULT_NOTIF; }
+}
+
+function NotificationSettingsSection() {
+  const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { setPrefs(loadNotifPrefs()); }, []);
+
+  const toggle = (key: keyof NotifPrefs) => {
+    setPrefs((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem(NOTIF_KEY, JSON.stringify(next));
+      return next;
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1800);
+  };
+
+  const items: { key: keyof NotifPrefs; label: string; desc: string; icon: string }[] = [
+    { key: "newCompanies", label: "新着企業のお知らせ", desc: "新しい企業が掲載されたらメールでお知らせします（週1回）", icon: "🏢" },
+    { key: "weeklyMatch",  label: "マッチング求人のお知らせ", desc: "あなたの希望条件に合う求人が追加されたらお知らせします（週1回）", icon: "💼" },
+    { key: "mentorNews",   label: "メンター関連のお知らせ", desc: "予約状況や新着メンターのお知らせを受け取ります", icon: "💬" },
+  ];
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px 24px 20px", marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>メール通知設定</div>
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+            受け取りたいお知らせを選択してください。設定はいつでも変更できます。
+          </div>
+        </div>
+        {saved && (
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--success)", display: "flex", alignItems: "center", gap: 4 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            保存済み
+          </span>
+        )}
+      </div>
+      <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+        {items.map(({ key, label, desc, icon }) => (
+          <label
+            key={key}
+            style={{
+              display: "flex", alignItems: "flex-start", gap: 14,
+              padding: "14px 16px", borderRadius: 10,
+              border: `1px solid ${prefs[key] ? "var(--royal-100)" : "var(--line)"}`,
+              background: prefs[key] ? "var(--royal-50)" : "var(--bg-tint)",
+              cursor: "pointer", transition: "all 0.15s",
+            }}
+          >
+            <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>{label}</div>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>{desc}</div>
+            </div>
+            <div style={{ flexShrink: 0, marginTop: 2 }}>
+              {/* Toggle switch */}
+              <div
+                onClick={(e) => { e.preventDefault(); toggle(key); }}
+                style={{
+                  width: 40, height: 22, borderRadius: 100,
+                  background: prefs[key] ? "var(--royal)" : "#CBD5E1",
+                  position: "relative", cursor: "pointer", transition: "background 0.2s",
+                }}
+              >
+                <div style={{
+                  position: "absolute", top: 3,
+                  left: prefs[key] ? 21 : 3,
+                  width: 16, height: 16, borderRadius: "50%",
+                  background: "#fff", transition: "left 0.2s",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                }} />
+              </div>
+            </div>
+          </label>
+        ))}
+      </div>
+      <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--bg-tint)", borderRadius: 8, fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+        💡 メール通知の配信は登録メールアドレスに送られます。迷惑メールフォルダもご確認ください。
+      </div>
+    </div>
+  );
+}
+
 // ─── Placeholder Tab Content ──────────────────────────────────────────────────
 
 function _PlaceholderTabContent({ label }: { label: string }) {
@@ -568,6 +668,7 @@ function SkillTagsEditor({
   setSkillTags: React.Dispatch<React.SetStateAction<SkillTag[]>>;
 }) {
   const [pendingLabel, setPendingLabel] = useState("");
+  const [newTagCategory, setNewTagCategory] = useState("");
   const [inputError, setInputError]     = useState<string | null>(null);
   const [skillToastMsg,     setSkillToastMsg]     = useState<string | null>(null);
   const [skillToastVariant, setSkillToastVariant] = useState<"default" | "error">("default");
@@ -600,15 +701,17 @@ function SkillTagsEditor({
 
     // 楽観更新: 仮 ID で先にチップを追加
     const tempId  = `pending-${Date.now()}`;
-    const tempTag: SkillTag = { id: tempId, label, sort_order: 9999 };
+    const category = newTagCategory || undefined;
+    const tempTag: SkillTag = { id: tempId, label, category, sort_order: 9999 };
     setSkillTags((prev) => [...prev, tempTag]);
     setPendingLabel("");
+    setNewTagCategory("");
 
     try {
       const res = await fetch("/api/jobseeker/skill-tags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label }),
+        body: JSON.stringify({ label, category: category ?? null }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -622,6 +725,7 @@ function SkillTagsEditor({
     } catch (e) {
       // ロールバック: 仮チップを除去 + inline エラー
       setSkillTags((prev) => prev.filter((t) => t.id !== tempId));
+      setNewTagCategory(category ?? "");
       setInputError((e as Error).message ?? "保存に失敗しました。");
     }
   };
@@ -676,6 +780,11 @@ function SkillTagsEditor({
               }}
             >
               {tag.label}
+              {tag.category && (
+                <span style={{ fontSize: 9, color: "var(--ink-mute)", marginLeft: 4 }}>
+                  {tag.category}
+                </span>
+              )}
               {/* 仮IDのチップ（保存中）には✕を出さない */}
               {!tag.id.startsWith("pending-") && (
                 <button
@@ -706,32 +815,54 @@ function SkillTagsEditor({
       {/* 入力エリア（上限未達の場合のみ表示） */}
       {!isAtLimit && (
         <div>
-          <div style={{ position: "relative" }}>
-            <input
-              type="text"
-              value={pendingLabel}
-              onChange={(e) => {
-                setPendingLabel(e.target.value);
-                setInputError(null);
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ position: "relative", flex: 1 }}>
+              <input
+                type="text"
+                value={pendingLabel}
+                onChange={(e) => {
+                  setPendingLabel(e.target.value);
+                  setInputError(null);
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="例: TypeScript, React, Supabase…（Enter または , で確定）"
+                maxLength={55}
+                style={inputStyle({ paddingRight: charLen > 0 ? 68 : 12 })}
+              />
+              {/* 入力中文字数カウンター */}
+              {charLen > 0 && (
+                <span style={{
+                  position: "absolute", right: 12, top: "50%",
+                  transform: "translateY(-50%)",
+                  fontSize: 11,
+                  color: charIsAmber ? "var(--warm)" : "var(--ink-mute)",
+                  fontFamily: "Inter, sans-serif",
+                  pointerEvents: "none",
+                }}>
+                  {charLen} / 50
+                </span>
+              )}
+            </div>
+            <select
+              value={newTagCategory}
+              onChange={(e) => setNewTagCategory(e.target.value)}
+              aria-label="スキルカテゴリ"
+              style={{
+                padding: "7px 10px", borderRadius: 7,
+                border: "1px solid var(--line)", fontSize: 12,
+                fontFamily: "inherit", color: "var(--ink)",
+                background: "#fff", flexShrink: 0,
               }}
-              onKeyDown={handleKeyDown}
-              placeholder="例: TypeScript, React, Supabase…（Enter または , で確定）"
-              maxLength={55}
-              style={inputStyle({ paddingRight: charLen > 0 ? 68 : 12 })}
-            />
-            {/* 入力中文字数カウンター */}
-            {charLen > 0 && (
-              <span style={{
-                position: "absolute", right: 12, top: "50%",
-                transform: "translateY(-50%)",
-                fontSize: 11,
-                color: charIsAmber ? "var(--warm)" : "var(--ink-mute)",
-                fontFamily: "Inter, sans-serif",
-                pointerEvents: "none",
-              }}>
-                {charLen} / 50
-              </span>
-            )}
+            >
+              <option value="">カテゴリなし</option>
+              <option value="技術・開発">技術・開発</option>
+              <option value="プロダクト・UX">プロダクト・UX</option>
+              <option value="ビジネス・営業">ビジネス・営業</option>
+              <option value="マーケティング">マーケティング</option>
+              <option value="データ・分析">データ・分析</option>
+              <option value="マネジメント">マネジメント</option>
+              <option value="その他">その他</option>
+            </select>
           </div>
 
           {/* inline エラー */}
@@ -2634,9 +2765,33 @@ export default function ProfileEditClient({
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [newLinkTitle, setNewLinkTitle] = useState("");
   const [newLinkDesc, setNewLinkDesc] = useState("");
+  const [newLinkThumbnail, setNewLinkThumbnail] = useState<string | null>(null);
   const [newLinkPlatform, setNewLinkPlatform] = useState("other");
   const [linkSaving, setLinkSaving] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [ogpFetching, setOgpFetching] = useState(false);
+  const [ogpFetched, setOgpFetched] = useState(false);
+
+  const handleUrlBlur = async () => {
+    const url = newLinkUrl.trim();
+    if (!url) return;
+    try { new URL(url); } catch { return; } // 不正URLはスキップ
+    setOgpFetching(true);
+    setOgpFetched(false);
+    try {
+      const res = await fetch(`/api/jobseeker/content-links/ogp?url=${encodeURIComponent(url)}`);
+      if (!res.ok) return;
+      const data: { title: string | null; thumbnail_url: string | null; description: string | null } = await res.json();
+      if (data.title && !newLinkTitle.trim()) setNewLinkTitle(data.title);
+      if (data.description && !newLinkDesc.trim()) setNewLinkDesc(data.description.slice(0, 200));
+      if (data.thumbnail_url) setNewLinkThumbnail(data.thumbnail_url);
+      if (data.title || data.thumbnail_url) setOgpFetched(true);
+    } catch {
+      // サイレントフェイル
+    } finally {
+      setOgpFetching(false);
+    }
+  };
 
   const handleAddContentLink = async () => {
     const url = newLinkUrl.trim();
@@ -2651,6 +2806,7 @@ export default function ProfileEditClient({
           platform: newLinkPlatform,
           title: newLinkTitle.trim() || null,
           description: newLinkDesc.trim() || null,
+          thumbnail_url: newLinkThumbnail || null,
         }),
       });
       if (!res.ok) {
@@ -2660,7 +2816,9 @@ export default function ProfileEditClient({
       }
       const inserted: ContentLink = await res.json();
       setContentLinks((prev) => [...prev, inserted]);
-      setNewLinkUrl(""); setNewLinkTitle(""); setNewLinkDesc(""); setNewLinkPlatform("other");
+      setNewLinkUrl(""); setNewLinkTitle(""); setNewLinkDesc("");
+      setNewLinkThumbnail(null); setNewLinkPlatform("other");
+      setOgpFetched(false);
     } catch {
       setLinkError("通信エラーが発生しました");
     } finally {
@@ -2831,9 +2989,10 @@ export default function ProfileEditClient({
   const initialParsed = parseBirthDate(owUser?.birth_date ?? null);
 
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
-    name:     owUser?.name      ?? "",
-    location: owUser?.location  ?? "",
-    aboutMe:  owUser?.about_me  ?? "",
+    name:             owUser?.name            ?? "",
+    location:         owUser?.location        ?? "",
+    aboutMe:          owUser?.about_me        ?? "",
+    strengthsFinder:  owUser?.strengths_finder ?? [],
   });
   const [birthYear,  setBirthYear]  = useState<string>(initialParsed.year);
   const [birthMonth, setBirthMonth] = useState<string>(initialParsed.month);
@@ -2841,9 +3000,10 @@ export default function ProfileEditClient({
 
   // 変更検知用の初期値（保存成功時に更新）
   const [initialBasicInfo, setInitialBasicInfo] = useState<BasicInfo>({
-    name:     owUser?.name      ?? "",
-    location: owUser?.location  ?? "",
-    aboutMe:  owUser?.about_me  ?? "",
+    name:             owUser?.name            ?? "",
+    location:         owUser?.location        ?? "",
+    aboutMe:          owUser?.about_me        ?? "",
+    strengthsFinder:  owUser?.strengths_finder ?? [],
   });
   const [initialBirthYear,  setInitialBirthYear]  = useState<string>(initialParsed.year);
   const [initialBirthMonth, setInitialBirthMonth] = useState<string>(initialParsed.month);
@@ -2872,10 +3032,11 @@ export default function ProfileEditClient({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name:       basicInfo.name,
-          location:   basicInfo.location,
-          about_me:   basicInfo.aboutMe,
-          birth_date: birthDate,
+          name:             basicInfo.name,
+          location:         basicInfo.location,
+          about_me:         basicInfo.aboutMe,
+          birth_date:       birthDate,
+          strengths_finder: basicInfo.strengthsFinder,
         }),
       });
       if (!res.ok) throw new Error();
@@ -3155,6 +3316,178 @@ export default function ProfileEditClient({
                 rows={5}
                 ariaLabel="自己紹介"
               />
+            </FormSection>
+
+            {/* ── Section 3: StrengthsFinder ───────────────────────────────────── */}
+            <FormSection
+              title="StrengthsFinder TOP5"
+              desc="CliftonStrengths（ストレングスファインダー）の診断結果を登録すると、公開プロフィールのサイドバーに表示されます。"
+            >
+              {(() => {
+                const ALL_THEMES: { name: string; domain: string }[] = [
+                  // 実行力
+                  { name: "達成欲",   domain: "実行力" },
+                  { name: "アレンジ", domain: "実行力" },
+                  { name: "信念",     domain: "実行力" },
+                  { name: "公平性",   domain: "実行力" },
+                  { name: "慎重さ",   domain: "実行力" },
+                  { name: "規律性",   domain: "実行力" },
+                  { name: "集中力",   domain: "実行力" },
+                  { name: "責任感",   domain: "実行力" },
+                  { name: "回復志向", domain: "実行力" },
+                  // 影響力
+                  { name: "活発性",           domain: "影響力" },
+                  { name: "指揮",             domain: "影響力" },
+                  { name: "コミュニケーション", domain: "影響力" },
+                  { name: "競争性",           domain: "影響力" },
+                  { name: "最上志向",         domain: "影響力" },
+                  { name: "自己確信",         domain: "影響力" },
+                  { name: "自我",             domain: "影響力" },
+                  { name: "社交性",           domain: "影響力" },
+                  // 人間関係構築
+                  { name: "適応性",   domain: "関係構築" },
+                  { name: "つながり", domain: "関係構築" },
+                  { name: "成長促進", domain: "関係構築" },
+                  { name: "共感",     domain: "関係構築" },
+                  { name: "調和性",   domain: "関係構築" },
+                  { name: "包含",     domain: "関係構築" },
+                  { name: "個別化",   domain: "関係構築" },
+                  { name: "ポジティブ", domain: "関係構築" },
+                  { name: "親密性",   domain: "関係構築" },
+                  // 戦略的思考
+                  { name: "分析思考", domain: "戦略思考" },
+                  { name: "文脈",     domain: "戦略思考" },
+                  { name: "未来志向", domain: "戦略思考" },
+                  { name: "着想",     domain: "戦略思考" },
+                  { name: "収集心",   domain: "戦略思考" },
+                  { name: "内省",     domain: "戦略思考" },
+                  { name: "学習欲",   domain: "戦略思考" },
+                  { name: "戦略性",   domain: "戦略思考" },
+                ];
+
+                const DOMAIN_COLORS: Record<string, string> = {
+                  "実行力": "#7C3AED",
+                  "影響力": "#D97706",
+                  "関係構築": "#059669",
+                  "戦略思考": "#002366",
+                };
+
+                const current = basicInfo.strengthsFinder;
+
+                const setStrength = (idx: number, val: string) => {
+                  setBasicInfo((prev) => {
+                    const next = [...prev.strengthsFinder];
+                    if (val === "") {
+                      next.splice(idx, 1);
+                    } else {
+                      next[idx] = val;
+                    }
+                    return { ...prev, strengthsFinder: next };
+                  });
+                };
+
+                const removeStrength = (idx: number) => {
+                  setBasicInfo((prev) => {
+                    const next = [...prev.strengthsFinder];
+                    next.splice(idx, 1);
+                    return { ...prev, strengthsFinder: next };
+                  });
+                };
+
+                const slots = Array.from({ length: Math.min(5, current.length + 1) });
+                if (slots.length < 5 && current.length < 5) slots.push(undefined);
+
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {Array.from({ length: 5 }).map((_, idx) => {
+                      const val = current[idx] ?? "";
+                      const domain = ALL_THEMES.find(t => t.name === val)?.domain;
+                      const color = domain ? DOMAIN_COLORS[domain] : undefined;
+                      return (
+                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {/* 順位バッジ */}
+                          <div style={{
+                            width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+                            background: val ? (color ?? "var(--royal)") : "var(--line)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 11, fontWeight: 700, color: val ? "#fff" : "var(--ink-mute)",
+                            fontFamily: "Inter, sans-serif", transition: "background 0.2s",
+                          }}>
+                            {idx + 1}
+                          </div>
+                          {/* ドロップダウン */}
+                          <select
+                            value={val}
+                            onChange={(e) => setStrength(idx, e.target.value)}
+                            style={{
+                              flex: 1,
+                              padding: "7px 10px", borderRadius: 7,
+                              border: `1.5px solid ${val ? (color ?? "var(--royal)") : "var(--line)"}`,
+                              fontSize: 13, fontFamily: "inherit",
+                              color: val ? (color ?? "var(--ink)") : "var(--ink-mute)",
+                              fontWeight: val ? 600 : 400,
+                              background: "#fff",
+                              cursor: "pointer",
+                              outline: "none",
+                              transition: "border-color 0.15s",
+                            }}
+                          >
+                            <option value="">{idx === 0 ? "1位を選択…" : `${idx + 1}位を選択（任意）`}</option>
+                            <optgroup label="── 実行力 ──">
+                              {ALL_THEMES.filter(t => t.domain === "実行力").map(t => (
+                                <option key={t.name} value={t.name} disabled={current.includes(t.name) && current[idx] !== t.name}>
+                                  {t.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="── 影響力 ──">
+                              {ALL_THEMES.filter(t => t.domain === "影響力").map(t => (
+                                <option key={t.name} value={t.name} disabled={current.includes(t.name) && current[idx] !== t.name}>
+                                  {t.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="── 関係構築 ──">
+                              {ALL_THEMES.filter(t => t.domain === "関係構築").map(t => (
+                                <option key={t.name} value={t.name} disabled={current.includes(t.name) && current[idx] !== t.name}>
+                                  {t.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="── 戦略的思考 ──">
+                              {ALL_THEMES.filter(t => t.domain === "戦略思考").map(t => (
+                                <option key={t.name} value={t.name} disabled={current.includes(t.name) && current[idx] !== t.name}>
+                                  {t.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          </select>
+                          {/* 削除ボタン */}
+                          {val && (
+                            <button
+                              type="button"
+                              onClick={() => removeStrength(idx)}
+                              style={{
+                                width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+                                background: "var(--line)", border: "none",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                cursor: "pointer", fontSize: 13, color: "var(--ink-mute)",
+                                fontFamily: "inherit",
+                              }}
+                              title="削除"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "4px 0 0", lineHeight: 1.6 }}>
+                      未受診の場合は空欄のままで OK。順位どおりに入力してください。
+                    </p>
+                  </div>
+                );
+              })()}
             </FormSection>
 
             {/* ── 保存・キャンセルボタン ────────────────────────────────────────── */}
@@ -3598,13 +3931,24 @@ export default function ProfileEditClient({
                       value={newLinkUrl}
                       onChange={(e) => {
                         setNewLinkUrl(e.target.value);
+                        setOgpFetched(false);
                         if (e.target.value.trim()) {
                           setNewLinkPlatform(detectPlatform(e.target.value.trim()));
                         }
                       }}
+                      onBlur={handleUrlBlur}
                       placeholder="https://note.com/..."
                       style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
                     />
+                    {ogpFetching && (
+                      <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "4px 0 0", display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ display: "inline-block", width: 10, height: 10, border: "2px solid var(--ink-mute)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                        ページ情報を取得中...
+                      </p>
+                    )}
+                    {ogpFetched && !ogpFetching && (
+                      <p style={{ fontSize: 11, color: "var(--success)", margin: "4px 0 0" }}>✓ タイトル・サムネイルを自動取得しました</p>
+                    )}
                   </div>
 
                   <div>
@@ -3754,6 +4098,9 @@ export default function ProfileEditClient({
                 </div>
               )}
             </FormSection>
+
+            {/* ── Section 4: メール通知設定 ────────────────────────────────── */}
+            <NotificationSettingsSection />
 
             {/* ── Danger zone ──────────────────────────────────────────────── */}
             <div

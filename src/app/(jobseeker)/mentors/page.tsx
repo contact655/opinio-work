@@ -42,37 +42,69 @@ function MentorCard({ mentor }: { mentor: MentorData }) {
       }}
       className="mentor-card"
     >
-      {/* Head: avatar + name/role */}
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 14 }}>
+      {/* Head: avatar（大きく・中央） + name/role */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 14, gap: 12 }}>
         <div style={{ position: "relative", flexShrink: 0 }}>
+          {mentor.photo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={mentor.photo_url}
+              alt={mentor.name}
+              width={88}
+              height={88}
+              style={{
+                width: 88, height: 88, borderRadius: "50%",
+                objectFit: "cover", objectPosition: "center top", display: "block",
+                boxShadow: mentor.is_available
+                  ? "0 0 0 3px var(--royal), 0 0 0 6px rgba(0,35,102,0.12)"
+                  : "0 0 0 3px var(--line), 0 0 0 6px rgba(0,0,0,0.04)",
+                opacity: mentor.is_available ? 1 : 0.7,
+              }}
+            />
+          ) : (
+            <div style={{
+              width: 88, height: 88, borderRadius: "50%",
+              background: mentor.gradient,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontSize: 28, fontWeight: 700,
+              boxShadow: mentor.is_available
+                ? "0 0 0 3px var(--royal), 0 0 0 6px rgba(0,35,102,0.12)"
+                : "0 0 0 3px var(--line), 0 0 0 6px rgba(0,0,0,0.04)",
+              opacity: mentor.is_available ? 1 : 0.7,
+            }}>
+              {mentor.initial}
+            </div>
+          )}
           <div style={{
-            width: 52, height: 52, borderRadius: 14,
-            background: mentor.gradient,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontSize: 18, fontWeight: 700,
-            boxShadow: mentor.is_available
-              ? "0 0 0 2.5px var(--royal), 0 0 0 5px rgba(0,35,102,0.12)"
-              : "0 0 0 2.5px var(--line), 0 0 0 5px rgba(0,0,0,0.04)",
-            opacity: mentor.is_available ? 1 : 0.7,
-          }}>
-            {mentor.initial}
-          </div>
-          <div style={{
-            position: "absolute", bottom: -3, right: -3,
-            width: 18, height: 18, borderRadius: 6,
+            position: "absolute", bottom: 0, right: 0,
+            width: 22, height: 22, borderRadius: 8,
             background: mentor.is_available ? "var(--royal)" : "var(--ink-mute)",
-            border: "2px solid #fff",
+            border: "2.5px solid #fff",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3}>
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
         </div>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: mentor.is_available ? "var(--ink)" : "var(--ink-mute)" }}>
+        <div style={{ textAlign: "center", minWidth: 0 }}>
+          {/* roles[0] pill tag */}
+          {mentor.dept && (
+            <div style={{ marginBottom: 6 }}>
+              <span style={{
+                display: "inline-block",
+                fontSize: 10, fontWeight: 700, padding: "2px 10px", borderRadius: 100,
+                background: "var(--royal-50)", color: "var(--royal)",
+                border: "1px solid var(--royal-100)",
+                letterSpacing: "0.04em",
+              }}>
+                {mentor.dept}
+              </span>
+            </div>
+          )}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, marginBottom: 4, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: mentor.is_available ? "var(--ink)" : "var(--ink-mute)" }}>
               {mentor.name}さん
             </span>
             <span style={{

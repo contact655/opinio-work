@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import {
   getCompanyById,
   getCompanyPhotos,
@@ -9,6 +10,10 @@ import {
   getArticlesByCompany,
   getCompanyEmployees,
 } from "@/lib/supabase/queries";
+
+// Deduplicate getCompanyById calls within a single request
+// (generateMetadata and CompanyDetailPage both call it)
+const getCompanyByIdCached = cache(getCompanyById);
 import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
@@ -39,7 +44,7 @@ export async function generateMetadata({
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  const result = await getCompanyById(params.id);
+  const result = await getCompanyByIdCached(params.id);
   if (!result) return { title: "企業が見つかりません | OPINIO" };
   const { company } = result;
 
@@ -180,12 +185,13 @@ function Hero({
             <div style={{ paddingTop: 14 }}>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 10.5,
                   color: "var(--ink-mute)",
-                  marginBottom: 5,
-                  fontWeight: 600,
-                  letterSpacing: "0.04em",
+                  marginBottom: 7,
+                  fontWeight: 700,
+                  letterSpacing: "0.13em",
                   textTransform: "uppercase" as const,
+                  fontFamily: "Inter, var(--font-inter), sans-serif",
                 }}
               >
                 {company.industry}
@@ -193,23 +199,25 @@ function Hero({
               <h1
                 style={{
                   fontFamily: 'var(--font-noto-serif)',
-                  fontWeight: 700,
-                  fontSize: "clamp(22px,2.5vw,32px)",
+                  fontWeight: 800,
+                  fontSize: "clamp(26px, 3vw, 40px)",
                   color: "var(--ink)",
-                  marginBottom: 6,
-                  letterSpacing: "0.01em",
-                  lineHeight: 1.25,
+                  marginBottom: 8,
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.18,
                 }}
               >
                 {company.name}
               </h1>
               <p
                 style={{
-                  fontSize: 14,
-                  color: "#334155",
-                  lineHeight: 1.65,
-                  marginBottom: 14,
+                  fontSize: 16,
+                  color: "#3a4a64",
+                  lineHeight: 1.8,
+                  letterSpacing: "0.01em",
+                  marginBottom: 16,
                   maxWidth: 560,
+                  fontWeight: 400,
                 }}
               >
                 {company.tagline}
@@ -599,25 +607,27 @@ function SecTitle({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 10,
+        gap: 12,
         fontFamily: 'var(--font-noto-serif)',
         fontWeight: 700,
-        fontSize: 22,
+        fontSize: 21,
         color: "var(--ink)",
-        letterSpacing: "0.02em",
+        letterSpacing: "0.01em",
+        lineHeight: 1.3,
       }}
     >
       <span
         style={{
-          width: 28,
-          height: 28,
-          borderRadius: 7,
+          width: 30,
+          height: 30,
+          borderRadius: 8,
           background: iconBg[iconColor],
           color: iconFg[iconColor],
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
+          fontSize: 14,
         }}
       >
         {icon}
@@ -2448,15 +2458,76 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
   );
 }
 
-async function CompanyMentorsSection({ companyId: _companyId, companyName: _companyName }: { companyId: string; companyName: string }) {
+async function CompanyMentorsSection({
+  companyId: _companyId,
+  companyName,
+  companyNameEn,
+}: {
+  companyId: string;
+  companyName: string;
+  companyNameEn?: string | null;
+}) {
   const supabase = createClient();
-  const { data: mentors } = await supabase
-    .from("ow_mentors")
-    .select("id, name, current_role, avatar_initial, avatar_color, is_available, success_count")
-    .eq("is_available", true)
-    .limit(4);
+
+  // Build search terms from English and Japanese company names
+  const cleanEn = (companyNameEn ?? "")
+    .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, "")
+    .replace(/\s+Co\.,?\s*Ltd\.?$/i, "")
+    .replace(/\s*,\s*Inc\.?$/i, "")
+    .replace(/\s+Inc\.?$/i, "")
+    .trim();
+  const cleanJa = (companyName ?? "")
+    .replace(/^(株式会社|合同会社|有限会社)/, "")
+    .replace(/(株式会社|合同会社|有限会社)$/, "")
+    .replace(/（\d+）$/, "")
+    .trim();
+  const searchTerm = cleanEn || cleanJa;
+
+  let mentors: Array<{
+    id: string;
+    name: string | null;
+    current_company: string | null;
+    catchphrase: string | null;
+    roles: string[] | null;
+    avatar_initial: string | null;
+    avatar_color: string | null;
+    photo_url: string | null;
+    is_available: boolean | null;
+    success_count: number | null;
+  }> = [];
+  let isCompanySpecific = false;
+
+  // Try company-specific match first
+  if (searchTerm) {
+    const { data: companyMentors } = await supabase
+      .from("ow_mentors")
+      .select("id, name, current_company, catchphrase, roles, avatar_initial, avatar_color, photo_url, is_available, success_count")
+      .ilike("current_company", `%${searchTerm}%`)
+      .eq("is_available", true);
+    if (companyMentors && companyMentors.length > 0) {
+      mentors = companyMentors;
+      isCompanySpecific = true;
+    }
+  }
+
+  // Fallback: all available mentors
+  if (!isCompanySpecific) {
+    const { data: allMentors } = await supabase
+      .from("ow_mentors")
+      .select("id, name, current_company, catchphrase, roles, avatar_initial, avatar_color, photo_url, is_available, success_count")
+      .eq("is_available", true)
+      .limit(4);
+    mentors = allMentors ?? [];
+  }
 
   if (!mentors || mentors.length === 0) return null;
+
+  const heading = isCompanySpecific
+    ? "この企業のことを知る先輩に相談"
+    : "先輩メンターに相談する";
+  const subtext = isCompanySpecific
+    ? `${companyName}で活躍した先輩が、転職の疑問に答えます`
+    : "OPINIOのメンターにキャリアの悩みを相談できます";
 
   return (
     <section
@@ -2481,15 +2552,15 @@ async function CompanyMentorsSection({ companyId: _companyId, companyName: _comp
               flexShrink: 0,
             }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
             <div>
               <div style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 700, color: "var(--ink)" }}>
-                メンターに相談する
+                {heading}
               </div>
               <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
-                OPINIOのメンターにキャリアの悩みを相談できます
+                {subtext}
               </div>
             </div>
           </div>
@@ -2508,58 +2579,90 @@ async function CompanyMentorsSection({ companyId: _companyId, companyName: _comp
           gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
           gap: 14,
         }}>
-          {mentors.map((mentor) => (
-            <Link
-              key={mentor.id}
-              href={`/mentors/${mentor.id}`}
-              style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
-                padding: "18px 14px 14px",
-                border: "1px solid var(--line)", borderRadius: 12,
-                textDecoration: "none", background: "var(--bg-tint)",
-                transition: "all 0.2s",
-              }}
-              className="mentor-card-link"
-            >
-              <div style={{
-                width: 52, height: 52, borderRadius: "50%",
-                background: mentor.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 20, flexShrink: 0,
-              }}>
-                {mentor.avatar_initial ?? (mentor.name ? mentor.name[0] : "M")}
-              </div>
-              <div style={{ textAlign: "center", minWidth: 0, width: "100%" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-                  {mentor.name}
-                </div>
-                {mentor.current_role && (
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.4 }}>
-                    {mentor.current_role}
+          {mentors.map((mentor) => {
+            const roleLabel = (mentor.roles as string[] | null)?.[0] ?? null;
+            return (
+              <Link
+                key={mentor.id}
+                href={`/mentors/${mentor.id}`}
+                style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+                  padding: "18px 14px 14px",
+                  border: "1px solid var(--line)", borderRadius: 12,
+                  textDecoration: "none", background: "var(--bg-tint)",
+                  transition: "all 0.2s",
+                }}
+                className="mentor-card-link"
+              >
+                {/* Avatar */}
+                {mentor.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={mentor.photo_url}
+                    alt={mentor.name ?? ""}
+                    style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                  />
+                ) : (
+                  <div style={{
+                    width: 56, height: 56, borderRadius: "50%",
+                    background: mentor.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)",
+                    color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 20, flexShrink: 0,
+                  }}>
+                    {mentor.avatar_initial ?? (mentor.name ? mentor.name[0] : "M")}
                   </div>
                 )}
-                {typeof mentor.success_count === "number" && mentor.success_count > 0 && (
+                <div style={{ textAlign: "center", minWidth: 0, width: "100%" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, flexWrap: "wrap", marginBottom: 2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+                      {mentor.name}
+                    </div>
+                    {isCompanySpecific && (
+                      <span style={{
+                        fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
+                        background: "var(--success-soft)", color: "var(--success)",
+                        border: "1px solid #A7F3D0", whiteSpace: "nowrap",
+                      }}>
+                        現職
+                      </span>
+                    )}
+                  </div>
+                  {roleLabel && (
+                    <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.4 }}>
+                      {roleLabel}
+                    </div>
+                  )}
+                  {mentor.catchphrase && (
+                    <div style={{
+                      fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.4,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {mentor.catchphrase}
+                    </div>
+                  )}
+                  {typeof mentor.success_count === "number" && mentor.success_count > 0 && (
+                    <div style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      fontSize: 10, color: "var(--success)", background: "var(--success-soft)",
+                      padding: "2px 8px", borderRadius: 100, marginBottom: 8,
+                    }}>
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                      {mentor.success_count}件の相談実績
+                    </div>
+                  )}
                   <div style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
-                    fontSize: 10, color: "var(--success)", background: "var(--success-soft)",
-                    padding: "2px 8px", borderRadius: 100, marginBottom: 8,
+                    padding: "6px 14px", borderRadius: 8, width: "100%", justifyContent: "center",
+                    background: "linear-gradient(135deg, var(--warm), #FBBF24)",
+                    color: "#fff", fontSize: 11, fontWeight: 700,
+                    boxShadow: "0 2px 6px rgba(245,158,11,0.25)",
                   }}>
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-                    {mentor.success_count}件の相談実績
+                    相談する →
                   </div>
-                )}
-                <div style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "6px 14px", borderRadius: 8, width: "100%", justifyContent: "center",
-                  background: "linear-gradient(135deg, var(--warm), #FBBF24)",
-                  color: "#fff", fontSize: 11, fontWeight: 700,
-                  boxShadow: "0 2px 6px rgba(245,158,11,0.25)",
-                }}>
-                  相談する →
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -3831,13 +3934,20 @@ export default async function CompanyDetailPage({
 }) {
   const supabase = createClient();
 
-  const [companyResult, photos, recruiters, companyArticles, employees, authResult, postsResult, postsCountResult] = await Promise.all([
-    getCompanyById(params.id),
+  // Pull auth out first so we can run ow_users lookup in parallel
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  const isAuthenticated = !!authUser;
+
+  const [companyResult, photos, recruiters, companyArticles, employees, owUserResult, postsResult, postsCountResult] = await Promise.all([
+    getCompanyByIdCached(params.id),
     getCompanyPhotos(params.id),
     getCompanyRecruiters(params.id),
     getArticlesByCompany(params.id),
     getCompanyEmployees(params.id),
-    supabase.auth.getUser(),
+    // ow_users lookup runs in parallel now (was sequential before)
+    isAuthenticated
+      ? supabase.from("ow_users").select("id").eq("auth_id", authUser!.id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
     // 企業発信リンク (公開中・実URL限定、最新 5 件)
     supabase
       .from("ow_company_external_links")
@@ -3864,25 +3974,18 @@ export default async function CompanyDetailPage({
 
   const { company, detail, employeeCategories } = companyResult;
 
-  // Resolve ow_users.id and check existing bookmark
+  // Only 1 sequential query remains (bookmark lookup needs owUser.id)
   let initialBookmarked = false;
-  const isAuthenticated = !!authResult.data.user;
-  if (isAuthenticated) {
-    const { data: owUser } = await supabase
-      .from("ow_users")
+  const owUserId = owUserResult?.data?.id ?? null;
+  if (owUserId) {
+    const { data: bmark } = await supabase
+      .from("ow_bookmarks")
       .select("id")
-      .eq("auth_id", authResult.data.user!.id)
+      .eq("user_id", owUserId)
+      .eq("target_type", "company")
+      .eq("target_id", params.id)
       .maybeSingle();
-    if (owUser) {
-      const { data: bmark } = await supabase
-        .from("ow_bookmarks")
-        .select("id")
-        .eq("user_id", owUser.id)
-        .eq("target_type", "company")
-        .eq("target_id", params.id)
-        .maybeSingle();
-      initialBookmarked = !!bmark;
-    }
+    initialBookmarked = !!bmark;
   }
 
   return (
@@ -3968,7 +4071,7 @@ export default async function CompanyDetailPage({
             />
 
             {/* 9. メンターに相談する */}
-            <CompanyMentorsSection companyId={params.id} companyName={company.name} />
+            <CompanyMentorsSection companyId={params.id} companyName={company.name} companyNameEn={company.name_en} />
 
             {/* 編集部の見立て（タブなし・コンテンツ末尾） */}
             <FitSection detail={detail} />

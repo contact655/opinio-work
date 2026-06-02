@@ -12,6 +12,7 @@ import { ViewToggle } from "@/components/companies/ViewToggle";
 import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardHoverWrap } from "@/components/companies/CompanyCardHoverWrap";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
+import { CompareBar } from "@/components/companies/CompareBar";
 
 type MemberPreview = { id: string; name: string };
 
@@ -337,6 +338,9 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
         </div>{/* フッターエリア end */}
       </div>
+
+      {/* Floating compare bar */}
+      <CompareBar />
     </div>
   );
 }

@@ -37,13 +37,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
 function Avatar({ mentor, size = 72 }: { mentor: MentorData; size?: number }) {
+  const ring: React.CSSProperties = {
+    width: size, height: size, borderRadius: "50%", flexShrink: 0,
+    boxShadow: "0 0 0 3px var(--royal), 0 0 0 6px rgba(0,35,102,0.12)",
+    overflow: "hidden",
+  };
+  if (mentor.photo_url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={mentor.photo_url}
+        alt={mentor.name}
+        width={size}
+        height={size}
+        style={{ ...ring, objectFit: "cover", display: "block" }}
+      />
+    );
+  }
   return (
     <div style={{
-      width: size, height: size, borderRadius: "50%",
+      ...ring,
       background: mentor.gradient,
       display: "flex", alignItems: "center", justifyContent: "center",
-      color: "#fff", fontSize: size * 0.33, fontWeight: 700, flexShrink: 0,
-      boxShadow: "0 0 0 3px var(--royal), 0 0 0 6px rgba(0,35,102,0.12)",
+      color: "#fff", fontSize: size * 0.33, fontWeight: 700,
     }}>
       {mentor.initial}
     </div>
@@ -147,6 +163,26 @@ export default async function MentorDetailPage({ params }: Props) {
     );
   })();
 
+  // ─── career_chain / current_company の会社名 → company_id 解決 ──────────────
+  // ow_mentors は company_id を持たないため、名前ベースで ow_companies を照合
+  const companyIdByName = await (async () => {
+    const names = new Set<string>();
+    if (mentor.current_company) names.add(mentor.current_company);
+    for (const step of mentor.career_chain) if (step.label) names.add(step.label);
+    if (names.size === 0) return new Map<string, string>();
+
+    const { data: companies } = await supabase
+      .from("ow_companies")
+      .select("id, name")
+      .in("name", Array.from(names));
+
+    const map = new Map<string, string>();
+    for (const c of companies ?? []) {
+      map.set(c.name as string, c.id as string);
+    }
+    return map;
+  })();
+
   return (
     <>
       <ReadingProgress />
@@ -204,7 +240,17 @@ export default async function MentorDetailPage({ params }: Props) {
                       )}
                     </div>
                     <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                      <strong style={{ color: "var(--ink)" }}>{mentor.current_company || "（非公開）"}</strong>
+                      {mentor.current_company && companyIdByName.get(mentor.current_company) ? (
+                        <Link
+                          href={`/companies/${companyIdByName.get(mentor.current_company)}`}
+                          className="company-name-link"
+                          style={{ color: "var(--ink)", fontWeight: 700, textDecoration: "none" }}
+                        >
+                          {mentor.current_company}
+                        </Link>
+                      ) : (
+                        <strong style={{ color: "var(--ink)" }}>{mentor.current_company || "（非公開）"}</strong>
+                      )}
                       {mentor.current_role && ` · ${mentor.current_role}`}
                     </div>
                     {(mentor.success_count ?? 0) > 0 && (
@@ -225,12 +271,29 @@ export default async function MentorDetailPage({ params }: Props) {
                     fontSize: 12.5, color: "var(--ink-mute)",
                     marginBottom: 20,
                   }}>
-                    {mentor.career_chain.map((step, i) => (
-                      <span key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        {i > 0 && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5}><path d="M9 18l6-6-6-6" /></svg>}
-                        <span style={{ color: step.is_current ? "var(--royal)" : "var(--ink-soft)", fontWeight: step.is_current ? 700 : 400 }}>{step.label}</span>
-                      </span>
-                    ))}
+                    {mentor.career_chain.map((step, i) => {
+                      const cid = companyIdByName.get(step.label);
+                      return (
+                        <span key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {i > 0 && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5}><path d="M9 18l6-6-6-6" /></svg>}
+                          {cid ? (
+                            <Link
+                              href={`/companies/${cid}`}
+                              className="company-name-link"
+                              style={{
+                                color: step.is_current ? "var(--royal)" : "var(--ink-soft)",
+                                fontWeight: step.is_current ? 700 : 400,
+                                textDecoration: "none",
+                              }}
+                            >
+                              {step.label}
+                            </Link>
+                          ) : (
+                            <span style={{ color: step.is_current ? "var(--royal)" : "var(--ink-soft)", fontWeight: step.is_current ? 700 : 400 }}>{step.label}</span>
+                          )}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
 

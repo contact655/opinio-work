@@ -63,6 +63,7 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
   return {
     id: row.id as string,
     name: (row.name as string) ?? "",
+    name_en: (row.name_en as string | null) ?? null,
     tagline: (row.tagline as string) ?? "",
     industry: (row.industry as string) ?? "",
     phase: (row.phase as string) ?? "",
@@ -918,6 +919,7 @@ export type MentorData = {
   name: string;
   initial: string;
   gradient: string;
+  photo_url: string | null;
   current_company: string;
   current_role: string;
   bio: string;
@@ -933,7 +935,7 @@ export type MentorData = {
 };
 
 const MENTOR_COLS = [
-  "id", "user_id", "name", "avatar_initial", "avatar_color",
+  "id", "user_id", "name", "avatar_initial", "avatar_color", "photo_url",
   "current_company", "current_role", "previous_career", "current_career",
   "roles", "question_tags", "bio", "catchphrase", "concerns",
   "calendly_url", "is_available", "display_order", "success_count", "total_sessions",
@@ -959,6 +961,7 @@ function mapMentor(row: Record<string, any>): MentorData {
     name,
     initial: (row.avatar_initial as string | null) ?? name.charAt(0),
     gradient: hexToMentorGradient(row.avatar_color as string | null),
+    photo_url: (row.photo_url as string | null) ?? null,
     current_company: (row.current_company as string | null) ?? "",
     current_role: (row.current_role as string | null) ?? "",
     bio: (row.bio as string | null) ?? "",

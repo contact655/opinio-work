@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
+import { MobileBottomNav } from "@/components/jobseeker/MobileBottomNav";
+import { GlobalToast } from "@/components/ui/GlobalToast";
 
 export const metadata: Metadata = {
   title: {
@@ -34,6 +36,8 @@ export default function JobseekerLayout({ children }: { children: React.ReactNod
         {children}
       </main>
       <JobseekerFooter />
+      <MobileBottomNav />
+      <GlobalToast />
     </div>
   );
 }
