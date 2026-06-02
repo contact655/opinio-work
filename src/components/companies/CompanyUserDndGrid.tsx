@@ -127,65 +127,41 @@ export function CompanyUserDndGrid({ companies: initial, membersMap, topMargin =
           <div
             key={c.id}
             className="company-dnd-item"
-            // Drop target（全体）
+            draggable
+            onDragStart={(e) => onDragStart(e, c.id)}
+            onDragEnd={onDragEnd}
             onDragOver={(e) => onDragOver(e, c.id)}
             onDragLeave={() => setDragOverId(null)}
             onDrop={(e) => onDrop(e, c.id)}
             style={{
-              position:  "relative",
-              outline:   dragOverId === c.id ? "2px solid var(--royal)" : "none",
+              outline:      dragOverId === c.id ? "2px solid var(--royal)" : "none",
               outlineOffset: 2,
               borderRadius: 14,
-              transition: "outline 0.1s",
+              transition:   "outline 0.1s, opacity 0.15s",
+              cursor:       draggingId === c.id ? "grabbing" : "grab",
+              opacity:      draggingId === c.id ? 0.35 : 1,
+              userSelect:   "none",
             }}
           >
-            {/* Drag handle（ドラッグ元） */}
-            <div
-              draggable
-              onDragStart={(e) => { e.stopPropagation(); onDragStart(e, c.id); }}
-              onDragEnd={onDragEnd}
-              title="ドラッグして並び替え"
-              className="company-dnd-handle"
-              style={{
-                position:   "absolute",
-                top:        8,
-                left:       8,
-                zIndex:     10,
-                width:      26,
-                height:     26,
-                borderRadius: 6,
-                background: "rgba(0,0,0,0.35)",
-                color:      "rgba(255,255,255,0.9)",
-                display:    "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize:   15,
-                cursor:     "grab",
-                opacity:    0,
-                transition: "opacity 0.15s",
-                userSelect: "none",
-                lineHeight: 1,
-              }}
-            >
-              ⠿
-            </div>
-
-            {/* カード本体 */}
-            <div style={{ opacity: draggingId === c.id ? 0.35 : 1, transition: "opacity 0.15s" }}>
-              <CompanyCardCompact
-                company={c}
-                compact
-                members={membersMap[c.id] ?? []}
-              />
-            </div>
+            <CompanyCardCompact
+              company={c}
+              compact
+              members={membersMap[c.id] ?? []}
+            />
           </div>
         ))}
       </div>
 
-      {/* ホバー時にハンドルを表示する CSS */}
+      {/* カード全体ドラッグ用 CSS */}
       <style>{`
-        .company-dnd-item:hover .company-dnd-handle {
-          opacity: 1 !important;
+        .company-dnd-item .genre-card {
+          cursor: grab !important;
+        }
+        .company-dnd-item .genre-card:hover {
+          transform: translateY(-4px);
+        }
+        .company-dnd-item[style*="grabbing"] .genre-card {
+          cursor: grabbing !important;
         }
       `}</style>
     </>

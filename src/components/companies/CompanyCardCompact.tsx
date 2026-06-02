@@ -225,8 +225,8 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         </button>
       </div>
 
-      {/* カード本体 */}
-      <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {/* カード本体 — flex:1 で親の高さ（グリッドセル）を埋め、底部メタを下に固定 */}
+      <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
         {/* 業種 + フェーズ バッジ行 */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {company.industry && (
@@ -348,8 +348,8 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
           </div>
         )}
 
-        {/* 所在地 — 固定行（値がなくても高さ確保） */}
-        <div style={{ fontSize: 12, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 4, minHeight: 18 }}>
+        {/* 所在地 — 固定行（marginTop:auto で底部に固定） */}
+        <div style={{ fontSize: 12, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 4, minHeight: 18, marginTop: 'auto', paddingTop: 4 }}>
           <MapPin size={13} strokeWidth={1.5} color="#E24B4A" style={{ flexShrink: 0 }} />
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {company.location ?? '—'}
