@@ -196,19 +196,39 @@ function Hero({
               >
                 {company.industry}
               </div>
-              <h1
-                style={{
-                  fontFamily: 'var(--font-noto-serif)',
-                  fontWeight: 800,
-                  fontSize: "clamp(26px, 3vw, 40px)",
-                  color: "var(--ink)",
-                  marginBottom: 8,
-                  letterSpacing: "-0.02em",
-                  lineHeight: 1.18,
-                }}
-              >
-                {company.name}
-              </h1>
+              {(() => {
+                const enName = company.name_en
+                  ? company.name_en
+                      .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, '')
+                      .replace(/\s+Co\.,?\s*Ltd\.?$/i, '')
+                      .replace(/\s*,\s*Inc\.?$/i, '')
+                      .replace(/\s+Inc\.?$/i, '')
+                      .replace(/\s+Corp\.?$/i, '')
+                      .trim() || null
+                  : null;
+                return (
+                  <>
+                    <h1
+                      style={{
+                        fontFamily: enName ? 'Inter, sans-serif' : 'var(--font-noto-serif)',
+                        fontWeight: 800,
+                        fontSize: "clamp(26px, 3vw, 40px)",
+                        color: "var(--ink)",
+                        marginBottom: enName ? 4 : 8,
+                        letterSpacing: "-0.02em",
+                        lineHeight: 1.18,
+                      }}
+                    >
+                      {enName ?? company.name}
+                    </h1>
+                    {enName && (
+                      <div style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 8, fontWeight: 400 }}>
+                        {company.name}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
               <p
                 style={{
                   fontSize: 16,
