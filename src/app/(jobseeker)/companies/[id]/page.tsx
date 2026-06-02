@@ -393,6 +393,33 @@ function Hero({
                   </div>
                 );
               })()}
+
+              {/* SNS リンク */}
+              {(company.x_url || company.linkedin_url || detail.url) && (
+                <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                  {company.x_url && (
+                    <a href={company.x_url} target="_blank" rel="noopener noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, background: "#000", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.263 5.632 5.9-5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                      X (Twitter)
+                    </a>
+                  )}
+                  {company.linkedin_url && (
+                    <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, background: "#0A66C2", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+                      LinkedIn
+                    </a>
+                  )}
+                  {detail.url && (
+                    <a href={detail.url} target="_blank" rel="noopener noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                      公式サイト
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

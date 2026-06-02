@@ -81,6 +81,8 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
     gradient: (row.logo_gradient as string) ?? FALLBACK_GRADIENT,
     logo_url: (row.logo_url as string | null) ?? null,
     logo_letter: (row.logo_letter as string | null) ?? null,
+    x_url: (row.x_url as string | null) ?? null,
+    linkedin_url: (row.linkedin_url as string | null) ?? null,
     genres,
     is_editors_pick: false,
     is_dimmed: false,
@@ -443,6 +445,8 @@ const COMPANY_DETAIL_COLS = [
   "main_products", "main_customers",
   // Numbers survey timestamp
   "numbers_updated_at",
+  // Social links
+  "x_url", "linkedin_url",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {

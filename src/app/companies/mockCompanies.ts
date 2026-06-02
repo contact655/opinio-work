@@ -25,6 +25,8 @@ export type Company = {
   gradient: string;
   logo_url?: string | null;
   logo_letter?: string | null;
+  x_url?: string | null;
+  linkedin_url?: string | null;
   genres: CompanyGenre[]; // ow_company_genres 由来、空配列の可能性あり
   is_editors_pick?: boolean;
   is_dimmed?: boolean; // 非公開・休止中
