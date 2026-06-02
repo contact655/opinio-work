@@ -6,19 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { MapPin, Users } from 'lucide-react';
 import type { CompanyForCarousel } from '@/types/genre';
-import { registerCompareName } from './CompareBar';
 import { showToast } from '@/lib/toast';
-
-// ── Compare localStorage helpers (local copies — avoids circular dep) ────────
-function _getCompareIds(): string[] {
-  if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem('opinio-compare') ?? '[]'); } catch { return []; }
-}
-function _setCompareIds(ids: string[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem('opinio-compare', JSON.stringify(ids.slice(0, 3)));
-  window.dispatchEvent(new CustomEvent('compare-update'));
-}
 
 // Funding stage → display label + color
 const STAGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -48,7 +36,6 @@ type Props = {
 };
 
 // ── Bookmark fetch deduplication ─────────────────────────────────────────────
-// 同一ページの複数カードが同じAPIを叩かないように、module-level Promise キャッシュを使う
 type BookmarkCache = { ids: Set<string>; expiresAt: number };
 let _bookmarkPromise: Promise<BookmarkCache> | null = null;
 
@@ -64,29 +51,50 @@ function fetchCompanyBookmarks(): Promise<BookmarkCache> {
       }));
     })
     .catch(() => ({ ids: new Set<string>(), expiresAt: now + 60_000 }));
-  // 60秒後にキャッシュをクリア
   setTimeout(() => { _bookmarkPromise = null; }, 60_000);
   return _bookmarkPromise;
 }
 
-// ロゴなし企業のカードヘッダーは navy グラデーションで統一（多色バラバラを防ぐ）
+// ロゴなし企業のカードヘッダーは navy グラデーションで統一
 const NAVY_PLACEHOLDER = { bg: 'linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)', text: 'rgba(255,255,255,0.85)' };
 
 function getPlaceholderColor(_name: string) {
   return NAVY_PLACEHOLDER;
 }
 
-/** 法人名サフィックス除去（"Salesforce Japan Co., Ltd." → "Salesforce"） */
+/** 法人名サフィックス除去 */
 function cleanEnName(nameEn: string | null | undefined): string | null {
   if (!nameEn) return null;
   const cleaned = nameEn
-    .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, '')   // "Salesforce Japan Co., Ltd." → "Salesforce"
-    .replace(/\s+Co\.,?\s*Ltd\.?$/i, '')             // "〇〇 Co., Ltd." → "〇〇"
-    .replace(/\s*,\s*Inc\.?$/i, '')                  // "Timee, Inc." → "Timee"
-    .replace(/\s+Inc\.?$/i, '')                      // "AnyTrail Inc." → "AnyTrail"
+    .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, '')
+    .replace(/\s+Co\.,?\s*Ltd\.?$/i, '')
+    .replace(/\s*,\s*Inc\.?$/i, '')
+    .replace(/\s+Inc\.?$/i, '')
     .replace(/\s+Corp\.?$/i, '')
     .trim();
   return cleaned || null;
+}
+
+/** ワークスタイルタグ生成 */
+function getWorkStyleTags(remoteWorkStatus: string | null | undefined, acceptingCasualMeetings: boolean | null | undefined) {
+  const tags: { label: string; bg: string; color: string; border: string }[] = [];
+
+  if (remoteWorkStatus) {
+    const v = remoteWorkStatus.toLowerCase();
+    if (v.includes('フルリモート') || v === 'remote' || v === 'full_remote' || v === 'fullremote') {
+      tags.push({ label: '🏠 フルリモート', bg: '#f0f4ff', color: '#3b5fd9', border: '#dce5f7' });
+    } else if (v.includes('ハイブリッド') || v === 'hybrid') {
+      tags.push({ label: '🏢 ハイブリッド', bg: '#f8fafc', color: '#475569', border: '#e2e8f0' });
+    } else {
+      tags.push({ label: remoteWorkStatus, bg: '#f8fafc', color: '#475569', border: '#e2e8f0' });
+    }
+  }
+
+  if (acceptingCasualMeetings) {
+    tags.push({ label: '💬 気軽に相談', bg: '#f0f4ff', color: '#3b5fd9', border: '#dce5f7' });
+  }
+
+  return tags;
 }
 
 
@@ -96,20 +104,6 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
   const router = useRouter();
   const [bookmarked, setBookmarked] = useState(false);
   const bookmarkingRef = useRef(false);
-  const [inCompare, setInCompare] = useState(false);
-
-  // Register name for CompareBar chip display
-  useEffect(() => {
-    registerCompareName(company.id, company.name);
-  }, [company.id, company.name]);
-
-  // Sync compare state from localStorage (including cross-card updates)
-  useEffect(() => {
-    const sync = () => setInCompare(_getCompareIds().includes(company.id));
-    sync();
-    window.addEventListener('compare-update', sync);
-    return () => window.removeEventListener('compare-update', sync);
-  }, [company.id]);
 
   useEffect(() => {
     fetchCompanyBookmarks().then((cache) => {
@@ -135,7 +129,6 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
       } else if (!res.ok) {
         setBookmarked(prev);
       } else {
-        // Show toast feedback
         if (!prev) {
           showToast(`${company.name} を気になりリストに追加しました`, 'warm');
         } else {
@@ -156,6 +149,8 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
     metaItems.push({ icon: <MapPin size={14} strokeWidth={1.5} color="#E24B4A" />, label: company.location });
   if (company.employee_count)
     metaItems.push({ icon: <Users size={14} strokeWidth={1.5} color="#639922" />, label: company.employee_count });
+
+  const workStyleTags = getWorkStyleTags(company.remote_work_status, company.accepting_casual_meetings);
 
   return (
     <Link href={`/companies/${company.id}`} className="genre-card">
@@ -188,7 +183,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             {initial}
           </span>
         )}
-        {/* Casual meeting badge — jobs_public フラグで制御 */}
+        {/* Casual meeting badge */}
         {(company.jobs_public ?? company.accepting_casual_meetings) && (
           <span style={{
             position: 'absolute',
@@ -206,63 +201,16 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             面談OK
           </span>
         )}
-        {/* Compare toggle button */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const current = _getCompareIds();
-            if (current.includes(company.id)) {
-              _setCompareIds(current.filter((x) => x !== company.id));
-            } else if (current.length < 3) {
-              _setCompareIds([...current, company.id]);
-            }
-          }}
-          style={{
-            position: 'absolute',
-            bottom: 8,
-            right: 42,
-            width: 28,
-            height: 28,
-            borderRadius: '50%',
-            background: inCompare ? 'var(--royal)' : 'rgba(255,255,255,0.9)',
-            border: inCompare ? 'none' : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-          aria-label={inCompare ? '比較から外す' : '比較に追加'}
-          title={inCompare ? '比較から外す' : '比較に追加'}
-        >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={inCompare ? '#fff' : '#94a3b8'}
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {/* Balance scale icon */}
-            <path d="M12 3v18" />
-            <path d="M3 9l9-6 9 6" />
-            <path d="M6 12H2l2 5h4l2-5H6z" />
-            <path d="M18 12h-4l2 5h4l2-5h-4z" />
-          </svg>
-        </button>
 
-        {/* Bookmark (heart) button */}
+        {/* Bookmark (heart) button — 正円 */}
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBookmark(); }}
           style={{
             position: 'absolute',
-            bottom: 8,
-            right: 8,
-            width: 28,
-            height: 28,
+            bottom: 10,
+            right: 10,
+            width: 30,
+            height: 30,
             borderRadius: '50%',
             background: 'rgba(255,255,255,0.9)',
             border: 'none',
@@ -274,7 +222,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
           }}
           aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarked ? 'var(--warm)' : 'none'} stroke={bookmarked ? 'var(--warm)' : '#94a3b8'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill={bookmarked ? 'var(--warm)' : 'none'} stroke={bookmarked ? 'var(--warm)' : '#94a3b8'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
         </button>
@@ -329,7 +277,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
           </div>
         )}
 
-        {/* タグライン */}
+        {/* タグライン — 3行まで */}
         {company.tagline && (
           <div style={{
             fontSize: 12,
@@ -337,10 +285,29 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             lineHeight: 1.55,
             overflow: 'hidden',
             display: '-webkit-box',
-            WebkitLineClamp: 2,
+            WebkitLineClamp: 3,
             WebkitBoxOrient: 'vertical' as const,
           }}>
             {company.tagline}
+          </div>
+        )}
+
+        {/* ワークスタイルタグ行 */}
+        {workStyleTags.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {workStyleTags.map((tag, i) => (
+              <span key={i} style={{
+                fontSize: 10,
+                fontWeight: 600,
+                padding: '2px 7px',
+                borderRadius: 100,
+                background: tag.bg,
+                color: tag.color,
+                border: `1px solid ${tag.border}`,
+              }}>
+                {tag.label}
+              </span>
+            ))}
           </div>
         )}
 
