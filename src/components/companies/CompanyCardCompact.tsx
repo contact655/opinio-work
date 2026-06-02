@@ -138,15 +138,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
     }
   }, [bookmarked, company.id, company.name, router]);
 
-  // メタ: 所在地 ・ 従業員数 ・ 設立年 ・ 平均年収
-  type MetaItem = { icon?: React.ReactNode; label: string };
-  const metaItems: MetaItem[] = [];
-  if (company.location)
-    metaItems.push({ icon: <MapPin size={14} strokeWidth={1.5} color="#E24B4A" />, label: company.location });
-  if (company.employee_count)
-    metaItems.push({ icon: <Users size={14} strokeWidth={1.5} color="#639922" />, label: company.employee_count });
-  if ((company as { founded_year?: number | null }).founded_year)
-    metaItems.push({ label: `${(company as { founded_year?: number | null }).founded_year}年創業` });
+  const foundedYear = (company as { founded_year?: number | null }).founded_year;
 
   const workStyleTags = getWorkStyleTags(company.remote_work_status);
 
@@ -356,18 +348,26 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
           </div>
         )}
 
-        {/* メタ情報 */}
-        {metaItems.length > 0 && (
-          <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
-            {metaItems.map((item, i) => (
-              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                {i > 0 && <span style={{ color: 'var(--ink-mute)', margin: '0 5px' }}>·</span>}
-                {item.icon}
-                {item.label}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* 所在地 — 固定行（値がなくても高さ確保） */}
+        <div style={{ fontSize: 12, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 4, minHeight: 18 }}>
+          <MapPin size={13} strokeWidth={1.5} color="#E24B4A" style={{ flexShrink: 0 }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {company.location ?? '—'}
+          </span>
+          {foundedYear && (
+            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-mute)', flexShrink: 0, paddingLeft: 6 }}>
+              {foundedYear}年創業
+            </span>
+          )}
+        </div>
+
+        {/* 従業員数 — 固定行（値がなくても高さ確保） */}
+        <div style={{ fontSize: 12, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 4, minHeight: 18 }}>
+          <Users size={13} strokeWidth={1.5} color="#639922" style={{ flexShrink: 0 }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {company.employee_count ?? '—'}
+          </span>
+        </div>
 
         {/* Member avatar strip */}
         {members && members.length > 0 && (
