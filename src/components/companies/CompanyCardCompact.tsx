@@ -316,7 +316,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         )}
 
         {/* ワークスタイルタグ行 */}
-        {(workStyleTags.length > 0 || (company as { avg_salary?: string | null }).avg_salary) && (
+        {workStyleTags.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
             {workStyleTags.map((tag, i) => (
               <span key={i} style={{
@@ -331,20 +331,6 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
                 {tag.label}
               </span>
             ))}
-            {(company as { avg_salary?: string | null }).avg_salary && (
-              <span style={{
-                fontSize: 10,
-                fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: 100,
-                background: 'var(--success-soft)',
-                color: 'var(--success)',
-                border: '1px solid #A7F3D0',
-                fontFamily: 'Inter, sans-serif',
-              }}>
-                💰 {(company as { avg_salary?: string | null }).avg_salary}万
-              </span>
-            )}
           </div>
         )}
 
