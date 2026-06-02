@@ -348,24 +348,24 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
           </div>
         )}
 
-        {/* 所在地（左）・従業員数（右） — 固定行（marginTop:auto で底部に固定） */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 'auto', paddingTop: 4, minHeight: 18 }}>
-          <div style={{ fontSize: 12, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 3, overflow: 'hidden', flexShrink: 1, minWidth: 0 }}>
-            <MapPin size={13} strokeWidth={1.5} color="#E24B4A" style={{ flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {company.location ?? '—'}
-            </span>
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-            <Users size={13} strokeWidth={1.5} color="#639922" style={{ flexShrink: 0 }} />
-            <span style={{ whiteSpace: 'nowrap' }}>
-              {company.employee_count ?? '—'}
-            </span>
-          </div>
+        {/* 所在地 · 従業員数 — 固定行（marginTop:auto で底部に固定） */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 'auto', paddingTop: 4, minHeight: 18, overflow: 'hidden' }}>
+          <MapPin size={13} strokeWidth={1.5} color="#E24B4A" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: 'var(--ink-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
+            {company.location ?? '—'}
+          </span>
+          <span style={{ color: 'var(--ink-mute)', flexShrink: 0, fontSize: 12 }}>·</span>
+          <Users size={13} strokeWidth={1.5} color="#639922" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: 'var(--ink-soft)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {company.employee_count ?? '—'}
+          </span>
+          {foundedYear && (
+            <>
+              <span style={{ color: 'var(--ink-mute)', flexShrink: 0, fontSize: 12 }}>·</span>
+              <span style={{ fontSize: 11, color: 'var(--ink-mute)', whiteSpace: 'nowrap', flexShrink: 0 }}>{foundedYear}年創業</span>
+            </>
+          )}
         </div>
-        {foundedYear && (
-          <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{foundedYear}年創業</div>
-        )}
 
         {/* Member avatar strip */}
         {members && members.length > 0 && (
