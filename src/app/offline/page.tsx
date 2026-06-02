@@ -1,11 +1,6 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+"use client";
 
-export const metadata: Metadata = {
-  title: "オフライン — OPINIO",
-  description: "インターネット接続がありません",
-  robots: { index: false, follow: false },
-};
+import Link from "next/link";
 
 export default function OfflinePage() {
   return (
