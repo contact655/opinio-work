@@ -12,6 +12,7 @@ import { ViewToggle } from "@/components/companies/ViewToggle";
 import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardHoverWrap } from "@/components/companies/CompanyCardHoverWrap";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
+import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 
 type MemberPreview = { id: string; name: string };
 
@@ -160,6 +161,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
 
   return (
+    <>
     <div style={{ background: "#f0f4f8" }}>
       <h1 className="sr-only">企業を知る</h1>
 
@@ -339,5 +341,9 @@ export default async function CompaniesPage({ searchParams }: Props) {
       </div>
 
     </div>
+
+    {/* 管理者専用: 企業並び替えオーバーレイ（非管理者には何も表示されない） */}
+    <CompanyAdminDndOverlay />
+    </>
   );
 }
