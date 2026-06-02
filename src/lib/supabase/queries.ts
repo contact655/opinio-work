@@ -421,7 +421,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
 
 const COMPANY_LIST_COLS = [
   "id", "name", "name_en", "tagline", "industry", "phase", "employee_count",
-  "logo_gradient", "logo_letter", "accepting_casual_meetings",
+  "logo_gradient", "logo_letter", "logo_url", "accepting_casual_meetings",
   "updated_at", "remote_work_status", "flex_time", "side_job_ok",
 ].join(", ");
 
