@@ -10,9 +10,9 @@ import { CompanySearchResults } from "@/components/companies/CompanySearchResult
 import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSection";
 import { ViewToggle } from "@/components/companies/ViewToggle";
 import { GridSortBar } from "@/components/companies/GridSortBar";
-import { CompanyCardHoverWrap } from "@/components/companies/CompanyCardHoverWrap";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
+import { CompanyUserDndGrid } from "@/components/companies/CompanyUserDndGrid";
 
 type MemberPreview = { id: string; name: string };
 
@@ -251,15 +251,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
                           <Pagination currentPage={safePage} totalPages={totalPages} baseHref={baseHref} />
                         )}
                         {isGridView ? (
-                          <div className="companies-compact-grid" style={{ marginTop: safePage > 1 ? 24 : 0 }}>
-                            {paged.map(c => (
-                              <CompanyCardHoverWrap
-                                key={c.id}
-                                company={c}
-                                members={membersByCompany[c.id] ?? []}
-                              />
-                            ))}
-                          </div>
+                          <CompanyUserDndGrid
+                            companies={paged}
+                            membersMap={membersByCompany}
+                            topMargin={safePage > 1 ? 24 : 0}
+                          />
                         ) : (
                           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: safePage > 1 ? 24 : 0 }}>
                             {paged.map(c => (
