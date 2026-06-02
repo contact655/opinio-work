@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -51,6 +51,7 @@ type Company = {
   contracted_at: string | null;
   created_at: string;
   updated_at: string;
+  sort_order: number | null;
   job_count?: number;
 };
 
@@ -60,6 +61,9 @@ export default function AdminCompaniesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const draggedIdRef = useRef<string | null>(null);
 
   const loadCompanies = useCallback(async () => {
     const supabase = createClient();
@@ -67,7 +71,8 @@ export default function AdminCompaniesPage() {
     const [{ data: companyRows }, { data: jobRows }] = await Promise.all([
       supabase
         .from("ow_companies")
-        .select("id, name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at")
+        .select("id, name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order")
+        .order("sort_order", { ascending: true, nullsFirst: false })
         .order("updated_at", { ascending: false }),
       supabase
         .from("ow_jobs")
@@ -138,6 +143,60 @@ export default function AdminCompaniesPage() {
     await supabase.from("ow_companies").update({ is_published: newValue, updated_at: new Date().toISOString() }).eq("id", company.id);
     setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, is_published: newValue } : c));
     setActionLoading(null);
+  }
+
+  // ── ドラッグ&ドロップ並び替え（「すべて」タブ + 検索なしのときのみ有効） ──
+  const isDndActive = activeTab === "all" && !searchQuery.trim();
+
+  function handleDragStart(e: React.DragEvent, id: string) {
+    draggedIdRef.current = id;
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragOver(e: React.DragEvent, id: string) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (draggedIdRef.current !== id) setDragOverId(id);
+  }
+
+  function handleDragLeave() {
+    setDragOverId(null);
+  }
+
+  async function handleDrop(e: React.DragEvent, targetId: string) {
+    e.preventDefault();
+    setDragOverId(null);
+    const sourceId = draggedIdRef.current;
+    draggedIdRef.current = null;
+    if (!sourceId || sourceId === targetId) return;
+
+    const newList = [...companies];
+    const fromIdx = newList.findIndex((c) => c.id === sourceId);
+    const toIdx   = newList.findIndex((c) => c.id === targetId);
+    if (fromIdx < 0 || toIdx < 0) return;
+
+    // 配列を並び替え
+    const [moved] = newList.splice(fromIdx, 1);
+    newList.splice(toIdx, 0, moved);
+
+    // sort_order を 0, 1, 2... に再割り当て
+    const updated = newList.map((c, i) => ({ ...c, sort_order: i }));
+    setCompanies(updated);
+
+    // Supabase に一括保存
+    setIsSavingOrder(true);
+    const supabase = createClient();
+    await Promise.all(
+      updated.map((c) =>
+        supabase.from("ow_companies").update({ sort_order: c.sort_order }).eq("id", c.id)
+      )
+    );
+    setIsSavingOrder(false);
+  }
+
+  function handleDragEnd() {
+    draggedIdRef.current = null;
+    setDragOverId(null);
   }
 
   const filtered = companies.filter((c) => {
@@ -241,12 +300,20 @@ export default function AdminCompaniesPage() {
       </div>
 
       {/* Table */}
+      {isDndActive && (
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+          {isSavingOrder
+            ? <><span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--warm)", display: "inline-block", animation: "pulse 1s infinite" }} /> 順序を保存中...</>
+            : <><span>⠿</span> 行をドラッグして並び替えできます（「すべて」タブ・検索なし時）</>
+          }
+        </div>
+      )}
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>
             <thead>
               <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
-                {["企業名", "業界", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
+                {["", "企業名", "業界", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
                   <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -255,7 +322,7 @@ export default function AdminCompaniesPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
+                <tr><td colSpan={9} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
                   <div style={{ marginBottom: 8, fontSize: 28 }}>🏢</div>企業が見つかりません
                 </td></tr>
               ) : (
@@ -263,8 +330,30 @@ export default function AdminCompaniesPage() {
                   const es = (c.engagement_status ?? "none") as EngagementStatus;
                   const esCfg = ENGAGEMENT_CONFIG[es];
                   const isLoading = actionLoading === c.id;
+                  const isDragOver = dragOverId === c.id;
                   return (
-                    <tr key={c.id} style={{ borderBottom: "1px solid var(--line-soft)" }} className="admin-row">
+                    <tr
+                      key={c.id}
+                      draggable={isDndActive}
+                      onDragStart={isDndActive ? (e) => handleDragStart(e, c.id) : undefined}
+                      onDragOver={isDndActive ? (e) => handleDragOver(e, c.id) : undefined}
+                      onDragLeave={isDndActive ? handleDragLeave : undefined}
+                      onDrop={isDndActive ? (e) => handleDrop(e, c.id) : undefined}
+                      onDragEnd={isDndActive ? handleDragEnd : undefined}
+                      style={{
+                        borderBottom: "1px solid var(--line-soft)",
+                        borderTop: isDragOver ? "2px solid var(--royal)" : undefined,
+                        opacity: draggedIdRef.current === c.id ? 0.4 : 1,
+                        cursor: isDndActive ? "grab" : "default",
+                        transition: "border-top 0.1s",
+                      }}
+                      className="admin-row"
+                    >
+
+                      {/* ドラッグハンドル */}
+                      <td style={{ padding: "10px 8px", color: "var(--ink-mute)", fontSize: 16, cursor: isDndActive ? "grab" : "default", userSelect: "none" }}>
+                        {isDndActive ? "⠿" : ""}
+                      </td>
 
                       {/* 企業名 */}
                       <td style={{ padding: "10px 14px" }}>

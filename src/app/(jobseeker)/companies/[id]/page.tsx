@@ -3389,7 +3389,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
 
 // ─── MobileBottomCTA ── γ-7: モバイル固定底部バー (< 768px) ──────────────────
 function MobileBottomCTA({ company }: { company: Company }) {
-  const hasMeeting = company.jobs_public ?? company.accepting_casual_meetings;
+  const hasMeeting = company.jobs_public === true;
   const hasJobs = company.job_count > 0;
   if (!hasMeeting && !hasJobs) return null;
 
@@ -3484,7 +3484,7 @@ function Sidebar({
     >
       {/* CTA card ── γ-2: 修正① CTA 優先順位逆転 */}
       {(() => {
-        const hasMeeting = company.jobs_public ?? company.accepting_casual_meetings;
+        const hasMeeting = company.jobs_public === true;
         const hasJobs = company.job_count > 0;
         return (
           <div
@@ -3640,7 +3640,7 @@ function Sidebar({
       })()}
 
       {/* 申し込みの流れ — casual meeting flow steps */}
-      {(company.jobs_public ?? company.accepting_casual_meetings) && (
+      {company.jobs_public === true && (
         <div
           style={{
             background: "#fff",

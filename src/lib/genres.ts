@@ -60,7 +60,8 @@ async function _fetchGenresWithCompanies(): Promise<GenreWithCompanies[]> {
         id, name, name_en, tagline, industry, funding_stage, employee_count,
         description, accepting_casual_meetings, jobs_public, remote_work_status,
         location, logo_letter, logo_gradient, logo_url, updated_at,
-        current_member_count, obog_count
+        current_member_count, obog_count,
+        avg_salary, founded_year, fit_positives, sort_order
       )
     `
     )
@@ -100,15 +101,18 @@ async function _fetchGenresWithCompanies(): Promise<GenreWithCompanies[]> {
     const limited = links.slice(0, CAROUSEL_LIMIT);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const companies: CompanyForCarousel[] = limited.map((link: any) => {
-      const co = link.ow_companies as CompanyForCarousel;
-      return {
-        ...co,
-        // jobs_public が null（Migration 未適用環境）は accepting_casual_meetings で代替
-        jobs_public: co.jobs_public != null ? co.jobs_public : co.accepting_casual_meetings,
-        job_count: jobCountMap[link.ow_companies.id] || 0,
-      };
-    });
+    const companies: CompanyForCarousel[] = limited
+      .map((link: any) => {
+        const co = link.ow_companies as CompanyForCarousel;
+        return {
+          ...co,
+          // jobs_public が null（Migration 未適用環境）は accepting_casual_meetings で代替
+          jobs_public: co.jobs_public != null ? co.jobs_public : co.accepting_casual_meetings,
+          job_count: jobCountMap[link.ow_companies.id] || 0,
+        };
+      })
+      // sort_order 昇順（null/undefined は末尾）
+      .sort((a, b) => ((a.sort_order ?? 999) - (b.sort_order ?? 999)));
 
     return {
       ...genre,

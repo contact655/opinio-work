@@ -351,6 +351,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
   let query = supabase
     .from("ow_companies")
     .select(COMPANY_LISTPAGE_COLS)
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("updated_at", { ascending: false });
 
   if (process.env.NODE_ENV !== "development") {

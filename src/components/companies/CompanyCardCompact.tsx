@@ -75,23 +75,19 @@ function cleanEnName(nameEn: string | null | undefined): string | null {
   return cleaned || null;
 }
 
-/** ワークスタイルタグ生成 */
-function getWorkStyleTags(remoteWorkStatus: string | null | undefined, acceptingCasualMeetings: boolean | null | undefined) {
+/** ワークスタイルタグ生成
+ * フルリモートのみ表示（会社全体ポリシーとして成立する項目に限定）
+ * ハイブリッド → 職種・求人ごとに異なるため非表示
+ * 気軽に相談  → 求人掲載企業でないと成立しないため非表示
+ */
+function getWorkStyleTags(remoteWorkStatus: string | null | undefined) {
   const tags: { label: string; bg: string; color: string; border: string }[] = [];
 
   if (remoteWorkStatus) {
     const v = remoteWorkStatus.toLowerCase();
     if (v.includes('フルリモート') || v === 'remote' || v === 'full_remote' || v === 'fullremote') {
       tags.push({ label: '🏠 フルリモート', bg: '#f0f4ff', color: '#3b5fd9', border: '#dce5f7' });
-    } else if (v.includes('ハイブリッド') || v === 'hybrid') {
-      tags.push({ label: '🏢 ハイブリッド', bg: '#f8fafc', color: '#475569', border: '#e2e8f0' });
-    } else {
-      tags.push({ label: remoteWorkStatus, bg: '#f8fafc', color: '#475569', border: '#e2e8f0' });
     }
-  }
-
-  if (acceptingCasualMeetings) {
-    tags.push({ label: '💬 気軽に相談', bg: '#f0f4ff', color: '#3b5fd9', border: '#dce5f7' });
   }
 
   return tags;
@@ -142,15 +138,17 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
     }
   }, [bookmarked, company.id, company.name, router]);
 
-  // メタ: 所在地 ・ 従業員数
+  // メタ: 所在地 ・ 従業員数 ・ 設立年 ・ 平均年収
   type MetaItem = { icon?: React.ReactNode; label: string };
   const metaItems: MetaItem[] = [];
   if (company.location)
     metaItems.push({ icon: <MapPin size={14} strokeWidth={1.5} color="#E24B4A" />, label: company.location });
   if (company.employee_count)
     metaItems.push({ icon: <Users size={14} strokeWidth={1.5} color="#639922" />, label: company.employee_count });
+  if ((company as { founded_year?: number | null }).founded_year)
+    metaItems.push({ label: `${(company as { founded_year?: number | null }).founded_year}年創業` });
 
-  const workStyleTags = getWorkStyleTags(company.remote_work_status, company.accepting_casual_meetings);
+  const workStyleTags = getWorkStyleTags(company.remote_work_status);
 
   return (
     <Link href={`/companies/${company.id}`} className="genre-card">
@@ -183,8 +181,8 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             {initial}
           </span>
         )}
-        {/* Casual meeting badge */}
-        {(company.jobs_public ?? company.accepting_casual_meetings) && (
+        {/* Casual meeting badge — jobs_public=true の企業のみ表示 */}
+        {company.jobs_public === true && (
           <span style={{
             position: 'absolute',
             top: 8,
@@ -211,6 +209,9 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             right: 10,
             width: 30,
             height: 30,
+            minWidth: 30,
+            minHeight: 30,
+            aspectRatio: '1 / 1',
             borderRadius: '50%',
             background: 'rgba(255,255,255,0.9)',
             border: 'none',
@@ -219,6 +220,10 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             justifyContent: 'center',
             cursor: 'pointer',
             padding: 0,
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            flexShrink: 0,
+            lineHeight: 0,
           }}
           aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
         >
@@ -292,9 +297,35 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
           </div>
         )}
 
+        {/* カルチャーハイライト — fit_positives[0] */}
+        {company.fit_positives && company.fit_positives.length > 0 && (
+          <div style={{
+            fontSize: 10.5,
+            color: 'var(--success)',
+            background: 'var(--success-soft)',
+            border: '1px solid #A7F3D0',
+            borderRadius: 6,
+            padding: '3px 8px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            width: 'fit-content',
+            maxWidth: '100%',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
+            fontWeight: 600,
+          }}>
+            <span style={{ flexShrink: 0 }}>✓</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {company.fit_positives[0]}
+            </span>
+          </div>
+        )}
+
         {/* ワークスタイルタグ行 */}
-        {workStyleTags.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        {(workStyleTags.length > 0 || (company as { avg_salary?: string | null }).avg_salary) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
             {workStyleTags.map((tag, i) => (
               <span key={i} style={{
                 fontSize: 10,
@@ -308,6 +339,20 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
                 {tag.label}
               </span>
             ))}
+            {(company as { avg_salary?: string | null }).avg_salary && (
+              <span style={{
+                fontSize: 10,
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: 100,
+                background: 'var(--success-soft)',
+                color: 'var(--success)',
+                border: '1px solid #A7F3D0',
+                fontFamily: 'Inter, sans-serif',
+              }}>
+                💰 {(company as { avg_salary?: string | null }).avg_salary}万
+              </span>
+            )}
           </div>
         )}
 

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 type Props = {
-  casualHref: string;
+  casualHref?: string;
   applyHref: string;
 };
 
@@ -58,6 +58,7 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
         }}
         aria-hidden={!visible}
       >
+        {casualHref && (
         <Link
           href={casualHref}
           tabIndex={visible ? 0 : -1}
@@ -78,6 +79,7 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
         >
           カジュアル面談
         </Link>
+        )}
         <Link
           href={applyHref}
           tabIndex={visible ? 0 : -1}

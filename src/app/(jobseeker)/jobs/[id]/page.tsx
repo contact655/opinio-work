@@ -413,7 +413,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
       {/* スクロール検知スティッキーCTA — ヒーロー直下にセンチネルを置き、通過後に表示 */}
       <JobMobileStickyBar
-        casualHref={`/companies/${job.company_id}/casual-meeting?job_id=${job.id}`}
+        casualHref={company.jobs_public ? `/companies/${job.company_id}/casual-meeting?job_id=${job.id}` : undefined}
         applyHref={`/jobs/${job.id}/apply`}
       />
 
@@ -1064,6 +1064,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
             <aside className="hidden lg:flex" style={{ flexDirection: "column", gap: 16, alignSelf: "flex-start", position: "sticky", top: 80 }}>
               {/* CTA */}
               <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "22px", display: "flex", flexDirection: "column", gap: 12 }}>
+                {company.jobs_public && (
                 <div style={{
                   background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
                   borderRadius: 10, padding: "18px", textAlign: "center" as const,
@@ -1081,6 +1082,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     カジュアル面談を申し込む
                   </Link>
                 </div>
+                )}
                 <Link href={`/jobs/${job.id}/apply`} style={{
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                   width: "100%", padding: "14px 28px",
