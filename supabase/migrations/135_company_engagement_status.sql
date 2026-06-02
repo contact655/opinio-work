@@ -35,19 +35,25 @@ CREATE TABLE IF NOT EXISTS ow_company_members (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id      UUID        NOT NULL REFERENCES ow_companies(id) ON DELETE CASCADE,
   user_id         UUID        NOT NULL REFERENCES ow_users(id) ON DELETE CASCADE,
-  display_consent BOOLEAN     NOT NULL DEFAULT FALSE,  -- 「この企業の社員として表示する」本人同意
-  consent_at      TIMESTAMPTZ,                         -- 同意日時
-  is_public       BOOLEAN     NOT NULL DEFAULT FALSE,  -- 実際に企業ページに表示するか
-  role_title      TEXT,                                -- 表示する役職名（任意）
+  display_consent BOOLEAN     NOT NULL DEFAULT FALSE,
+  consent_at      TIMESTAMPTZ,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(company_id, user_id)
 );
 
--- is_public は display_consent = true のときのみ許可 (CHECK 制約)
+-- テーブルが既存でカラムが欠けていてもエラーにならないよう ADD COLUMN IF NOT EXISTS で追加
 ALTER TABLE ow_company_members
-  ADD CONSTRAINT check_public_requires_consent
-  CHECK (is_public = FALSE OR display_consent = TRUE);
+  ADD COLUMN IF NOT EXISTS is_public   BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS role_title  TEXT;
+
+-- is_public は display_consent = true のときのみ許可 (CHECK 制約)
+-- 制約が既にある場合は無視
+DO $$ BEGIN
+  ALTER TABLE ow_company_members
+    ADD CONSTRAINT check_public_requires_consent
+    CHECK (is_public = FALSE OR display_consent = TRUE);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── 4. ow_company_domain_verifications テーブル（会社ドメイン認証） ────────────
 -- 会社メールドメインで企業関係者であることを確認する（フリーメールはアプリ側でブロック）
@@ -77,33 +83,38 @@ CREATE INDEX IF NOT EXISTS idx_ow_domain_verif_token             ON ow_company_d
 
 ALTER TABLE ow_company_members ENABLE ROW LEVEL SECURITY;
 
--- 読み取り: is_public = true の行は誰でも読める（企業ページ表示用）
-CREATE POLICY "public_members_read" ON ow_company_members
-  FOR SELECT USING (is_public = TRUE);
+-- ポリシーは既存の場合スキップ
+DO $$ BEGIN
+  CREATE POLICY "public_members_read" ON ow_company_members
+    FOR SELECT USING (is_public = TRUE);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- 自分のレコードは本人が読める
-CREATE POLICY "own_member_read" ON ow_company_members
-  FOR SELECT USING (user_id = auth.uid());
+DO $$ BEGIN
+  CREATE POLICY "own_member_read" ON ow_company_members
+    FOR SELECT USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- 管理者は全件操作可
-CREATE POLICY "admin_full_access_members" ON ow_company_members
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM ow_user_roles
-      WHERE user_id = auth.uid() AND role = 'admin'
-    )
-  );
+DO $$ BEGIN
+  CREATE POLICY "admin_full_access_members" ON ow_company_members
+    FOR ALL USING (
+      EXISTS (
+        SELECT 1 FROM ow_user_roles
+        WHERE user_id = auth.uid() AND role = 'admin'
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 ALTER TABLE ow_company_domain_verifications ENABLE ROW LEVEL SECURITY;
 
--- domain_verifications: 管理者のみアクセス可（トークンはサーバーサイドのみ）
-CREATE POLICY "admin_full_access_domain_verif" ON ow_company_domain_verifications
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM ow_user_roles
-      WHERE user_id = auth.uid() AND role = 'admin'
-    )
-  );
+DO $$ BEGIN
+  CREATE POLICY "admin_full_access_domain_verif" ON ow_company_domain_verifications
+    FOR ALL USING (
+      EXISTS (
+        SELECT 1 FROM ow_user_roles
+        WHERE user_id = auth.uid() AND role = 'admin'
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── 7. updated_at 自動更新トリガー ────────────────────────────────────────────
 
