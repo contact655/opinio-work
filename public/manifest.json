@@ -1,0 +1,101 @@
+{
+  "name": "OPINIO — キャリアに、第三者の目を。",
+  "short_name": "OPINIO",
+  "description": "IT/SaaS業界の転職プラットフォーム。企業の今を知り、先輩と話し、自分で決める。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#002366",
+  "orientation": "portrait-primary",
+  "lang": "ja",
+  "scope": "/",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/pwa/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pwa/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pwa/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pwa/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pwa/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pwa/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pwa/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/pwa/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "企業を探す",
+      "short_name": "企業",
+      "url": "/companies",
+      "icons": [{ "src": "/icons/pwa/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "求人を探す",
+      "short_name": "求人",
+      "url": "/jobs",
+      "icons": [{ "src": "/icons/pwa/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "マイページ",
+      "short_name": "マイページ",
+      "url": "/mypage",
+      "icons": [{ "src": "/icons/pwa/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "フィード",
+      "short_name": "フィード",
+      "url": "/feed",
+      "icons": [{ "src": "/icons/pwa/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
+}

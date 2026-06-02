@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
 import { Analytics } from "@/components/analytics/Analytics";
+import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 
@@ -76,10 +77,23 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/pwa/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icons/pwa/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
     shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
+    apple: { url: "/icons/pwa/icon-192.png", sizes: "192x192" },
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "OPINIO",
+  },
+  formatDetection: {
+    telephone: false,
   },
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ?? "",
@@ -130,6 +144,15 @@ export default function RootLayout({
   return (
     <html lang="ja" className={`${inter.variable} ${notoSansJP.variable} ${notoSerifJP.variable}`}>
       <head>
+        {/* PWA */}
+        <meta name="theme-color" content="#002366" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="OPINIO" />
+        <link rel="apple-touch-icon" href="/icons/pwa/icon-192.png" />
+        <link rel="mask-icon" href="/icons/pwa/icon-192.png" color="#002366" />
+        {/* JSON-LD */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -150,6 +173,7 @@ export default function RootLayout({
         <a href="#main-content" className="skip-to-main">メインコンテンツへスキップ</a>
         {children}
         <Analytics />
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );

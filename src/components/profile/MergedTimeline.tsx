@@ -26,6 +26,9 @@ export interface CareerEntry {
   ended_at: string | null;  // "YYYY-MM-DD" | null when is_current
   is_current: boolean;
   description?: string | null;
+  /** なぜこの会社を選んだか（任意） */
+  join_reason?: string | null;
+  employment_type?: string | null;
 }
 
 export interface EducationSchoolMaster {
@@ -658,6 +661,20 @@ function CareerContent({
         </div>
       )}
 
+      {/* Employment type badge */}
+      {data.employment_type && (
+        <span style={{
+          display: "inline-flex", alignItems: "center",
+          fontSize: 10, fontWeight: 600,
+          color: "var(--ink-soft)",
+          background: "var(--bg-tint)", border: "1px solid var(--line)",
+          padding: "1px 7px", borderRadius: 100,
+          marginBottom: 4,
+        }}>
+          {data.employment_type}
+        </span>
+      )}
+
       {/* Duration (mobile only — desktop shows in DateCol) */}
       {duration && (
         <div
@@ -685,6 +702,29 @@ function CareerContent({
         ) : (
           <DescriptionGate />
         )
+      )}
+
+      {/* Join reason — "なぜこの会社を選んだか" */}
+      {data.join_reason && (
+        <div style={{
+          marginTop: 10,
+          padding: "10px 12px",
+          borderRadius: 8,
+          background: "linear-gradient(135deg, #f8f4ff 0%, #eff6ff 100%)",
+          border: "1px solid #e8e0ff",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+            </svg>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--purple)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+              Why I joined
+            </span>
+          </div>
+          <p style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>
+            {data.join_reason}
+          </p>
+        </div>
       )}
     </div>
   );

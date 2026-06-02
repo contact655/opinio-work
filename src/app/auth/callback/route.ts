@@ -112,7 +112,7 @@ function buildWelcomeHtml(name: string): string {
             <p style="margin:0 0 16px;color:#0f172a;font-weight:600">OPINIO でできること：</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
               ${[
-                ["🏢", "36社以上の企業情報・カジュアル面談申込"],
+                ["🏢", "IT/SaaS 企業の情報閲覧・カジュアル面談申込"],
                 ["💼", "IT/SaaS 業界の求人に直接応募"],
                 ["🌟", "先輩メンターに30分の無料キャリア相談"],
               ].map(([icon, text]) => `

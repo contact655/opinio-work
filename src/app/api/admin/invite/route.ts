@@ -55,8 +55,9 @@ export async function POST(req: Request) {
   );
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://opinio.jp";
+  // biz ユーザーは /auth/callback?biz=1 へ（/biz/auth/callback は存在しない）
   const redirectTo = role === "biz"
-    ? `${siteUrl}/biz/auth/callback`
+    ? `${siteUrl}/auth/callback?biz=1`
     : `${siteUrl}/auth/callback`;
 
   const results: { email: string; ok: boolean; error?: string }[] = [];

@@ -66,8 +66,9 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
   const remoteTags = deriveRemoteTags(company.remote_work_status);
   const hasTags = remoteTags.length > 0 || company.accepting_casual_meetings;
 
-  // カバーエリア: 写真 or グラデーション
-  const fallbackGradient = company.logo_gradient ?? "linear-gradient(135deg, #002366, #3B5FD9)";
+  // カバーエリア: 写真 or 統一グラデーション（バラバラな色を避けるため navy 系に統一）
+  // ロゴアバターには logo_gradient をそのまま使う（小さいため色の多様性はOK）
+  const fallbackGradient = "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
 
   return (
     <Link href={`/companies/${company.id}`} prefetch={true} style={{ textDecoration: "none", display: "block", height: "100%" }}>

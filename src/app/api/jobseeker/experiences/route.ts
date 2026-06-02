@@ -28,7 +28,7 @@ export async function GET() {
 
   const { data: rows, error: rowsErr } = await supabase
     .from("ow_experiences")
-    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, display_order")
+    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type, display_order")
     .eq("user_id", owUserId)
     .order("is_current", { ascending: false })
     .order("started_at", { ascending: false });
@@ -81,6 +81,8 @@ export async function GET() {
       endedAt: r.ended_at ? (r.ended_at as string).slice(0, 7) : undefined,
       isCurrent: r.is_current as boolean,
       description: r.description as string | undefined || undefined,
+      joinReason: r.join_reason as string | undefined || undefined,
+      employmentType: r.employment_type as string | undefined || undefined,
       displayOrder: (r.display_order as number) ?? 0,
     };
   });
@@ -133,6 +135,8 @@ export async function POST(req: Request) {
       ended_at: body.ended_at ? `${body.ended_at}-01` : null,
       is_current: (body.is_current as boolean | undefined) ?? false,
       description: (body.description as string | undefined) ?? null,
+      join_reason: (body.join_reason as string | undefined) ?? null,
+      employment_type: (body.employment_type as string | undefined) ?? null,
       display_order: (body.display_order as number | undefined) ?? 0,
     })
     .select("id")

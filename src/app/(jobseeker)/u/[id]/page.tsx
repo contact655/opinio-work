@@ -36,6 +36,7 @@ type OwUser = {
   social_links: SocialLinks | null;
   is_mentor: boolean;
   future_aspirations: string | null;
+  strengths_finder: string[] | null;
   auth_id: string;
 };
 
@@ -81,7 +82,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     supabase.auth.getUser(),
     supabase
       .from("ow_users")
-      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, birth_date, location, social_links, is_mentor, future_aspirations, auth_id")
+      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, birth_date, location, social_links, is_mentor, future_aspirations, strengths_finder, auth_id")
       .eq("id", params.id)
       .maybeSingle(),
   ]);
@@ -113,17 +114,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
     { data: expRows }, { data: allRoles }, { data: skillTagsRaw },
     { data: educationsRaw }, { data: certificationsRaw }, { data: contentLinksRaw },
     { data: achievementsRaw }, { data: awardsRaw }, { data: mediaAppearancesRaw },
+    { data: recentPostsRaw },
   ] = await Promise.all([
     supabase
       .from("ow_experiences")
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description")
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type")
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
     supabase.from("ow_roles").select("id, name"),
     supabase
       .from("ow_user_skill_tags")
-      .select("id, label, sort_order")
+      .select("id, label, category, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
     supabase
@@ -156,6 +158,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .select("id, title, media_name, url, thumbnail_url, appeared_at, description, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
+    supabase
+      .from("ow_posts")
+      .select("id, content, image_url, created_at, likes:ow_post_likes(count), comments:ow_post_comments(count)")
+      .eq("user_id", owUser.id)
+      .order("created_at", { ascending: false })
+      .limit(3),
   ]);
 
   const skillTags      = skillTagsRaw      ?? [];
@@ -177,6 +185,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const mediaAppearances = (mediaAppearancesRaw ?? []) as Array<{
     id: string; title: string; media_name: string | null; url: string | null;
     thumbnail_url: string | null; appeared_at: string | null; description: string | null; sort_order: number;
+  }>;
+  const recentPosts = (recentPostsRaw ?? []) as Array<{
+    id: string; content: string; image_url: string | null; created_at: string;
+    likes: Array<{ count: number }>; comments: Array<{ count: number }>;
   }>;
 
   // ロール表示名を直接参照（ow_roles.name が日本語表示ラベルそのもの、slug 変換不要）
@@ -588,6 +600,119 @@ export default async function UserProfilePage({ params }: { params: { id: string
           {/* ── Main column ─────────────────────────────────────────── */}
           <div>
 
+            {/* ── ハイライト (LinkedIn-style 2-3 cards) ── */}
+            {(() => {
+              const highlights: { icon: React.ReactNode; label: string; body: React.ReactNode; href?: string; color: string }[] = [];
+
+              // Card 1: 現在の在籍企業 → カジュアル面談CTA（非オーナー、company_id あり）
+              if (!viewerIsOwner && currentCareer?.company_id) {
+                highlights.push({
+                  color: "var(--warm)",
+                  icon: (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                  ),
+                  label: "カジュアル面談",
+                  body: (
+                    <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
+                      {currentCareer.company_name}のメンバーと<br/>気軽に話してみませんか
+                    </span>
+                  ),
+                  href: `/companies/${currentCareer.company_id}/casual-meeting`,
+                });
+              }
+
+              // Card 2: メンター相談CTA（非オーナー、is_mentor）
+              if (!viewerIsOwner && owUser.is_mentor && mentorId) {
+                highlights.push({
+                  color: "var(--royal)",
+                  icon: (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  ),
+                  label: "メンター相談",
+                  body: (
+                    <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
+                      キャリアについて<br/>直接相談できます（無料）
+                    </span>
+                  ),
+                  href: `/mentors/${mentorId}/reserve`,
+                });
+              }
+
+              // Card 3: 最新の発信コンテンツ
+              if (contentLinks.length > 0) {
+                const latest = contentLinks[0];
+                const meta = PLATFORM_META[latest.platform ?? "other"] ?? PLATFORM_META.other;
+                highlights.push({
+                  color: meta.color,
+                  icon: (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                    </svg>
+                  ),
+                  label: meta.label,
+                  body: (
+                    <span style={{
+                      fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5,
+                      overflow: "hidden", display: "-webkit-box",
+                      WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                    }}>
+                      {latest.title || latest.url}
+                    </span>
+                  ),
+                  href: latest.url,
+                });
+              }
+
+              if (highlights.length === 0) return null;
+
+              return (
+                <section style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+                    ハイライト
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${highlights.length}, 1fr)`, gap: 10 }}>
+                    {highlights.map((h, i) => (
+                      <a
+                        key={i}
+                        href={h.href ?? "#"}
+                        target={h.href?.startsWith("http") ? "_blank" : undefined}
+                        rel={h.href?.startsWith("http") ? "noopener noreferrer" : undefined}
+                        style={{
+                          display: "flex", alignItems: "flex-start", gap: 10,
+                          padding: "14px 16px", borderRadius: 12,
+                          background: "#fff", border: "1px solid var(--line)",
+                          textDecoration: "none", boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+                          transition: "box-shadow 0.15s",
+                        }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px rgba(15,23,42,0.10)"; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 4px rgba(15,23,42,0.06)"; }}
+                      >
+                        <div style={{
+                          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                          background: h.color,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          {h.icon}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)", marginBottom: 3, letterSpacing: "0.02em" }}>
+                            {h.label}
+                          </div>
+                          {h.body}
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
+
             {/* ── プロフィール完成度ガイド (owners only) ── */}
             {viewerIsOwner && (() => {
               const items = [
@@ -747,25 +872,95 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     {skillTags.length}件
                   </span>
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {skillTags.map((tag) => (
-                    <span
-                      key={tag.id as string}
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: 6,
-                        padding: "7px 14px", borderRadius: 8,
-                        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                        fontSize: 13, color: "var(--royal)", fontWeight: 600,
-                        transition: "background 0.15s",
-                      }}
-                    >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      {tag.label as string}
-                    </span>
-                  ))}
-                </div>
+                {(() => {
+                  // カテゴリ別にグループ化
+                  const CATEGORY_ORDER = ["技術・開発", "プロダクト・UX", "ビジネス・営業", "マーケティング", "データ・分析", "マネジメント", "その他"];
+                  const CATEGORY_COLORS: Record<string, { color: string; bg: string; border: string }> = {
+                    "技術・開発":    { color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
+                    "プロダクト・UX": { color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
+                    "ビジネス・営業": { color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                    "マーケティング": { color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
+                    "データ・分析":  { color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
+                    "マネジメント":  { color: "#DC2626", bg: "#FEE2E2", border: "#FECACA" },
+                    "その他":        { color: "var(--ink-soft)", bg: "var(--bg-tint)", border: "var(--line)" },
+                  };
+
+                  // カテゴリあり/なしで分類
+                  const grouped = new Map<string, typeof skillTags>();
+                  const uncategorized: typeof skillTags = [];
+                  for (const tag of skillTags) {
+                    const cat = (tag.category as string | null) ?? null;
+                    if (!cat) { uncategorized.push(tag); continue; }
+                    if (!grouped.has(cat)) grouped.set(cat, []);
+                    grouped.get(cat)!.push(tag);
+                  }
+                  if (uncategorized.length > 0) grouped.set("その他", [...(grouped.get("その他") ?? []), ...uncategorized]);
+
+                  const hasGroups = grouped.size > 1 || (grouped.size === 1 && !grouped.has("その他"));
+
+                  if (!hasGroups) {
+                    // グルーピングなし（全部カテゴリ未設定）→ 旧来のフラット表示
+                    return (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {skillTags.map((tag) => (
+                          <span key={tag.id as string} style={{
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            padding: "7px 14px", borderRadius: 8,
+                            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                            fontSize: 13, color: "var(--royal)", fontWeight: 600,
+                          }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            {tag.label as string}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  // カテゴリ別グルーピング表示
+                  const groupedKeys = Array.from(grouped.keys());
+                  const orderedKeys = [...CATEGORY_ORDER.filter((k) => grouped.has(k)), ...groupedKeys.filter((k) => !CATEGORY_ORDER.includes(k))];
+                  return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                      {orderedKeys.map((cat) => {
+                        const tags = grouped.get(cat)!;
+                        const style = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS["その他"];
+                        return (
+                          <div key={cat}>
+                            <div style={{
+                              fontSize: 11, fontWeight: 700, color: style.color,
+                              letterSpacing: "0.06em", marginBottom: 8,
+                              display: "flex", alignItems: "center", gap: 6,
+                            }}>
+                              <span style={{
+                                display: "inline-block", width: 8, height: 8,
+                                borderRadius: "50%", background: style.color, flexShrink: 0,
+                              }} />
+                              {cat}
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                              {tags.map((tag) => (
+                                <span key={tag.id as string} style={{
+                                  display: "inline-flex", alignItems: "center", gap: 5,
+                                  padding: "6px 12px", borderRadius: 8,
+                                  background: style.bg, border: `1px solid ${style.border}`,
+                                  fontSize: 12, color: style.color, fontWeight: 600,
+                                }}>
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                  {tag.label as string}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </section>
             )}
 
@@ -1009,6 +1204,74 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </section>
             )}
 
+            {/* ── アクティビティ（最近の投稿） ── */}
+            {recentPosts.length > 0 && (
+              <section style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                    アクティビティ
+                  </span>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                    ACTIVITY
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                  <Link href="/feed" style={{ fontSize: 11, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>
+                    すべて見る →
+                  </Link>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {recentPosts.map((post) => {
+                    const likeCount = (post.likes as Array<{ count: number }>)[0]?.count ?? 0;
+                    const commentCount = (post.comments as Array<{ count: number }>)[0]?.count ?? 0;
+                    const diff = Date.now() - new Date(post.created_at).getTime();
+                    const mins = Math.floor(diff / 60000);
+                    const relTime = mins < 60 ? `${mins}分前` : mins < 1440 ? `${Math.floor(mins / 60)}時間前` : `${Math.floor(mins / 1440)}日前`;
+                    return (
+                      <div key={post.id} style={{
+                        padding: "14px 16px", borderRadius: 10,
+                        background: "var(--bg-tint)", border: "1px solid var(--line)",
+                      }}>
+                        {post.image_url && (
+                          <div style={{ marginBottom: 10, borderRadius: 8, overflow: "hidden", maxHeight: 200 }}>
+                            <img src={post.image_url} alt="" style={{ width: "100%", objectFit: "cover", maxHeight: 200 }} />
+                          </div>
+                        )}
+                        <p style={{
+                          fontSize: 13, color: "var(--ink)", lineHeight: 1.75, margin: "0 0 10px",
+                          whiteSpace: "pre-wrap",
+                          display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}>
+                          {post.content}
+                        </p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                            {relTime}
+                          </span>
+                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--ink-mute)" }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                            {likeCount}
+                          </span>
+                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--ink-mute)" }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            {commentCount}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* ── メディア掲載 ── */}
             {mediaAppearances.length > 0 && (
               <section style={{
@@ -1227,7 +1490,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </div>
                 )}
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                  gap: 14,
+                }}>
                   {contentLinks.map((link) => {
                     const meta = PLATFORM_META[link.platform ?? "other"] ?? PLATFORM_META.other;
                     return (
@@ -1237,53 +1504,75 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                          display: "flex", alignItems: "flex-start", gap: 12,
-                          padding: "12px", borderRadius: 10,
-                          border: "1px solid var(--line)", background: "var(--bg-tint)",
-                          textDecoration: "none", transition: "border-color 0.15s",
+                          display: "flex", flexDirection: "column",
+                          borderRadius: 12, overflow: "hidden",
+                          border: "1px solid var(--line)",
+                          background: "#fff",
+                          textDecoration: "none",
+                          transition: "box-shadow 0.15s, transform 0.15s",
+                          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(15,23,42,0.12)";
+                          (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 4px rgba(15,23,42,0.06)";
+                          (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
                         }}
                       >
-                        {/* Platform badge */}
-                        <div style={{
-                          width: 40, height: 40, borderRadius: 8, flexShrink: 0,
-                          background: meta.bg, border: `1.5px solid ${meta.color}22`,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={meta.color} strokeWidth="2" strokeLinecap="round">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                          </svg>
-                        </div>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                            <span style={{
-                              fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
-                              background: meta.bg, color: meta.color,
-                            }}>
-                              {meta.label}
-                            </span>
+                        {/* サムネイル or プラットフォームカラーバナー */}
+                        {link.thumbnail_url ? (
+                          <div style={{ width: "100%", height: 140, overflow: "hidden", flexShrink: 0 }}>
+                            <img
+                              src={link.thumbnail_url}
+                              alt=""
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
                           </div>
+                        ) : (
                           <div style={{
-                            fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.5,
+                            width: "100%", height: 80, flexShrink: 0,
+                            background: `linear-gradient(135deg, ${meta.color}22 0%, ${meta.color}44 100%)`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}>
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={meta.color} strokeWidth="1.5" strokeLinecap="round">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                          </div>
+                        )}
+                        {/* テキスト情報 */}
+                        <div style={{ padding: "12px 14px 14px", flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                          {/* プラットフォームバッジ */}
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", gap: 4,
+                            fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                            background: meta.bg, color: meta.color,
+                            alignSelf: "flex-start",
+                          }}>
+                            {meta.label}
+                          </span>
+                          {/* タイトル */}
+                          <div style={{
+                            fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5,
                             overflow: "hidden", display: "-webkit-box",
                             WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                           }}>
                             {link.title || link.url}
                           </div>
+                          {/* 説明 */}
                           {link.description && (
                             <div style={{
-                              fontSize: 11, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.5,
+                              fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6,
                               overflow: "hidden", display: "-webkit-box",
-                              WebkitLineClamp: 1, WebkitBoxOrient: "vertical",
+                              WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                              marginTop: "auto",
                             }}>
                               {link.description}
                             </div>
                           )}
                         </div>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                          <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-                        </svg>
                       </a>
                     );
                   })}
@@ -1491,6 +1780,106 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   )}
                 </div>
               )}
+
+              {/* StrengthsFinder */}
+              {(owUser.strengths_finder?.length ?? 0) > 0 && (() => {
+                const DOMAIN_MAP: Record<string, { label: string; color: string; bg: string; border: string }> = {
+                  // 実行力
+                  "達成欲": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
+                  "アレンジ": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
+                  "信念": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
+                  "公平性": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
+                  "慎重さ": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
+                  "規律性": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
+                  "集中力": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
+                  "責任感": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
+                  "回復志向": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
+                  // 影響力
+                  "活発性": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
+                  "指揮": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
+                  "コミュニケーション": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
+                  "競争性": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
+                  "最上志向": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
+                  "自己確信": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
+                  "自我": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
+                  "社交性": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
+                  // 人間関係構築
+                  "適応性": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "つながり": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "成長促進": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "共感": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "調和性": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "包含": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "個別化": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "ポジティブ": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "親密性": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                  // 戦略的思考
+                  "分析思考": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "文脈": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "未来志向": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "着想": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "収集心": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "内省": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "学習欲": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "戦略性": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
+                };
+                const strengths = owUser.strengths_finder!;
+                return (
+                  <div style={{
+                    background: "#fff", border: "1px solid var(--line)",
+                    borderRadius: 14, padding: "18px 20px",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                        StrengthsFinder
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                      {strengths.map((name, idx) => {
+                        const domain = DOMAIN_MAP[name];
+                        return (
+                          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            {/* 順位バッジ */}
+                            <div style={{
+                              width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                              background: domain ? domain.color : "var(--ink-mute)",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 10, fontWeight: 700, color: "#fff",
+                              fontFamily: "Inter, sans-serif",
+                            }}>
+                              {idx + 1}
+                            </div>
+                            {/* 資質名 */}
+                            <span style={{
+                              fontSize: 13, fontWeight: 600,
+                              color: domain ? domain.color : "var(--ink)",
+                              flex: 1,
+                            }}>
+                              {name}
+                            </span>
+                            {/* ドメインバッジ */}
+                            {domain && (
+                              <span style={{
+                                fontSize: 10, fontWeight: 600,
+                                color: domain.color,
+                                background: domain.bg,
+                                border: `1px solid ${domain.border}`,
+                                padding: "1px 6px", borderRadius: 100,
+                                whiteSpace: "nowrap",
+                              }}>
+                                {domain.label}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Certifications */}
               {certifications.length > 0 && (

@@ -20,7 +20,7 @@ export default async function ProfileEditPage({
 
   const { data: owUser } = await supabase
     .from("ow_users")
-    .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, location, birth_date, about_me, future_aspirations, social_links")
+    .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, location, birth_date, about_me, future_aspirations, strengths_finder, social_links")
     .eq("auth_id", user.id)
     .maybeSingle();
 
@@ -81,7 +81,7 @@ export default async function ProfileEditPage({
     owUser
       ? supabase
           .from("ow_experiences")
-          .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description")
+          .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type")
           .eq("user_id", owUser.id)
           .order("is_current", { ascending: false })
           .order("started_at", { ascending: false })
@@ -189,6 +189,8 @@ export default async function ProfileEditPage({
       endedAt: r.ended_at ? (r.ended_at as string).slice(0, 7) : undefined,
       isCurrent: r.is_current as boolean,
       description: (r.description as string | null) ?? undefined,
+      joinReason: (r.join_reason as string | null) ?? undefined,
+      employmentType: (r.employment_type as string | null) ?? undefined,
     };
   });
 

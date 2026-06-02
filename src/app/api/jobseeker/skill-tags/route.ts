@@ -27,7 +27,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("ow_user_skill_tags")
-    .select("id, label, sort_order")
+    .select("id, label, category, sort_order")
     .eq("user_id", owUserId)
     .order("sort_order", { ascending: true });
 
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { label?: unknown };
+  let body: { label?: unknown; category?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -104,11 +104,13 @@ export async function POST(req: Request) {
 
   const nextSortOrder = (maxRow?.sort_order ?? 0) + 1;
 
+  const rawCategory = (body.category as string | undefined) ?? null;
+
   // INSERT
   const { data: inserted, error: insertError } = await supabase
     .from("ow_user_skill_tags")
-    .insert({ user_id: owUserId, label: rawLabel, sort_order: nextSortOrder })
-    .select("id, label, sort_order")
+    .insert({ user_id: owUserId, label: rawLabel, category: rawCategory, sort_order: nextSortOrder })
+    .select("id, label, category, sort_order")
     .single();
 
   if (insertError) {

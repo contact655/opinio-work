@@ -37,6 +37,6 @@ export async function GET() {
     );
   } catch {
     // フォールバック
-    return NextResponse.json({ companies: 36, jobs: 30, mentors: 10 });
+    return NextResponse.json({ companies: 13, jobs: 0, mentors: 13 });
   }
 }

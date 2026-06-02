@@ -23,6 +23,8 @@ export type Stint = {
   endedAt?: string;    // YYYY-MM
   isCurrent: boolean;
   description?: string;
+  joinReason?: string;
+  employmentType?: string;
 };
 
 // ── Group types and helpers ───────────────────────────────────────────────────
@@ -150,6 +152,8 @@ type StintDraft = {
   endedAt: string;
   isCurrent: boolean;
   description: string;
+  joinReason: string;
+  employmentType: string;
 };
 
 const EMPTY_DRAFT: StintDraft = {
@@ -162,6 +166,8 @@ const EMPTY_DRAFT: StintDraft = {
   endedAt: "",
   isCurrent: false,
   description: "",
+  joinReason: "",
+  employmentType: "",
 };
 
 // ── Company body helpers ──────────────────────────────────────────────────────
@@ -627,6 +633,28 @@ function StintForm({
         />
       </div>
 
+      {/* 雇用形態 */}
+      <div>
+        <label style={labelStyle()}>
+          <span>雇用形態</span>
+        </label>
+        <select
+          value={draft.employmentType}
+          onChange={(e) => set("employmentType", e.target.value)}
+          disabled={isSaving}
+          style={{ ...fieldStyle() }}
+          aria-label="雇用形態"
+        >
+          <option value="">選択しない</option>
+          <option value="正社員">正社員</option>
+          <option value="業務委託">業務委託</option>
+          <option value="インターン">インターン</option>
+          <option value="役員">役員</option>
+          <option value="嘱託">嘱託</option>
+          <option value="アルバイト">アルバイト</option>
+        </select>
+      </div>
+
       {/* Period */}
       <div>
         <label style={labelStyle()}>期間 *</label>
@@ -677,6 +705,28 @@ function StintForm({
         />
         <div style={{ fontSize: 11, color: descOver ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
           {descOver ? `${descLen - 500} 文字超過` : `残り ${500 - descLen} 文字`}
+        </div>
+      </div>
+
+      {/* Join reason (なぜこの会社を選んだか) */}
+      <div>
+        <label style={labelStyle()}>
+          <span>なぜこの会社を選んだか（任意）</span>
+          <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: "var(--purple)", background: "var(--purple-soft)", padding: "1px 7px", borderRadius: 100, letterSpacing: "0.04em" }}>
+            公開プロフィールに表示
+          </span>
+        </label>
+        <textarea
+          aria-label="なぜこの会社を選んだか"
+          value={draft.joinReason}
+          onChange={(e) => set("joinReason", e.target.value)}
+          placeholder="例: 〇〇な課題を解決したくて。前職でできなかった〇〇に挑戦するため"
+          disabled={isSaving}
+          rows={2}
+          style={{ ...fieldStyle(), resize: "vertical", lineHeight: 1.7, borderColor: "var(--purple-soft)" }}
+        />
+        <div style={{ fontSize: 11, color: draft.joinReason.length > 300 ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
+          {draft.joinReason.length > 300 ? `${draft.joinReason.length - 300} 文字超過` : `残り ${300 - draft.joinReason.length} 文字`}
         </div>
       </div>
 
@@ -750,6 +800,18 @@ function StintCard({
           <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
             {formatPeriod(stint.startedAt, stint.endedAt, stint.isCurrent)}
           </div>
+          {/* Employment type badge */}
+          {stint.employmentType && (
+            <span style={{
+              display: "inline-flex", alignItems: "center",
+              fontSize: 10, fontWeight: 600, color: "var(--ink-soft)",
+              background: "var(--bg-tint)", border: "1px solid var(--line)",
+              padding: "1px 7px", borderRadius: 100,
+              marginTop: 4,
+            }}>
+              {stint.employmentType}
+            </span>
+          )}
           {/* Description snippet */}
           {stint.description && (
             <div
@@ -767,6 +829,17 @@ function StintCard({
               }}
             >
               {stint.description}
+            </div>
+          )}
+          {/* Join reason snippet */}
+          {stint.joinReason && (
+            <div style={{ marginTop: 6, display: "flex", alignItems: "flex-start", gap: 4 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+              </svg>
+              <span style={{ fontSize: 11, color: "var(--purple)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                {stint.joinReason}
+              </span>
             </div>
           )}
         </div>
@@ -834,6 +907,8 @@ export default function CareerHistoryEditor({
     endedAt: s.endedAt ?? "",
     isCurrent: s.isCurrent,
     description: s.description ?? "",
+    joinReason: s.joinReason ?? "",
+    employmentType: s.employmentType ?? "",
   }), []);
 
   const draftFromGroup = useCallback((group: StintGroup): StintDraft => ({
@@ -848,6 +923,8 @@ export default function CareerHistoryEditor({
     endedAt: group.latestEnd ?? "",        // 現職グループは "" (isCurrent チェックで制御)
     isCurrent: false,
     description: "",
+    joinReason: "",
+    employmentType: "",
   }), []);
 
   // ── Edit handlers ────────────────────────────────────────────────────────────
@@ -872,6 +949,8 @@ export default function CareerHistoryEditor({
         ended_at: editDraft.isCurrent ? undefined : editDraft.endedAt || undefined,
         is_current: editDraft.isCurrent,
         description: editDraft.description || undefined,
+        join_reason: editDraft.joinReason || undefined,
+        employment_type: editDraft.employmentType || undefined,
       };
       Object.assign(body, buildCompanyBody(editDraft));
 
@@ -896,6 +975,8 @@ export default function CareerHistoryEditor({
                 endedAt: editDraft.isCurrent ? undefined : editDraft.endedAt || undefined,
                 isCurrent: editDraft.isCurrent,
                 description: editDraft.description || undefined,
+                joinReason: editDraft.joinReason || undefined,
+                employmentType: editDraft.employmentType || undefined,
               }
             : s
         ))
@@ -928,6 +1009,8 @@ export default function CareerHistoryEditor({
         ended_at: addDraft.isCurrent ? undefined : addDraft.endedAt || undefined,
         is_current: addDraft.isCurrent,
         description: addDraft.description || undefined,
+        join_reason: addDraft.joinReason || undefined,
+        employment_type: addDraft.employmentType || undefined,
         display_order: stints.length,
       };
       Object.assign(body, buildCompanyBody(addDraft));
@@ -950,6 +1033,8 @@ export default function CareerHistoryEditor({
         endedAt: addDraft.isCurrent ? undefined : addDraft.endedAt || undefined,
         isCurrent: addDraft.isCurrent,
         description: addDraft.description || undefined,
+        joinReason: addDraft.joinReason || undefined,
+        employmentType: addDraft.employmentType || undefined,
       };
 
       setStints((prev) => sortStints([...prev, newStint]));
