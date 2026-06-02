@@ -20,10 +20,20 @@ function getCompanyGradient(str: string): string {
   return gradients[Math.abs(hash) % gradients.length];
 }
 
+type EngagementStatus = "none" | "permitted" | "contracted";
+type ListingStatus = "draft" | "listed";
+
+const ENGAGEMENT_CONFIG: Record<EngagementStatus, { label: string; bg: string; color: string; border: string; dot: string }> = {
+  none:       { label: "未連絡",         bg: "#F1F5F9", color: "#64748B", border: "#E2E8F0", dot: "#94A3B8" },
+  permitted:  { label: "許可済み",       bg: "#FEF3C7", color: "#B45309", border: "#FDE68A", dot: "#D97706" },
+  contracted: { label: "契約済み",       bg: "#ECFDF5", color: "#059669", border: "#A7F3D0", dot: "#059669" },
+};
+
 const STATUS_TABS = [
-  { key: "all",       label: "すべて" },
-  { key: "published", label: "公開中" },
-  { key: "private",   label: "非公開" },
+  { key: "all",        label: "すべて" },
+  { key: "contracted", label: "契約済み" },
+  { key: "permitted",  label: "許可済み" },
+  { key: "none",       label: "未連絡" },
 ];
 
 type Company = {
@@ -34,6 +44,11 @@ type Company = {
   employee_count: string | number | null;
   is_published: boolean;
   accepting_casual_meetings: boolean;
+  listing_status: ListingStatus | null;
+  engagement_status: EngagementStatus | null;
+  jobs_public: boolean;
+  permitted_at: string | null;
+  contracted_at: string | null;
   created_at: string;
   updated_at: string;
   job_count?: number;
@@ -49,18 +64,16 @@ export default function AdminCompaniesPage() {
   const loadCompanies = useCallback(async () => {
     const supabase = createClient();
 
-    // Fetch companies + job counts in parallel
     const [{ data: companyRows }, { data: jobRows }] = await Promise.all([
       supabase
         .from("ow_companies")
-        .select("id, name, industry, location, employee_count, is_published, accepting_casual_meetings, created_at, updated_at")
+        .select("id, name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, permitted_at, contracted_at, created_at, updated_at")
         .order("updated_at", { ascending: false }),
       supabase
         .from("ow_jobs")
         .select("company_id"),
     ]);
 
-    // Build job count map
     const jobCountMap = new Map<string, number>();
     for (const j of jobRows ?? []) {
       const cid = j.company_id as string;
@@ -76,28 +89,59 @@ export default function AdminCompaniesPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    loadCompanies();
-  }, [loadCompanies]);
+  useEffect(() => { loadCompanies(); }, [loadCompanies]);
 
-  // is_published トグル
+  // engagement_status 変更
+  async function handleEngagementChange(company: Company, newStatus: EngagementStatus) {
+    setActionLoading(company.id);
+    const supabase = createClient();
+    const now = new Date().toISOString();
+    const updates: Record<string, unknown> = {
+      engagement_status: newStatus,
+      updated_at: now,
+    };
+    if (newStatus === "permitted" && !company.permitted_at)  updates.permitted_at  = now;
+    if (newStatus === "contracted" && !company.contracted_at) updates.contracted_at = now;
+    // contracted → none に戻す時は jobs_public も false に
+    if (newStatus === "none") updates.jobs_public = false;
+
+    await supabase.from("ow_companies").update(updates).eq("id", company.id);
+    setCompanies((prev) => prev.map((c) => c.id === company.id
+      ? { ...c, engagement_status: newStatus, jobs_public: newStatus === "none" ? false : c.jobs_public,
+          permitted_at: (newStatus === "permitted" && !c.permitted_at) ? now : c.permitted_at,
+          contracted_at: (newStatus === "contracted" && !c.contracted_at) ? now : c.contracted_at }
+      : c
+    ));
+    setActionLoading(null);
+  }
+
+  // jobs_public トグル（engagement_status が none のときは操作不可）
+  async function handleJobsPublicToggle(company: Company) {
+    const es = company.engagement_status ?? "none";
+    if (es === "none") return; // ガード
+    const newValue = !company.jobs_public;
+    setActionLoading(company.id);
+    const supabase = createClient();
+    await supabase.from("ow_companies").update({ jobs_public: newValue, updated_at: new Date().toISOString() }).eq("id", company.id);
+    setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, jobs_public: newValue } : c));
+    setActionLoading(null);
+  }
+
+  // is_published トグル (既存)
   async function handleTogglePublish(company: Company) {
     const newValue = !company.is_published;
     setActionLoading(company.id);
     const supabase = createClient();
-    await supabase
-      .from("ow_companies")
-      .update({ is_published: newValue, updated_at: new Date().toISOString() })
-      .eq("id", company.id);
-    setCompanies((prev) =>
-      prev.map((c) => c.id === company.id ? { ...c, is_published: newValue } : c)
-    );
+    await supabase.from("ow_companies").update({ is_published: newValue, updated_at: new Date().toISOString() }).eq("id", company.id);
+    setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, is_published: newValue } : c));
     setActionLoading(null);
   }
 
   const filtered = companies.filter((c) => {
-    if (activeTab === "published" && !c.is_published) return false;
-    if (activeTab === "private" && c.is_published) return false;
+    const es = c.engagement_status ?? "none";
+    if (activeTab === "contracted" && es !== "contracted") return false;
+    if (activeTab === "permitted"  && es !== "permitted")  return false;
+    if (activeTab === "none"       && es !== "none")       return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
@@ -109,14 +153,16 @@ export default function AdminCompaniesPage() {
     return true;
   });
 
+  const contractedCount = companies.filter((c) => (c.engagement_status ?? "none") === "contracted").length;
+  const permittedCount  = companies.filter((c) => (c.engagement_status ?? "none") === "permitted").length;
+  const noneCount       = companies.filter((c) => (c.engagement_status ?? "none") === "none").length;
+
   if (loading) {
     return (
       <div style={{ padding: 32 }}>
         <div className="skeleton-shimmer" style={{ height: 32, borderRadius: 8, maxWidth: 300, marginBottom: 24 }} />
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {[1,2,3,4,5].map((i) => (
-            <div key={i} className="skeleton-shimmer" style={{ height: 60, borderRadius: 8 }} />
-          ))}
+          {[1,2,3,4,5].map((i) => <div key={i} className="skeleton-shimmer" style={{ height: 60, borderRadius: 8 }} />)}
         </div>
       </div>
     );
@@ -125,30 +171,36 @@ export default function AdminCompaniesPage() {
   return (
     <div style={{ padding: 32 }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>企業管理</h1>
-            <span style={{
-              fontSize: 10, fontWeight: 800, letterSpacing: "0.1em",
-              background: "var(--error)", color: "#fff",
-              padding: "2px 7px", borderRadius: 4,
-            }}>ADMIN</span>
+            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", background: "var(--error)", color: "#fff", padding: "2px 7px", borderRadius: 4 }}>ADMIN</span>
           </div>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4 }}>
-            登録企業の公開状態と基本情報を管理します
+            企業の掲載ステータス・求人公開許可・契約状態を管理します
           </p>
         </div>
-        <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
-          全{" "}
-          <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
-            {companies.length}
-          </strong>{" "}社 ·{" "}
-          <span style={{ color: "var(--success)", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>
-            {companies.filter((c) => c.is_published).length}
-          </span>{" "}
-          <span style={{ color: "var(--success)" }}>社公開中</span>
+        {/* KPI バッジ */}
+        <div style={{ display: "flex", gap: 10 }}>
+          {[
+            { label: "契約済み", count: contractedCount, bg: "#ECFDF5", color: "#059669", border: "#A7F3D0" },
+            { label: "許可済み", count: permittedCount,  bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
+            { label: "未連絡",   count: noneCount,       bg: "#F1F5F9", color: "#64748B", border: "#E2E8F0" },
+          ].map(({ label, count, bg, color, border }) => (
+            <div key={label} style={{ textAlign: "center", padding: "8px 16px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "Inter, sans-serif", lineHeight: 1.2 }}>{count}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color, marginTop: 2 }}>{label}</div>
+            </div>
+          ))}
         </div>
+      </div>
+
+      {/* 法的整理コール */}
+      <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+        <strong style={{ color: "var(--ink)" }}>設計原則:</strong> 企業概要は広く掲載可（ディレクトリ）。
+        求人・面談OKの表示は <code style={{ background: "#EFF3FC", color: "var(--royal)", padding: "1px 5px", borderRadius: 4 }}>jobs_public = true</code> の企業のみ。
+        成果報酬の請求対象は <code style={{ background: "#ECFDF5", color: "#059669", padding: "1px 5px", borderRadius: 4 }}>contracted</code> のみ。
       </div>
 
       {/* Search */}
@@ -157,66 +209,27 @@ export default function AdminCompaniesPage() {
           width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
-        <input
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+        <input type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="企業名・業界・所在地で検索..."
-          aria-label="企業を検索"
-          style={{
-            width: "100%", padding: "9px 36px 9px 36px",
-            border: "1.5px solid #E2E8F0", borderRadius: 8,
-            fontSize: 13, color: "#0F172A", background: "#fff",
-            outline: "none", boxSizing: "border-box",
-            fontFamily: "inherit", transition: "border-color 0.15s",
-          }}
+          style={{ width: "100%", padding: "9px 36px 9px 36px", border: "1.5px solid #E2E8F0", borderRadius: 8, fontSize: 13, color: "#0F172A", background: "#fff", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
           onFocus={(e) => { e.target.style.borderColor = "#002366"; }}
           onBlur={(e) => { e.target.style.borderColor = "#E2E8F0"; }}
         />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => setSearchQuery("")}
-            aria-label="検索をクリア"
-            style={{
-              position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-              background: "none", border: "none", cursor: "pointer",
-              color: "#94A3B8", fontSize: 16, lineHeight: 1, padding: "2px 4px",
-            }}
-          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-        )}
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }} role="tablist" aria-label="企業ステータスで絞り込み">
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {STATUS_TABS.map((tab) => {
-          const count = tab.key === "all"
-            ? companies.length
-            : tab.key === "published"
-            ? companies.filter((c) => c.is_published).length
-            : companies.filter((c) => !c.is_published).length;
+          const count = tab.key === "all" ? companies.length : tab.key === "contracted" ? contractedCount : tab.key === "permitted" ? permittedCount : noneCount;
+          const active = activeTab === tab.key;
           return (
-            <button
-              type="button"
-              key={tab.key}
-              role="tab"
-              aria-selected={activeTab === tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                padding: "6px 14px", borderRadius: 100,
-                border: `1px solid ${activeTab === tab.key ? "#002366" : "#E2E8F0"}`,
-                background: activeTab === tab.key ? "#002366" : "#fff",
-                color: activeTab === tab.key ? "#fff" : "#475569",
-                fontSize: 13, fontWeight: 600, cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 6,
-              }}
-            >
+            <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)} style={{
+              padding: "6px 14px", borderRadius: 100, border: `1px solid ${active ? "#002366" : "#E2E8F0"}`,
+              background: active ? "#002366" : "#fff", color: active ? "#fff" : "#475569",
+              fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+            }}>
               {tab.label}
-              <span style={{
-                fontSize: 11, padding: "1px 6px", borderRadius: 100,
-                background: activeTab === tab.key ? "rgba(255,255,255,0.2)" : "#F1F5F9",
-                color: activeTab === tab.key ? "#fff" : "#64748B",
-              }}>
+              <span style={{ fontSize: 11, padding: "1px 6px", borderRadius: 100, background: active ? "rgba(255,255,255,0.2)" : "#F1F5F9", color: active ? "#fff" : "#64748B" }}>
                 {count}
               </span>
             </button>
@@ -226,118 +239,129 @@ export default function AdminCompaniesPage() {
 
       {/* Table */}
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
-              {["企業名", "業界", "所在地", "従業員数", "求人数", "カジュアル面談", "公開状態", "更新日", "操作"].map((h) => (
-                <th key={h} scope="col" style={{
-                  textAlign: "left", padding: "10px 14px",
-                  fontSize: 11, color: "var(--ink-mute)", fontWeight: 700,
-                  letterSpacing: "0.05em", whiteSpace: "nowrap",
-                }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={9} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
-                  <div style={{ marginBottom: 8, fontSize: 28 }}>🏢</div>
-                  企業が見つかりません
-                </td>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>
+            <thead>
+              <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
+                {["企業名", "業界", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
+                  <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ) : (
-              filtered.map((c) => (
-                <tr key={c.id} style={{ borderBottom: "1px solid var(--line-soft)" }} className="admin-row">
-                  {/* 企業名 */}
-                  <td style={{ padding: "10px 14px" }}>
-                    <Link
-                      href={`/admin/companies/${c.id}`}
-                      style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
-                    >
-                      <div style={{
-                        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                        background: getCompanyGradient(c.id),
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 13, fontWeight: 800, color: "#fff",
-                      }}>
-                        {(c.name || "?")[0]}
-                      </div>
-                      <span style={{ fontWeight: 600, color: "var(--royal)" }}>
-                        {c.name || "—"}
-                      </span>
-                    </Link>
-                  </td>
-                  {/* 業界 */}
-                  <td style={{ padding: "10px 14px", color: "var(--ink-soft)" }}>{c.industry || <span style={{ color: "var(--ink-mute)" }}>—</span>}</td>
-                  {/* 所在地 */}
-                  <td style={{ padding: "10px 14px", color: "var(--ink-soft)" }}>{c.location || <span style={{ color: "var(--ink-mute)" }}>—</span>}</td>
-                  {/* 従業員数 */}
-                  <td style={{ padding: "10px 14px", color: "var(--ink-soft)" }}>{c.employee_count || <span style={{ color: "var(--ink-mute)" }}>—</span>}</td>
-                  {/* 求人数 */}
-                  <td style={{ padding: "10px 14px" }}>
-                    {(c.job_count ?? 0) > 0 ? (
-                      <span style={{
-                        fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100,
-                        background: "var(--royal-50)", color: "var(--royal)",
-                        fontFamily: "Inter, sans-serif",
-                      }}>
-                        {c.job_count}件
-                      </span>
-                    ) : (
-                      <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>—</span>
-                    )}
-                  </td>
-                  {/* カジュアル面談 */}
-                  <td style={{ padding: "10px 14px" }}>
-                    <span style={{
-                      fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
-                      background: c.accepting_casual_meetings ? "#ECFDF5" : "#F1F5F9",
-                      color: c.accepting_casual_meetings ? "#059669" : "#94A3B8",
-                    }}>
-                      {c.accepting_casual_meetings ? "受付中" : "停止中"}
-                    </span>
-                  </td>
-                  {/* 公開状態 */}
-                  <td style={{ padding: "10px 14px" }}>
-                    <span style={{
-                      fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-                      background: c.is_published ? "#ECFDF5" : "#F1F5F9",
-                      color: c.is_published ? "#059669" : "#94A3B8",
-                      border: `1px solid ${c.is_published ? "#A7F3D0" : "#E2E8F0"}`,
-                    }}>
-                      {c.is_published ? "公開中" : "非公開"}
-                    </span>
-                  </td>
-                  {/* 更新日 */}
-                  <td style={{ padding: "10px 14px", color: "var(--ink-mute)", fontSize: 11, whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
-                    {new Date(c.updated_at).toLocaleDateString("ja-JP")}
-                  </td>
-                  {/* 操作 */}
-                  <td style={{ padding: "10px 14px" }}>
-                    <button
-                      type="button"
-                      onClick={() => handleTogglePublish(c)}
-                      disabled={actionLoading === c.id}
-                      style={{
-                        padding: "5px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
-                        cursor: "pointer", whiteSpace: "nowrap",
-                        opacity: actionLoading === c.id ? 0.5 : 1,
-                        background: c.is_published ? "#FEE2E2" : "#EFF3FC",
-                        border: `1px solid ${c.is_published ? "#FCA5A5" : "#B2C4F0"}`,
-                        color: c.is_published ? "#DC2626" : "#002366",
-                      }}
-                    >
-                      {c.is_published ? "非公開にする" : "公開する"}
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={8} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
+                  <div style={{ marginBottom: 8, fontSize: 28 }}>🏢</div>企業が見つかりません
+                </td></tr>
+              ) : (
+                filtered.map((c) => {
+                  const es = (c.engagement_status ?? "none") as EngagementStatus;
+                  const esCfg = ENGAGEMENT_CONFIG[es];
+                  const isLoading = actionLoading === c.id;
+                  return (
+                    <tr key={c.id} style={{ borderBottom: "1px solid var(--line-soft)" }} className="admin-row">
+
+                      {/* 企業名 */}
+                      <td style={{ padding: "10px 14px" }}>
+                        <Link href={`/admin/companies/${c.id}`} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: getCompanyGradient(c.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff" }}>
+                            {(c.name || "?")[0]}
+                          </div>
+                          <span style={{ fontWeight: 600, color: "var(--royal)" }}>{c.name || "—"}</span>
+                        </Link>
+                      </td>
+
+                      {/* 業界 */}
+                      <td style={{ padding: "10px 14px", color: "var(--ink-soft)" }}>{c.industry || <span style={{ color: "var(--ink-mute)" }}>—</span>}</td>
+
+                      {/* 掲載 (is_published) */}
+                      <td style={{ padding: "10px 14px" }}>
+                        <button type="button" onClick={() => handleTogglePublish(c)} disabled={isLoading}
+                          style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100, cursor: "pointer",
+                            background: c.is_published ? "#ECFDF5" : "#F1F5F9",
+                            color: c.is_published ? "#059669" : "#94A3B8",
+                            border: `1px solid ${c.is_published ? "#A7F3D0" : "#E2E8F0"}`,
+                            opacity: isLoading ? 0.5 : 1,
+                          }}>
+                          {c.is_published ? "掲載中" : "非掲載"}
+                        </button>
+                      </td>
+
+                      {/* 企業ステータス（engagement_status） */}
+                      <td style={{ padding: "10px 14px" }}>
+                        <select
+                          value={es}
+                          disabled={isLoading}
+                          onChange={(e) => handleEngagementChange(c, e.target.value as EngagementStatus)}
+                          style={{
+                            fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 6,
+                            background: esCfg.bg, color: esCfg.color, border: `1px solid ${esCfg.border}`,
+                            cursor: "pointer", outline: "none", fontFamily: "inherit",
+                            opacity: isLoading ? 0.5 : 1,
+                          }}
+                        >
+                          <option value="none">未連絡</option>
+                          <option value="permitted">許可済み</option>
+                          <option value="contracted">契約済み</option>
+                        </select>
+                        {es === "contracted" && c.contracted_at && (
+                          <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "Inter, sans-serif" }}>
+                            {new Date(c.contracted_at).toLocaleDateString("ja-JP")}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 求人・面談公開 (jobs_public) */}
+                      <td style={{ padding: "10px 14px" }}>
+                        {es === "none" ? (
+                          <span style={{ fontSize: 11, color: "var(--ink-mute)" }} title="許可済み以上が必要">🔒 要許可</span>
+                        ) : (
+                          <button type="button" onClick={() => handleJobsPublicToggle(c)} disabled={isLoading}
+                            style={{
+                              fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100, cursor: "pointer",
+                              background: c.jobs_public ? "var(--royal)" : "#F1F5F9",
+                              color: c.jobs_public ? "#fff" : "#64748B",
+                              border: `1px solid ${c.jobs_public ? "var(--royal)" : "#E2E8F0"}`,
+                              opacity: isLoading ? 0.5 : 1,
+                            }}>
+                            {c.jobs_public ? "✓ 公開中" : "非公開"}
+                          </button>
+                        )}
+                      </td>
+
+                      {/* 求人数 */}
+                      <td style={{ padding: "10px 14px" }}>
+                        {(c.job_count ?? 0) > 0 ? (
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
+                            {c.job_count}件
+                          </span>
+                        ) : (
+                          <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>—</span>
+                        )}
+                      </td>
+
+                      {/* 企業ページへのリンク */}
+                      <td style={{ padding: "10px 14px" }}>
+                        <Link href={`/companies/${c.id}`} target="_blank"
+                          style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                          表示
+                        </Link>
+                      </td>
+
+                      {/* 更新日 */}
+                      <td style={{ padding: "10px 14px", color: "var(--ink-mute)", fontSize: 11, whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
+                        {new Date(c.updated_at).toLocaleDateString("ja-JP")}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <style>{`

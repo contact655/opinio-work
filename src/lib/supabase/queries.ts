@@ -73,6 +73,10 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
     current_mentors: 0,
     alumni_mentors: 0,
     accepting_casual_meetings: (row.accepting_casual_meetings as boolean) ?? false,
+    // jobs_public が null（Migration未適用）は accepting_casual_meetings で代替
+    jobs_public: row.jobs_public != null
+      ? (row.jobs_public as boolean)
+      : (row.accepting_casual_meetings as boolean) ?? false,
     updated_days_ago: daysSince(row.updated_at as string),
     gradient: (row.logo_gradient as string) ?? FALLBACK_GRADIENT,
     logo_url: (row.logo_url as string | null) ?? null,
@@ -321,6 +325,8 @@ export type CompanyListRow = {
   accepting_casual_meetings: boolean;
   remote_work_status: string | null;
   is_published: boolean;
+  /** 求人・面談OKを実際に表示するか（engagement_status が permitted/contracted の企業のみ true 可） */
+  jobs_public: boolean;
   updated_at: string;
   job_count: number;
   /** カード上部に表示するオフィス写真 URL（ow_company_office_photos の display_order 最小のもの） */
@@ -331,7 +337,7 @@ const COMPANY_LISTPAGE_COLS = [
   "id", "name", "tagline", "industry", "phase", "employee_count",
   "logo_gradient", "logo_letter", "logo_url",
   "location", "accepting_casual_meetings", "remote_work_status",
-  "is_published", "updated_at",
+  "is_published", "jobs_public", "updated_at",
 ].join(", ");
 
 /**
@@ -400,6 +406,10 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     accepting_casual_meetings: (row.accepting_casual_meetings as boolean) ?? false,
     remote_work_status: (row.remote_work_status as string) ?? null,
     is_published: (row.is_published as boolean) ?? false,
+    // jobs_public: null の場合（Migrationが未適用の開発環境など）は accepting_casual_meetings で代替
+    jobs_public: row.jobs_public != null
+      ? (row.jobs_public as boolean)
+      : (row.accepting_casual_meetings as boolean) ?? false,
     updated_at: (row.updated_at as string) ?? "",
     job_count: jobCountMap.get(row.id as string) ?? 0,
     cover_photo_url: coverPhotoMap.get(row.id as string) ?? null,

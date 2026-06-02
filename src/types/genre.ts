@@ -26,7 +26,8 @@ export type CompanyForCarousel = {
   funding_stage: string | null;
   employee_count: string | null;       // ow_companies.employee_count は text 型
   description: string | null;
-  accepting_casual_meetings: boolean;  // 面談OKバッジ用
+  accepting_casual_meetings: boolean;  // 面談OKバッジ用（旧フラグ、後方互換）
+  jobs_public: boolean;                // 求人・面談バッジの実際の表示制御（engagement_status 連動）
   remote_work_status: string | null;   // 働き方バッジ用
   location: string | null;            // 所在地（都道府県）
   logo_letter: string | null;

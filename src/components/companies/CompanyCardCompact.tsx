@@ -188,8 +188,8 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             {initial}
           </span>
         )}
-        {/* Casual meeting badge */}
-        {company.accepting_casual_meetings && (
+        {/* Casual meeting badge — jobs_public フラグで制御 */}
+        {(company.jobs_public ?? company.accepting_casual_meetings) && (
           <span style={{
             position: 'absolute',
             top: 8,

@@ -19,6 +19,8 @@ export type Company = {
   current_mentors: number;
   alumni_mentors: number;
   accepting_casual_meetings: boolean;
+  /** 求人・面談OKを実際に表示するか（engagement_status 連動） */
+  jobs_public?: boolean;
   updated_days_ago: number;
   gradient: string;
   logo_url?: string | null;

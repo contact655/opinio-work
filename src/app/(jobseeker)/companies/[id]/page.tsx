@@ -3389,7 +3389,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
 
 // ─── MobileBottomCTA ── γ-7: モバイル固定底部バー (< 768px) ──────────────────
 function MobileBottomCTA({ company }: { company: Company }) {
-  const hasMeeting = company.accepting_casual_meetings;
+  const hasMeeting = company.jobs_public ?? company.accepting_casual_meetings;
   const hasJobs = company.job_count > 0;
   if (!hasMeeting && !hasJobs) return null;
 
@@ -3484,7 +3484,7 @@ function Sidebar({
     >
       {/* CTA card ── γ-2: 修正① CTA 優先順位逆転 */}
       {(() => {
-        const hasMeeting = company.accepting_casual_meetings;
+        const hasMeeting = company.jobs_public ?? company.accepting_casual_meetings;
         const hasJobs = company.job_count > 0;
         return (
           <div
@@ -3640,7 +3640,7 @@ function Sidebar({
       })()}
 
       {/* 申し込みの流れ — casual meeting flow steps */}
-      {company.accepting_casual_meetings && (
+      {(company.jobs_public ?? company.accepting_casual_meetings) && (
         <div
           style={{
             background: "#fff",
@@ -3831,7 +3831,7 @@ async function SimilarCompanies({ currentId, phase }: { currentId: string; phase
   const supabase = createClient();
   const { data } = await supabase
     .from("ow_companies")
-    .select("id, name, tagline, industry, phase, logo_url, logo_letter, logo_gradient, accepting_casual_meetings, employee_count, current_member_count, obog_count, funding_stage, location")
+    .select("id, name, tagline, industry, phase, logo_url, logo_letter, logo_gradient, accepting_casual_meetings, jobs_public, employee_count, current_member_count, obog_count, funding_stage, location")
     .eq("is_published", true)
     .eq("phase", phase)
     .neq("id", currentId)
@@ -3849,6 +3849,9 @@ async function SimilarCompanies({ currentId, phase }: { currentId: string; phase
     employee_count: c.employee_count ?? null,
     description: null,
     accepting_casual_meetings: c.accepting_casual_meetings ?? false,
+    jobs_public: (c as Record<string, unknown>).jobs_public != null
+      ? (c as Record<string, unknown>).jobs_public as boolean
+      : c.accepting_casual_meetings ?? false,
     remote_work_status: null,
     location: c.location ?? null,
     logo_letter: c.logo_letter ?? null,
