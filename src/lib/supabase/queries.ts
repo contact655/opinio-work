@@ -290,6 +290,8 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     numbersUpdatedAt: (row.numbers_updated_at as string | null) ?? null,
     // Org teams
     orgTeams: Array.isArray(row.org_teams) ? row.org_teams as CompanyDetail["orgTeams"] : null,
+    // Customer cases
+    customer_cases: Array.isArray(row.customer_cases) ? row.customer_cases as CompanyDetail["customer_cases"] : null,
   };
 }
 
@@ -458,6 +460,8 @@ const COMPANY_DETAIL_COLS = [
   "org_teams",
   // Culture keywords
   "culture_keywords",
+  // Customer cases (rich JSONB)
+  "customer_cases",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {

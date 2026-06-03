@@ -105,6 +105,13 @@ export type CompanyDetail = {
   // Products & Customers
   main_products?: string[] | null;
   main_customers?: string[] | null;
+  customer_cases?: Array<{
+    name: string;
+    industry: string;
+    products: string[];
+    usecase: string;
+    result: string;
+  }> | null;
   // Numbers survey timestamp
   numbersUpdatedAt: string | null;
   // Org teams
