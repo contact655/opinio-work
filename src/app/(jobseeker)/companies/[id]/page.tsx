@@ -34,6 +34,21 @@ import { JOB_GROUPING_THRESHOLD } from "@/lib/constants";
 
 type ExternalLink = Database["public"]["Tables"]["ow_company_external_links"]["Row"];
 
+// ow_company_posts (Migration 145)
+type CompanyPost = {
+  id: string;
+  company_id: string;
+  author_user_id: string | null;
+  title: string;
+  body: string;
+  category: string;
+  cover_image_url: string | null;
+  is_published: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 // 5分間 ISR キャッシュ
 export const revalidate = 300;
 
@@ -1773,6 +1788,168 @@ const EMPLOYEE_GRID_STYLE: React.CSSProperties = {
   display: "grid",
   gap: 10,
 };
+
+// ─── CompanyStoriesSection ────────────────────────────────────────────────────
+
+const STORY_CATEGORY_LABELS: Record<string, string> = {
+  culture:   "カルチャー",
+  interview: "社員インタビュー",
+  event:     "イベント",
+  product:   "プロダクト",
+  hiring:    "採用情報",
+  other:     "その他",
+};
+
+const STORY_CATEGORY_COLORS: Record<string, { bg: string; color: string }> = {
+  culture:   { bg: "var(--royal-50)",    color: "var(--royal)" },
+  interview: { bg: "var(--warm-soft)",   color: "#92400E" },
+  event:     { bg: "var(--purple-soft)", color: "var(--purple)" },
+  product:   { bg: "var(--success-soft)", color: "var(--success)" },
+  hiring:    { bg: "#FEE2E2",            color: "#DC2626" },
+  other:     { bg: "var(--line-soft)",   color: "var(--ink-mute)" },
+};
+
+function StoryCardPublic({ story }: { story: CompanyPost }) {
+  const cat = STORY_CATEGORY_COLORS[story.category] ?? STORY_CATEGORY_COLORS.other;
+  const bodyPreview = story.body.replace(/[#*`>]/g, "").trim().slice(0, 160);
+
+  return (
+    <div style={{
+      background: "#fff",
+      border: "1px solid var(--line)",
+      borderRadius: 12,
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      transition: "box-shadow 0.15s, transform 0.15s",
+    }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 20px rgba(0,35,102,0.12)";
+        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+        (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
+      }}
+    >
+      {/* カバー画像 */}
+      {story.cover_image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={story.cover_image_url}
+          alt={story.title}
+          loading="lazy"
+          style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }}
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+        />
+      ) : (
+        <div style={{
+          width: "100%", height: 120,
+          background: cat.bg,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <span style={{ fontSize: 42 }}>
+            {story.category === "culture" ? "🏢" :
+             story.category === "interview" ? "🎤" :
+             story.category === "event" ? "🗓️" :
+             story.category === "product" ? "🚀" :
+             story.category === "hiring" ? "✋" : "📝"}
+          </span>
+        </div>
+      )}
+
+      {/* 本文エリア */}
+      <div style={{ padding: "14px 16px 16px", flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{
+            display: "inline-flex", alignItems: "center",
+            padding: "2px 8px", borderRadius: 100,
+            fontSize: 10, fontWeight: 700, letterSpacing: "0.04em",
+            fontFamily: "'Inter', sans-serif",
+            background: cat.bg, color: cat.color,
+          }}>
+            {STORY_CATEGORY_LABELS[story.category] ?? story.category}
+          </span>
+          {story.published_at && (
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>
+              {new Date(story.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" })}
+            </span>
+          )}
+        </div>
+
+        <p style={{
+          margin: 0,
+          fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5,
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+        } as React.CSSProperties}>
+          {story.title}
+        </p>
+
+        {bodyPreview && (
+          <p style={{
+            margin: 0, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6,
+            display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden",
+            flex: 1,
+          } as React.CSSProperties}>
+            {bodyPreview}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CompanyStoriesSection({ stories }: { stories: CompanyPost[] }) {
+  if (stories.length === 0) return null;
+
+  return (
+    <section
+      id="stories"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      <div style={{
+        padding: "22px 28px 18px",
+        background: "#f5f8ff",
+        borderBottom: "1px solid #dde4f5",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+          }
+        >
+          企業ストーリー
+        </SecTitle>
+        <span style={{
+          fontSize: 12, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif",
+        }}>
+          企業担当者が直接書いた記事
+        </span>
+      </div>
+
+      <div style={{ padding: "22px 28px 28px" }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+          gap: 16,
+        }}>
+          {stories.map((story) => (
+            <StoryCardPublic key={story.id} story={story} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 // ─── CompanyPostsSection ─────────────────────────────────────────────────────
 
@@ -3589,7 +3766,7 @@ export default async function CompanyDetailPage({
   const { data: { user: authUser } } = await supabase.auth.getUser();
   const isAuthenticated = !!authUser;
 
-  const [companyResult, photos, recruiters, companyArticles, employees, owUserResult, postsResult, postsCountResult] = await Promise.all([
+  const [companyResult, photos, recruiters, companyArticles, employees, owUserResult, postsResult, postsCountResult, storiesResult] = await Promise.all([
     getCompanyByIdCached(params.id),
     getCompanyPhotos(params.id),
     getCompanyRecruiters(params.id),
@@ -3616,10 +3793,21 @@ export default async function CompanyDetailPage({
       .eq("company_id", params.id)
       .eq("is_published", true)
       .not("url", "ilike", "%example.com%"),
+
+    // 企業ストーリー (公開済み、最新6件)
+    supabase
+      .from("ow_company_posts")
+      .select("*")
+      .eq("company_id", params.id)
+      .eq("is_published", true)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(6),
   ]);
 
   const posts: ExternalLink[] = postsResult.data ?? [];
   const postsCount: number = postsCountResult.count ?? 0;
+  const companyStories: CompanyPost[] = (storiesResult?.data as CompanyPost[] | null) ?? [];
 
   if (!companyResult) return notFound();
 
@@ -3674,6 +3862,7 @@ export default async function CompanyDetailPage({
           { id: "jobs",             label: company.job_count > 0 ? `募集中の求人 ${company.job_count}件` : "募集中の求人" },
           ...(employees.current.length > 0 ? [{ id: "current-employees", label: `現役社員 ${employees.current.length}名` }] : [{ id: "current-employees", label: "現役社員" }]),
           { id: "articles",         label: companyArticles.length > 0 ? `記事 ${companyArticles.length}件` : "記事" },
+          ...(companyStories.length > 0 ? [{ id: "stories", label: `ストーリー ${companyStories.length}件` }] : []),
           { id: "posts",            label: postsCount > 0 ? `発信 ${postsCount}件` : "発信" },
         ]} />
         <div
@@ -3713,7 +3902,12 @@ export default async function CompanyDetailPage({
             {/* 7. 記事（OPINIO取材記事） */}
             <CompanyArticlesSection articles={companyArticles} />
 
-            {/* 8. 発信（企業の外部リンク） */}
+            {/* 8. ストーリー（企業が書いたWantedly風記事） */}
+            {companyStories.length > 0 && (
+              <CompanyStoriesSection stories={companyStories} />
+            )}
+
+            {/* 9. 発信（企業の外部リンク） */}
             <CompanyPostsSection
               companyId={params.id}
               posts={posts}

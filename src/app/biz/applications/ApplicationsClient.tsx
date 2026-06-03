@@ -13,6 +13,7 @@ const STATUS_COLOR: Record<ApplicationStatus, string> = {
   interview: "#7C3AED",
   accepted:  "var(--success)",
   rejected:  "#DC2626",
+  hired:     "#059669",
 };
 
 const STATUS_BG: Record<ApplicationStatus, string> = {
@@ -21,6 +22,7 @@ const STATUS_BG: Record<ApplicationStatus, string> = {
   interview: "#F5F3FF",
   accepted:  "var(--success-soft)",
   rejected:  "#FEE2E2",
+  hired:     "#D1FAE5",
 };
 
 function StatusPill({ status }: { status: ApplicationStatus }) {
@@ -210,6 +212,20 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
       );
     } finally {
       setUpdatingId(null);
+    }
+  }
+
+  // ── Hire confirm ─────────────────────────────────────────────────────────
+  async function handleHireConfirm(appId: string, salary: number) {
+    const res = await fetch(`/api/biz/applications/${appId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "hired", hired_salary: salary }),
+    });
+    if (res.ok) {
+      setApplications((prev) =>
+        prev.map((a) => a.id === appId ? { ...a, status: "hired" } : a)
+      );
     }
   }
 
@@ -449,6 +465,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
                 app={selected}
                 isUpdating={updatingId === selected.id}
                 onStatusChange={handleStatusChange}
+                onHireConfirm={handleHireConfirm}
               />
             )}
           </div>
@@ -465,14 +482,19 @@ type DetailProps = {
   app: BizApplication;
   isUpdating: boolean;
   onStatusChange: (id: string, status: ApplicationStatus) => void;
+  onHireConfirm: (id: string, salary: number) => void;
 };
 
-function DetailPanel({ app, isUpdating, onStatusChange }: DetailProps) {
+function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailProps) {
+  const [showHireForm, setShowHireForm] = useState(false);
+  const [hiredSalary, setHiredSalary] = useState("");
+  const [hireSubmitting, setHireSubmitting] = useState(false);
+
   const statusOptions: { value: ApplicationStatus; label: string }[] = [
     { value: "pending",   label: "新着" },
     { value: "reviewing", label: "確認中" },
     { value: "interview", label: "面接中" },
-    { value: "accepted",  label: "採用" },
+    { value: "accepted",  label: "採用（オファー済）" },
     { value: "rejected",  label: "不採用" },
   ];
 
@@ -636,6 +658,123 @@ function DetailPanel({ app, isUpdating, onStatusChange }: DetailProps) {
           </a>
         )}
       </div>
+
+      {/* ── 採用確定セクション ── */}
+      {app.status === "hired" ? (
+        /* 採用確定済みバナー */
+        <div style={{
+          marginTop: 8,
+          background: "#D1FAE5", border: "1.5px solid #6EE7B7",
+          borderRadius: 12, padding: "16px 20px",
+          display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46" }}>採用確定済み</div>
+            <div style={{ fontSize: 12, color: "#047857", marginTop: 2 }}>OPINIOから請求書をお送りします。</div>
+          </div>
+        </div>
+      ) : (app.status === "accepted") && (
+        /* 採用確定ボタン */
+        <div style={{
+          marginTop: 8,
+          background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
+          border: "1.5px solid #6EE7B7",
+          borderRadius: 12, padding: "20px",
+        }}>
+          {!showHireForm ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46", marginBottom: 4 }}>
+                  🎉 採用が決まりましたか？
+                </div>
+                <div style={{ fontSize: 12, color: "#047857", lineHeight: 1.6 }}>
+                  採用確定を報告すると、OPINIOから請求書を発行します。<br />
+                  <span style={{ fontWeight: 600 }}>料金：採用者の年収 × 10%</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowHireForm(true)}
+                style={{
+                  padding: "10px 20px", borderRadius: 8,
+                  background: "linear-gradient(135deg, #059669, #047857)",
+                  color: "#fff", fontSize: 13, fontWeight: 700,
+                  border: "none", cursor: "pointer", flexShrink: 0,
+                  boxShadow: "0 2px 8px rgba(5,150,105,0.35)",
+                }}
+              >
+                採用確定を報告する →
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46" }}>採用確定の報告</div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#047857", display: "block", marginBottom: 6 }}>
+                  採用者の想定年収（万円）
+                </label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="number"
+                    placeholder="例：500"
+                    value={hiredSalary}
+                    onChange={e => setHiredSalary(e.target.value)}
+                    min={100}
+                    max={5000}
+                    style={{
+                      width: 140, padding: "9px 12px", borderRadius: 8,
+                      border: "1.5px solid #6EE7B7", fontSize: 14,
+                      fontFamily: "Inter, sans-serif", outline: "none",
+                      background: "#fff",
+                    }}
+                  />
+                  <span style={{ fontSize: 13, color: "#047857" }}>万円</span>
+                  {hiredSalary && Number(hiredSalary) > 0 && (
+                    <span style={{ fontSize: 12, color: "#065F46", fontWeight: 600, marginLeft: 4 }}>
+                      → 請求額: {Math.round(Number(hiredSalary) * 0.1)}万円
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={async () => {
+                    const salary = Number(hiredSalary);
+                    if (!salary || salary < 100) return;
+                    setHireSubmitting(true);
+                    await onHireConfirm(app.id, salary);
+                    setHireSubmitting(false);
+                    setShowHireForm(false);
+                  }}
+                  disabled={hireSubmitting || !hiredSalary || Number(hiredSalary) < 100}
+                  style={{
+                    padding: "10px 24px", borderRadius: 8,
+                    background: hireSubmitting ? "#9CA3AF" : "linear-gradient(135deg, #059669, #047857)",
+                    color: "#fff", fontSize: 13, fontWeight: 700,
+                    border: "none", cursor: hireSubmitting ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {hireSubmitting ? "送信中..." : "確定して報告する"}
+                </button>
+                <button
+                  onClick={() => { setShowHireForm(false); setHiredSalary(""); }}
+                  style={{
+                    padding: "10px 16px", borderRadius: 8,
+                    background: "transparent", color: "#047857",
+                    border: "1px solid #6EE7B7", fontSize: 13, fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  キャンセル
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: "#6B7280", lineHeight: 1.6 }}>
+                ※ 報告後にOPINIOより請求書メールをお送りします。
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

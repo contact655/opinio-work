@@ -7,7 +7,7 @@ import { PostsClient } from "./PostsClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "発信リンク管理 | OPINIO Business",
+  title: "発信管理 | OPINIO Business",
 };
 
 
@@ -17,12 +17,20 @@ export default async function BizPostsPage() {
 
   const supabase = createClient();
 
-  const { data: posts } = await supabase
-    .from("ow_company_external_links")
-    .select("*")
-    .eq("company_id", ctx.tenantId)
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+  const [{ data: externalLinks }, { data: stories }] = await Promise.all([
+    supabase
+      .from("ow_company_external_links")
+      .select("*")
+      .eq("company_id", ctx.tenantId)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false }),
+
+    supabase
+      .from("ow_company_posts")
+      .select("*")
+      .eq("company_id", ctx.tenantId)
+      .order("created_at", { ascending: false }),
+  ]);
 
   return (
     <BusinessLayout
@@ -36,7 +44,8 @@ export default async function BizPostsPage() {
       <PostsClient
         companyId={ctx.tenantId}
         companyName={ctx.tenantName}
-        initialPosts={posts ?? []}
+        initialPosts={externalLinks ?? []}
+        initialStories={stories ?? []}
       />
     </BusinessLayout>
   );

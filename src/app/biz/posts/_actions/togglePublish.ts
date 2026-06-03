@@ -1,0 +1,38 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+
+export type ActionResult<T = null> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+export async function togglePublish(
+  id: string,
+  publish: boolean
+): Promise<ActionResult<Record<string, unknown>>> {
+  const supabase = createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "ログインしてください" };
+
+  const { data: story, error } = await supabase
+    .from("ow_company_posts")
+    .update({
+      is_published: publish,
+      published_at: publish ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("[togglePublish]", error);
+    return { success: false, error: `更新に失敗しました: ${error.message}` };
+  }
+
+  revalidatePath("/biz/posts");
+  revalidatePath("/companies");
+  return { success: true, data: story as Record<string, unknown> };
+}

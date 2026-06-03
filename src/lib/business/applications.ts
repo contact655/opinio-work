@@ -7,10 +7,11 @@ export type ApplicationStatus =
   | "reviewing"
   | "interview"
   | "accepted"
-  | "rejected";
+  | "rejected"
+  | "hired"; // 採用確定（請求トリガー）
 
 export const VALID_APPLICATION_STATUSES = new Set<string>([
-  "pending", "reviewing", "interview", "accepted", "rejected",
+  "pending", "reviewing", "interview", "accepted", "rejected", "hired",
 ]);
 
 export type ApplicationStatusTab = {
@@ -27,6 +28,7 @@ export const APPLICATION_STATUS_TABS: ApplicationStatusTab[] = [
   { status: "interview", label: "Interview",  labelJa: "面接中",     color: "var(--purple)" },
   { status: "accepted",  label: "Accepted",   labelJa: "採用",       color: "var(--success)" },
   { status: "rejected",  label: "Rejected",   labelJa: "不採用",     color: "var(--error)" },
+  { status: "hired",     label: "Hired",      labelJa: "採用確定",   color: "#059669" },
 ];
 
 export type ApplicationStatusCounts = Record<ApplicationStatus | "all", number>;
@@ -131,6 +133,7 @@ export function countByStatus(apps: BizApplication[]): ApplicationStatusCounts {
     interview: 0,
     accepted: 0,
     rejected: 0,
+    hired: 0,
   };
   for (const a of apps) {
     counts[a.status] = (counts[a.status] ?? 0) + 1;

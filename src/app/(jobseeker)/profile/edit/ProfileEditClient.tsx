@@ -138,6 +138,7 @@ type OwUser = {
   about_me: string | null;
   future_aspirations: string | null;
   strengths_finder: string[] | null;
+  is_open_to_work: boolean | null;
   social_links: Record<string, string> | null;
 } | null;
 
@@ -154,6 +155,7 @@ type SettingsState = {
   avatarColor: string;
   coverColor: string;
   visibility: "public" | "login_only" | "private";
+  isOpenToWork: boolean;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -2880,15 +2882,17 @@ export default function ProfileEditClient({
 
   // ── アカウント設定タブの状態（明示保存方式） ────────────────────────────
   const [settings, setSettings] = useState<SettingsState>({
-    avatarColor: owUser?.avatar_color ?? DEFAULT_AVATAR_COLOR,
-    coverColor:  owUser?.cover_color  ?? DEFAULT_COVER_COLOR,
-    visibility:  (owUser?.visibility ?? "public") as SettingsState["visibility"],
+    avatarColor:  owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
+    coverColor:   owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
+    visibility:   (owUser?.visibility ?? "public") as SettingsState["visibility"],
+    isOpenToWork: owUser?.is_open_to_work ?? false,
   });
   // 初期値を保持して変更検知（JSON.stringify 比較）
   const [initialSettings, setInitialSettings] = useState<SettingsState>({
-    avatarColor: owUser?.avatar_color ?? DEFAULT_AVATAR_COLOR,
-    coverColor:  owUser?.cover_color  ?? DEFAULT_COVER_COLOR,
-    visibility:  (owUser?.visibility ?? "public") as SettingsState["visibility"],
+    avatarColor:  owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
+    coverColor:   owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
+    visibility:   (owUser?.visibility ?? "public") as SettingsState["visibility"],
+    isOpenToWork: owUser?.is_open_to_work ?? false,
   });
   const [accountSaving,       setAccountSaving]       = useState(false);
   const [accountJustSaved,    setAccountJustSaved]    = useState(false);
@@ -2904,7 +2908,7 @@ export default function ProfileEditClient({
       const res = await fetch("/api/jobseeker/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visibility: settings.visibility }),
+        body: JSON.stringify({ visibility: settings.visibility, is_open_to_work: settings.isOpenToWork }),
       });
       if (!res.ok) throw new Error();
       setInitialSettings(settings); // 保存成功: 次回比較の基準点を更新
@@ -4097,6 +4101,67 @@ export default function ProfileEditClient({
                   </span>
                 </div>
               )}
+            </FormSection>
+
+            {/* ── Section 3b: 転職検討状況 ─────────────────────────────────── */}
+            <FormSection
+              title="転職検討状況"
+              desc="ONにすると、企業側の候補者検索でフィルタリングでき、プロフィールに「転職検討中」バッジが表示されます。"
+            >
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "14px 16px",
+                background: settings.isOpenToWork ? "#ECFDF5" : "var(--bg-tint)",
+                border: `1px solid ${settings.isOpenToWork ? "#A7F3D0" : "var(--line)"}`,
+                borderRadius: 10,
+                transition: "all 0.2s",
+              }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                    転職を検討しています
+                    {settings.isOpenToWork && (
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        padding: "2px 8px", borderRadius: 100,
+                        fontSize: 10, fontWeight: 700,
+                        background: "linear-gradient(135deg, #059669, #10B981)",
+                        color: "#fff",
+                        fontFamily: "'Inter', sans-serif",
+                      }}>
+                        ✓ 有効
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+                    {settings.isOpenToWork
+                      ? "プロフィールに「転職検討中」バッジが表示されます"
+                      : "非公開（企業側には表示されません）"}
+                  </div>
+                </div>
+                {/* Toggle switch */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.isOpenToWork}
+                  onClick={() => setSettings((prev) => ({ ...prev, isOpenToWork: !prev.isOpenToWork }))}
+                  style={{
+                    width: 44, height: 24, borderRadius: 100,
+                    background: settings.isOpenToWork ? "var(--success)" : "var(--line)",
+                    border: "none", cursor: "pointer",
+                    position: "relative", flexShrink: 0,
+                    transition: "background 0.2s",
+                  }}
+                >
+                  <span style={{
+                    position: "absolute", top: 3,
+                    left: settings.isOpenToWork ? 23 : 3,
+                    width: 18, height: 18, borderRadius: "50%",
+                    background: "#fff",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                    transition: "left 0.2s",
+                  }} />
+                </button>
+              </div>
             </FormSection>
 
             {/* ── Section 4: メール通知設定 ────────────────────────────────── */}

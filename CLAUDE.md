@@ -13,7 +13,51 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🎯 次のセッションでやること（2026-06-02 セッション12 更新）
+## 🎯 次のセッションでやること（2026-06-03 セッション13 更新）
+
+### ✅ 完了 2026-06-03 セッション13: 転職サイトへのピボット + 3大機能着手
+
+  **料金ページ・採用確定フロー（② マネタイズ）:**
+  - `/pricing` ページ新規作成（掲載費¥0 + 成果報酬10%）
+  - Migration 144: `ow_job_applications` に `hired_confirmed_at` + `hired_salary` カラム追加
+  - `/biz/applications` に「採用確定」ボタン追加（年収入力 → 10%請求額算出 → 管理者メール送信）
+  - `lib/business/applications.ts` に `hired` ステータス追加
+
+  **① 求人検索UX改善（Greenっぽく）:**
+  - `JobsClient.tsx`: PER_PAGE 9→15、formatSalary バグ修正（¥400–800万円 → 400〜800万円）
+  - `SidebarFilter` コンポーネント: sticky sidebar、職種・勤務形態・年収下限・都道府県フィルター
+  - `JobListCard` コンポーネント: desktop用横長カード
+  - CSS グリッドレイアウト: desktop→サイドバー+リストカード / mobile→グリッド+上部フィルターバー
+
+  **② 企業発信機能（Wantedly Stories）:**
+  - Migration 145: `ow_company_posts` テーブル作成 ⚠️ **手動適用が必要**
+    - `supabase/migrations/145_add_company_posts.sql` を Supabase ダッシュボードで実行
+  - `/biz/posts/page.tsx`: 2テーブル（external_links + company_posts）を並行取得
+  - `PostsClient.tsx`: 2タブ構成に全面刷新
+    - 「ストーリー」タブ: 新規（Wantedly風 記事作成・編集・公開管理）
+    - 「外部リンク」タブ: 既存機能をサブコンポーネントに整理
+  - Server Actions 4本新規作成:
+    - `createStory.ts` / `updateStory.ts` / `deleteStory.ts` / `togglePublish.ts`
+  - `companies/[id]/page.tsx`: `ow_company_posts` 公開済みを fetch し「企業ストーリー」セクション追加
+    - `CompanyStoriesSection` + `StoryCardPublic` コンポーネント新規作成
+    - sticky nav に「ストーリー N件」タブ追加（公開ストーリーあり時のみ表示）
+
+  **③ 公開プロフィール強化（LinkedInっぽく）:**
+  - `/u/[id]` の auth redirect 削除 → 非ログインでも public プロフィールを閲覧可能に（RLSが visibility を制御）
+  - Migration 146: `ow_users.is_open_to_work BOOLEAN` カラム追加 ⚠️ **手動適用が必要**
+  - 「転職検討中」バッジ: `is_open_to_work=true` のとき名前の横に緑グラデーションバッジ表示
+  - `ProfileShareButton` コンポーネント新規作成: URLコピー + X(Twitter)シェアボタン
+    - オーナー: 編集ボタン + シェアボタン両方表示
+    - 非オーナー: シェアボタンのみ（企業ページリンクと並列）
+  - スキルヘッダー: カテゴリ別カラーコーディング（最大6タグ）に強化
+  - `/profile/edit` アカウント設定タブに「転職検討中トグル」追加（緑のスライダーUI）
+  - `PUT /api/jobseeker/profile` に `is_open_to_work` フィールド追加
+
+### 🟢 次の優先候補（2026-06-03 セッション13後 更新）
+- **Migration 146 の手動適用** — Supabase ダッシュボードで実行後、転職検討中バッジが有効になる
+- **ow_articles に company_id を設定** — Admin記事管理画面でカンパニー紐づけを設定すると「OPINIO取材済み」バッジが自動表示
+
+### ✅ 完了 2026-06-02 セッション12: 競合比較UX改善 7項目
 
 ### ✅ 完了 2026-06-02 セッション12: 競合比較UX改善 7項目
 

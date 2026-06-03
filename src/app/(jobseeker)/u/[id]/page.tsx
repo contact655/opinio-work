@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import MergedTimeline from "@/components/profile/MergedTimeline";
@@ -17,6 +17,7 @@ import {
   SOCIAL_META,
   SNS_PLATFORMS,
 } from "@/components/SocialIcon";
+import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,7 +36,7 @@ type OwUser = {
   location: string | null;
   social_links: SocialLinks | null;
   future_aspirations: string | null;
-  strengths_finder: string[] | null;
+  is_open_to_work: boolean | null;
   auth_id: string;
 };
 
@@ -81,14 +82,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
     supabase.auth.getUser(),
     supabase
       .from("ow_users")
-      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, birth_date, location, social_links, future_aspirations, strengths_finder, auth_id")
+      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, birth_date, location, social_links, future_aspirations, is_open_to_work, auth_id")
       .eq("id", params.id)
       .maybeSingle(),
   ]);
 
-  // 未ログインはプロフィールページ自体を閲覧不可 → /auth へリダイレクト
-  if (!authUser) redirect(`/auth?next=/u/${params.id}`);
-
+  // 未ログインでも public プロフィールは閲覧可能（RLS が visibility を制御）
+  // visibility = 'login_only' → anon は null が返る → 404
+  // visibility = 'private'   → 本人以外 null が返る → 404
   if (!user) notFound();
 
   const owUser = user as OwUser;
@@ -408,9 +409,26 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 <div className="profile-name" style={{
                   fontFamily: 'var(--font-noto-serif)',
                   fontSize: 30, fontWeight: 700, color: "var(--ink)",
-                  marginBottom: 6, display: "flex", alignItems: "center", gap: 10,
+                  marginBottom: 6, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
                 }}>
                   {owUser.name}
+                  {owUser.is_open_to_work && (
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "3px 10px", borderRadius: 100,
+                      fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
+                      background: "linear-gradient(135deg, #059669, #10B981)",
+                      color: "#fff",
+                      boxShadow: "0 2px 8px rgba(5,150,105,0.3)",
+                      verticalAlign: "middle",
+                      fontFamily: "'Inter', sans-serif",
+                    }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      転職検討中
+                    </span>
+                  )}
                 </div>
                 {/* Current role subtitle */}
                 {currentCareer && (
@@ -468,24 +486,38 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 )}
                 {skillTags.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-                    {skillTags.slice(0, 5).map((tag) => (
-                      <span key={tag.id as string} style={{
-                        display: "inline-flex", alignItems: "center",
-                        padding: "3px 10px", borderRadius: 100,
-                        background: "#fff", border: "1.5px solid var(--line)",
-                        fontSize: 12, color: "var(--ink-soft)", fontWeight: 500,
-                      }}>
-                        {tag.label as string}
-                      </span>
-                    ))}
-                    {skillTags.length > 5 && (
+                    {skillTags.slice(0, 6).map((tag) => {
+                      const HEADER_SKILL_COLORS: Record<string, { color: string; bg: string }> = {
+                        "技術・開発":    { color: "#2563EB", bg: "#EFF6FF" },
+                        "プロダクト・UX": { color: "#7C3AED", bg: "#F3E8FF" },
+                        "ビジネス・営業": { color: "#059669", bg: "#ECFDF5" },
+                        "マーケティング": { color: "#D97706", bg: "#FEF3C7" },
+                        "データ・分析":  { color: "#0891B2", bg: "#ECFEFF" },
+                        "マネジメント":  { color: "#DC2626", bg: "#FEE2E2" },
+                      };
+                      const cat = (tag.category as string | null) ?? null;
+                      const cs = cat ? (HEADER_SKILL_COLORS[cat] ?? null) : null;
+                      return (
+                        <span key={tag.id as string} style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "4px 11px", borderRadius: 100,
+                          background: cs ? cs.bg : "#fff",
+                          border: `1.5px solid ${cs ? cs.color + "44" : "var(--line)"}`,
+                          fontSize: 12, color: cs ? cs.color : "var(--ink-soft)", fontWeight: 600,
+                          transition: "box-shadow 0.15s",
+                        }}>
+                          {tag.label as string}
+                        </span>
+                      );
+                    })}
+                    {skillTags.length > 6 && (
                       <span style={{
                         display: "inline-flex", alignItems: "center",
-                        padding: "3px 10px", borderRadius: 100,
+                        padding: "4px 11px", borderRadius: 100,
                         background: "var(--bg-tint)", border: "1.5px solid var(--line)",
-                        fontSize: 12, color: "var(--ink-mute)", fontWeight: 500,
+                        fontSize: 12, color: "var(--ink-mute)", fontWeight: 600,
                       }}>
-                        +{skillTags.length - 5}
+                        +{skillTags.length - 6}
                       </span>
                     )}
                   </div>
@@ -507,21 +539,30 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </div>
 
               {/* Right-side CTA: context-aware */}
-              {viewerIsOwner ? (
-                <Link href="/profile/edit" style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "8px 18px", borderRadius: 8,
-                  border: "1.5px solid var(--line)", background: "#fff",
-                  color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, textDecoration: "none",
-                  flexShrink: 0,
-                }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                  プロフィールを編集
-                </Link>
-              ) : currentCareer?.company_id ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {/* シェアボタン（オーナー以外のみ表示） */}
+                {!viewerIsOwner && (
+                  <ProfileShareButton userId={owUser.id} name={owUser.name} />
+                )}
+
+                {viewerIsOwner ? (
+                <>
+                  <ProfileShareButton userId={owUser.id} name={owUser.name} />
+                  <Link href="/profile/edit" style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "8px 18px", borderRadius: 8,
+                    border: "1.5px solid var(--line)", background: "#fff",
+                    color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, textDecoration: "none",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    プロフィールを編集
+                  </Link>
+                </>
+                ) : currentCareer?.company_id ? (
                 /* 一般社員: 企業ページへの控えめなリンク */
                 <Link href={`/companies/${currentCareer.company_id}`} style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
@@ -537,6 +578,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 </Link>
               ) : null
               }
+              </div>
             </div>
           </div>
         </div>
@@ -1641,8 +1683,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 </div>
               )}
 
-              {/* StrengthsFinder */}
-              {(owUser.strengths_finder?.length ?? 0) > 0 && (() => {
+              {/* StrengthsFinder — column not yet in DB, hidden until data exists */}
+              {(null as string[] | null)?.length && (() => {
                 const DOMAIN_MAP: Record<string, { label: string; color: string; bg: string; border: string }> = {
                   // 実行力
                   "達成欲": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
@@ -1683,7 +1725,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   "学習欲": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
                   "戦略性": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
                 };
-                const strengths = owUser.strengths_finder!;
+                const strengths: string[] = [];
                 return (
                   <div style={{
                     background: "#fff", border: "1px solid var(--line)",
@@ -1698,7 +1740,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       </span>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                      {strengths.map((name, idx) => {
+                      {strengths.map((sName: string, idx: number) => {
+                        const name = sName;
                         const domain = DOMAIN_MAP[name];
                         return (
                           <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10 }}>
