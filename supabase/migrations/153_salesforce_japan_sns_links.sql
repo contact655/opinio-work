@@ -12,6 +12,7 @@ INSERT INTO ow_company_external_links (
   thumbnail_url,
   is_published,
   sort_order,
+  created_by_role,
   created_at,
   updated_at
 ) VALUES
@@ -28,6 +29,7 @@ INSERT INTO ow_company_external_links (
   NULL,
   true,
   1,
+  'editor',
   NOW(),
   NOW()
 ),
@@ -44,6 +46,7 @@ INSERT INTO ow_company_external_links (
   NULL,
   true,
   2,
+  'editor',
   NOW(),
   NOW()
 ),
@@ -60,6 +63,7 @@ INSERT INTO ow_company_external_links (
   NULL,
   true,
   3,
+  'editor',
   NOW(),
   NOW()
 ),
@@ -76,6 +80,7 @@ INSERT INTO ow_company_external_links (
   NULL,
   true,
   4,
+  'editor',
   NOW(),
   NOW()
 ),
@@ -92,6 +97,7 @@ INSERT INTO ow_company_external_links (
   NULL,
   true,
   5,
+  'editor',
   NOW(),
   NOW()
 );
