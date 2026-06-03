@@ -1377,6 +1377,184 @@ type PreviewArticle = {
   company_gradient: string;
 };
 
+// ─── Story Feed ───────────────────────────────────────────────────────────────
+
+type PreviewStory = {
+  id: string;
+  companyId: string;
+  companyName: string;
+  companyLogoLetter: string | null;
+  companyLogoGradient: string | null;
+  companyLogoUrl: string | null;
+  title: string;
+  body: string;
+  category: string;
+  coverImageUrl: string | null;
+  publishedAt: string | null;
+};
+
+const STORY_CATEGORY_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  "join_reason":    { label: "なぜ入社したか", color: "#1D4ED8", bg: "#EFF6FF" },
+  "daily_work":     { label: "1日の仕事",      color: "#065F46", bg: "#ECFDF5" },
+  "team_vibe":      { label: "チームの雰囲気",  color: "#6D28D9", bg: "#F3E8FF" },
+  "failure_lesson": { label: "失敗から学んだ",  color: "#92400E", bg: "#FEF3C7" },
+  "before_after":   { label: "転職前後の変化",  color: "#9D174D", bg: "#FCE7F3" },
+  "culture":        { label: "カルチャー",      color: "#065F46", bg: "#ECFDF5" },
+  "interview":      { label: "インタビュー",    color: "#1D4ED8", bg: "#EFF6FF" },
+  "event":          { label: "イベント",        color: "#92400E", bg: "#FEF3C7" },
+  "product":        { label: "プロダクト",      color: "#6D28D9", bg: "#F3E8FF" },
+  "hiring":         { label: "採用情報",        color: "#065F46", bg: "#ECFDF5" },
+  "other":          { label: "その他",          color: "#334155", bg: "#F1F5F9" },
+};
+
+function StoryCard({ story }: { story: PreviewStory }) {
+  const cat = STORY_CATEGORY_LABELS[story.category] ?? STORY_CATEGORY_LABELS["other"];
+  const bodyPreview = story.body.replace(/[#*>\-_]/g, "").slice(0, 80) + (story.body.length > 80 ? "…" : "");
+
+  return (
+    <Link href={`/companies/${story.companyId}#stories`} style={{ textDecoration: "none", display: "flex", flexDirection: "column", height: "100%" }}>
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid var(--line)",
+          borderRadius: 14,
+          overflow: "hidden",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          transition: "box-shadow 0.2s, transform 0.2s, border-color 0.2s",
+          cursor: "pointer",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 20px rgba(0,35,102,0.12)";
+          (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
+          (e.currentTarget as HTMLDivElement).style.borderColor = "var(--royal-100)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+          (e.currentTarget as HTMLDivElement).style.transform = "none";
+          (e.currentTarget as HTMLDivElement).style.borderColor = "var(--line)";
+        }}
+      >
+        {/* Cover image or gradient placeholder */}
+        <div style={{
+          height: 120,
+          background: story.companyLogoGradient ?? "linear-gradient(135deg, #001233, #002366)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
+          overflow: "hidden",
+          position: "relative",
+        }}>
+          {story.coverImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={story.coverImageUrl} alt={story.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <span style={{ fontSize: 32, fontWeight: 700, color: "rgba(255,255,255,0.5)", fontFamily: "Inter, sans-serif" }}>
+              {story.companyLogoLetter ?? story.companyName[0]}
+            </span>
+          )}
+          {/* Category badge */}
+          <span style={{
+            position: "absolute", top: 10, left: 10,
+            padding: "3px 10px", borderRadius: 100,
+            fontSize: 11, fontWeight: 700,
+            background: cat.bg, color: cat.color,
+            backdropFilter: "blur(4px)",
+          }}>
+            {cat.label}
+          </span>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: "14px 16px 16px", flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+          {/* Company */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: 4, flexShrink: 0,
+              background: story.companyLogoGradient ?? "linear-gradient(135deg, #001233, #002366)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              overflow: "hidden",
+            }}>
+              {story.companyLogoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={story.companyLogoUrl} alt={story.companyName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>
+                  {story.companyLogoLetter ?? story.companyName[0]}
+                </span>
+              )}
+            </div>
+            <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 500 }}>{story.companyName}</span>
+          </div>
+
+          {/* Title */}
+          <p style={{
+            margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink)",
+            lineHeight: 1.5, flex: 1,
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden",
+          }}>
+            {story.title}
+          </p>
+
+          {/* Body preview */}
+          <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+            {bodyPreview}
+          </p>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function StoryFeedSection() {
+  const [stories, setStories] = useState<PreviewStory[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/companies/stories")
+      .then((r) => r.json())
+      .then((d) => { setStories(Array.isArray(d.stories) ? d.stories : []); })
+      .catch(() => { setStories([]); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (!loading && stories.length === 0) return null;
+
+  return (
+    <section style={{ padding: "64px 48px", background: "#fff" }} className="px-5 py-14 md:px-12">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", textTransform: "uppercase" as const, marginBottom: 8 }}>
+              COMPANY STORIES
+            </div>
+            <h2 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: 0, fontFamily: "var(--font-noto-serif)" }}>
+              企業の「中の人」が語るストーリー
+            </h2>
+            <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "6px 0 0", lineHeight: 1.7 }}>
+              なぜ入社したか、どんなチームか。社員の声をリアルに。
+            </p>
+          </div>
+          <Link href="/companies" style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+            企業一覧へ →
+          </Link>
+        </div>
+
+        {/* Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} style={{ height: 260, background: "var(--line)", borderRadius: 14, animation: "shimmer 1.5s infinite" }} />
+              ))
+            : stories.map((s) => <StoryCard key={s.id} story={s} />)
+          }
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ArticlesPreview() {
   const [articles, setArticles] = useState<PreviewArticle[] | null>(null);
 
@@ -1532,6 +1710,7 @@ export default function HomePage() {
       <LogoStripSection />
       <DiffStrip />
       <FeaturedCompaniesSection />
+      <StoryFeedSection />
       <StatsStrip stats={stats} />
       <InfraSection />
       <PainPoints />

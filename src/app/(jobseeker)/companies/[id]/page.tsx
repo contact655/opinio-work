@@ -830,6 +830,8 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
   const hasProducts = detail.main_products && detail.main_products.length > 0;
   const hasCustomers = detail.main_customers && detail.main_customers.length > 0;
 
+  if (!hasProducts && !hasCustomers) return null;
+
   const EmptyPlaceholder = ({ label }: { label: string }) => (
     <p style={{ margin: 0, fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.7 }}>
       {label}は現在準備中です。
@@ -925,6 +927,8 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
 
 function CultureSection({ detail }: { detail: CompanyDetail }) {
   const hasCulture = !!detail.culture_description;
+
+  if (!hasCulture) return null;
 
   return (
     <section
@@ -1351,6 +1355,10 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
     letterSpacing: "0.02em",
   };
   // UNSET_STYLE removed — replaced by inline "カジュアル面談でご確認ください" badges
+
+  const hasBenefits = !!(detail.benefits && detail.benefits.length > 0);
+  const hasEvaluation = !!detail.evaluationSystem;
+  if (!hasBenefits && !hasEvaluation) return null;
 
   return (
     <section
@@ -3068,6 +3076,12 @@ const NUMBER_ITEMS: {
 ];
 
 function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers; numbersUpdatedAt?: string | null }) {
+  const allEmpty = NUMBER_ITEMS.every(({ key }) => {
+    const raw = numbers[key];
+    return raw === null || raw === undefined || String(raw).trim() === "";
+  });
+  if (allEmpty) return null;
+
   return (
     <section
       id="numbers"
@@ -3117,22 +3131,6 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
         </span>
       </div>
       <div style={{ padding: "22px 28px 28px" }}>
-      {/* 全項目が未入力の場合は収集中メッセージ、一部でも入力済みならグリッド表示 */}
-      {NUMBER_ITEMS.every(({ key }) => {
-        const raw = numbers[key];
-        return raw === null || raw === undefined || String(raw).trim() === "";
-      }) ? (
-        <div style={{
-          padding: "20px 0 4px",
-          fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8,
-          display: "flex", alignItems: "center", gap: 8,
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-          </svg>
-          この企業の数値情報は現在収集中です。カジュアル面談や企業ページで直接確認いただけます。
-        </div>
-      ) : (
         <>
           {/* 3-column grid */}
           <div
@@ -3217,7 +3215,6 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
             「—」は企業が情報を公開していない項目です。
           </p>
         </>
-      )}
       </div>
     </section>
   );
@@ -3865,11 +3862,11 @@ export default async function CompanyDetailPage({
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
           { id: "about",            label: "企業概要" },
-          { id: "products-clients", label: "製品・顧客" },
-          { id: "culture",          label: "カルチャー" },
+          ...((detail.main_products?.length || detail.main_customers?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
+          ...(detail.culture_description ? [{ id: "culture", label: "カルチャー" }] : []),
           { id: "work-style",       label: "働き方の選択肢" },
-          { id: "numbers",          label: "数値で見る企業" },
-          { id: "benefits",         label: "福利厚生・評価制度" },
+          ...(!NUMBER_ITEMS.every(({ key }) => { const raw = detail.numbers[key]; return raw === null || raw === undefined || String(raw).trim() === ""; }) ? [{ id: "numbers", label: "数値で見る企業" }] : []),
+          ...((detail.benefits?.length || detail.evaluationSystem) ? [{ id: "benefits", label: "福利厚生・評価制度" }] : []),
           { id: "jobs",             label: company.job_count > 0 ? `募集中の求人 ${company.job_count}件` : "募集中の求人" },
           ...(employees.current.length > 0 ? [{ id: "current-employees", label: `現役社員 ${employees.current.length}名` }] : [{ id: "current-employees", label: "現役社員" }]),
           { id: "articles",         label: companyArticles.length > 0 ? `記事 ${companyArticles.length}件` : "記事" },

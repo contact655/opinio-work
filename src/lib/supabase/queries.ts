@@ -159,6 +159,10 @@ function mapJob(row: Record<string, any>): Job {
     position_members: [],
     related_article_title: "",
     related_article_excerpt: "",
+    // enrichment fields (Migration 147)
+    why_hire: (row.why_hire as string) ?? null,
+    team_composition: (row.team_composition as string) ?? null,
+    first_90_days: (row.first_90_days as string) ?? null,
   };
 }
 
@@ -539,6 +543,7 @@ const JOB_DETAIL_COLS = [
   ...JOB_LIST_COLS.split(", "),
   "description", "requirements", "preferred_skills", "selection_process",
   "message_to_candidates", "what_youll_do_intro", "who_we_want_intro",
+  "why_hire", "team_composition", "first_90_days",
 ].join(", ");
 
 export const getJobs = unstable_cache(

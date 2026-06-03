@@ -57,6 +57,9 @@ type FormState = {
   startDatePreference: string;
   assigneeIds: string[];
   urgency: "open" | "hot";
+  whyHire: string;
+  teamComposition: string;
+  first90Days: string;
 };
 
 function jobToForm(job: BizJob | null): FormState {
@@ -67,6 +70,7 @@ function jobToForm(job: BizJob | null): FormState {
     requiredSkills: [], preferredSkills: [], cultureFit: "",
     selectionSteps: ["書類選考", "カジュアル面談", "1次面接", "最終面接"],
     selectionDuration: "", startDatePreference: "応相談", assigneeIds: [], urgency: "open",
+    whyHire: "", teamComposition: "", first90Days: "",
   };
   return {
     title: job.title,
@@ -89,6 +93,9 @@ function jobToForm(job: BizJob | null): FormState {
     startDatePreference: job.startDatePreference ?? "応相談",
     assigneeIds: job.assigneeNames.map((_, i) => MOCK_TEAM[i]?.id ?? `member-${i + 1}`),
     urgency: job.urgency ?? "open",
+    whyHire: (job as unknown as { why_hire?: string }).why_hire ?? "",
+    teamComposition: (job as unknown as { team_composition?: string }).team_composition ?? "",
+    first90Days: (job as unknown as { first_90_days?: string }).first_90_days ?? "",
   };
 }
 
@@ -487,6 +494,15 @@ export function JobEditForm({
             </FormSection>
             <FormSection title="候補者へのメッセージ" desc="採用担当者から候補者へのメッセージ。求職者側の求人詳細ページに表示されます。">
               <FormTextarea id="jef-message-to-candidates" value={form.messageToCandidates} onChange={(v) => updateForm("messageToCandidates", v)} placeholder="例：BtoCマーケティングの経験を活かして、社会的意義のあるプロダクトに関わりたい方をお待ちしています。" rows={5} maxLength={500} />
+            </FormSection>
+            <FormSection title="なぜ今採用するか" desc="採用背景・ビジネス課題・チームの状況を記述してください。求職者の意欲を高めます。">
+              <FormTextarea id="jef-why-hire" value={form.whyHire} onChange={(v) => updateForm("whyHire", v)} placeholder="例：プロダクトの急成長にともない、PMが1名から3名体制に拡充する必要があります。新機能ロードマップの推進を担うポジションです。" rows={4} maxLength={600} />
+            </FormSection>
+            <FormSection title="チーム構成" desc="人数・職種・チームの雰囲気などを記述してください。">
+              <FormTextarea id="jef-team-composition" value={form.teamComposition} onChange={(v) => updateForm("teamComposition", v)} placeholder="例：プロダクトチームはPM2名、エンジニア8名、デザイナー2名の12名構成。週1でチーム全体のレトロスペクティブを実施。" rows={4} maxLength={600} />
+            </FormSection>
+            <FormSection title="入社後90日でやること" desc="最初のミッション・期待役割を明示することで候補者の不安を解消できます。">
+              <FormTextarea id="jef-first-90-days" value={form.first90Days} onChange={(v) => updateForm("first90Days", v)} placeholder="例：1ヶ月目：既存プロダクトのオンボーディング・ユーザーインタビュー参加。2ヶ月目：小規模機能のPRD作成・実装レビュー。3ヶ月目：四半期OKRの一つを担当。" rows={4} maxLength={600} />
             </FormSection>
           </>
         );

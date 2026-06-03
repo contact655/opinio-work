@@ -621,6 +621,45 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               </section>
               )}
 
+              {/* 入社後90日 */}
+              {job.first_90_days && (
+              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
+                <div style={{ padding: "16px 22px 12px", background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)", display: "flex", alignItems: "center", gap: 8 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)" }}>入社後90日でやること</span>
+                </div>
+                <div style={{ padding: "18px 22px", fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
+                  {job.first_90_days}
+                </div>
+              </div>
+              )}
+
+              {/* チーム構成 */}
+              {job.team_composition && (
+              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
+                <div style={{ padding: "16px 22px 12px", background: "#f5faf2", borderBottom: "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: 8 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--success)" }}>チーム構成</span>
+                </div>
+                <div style={{ padding: "18px 22px", fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
+                  {job.team_composition}
+                </div>
+              </div>
+              )}
+
+              {/* なぜ今採用するか */}
+              {job.why_hire && (
+              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
+                <div style={{ padding: "16px 22px 12px", background: "var(--warm-soft)", borderBottom: "1px solid #fde68a", display: "flex", alignItems: "center", gap: 8 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#B45309" }}>なぜ今採用するか</span>
+                </div>
+                <div style={{ padding: "18px 22px", fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
+                  {job.why_hire}
+                </div>
+              </div>
+              )}
+
               {/* Selection flow */}
               {job.selection_flow.length > 0 && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>

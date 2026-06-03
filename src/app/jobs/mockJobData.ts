@@ -55,6 +55,10 @@ export type Job = {
   position_members: PositionMember[];
   related_article_title: string;
   related_article_excerpt: string;
+  // enrichment fields (Migration 147)
+  why_hire?: string | null;
+  team_composition?: string | null;
+  first_90_days?: string | null;
 };
 
 // ─── Avatar gradient palette ──────────────────────────────────────────────────
