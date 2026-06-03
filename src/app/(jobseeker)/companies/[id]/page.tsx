@@ -23,6 +23,7 @@ import type { CompanyDetail, CompanyNumbers } from "@/app/companies/[id]/mockDet
 import { PhotoCarousel } from "./PhotoCarousel";
 import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker } from "./CompanyDetailClient";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
+import CustomerCasesClient from "./CustomerCasesClient";
 import { GenreCarousel } from "@/components/companies/GenreCarousel";
 import EvaluationText from "./EvaluationText";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
@@ -962,81 +963,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                 {detail.customer_cases!.length} 社
               </span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {detail.customer_cases!.map((c, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: "#FFFDF7",
-                    border: "1px solid #FDE68A",
-                    borderRadius: 14,
-                    padding: "18px 20px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                  }}
-                >
-                  {/* ヘッダー行: 企業名 + 業種バッジ */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
-                      🏢 {c.name}
-                    </span>
-                    <span style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      color: "#92400E",
-                      background: "#FEF3C7",
-                      border: "1px solid #FDE68A",
-                      borderRadius: 100,
-                      padding: "2px 9px",
-                      fontFamily: "var(--font-noto-sans)",
-                      whiteSpace: "nowrap",
-                    }}>
-                      {c.industry}
-                    </span>
-                    {/* 使用製品ピル */}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginLeft: "auto" }}>
-                      {c.products.map((p, pi) => {
-                        const s = productStyle(p);
-                        return (
-                          <span key={pi} style={{
-                            fontSize: 10,
-                            fontWeight: 600,
-                            color: s.color,
-                            background: s.bg,
-                            border: `1px solid ${s.border}`,
-                            borderRadius: 100,
-                            padding: "2px 8px",
-                            fontFamily: "Inter, sans-serif",
-                            whiteSpace: "nowrap",
-                          }}>
-                            {p}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  {/* 活用内容 */}
-                  <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", background: "#F1F5F9", borderRadius: 6, padding: "2px 7px", whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--font-noto-sans)" }}>
-                      活用内容
-                    </span>
-                    <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, fontFamily: "var(--font-noto-sans)" }}>
-                      {c.usecase}
-                    </p>
-                  </div>
-                  {/* 成果 */}
-                  <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#065F46", background: "#D1FAE5", borderRadius: 6, padding: "2px 7px", whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--font-noto-sans)" }}>
-                      成果
-                    </span>
-                    <p style={{ margin: 0, fontSize: 12, color: "#065F46", lineHeight: 1.7, fontWeight: 600, fontFamily: "var(--font-noto-sans)" }}>
-                      {c.result}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <CustomerCasesClient cases={detail.customer_cases!} />
           </div>
         )}
 
