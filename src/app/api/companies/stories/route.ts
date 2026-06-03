@@ -15,7 +15,7 @@ export async function GET() {
 
   // Get company names for the stories
   const companyIds = Array.from(new Set((stories ?? []).map((s) => s.company_id)));
-  let companyMap: Record<string, { name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null }> = {};
+  const companyMap: Record<string, { name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null }> = {};
 
   if (companyIds.length > 0) {
     const { data: companies } = await supabase
