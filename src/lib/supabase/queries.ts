@@ -828,9 +828,19 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     };
   }
 
+  // 同一ユーザーが複数職歴を持つ場合は1人1エントリに絞る（ended_at DESC 順なので最新ロールが先頭）
+  const dedupeByUser = (emps: CompanyEmployee[]): CompanyEmployee[] => {
+    const seen = new Set<string>();
+    return emps.filter((e) => {
+      if (seen.has(e.userId)) return false;
+      seen.add(e.userId);
+      return true;
+    });
+  };
+
   const result = {
-    current: (currentRows ?? []).map((r) => mapEmp(r)),
-    alumni: (alumniRows ?? []).map((r) => mapEmp(r, r.ended_at)),
+    current: dedupeByUser((currentRows ?? []).map((r) => mapEmp(r))),
+    alumni: dedupeByUser((alumniRows ?? []).map((r) => mapEmp(r, r.ended_at))),
   };
 
   return result;

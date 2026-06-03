@@ -118,7 +118,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   ] = await Promise.all([
     supabase
       .from("ow_experiences")
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type")
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason")
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
