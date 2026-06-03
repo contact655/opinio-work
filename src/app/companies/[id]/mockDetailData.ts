@@ -110,6 +110,7 @@ export type CompanyDetail = {
   orgTeams: Array<{
     name: string;
     en_name: string;
+    division?: string;
     mission: string;
     description: string;
     roles: string[];
