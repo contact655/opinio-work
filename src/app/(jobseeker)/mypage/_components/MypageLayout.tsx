@@ -96,10 +96,7 @@ export type MypageActiveKey =
   // SPA ビュー (/mypage)
   | "dashboard"
   | "casual"
-  | "mentor-reserve"
   | "bookmarks"
-  | "mentor-requests"
-  | "mentor-schedule"
   // サブページ (/mypage/conversations, /mypage/applications など)
   | "conversations"
   | "applications"
@@ -111,8 +108,7 @@ export type MypageActiveKey =
 export default function MypageLayout({
   activeKey,
   onNavigate,
-  onIsMentorChange,
-  pendingReceivedCount = 0,
+  onIsMentorChange: _onIsMentorChange,
   conversationsBadge,
   applicationsBadge,
   children,
@@ -121,21 +117,14 @@ export default function MypageLayout({
   activeKey: MypageActiveKey;
   /** SPA ビュー切替ハンドラ。/mypage でのみ使用。サブページでは未指定。 */
   onNavigate?: (key: MypageActiveKey) => void;
-  /** isMentor が変化したときに呼ばれるコールバック（例: activeView のリセット）。 */
   onIsMentorChange?: (v: boolean) => void;
-  pendingReceivedCount?: number;
   conversationsBadge?: number;
   applicationsBadge?: number;
   children: React.ReactNode;
   rightColumn?: React.ReactNode;
 }) {
-  const { isMentor, setIsMentor } = useMypageMock();
+  const { isMentor: _isMentor } = useMypageMock();
   const topOffset = 65;
-
-  function handleSetIsMentor(v: boolean) {
-    setIsMentor(v);
-    onIsMentorChange?.(v);
-  }
 
   function nav(key: MypageActiveKey) {
     onNavigate?.(key);
@@ -143,46 +132,6 @@ export default function MypageLayout({
 
   return (
     <>
-      {/* MOCK バナー: メンター切替（開発環境のみ表示） */}
-      {process.env.NODE_ENV === "development" && (
-        <div style={{
-          background: "var(--bg-tint)", padding: "10px 32px",
-          borderBottom: "1px solid var(--line)",
-          display: "flex", alignItems: "center", gap: 10,
-          position: "sticky", top: 65, zIndex: 50,
-        }}>
-          <span style={{
-            fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
-            letterSpacing: "0.1em", textTransform: "uppercase",
-            fontFamily: "Inter, sans-serif",
-          }}>
-            MOCK:
-          </span>
-          {[
-            { label: "通常ユーザー", value: false },
-            { label: "メンター登録済み", value: true },
-          ].map((opt) => (
-            <button
-              type="button"
-              key={String(opt.value)}
-              onClick={() => handleSetIsMentor(opt.value)}
-              style={{
-                padding: "5px 12px",
-                background: isMentor === opt.value ? "var(--royal)" : "#fff",
-                color: isMentor === opt.value ? "#fff" : "var(--ink-soft)",
-                border: `1px solid ${isMentor === opt.value ? "var(--royal)" : "var(--line)"}`,
-                borderRadius: 100, fontFamily: "inherit", fontSize: 11,
-                fontWeight: 600, cursor: "pointer",
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-          <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-mute)" }}>
-            ※ モック用の切替。本番ではユーザーの役割に応じて動的に表示
-          </span>
-        </div>
-      )}
 
       {/* モバイル: 横スクロールタブバー */}
       <nav aria-label="マイページナビゲーション" className="mypage-mobile-tabbar" style={{
@@ -197,10 +146,6 @@ export default function MypageLayout({
             { key: "applications",   label: "応募管理",      href: "/mypage/applications" },
             { key: "conversations",  label: "対話",          href: "/mypage/conversations" },
             { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks" },
-            ...(isMentor ? [
-              { key: "mentor-requests", label: "受けた相談", href: "#" },
-              { key: "mentor-schedule", label: "スケジュール", href: "#" },
-            ] : []),
             { key: "profile",        label: "プロフィール",  href: "/profile/edit" },
           ].map((item) => {
             const isActive = activeKey === item.key || (item.key === "profile" && (activeKey === "settings"));
@@ -257,25 +202,6 @@ export default function MypageLayout({
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}      onClick={() => nav("bookmarks")} />
           </nav>
 
-          {isMentor && (
-            <div style={{ marginTop: 4, paddingTop: 4, borderTop: "1px solid var(--line-soft)" }}>
-              <div style={{
-                fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-                color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase",
-                padding: "16px 24px 8px",
-                display: "flex", alignItems: "center", gap: 5,
-              }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-                メンター管理
-              </div>
-              <nav style={{ display: "flex", flexDirection: "column" }}>
-                <SidebarItem icon={Icons.check}    label="受けた相談"    active={activeKey === "mentor-requests"}  badge={pendingReceivedCount}  onClick={() => nav("mentor-requests")} />
-                <SidebarItem icon={Icons.calendar} label="スケジュール"  active={activeKey === "mentor-schedule"}                               onClick={() => nav("mentor-schedule")} />
-              </nav>
-            </div>
-          )}
 
           <div style={{
             fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,

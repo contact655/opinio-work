@@ -4,44 +4,16 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Avatar } from "@/components/common";
 import HomeFaq from "@/app/HomeFaq";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import { CountUp } from "@/components/jobseeker/CountUp";
 
 // ─── Site stats type ─────────────────────────────────────────────────────────
 
-type SiteStats = { companies: number; jobs: number; mentors: number };
-const DEFAULT_STATS: SiteStats = { companies: 13, jobs: 0, mentors: 13 };
+type SiteStats = { companies: number; jobs: number };
+const DEFAULT_STATS: SiteStats = { companies: 13, jobs: 0 };
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
-
-const _MENTORS = [
-  {
-    name: "田中 翔太",
-    path: "元 Salesforce → スタートアップ CRO",
-    tags: ["SaaS営業", "外資IT", "年収交渉"],
-    msg: "SaaS営業への転職は、経験よりも思考力。面接で何を話すべきか、一緒に整理しましょう。",
-    gradient: "royal" as const,
-    sessionCount: 23,
-  },
-  {
-    name: "佐藤 美咲",
-    path: "元 HubSpot → SaaSスタートアップ CSM",
-    tags: ["カスタマーサクセス", "キャリアチェンジ", "未経験転職"],
-    msg: "未経験からCSに転職したい方の相談が得意。何から始めるべきか整理します。",
-    gradient: "pink" as const,
-    sessionCount: 17,
-  },
-  {
-    name: "鈴木 健太",
-    path: "元 Datadog → ITコンサル マネージャー",
-    tags: ["外資IT", "フィールドセールス", "面接対策"],
-    msg: "外資IT転職の面接対策・オファー交渉まで、実体験をもとにフィードバックします。",
-    gradient: "green" as const,
-    sessionCount: 31,
-  },
-];
 
 const PAIN_POINTS = [
   {
@@ -218,17 +190,6 @@ function Hero({ stats }: { stats: SiteStats }) {
               }}>
                 まず企業を見てみる <ArrowIcon />
               </Link>
-              <Link href="/mentors" style={{
-                display: "inline-flex", alignItems: "center", gap: 8,
-                padding: "15px 24px",
-                background: "rgba(255,255,255,0.12)",
-                border: "1.5px solid rgba(255,255,255,0.35)",
-                color: "#fff",
-                fontWeight: 600, fontSize: 14, borderRadius: 8, textDecoration: "none",
-                backdropFilter: "blur(6px)",
-              }}>
-                先輩に相談する（無料）
-              </Link>
             </div>
             {/* 副導線: 登録 */}
             <Link href="/auth" style={{
@@ -261,11 +222,10 @@ function Hero({ stats }: { stats: SiteStats }) {
             {[
               { value: String(stats.companies), unit: "社", label: "掲載企業" },
               { value: String(stats.jobs), unit: "件", label: "公開求人" },
-              { value: String(stats.mentors), unit: "名", label: "相談できる先輩" },
             ].map((s, i) => (
               <div key={s.label} style={{
                 flex: 1, textAlign: "center", padding: "14px 8px",
-                borderRight: i < 2 ? "1px solid rgba(255,255,255,0.1)" : "none",
+                borderRight: i < 1 ? "1px solid rgba(255,255,255,0.1)" : "none",
               }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 2 }}>
                   <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "#fff" }}>
@@ -346,26 +306,6 @@ function Hero({ stats }: { stats: SiteStats }) {
 
         {/* Right: search mockup */}
         <div className="hidden md:flex justify-center hero-fade-right" style={{ position: "relative" }}>
-          {/* Floating mentor bubble */}
-          <div className="animate-floaty" style={{
-            position: "absolute", bottom: -16, right: -8, zIndex: 10,
-            background: "#fff", borderRadius: 14,
-            boxShadow: "0 8px 24px rgba(0,35,102,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
-            padding: "12px 16px", display: "flex", alignItems: "center", gap: 10,
-            maxWidth: 240,
-          }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-              background: "linear-gradient(135deg, #7C3AED, #A78BFA)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontWeight: 700, fontSize: 14,
-            }}>先</div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>SaaS業界の先輩メンター</div>
-              <div style={{ fontSize: 11, color: "var(--ink-soft)" }}>30分・無料で相談できます</div>
-            </div>
-          </div>
-
           {/* Main search mockup card */}
           <div style={{
             background: "#fff", borderRadius: 20,
@@ -502,17 +442,6 @@ function DiffStrip() {
       desc: "企業からの一方的な勧誘はありません。気になった企業に、自分のペースで接触できます。",
       color: "#DC2626",
       bg: "#FEF2F2",
-    },
-    {
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-      ),
-      title: "第三者メンターに相談",
-      desc: "転職エージェントではなく、中立な立場の現役/元社員メンターに本音を聞けます。",
-      color: "#7C3AED",
-      bg: "#F5F3FF",
     },
     {
       icon: (
@@ -941,7 +870,6 @@ function FeaturedCompaniesSection() {
           {[
             { icon: "👥", text: "現役社員のリアルな声が聞ける" },
             { icon: "🎓", text: "OB・OGの転職経験談も" },
-            { icon: "🌟", text: "第三者メンターにも相談できる" },
           ].map(({ icon, text }) => (
             <div key={text} style={{
               display: "flex", alignItems: "center", gap: 8,
@@ -951,13 +879,6 @@ function FeaturedCompaniesSection() {
               {text}
             </div>
           ))}
-          <Link href="/mentors" style={{
-            marginLeft: "auto", fontSize: 11, fontWeight: 700,
-            color: "var(--royal)", textDecoration: "none",
-            display: "flex", alignItems: "center", gap: 4,
-          }}>
-            メンターを探す →
-          </Link>
         </div>
 
         <style>{`
@@ -978,8 +899,7 @@ function StatsStrip({ stats }: { stats: SiteStats }) {
   const STATS = [
     { value: String(stats.companies), unit: "社", label: "掲載企業" },
     { value: String(stats.jobs), unit: "件", label: "公開求人" },
-    { value: String(stats.mentors), unit: "名", label: "相談できるメンター" },
-    { value: "30", unit: "分", label: "初回相談・完全無料" },
+    { value: "30", unit: "分", label: "カジュアル面談・完全無料" },
   ];
   return (
     <section style={{
@@ -1034,18 +954,6 @@ function InfraSection() {
       bg: "var(--royal-50)",
     },
     {
-      num: "02",
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-      ),
-      title: "第三者の先輩に相談できる",
-      body: "転職エージェントではなく、中立な現役社員・OBOGメンターに本音を聞けます。完全無料・30分。",
-      color: "var(--warm)",
-      bg: "var(--warm-soft)",
-    },
-    {
       num: "03",
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
@@ -1068,7 +976,7 @@ function InfraSection() {
             他のキャリアサービスと、ここが違う。
           </h2>
           <p style={{ fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-            求人の鮮度、第三者への相談、現役社員の声。3つを1つにまとめました。
+            求人の鮮度、現役社員の声、カジュアル面談。まとめてここで。
           </p>
         </div>
 
@@ -1124,10 +1032,10 @@ function HowItWorks() {
       icon: <SearchIcon />,
     },
     {
-      step: "STEP 02", title: "先輩に相談する", en: "Talk",
-      desc: "気になった会社のことを、似た経歴の先輩に30分オンラインで気軽に聞けます。完全無料。",
-      action: "→ 先輩を探す",
-      href: "/mentors",
+      step: "STEP 02", title: "カジュアル面談", en: "Talk",
+      desc: "気になった会社に、カジュアル面談を申し込んで現役社員に直接話を聞けます。完全無料。",
+      action: "→ 企業を探す",
+      href: "/companies",
       iconBg: "linear-gradient(135deg, #F59E0B, #D97706)",
       icon: <ChatIcon />,
       highlight: true,
@@ -1287,7 +1195,7 @@ const USE_CASES = [
     persona: "転職はまだ先だけど準備したい",
     detail: "現職満足中 · 情報収集フェーズ",
     scene: "「今の会社は好きだけど、3年後どうなるかは不安。業界の感覚を磨きたい」",
-    how: "取材記事で業界トレンドをキャッチ → メンターに「今の選択は正しいか」を相談 → 登録なしで閲覧できる",
+    how: "取材記事で業界トレンドをキャッチ → 気になる企業の現役社員に話を聞く → 登録なしで閲覧できる",
     outcome: "転職せずに終わってもOK。視野が広がるだけで価値がある",
     tag: "情報収集",
     tagColor: "#d97706",
@@ -1298,8 +1206,8 @@ const USE_CASES = [
       </svg>
     ),
     gradient: "linear-gradient(135deg, #F59E0B, #D97706)",
-    href: "/mentors",
-    cta: "先輩を探す →",
+    href: "/companies",
+    cta: "企業を探す →",
   },
 ];
 
@@ -1414,270 +1322,14 @@ function UserTestimonials() {
   );
 }
 
-// ─── Mentors Section ──────────────────────────────────────────────────────────
-
-type PreviewMentor = {
-  id: string;
-  name: string;
-  initial: string;
-  gradient: string;
-  photoUrl: string | null;
-  currentCompany: string;
-  currentRole: string;
-  path: string;
-  tags: string[];
-  roles: string[];
-  catchphrase: string | null;
-  successCount: number;
-  isAvailable: boolean;
-};
-
-function MentorCardSkeleton() {
-  return (
-    <div style={{
-      background: "#fff", borderRadius: 20, padding: 28,
-      border: "1px solid var(--line)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-    }}>
-      <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 16 }}>
-        <div className="skeleton-shimmer" style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
-          <div className="skeleton-shimmer" style={{ height: 14, width: "55%", marginBottom: 8 }} />
-          <div className="skeleton-shimmer" style={{ height: 11, width: "80%" }} />
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-        {[60, 80, 70].map((w, i) => (
-          <div key={i} className="skeleton-shimmer" style={{ height: 22, width: w, borderRadius: 100 }} />
-        ))}
-      </div>
-      <div className="skeleton-shimmer" style={{ height: 11, width: "100%", marginBottom: 6 }} />
-      <div className="skeleton-shimmer" style={{ height: 11, width: "75%", marginBottom: 20 }} />
-      <div className="skeleton-shimmer" style={{ height: 38, width: "100%", borderRadius: 8 }} />
-    </div>
-  );
-}
-
-function MentorsSection() {
-  const [mentors, setMentors] = useState<PreviewMentor[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/mentors/preview")
-      .then((r) => r.json())
-      .then((d) => { setMentors(Array.isArray(d.mentors) ? d.mentors : []); })
-      .catch(() => { setMentors([]); })
-      .finally(() => setLoading(false));
-  }, []);
-
-  return (
-    <section style={{ background: "var(--bg-tint)", padding: "96px 48px" }} className="px-5 py-16 md:py-24 md:px-12">
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <SectionTag>MENTORS</SectionTag>
-          <h2 style={{ fontSize: "clamp(26px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: 16 }}>
-            業界の先輩が、フィードバックします
-          </h2>
-          <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)" }}>
-            IT/SaaS企業で実際に働いた経験のある、数年先を歩く先輩が、<br />
-            あなたの相談にカジュアルに乗ります。
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {loading
-            ? Array.from({ length: 3 }).map((_, i) => <MentorCardSkeleton key={i} />)
-            : mentors.map((m) => (
-            <div key={m.id} style={{
-              background: "#fff", borderRadius: 20, padding: 28,
-              border: "1px solid var(--line)",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-              transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-              display: "flex", flexDirection: "column",
-            }}
-              className="mentor-card"
-            >
-              {/* ヘッダー：アバター + 受付中バッジ */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                <div style={{ display: "flex", gap: 14, alignItems: "center", flex: 1, minWidth: 0 }}>
-                  {/* 写真 or グラデーションアバター */}
-                  {m.photoUrl ? (
-                    <img
-                      src={m.photoUrl}
-                      alt={m.name}
-                      width={52}
-                      height={52}
-                      style={{
-                        width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
-                        objectFit: "cover", objectPosition: "center top",
-                        boxShadow: "0 0 0 2px var(--royal-100)",
-                      }}
-                    />
-                  ) : (
-                    <Avatar name={m.name} size="lg" gradient={m.gradient} />
-                  )}
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{m.name}</div>
-                    <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.5 }}>{m.path || m.currentRole}</div>
-                  </div>
-                </div>
-                {m.isAvailable && (
-                  <div style={{
-                    display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0,
-                    padding: "4px 10px", borderRadius: 100,
-                    background: "#ECFDF5", border: "1px solid #A7F3D0",
-                    fontSize: 10, fontWeight: 700, color: "var(--success)", marginLeft: 8,
-                  }}>
-                    <span style={{
-                      width: 6, height: 6, borderRadius: "50%",
-                      background: "var(--success)", flexShrink: 0,
-                      animation: "pulse-dot 2s ease-in-out infinite",
-                    }} />
-                    受付中
-                  </div>
-                )}
-              </div>
-
-              {/* テーマタグ */}
-              <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 16 }}>
-                {m.tags.map((t) => (
-                  <span key={t} style={{
-                    display: "inline-block", padding: "3px 10px", borderRadius: 100,
-                    fontSize: 11, fontWeight: 600,
-                    background: "var(--royal-50)", color: "var(--royal)",
-                    border: "1px solid var(--royal-100)",
-                  }}>{t}</span>
-                ))}
-              </div>
-
-              {/* 所属 */}
-              {m.currentCompany && (
-                <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 14, lineHeight: 1.6 }}>
-                  <span style={{ color: "var(--ink-mute)" }}>現在：</span>{m.currentCompany}
-                  {m.currentRole && <span style={{ color: "var(--ink-mute)" }}> / {m.currentRole}</span>}
-                </p>
-              )}
-
-              {/* 相談件数 + 無料バッジ */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, marginTop: "auto" }}>
-                <div style={{ fontSize: 13, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                  相談件数 <span style={{ fontWeight: 700, color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{m.successCount}</span> 件
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--success)", fontWeight: 600 }}>
-                  <CheckMark /> 無料
-                </div>
-              </div>
-
-              {/* デュアルCTA: 相談する（予約）+ プロフィールを見る */}
-              <div style={{ display: "flex", gap: 8 }}>
-                <Link
-                  href={`/mentors/${m.id}/reserve`}
-                  style={{
-                    flex: 1, display: "block", padding: "11px 0", borderRadius: 8,
-                    fontSize: 13, fontWeight: 700,
-                    background: "linear-gradient(135deg, #F59E0B, #D97706)",
-                    color: "#fff", textAlign: "center",
-                    boxShadow: "0 3px 10px rgba(245,158,11,0.3)",
-                    textDecoration: "none",
-                  }}
-                >
-                  相談する（無料）
-                </Link>
-                <Link
-                  href={`/mentors/${m.id}`}
-                  style={{
-                    flex: 1, display: "block", padding: "11px 0", borderRadius: 8,
-                    fontSize: 13, fontWeight: 600,
-                    background: "transparent",
-                    color: "var(--ink-soft)", textAlign: "center",
-                    textDecoration: "none",
-                    border: "1px solid var(--line)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  詳しく見る →
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ textAlign: "center", marginTop: 40 }}>
-          <Link href="/mentors" style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "14px 28px", borderRadius: 8, fontSize: 14, fontWeight: 600,
-            background: "#fff", color: "var(--royal)",
-            border: "1.5px solid var(--royal)", textDecoration: "none",
-          }}>
-            先輩一覧を見る →
-          </Link>
-        </div>
-      </div>
-      <style>{`
-        .mentor-card:hover {
-          border-color: #FDE68A !important;
-          box-shadow: 0 12px 32px rgba(245,158,11,0.12) !important;
-          transform: translateY(-3px) !important;
-        }
-        @keyframes pulse-dot {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(0.75); }
-        }
-      `}</style>
-    </section>
-  );
-}
-
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
-function FinalCta({ mentorCount }: { mentorCount: number }) {
-  const MENTOR_AVATARS = [
-    { initial: "田", gradient: "linear-gradient(135deg, #002366, #3B5FD9)" },
-    { initial: "佐", gradient: "linear-gradient(135deg, #7C3AED, #A78BFA)" },
-    { initial: "鈴", gradient: "linear-gradient(135deg, #059669, #34D399)" },
-    { initial: "山", gradient: "linear-gradient(135deg, #D97706, #FBBF24)" },
-    { initial: "伊", gradient: "linear-gradient(135deg, #DC2626, #F87171)" },
-  ];
-
+function FinalCta() {
   return (
     <section style={{
       background: `linear-gradient(135deg, #001233 0%, var(--royal) 60%, var(--accent) 100%)`,
       padding: "96px 48px", textAlign: "center",
     }} className="px-5 py-16 md:py-24 md:px-12">
-      {/* Mentor avatar row + social proof */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 28 }}>
-        <div style={{ display: "flex", marginBottom: 12 }}>
-          {MENTOR_AVATARS.map((m, i) => (
-            <div key={i} style={{
-              width: 44, height: 44, borderRadius: "50%",
-              background: m.gradient,
-              border: "3px solid rgba(255,255,255,0.9)",
-              marginLeft: i === 0 ? 0 : -12,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 15, fontWeight: 700,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
-              zIndex: MENTOR_AVATARS.length - i,
-              position: "relative",
-            }}>
-              {m.initial}
-            </div>
-          ))}
-        </div>
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          padding: "5px 14px", borderRadius: 100,
-          background: "rgba(255,255,255,0.12)",
-          border: "1px solid rgba(255,255,255,0.2)",
-          fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.85)",
-        }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80", flexShrink: 0 }} />
-          {mentorCount}名のメンターが相談を受け付け中
-        </div>
-      </div>
-
       <h2 style={{
         fontSize: "clamp(28px,3.5vw,44px)", fontWeight: 700, color: "#fff",
         marginBottom: 12, fontFamily: 'var(--font-noto-serif)', lineHeight: 1.35,
@@ -1686,7 +1338,7 @@ function FinalCta({ mentorCount }: { mentorCount: number }) {
         <span style={{ opacity: 0.85, fontSize: "0.75em" }}>ただ、知ることから始めよう。</span>
       </h2>
       <p style={{ fontSize: 15, color: "rgba(255,255,255,0.75)", marginBottom: 40, lineHeight: 1.8 }}>
-        IT/SaaS業界の企業情報・求人・先輩メンターが、ひとつの場所に。<br />
+        IT/SaaS業界の企業情報・求人が、ひとつの場所に。<br />
         完全無料・メールアドレスのみで登録。
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" as const }}>
@@ -1698,13 +1350,13 @@ function FinalCta({ mentorCount }: { mentorCount: number }) {
         }}>
           無料登録する <ArrowIcon />
         </Link>
-        <Link href="/mentors" style={{
+        <Link href="/companies" style={{
           display: "inline-flex", alignItems: "center", gap: 8,
           padding: "16px 32px", background: "transparent", color: "#fff",
           fontWeight: 600, fontSize: 15, borderRadius: 8, textDecoration: "none",
           border: "1.5px solid rgba(255,255,255,0.5)",
         }}>
-          まず先輩に話を聞く
+          まず企業を見てみる
         </Link>
       </div>
     </section>
@@ -1863,11 +1515,10 @@ export default function HomePage() {
     fetch("/api/stats")
       .then((r) => r.json())
       .then((d: Partial<SiteStats>) => {
-        if (d.companies != null || d.jobs != null || d.mentors != null) {
+        if (d.companies != null || d.jobs != null) {
           setStats({
             companies: d.companies ?? DEFAULT_STATS.companies,
             jobs: d.jobs ?? DEFAULT_STATS.jobs,
-            mentors: d.mentors ?? DEFAULT_STATS.mentors,
           });
         }
       })
@@ -1885,10 +1536,9 @@ export default function HomePage() {
       <InfraSection />
       <PainPoints />
       <UserTestimonials />
-      <MentorsSection />
       <ArticlesPreview />
       <HomeFaq />
-      <FinalCta mentorCount={stats.mentors} />
+      <FinalCta />
     </>
   );
 }

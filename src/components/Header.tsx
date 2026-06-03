@@ -126,9 +126,6 @@ export default function Header() {
           <Link href="/companies" className="block" style={mobileNavStyle("/companies")} onClick={close}>
             企業を知る
           </Link>
-          <Link href="/mentors" className="block" style={mobileNavStyle("/mentors")} onClick={close}>
-            メンターに相談
-          </Link>
           <Link href="/articles" className="block" style={mobileNavStyle("/articles")} onClick={close}>
             記事
           </Link>
@@ -165,15 +162,6 @@ export default function Header() {
           onMouseLeave={(e) => { if (!isActive("/companies")) e.currentTarget.style.color = "#0f172a"; }}
         >
           企業を知る
-        </Link>
-        <Link
-          href="/mentors"
-          className="transition-colors"
-          style={navStyle("/mentors")}
-          onMouseEnter={(e) => { if (!isActive("/mentors")) e.currentTarget.style.color = "var(--royal)"; }}
-          onMouseLeave={(e) => { if (!isActive("/mentors")) e.currentTarget.style.color = "#0f172a"; }}
-        >
-          メンターに相談
         </Link>
         <Link
           href="/articles"

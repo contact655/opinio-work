@@ -10,14 +10,12 @@ import { InitialAvatar } from "@/components/ui/InitialAvatar";
 const NAV_LINKS = [
   { href: "/companies", label: "企業を見る" },
   { href: "/jobs", label: "求人を探す" },
-  { href: "/mentors", label: "メンター" },
   { href: "/articles", label: "記事" },
 ];
 
 type SuggestResult = {
   companies: { id: string; name: string; industry: string | null; logo_letter: string | null; logo_gradient: string | null }[];
   jobs: { id: string; title: string; job_category: string | null }[];
-  mentors: { id: string; name: string; current_role: string | null; current_company: string | null }[];
 };
 
 const POPULAR_QUERIES = ["プロダクトマネージャー", "エンジニア", "カスタマーサクセス", "営業", "フルリモート", "外資系"];
@@ -392,11 +390,11 @@ export function JobseekerHeader() {
               <input
                 ref={searchInputRef}
                 type="search"
-                aria-label="企業・職種・スキル・メンターを検索"
+                aria-label="企業・職種・スキルを検索"
                 aria-autocomplete="list"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="企業・職種・スキル・メンターを検索..."
+                placeholder="企業・職種・スキルを検索..."
                 style={{
                   flex: 1, height: "100%", border: "none", outline: "none",
                   fontSize: 16, color: "var(--ink)",
@@ -441,7 +439,6 @@ export function JobseekerHeader() {
                     {[
                       { href: "/companies", label: "企業一覧", icon: "🏢" },
                       { href: "/jobs",      label: "求人一覧", icon: "💼" },
-                      { href: "/mentors",   label: "メンター",  icon: "🌟" },
                       { href: "/articles",  label: "記事",      icon: "📝" },
                     ].map(({ href, label, icon }) => (
                       <a key={href} href={href} onClick={() => setSearchOpen(false)}
@@ -498,25 +495,6 @@ export function JobseekerHeader() {
                     </div>
                   )}
 
-                  {/* メンター */}
-                  {suggestions.mentors.length > 0 && (
-                    <div style={{ marginBottom: 8 }}>
-                      <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>メンター</div>
-                      {suggestions.mentors.map((m) => (
-                        <a key={m.id} href={`/mentors/${m.id}`} onClick={() => setSearchOpen(false)}
-                          style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, textDecoration: "none", transition: "background 0.1s" }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-tint)"}
-                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--warm-soft)", display: "flex", alignItems: "center", justifyContent: "center", color: "#B45309", flexShrink: 0, fontSize: 14 }}>🌟</div>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{m.name}</div>
-                            {m.current_role && <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{[m.current_company, m.current_role].filter(Boolean).join(" · ")}</div>}
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
                   {/* 全件検索リンク */}
                   <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 10, marginTop: 4 }}>
                     <a href={`/jobs?q=${encodeURIComponent(searchQuery)}`} onClick={() => setSearchOpen(false)}
@@ -529,7 +507,7 @@ export function JobseekerHeader() {
               )}
 
               {/* クエリあり・結果なし */}
-              {searchQuery && suggestions && suggestions.companies.length === 0 && suggestions.jobs.length === 0 && suggestions.mentors.length === 0 && (
+              {searchQuery && suggestions && suggestions.companies.length === 0 && suggestions.jobs.length === 0 && (
                 <div style={{ padding: "16px 8px 20px", color: "var(--ink-mute)", fontSize: 13 }}>
                   「{searchQuery}」に一致する結果がありません。
                   <a href={`/jobs?q=${encodeURIComponent(searchQuery)}`} onClick={() => setSearchOpen(false)}

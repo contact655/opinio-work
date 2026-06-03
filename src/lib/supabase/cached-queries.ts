@@ -11,8 +11,6 @@ import {
   getArticlesByCompany,
   getCompaniesForList,
   getJobById,
-  getMentors,
-  getMentorById,
   getArticles,
   getArticleBySlug,
 } from "./queries";
@@ -59,20 +57,6 @@ export const getCachedJobById = (id: string) =>
     () => getJobById(id),
     [`job-${id}`],
     { revalidate: TTL, tags: [`job-${id}`] }
-  )();
-
-export const getCachedMentors = () =>
-  unstable_cache(
-    () => getMentors(),
-    ["mentors-list"],
-    { revalidate: TTL, tags: ["mentors"] }
-  )();
-
-export const getCachedMentorById = (id: string) =>
-  unstable_cache(
-    () => getMentorById(id),
-    [`mentor-${id}`],
-    { revalidate: TTL, tags: [`mentor-${id}`] }
   )();
 
 export const getCachedArticles = () =>

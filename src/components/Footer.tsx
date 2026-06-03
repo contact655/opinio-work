@@ -5,7 +5,6 @@ import Link from "next/link";
 const CANDIDATE_LINKS = [
   { href: "/jobs",     label: "求人を探す" },
   { href: "/companies", label: "企業を知る" },
-  { href: "/mentors",   label: "メンターに相談" },
   { href: "/articles",  label: "取材記事" },
   { href: "/auth/signup", label: "無料で始める →" },
 ];
@@ -22,7 +21,6 @@ const OPINIO_LINKS = [
   { href: "/about/selection-criteria",  label: "掲載企業の審査基準" },
   { href: "/privacy",                   label: "プライバシーポリシー" },
   { href: "/terms",                     label: "利用規約" },
-  { href: "/mentor-terms",              label: "メンター向け利用規約" },
 ];
 
 export default function Footer() {

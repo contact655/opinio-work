@@ -34,7 +34,6 @@ type OwUser = {
   birth_date: string | null;
   location: string | null;
   social_links: SocialLinks | null;
-  is_mentor: boolean;
   future_aspirations: string | null;
   strengths_finder: string[] | null;
   auth_id: string;
@@ -82,7 +81,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     supabase.auth.getUser(),
     supabase
       .from("ow_users")
-      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, birth_date, location, social_links, is_mentor, future_aspirations, strengths_finder, auth_id")
+      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, birth_date, location, social_links, future_aspirations, strengths_finder, auth_id")
       .eq("id", params.id)
       .maybeSingle(),
   ]);
@@ -233,19 +232,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
   // Current company for sidebar card
   const currentCareer = timelineCareers.find((c) => c.is_current && c.company_id) ?? null;
-
-  // If user is a mentor, fetch mentor ID + question_tags for "話せること" section
-  let mentorId: string | null = null;
-  let mentorQuestionTags: string[] = [];
-  if (owUser.is_mentor) {
-    const { data: mentorRow } = await supabase
-      .from("ow_mentors")
-      .select("id, question_tags")
-      .eq("user_id", owUser.id)
-      .maybeSingle();
-    mentorId = (mentorRow?.id as string) ?? null;
-    mentorQuestionTags = (mentorRow?.question_tags as string[] | null) ?? [];
-  }
 
   // 在籍企業の募集中求人（サイドバー表示用）
   let currentCompanyJobs: Array<{ id: string; title: string }> = [];
@@ -415,20 +401,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
                 />
               ) : initial}
-              {owUser.is_mentor && (
-                <div style={{
-                  position: "absolute", bottom: 4, right: 4,
-                  width: 30, height: 30,
-                  background: "linear-gradient(135deg, var(--royal), var(--accent))",
-                  borderRadius: "50%", border: "3px solid #fff",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff",
-                }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
-                  </svg>
-                </div>
-              )}
             </div>
 
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
@@ -439,16 +411,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   marginBottom: 6, display: "flex", alignItems: "center", gap: 10,
                 }}>
                   {owUser.name}
-                  {owUser.is_mentor && (
-                    <span style={{
-                      fontSize: 11, fontWeight: 700, letterSpacing: "0.08em",
-                      color: "var(--royal)", background: "var(--royal-50)",
-                      border: "1px solid var(--royal-100)",
-                      padding: "3px 10px", borderRadius: 100,
-                    }}>
-                      MENTOR
-                    </span>
-                  )}
                 </div>
                 {/* Current role subtitle */}
                 {currentCareer && (
@@ -559,21 +521,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </svg>
                   プロフィールを編集
                 </Link>
-              ) : owUser.is_mentor && mentorId ? (
-                /* メンターのみ: 相談申込ボタン */
-                <Link href={`/mentors/${mentorId}/reserve`} style={{
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  padding: "11px 22px", borderRadius: 10,
-                  background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
-                  color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none",
-                  boxShadow: "0 4px 20px rgba(0,35,102,0.25)", flexShrink: 0,
-                  letterSpacing: "0.02em",
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                  メンター相談を申し込む
-                </Link>
               ) : currentCareer?.company_id ? (
                 /* 一般社員: 企業ページへの控えめなリンク */
                 <Link href={`/companies/${currentCareer.company_id}`} style={{
@@ -624,26 +571,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 });
               }
 
-              // Card 2: メンター相談CTA（非オーナー、is_mentor）
-              if (!viewerIsOwner && owUser.is_mentor && mentorId) {
-                highlights.push({
-                  color: "var(--royal)",
-                  icon: (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                  ),
-                  label: "メンター相談",
-                  body: (
-                    <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                      キャリアについて<br/>直接相談できます（無料）
-                    </span>
-                  ),
-                  href: `/mentors/${mentorId}/reserve`,
-                });
-              }
-
-              // Card 3: 最新の発信コンテンツ
+              // Card 2: 最新の発信コンテンツ
               if (contentLinks.length > 0) {
                 const latest = contentLinks[0];
                 const meta = PLATFORM_META[latest.platform ?? "other"] ?? PLATFORM_META.other;
@@ -1585,74 +1513,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
           {/* ── Sidebar ─────────────────────────────────────────────── */}
           <aside className="profile-sidebar">
             <div className="profile-sidebar-sticky" style={{ position: "sticky", top: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-
-              {/* ── メンターのみ: この人と話す CTA ── */}
-              {!viewerIsOwner && owUser.is_mentor && mentorId && (
-                <div style={{
-                  background: "linear-gradient(160deg, #001a5c 0%, var(--royal) 60%, #2d4ed8 100%)",
-                  borderRadius: 16, padding: "22px 20px",
-                  boxShadow: "0 8px 32px rgba(0,35,102,0.22)",
-                  position: "relative",
-                }}>
-                  <div style={{
-                    position: "absolute", inset: 0, borderRadius: 16,
-                    backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)",
-                    backgroundSize: "20px 20px", pointerEvents: "none",
-                  }} />
-                  <div style={{ position: "relative" }}>
-                    <div style={{
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      background: "rgba(255,255,255,0.15)", borderRadius: 100,
-                      padding: "3px 10px", marginBottom: 10,
-                    }}>
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="#FCD34D"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: "#FCD34D", letterSpacing: "0.08em" }}>MENTOR</span>
-                    </div>
-                    <div style={{ fontSize: 14, color: "#fff", fontWeight: 700, marginBottom: 4, lineHeight: 1.45 }}>
-                      {owUser.name.split(" ")[0]}さんに<br/>キャリア相談してみませんか？
-                    </div>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginBottom: 18, lineHeight: 1.5 }}>
-                      完全無料 · 30分から · 編集部が仲介
-                    </div>
-                    <Link href={`/mentors/${mentorId}/reserve`} style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      padding: "12px 16px", borderRadius: 8,
-                      background: "#fff", color: "var(--royal)",
-                      fontSize: 13, fontWeight: 700, textDecoration: "none",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                    }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                      </svg>
-                      メンター相談を申し込む →
-                    </Link>
-                  </div>
-                </div>
-              )}
-
-              {/* 話せること (for mentors) */}
-              {owUser.is_mentor && mentorQuestionTags.length > 0 && (
-                <div style={{
-                  background: "#fff", border: "1px solid var(--line)",
-                  borderRadius: 14, padding: "18px 20px",
-                }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
-                    話せること
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {mentorQuestionTags.map((tag, i) => (
-                      <span key={i} style={{
-                        display: "inline-flex", alignItems: "center",
-                        padding: "5px 11px", borderRadius: 100,
-                        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                        fontSize: 12, color: "var(--royal)", fontWeight: 500,
-                      }}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Current company card — 企業ページへ + カジュアル面談CTA */}
               {currentCareer && currentCareer.company_id && (

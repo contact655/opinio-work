@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { type PositionMember } from "@/app/jobs/mockJobData";
-import { getJobById as fetchJobById, getMentors } from "@/lib/supabase/queries";
+import { getJobById as fetchJobById } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
@@ -184,45 +184,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
       initialBookmarked = !!bmark;
     }
   }
-
-  // Fetch related mentors (by job dept / theme) — show up to 3
-  const relatedMentors = await getMentors({ dept: job.dept ?? undefined, sort: "sessions" })
-    .then((list) => list.filter((m) => m.is_available).slice(0, 3))
-    .catch(() => []);
-
-  // Fetch company-specific mentors via text match on current_company
-  const companyMentorsForJob: Array<{
-    id: string;
-    name: string | null;
-    current_company: string | null;
-    catchphrase: string | null;
-    roles: string[] | null;
-    avatar_initial: string | null;
-    avatar_color: string | null;
-    photo_url: string | null;
-    is_available: boolean | null;
-    success_count: number | null;
-  }> = await (async () => {
-    const cleanEn = (company.name_en ?? "")
-      .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, "")
-      .replace(/\s+Co\.,?\s*Ltd\.?$/i, "")
-      .replace(/\s*,\s*Inc\.?$/i, "")
-      .replace(/\s+Inc\.?$/i, "")
-      .trim();
-    const cleanJa = (company.name ?? "")
-      .replace(/^(株式会社|合同会社|有限会社)/, "")
-      .replace(/(株式会社|合同会社|有限会社)$/, "")
-      .replace(/（\d+）$/, "")
-      .trim();
-    const searchTerm = cleanEn || cleanJa;
-    if (!searchTerm) return [];
-    const { data } = await supabase
-      .from("ow_mentors")
-      .select("id, name, current_company, catchphrase, roles, avatar_initial, avatar_color, photo_url, is_available, success_count")
-      .ilike("current_company", `%${searchTerm}%`)
-      .eq("is_available", true);
-    return data ?? [];
-  })();
 
   // Fetch same-category jobs from other companies
   const sameCategoryJobs: RelatedJob[] = [];
@@ -461,13 +422,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       </span>
                     </h2>
                   </div>
-                  {job.position_members.filter((m) => m.is_mentor).length > 0 && (
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-                      うち <strong style={{ color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
-                        {job.position_members.filter((m) => m.is_mentor).length}
-                      </strong> 名メンター登録
-                    </div>
-                  )}
                 </div>
 
                 <p style={{ fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: 16 }}>
@@ -485,7 +439,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       color: "#fff", fontSize: 14, fontWeight: 700,
                       border: "2.5px solid #fff",
                       marginLeft: i === 0 ? 0 : -10,
-                      boxShadow: m.is_mentor ? "0 0 0 2px var(--royal), 0 0 0 4px #fff" : undefined,
                       position: "relative", zIndex: 10 - i,
                     }}>
                       {m.initial}
@@ -507,8 +460,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         background: m.gradient,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         color: "#fff", fontSize: 13, fontWeight: 700,
-                        boxShadow: m.is_mentor ? "0 0 0 2px var(--royal), 0 0 0 4px #fff" : undefined,
-                      }}>
+                        }}>
                         {m.initial}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -547,15 +499,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       {label}
                     </span>
                   ))}
-                  <span style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: "auto" }}>
-                    <span style={{
-                      width: 10, height: 10, borderRadius: "50%",
-                      background: "var(--royal)",
-                      boxShadow: "0 0 0 1.5px var(--royal), 0 0 0 3px #fff",
-                      flexShrink: 0,
-                    }} />
-                    メンター登録（相談可能）
-                  </span>
                 </div>
               </section>}
 
@@ -889,172 +832,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                 </section>
               )}
-              {/* ── 先輩メンターに相談 ── */}
-              {(companyMentorsForJob.length > 0 || relatedMentors.length > 0) && (() => {
-                const useCompanyMentors = companyMentorsForJob.length > 0;
-                const mentorHeading = useCompanyMentors
-                  ? "この企業のことを知る先輩に相談"
-                  : "この職種を経験した先輩に相談する";
-                const mentorSubtext = useCompanyMentors
-                  ? `${company.name}で活躍した先輩が、転職の疑問に答えます`
-                  : `応募前に、実際に${job.dept ?? "この職種"}として働く先輩の生の声を聞いてみませんか？30分・完全無料です。`;
-                return (
-                  <section style={{
-                    background: "linear-gradient(135deg, var(--royal-50) 0%, #F5F3FF 100%)",
-                    border: "1px solid var(--royal-100)",
-                    borderRadius: 14, padding: "22px 24px", marginBottom: 20,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 4 }}>
-                          MENTOR
-                        </div>
-                        <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-                          {mentorHeading}
-                        </h3>
-                      </div>
-                      <Link href="/mentors" style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
-                        すべて見る →
-                      </Link>
-                    </div>
-                    <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.7 }}>
-                      {mentorSubtext}
-                    </p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {useCompanyMentors
-                        ? companyMentorsForJob.map((mentor) => {
-                            const roleLabel = (mentor.roles as string[] | null)?.[0] ?? null;
-                            return (
-                              <Link key={mentor.id} href={`/mentors/${mentor.id}`} style={{
-                                display: "flex", alignItems: "center", gap: 12,
-                                background: "#fff", borderRadius: 10, padding: "12px 14px",
-                                textDecoration: "none", border: "1px solid var(--line)",
-                                transition: "border-color 0.15s, box-shadow 0.15s",
-                              }}
-                                className="mentor-suggest-card"
-                              >
-                                {mentor.photo_url ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={mentor.photo_url}
-                                    alt={mentor.name ?? ""}
-                                    style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-                                  />
-                                ) : (
-                                  <div style={{
-                                    width: 56, height: 56, borderRadius: "50%", flexShrink: 0,
-                                    background: mentor.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)",
-                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                    color: "#fff", fontSize: 20, fontWeight: 700,
-                                    boxShadow: "0 0 0 2px var(--royal-100)",
-                                  }}>
-                                    {mentor.avatar_initial ?? (mentor.name ? mentor.name[0] : "M")}
-                                  </div>
-                                )}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
-                                      {mentor.name}さん
-                                    </span>
-                                    <span style={{
-                                      fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
-                                      background: "var(--success-soft)", color: "var(--success)",
-                                      border: "1px solid #A7F3D0", whiteSpace: "nowrap",
-                                    }}>
-                                      現職
-                                    </span>
-                                  </div>
-                                  {roleLabel && (
-                                    <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 2 }}>
-                                      {roleLabel}
-                                    </div>
-                                  )}
-                                  {mentor.catchphrase && (
-                                    <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                      {mentor.catchphrase}
-                                    </div>
-                                  )}
-                                </div>
-                                {typeof mentor.success_count === "number" && mentor.success_count > 0 && (
-                                  <span style={{
-                                    fontSize: 9.5, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                                    background: "var(--success-soft)", color: "var(--success)",
-                                    border: "1px solid #A7F3D0", flexShrink: 0, whiteSpace: "nowrap",
-                                  }}>
-                                    {mentor.success_count}件実績
-                                  </span>
-                                )}
-                              </Link>
-                            );
-                          })
-                        : relatedMentors.map((mentor) => (
-                            <Link key={mentor.id} href={`/mentors/${mentor.id}`} style={{
-                              display: "flex", alignItems: "center", gap: 12,
-                              background: "#fff", borderRadius: 10, padding: "12px 14px",
-                              textDecoration: "none", border: "1px solid var(--line)",
-                              transition: "border-color 0.15s, box-shadow 0.15s",
-                            }}
-                              className="mentor-suggest-card"
-                            >
-                              {mentor.photo_url ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={mentor.photo_url}
-                                  alt={mentor.name ?? ""}
-                                  style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-                                />
-                              ) : (
-                                <div style={{
-                                  width: 56, height: 56, borderRadius: "50%", flexShrink: 0,
-                                  background: mentor.gradient,
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                  color: "#fff", fontSize: 20, fontWeight: 700,
-                                  boxShadow: "0 0 0 2px var(--royal-100)",
-                                }}>
-                                  {mentor.initial}
-                                </div>
-                              )}
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-                                  {mentor.name}さん
-                                </div>
-                                <div style={{ fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {mentor.current_company}{mentor.dept ? ` · ${mentor.dept}` : ""}
-                                </div>
-                                {mentor.catchphrase && (
-                                  <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {mentor.catchphrase}
-                                  </div>
-                                )}
-                              </div>
-                              {mentor.is_available && (
-                                <span style={{
-                                  fontSize: 9.5, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                                  background: "var(--success-soft)", color: "var(--success)",
-                                  border: "1px solid #A7F3D0", flexShrink: 0, whiteSpace: "nowrap",
-                                }}>
-                                  受付中
-                                </span>
-                              )}
-                            </Link>
-                          ))
-                      }
-                    </div>
-                    <Link href="/mentors" style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                      marginTop: 14, padding: "10px 0",
-                      background: "var(--royal)", color: "#fff",
-                      borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none",
-                    }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                      </svg>
-                      先輩に相談してから考える（無料）
-                    </Link>
-                  </section>
-                );
-              })()}
-
               {/* Same-category jobs from other companies */}
               <RelatedJobsSection jobs={sameCategoryJobs} />
 
@@ -1164,33 +941,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </div>
               </div>
 
-              {/* Mentor preview */}
-              {job.position_members.some((m) => m.is_mentor) && (
-                <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "18px" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 12 }}>
-                    メンター
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-                    {job.position_members.filter((m) => m.is_mentor).map((m, i) => (
-                      <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                        <div style={{
-                          width: 40, height: 40, borderRadius: "50%",
-                          background: m.gradient,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          color: "#fff", fontSize: 13, fontWeight: 700,
-                          boxShadow: "0 0 0 2px var(--royal), 0 0 0 4px #fff",
-                        }}>
-                          {m.initial}
-                        </div>
-                        <span style={{ fontSize: 9, color: "var(--ink-mute)" }}>{m.name.split(" ")[0]}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-                    カジュアル面談でこの求人について相談できます。
-                  </div>
-                </div>
-              )}
             </aside>
           </div>
         </div>

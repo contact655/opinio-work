@@ -1165,23 +1165,6 @@ function CompanyFeaturesSection({
           </strong>
           {company.name}で働いていた/いる先輩に、カジュアルに話を聞けます。
         </div>
-        <Link
-          href="/mentors"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "10px 20px",
-            background: "var(--royal)",
-            color: "#fff",
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 600,
-            textDecoration: "none",
-          }}
-        >
-          先輩に相談する →
-        </Link>
       </div>
       </div>
     </section>
@@ -1326,117 +1309,6 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
       `}</style>
       </div>
     </section>
-  );
-}
-
-// ─── MentorCTAWidget ── メンター相談のみ（運営経由） ────────────────────────────
-
-function _MentorCTAWidget() {
-  return (
-    <Link
-      href="/mentors"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 16,
-        background: "linear-gradient(135deg, #FFFBEB 0%, var(--warm-soft) 100%)",
-        border: "1.5px solid #FDE68A",
-        borderRadius: 14,
-        padding: "16px 20px",
-        marginBottom: 20,
-        textDecoration: "none",
-        boxShadow: "0 2px 10px rgba(245,158,11,0.1)",
-        transition: "transform 0.15s, box-shadow 0.15s",
-      }}
-      className="mentor-cta-widget"
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{
-          width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-          background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 3px 10px rgba(245,158,11,0.3)",
-        }}>
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-        </div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-            気になることは、OPINIOのメンターに相談
-          </div>
-          <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-            編集部が声がけした先輩が対応 · 30分・完全無料 · 運営が仲介します
-          </div>
-        </div>
-      </div>
-      <div style={{
-        display: "flex", alignItems: "center", gap: 5,
-        fontSize: 12, fontWeight: 700, color: "#D97706",
-        flexShrink: 0, whiteSpace: "nowrap" as const,
-      }}>
-        相談する
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-          <path d="M9 18l6-6-6-6"/>
-        </svg>
-      </div>
-    </Link>
-  );
-}
-
-// ─── MentorSuggestionBanner ──────────────────────────────────────────────────
-
-function MentorSuggestionBanner({ companyName }: { companyName: string }) {
-  return (
-    <div style={{
-      background: "linear-gradient(135deg, var(--warm-soft) 0%, #FFFBEB 100%)",
-      border: "none",
-      borderRadius: 16,
-      padding: "24px 28px",
-      marginBottom: 24,
-      boxShadow: "0 1px 3px rgba(245,158,11,0.08), 0 8px 28px rgba(245,158,11,0.1)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 20,
-      flexWrap: "wrap",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        {/* Icon */}
-        <div style={{
-          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-          background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 4px 12px rgba(245,158,11,0.3)",
-        }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-        </div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>
-            気になる点は、先輩に直接聞いてみよう
-          </div>
-          <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-            {companyName} の現役・元社員メンターに30分・無料で相談できます
-          </div>
-        </div>
-      </div>
-      <Link
-        href="/mentors"
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 7,
-          padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 700,
-          background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-          color: "#fff", textDecoration: "none",
-          boxShadow: "0 3px 10px rgba(245,158,11,0.35)",
-          flexShrink: 0, whiteSpace: "nowrap" as const,
-        }}
-      >
-        先輩メンターを見る →
-      </Link>
-    </div>
   );
 }
 
@@ -1824,7 +1696,6 @@ function EmployeeCard({
 }) {
   // γ-3 修正②: 職種カテゴリ（親カテゴリ優先）でアバター色を統一
   const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
-  const hasMentorCTA = employee.isMentor && employee.mentorId;
 
   const avatar = (
     <div
@@ -1853,22 +1724,6 @@ function EmployeeCard({
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap" }}>
           {employee.name}
         </span>
-        {employee.isMentor && (
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: "var(--purple)",
-              background: "var(--purple-soft)",
-              border: "1px solid #DDD6FE",
-              borderRadius: 100,
-              padding: "2px 8px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            メンター
-          </span>
-        )}
       </div>
       {employee.roleTitle && (
         <p
@@ -1892,49 +1747,6 @@ function EmployeeCard({
       )}
     </div>
   );
-
-  if (hasMentorCTA) {
-    // <a> を入れ子にできないため、div ラッパー + 2 つの別 <a> に分割
-    return (
-      <div
-        className="employee-card-link"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "12px 14px",
-          background: "var(--bg-tint)",
-          border: "1px solid var(--line)",
-          borderRadius: 12,
-        }}
-      >
-        <a
-          href={`/u/${employee.userId}`}
-          style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, textDecoration: "none", minWidth: 0 }}
-        >
-          {avatar}
-          {nameAndRole}
-        </a>
-        <a
-          href={`/mentors/${employee.mentorId}/reserve`}
-          style={{
-            flexShrink: 0,
-            fontSize: 11,
-            fontWeight: 600,
-            color: "var(--royal)",
-            background: "var(--royal-50)",
-            border: "1px solid var(--royal-100)",
-            textDecoration: "none",
-            padding: "5px 10px",
-            borderRadius: 6,
-            whiteSpace: "nowrap",
-          }}
-        >
-          相談する →
-        </a>
-      </div>
-    );
-  }
 
   return (
     <a
@@ -2500,217 +2312,6 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
           </div>
         </div>
       )}
-      </div>
-    </section>
-  );
-}
-
-async function CompanyMentorsSection({
-  companyId: _companyId,
-  companyName,
-  companyNameEn,
-}: {
-  companyId: string;
-  companyName: string;
-  companyNameEn?: string | null;
-}) {
-  const supabase = createClient();
-
-  // Build search terms from English and Japanese company names
-  const cleanEn = (companyNameEn ?? "")
-    .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, "")
-    .replace(/\s+Co\.,?\s*Ltd\.?$/i, "")
-    .replace(/\s*,\s*Inc\.?$/i, "")
-    .replace(/\s+Inc\.?$/i, "")
-    .trim();
-  const cleanJa = (companyName ?? "")
-    .replace(/^(株式会社|合同会社|有限会社)/, "")
-    .replace(/(株式会社|合同会社|有限会社)$/, "")
-    .replace(/（\d+）$/, "")
-    .trim();
-  const searchTerm = cleanEn || cleanJa;
-
-  let mentors: Array<{
-    id: string;
-    name: string | null;
-    current_company: string | null;
-    catchphrase: string | null;
-    roles: string[] | null;
-    avatar_initial: string | null;
-    avatar_color: string | null;
-    photo_url: string | null;
-    is_available: boolean | null;
-    success_count: number | null;
-  }> = [];
-  let isCompanySpecific = false;
-
-  // Try company-specific match first
-  if (searchTerm) {
-    const { data: companyMentors } = await supabase
-      .from("ow_mentors")
-      .select("id, name, current_company, catchphrase, roles, avatar_initial, avatar_color, photo_url, is_available, success_count")
-      .ilike("current_company", `%${searchTerm}%`)
-      .eq("is_available", true);
-    if (companyMentors && companyMentors.length > 0) {
-      mentors = companyMentors;
-      isCompanySpecific = true;
-    }
-  }
-
-  // Fallback: all available mentors
-  if (!isCompanySpecific) {
-    const { data: allMentors } = await supabase
-      .from("ow_mentors")
-      .select("id, name, current_company, catchphrase, roles, avatar_initial, avatar_color, photo_url, is_available, success_count")
-      .eq("is_available", true)
-      .limit(4);
-    mentors = allMentors ?? [];
-  }
-
-  if (!mentors || mentors.length === 0) return null;
-
-  const heading = isCompanySpecific
-    ? "この企業のことを知る先輩に相談"
-    : "先輩メンターに相談する";
-  const subtext = isCompanySpecific
-    ? `${companyName}で活躍した先輩が、転職の疑問に答えます`
-    : "OPINIOのメンターにキャリアの悩みを相談できます";
-
-  return (
-    <section
-      id="mentors"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: 24,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
-    >
-      {/* Section header */}
-      <div style={{ padding: "22px 28px 18px", background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
-            }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 700, color: "var(--ink)" }}>
-                {heading}
-              </div>
-              <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
-                {subtext}
-              </div>
-            </div>
-          </div>
-          <Link href="/mentors" style={{
-            fontSize: 12, color: "var(--royal)", textDecoration: "none", fontWeight: 600,
-            display: "flex", alignItems: "center", gap: 4,
-          }}>
-            全員を見る
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
-          </Link>
-        </div>
-      </div>
-      <div style={{ padding: "22px 28px 28px" }}>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-          gap: 14,
-        }}>
-          {mentors.map((mentor) => {
-            const roleLabel = (mentor.roles as string[] | null)?.[0] ?? null;
-            return (
-              <Link
-                key={mentor.id}
-                href={`/mentors/${mentor.id}`}
-                style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
-                  padding: "18px 14px 14px",
-                  border: "1px solid var(--line)", borderRadius: 12,
-                  textDecoration: "none", background: "var(--bg-tint)",
-                  transition: "all 0.2s",
-                }}
-                className="mentor-card-link"
-              >
-                {/* Avatar */}
-                {mentor.photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={mentor.photo_url}
-                    alt={mentor.name ?? ""}
-                    style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-                  />
-                ) : (
-                  <div style={{
-                    width: 56, height: 56, borderRadius: "50%",
-                    background: mentor.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)",
-                    color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                    fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 20, flexShrink: 0,
-                  }}>
-                    {mentor.avatar_initial ?? (mentor.name ? mentor.name[0] : "M")}
-                  </div>
-                )}
-                <div style={{ textAlign: "center", minWidth: 0, width: "100%" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, flexWrap: "wrap", marginBottom: 2 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
-                      {mentor.name}
-                    </div>
-                    {isCompanySpecific && (
-                      <span style={{
-                        fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
-                        background: "var(--success-soft)", color: "var(--success)",
-                        border: "1px solid #A7F3D0", whiteSpace: "nowrap",
-                      }}>
-                        現職
-                      </span>
-                    )}
-                  </div>
-                  {roleLabel && (
-                    <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.4 }}>
-                      {roleLabel}
-                    </div>
-                  )}
-                  {mentor.catchphrase && (
-                    <div style={{
-                      fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.4,
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    }}>
-                      {mentor.catchphrase}
-                    </div>
-                  )}
-                  {typeof mentor.success_count === "number" && mentor.success_count > 0 && (
-                    <div style={{
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      fontSize: 10, color: "var(--success)", background: "var(--success-soft)",
-                      padding: "2px 8px", borderRadius: 100, marginBottom: 8,
-                    }}>
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-                      {mentor.success_count}件の相談実績
-                    </div>
-                  )}
-                  <div style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "6px 14px", borderRadius: 8, width: "100%", justifyContent: "center",
-                    background: "linear-gradient(135deg, var(--warm), #FBBF24)",
-                    color: "#fff", fontSize: 11, fontWeight: 700,
-                    boxShadow: "0 2px 6px rgba(245,158,11,0.25)",
-                  }}>
-                    相談する →
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
       </div>
     </section>
   );
@@ -4074,7 +3675,6 @@ export default async function CompanyDetailPage({
           ...(employees.current.length > 0 ? [{ id: "current-employees", label: `現役社員 ${employees.current.length}名` }] : [{ id: "current-employees", label: "現役社員" }]),
           { id: "articles",         label: companyArticles.length > 0 ? `記事 ${companyArticles.length}件` : "記事" },
           { id: "posts",            label: postsCount > 0 ? `発信 ${postsCount}件` : "発信" },
-          { id: "mentors",          label: "メンターに相談する" },
         ]} />
         <div
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
@@ -4120,9 +3720,6 @@ export default async function CompanyDetailPage({
               postsCount={postsCount}
             />
 
-            {/* 9. メンターに相談する */}
-            <CompanyMentorsSection companyId={params.id} companyName={company.name} companyNameEn={company.name_en} />
-
             {/* 編集部の見立て（タブなし・コンテンツ末尾） */}
             <FitSection detail={detail} />
 
@@ -4132,7 +3729,6 @@ export default async function CompanyDetailPage({
             {/* 特徴・評判 */}
             <CompanyFeaturesSection company={company} detail={detail} />
 
-            <MentorSuggestionBanner companyName={company.name} />
             {recruiters.length > 0 && (
               <RecruitersSection recruiters={recruiters} />
             )}
@@ -4165,10 +3761,6 @@ export default async function CompanyDetailPage({
         main > *:nth-child(n+6){ animation-delay: 0.25s; }
 
         /* ── Job cards ── */
-        .mentor-cta-widget:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(245,158,11,0.18) !important;
-        }
         .job-item-link {
           transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
         }

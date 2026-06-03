@@ -736,8 +736,6 @@ export type CompanyEmployee = {
   avatarInitial: string;
   avatarGradient: string;
   roleTitle: string | null;
-  isMentor: boolean;
-  mentorId: string | null; // ow_mentors.id（isMentor=true かつ is_available=true の場合のみ非 null）
   endedAt: string | null; // "YYYY-MM" 形式、OB のみ使用
   // === Phase Q-5 追加: カテゴリ情報 ===
   roleCategoryId: string | null;
@@ -766,7 +764,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // 現役社員 (is_current = true)
   const { data: currentRows, error: e1 } = await supabase
     .from("ow_experiences")
-    .select("role_title, role_category_id, ow_users!inner(id, name, avatar_color, is_mentor)")
+    .select("role_title, role_category_id, ow_users!inner(id, name, avatar_color)")
     .eq("company_id", companyId)
     .eq("is_current", true);
 
@@ -778,7 +776,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // OB 社員 (is_current = false, ended_at あり)
   const { data: alumniRows, error: e2 } = await supabase
     .from("ow_experiences")
-    .select("role_title, role_category_id, ended_at, ow_users!inner(id, name, avatar_color, is_mentor)")
+    .select("role_title, role_category_id, ended_at, ow_users!inner(id, name, avatar_color)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .not("ended_at", "is", null)
@@ -806,8 +804,6 @@ export async function getCompanyEmployees(companyId: string): Promise<{
         ? `linear-gradient(135deg, ${hex}99, ${hex})`
         : "linear-gradient(135deg, #002366, #3B5FD9)",
       roleTitle: (row.role_title as string | null) ?? null,
-      isMentor: (u?.is_mentor as boolean) ?? false,
-      mentorId: null,
       endedAt: endedAt ? (endedAt as string).slice(0, 7) : null,
       roleCategoryId,
       roleCategoryName: (role?.name as string | null) ?? null,
@@ -820,24 +816,6 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     current: (currentRows ?? []).map((r) => mapEmp(r)),
     alumni: (alumniRows ?? []).map((r) => mapEmp(r, r.ended_at)),
   };
-
-  // Resolve mentorId for is_mentor users
-  const allEmps = [...result.current, ...result.alumni];
-  const mentorUserIds = allEmps.filter((e) => e.isMentor).map((e) => e.userId);
-  if (mentorUserIds.length > 0) {
-    const { data: mentorRows } = await supabase
-      .from("ow_mentors")
-      .select("id, user_id")
-      .in("user_id", mentorUserIds)
-      .eq("is_available", true);
-    const mentorIdByUserId = new Map<string, string>(
-      (mentorRows ?? [])
-        .filter((m) => m.user_id)
-        .map((m) => [m.user_id as string, m.id as string])
-    );
-    for (const e of result.current) e.mentorId = mentorIdByUserId.get(e.userId) ?? null;
-    for (const e of result.alumni) e.mentorId = mentorIdByUserId.get(e.userId) ?? null;
-  }
 
   return result;
 }
@@ -923,140 +901,6 @@ export async function getAllRolesForCategoryEditor(): Promise<RoleForEditor[]> {
     parentId: (r.parent_id as string | null) ?? null,
     displayOrder: (r.display_order as number) ?? 0,
   }));
-}
-
-// ─── Mentors ──────────────────────────────────────────────────────────────────
-// Note: table name is `mentors` (no ow_ prefix — intentional, see design doc §6-X+1)
-
-export type MentorData = {
-  id: string;
-  user_id: string | null;  // ow_mentors.user_id（カテゴリ紐付けに使用）
-  name: string;
-  initial: string;
-  gradient: string;
-  photo_url: string | null;
-  current_company: string;
-  current_role: string;
-  bio: string;
-  catchphrase: string;
-  career_chain: { label: string; is_current: boolean }[];
-  themes: string[];
-  dept: string;
-  concerns: string[];
-  calendly_url: string | null;
-  is_available: boolean;
-  success_count: number;
-  total_sessions: number;
-};
-
-const MENTOR_COLS = [
-  "id", "user_id", "name", "avatar_initial", "avatar_color", "photo_url",
-  "current_company", "current_role", "previous_career", "current_career",
-  "roles", "question_tags", "bio", "catchphrase", "concerns",
-  "calendly_url", "is_available", "display_order", "success_count", "total_sessions",
-].join(", ");
-
-function hexToMentorGradient(hex: string | null): string {
-  if (!hex) return FALLBACK_GRADIENT;
-  return `linear-gradient(135deg, ${hex}99, ${hex})`;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapMentor(row: Record<string, any>): MentorData {
-  const name = (row.name as string) ?? "";
-  const current = (row.current_career as string | null);
-  const previous = (row.previous_career as string | null);
-  const chain: { label: string; is_current: boolean }[] = [];
-  if (previous) chain.push({ label: previous, is_current: false });
-  if (current)  chain.push({ label: current,  is_current: true  });
-
-  return {
-    id: row.id as string,
-    user_id: (row.user_id as string | null) ?? null,
-    name,
-    initial: (row.avatar_initial as string | null) ?? name.charAt(0),
-    gradient: hexToMentorGradient(row.avatar_color as string | null),
-    photo_url: (row.photo_url as string | null) ?? null,
-    current_company: (row.current_company as string | null) ?? "",
-    current_role: (row.current_role as string | null) ?? "",
-    bio: (row.bio as string | null) ?? "",
-    catchphrase: (row.catchphrase as string | null) ?? "",
-    career_chain: chain,
-    themes: (row.question_tags as string[] | null) ?? [],
-    dept: ((row.roles as string[] | null)?.[0]) ?? "",
-    concerns: (row.concerns as string[] | null) ?? [],
-    calendly_url: (row.calendly_url as string | null) ?? null,
-    is_available: (row.is_available as boolean) ?? true,
-    success_count: (row.success_count as number) ?? 0,
-    total_sessions: (row.total_sessions as number) ?? 0,
-  };
-}
-
-export type MentorFilter = {
-  dept?: string;
-  theme?: string;
-  sort?: string;
-  q?: string;
-};
-
-// 全メンターを一括取得してキャッシュ（フィルターはアプリ側で適用）
-const getAllMentorsCached = unstable_cache(
-  async (): Promise<MentorData[]> => {
-    const supabase = createPublicClient();
-    const { data, error } = await supabase
-      .from("ow_mentors")
-      .select(MENTOR_COLS)
-      .order("display_order", { ascending: true });
-    if (error) { console.error("[getMentors]", error.message); return []; }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data ?? []).map((row: Record<string, any>) => mapMentor(row));
-  },
-  ["mentors-all"],
-  { revalidate: 300 }
-);
-
-export async function getMentors(filter?: MentorFilter): Promise<MentorData[]> {
-  let rows = await getAllMentorsCached();
-
-  if (filter?.dept) {
-    const dept = filter.dept;
-    rows = rows.filter((m) => m.dept === dept);
-  }
-  if (filter?.theme) {
-    const theme = filter.theme.toLowerCase();
-    rows = rows.filter((m) => m.themes.some((t) => t.toLowerCase().includes(theme)));
-  }
-  if (filter?.q) {
-    const q = filter.q.toLowerCase();
-    rows = rows.filter((m) =>
-      m.name.toLowerCase().includes(q) ||
-      (m.current_company ?? "").toLowerCase().includes(q) ||
-      (m.current_role ?? "").toLowerCase().includes(q) ||
-      m.themes.some((t) => t.toLowerCase().includes(q)) ||
-      (m.catchphrase ?? "").toLowerCase().includes(q)
-    );
-  }
-  if (filter?.sort === "sessions") {
-    rows = [...rows].sort((a, b) => (b.success_count ?? 0) - (a.success_count ?? 0));
-  }
-
-  return rows;
-}
-
-export async function getMentorById(id: string): Promise<MentorData | null> {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("ow_mentors")
-    .select(MENTOR_COLS)
-    .eq("id", id)
-    .single();
-
-  if (error || !data) {
-    if (error?.code !== "PGRST116") console.error("[getMentorById]", error?.message);
-    return null;
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return mapMentor(data as Record<string, any>);
 }
 
 // ─── Articles ─────────────────────────────────────────────────────────────────

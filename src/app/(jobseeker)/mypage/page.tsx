@@ -5,10 +5,6 @@ import type {
   Bookmark,
   CasualMeeting,
   CasualMeetingStatus,
-  MentorReservation,
-  MentorReservationStatus,
-  ReceivedRequest,
-  ReceivedRequestStatus,
 } from "@/app/mypage/mockMypageData";
 import type { CareerEntry } from "@/components/profile/MergedTimeline";
 import {
@@ -29,7 +25,7 @@ export default async function MypagePage() {
 
   const { data: owUser } = await supabase
     .from("ow_users")
-    .select("id, name, avatar_color, cover_color, about_me, birth_date, location, social_links, future_aspirations, is_mentor")
+    .select("id, name, avatar_color, cover_color, about_me, birth_date, location, social_links, future_aspirations")
     .eq("auth_id", user.id)
     .maybeSingle();
 
@@ -133,23 +129,21 @@ export default async function MypagePage() {
     );
   }
 
-  // Fetch bookmarks for company, job, mentor (articles table doesn't exist yet)
+  // Fetch bookmarks for company and job
   let companyBookmarks: Bookmark[] = [];
   let jobBookmarks: Bookmark[] = [];
-  let mentorBookmarks: Bookmark[] = [];
   if (owUser) {
-    // Fetch all bookmark rows for this user (company + job + mentor)
+    // Fetch all bookmark rows for this user (company + job)
     const { data: bmarks } = await supabase
       .from("ow_bookmarks")
       .select("id, target_id, target_type")
       .eq("user_id", owUser.id)
-      .in("target_type", ["company", "job", "mentor"])
+      .in("target_type", ["company", "job"])
       .order("created_at", { ascending: false });
 
     if (bmarks && bmarks.length > 0) {
       const companyBmarks = bmarks.filter((b) => b.target_type === "company");
       const jobBmarks = bmarks.filter((b) => b.target_type === "job");
-      const mentorBmarks = bmarks.filter((b) => b.target_type === "mentor");
 
       // ── Company bookmarks ──
       if (companyBmarks.length > 0) {
@@ -204,31 +198,6 @@ export default async function MypagePage() {
                 meta: [companyName, j.job_category as string].filter(Boolean).join(" / "),
                 badge_label: (j.job_category as string) ?? "求人",
                 href: `/jobs/${j.id}`,
-              };
-            })
-            .filter((b): b is Bookmark => b !== null);
-        }
-      }
-
-      // ── Mentor bookmarks ──
-      if (mentorBmarks.length > 0) {
-        const mentorIds = mentorBmarks.map((b) => b.target_id as string);
-        const { data: mentors } = await supabase
-          .from("ow_mentors")
-          .select("id, name, current_role, current_company")
-          .in("id", mentorIds);
-        if (mentors) {
-          const mentorMap = new Map(mentors.map((m) => [m.id, m]));
-          mentorBookmarks = mentorBmarks
-            .map((b): Bookmark | null => {
-              const m = mentorMap.get(b.target_id as string);
-              if (!m) return null;
-              return {
-                id: b.id as string, type: "mentor",
-                title: `${m.name as string}さん`,
-                meta: [m.current_company, m.current_role].filter(Boolean).join(" / "),
-                badge_label: "メンター",
-                href: `/mentors/${m.id}`,
               };
             })
             .filter((b): b is Bookmark => b !== null);
@@ -292,104 +261,6 @@ export default async function MypagePage() {
     }
   }
 
-  // Fetch mentor reservations with mentor profile JOIN
-  let mentorReservations: MentorReservation[] = [];
-  if (owUser) {
-    const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
-    const { data: reservations } = await supabase
-      .from("ow_mentor_reservations")
-      .select("id, mentor_id, themes, created_at, scheduled_at, status")
-      .eq("user_id", owUser.id)
-      .order("created_at", { ascending: false });
-
-    if (reservations && reservations.length > 0) {
-      const mentorIds = Array.from(new Set(reservations.map((r) => r.mentor_id as string).filter(Boolean)));
-      const mentorMap = new Map<string, { name: string; avatar_initial: string | null; avatar_color: string | null; current_role: string | null }>();
-      if (mentorIds.length > 0) {
-        const { data: mentors } = await supabase
-          .from("ow_mentors")
-          .select("id, name, avatar_initial, avatar_color, current_role")
-          .in("id", mentorIds);
-        for (const m of mentors ?? []) {
-          mentorMap.set(m.id as string, m as { name: string; avatar_initial: string | null; avatar_color: string | null; current_role: string | null });
-        }
-      }
-
-      mentorReservations = reservations.map((r): MentorReservation => {
-        const m = mentorMap.get(r.mentor_id as string);
-        const appliedAt = new Date(r.created_at as string)
-          .toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
-          .replace(/\//g, ".");
-        const hex = m?.avatar_color as string | null;
-        const gradient = hex
-          ? `linear-gradient(135deg, ${hex}99, ${hex})`
-          : FALLBACK_GRADIENT;
-        return {
-          id: r.id as string,
-          mentor_id: (r.mentor_id as string) ?? "",
-          mentor_name: (m?.name as string) ?? "—",
-          mentor_initial: (m?.avatar_initial as string) ?? (m?.name as string)?.charAt(0) ?? "?",
-          mentor_gradient: gradient,
-          mentor_role: (m?.current_role as string) ?? "",
-          themes: (r.themes as string[]) ?? [],
-          applied_at: appliedAt,
-          scheduled_at: r.scheduled_at
-            ? new Date(r.scheduled_at as string).toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\//g, ".")
-            : undefined,
-          status: (r.status as MentorReservationStatus) ?? "pending_review",
-        };
-      });
-    }
-  }
-
-  // Fetch received mentor consultation requests (only when user is a mentor)
-  let receivedRequests: ReceivedRequest[] = [];
-  if (owUser?.is_mentor) {
-    const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
-    const { data: reqs } = await supabase
-      .from("ow_mentor_reservations")
-      .select("id, themes, current_situation, questions, status, scheduled_at, created_at, user:ow_users!user_id (id, name, avatar_color)")
-      .eq("mentor_user_id", owUser.id)
-      .order("created_at", { ascending: false });
-
-    if (reqs && reqs.length > 0) {
-      receivedRequests = reqs.map((r): ReceivedRequest => {
-        const requester = r.user as unknown as { id: string; name: string; avatar_color: string | null } | null;
-        const gradient = requester?.avatar_color?.startsWith("linear-gradient")
-          ? requester.avatar_color
-          : FALLBACK_GRADIENT;
-
-        const rawStatus = r.status as string;
-        const status: ReceivedRequestStatus =
-          rawStatus === "approved" ? "approved"
-          : rawStatus === "completed" ? "completed"
-          : "pending";
-
-        return {
-          id: r.id as string,
-          requester_name: requester?.name ?? "—",
-          requester_initial: requester?.name?.charAt(0) ?? "?",
-          requester_gradient: gradient,
-          requester_role: "—",
-          requester_company: "—",
-          requester_age: "—",
-          themes: (r.themes as string[] | null) ?? [],
-          preview_text:
-            (r.current_situation as string | null) ??
-            (r.questions as string | null) ??
-            "相談リクエストが届いています",
-          status,
-          resolved_at:
-            status === "completed" && r.scheduled_at
-              ? new Date(r.scheduled_at as string)
-                  .toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
-                  .replace(/\//g, ".")
-              : undefined,
-        };
-      });
-    }
-  }
-
   // Fetch ow_profiles career preferences (user_id = auth.users.id)
   let hasCareerPreferences = false;
   if (owUser) {
@@ -427,5 +298,5 @@ export default async function MypagePage() {
     applicationsBadge = appCount ?? 0;
   }
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} mentorBookmarks={mentorBookmarks} casualMeetings={casualMeetings} mentorReservations={mentorReservations} receivedRequests={receivedRequests} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} />;
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} />;
 }

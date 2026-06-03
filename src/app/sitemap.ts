@@ -19,11 +19,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .select("slug, updated_at")
     .eq("is_published", true);
 
-  const { data: mentors } = await supabase
-    .from("ow_mentors")
-    .select("id, updated_at")
-    .eq("is_available", true);
-
   const baseUrl = "https://opinio.jp";
 
   return [
@@ -47,22 +42,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.85,
     },
     {
-      url: `${baseUrl}/mentors`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
       url: `${baseUrl}/articles`,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/career-consultation`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.7,
     },
     {
       url: `${baseUrl}/about`,
@@ -83,12 +66,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.55,
     },
     {
-      url: `${baseUrl}/consultation-cases`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
       url: `${baseUrl}/not-job-changing`,
       lastModified: new Date(),
       changeFrequency: "monthly",
@@ -96,12 +73,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${baseUrl}/industries`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/mentor`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.5,
@@ -133,14 +104,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(company.updated_at),
       changeFrequency: "monthly" as const,
       priority: 0.65,
-    })) ?? []),
-
-    // ── Dynamic: mentors ─────────────────────────────────────────────────────
-    ...(mentors?.map((m) => ({
-      url: `${baseUrl}/mentors/${m.id}`,
-      lastModified: new Date(m.updated_at),
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
     })) ?? []),
 
     // ── Dynamic: articles ────────────────────────────────────────────────────

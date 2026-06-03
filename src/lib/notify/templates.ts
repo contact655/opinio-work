@@ -130,57 +130,6 @@ export function meetingStatusTemplate(params: {
   };
 }
 
-// ── T5: メンター予約申込 ──────────────────────────────────────────────────────
-
-// T5 admin 宛
-export function mentorReservationAdminTemplate(params: {
-  mentorName: string;
-  contactEmail: string;
-  themes: string[];
-  currentSituation: string;
-  questions: string;
-}) {
-  return {
-    to: ADMIN_EMAIL,
-    subject: `【新着メンター相談】${params.mentorName} さんへの申し込みがありました`,
-    html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">新着メンター相談</h2>
-      <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${params.mentorName}</strong> さんへの相談申し込みがありました。</p>
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
-        <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${params.contactEmail}</td></tr>
-        <tr><td style="${TD_LABEL}">相談テーマ</td><td style="${TD_VALUE}">${params.themes.length > 0 ? params.themes.map((t) => `<span style="display:inline-block;padding:2px 8px;background:#eff3fc;color:#002366;border-radius:4px;font-size:12px;margin:2px">${t}</span>`).join(" ") : "（未選択）"}</td></tr>
-        <tr><td style="${TD_LABEL}">現在の状況</td><td style="${TD_VALUE}">${params.currentSituation}</td></tr>
-        <tr><td style="${TD_LABEL}">聞きたいこと</td><td style="${TD_VALUE}">${params.questions}</td></tr>
-      </table>
-      <p style="font-size:13px;color:#475569;margin-bottom:20px">内容を確認の上、メンターに転送してください。</p>
-    `),
-  };
-}
-
-// T5 申込者宛
-export function mentorReservationUserTemplate(params: {
-  to: string;
-  mentorName: string;
-}) {
-  return {
-    to: params.to,
-    subject: `【opinio.jp】${params.mentorName} さんへの相談申し込みを受け付けました`,
-    html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">相談申し込みを受け付けました</h2>
-      <p style="margin:0 0 16px;color:#475569">
-        <strong style="color:#0f172a">${params.mentorName}</strong> さんへのメンター相談申し込みありがとうございます。
-      </p>
-      <div style="background:#eff3fc;border-radius:8px;padding:16px 20px;margin-bottom:24px;border-left:3px solid #002366">
-        <p style="margin:0;font-size:13px;color:#334155;line-height:1.7">
-          ✅ 編集部が内容を確認し、<strong>${params.mentorName}</strong> さんに転送いたします。<br>
-          メンターから承認の連絡があるまで、しばらくお待ちください。
-        </p>
-      </div>
-      <a href="https://opinio.jp/mypage" style="${BTN}">マイページで状況を確認する →</a>
-    `),
-  };
-}
-
 // ── T1: 求人応募申込 ──────────────────────────────────────────────────────────
 
 // T1 admin 宛

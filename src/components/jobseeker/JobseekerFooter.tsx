@@ -117,7 +117,6 @@ export function JobseekerFooter() {
               {[
                 { href: "/companies", label: "企業を探す" },
                 { href: "/jobs",      label: "求人を探す" },
-                { href: "/mentors",   label: "先輩に相談" },
                 { href: "/articles",  label: "記事" },
                 { href: "/auth",      label: "無料登録" },
               ].map(({ href, label }) => (
@@ -160,7 +159,6 @@ export function JobseekerFooter() {
                 { href: "/industries",   label: "対象業界" },
                 { href: "/privacy",      label: "プライバシーポリシー" },
                 { href: "/terms",        label: "利用規約" },
-                { href: "/mentor-terms", label: "メンター向け利用規約" },
               ].map(({ href, label }) => (
                 <Link key={href} href={href} className="footer-link" style={{
                   fontSize: 13, textDecoration: "none",

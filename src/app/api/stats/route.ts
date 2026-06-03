@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const admin = createAdminClient();
 
-    const [companiesRes, jobsRes, mentorsRes] = await Promise.all([
+    const [companiesRes, jobsRes] = await Promise.all([
       admin
         .from("ow_companies")
         .select("id", { count: "exact", head: true })
@@ -17,17 +17,12 @@ export async function GET() {
         .from("ow_jobs")
         .select("id", { count: "exact", head: true })
         .in("status", ["published", "active"]),
-      admin
-        .from("ow_mentors")
-        .select("id", { count: "exact", head: true })
-        .eq("is_available", true),
     ]);
 
     return NextResponse.json(
       {
         companies: companiesRes.count ?? 0,
         jobs: jobsRes.count ?? 0,
-        mentors: mentorsRes.count ?? 0,
       },
       {
         headers: {
@@ -37,6 +32,6 @@ export async function GET() {
     );
   } catch {
     // フォールバック
-    return NextResponse.json({ companies: 13, jobs: 0, mentors: 13 });
+    return NextResponse.json({ companies: 13, jobs: 0 });
   }
 }

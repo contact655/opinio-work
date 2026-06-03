@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import MypageLayout, { type MypageActiveKey } from "./_components/MypageLayout";
 import { useMypageMock } from "./_components/MypageMockContext";
@@ -16,9 +16,7 @@ import {
   STATUS_LABEL,
   STATUS_VARIANT,
   type CasualMeeting,
-  type MentorReservation,
   type Bookmark,
-  type ReceivedRequest,
   type PillVariant,
 } from "@/app/mypage/mockMypageData";
 
@@ -32,7 +30,6 @@ type OwUser = {
   location: string | null;
   social_links: Record<string, string> | null;
   future_aspirations: string | null;
-  is_mentor: boolean;
 } | null;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -40,10 +37,7 @@ type OwUser = {
 type ActiveView =
   | "dashboard"
   | "casual"
-  | "mentor-reserve"
-  | "bookmarks"
-  | "mentor-requests"
-  | "mentor-schedule";
+  | "bookmarks";
 
 // ─── Shared: Status Pill ──────────────────────────────────────────────────────
 
@@ -159,35 +153,6 @@ function CompanyAvatar({ initial, gradient }: { initial: string; gradient: strin
   );
 }
 
-function PersonAvatar({
-  initial, gradient, size = 40, hasMentorBadge = false,
-}: {
-  initial: string; gradient: string; size?: number; hasMentorBadge?: boolean;
-}) {
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%", background: gradient,
-      color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-      fontWeight: 600, fontSize: size * 0.4, flexShrink: 0, position: "relative",
-    }}>
-      {initial}
-      {hasMentorBadge && (
-        <div style={{
-          position: "absolute", bottom: -2, right: -2,
-          width: 14, height: 14,
-          background: "linear-gradient(135deg, var(--royal), var(--accent))",
-          color: "#fff", borderRadius: "50%",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          border: "2px solid #fff",
-        }}>
-          <svg width="7" height="7" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
-          </svg>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Right column: Recent activity card ──────────────────────────────────────
 
@@ -416,13 +381,13 @@ function ProfileCompletenessCard({
 // ─── VIEW: Dashboard ──────────────────────────────────────────────────────────
 
 function DashboardView({
-  userId, isMentor, userName, userInitial, userAvatar,
+  userId, userName, userInitial, userAvatar,
   currentRole,
   userLocation, userAboutMe, userBirthDate, userFutureAspirations, userSocialLinks,
   userSkillTags, userEducations, userCertifications, timelineCareers,
   hasCareerPreferences,
 }: {
-  userId: string; isMentor: boolean;
+  userId: string;
   userName: string; userInitial: string; userAvatar: string;
   currentRole?: string | null;
   userLocation?: string | null; userAboutMe?: string | null;
@@ -475,7 +440,7 @@ function DashboardView({
         userSocialLinks={userSocialLinks}
         userSkillTags={userSkillTags}
         userCertifications={userCertifications}
-        isMentor={isMentor}
+        isMentor={false}
       />
 
       {/* 経歴タイムライン（キャリア + 学歴 + 未来を統合表示） */}
@@ -520,19 +485,6 @@ function DashboardView({
               border: "var(--royal-100)",
               title: "企業を探す",
               desc: "IT/SaaS業界の13社を見る",
-            },
-            {
-              href: "/mentors",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-              ),
-              color: "var(--purple)",
-              bg: "var(--purple-soft, #F3E8FF)",
-              border: "#DDD6FE",
-              title: "先輩に相談する",
-              desc: "30分の無料キャリア相談",
             },
             {
               href: "/profile/edit",
@@ -712,61 +664,6 @@ function CasualView({ casualMeetings }: { casualMeetings: CasualMeeting[] }) {
   );
 }
 
-// ─── VIEW: Mentor reservations ────────────────────────────────────────────────
-
-function MentorReserveView({ mentorReservations }: { mentorReservations: MentorReservation[] }) {
-  const statusMeta: Record<string, string> = {
-    pending_review: "編集部が内容確認中（2〜5営業日）",
-    approved: "承認済み · 日程調整へ",
-    scheduled: "日程確定",
-    completed: "実施済",
-    cancelled: "キャンセル済み",
-  };
-
-  return (
-    <div>
-      <h1 style={{ fontFamily: 'var(--font-noto-serif)', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-        メンター相談
-      </h1>
-      <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
-        あなたが申し込んだメンター相談の一覧と、それぞれのステータスを確認できます。
-      </p>
-      <SectionBlock
-        title="相談予約一覧" titleEn="Consultation Requests"
-        right={<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>全 {mentorReservations.length} 件</span>}
-      >
-        {mentorReservations.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--ink-mute)" }}>
-            <p style={{ fontSize: 14, marginBottom: 8 }}>まだメンター相談の申込はありません</p>
-            <a href="/mentors" style={{ fontSize: 13, color: "var(--royal)", textDecoration: "none" }}>
-              メンターを探す →
-            </a>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {mentorReservations.map((r: MentorReservation) => (
-              <RequestItem
-                key={r.id}
-                avatar={<PersonAvatar initial={r.mentor_initial} gradient={r.mentor_gradient} hasMentorBadge />}
-                title={`${r.mentor_name}さん · ${r.mentor_role}`}
-                meta={
-                  <span>
-                    {r.applied_at} 申込
-                    {r.scheduled_at
-                      ? <span style={{ color: "var(--ink-mute)" }}> · {r.scheduled_at}</span>
-                      : <span style={{ color: "var(--ink-mute)" }}> · {statusMeta[r.status]}</span>}
-                  </span>
-                }
-                statusKey={r.status}
-              />
-            ))}
-          </div>
-        )}
-      </SectionBlock>
-    </div>
-  );
-}
-
 // ─── VIEW: Bookmarks ──────────────────────────────────────────────────────────
 
 function BookmarkGrid({ items }: { items: Bookmark[] }) {
@@ -801,108 +698,10 @@ function BookmarkGrid({ items }: { items: Bookmark[] }) {
   );
 }
 
-// Slim mentor card for bookmarks matched mentors section
-type SlimMentor = { id: string; name: string; roles: string[]; current_company: string; catchphrase: string | null; photo_url: string | null; avatar_color: string | null; avatar_initial: string | null };
-
-function BookmarksMentorMatch({ companyBookmarks }: { companyBookmarks: Bookmark[] }) {
-  const [mentors, setMentors] = useState<SlimMentor[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (companyBookmarks.length === 0) return;
-    // Extract company names from bookmark titles (strip 株式会社 prefix)
-    const names = companyBookmarks.map((b) =>
-      b.title.replace(/^株式会社\s*/, "").replace(/\s*株式会社$/, "").trim()
-    ).filter(Boolean);
-    if (names.length === 0) return;
-
-    setLoading(true);
-    // Fetch mentors matching these company names
-    fetch(`/api/mentors/preview?limit=20`)
-      .then((r) => r.json())
-      .then((d) => {
-        const all: SlimMentor[] = Array.isArray(d.mentors) ? d.mentors.map((m: { id: string; name: string; roles?: string[]; currentCompany?: string; catchphrase?: string | null; photoUrl?: string | null; gradient?: string | null; initial?: string | null }) => ({
-          id: m.id, name: m.name,
-          roles: m.roles ?? [],
-          current_company: m.currentCompany ?? "",
-          catchphrase: m.catchphrase ?? null,
-          photo_url: m.photoUrl ?? null,
-          avatar_color: m.gradient ?? null,
-          avatar_initial: m.initial ?? null,
-        })) : [];
-        // Filter to those whose current_company matches any bookmarked company name
-        const matched = all.filter((m) =>
-          names.some((n) => m.current_company && m.current_company.toLowerCase().includes(n.toLowerCase()))
-        );
-        setMentors(matched.slice(0, 3));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [companyBookmarks]);
-
-  if (loading || mentors.length === 0) return null;
-
-  return (
-    <SectionBlock
-      title="気になり企業の先輩"
-      titleEn="Matched Mentors"
-      right={
-        <Link href="/mentors" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
-          全員を見る →
-        </Link>
-      }
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {mentors.map((m) => (
-          <Link key={m.id} href={`/mentors/${m.id}`} style={{ textDecoration: "none", display: "block" }}>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 14,
-              padding: "14px 16px", borderRadius: 12,
-              border: "1px solid var(--line)", background: "#fff",
-              transition: "border-color 0.15s, box-shadow 0.15s",
-            }} className="bookmark-card-hover">
-              {m.photo_url ? (
-                <img src={m.photo_url} alt={m.name} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0, objectPosition: "center top" }} />
-              ) : (
-                <div style={{
-                  width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-                  background: m.avatar_color ?? "var(--royal)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 16, fontWeight: 700, color: "#fff",
-                }}>
-                  {m.avatar_initial ?? m.name[0]}
-                </div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{m.name}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: "var(--warm-soft)", color: "#b45309", border: "1px solid #FDE68A", whiteSpace: "nowrap" }}>
-                    現職
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 3 }}>
-                  {m.current_company} {m.roles[0] ? `· ${m.roles[0]}` : ""}
-                </div>
-                {m.catchphrase && (
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {m.catchphrase}
-                  </div>
-                )}
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--royal)", flexShrink: 0 }}>相談する →</span>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </SectionBlock>
-  );
-}
-
-function BookmarksView({ companyBookmarks, jobBookmarks, mentorBookmarks }: { companyBookmarks: Bookmark[]; jobBookmarks: Bookmark[]; mentorBookmarks: Bookmark[] }) {
+function BookmarksView({ companyBookmarks, jobBookmarks }: { companyBookmarks: Bookmark[]; jobBookmarks: Bookmark[] }) {
   const sections = [
     { title: "企業", titleEn: "Companies", items: companyBookmarks },
     { title: "求人", titleEn: "Jobs", items: jobBookmarks },
-    { title: "メンター", titleEn: "Mentors", items: mentorBookmarks },
   ];
   return (
     <div>
@@ -910,7 +709,7 @@ function BookmarksView({ companyBookmarks, jobBookmarks, mentorBookmarks }: { co
         ブックマーク
       </h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
-        あなたがブックマークした企業・記事・メンターを一覧できます。
+        あなたがブックマークした企業・求人を一覧できます。
       </p>
       {sections.map((sec) => (
         <SectionBlock
@@ -927,184 +726,6 @@ function BookmarksView({ companyBookmarks, jobBookmarks, mentorBookmarks }: { co
           )}
         </SectionBlock>
       ))}
-      {/* スキルマッチ: 気になり企業の先輩メンターを表示 */}
-      <BookmarksMentorMatch companyBookmarks={companyBookmarks} />
-    </div>
-  );
-}
-
-// ─── VIEW: Mentor received requests ──────────────────────────────────────────
-
-function MentorRequestsView({
-  requests, onApprove, onDecline,
-}: {
-  requests: ReceivedRequest[];
-  onApprove: (id: string) => void;
-  onDecline: (id: string) => void;
-}) {
-  const pending = requests.filter((r) => r.status === "pending");
-  const done = requests.filter((r) => r.status !== "pending");
-
-  return (
-    <div>
-      <h1 style={{ fontFamily: 'var(--font-noto-serif)', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-        受けた相談
-        <span style={{
-          fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 700,
-          color: "var(--warm)", background: "var(--warm-soft)",
-          padding: "4px 10px", borderRadius: 100, letterSpacing: "0.1em",
-          marginLeft: 10, verticalAlign: "middle",
-          display: "inline-flex", alignItems: "center", gap: 4,
-        }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-          </svg>
-          MENTOR
-        </span>
-      </h1>
-      <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
-        あなたがメンターとして受けた相談リクエストを確認・承認できます。
-      </p>
-
-      {/* Pending */}
-      <SectionBlock
-        title="対応待ち" titleEn="Pending Approval"
-        right={<span style={{ fontSize: 11, color: "var(--warm)", fontWeight: 700 }}>{pending.length} 件</span>}
-      >
-        {pending.length === 0 ? (
-          <EmptyState
-            icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01 9 11.01"/></svg>}
-            title="対応待ちの相談はありません"
-          />
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {pending.map((r) => (
-              <div key={r.id} style={{
-                background: "#fff", border: "1.5px solid var(--line)",
-                borderLeft: "3px solid var(--warm)",
-                borderRadius: 12, padding: "16px 18px",
-                transition: "all 0.2s",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                  <PersonAvatar initial={r.requester_initial} gradient={r.requester_gradient} size={36} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-                      {r.requester_name}さん · {r.requester_age}
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-                      {r.requester_company} · {r.requester_role}
-                    </div>
-                  </div>
-                  <StatusPill statusKey="pending_received" label="未対応" />
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
-                  {r.themes.map((t) => (
-                    <span key={t} style={{
-                      padding: "3px 8px", background: "var(--royal-50)", color: "var(--royal)",
-                      borderRadius: 4, fontSize: 10, fontWeight: 600,
-                    }}>
-                      ✓ {t}
-                    </span>
-                  ))}
-                </div>
-                <div style={{
-                  fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
-                  padding: "10px 12px", background: "var(--bg-tint)",
-                  borderRadius: 8, marginBottom: 10,
-                }}>
-                  {r.preview_text}
-                </div>
-                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                  <button
-                    type="button"
-                    onClick={() => onDecline(r.id)}
-                    style={{
-                      padding: "7px 14px", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                      borderRadius: 7, cursor: "pointer",
-                      border: "1px solid var(--error-soft)", background: "#fff", color: "var(--error)",
-                    }}
-                  >
-                    見送る
-                  </button>
-                  <button
-                    type="button"
-                    style={{
-                    padding: "7px 14px", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                    borderRadius: 7, cursor: "pointer",
-                    border: "1px solid var(--line)", background: "#fff", color: "var(--ink)",
-                  }}>
-                    詳細を見る
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onApprove(r.id)}
-                    style={{
-                      padding: "7px 14px", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                      borderRadius: 7, cursor: "pointer",
-                      border: "none", background: "var(--royal)", color: "#fff",
-                    }}
-                  >
-                    承認する
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </SectionBlock>
-
-      {/* Done */}
-      <SectionBlock
-        title="対応済み" titleEn="Completed"
-        right={<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{done.length} 件</span>}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {done.map((r) => (
-            <RequestItem
-              key={r.id}
-              avatar={<PersonAvatar initial={r.requester_initial} gradient={r.requester_gradient} size={40} />}
-              title={`${r.requester_name}さん · ${r.requester_company} ${r.requester_role}`}
-              meta={<span style={{ color: "var(--ink-mute)" }}>{r.resolved_at} 相談実施 · {r.themes.join(", ")}</span>}
-              statusKey="completed_received"
-              statusLabel="完了"
-            />
-          ))}
-        </div>
-      </SectionBlock>
-    </div>
-  );
-}
-
-// ─── VIEW: Mentor schedule ────────────────────────────────────────────────────
-
-function MentorScheduleView() {
-  return (
-    <div>
-      <h1 style={{ fontFamily: 'var(--font-noto-serif)', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-        スケジュール
-        <span style={{
-          fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 700,
-          color: "var(--warm)", background: "var(--warm-soft)",
-          padding: "4px 10px", borderRadius: 100, letterSpacing: "0.1em",
-          marginLeft: 10, verticalAlign: "middle",
-          display: "inline-flex", alignItems: "center", gap: 4,
-        }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-          </svg>
-          MENTOR
-        </span>
-      </h1>
-      <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
-        今後のメンター相談の予定を確認できます。
-      </p>
-      <SectionBlock title="これからの予定" titleEn="Upcoming">
-        <EmptyState
-          icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
-          title="予定はありません"
-          desc="承認した相談は、日程調整後こちらに表示されます。"
-        />
-      </SectionBlock>
     </div>
   );
 }
@@ -1119,10 +740,7 @@ export default function MypageClient({
   timelineCareers = [],
   companyBookmarks,
   jobBookmarks,
-  mentorBookmarks,
   casualMeetings,
-  mentorReservations,
-  receivedRequests: receivedRequestsProp = [],
   conversationsBadge,
   applicationsBadge,
   hasCareerPreferences = false,
@@ -1139,10 +757,7 @@ export default function MypageClient({
   timelineCareers?: CareerEntry[];
   companyBookmarks: Bookmark[];
   jobBookmarks: Bookmark[];
-  mentorBookmarks: Bookmark[];
   casualMeetings: CasualMeeting[];
-  mentorReservations: MentorReservation[];
-  receivedRequests?: ReceivedRequest[];
   conversationsBadge?: number;
   applicationsBadge?: number;
   hasCareerPreferences?: boolean;
@@ -1158,10 +773,7 @@ export default function MypageClient({
     : null;
 
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
-  // isMentor: owUser.is_mentor が真実のソース。開発環境ではモックトグルで上書き可能。
-  const { isMentor: isMentorMock } = useMypageMock();
-  const isMentor = (owUser?.is_mentor === true) || isMentorMock;
-  const [receivedRequests, setReceivedRequests] = useState<ReceivedRequest[]>(receivedRequestsProp);
+  const { isMentor: _isMentorMock } = useMypageMock();
 
   const navigate = useCallback((v: ActiveView) => {
     setActiveView(v);
@@ -1171,15 +783,10 @@ export default function MypageClient({
   const pendingCasualCount = casualMeetings.filter(
     (m) => m.status === "pending" || m.status === "scheduled"
   ).length;
-  const pendingMentorCount = mentorReservations.filter(
-    (r) => r.status === "pending_review"
-  ).length;
-  const pendingReceivedCount = receivedRequests.filter((r) => r.status === "pending").length;
 
   const totalBookmarks =
     companyBookmarks.length +
-    jobBookmarks.length +
-    mentorBookmarks.length;
+    jobBookmarks.length;
 
   // Build recentActivity from real Supabase data (sorted by applied_at desc, top 3)
   const recentActivity: {
@@ -1200,15 +807,6 @@ export default function MypageClient({
       appliedAt: `${m.applied_at} 申込`,
       statusKey: m.status,
     })),
-    ...mentorReservations.map((r) => ({
-      id: `mr-${r.id}`,
-      avatar: <PersonAvatar initial={r.mentor_initial} gradient={r.mentor_gradient} hasMentorBadge />,
-      companyName: `${r.mentor_name}さん`,
-      jobTitle: r.mentor_role,
-      kind: "メンター相談",
-      appliedAt: `${r.applied_at} 申込`,
-      statusKey: r.status,
-    })),
   ]
     .sort((a, b) => b.appliedAt.localeCompare(a.appliedAt))
     .slice(0, 3);
@@ -1221,21 +819,9 @@ export default function MypageClient({
       onClick: () => navigate("casual"),
     },
     {
-      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-      iconBg: "var(--royal-50)", iconColor: "var(--royal)",
-      value: pendingMentorCount, label: "メンター相談\n審査中",
-      onClick: () => navigate("mentor-reserve"),
-    },
-    {
       icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
       iconBg: "var(--pink-soft, #FCE7F3)", iconColor: "var(--pink)",
       value: totalBookmarks, label: "ブックマーク\n合計",
-      onClick: () => navigate("bookmarks"),
-    },
-    {
-      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
-      iconBg: "var(--purple-soft)", iconColor: "var(--purple)",
-      value: mentorBookmarks.length, label: "メンター\nブックマーク",
       onClick: () => navigate("bookmarks"),
     },
   ];
@@ -1392,28 +978,11 @@ export default function MypageClient({
     </div>
   );
 
-  const handleApprove = (id: string) => {
-    setReceivedRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: "approved" as const } : r))
-    );
-  };
-  const handleDecline = (id: string) => {
-    setReceivedRequests((prev) =>
-      prev.filter((r) => r.id !== id)
-    );
-  };
-
   return (
     <MypageLayout
       activeKey={activeView}
       onNavigate={(key: MypageActiveKey) => navigate(key as ActiveView)}
-      onIsMentorChange={(v) => {
-        // isMentor が false に戻ったときメンター専用ビューを解除する
-        if (!v && (activeView === "mentor-requests" || activeView === "mentor-schedule")) {
-          setActiveView("dashboard");
-        }
-      }}
-      pendingReceivedCount={pendingReceivedCount}
+      onIsMentorChange={() => {}}
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
       rightColumn={activeView === "dashboard" ? dashboardRightColumn : undefined}
@@ -1421,7 +990,6 @@ export default function MypageClient({
       {activeView === "dashboard" && (
         <DashboardView
           userId={owUser?.id ?? ""}
-          isMentor={isMentor}
           userName={userName}
           userInitial={userInitial}
           userAvatar={userAvatar}
@@ -1439,16 +1007,7 @@ export default function MypageClient({
         />
       )}
       {activeView === "casual" && <CasualView casualMeetings={casualMeetings} />}
-      {activeView === "mentor-reserve" && <MentorReserveView mentorReservations={mentorReservations} />}
-      {activeView === "bookmarks" && <BookmarksView companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} mentorBookmarks={mentorBookmarks} />}
-      {activeView === "mentor-requests" && (
-        <MentorRequestsView
-          requests={receivedRequests}
-          onApprove={handleApprove}
-          onDecline={handleDecline}
-        />
-      )}
-      {activeView === "mentor-schedule" && <MentorScheduleView />}
+      {activeView === "bookmarks" && <BookmarksView companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} />}
 
       <style>{`
         .request-item-row:hover { border-color: var(--royal-100) !important; background: #fff !important; }
