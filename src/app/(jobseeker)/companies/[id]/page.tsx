@@ -246,19 +246,19 @@ function Hero({
               })()}
               <p
                 style={{
-                  fontSize: 16,
-                  color: "#3a4a64",
-                  lineHeight: 1.8,
+                  fontSize: 17,
+                  color: "#1e293b",
+                  lineHeight: 1.75,
                   letterSpacing: "0.01em",
                   marginBottom: 16,
                   maxWidth: 560,
-                  fontWeight: 400,
+                  fontWeight: 500,
                 }}
               >
                 {company.tagline}
               </p>
-              {/* ジャンルチップ */}
-              {company.genres.length > 0 && (
+              {/* ジャンルチップ + フェーズバッジ */}
+              {(company.genres.length > 0 || company.phase) && (
                 <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 }}>
                   {company.genres.map((g) => (
                     <span
@@ -276,6 +276,29 @@ function Hero({
                       {g.name}
                     </span>
                   ))}
+                  {company.phase && (() => {
+                    const phaseStyle: Record<string, { bg: string; color: string; border: string }> = {
+                      "上場": { bg: "#FEF3C7", color: "#92400E", border: "#FDE68A" },
+                      "IPO準備": { bg: "#FFF7ED", color: "#C2410C", border: "#FDBA74" },
+                      "シリーズC": { bg: "#F3E8FF", color: "#6D28D9", border: "#DDD6FE" },
+                      "シリーズB": { bg: "#EFF6FF", color: "#1D4ED8", border: "#BFDBFE" },
+                      "シリーズA": { bg: "#ECFDF5", color: "#065F46", border: "#A7F3D0" },
+                      "シード": { bg: "#F1F5F9", color: "#475569", border: "#CBD5E1" },
+                    };
+                    const s = phaseStyle[company.phase] ?? { bg: "#F1F5F9", color: "#475569", border: "#CBD5E1" };
+                    return (
+                      <span style={{
+                        display: "inline-flex", alignItems: "center",
+                        padding: "3px 10px", borderRadius: 999,
+                        fontSize: 11, fontWeight: 700,
+                        background: s.bg, color: s.color,
+                        border: `1px solid ${s.border}`,
+                        letterSpacing: "0.02em",
+                      }}>
+                        {company.phase}
+                      </span>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -286,10 +309,10 @@ function Hero({
                     display: "inline-flex", alignItems: "center", gap: 5,
                     padding: "5px 11px",
                     background: "var(--bg-tint)",
-                    color: "var(--ink-soft)",
+                    color: "#334155",
                     border: "1px solid var(--line)",
                     borderRadius: 100,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 500,
                   }}
                 >
@@ -493,8 +516,8 @@ function Hero({
                 </svg>
               ),
               label: "社員数",
-              value: company.employee_count > 0 ? company.employee_count.toLocaleString() : "—",
-              unit: company.employee_count > 0 ? "名" : "",
+              value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s; })() : "—",
+              unit: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? "" : "名"; })() : "",
               sub: "直近公表値",
             },
             {
