@@ -1524,16 +1524,15 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
         <div>
           <div
             style={{
-              fontFamily: "Inter, sans-serif",
-              fontSize: 12,
+              fontFamily: "var(--font-noto-sans)",
+              fontSize: 13,
               fontWeight: 700,
-              color: "var(--ink-soft)",
+              color: "#334155",
               marginBottom: 10,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
+              letterSpacing: "0.02em",
             }}
           >
-            Remote / Location
+            勤務地・リモート
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {detail.work_location.map(({ label, note }, i) => (
@@ -1576,16 +1575,15 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
         <div>
           <div
             style={{
-              fontFamily: "Inter, sans-serif",
-              fontSize: 12,
+              fontFamily: "var(--font-noto-sans)",
+              fontSize: 13,
               fontWeight: 700,
-              color: "var(--ink-soft)",
+              color: "#334155",
               marginBottom: 10,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
+              letterSpacing: "0.02em",
             }}
           >
-            Work Style
+            働き方
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {detail.work_style.map(({ label, note }, i) => (
@@ -1670,16 +1668,15 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
       <div style={{ marginTop: 20 }}>
         <div
           style={{
-            fontFamily: "Inter, sans-serif",
-            fontSize: 12,
+            fontFamily: "var(--font-noto-sans)",
+            fontSize: 13,
             fontWeight: 700,
-            color: "var(--ink-soft)",
+            color: "#334155",
             marginBottom: 10,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
+            letterSpacing: "0.02em",
           }}
         >
-          Working Style Note
+          補足・働き方メモ
         </div>
         {detail.workstyleDescription ? (
           <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, margin: 0 }}>
@@ -3485,13 +3482,12 @@ function Sidebar({
         >
           <div
             style={{
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 700,
-              color: "var(--ink-soft)",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
+              color: "#334155",
+              letterSpacing: "0.02em",
               marginBottom: 16,
-              fontFamily: "Inter, sans-serif",
+              fontFamily: "var(--font-noto-sans)",
             }}
           >
             申し込みの流れ
@@ -3555,15 +3551,15 @@ function Sidebar({
       >
         <div
           style={{
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 700,
-            letterSpacing: "0.1em",
-            color: "var(--ink-soft)",
+            letterSpacing: "0.02em",
+            color: "#334155",
             marginBottom: 14,
-            textTransform: "uppercase",
+            fontFamily: "var(--font-noto-sans)",
           }}
         >
-          Company Info
+          企業情報
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {/* ジャンルチップ: 登録済み企業のみ表示、未登録は行ごと非表示 */}

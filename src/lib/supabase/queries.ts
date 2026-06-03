@@ -306,8 +306,8 @@ function buildCompanyNumbers(row: Record<string, any>): CompanyNumbers {
     avgOvertimeHours: typeof row.avg_overtime_hours === "string" && row.avg_overtime_hours.trim()
       ? row.avg_overtime_hours.trim()
       : null,
-    genderRatio: typeof row.gender_ratio === "string" && row.gender_ratio.trim()
-      ? row.gender_ratio.trim()
+    genderRatio: typeof row.female_ratio === "string" && row.female_ratio.trim()
+      ? row.female_ratio.trim()
       : null,
     fundingTotal: typeof row.funding_total === "string" && row.funding_total.trim()
       ? row.funding_total.trim()
@@ -437,7 +437,7 @@ const COMPANY_DETAIL_COLS = [
   "location", "url", "company_features", "why_join",
   // Numbers section (Commit AA)
   "avg_salary", "avg_age", "paid_leave_rate",
-  "avg_overtime_hours", "gender_ratio", "funding_total",
+  "avg_overtime_hours", "female_ratio", "funding_total",
   // Benefits section (Commit BB)
   "nearest_station", "work_time_system", "workstyle_description",
   "benefits", "evaluation_system",
