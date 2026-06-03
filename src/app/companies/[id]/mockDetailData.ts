@@ -99,8 +99,9 @@ export type CompanyDetail = {
   show_fit_negatives?: boolean;
   // Why join (separate from about/description)
   why_join: string | null;
-  // Culture description
+  // Culture description + keywords
   culture_description?: string | null;
+  culture_keywords?: string[] | null;
   // Products & Customers
   main_products?: string[] | null;
   main_customers?: string[] | null;

@@ -278,6 +278,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     })(),
     // Culture description
     culture_description: (row.culture_description as string | null) ?? null,
+    culture_keywords: (row.culture_keywords as string[] | null) ?? null,
     // Products & Customers
     main_products: Array.isArray(row.main_products) && (row.main_products as string[]).length > 0
       ? (row.main_products as string[])
@@ -455,6 +456,8 @@ const COMPANY_DETAIL_COLS = [
   "x_url", "linkedin_url",
   // Org teams
   "org_teams",
+  // Culture keywords
+  "culture_keywords",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {

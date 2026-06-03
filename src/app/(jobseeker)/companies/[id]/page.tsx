@@ -996,10 +996,36 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
 
 // ─── CultureSection ───────────────────────────────────────────────────────────
 
+/** キーワードごとに絵文字＋カラーを割り当てる */
+function cultureKeywordStyle(kw: string): { emoji: string; bg: string; border: string; color: string } {
+  const k = kw;
+  if (k.includes("Ohana") || k.includes("家族"))
+    return { emoji: "🌺", bg: "#FFF1F2", border: "#FECDD3", color: "#9D174D" };
+  if (k.includes("多様性") || k.includes("インクルージョン") || k.includes("DE&I"))
+    return { emoji: "🌈", bg: "#F5F3FF", border: "#DDD6FE", color: "#6D28D9" };
+  if (k.includes("心理的安全") || k.includes("安心"))
+    return { emoji: "🤝", bg: "#ECFDF5", border: "#A7F3D0", color: "#065F46" };
+  if (k.includes("ボランティア") || k.includes("社会貢献") || k.includes("VTO"))
+    return { emoji: "🌱", bg: "#F0FDF4", border: "#BBF7D0", color: "#15803D" };
+  if (k.includes("グローバル") || k.includes("海外") || k.includes("英語"))
+    return { emoji: "🌍", bg: "#EFF6FF", border: "#BFDBFE", color: "#1D4ED8" };
+  if (k.includes("実力") || k.includes("成果") || k.includes("評価") || k.includes("メリトクラシー"))
+    return { emoji: "💪", bg: "#FFF7ED", border: "#FED7AA", color: "#C2410C" };
+  if (k.includes("フラット") || k.includes("風通し") || k.includes("オープン"))
+    return { emoji: "💬", bg: "#ECFEFF", border: "#A5F3FC", color: "#0E7490" };
+  if (k.includes("学習") || k.includes("育成") || k.includes("スキル") || k.includes("L&D"))
+    return { emoji: "📚", bg: "#FFFBEB", border: "#FDE68A", color: "#92400E" };
+  if (k.includes("チャレンジ") || k.includes("挑戦") || k.includes("イノベーション"))
+    return { emoji: "🚀", bg: "#EFF6FF", border: "#BFDBFE", color: "#1D4ED8" };
+  // default
+  return { emoji: "✨", bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
+}
+
 function CultureSection({ detail }: { detail: CompanyDetail }) {
   const hasCulture = !!detail.culture_description;
+  const hasKeywords = detail.culture_keywords && detail.culture_keywords.length > 0;
 
-  if (!hasCulture) return null;
+  if (!hasCulture && !hasKeywords) return null;
 
   return (
     <section
@@ -1013,6 +1039,7 @@ function CultureSection({ detail }: { detail: CompanyDetail }) {
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
+      {/* Section header */}
       <div style={{ padding: "22px 28px 18px", background: "#f5f8ff", borderBottom: "1px solid #dde4f5" }}>
         <SecTitle
           icon={
@@ -1024,37 +1051,62 @@ function CultureSection({ detail }: { detail: CompanyDetail }) {
             </svg>
           }
         >
-          カルチャー
+          カルチャー・社風
         </SecTitle>
       </div>
-      <div style={{ padding: "22px 28px 28px" }}>
-        <div style={{
-          padding: "24px 28px 24px 32px",
-          borderLeft: "4px solid var(--success)",
-          background: "linear-gradient(135deg, #f0fdf8 0%, #ecfdf5 100%)",
-          borderRadius: "0 12px 12px 0",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.02em", color: "var(--success)", fontFamily: "var(--font-noto-sans)" }}>
-              カルチャー・社風
-            </span>
+
+      <div style={{ padding: "24px 28px 28px", display: "flex", flexDirection: "column", gap: 20 }}>
+
+        {/* ── キーワードタグ群 ── */}
+        {hasKeywords && (
+          <div>
+            <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.04em", textTransform: "uppercase", fontFamily: "Inter, sans-serif" }}>
+              Culture Keywords
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {detail.culture_keywords!.map((kw, i) => {
+                const s = cultureKeywordStyle(kw);
+                return (
+                  <span
+                    key={i}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "8px 16px",
+                      borderRadius: 100,
+                      background: s.bg,
+                      border: `1px solid ${s.border}`,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: s.color,
+                      fontFamily: "var(--font-noto-sans)",
+                      lineHeight: 1,
+                    }}
+                  >
+                    <span style={{ fontSize: 14 }}>{s.emoji}</span>
+                    {kw}
+                  </span>
+                );
+              })}
+            </div>
           </div>
-          {hasCulture ? (
-            <p style={{ margin: 0, fontSize: 15, lineHeight: 2, color: "var(--ink)", fontFamily: "var(--font-noto-serif)" }}>
+        )}
+
+        {/* ── 詳細テキスト ── */}
+        {hasCulture && (
+          <div style={{
+            padding: "20px 24px",
+            borderLeft: "3px solid var(--success)",
+            background: "linear-gradient(135deg, #f0fdf8 0%, #ecfdf5 100%)",
+            borderRadius: "0 12px 12px 0",
+          }}>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 2, color: "var(--ink)", fontFamily: "var(--font-noto-serif)" }}>
               {detail.culture_description}
             </p>
-          ) : (
-            <p style={{ margin: 0, fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-              社風・カルチャー情報は現在準備中です。
-            </p>
-          )}
-        </div>
+          </div>
+        )}
+
       </div>
     </section>
   );
