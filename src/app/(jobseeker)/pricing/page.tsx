@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+// import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "企業様向け掲載・料金プラン | OPINIO",

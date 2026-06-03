@@ -618,7 +618,7 @@ function StoryCard({
 // ─── Story Editor Modal ───────────────────────────────────────────────────────
 
 function StoryEditor({
-  companyId,
+  companyId: _companyId,
   story,
   onSaved,
   onClose,
