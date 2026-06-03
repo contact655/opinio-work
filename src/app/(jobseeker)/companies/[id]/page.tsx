@@ -516,9 +516,10 @@ function Hero({
                 </svg>
               ),
               label: "社員数",
-              value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s; })() : "—",
-              unit: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? "" : "名"; })() : "",
+              value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s + "名"; })() : "—",
+              unit: "",
               sub: "直近公表値",
+              isText: true,
             },
             {
               iconBg: "#F3E8FF",
