@@ -1388,8 +1388,8 @@ function EmployeeCard({
       style={{
         width: 48,
         height: 48,
-        borderRadius: 6,
-        background: avatarColor.bg,
+        borderRadius: "50%",
+        background: employee.avatarUrl ? undefined : avatarColor.bg,
         flexShrink: 0,
         display: "flex",
         alignItems: "center",
@@ -1398,9 +1398,20 @@ function EmployeeCard({
         fontWeight: 700,
         fontSize: 19,
         color: avatarColor.text,
+        overflow: "hidden",
+        border: "2px solid var(--line)",
       }}
     >
-      {employee.avatarInitial}
+      {employee.avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={employee.avatarUrl}
+          alt={employee.name}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      ) : (
+        employee.avatarInitial
+      )}
     </div>
   );
 
@@ -1766,13 +1777,13 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         textDecoration: "none",
       }}
     >
-      {/* アバター — EmployeeCard と同一スタイル */}
+      {/* アバター — 写真優先、なければ頭文字グラデーション */}
       <div
         style={{
           width: 48,
           height: 48,
-          borderRadius: 6,
-          background: avatarColor.bg,
+          borderRadius: "50%",
+          background: employee.avatarUrl ? undefined : avatarColor.bg,
           flexShrink: 0,
           display: "flex",
           alignItems: "center",
@@ -1781,9 +1792,20 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
           fontWeight: 700,
           fontSize: 19,
           color: avatarColor.text,
+          overflow: "hidden",
+          border: "2px solid var(--line)",
         }}
       >
-        {employee.avatarInitial}
+        {employee.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={employee.avatarUrl}
+            alt={employee.name}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          employee.avatarInitial
+        )}
       </div>
 
       {/* 情報エリア */}

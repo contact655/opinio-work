@@ -751,6 +751,7 @@ export type CompanyEmployee = {
   name: string;
   avatarInitial: string;
   avatarGradient: string;
+  avatarUrl: string | null; // プロフィール写真
   roleTitle: string | null;
   endedAt: string | null; // "YYYY-MM" 形式、OB のみ使用
   // === Phase Q-5 追加: カテゴリ情報 ===
@@ -780,7 +781,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // 現役社員 (is_current = true)
   const { data: currentRows, error: e1 } = await supabase
     .from("ow_experiences")
-    .select("role_title, role_category_id, ow_users!inner(id, name, avatar_color)")
+    .select("role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url)")
     .eq("company_id", companyId)
     .eq("is_current", true);
 
@@ -792,7 +793,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // OB 社員 (is_current = false, ended_at あり)
   const { data: alumniRows, error: e2 } = await supabase
     .from("ow_experiences")
-    .select("role_title, role_category_id, ended_at, ow_users!inner(id, name, avatar_color)")
+    .select("role_title, role_category_id, ended_at, ow_users!inner(id, name, avatar_color, avatar_url)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .not("ended_at", "is", null)
@@ -819,6 +820,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
       avatarGradient: hex
         ? `linear-gradient(135deg, ${hex}99, ${hex})`
         : "linear-gradient(135deg, #002366, #3B5FD9)",
+      avatarUrl: (u?.avatar_url as string | null) ?? null,
       roleTitle: (row.role_title as string | null) ?? null,
       endedAt: endedAt ? (endedAt as string).slice(0, 7) : null,
       roleCategoryId,
