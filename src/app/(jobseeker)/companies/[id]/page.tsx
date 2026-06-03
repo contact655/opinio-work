@@ -827,17 +827,42 @@ function AboutSection({
 
 // ─── ProductsClientsSection ───────────────────────────────────────────────────
 
+/** 製品名から（...）形式のサブタイトルを分離する */
+function parseProductName(raw: string): { name: string; sub: string | null } {
+  const m = raw.match(/^(.+?)（(.+?)）\s*$/);
+  if (m) return { name: m[1].trim(), sub: m[2].trim() };
+  const m2 = raw.match(/^(.+?)\((.+?)\)\s*$/);
+  if (m2) return { name: m2[1].trim(), sub: m2[2].trim() };
+  return { name: raw, sub: null };
+}
+
+/** キーワードベースで製品カードのアイコン＋カラーを決める */
+function productStyle(name: string): { emoji: string; bg: string; border: string; color: string } {
+  const n = name.toLowerCase();
+  if (n.includes("sales") || n.includes("営業") || n.includes("crm"))
+    return { emoji: "📊", bg: "#EFF6FF", border: "#BFDBFE", color: "#1D4ED8" };
+  if (n.includes("service") || n.includes("サービス") || n.includes("サポート"))
+    return { emoji: "🎧", bg: "#F5F3FF", border: "#DDD6FE", color: "#6D28D9" };
+  if (n.includes("market") || n.includes("マーケ"))
+    return { emoji: "📣", bg: "#FFF1F2", border: "#FECDD3", color: "#9D174D" };
+  if (n.includes("data") || n.includes("analytics") || n.includes("分析") || n.includes("tableau"))
+    return { emoji: "📈", bg: "#ECFEFF", border: "#A5F3FC", color: "#0E7490" };
+  if (n.includes("commerce") || n.includes("ec") || n.includes("コマース"))
+    return { emoji: "🛒", bg: "#F0FDF4", border: "#BBF7D0", color: "#065F46" };
+  if (n.includes("platform") || n.includes("cloud") || n.includes("クラウド"))
+    return { emoji: "☁️", bg: "#EFF6FF", border: "#BFDBFE", color: "#1D4ED8" };
+  if (n.includes("ai") || n.includes("agentforce") || n.includes("einstein"))
+    return { emoji: "🤖", bg: "#FFF7ED", border: "#FED7AA", color: "#C2410C" };
+  if (n.includes("slack") || n.includes("コミュニ") || n.includes("チャット"))
+    return { emoji: "💬", bg: "#F0FDF4", border: "#BBF7D0", color: "#065F46" };
+  return { emoji: "💡", bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
+}
+
 function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
   const hasProducts = detail.main_products && detail.main_products.length > 0;
   const hasCustomers = detail.main_customers && detail.main_customers.length > 0;
 
   if (!hasProducts && !hasCustomers) return null;
-
-  const EmptyPlaceholder = ({ label }: { label: string }) => (
-    <p style={{ margin: 0, fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-      {label}は現在準備中です。
-    </p>
-  );
 
   return (
     <section
@@ -851,6 +876,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
+      {/* Section header */}
       <div style={{ padding: "22px 28px 18px", background: "#f5f8ff", borderBottom: "1px solid #dde4f5" }}>
         <SecTitle
           icon={
@@ -863,62 +889,106 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
           製品・顧客
         </SecTitle>
       </div>
-      <div style={{ padding: "22px 28px 28px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
 
-          {/* PRODUCTS */}
-          <div style={{ padding: "20px 22px", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 12 }}>
+      <div style={{ padding: "24px 28px 28px", display: "flex", flexDirection: "column", gap: 24 }}>
+
+        {/* ── 製品・サービス ── */}
+        {hasProducts && (
+          <div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
-                <rect x="2" y="3" width="20" height="14" rx="2"/>
-                <path d="M8 21h8M12 17v4"/>
+                <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
               </svg>
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.02em", color: "var(--royal)", fontFamily: "var(--font-noto-sans)" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
                 主な製品・サービス
               </span>
-            </div>
-            {hasProducts ? (
-              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-                {detail.main_products!.map((p, i) => (
-                  <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
-                    <span style={{ color: "var(--royal)", fontWeight: 700, marginTop: 2, flexShrink: 0 }}>▸</span>
-                    <span style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.7 }}>{p}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyPlaceholder label="製品・サービス情報" />
-            )}
-          </div>
-
-          {/* CLIENTS */}
-          <div style={{ padding: "20px 22px", background: "var(--warm-soft)", border: "1px solid #fde68a", borderRadius: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.02em", color: "#B45309", fontFamily: "var(--font-noto-sans)" }}>
-                主な顧客・事例企業
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                {detail.main_products!.length} 件
               </span>
             </div>
-            {hasCustomers ? (
-              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-                {detail.main_customers!.map((c, i) => (
-                  <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
-                    <span style={{ color: "#B45309", fontWeight: 700, marginTop: 2, flexShrink: 0 }}>▸</span>
-                    <span style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.7 }}>{c}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyPlaceholder label="顧客・事例情報" />
-            )}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+              gap: 10,
+            }}>
+              {detail.main_products!.map((raw, i) => {
+                const { name, sub } = parseProductName(raw);
+                const s = productStyle(name);
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      background: s.bg,
+                      border: `1px solid ${s.border}`,
+                      borderRadius: 12,
+                      padding: "14px 16px",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                    }}
+                  >
+                    <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{s.emoji}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, fontFamily: "var(--font-noto-sans)" }}>
+                        {name}
+                      </p>
+                      {sub && (
+                        <p style={{ margin: "3px 0 0", fontSize: 11, color: s.color, fontWeight: 600, lineHeight: 1.4 }}>
+                          {sub}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+        )}
 
-        </div>
+        {/* ── 顧客・導入事例 ── */}
+        {hasCustomers && (
+          <div>
+            {/* Divider */}
+            {hasProducts && <div style={{ height: 1, background: "var(--line)", marginBottom: 24, marginTop: -8 }} />}
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#B45309", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
+                主な顧客・導入事例
+              </span>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                {detail.main_customers!.length} 社
+              </span>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {detail.main_customers!.map((c, i) => (
+                <span
+                  key={i}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    padding: "6px 14px",
+                    borderRadius: 100,
+                    background: "#FFFBEB",
+                    border: "1px solid #FDE68A",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#92400E",
+                    fontFamily: "var(--font-noto-sans)",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <span style={{ fontSize: 10, opacity: 0.7 }}>🏢</span>
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </section>
   );
