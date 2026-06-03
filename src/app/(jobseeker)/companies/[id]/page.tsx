@@ -581,7 +581,7 @@ function Hero({
                 }}>
                   {icon}
                 </span>
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" as const, fontFamily: "Inter, sans-serif" }}>
+                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase" as const, fontFamily: "Inter, sans-serif" }}>
                   {label}
                 </span>
               </div>
@@ -612,7 +612,7 @@ function Hero({
                 )}
               </div>
               {sub && (
-                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "Inter, sans-serif", letterSpacing: "0.03em" }}>{sub}</div>
+                <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 3, fontFamily: "Inter, sans-serif", letterSpacing: "0.02em" }}>{sub}</div>
               )}
             </div>
           ))}
@@ -805,12 +805,12 @@ function AboutSection({
                   }}>
                     {i + 1}
                   </span>
-                  <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.8 }}>{f}</span>
+                  <span style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.8 }}>{f}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+            <p style={{ margin: 0, fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.7 }}>
               会社の特徴・強みは現在準備中です。
             </p>
           )}
@@ -830,7 +830,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
   const hasCustomers = detail.main_customers && detail.main_customers.length > 0;
 
   const EmptyPlaceholder = ({ label }: { label: string }) => (
-    <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+    <p style={{ margin: 0, fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.7 }}>
       {label}は現在準備中です。
     </p>
   );
@@ -878,7 +878,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                 {detail.main_products!.map((p, i) => (
                   <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
                     <span style={{ color: "var(--royal)", fontWeight: 700, marginTop: 2, flexShrink: 0 }}>▸</span>
-                    <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.7 }}>{p}</span>
+                    <span style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.7 }}>{p}</span>
                   </li>
                 ))}
               </ul>
@@ -905,7 +905,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                 {detail.main_customers!.map((c, i) => (
                   <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
                     <span style={{ color: "#B45309", fontWeight: 700, marginTop: 2, flexShrink: 0 }}>▸</span>
-                    <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.7 }}>{c}</span>
+                    <span style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.7 }}>{c}</span>
                   </li>
                 ))}
               </ul>
@@ -974,7 +974,7 @@ function CultureSection({ detail }: { detail: CompanyDetail }) {
               {detail.culture_description}
             </p>
           ) : (
-            <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+            <p style={{ margin: 0, fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.7 }}>
               社風・カルチャー情報は現在準備中です。
             </p>
           )}
@@ -1124,7 +1124,7 @@ function CompanyFeaturesSection({
         </SecTitle>
         <span style={{
           display: "inline-flex", alignItems: "center", gap: 5,
-          fontSize: 11, color: "var(--ink-mute)", fontWeight: 600,
+          fontSize: 12, color: "var(--ink-soft)", fontWeight: 600,
           padding: "3px 10px", borderRadius: 100,
           background: "var(--bg-tint)", border: "1px solid var(--line)",
         }}>
@@ -1343,11 +1343,11 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
 function BenefitsSection({ detail }: { detail: CompanyDetail }) {
   const SUBHEADER_STYLE: React.CSSProperties = {
     fontFamily: "Inter, sans-serif",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 700,
     color: "var(--ink-soft)",
     marginBottom: 12,
-    letterSpacing: "0.1em",
+    letterSpacing: "0.08em",
     textTransform: "uppercase",
   };
   // UNSET_STYLE removed — replaced by inline "カジュアル面談でご確認ください" badges
@@ -1441,7 +1441,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "8px 14px", borderRadius: 8,
             background: "var(--bg-tint)", border: "1px solid var(--line)",
-            fontSize: 12, color: "var(--ink-mute)",
+            fontSize: 12, color: "var(--ink-soft)",
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
               <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
@@ -1463,7 +1463,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "8px 14px", borderRadius: 8,
             background: "var(--bg-tint)", border: "1px solid var(--line)",
-            fontSize: 12, color: "var(--ink-mute)",
+            fontSize: 12, color: "var(--ink-soft)",
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
               <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
@@ -1517,11 +1517,11 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
           <div
             style={{
               fontFamily: "Inter, sans-serif",
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               color: "var(--ink-soft)",
               marginBottom: 10,
-              letterSpacing: "0.1em",
+              letterSpacing: "0.08em",
               textTransform: "uppercase",
             }}
           >
@@ -1569,11 +1569,11 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
           <div
             style={{
               fontFamily: "Inter, sans-serif",
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               color: "var(--ink-soft)",
               marginBottom: 10,
-              letterSpacing: "0.1em",
+              letterSpacing: "0.08em",
               textTransform: "uppercase",
             }}
           >
@@ -1647,7 +1647,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
                     border: "1px solid var(--line)",
                     borderRadius: 100,
                     fontSize: 12,
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   勤務時間制度: —
@@ -1663,18 +1663,18 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
         <div
           style={{
             fontFamily: "Inter, sans-serif",
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 700,
             color: "var(--ink-soft)",
             marginBottom: 10,
-            letterSpacing: "0.1em",
+            letterSpacing: "0.08em",
             textTransform: "uppercase",
           }}
         >
           Working Style Note
         </div>
         {detail.workstyleDescription ? (
-          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, margin: 0 }}>
+          <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, margin: 0 }}>
             {detail.workstyleDescription}
           </p>
         ) : (
@@ -1767,7 +1767,7 @@ function EmployeeCard({
         </p>
       )}
       {showEndedAt && employee.endedAt && (
-        <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
           退職: {employee.endedAt}
         </p>
       )}
@@ -1882,7 +1882,7 @@ function StoryCardPublic({ story }: { story: CompanyPost }) {
             {STORY_CATEGORY_LABELS[story.category] ?? story.category}
           </span>
           {story.published_at && (
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>
+            <span style={{ fontSize: 12, color: "var(--ink-soft)", fontFamily: "'Inter', sans-serif" }}>
               {new Date(story.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" })}
             </span>
           )}
@@ -2539,7 +2539,7 @@ function JobsSection({
           </SecTitle>
         </div>
         <div style={{ padding: "22px 28px 28px" }}>
-          <p style={{ fontSize: 14, color: "var(--ink-mute)", textAlign: "center", padding: "24px 0", margin: 0 }}>
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", textAlign: "center", padding: "24px 0", margin: 0 }}>
             現在、公開中の求人はありません。
           </p>
         </div>
@@ -2648,7 +2648,7 @@ function JobsSection({
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
             {job.salary && job.salary !== "—" && (
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, letterSpacing: "0.04em", marginBottom: 2 }}>年収</div>
+                <div style={{ fontSize: 12, color: "#64748B", fontWeight: 600, letterSpacing: "0.03em", marginBottom: 2 }}>年収</div>
                 <div style={{ fontFamily: "Inter, sans-serif", fontSize: 15, fontWeight: 800, color: "var(--success)" }}>
                   {job.salary}
                 </div>
@@ -2918,7 +2918,7 @@ function RecruitersSection({
                 </div>
               )}
               {r.department && (
-                <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {r.department}
                 </div>
               )}
@@ -3112,7 +3112,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
             </div>
           )}
         </div>
-        <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+        <span style={{ fontSize: 12, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
           企業アンケート回答
         </span>
       </div>
@@ -3176,10 +3176,10 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
                     )}
                     <span
                       style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         fontFamily: "Inter, sans-serif",
                         fontWeight: 600,
-                        letterSpacing: "0.04em",
+                        letterSpacing: "0.03em",
                         color: hasValue ? "var(--ink-soft)" : "var(--ink-mute)",
                       }}
                     >
@@ -3208,7 +3208,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
           <p
             style={{
               marginTop: 14,
-              fontSize: 11,
+              fontSize: 12,
               color: "var(--ink-mute)",
               lineHeight: 1.6,
             }}
@@ -3335,11 +3335,11 @@ function Sidebar({
             {/* Eyebrow */}
             <div
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 600,
                 opacity: 0.72,
                 marginBottom: 6,
-                letterSpacing: "0.08em",
+                letterSpacing: "0.06em",
               }}
             >
               {company.name}
@@ -3401,7 +3401,7 @@ function Sidebar({
                 {/* 補足テキスト: Primary ボタン直下、Primary 表示時のみ */}
                 <p
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     textAlign: "center",
                     margin: "8px 0",
                     opacity: 0.68,
