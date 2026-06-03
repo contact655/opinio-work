@@ -106,6 +106,14 @@ export type CompanyDetail = {
   main_customers?: string[] | null;
   // Numbers survey timestamp
   numbersUpdatedAt: string | null;
+  // Org teams
+  orgTeams: Array<{
+    name: string;
+    en_name: string;
+    mission: string;
+    description: string;
+    roles: string[];
+  }> | null;
 };
 
 // ─── Full data ─────────────────────────────────────────────────────────────
@@ -236,6 +244,7 @@ const LAYERX: CompanyDetail = {
   ],
   why_join: null,
   numbersUpdatedAt: null,
+  orgTeams: null,
 };
 
 const SMARTHR: CompanyDetail = {
@@ -365,6 +374,7 @@ const SMARTHR: CompanyDetail = {
   ],
   why_join: null,
   numbersUpdatedAt: null,
+  orgTeams: null,
 };
 
 // ─── Template generator (for the other 10 companies) ─────────────────────────
@@ -492,6 +502,8 @@ function makeDetail(c: Company, overrides: Partial<CompanyDetail> = {}): Company
     culture_description: null,
     // Numbers survey timestamp
     numbersUpdatedAt: null,
+    // Org teams
+    orgTeams: null,
   };
 
   return { ...base, ...overrides };

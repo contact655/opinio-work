@@ -1343,6 +1343,140 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
   );
 }
 
+// ─── OrgTeamsSection ──────────────────────────────────────────────────────────
+
+const TEAM_COLORS: Record<string, { bg: string; border: string; accent: string; missionBg: string }> = {
+  "Enterprise":           { bg: "#EFF6FF", border: "#BFDBFE", accent: "#1D4ED8", missionBg: "#DBEAFE" },
+  "Commercial (CBU)":     { bg: "#F0FDF4", border: "#BBF7D0", accent: "#15803D", missionBg: "#DCFCE7" },
+  "Inside Sales (ISR/BDR)": { bg: "#FEF3C7", border: "#FDE68A", accent: "#92400E", missionBg: "#FEF9C3" },
+  "Customer Success":     { bg: "#F3E8FF", border: "#DDD6FE", accent: "#6D28D9", missionBg: "#EDE9FE" },
+  "Marketing":            { bg: "#FCE7F3", border: "#FBCFE8", accent: "#9D174D", missionBg: "#FDF2F8" },
+  "Solution Engineering": { bg: "#ECFEFF", border: "#A5F3FC", accent: "#0E7490", missionBg: "#CFFAFE" },
+};
+
+function OrgTeamsSection({ detail }: { detail: CompanyDetail }) {
+  if (!detail.orgTeams || detail.orgTeams.length === 0) return null;
+
+  return (
+    <section
+      id="org-teams"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: 24,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      {/* Section header */}
+      <div style={{ padding: "22px 28px 18px", background: "#f5f8ff", borderBottom: "1px solid #dde4f5" }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+          }
+        >
+          組織体制・チームのミッション
+        </SecTitle>
+        <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+          各チームのミッションと役割を把握することで、自分に合うポジションが見つかります。
+        </p>
+      </div>
+
+      <div style={{ padding: "22px 28px 28px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }} className="grid grid-cols-1 md:grid-cols-2">
+          {detail.orgTeams.map((team) => {
+            const color = TEAM_COLORS[team.en_name] ?? { bg: "var(--royal-50)", border: "var(--royal-100)", accent: "var(--royal)", missionBg: "var(--royal-50)" };
+            return (
+              <div
+                key={team.name}
+                style={{
+                  background: color.bg,
+                  border: `1px solid ${color.border}`,
+                  borderRadius: 14,
+                  padding: "20px 22px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                }}
+              >
+                {/* Header: name + en badge */}
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3, fontFamily: "var(--font-noto-sans)" }}>
+                    {team.name}
+                  </h3>
+                  <span style={{
+                    flexShrink: 0,
+                    fontSize: 11, fontWeight: 700,
+                    color: color.accent,
+                    background: "#fff",
+                    border: `1px solid ${color.border}`,
+                    padding: "2px 8px", borderRadius: 100,
+                    fontFamily: "Inter, sans-serif",
+                    letterSpacing: "0.01em",
+                  }}>
+                    {team.en_name}
+                  </span>
+                </div>
+
+                {/* Mission */}
+                <div style={{
+                  background: color.missionBg,
+                  border: `1px solid ${color.border}`,
+                  borderRadius: 8,
+                  padding: "10px 14px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 8,
+                }}>
+                  <svg style={{ flexShrink: 0, marginTop: 2 }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={color.accent} strokeWidth={2.5} strokeLinecap="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 8v4M12 16h.01"/>
+                  </svg>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: color.accent, lineHeight: 1.6 }}>
+                    {team.mission}
+                  </p>
+                </div>
+
+                {/* Description */}
+                <p style={{ margin: 0, fontSize: 14, color: "var(--ink)", lineHeight: 1.8 }}>
+                  {team.description}
+                </p>
+
+                {/* Roles */}
+                {team.roles && team.roles.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                    {team.roles.map((role) => (
+                      <span
+                        key={role}
+                        style={{
+                          fontSize: 11, fontWeight: 600,
+                          color: color.accent,
+                          background: "#fff",
+                          border: `1px solid ${color.border}`,
+                          padding: "3px 10px", borderRadius: 100,
+                          fontFamily: "Inter, sans-serif",
+                        }}
+                      >
+                        {role}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Benefits Section ─────────────────────────────────────────────────────────
 
 function BenefitsSection({ detail }: { detail: CompanyDetail }) {
@@ -3861,6 +3995,7 @@ export default async function CompanyDetailPage({
           ...((detail.main_products?.length || detail.main_customers?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
           ...(detail.culture_description ? [{ id: "culture", label: "カルチャー" }] : []),
           { id: "work-style",       label: "働き方の選択肢" },
+          ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: `組織体制 ${detail.orgTeams.length}チーム` }] : []),
           ...(!NUMBER_ITEMS.every(({ key }) => { const raw = detail.numbers[key]; return raw === null || raw === undefined || String(raw).trim() === ""; }) ? [{ id: "numbers", label: "数値で見る企業" }] : []),
           ...((detail.benefits?.length || detail.evaluationSystem) ? [{ id: "benefits", label: "福利厚生・評価制度" }] : []),
           { id: "jobs",             label: company.job_count > 0 ? `募集中の求人 ${company.job_count}件` : "募集中の求人" },
@@ -3893,7 +4028,10 @@ export default async function CompanyDetailPage({
             {/* 4. 数値で見る企業 */}
             <NumbersSection numbers={detail.numbers} numbersUpdatedAt={detail.numbersUpdatedAt} />
 
-            {/* 5. 福利厚生・評価制度 */}
+            {/* 5. 組織体制 */}
+            <OrgTeamsSection detail={detail} />
+
+            {/* 6. 福利厚生・評価制度 */}
             <BenefitsSection detail={detail} />
 
             {/* 6. 募集中の求人 */}

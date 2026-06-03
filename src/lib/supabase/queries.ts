@@ -287,6 +287,8 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
       : null,
     // Numbers survey timestamp
     numbersUpdatedAt: (row.numbers_updated_at as string | null) ?? null,
+    // Org teams
+    orgTeams: Array.isArray(row.org_teams) ? row.org_teams as CompanyDetail["orgTeams"] : null,
   };
 }
 
@@ -451,6 +453,8 @@ const COMPANY_DETAIL_COLS = [
   "numbers_updated_at",
   // Social links
   "x_url", "linkedin_url",
+  // Org teams
+  "org_teams",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {
