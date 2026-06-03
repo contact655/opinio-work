@@ -1,0 +1,327 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import Link from "next/link";
+
+// ─── Types ──────────────────────────────────────────
+
+type ConsultationCase = {
+  id: string;
+  mentor_id: string;
+  consulted_at: string;
+  anon_profile: string;
+  worry_category: string;
+  worry_summary: string;
+  insight: string;
+  action_taken: string | null;
+  display_order: number;
+  ow_mentors: {
+    name: string;
+    current_role: string | null;
+    current_company: string | null;
+    avatar_initial: string | null;
+    avatar_color: string | null;
+  } | null;
+};
+
+// ─── Constants ──────────────────────────────────────
+
+const CATEGORY_FILTERS = [
+  { value: "all", label: "すべて" },
+  { value: "キャリアチェンジ", label: "キャリアチェンジ" },
+  { value: "年収交渉", label: "年収交渉" },
+  { value: "転職タイミング", label: "転職タイミング" },
+  { value: "スタートアップ", label: "スタートアップ" },
+  { value: "外資転職", label: "外資転職" },
+];
+
+const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
+  "キャリアチェンジ": { bg: "#E1F5EE", text: "#0F6E56" },
+  "年収交渉": { bg: "#FAEEDA", text: "#854F0B" },
+  "転職タイミング": { bg: "#E6F1FB", text: "#185FA5" },
+  "スタートアップ": { bg: "#F3E8FF", text: "#6B21A8" },
+  "外資転職": { bg: "#FEE2E2", text: "#991B1B" },
+};
+
+function getCategoryStyle(category: string) {
+  return CATEGORY_COLORS[category] || { bg: "#f5f5f4", text: "#78716c" };
+}
+
+// ─── Case Card ──────────────────────────────────────
+
+function CaseCard({ c }: { c: ConsultationCase }) {
+  const catStyle = getCategoryStyle(c.worry_category);
+  const mentor = c.ow_mentors;
+
+  return (
+    <div
+      className="bg-white rounded-xl overflow-hidden"
+      style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)" }}
+    >
+      {/* Header */}
+      <div className="px-5 pt-5 pb-3">
+        <div className="flex items-center justify-between mb-3">
+          <span
+            className="text-[11px] font-medium px-2.5 py-1 rounded-full"
+            style={{ background: catStyle.bg, color: catStyle.text }}
+          >
+            {c.worry_category}
+          </span>
+          <span className="text-[11px] text-gray-600">
+            {new Date(c.consulted_at).toLocaleDateString("ja-JP", {
+              year: "numeric",
+              month: "long",
+            })}
+          </span>
+        </div>
+
+        {/* Profile */}
+        <div className="flex items-center gap-2 mb-3">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
+            style={{ background: "#9ca3af" }}
+          >
+            ?
+          </div>
+          <span className="text-[13px] font-medium text-gray-700">
+            {c.anon_profile}
+          </span>
+        </div>
+      </div>
+
+      {/* Content sections */}
+      <div className="grid grid-cols-1">
+        {/* Left: 相談内容 */}
+        <div className="px-5 py-4" style={{ borderTop: "0.5px solid #f0f0f0" }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <svg
+              className="w-3.5 h-3.5 flex-shrink-0"
+              fill="none"
+              stroke="#9ca3af"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
+              />
+            </svg>
+            <span className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+              相談内容
+            </span>
+          </div>
+          <p className="text-[13px] text-gray-600 leading-relaxed">
+            {c.worry_summary}
+          </p>
+        </div>
+
+        {/* Right: 気づき・アドバイス */}
+        <div
+          className="px-5 py-4"
+          style={{
+            borderTop: "0.5px solid #f0f0f0",
+            background: "#FAFDF8",
+          }}
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <svg
+              className="w-3.5 h-3.5 flex-shrink-0"
+              fill="none"
+              stroke="#1D9E75"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"
+              />
+            </svg>
+            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#1D9E75" }}>
+              気づき・アドバイス
+            </span>
+          </div>
+          <p className="text-[13px] leading-relaxed" style={{ color: "#085041" }}>
+            {c.insight}
+          </p>
+        </div>
+      </div>
+
+      {/* Action taken + Mentor */}
+      <div
+        className="px-5 py-3 flex items-center justify-between"
+        style={{ borderTop: "0.5px solid #f0f0f0", background: "#fff" }}
+      >
+        {c.action_taken && (
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <svg
+              className="w-3.5 h-3.5 flex-shrink-0"
+              fill="none"
+              stroke="#1D9E75"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+            <span className="text-[12px] text-gray-700 truncate">{c.action_taken}</span>
+          </div>
+        )}
+        {mentor && (
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+            <div
+              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold"
+              style={{ background: mentor.avatar_color || "#1D9E75" }}
+            >
+              {mentor.avatar_initial || mentor.name[0]}
+            </div>
+            <span className="text-[11px] text-gray-600">
+              {mentor.name}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ─────────────────────────────────
+
+export default function ConsultationCasesClient({
+  cases,
+}: {
+  cases: ConsultationCase[];
+}) {
+  const [category, setCategory] = useState("all");
+
+  const filtered = useMemo(() => {
+    if (category === "all") return cases;
+    return cases.filter((c) => c.worry_category === category);
+  }, [cases, category]);
+
+  return (
+    <>
+      {/* ─── Hero ─── */}
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
+        padding: "44px 0 40px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        <div style={{ position: "absolute", right: -80, top: -80, width: 360, height: 360, borderRadius: "50%", background: "rgba(59,95,217,0.1)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -40, bottom: -50, width: 220, height: 220, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
+        <div className="max-w-[960px] mx-auto px-5 md:px-12" style={{ position: "relative" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.5)", marginBottom: 10, textTransform: "uppercase" as const }}>
+            CONSULTATION CASES
+          </div>
+          <h1 style={{
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: "clamp(22px, 3vw, 32px)",
+            fontWeight: 700, color: "#fff",
+            marginBottom: 12, lineHeight: 1.4,
+          }}>
+            相談して、気づきが変わった人たち。
+          </h1>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.72)", lineHeight: 1.85, maxWidth: 480, margin: "0 0 20px" }}>
+            実際にOPINIOのキャリア相談を利用した方の相談内容と気づきをご紹介します。
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+            {[`${cases.length}件の相談事例`, "完全無料", "実名・匿名を選べる"].map((label) => (
+              <span key={label} style={{
+                fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 100,
+                background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}>
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Filters ─── */}
+      <section className="max-w-4xl mx-auto px-4 pt-8 pb-2">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="相談カテゴリで絞り込み">
+          {CATEGORY_FILTERS.map((f) => (
+            <button
+              type="button"
+              key={f.value}
+              role="tab"
+              aria-selected={category === f.value}
+              onClick={() => setCategory(f.value)}
+              className="text-[12px] px-3.5 py-1.5 rounded-full transition-all"
+              style={
+                category === f.value
+                  ? { background: "#1D9E75", color: "#fff" }
+                  : { background: "#fff", color: "#6b7280", border: "0.5px solid #e5e7eb" }
+              }
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="text-[12px] text-gray-600 mt-3">
+          {filtered.length}件の事例
+        </div>
+      </section>
+
+      {/* ─── Cases ─── */}
+      <section className="max-w-4xl mx-auto px-4 py-6">
+        {filtered.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-gray-600 text-sm">該当する事例がありません</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filtered.map((c) => (
+              <CaseCard key={c.id} c={c} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ─── CTA Banner ─── */}
+      <section className="max-w-4xl mx-auto px-4 pb-16">
+        <div style={{
+          background: "var(--warm-soft)",
+          border: "1.5px solid #FDE68A",
+          borderRadius: 16,
+          padding: "32px 40px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 24,
+          flexWrap: "wrap",
+        }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "#B45309", marginBottom: 8, textTransform: "uppercase" }}>
+              OPINIO MENTOR
+            </div>
+            <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(15px, 2vw, 18px)", fontWeight: 500, color: "var(--ink)", margin: 0, lineHeight: 1.55 }}>
+              あなたも、先輩に話してみませんか？
+            </p>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
+              完全無料・営業なし・30分で気づきが変わる。編集部が声がけした現役・元社員のみ。
+            </p>
+          </div>
+          <Link
+            href="/mentors"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
+              background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+              color: "#fff", textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
+              flexShrink: 0,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            先輩メンターを見る（無料）
+          </Link>
+        </div>
+      </section>
+    </>
+  );
+}

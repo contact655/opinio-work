@@ -1,0 +1,56 @@
+[
+  {
+    "id": "9f7b4f9e-14c6-4439-be13-29a1daee0a42",
+    "slug": "career_direction",
+    "name": "キャリアの方向性に迷っている",
+    "description": "自分のキャリア軸を見つけたい",
+    "sort_order": 10,
+    "is_active": true,
+    "created_at": "2026-05-21T05:45:19.918007+00:00"
+  },
+  {
+    "id": "1b328d13-c763-4bbe-bcdf-c668ca7561e5",
+    "slug": "market_value",
+    "name": "自分の市場価値が知りたい",
+    "description": "今の自分の立ち位置を確認したい",
+    "sort_order": 20,
+    "is_active": true,
+    "created_at": "2026-05-21T05:45:19.918007+00:00"
+  },
+  {
+    "id": "44ca70b1-4b59-4a9b-b62a-8fbdf92c29ee",
+    "slug": "job_change_timing",
+    "name": "転職するか迷っている",
+    "description": "動くべきタイミングを相談したい",
+    "sort_order": 30,
+    "is_active": true,
+    "created_at": "2026-05-21T05:45:19.918007+00:00"
+  },
+  {
+    "id": "808eb5da-9d5a-45c5-aaa9-f87d27f739fb",
+    "slug": "current_company",
+    "name": "今の会社にいるべきか分からない",
+    "description": "残るか出るかの判断に迷っている",
+    "sort_order": 40,
+    "is_active": true,
+    "created_at": "2026-05-21T05:45:19.918007+00:00"
+  },
+  {
+    "id": "3c49096f-0868-4a53-8560-22004056a9ba",
+    "slug": "side_business",
+    "name": "副業/独立を考えている",
+    "description": "新しい働き方を模索したい",
+    "sort_order": 50,
+    "is_active": true,
+    "created_at": "2026-05-21T05:45:19.918007+00:00"
+  },
+  {
+    "id": "4a6b274d-e878-4948-b5c2-6215b5938eea",
+    "slug": "relationship",
+    "name": "人間関係/組織に悩んでいる",
+    "description": "上司・同僚・チームのことを話したい",
+    "sort_order": 60,
+    "is_active": true,
+    "created_at": "2026-05-21T05:45:19.918007+00:00"
+  }
+]

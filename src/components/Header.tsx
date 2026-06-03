@@ -105,7 +105,7 @@ export default function Header() {
     window.location.href = "/";
   }
 
-  // ─── 求職者ナビ（4項目：求人 / 企業 / メンター / 記事）──────────
+  // ─── 求職者ナビ（3項目：求人 / 企業 / 記事）──────────
   function renderCandidateNav(mobile: boolean) {
     if (mobile) {
       const close = () => setMenuOpen(false);

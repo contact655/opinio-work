@@ -47,7 +47,7 @@ export default function Footer() {
             </div>
             <p style={{ fontSize: 13, lineHeight: 1.9, color: "#94a3b8", marginBottom: 24, maxWidth: 280 }}>
               IT/SaaS業界に特化したキャリアプラットフォーム。
-              スカウトなし・第三者メンターとの相談・現役社員の声で、
+              スカウトなし・現役社員の声・カジュアル面談で、
               本当のマッチングを実現します。
             </p>
             {/* CTA */}
