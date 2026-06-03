@@ -86,9 +86,12 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
+const INITIAL_DIVISIONS = 3; // デフォルトで表示する部門数
+
 // ─── OrgTeamsSectionClient ────────────────────────────────────────────────────
 export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetail }) {
   const [openTeams, setOpenTeams] = useState<Set<string>>(new Set());
+  const [showAll, setShowAll] = useState(false);
 
   if (!detail.orgTeams || detail.orgTeams.length === 0) return null;
 
@@ -108,6 +111,11 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
       return next;
     });
   };
+
+  const allDivisions = DIVISION_ORDER.filter(div => grouped.has(div));
+  const visibleDivisions = showAll ? allDivisions : allDivisions.slice(0, INITIAL_DIVISIONS);
+  const hiddenCount = allDivisions.length - INITIAL_DIVISIONS;
+  const hiddenTeamCount = allDivisions.slice(INITIAL_DIVISIONS).reduce((sum, div) => sum + (grouped.get(div)?.length ?? 0), 0);
 
   return (
     <section
@@ -146,8 +154,8 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
       </div>
 
       {/* Divisions */}
-      <div style={{ padding: "20px 28px 28px", display: "flex", flexDirection: "column", gap: 24 }}>
-        {DIVISION_ORDER.filter(div => grouped.has(div)).map((div) => {
+      <div style={{ padding: "20px 28px 0", display: "flex", flexDirection: "column", gap: 24 }}>
+        {visibleDivisions.map((div) => {
           const teams = grouped.get(div)!;
           const config = DIVISION_CONFIG[div] ?? {
             label: div, icon: null,
@@ -292,6 +300,78 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
           );
         })}
       </div>
+
+      {/* ── すべてを見る / 折りたたむ ── */}
+      {!showAll && hiddenCount > 0 ? (
+        <div style={{
+          padding: "0 28px 28px",
+          marginTop: 8,
+        }}>
+          {/* グラデーションフェード */}
+          <div style={{
+            height: 48,
+            marginBottom: 16,
+            background: "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 100%)",
+            marginLeft: -28, marginRight: -28,
+            pointerEvents: "none",
+          }} />
+          <button
+            onClick={() => setShowAll(true)}
+            style={{
+              width: "100%",
+              padding: "13px 20px",
+              borderRadius: 12,
+              border: "1.5px solid var(--royal-100)",
+              background: "var(--royal-50)",
+              color: "var(--royal)",
+              fontSize: 14,
+              fontWeight: 700,
+              fontFamily: "var(--font-noto-sans)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              transition: "background 0.15s, border-color 0.15s",
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+            すべてを見る（残り {hiddenCount} 部門 · {hiddenTeamCount} チーム）
+          </button>
+        </div>
+      ) : showAll ? (
+        <div style={{ padding: "8px 28px 28px" }}>
+          <button
+            onClick={() => setShowAll(false)}
+            style={{
+              width: "100%",
+              padding: "11px 20px",
+              borderRadius: 12,
+              border: "1px solid var(--line)",
+              background: "#fff",
+              color: "var(--ink-soft)",
+              fontSize: 13,
+              fontWeight: 600,
+              fontFamily: "var(--font-noto-sans)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              transition: "background 0.15s",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <polyline points="18 15 12 9 6 15"/>
+            </svg>
+            折りたたむ
+          </button>
+        </div>
+      ) : (
+        <div style={{ paddingBottom: 28 }} />
+      )}
     </section>
   );
 }
