@@ -789,8 +789,8 @@ function AboutSection({
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
-            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const }}>
-              FEATURES / 会社の特徴・強み
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.02em", color: "var(--royal)", fontFamily: "var(--font-noto-sans)" }}>
+              会社の特徴・強み
             </span>
           </div>
           {detail.company_features && detail.company_features.length > 0 ? (
@@ -870,8 +870,8 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                 <rect x="2" y="3" width="20" height="14" rx="2"/>
                 <path d="M8 21h8M12 17v4"/>
               </svg>
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
-                PRODUCTS / 主な製品・サービス
+              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.02em", color: "var(--royal)", fontFamily: "var(--font-noto-sans)" }}>
+                主な製品・サービス
               </span>
             </div>
             {hasProducts ? (
@@ -897,8 +897,8 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#B45309", fontFamily: "Inter, sans-serif" }}>
-                CLIENTS / 主な顧客・事例企業
+              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.02em", color: "#B45309", fontFamily: "var(--font-noto-sans)" }}>
+                主な顧客・事例企業
               </span>
             </div>
             {hasCustomers ? (
@@ -1236,7 +1236,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
         </SecTitle>
       </div>
       <div style={{ padding: "20px 32px 28px" }}>
-      <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 20 }}>
+      <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 20 }}>
         企業へのヒアリングをもとにOPINIO編集部が整理しました。入社前のミスマッチ防止にお役立てください。
       </p>
 
@@ -1251,7 +1251,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
           }}>
             <div style={{
               display: "flex", alignItems: "center", gap: 8, marginBottom: 16,
-              fontSize: 13, fontWeight: 800, color: "#15803D",
+              fontSize: 15, fontWeight: 800, color: "#15803D",
             }}>
               <span style={{
                 width: 24, height: 24, borderRadius: "50%",
@@ -1266,7 +1266,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
             </div>
             <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
               {detail.fit_positives!.map((item, i) => (
-                <li key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: "#166534", lineHeight: 1.65 }}>
+                <li key={i} style={{ display: "flex", gap: 10, fontSize: 15, color: "#166534", lineHeight: 1.7 }}>
                   <span style={{
                     width: 18, height: 18, borderRadius: "50%", flexShrink: 0, marginTop: 2,
                     background: "#BBF7D0", display: "flex", alignItems: "center", justifyContent: "center",
@@ -1292,7 +1292,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
           }}>
             <div style={{
               display: "flex", alignItems: "center", gap: 8, marginBottom: 16,
-              fontSize: 13, fontWeight: 800, color: "#92400E",
+              fontSize: 15, fontWeight: 800, color: "#92400E",
             }}>
               <span style={{
                 width: 24, height: 24, borderRadius: "50%",
@@ -1307,7 +1307,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
             </div>
             <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
               {detail.fit_negatives!.map((item, i) => (
-                <li key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: "#78350F", lineHeight: 1.65 }}>
+                <li key={i} style={{ display: "flex", gap: 10, fontSize: 15, color: "#78350F", lineHeight: 1.7 }}>
                   <span style={{
                     width: 18, height: 18, borderRadius: "50%", flexShrink: 0, marginTop: 2,
                     background: "#FDE68A", display: "flex", alignItems: "center", justifyContent: "center",
@@ -1325,7 +1325,7 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
       </div>
 
       <p style={{
-        marginTop: 16, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
+        marginTop: 16, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7,
         borderTop: "1px solid var(--line-soft)", paddingTop: 14,
       }}>
         ※ 企業が入力した情報をもとにしています。最新情報は企業に直接ご確認ください。
@@ -1343,13 +1343,12 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
 
 function BenefitsSection({ detail }: { detail: CompanyDetail }) {
   const SUBHEADER_STYLE: React.CSSProperties = {
-    fontFamily: "Inter, sans-serif",
-    fontSize: 12,
+    fontFamily: "var(--font-noto-sans)",
+    fontSize: 13,
     fontWeight: 700,
-    color: "var(--ink-soft)",
+    color: "#334155",
     marginBottom: 12,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
+    letterSpacing: "0.02em",
   };
   // UNSET_STYLE removed — replaced by inline "カジュアル面談でご確認ください" badges
 
@@ -1413,7 +1412,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
         }
         return (
       <div style={{ marginBottom: 28 }}>
-        <div style={SUBHEADER_STYLE}>Benefits</div>
+        <div style={SUBHEADER_STYLE}>福利厚生</div>
         {detail.benefits && detail.benefits.length > 0 ? (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {detail.benefits.map((b) => (
@@ -1456,7 +1455,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
 
       {/* ── 評価制度 ── */}
       <div>
-        <div style={SUBHEADER_STYLE}>Evaluation</div>
+        <div style={SUBHEADER_STYLE}>評価制度</div>
         {detail.evaluationSystem ? (
           <EvaluationText text={detail.evaluationSystem} />
         ) : (
@@ -2540,7 +2539,7 @@ function JobsSection({
           </SecTitle>
         </div>
         <div style={{ padding: "22px 28px 28px" }}>
-          <p style={{ fontSize: 14, color: "var(--ink-soft)", textAlign: "center", padding: "24px 0", margin: 0 }}>
+          <p style={{ fontSize: 15, color: "var(--ink-soft)", textAlign: "center", padding: "24px 0", margin: 0 }}>
             現在、公開中の求人はありません。
           </p>
         </div>
