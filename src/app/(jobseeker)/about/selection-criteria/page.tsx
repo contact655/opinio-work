@@ -165,7 +165,7 @@ export default function SelectionCriteriaPage() {
             {[
               "編集部による経営層・現場メンバーへの直接取材",
               "OB/OGへの追跡インタビューで入社後ギャップの有無を確認",
-              "IT/SaaS業界経験者をメンターネットワークに招聘し、業界横断の知見を活用",
+              "IT/SaaS業界横断の知見をもとに、掲載企業の選定・記事の品質管理を実施",
             ].map((item) => (
               <li key={item} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                 <div style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--royal-50)", color: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
@@ -191,13 +191,13 @@ export default function SelectionCriteriaPage() {
             掲載求人を見る →
           </Link>
           <Link
-            href="/mentors"
+            href="/companies"
             style={{
               display: "inline-block", padding: "12px 28px", borderRadius: 10,
               fontSize: 14, fontWeight: 600, background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal-100)", textDecoration: "none",
             }}
           >
-            メンターに相談する
+            掲載企業を見る →
           </Link>
         </div>
       </div>

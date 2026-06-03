@@ -83,7 +83,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
   const [phase, setPhase] = useState("");
   const [transferTiming, setTransferTiming] = useState("");
   const [salaryMin, setSalaryMin] = useState(0);
-  const [mentorOnly, setMentorOnly] = useState(false);
+  const [_mentorOnly] = useState(false);
 
   const filtered = useMemo(() => {
     let list = candidates;
@@ -104,15 +104,15 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
       (c.desiredSalaryMin != null && c.desiredSalaryMin >= salaryMin) ||
       (c.desiredSalaryMax != null && c.desiredSalaryMax >= salaryMin)
     );
-    if (mentorOnly)     list = list.filter((c) => c.isMentor);
-    return list;
-  }, [candidates, q, workStyle, jobType, phase, transferTiming, salaryMin, mentorOnly]);
 
-  const activeFilterCount = [workStyle, jobType, phase, transferTiming, salaryMin > 0, mentorOnly].filter(Boolean).length;
+    return list;
+  }, [candidates, q, workStyle, jobType, phase, transferTiming, salaryMin]);
+
+  const activeFilterCount = [workStyle, jobType, phase, transferTiming, salaryMin > 0].filter(Boolean).length;
 
   function clearAllFilters() {
     setWorkStyle(""); setJobType(""); setPhase("");
-    setTransferTiming(""); setSalaryMin(0); setMentorOnly(false);
+    setTransferTiming(""); setSalaryMin(0);
   }
 
   return (
@@ -285,24 +285,6 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
             </button>
           ))}
 
-          <button
-            type="button"
-            onClick={() => setMentorOnly(!mentorOnly)}
-            style={{
-              height: 28, padding: "0 12px", borderRadius: 14, marginLeft: 8,
-              fontSize: 11, fontWeight: mentorOnly ? 700 : 400,
-              border: mentorOnly ? "1.5px solid var(--purple)" : "1px solid var(--line)",
-              background: mentorOnly ? "var(--purple-soft)" : "#fff",
-              color: mentorOnly ? "var(--purple)" : "var(--ink-soft)",
-              cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
-              transition: "all 0.15s",
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }}>
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
-            </svg>
-            メンターのみ
-          </button>
         </div>
       </div>
 
@@ -367,15 +349,6 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
                       <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
                         {c.name}
                       </span>
-                      {c.isMentor && (
-                        <span style={{
-                          fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
-                          background: "var(--purple-soft)", color: "var(--purple)",
-                          border: "1px solid #e9d5ff",
-                        }}>
-                          メンター
-                        </span>
-                      )}
                     </div>
                     {(c.currentRole || c.currentCompany) ? (
                       <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>

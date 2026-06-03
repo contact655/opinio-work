@@ -181,46 +181,45 @@ export default function NotJobChangingPage() {
             </div>
           </section>
 
-          {/* メンター相談 CTA */}
+          {/* カジュアル面談 CTA */}
           <div style={{
-            background: "var(--warm-soft)", border: "1.5px solid #FDE68A",
+            background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
             borderRadius: 16, padding: "28px 32px",
             display: "flex", alignItems: "center", justifyContent: "space-between",
             gap: 20, flexWrap: "wrap", marginBottom: 24,
-            boxShadow: "0 4px 20px rgba(245,158,11,0.1)",
+            boxShadow: "0 4px 20px rgba(0,35,102,0.08)",
           }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "#B45309", marginBottom: 8, textTransform: "uppercase" }}>
-                OPINIO MENTOR
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: 8, textTransform: "uppercase" }}>
+                CASUAL MEETING
               </div>
               <p style={{
                 fontFamily: "var(--font-noto-serif)",
                 fontSize: "clamp(15px,2vw,18px)", fontWeight: 500,
                 color: "var(--ink)", margin: "0 0 6px", lineHeight: 1.55,
               }}>
-                今すぐ先輩に話を聞く
+                気になる企業の現役社員に話を聞く
               </p>
               <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.7 }}>
-                転職するかどうか迷っている段階でも大丈夫。30分・完全無料です。
+                転職するか迷っている段階でも大丈夫。カジュアル面談は完全無料です。
               </p>
             </div>
             <Link
-              href="/mentors"
+              href="/companies"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
                 padding: "13px 24px", borderRadius: 10,
                 fontSize: 14, fontWeight: 700,
-                background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
                 color: "#fff", textDecoration: "none",
-                boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
+                boxShadow: "0 4px 16px rgba(0,35,102,0.25)",
                 flexShrink: 0,
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
-              先輩メンターを見る（無料）
+              企業を見てみる（無料）
             </Link>
           </div>
 
@@ -246,7 +245,7 @@ export default function NotJobChangingPage() {
                 </h2>
                 <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 0 16px" }}>
                   「今は動かないけど、半年後に状況を整理したい」<br />
-                  そんなときは、OPINIOに登録だけしておいてください。半年後にメールでお知らせし、ご都合に合わせてメンターと再相談できます。
+                  そんなときは、OPINIOに登録だけしておいてください。半年後にメールでお知らせします。タイミングが来たら企業にカジュアル面談を申し込めます。
                 </p>
                 <Link
                   href="/auth?mode=signup"

@@ -69,7 +69,7 @@ export default function NotFound() {
           }}>
             求人を見る
           </Link>
-          <Link href="/mentors" style={{
+          <Link href="/articles" style={{
             display: "inline-block",
             background: "#fff",
             color: "var(--royal)",
@@ -80,7 +80,7 @@ export default function NotFound() {
             fontSize: 14,
             border: "1.5px solid var(--royal-100)",
           }}>
-            メンター相談
+            取材記事
           </Link>
         </div>
 

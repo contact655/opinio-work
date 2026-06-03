@@ -499,7 +499,7 @@ function BrandSide() {
           {[
             { value: "36社", label: "掲載企業" },
             { value: "30件", label: "公開求人" },
-            { value: "10名", label: "メンター" },
+            { value: "10件", label: "取材記事" },
           ].map(({ value, label }) => (
             <div key={label} style={{
               background: "rgba(255,255,255,0.1)",
@@ -531,8 +531,8 @@ const BRAND_FEATURES = [
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       </svg>
     ),
-    title: "数年先を歩く先輩に話を聞ける",
-    desc: "審査通過したメンターが、30分の対話を提供",
+    title: "現役社員にカジュアル面談を申し込める",
+    desc: "気になる企業に直接、30分の対話を申し込めます",
   },
   {
     icon: (

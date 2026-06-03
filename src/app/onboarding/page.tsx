@@ -267,9 +267,9 @@ function OnboardingInner() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
 
-              {/* Step 3: メンターに相談 */}
+              {/* Step 3: 取材記事を読む */}
               <a
-                href="/mentors"
+                href="/articles"
                 style={{
                   display: "flex", alignItems: "center", gap: 14,
                   padding: "14px 18px",
@@ -280,17 +280,17 @@ function OnboardingInner() {
               >
                 <div style={{
                   width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                  background: "var(--warm-soft)",
+                  background: "var(--royal-50)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#B45309",
+                  color: "var(--royal)",
                 }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                   </svg>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2, color: "var(--ink)" }}>先輩にキャリアを相談する</div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>メンターと無料で30分対話</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2, color: "var(--ink)" }}>取材記事を読む</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>現役社員のリアルな声を知ろう</div>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>

@@ -305,31 +305,31 @@ export default async function CompaniesPage({ searchParams }: Props) {
           }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: 8, textTransform: "uppercase" as const }}>
-              OPINIO MENTOR
+              CASUAL MEETING
             </div>
             <p style={{
               fontFamily: "var(--font-noto-serif)",
               fontSize: "clamp(15px, 2vw, 18px)", fontWeight: 500,
               color: "var(--ink)", margin: 0, lineHeight: 1.55,
             }}>
-              企業を絞り込んだら、その会社の先輩に話を聞いてみよう。
+              気になった企業の現役社員と30分話してみよう。
             </p>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8, lineHeight: 1.7 }}>
-              OPINIOのメンターは編集部が個別に声がけした現役・元社員のみ。30分・完全無料で相談できます。
+              カジュアル面談はカジュアルな情報交換の場です。選考とは無関係。完全無料。
             </p>
           </div>
-          <Link href="/mentors" style={{
+          <Link href="/articles" style={{
             display: "inline-flex", alignItems: "center", gap: 8,
             padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
-            background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+            background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
             color: "#fff", textDecoration: "none",
-            boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
+            boxShadow: "0 4px 16px rgba(0,35,102,0.25)",
             flexShrink: 0,
           }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
             </svg>
-            先輩に相談する（無料）
+            取材記事を読む
           </Link>
           </div>
 

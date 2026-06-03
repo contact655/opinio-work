@@ -80,7 +80,7 @@ export default function NotFound() {
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
             {[
               { href: "/jobs", label: "求人一覧" },
-              { href: "/mentors", label: "メンター" },
+              { href: "/companies", label: "企業一覧" },
               { href: "/articles", label: "記事" },
               { href: "/auth", label: "ログイン" },
             ].map((link) => (

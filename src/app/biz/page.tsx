@@ -210,7 +210,7 @@ export default function BizLandingPage() {
                 {[
                   { value: "36社", label: "掲載企業数" },
                   { value: "30件+", label: "公開中の求人" },
-                  { value: "10名", label: "現役メンター" },
+                  { value: "10件", label: "取材記事" },
                   { value: "無料", label: "掲載・利用費" },
                 ].map((stat) => (
                   <div key={stat.label}>

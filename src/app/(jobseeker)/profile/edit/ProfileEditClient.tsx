@@ -513,8 +513,8 @@ function selectStyle(): React.CSSProperties {
 // ─── Notification Settings Section ───────────────────────────────────────────
 
 const NOTIF_KEY = "opinio-notif-prefs";
-type NotifPrefs = { newCompanies: boolean; weeklyMatch: boolean; mentorNews: boolean };
-const DEFAULT_NOTIF: NotifPrefs = { newCompanies: true, weeklyMatch: true, mentorNews: false };
+type NotifPrefs = { newCompanies: boolean; weeklyMatch: boolean; articleNews: boolean };
+const DEFAULT_NOTIF: NotifPrefs = { newCompanies: true, weeklyMatch: true, articleNews: false };
 
 function loadNotifPrefs(): NotifPrefs {
   if (typeof window === "undefined") return DEFAULT_NOTIF;
@@ -543,7 +543,7 @@ function NotificationSettingsSection() {
   const items: { key: keyof NotifPrefs; label: string; desc: string; icon: string }[] = [
     { key: "newCompanies", label: "新着企業のお知らせ", desc: "新しい企業が掲載されたらメールでお知らせします（週1回）", icon: "🏢" },
     { key: "weeklyMatch",  label: "マッチング求人のお知らせ", desc: "あなたの希望条件に合う求人が追加されたらお知らせします（週1回）", icon: "💼" },
-    { key: "mentorNews",   label: "メンター関連のお知らせ", desc: "予約状況や新着メンターのお知らせを受け取ります", icon: "💬" },
+    { key: "articleNews",  label: "新着記事のお知らせ", desc: "OPINIOの新着取材記事が公開されたときにお知らせを受け取ります", icon: "📄" },
   ];
 
   return (

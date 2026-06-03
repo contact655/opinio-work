@@ -206,21 +206,21 @@ export default function IndustriesPage() {
           }}>
             <div>
               <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-                業界のことを先輩に直接聞く
+                企業の現役社員と直接話す
               </div>
               <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
-                OPINIOのメンターは編集部が声がけした現役・元社員のみ。30分・無料で相談できます
+                気になった企業にカジュアル面談を申し込んで、リアルな声を聞けます。完全無料。
               </div>
             </div>
-            <Link href="/mentors" style={{
+            <Link href="/companies" style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "12px 24px",
-              background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+              background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
               color: "#fff",
               fontWeight: 600, fontSize: 14, borderRadius: 8, textDecoration: "none",
               whiteSpace: "nowrap",
             }}>
-              先輩に相談する（無料）→
+              企業を見る →
             </Link>
           </div>
         </div>

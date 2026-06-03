@@ -268,21 +268,21 @@ export default async function PostsPage({ searchParams }: Props) {
                 発信を読んで気になったら、その企業の先輩に話を聞いてみよう。
               </p>
               <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
-                OPINIOのメンターは編集部が個別に声がけした現役・元社員のみ。30分・完全無料で相談できます。
+                気になった企業にカジュアル面談を申し込んで、現役社員の声を直接聞けます。完全無料。
               </p>
             </div>
-            <Link href="/mentors" style={{
+            <Link href="/companies" style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
-              background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+              background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
               color: "#fff", textDecoration: "none",
-              boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
+              boxShadow: "0 4px 16px rgba(0,35,102,0.25)",
               flexShrink: 0,
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
-              先輩に相談する（無料）
+              企業を見る（無料）
             </Link>
           </div>
         </div>

@@ -52,7 +52,7 @@ export default function AboutPage() {
             企業の「今」を知り、先輩と話し、自分で決める。
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {["対話から始まる採用", "電話一切なし", "メンター30分無料"].map((tag) => (
+            {["対話から始まる採用", "電話一切なし", "スカウトなし"].map((tag) => (
               <span key={tag} style={{
                 fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 100,
                 background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)",
@@ -86,7 +86,7 @@ export default function AboutPage() {
           <p style={{ fontSize: 15, lineHeight: 1.9, color: "var(--ink-soft)" }}>
             私たちは、採用を「スカウト」で済ませる時代に疑問を持っています。<br />
             OPINIOは「対話から始まる採用」を産業として確立することを目指します。<br />
-            求職者が能動的に情報を集め、先輩に相談し、納得して動く。そんなキャリアの作り方を支えるインフラでありたい。
+            求職者が能動的に情報を集め、企業の現役社員に話を聞き、納得して動く。そんなキャリアの作り方を支えるインフラでありたい。
           </p>
         </div>
 
@@ -103,8 +103,8 @@ export default function AboutPage() {
           {[
             { title: "電話しない", desc: "登録してもエージェントから電話がかかってくることはありません。すべてオンライン・テキストで完結します。" },
             { title: "スカウトしない", desc: "企業から求職者へのスカウト送信機能はありません。対話は求職者側から始まります。" },
-            { title: "キャリアを考え続ける人のために", desc: "「転職活動中」かどうかに関係なく使えます。情報収集・先輩相談だけでも大歓迎です。" },
-            { title: "運営の丁寧な介在", desc: "メンター登録は個別声がけ、相談は編集部が精査してから転送します。品質を担保するために、量より質を選びます。" },
+            { title: "キャリアを考え続ける人のために", desc: "「転職活動中」かどうかに関係なく使えます。情報収集やカジュアル面談だけでも大歓迎です。" },
+            { title: "運営の丁寧な介在", desc: "取材企業の選定は編集部が厳選。品質を担保するために、量より質を選びます。" },
           ].map((v, i) => (
             <div key={i} style={{
               display: "flex", gap: 16, alignItems: "flex-start",
@@ -176,31 +176,31 @@ export default function AboutPage() {
           </p>
         </div>
 
-        {/* Mentor CTA */}
+        {/* Company CTA */}
         <div style={{
-          background: "var(--warm-soft)", border: "1.5px solid #FDE68A",
+          background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
           borderRadius: 14, padding: "28px 32px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
           gap: 16, flexWrap: "wrap",
         }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "#B45309", marginBottom: 8, textTransform: "uppercase" as const }}>
-              OPINIO MENTOR
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: 8, textTransform: "uppercase" as const }}>
+              OPINIO COMPANIES
             </div>
             <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(14px, 2vw, 16px)", fontWeight: 500, color: "var(--ink)", margin: 0, lineHeight: 1.55 }}>
-              「丁寧な介在」を体感してみませんか？
+              まず企業の取材記事を読んでみませんか？
             </p>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
-              編集部が個別に声がけした現役・元社員のみ。30分・完全無料で相談できます。
+              編集部が取材した企業のリアルが読めます。会員登録不要で閲覧可能です。
             </p>
           </div>
-          <Link href="/mentors" style={{
+          <Link href="/companies" style={{
             display: "inline-flex", alignItems: "center", gap: 8,
             padding: "12px 24px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-            background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+            background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
             color: "#fff", textDecoration: "none", flexShrink: 0,
           }}>
-            先輩メンターを見る →
+            企業を見る →
           </Link>
         </div>
       </div>

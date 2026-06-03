@@ -15,12 +15,12 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: "取材記事 — OPINIO",
   description:
-    "LayerX・SmartHR・Ubie・Salesforceなど、IT/SaaS業界のリアルな働き方を取材。社員インタビュー・メンターの声・CEO取材・組織レポートの4カテゴリで届けます。",
+    "LayerX・SmartHR・Ubie・Salesforceなど、IT/SaaS業界のリアルな働き方を取材。社員インタビュー・CEO取材・組織レポートを届けます。",
   keywords: ["IT業界インタビュー", "SaaS転職", "社員の声", "組織文化", "キャリア", "OPINIO"],
   alternates: { canonical: "/articles" },
   openGraph: {
     title: "IT/SaaS業界の取材記事 | OPINIO",
-    description: "LayerX・SmartHR・Ubie・Salesforceなど、IT/SaaS業界のリアルな働き方を取材。社員・メンター・CEO・組織の4カテゴリ。",
+    description: "LayerX・SmartHR・Ubie・Salesforceなど、IT/SaaS業界のリアルな働き方を取材。社員・CEO・組織レポートの3カテゴリ。",
     type: "website",
     url: "/articles",
     images: [{ url: "/api/og?type=list&title=%E5%8F%96%E6%9D%90%E8%A8%98%E4%BA%8B&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E3%83%AA%E3%82%A2%E3%83%AB%E3%81%AA%E5%83%8D%E3%81%8D%E6%96%B9", width: 1200, height: 630 }],
@@ -489,21 +489,21 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                 記事を読んで気になったら、その先輩に直接話を聞いてみよう。
               </p>
               <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8, lineHeight: 1.7 }}>
-                OPINIOのメンターは記事に登場した方々の多く。編集部を通して30分・無料で相談できます。
+                記事を読んで気になった企業にカジュアル面談を申し込んで、直接話を聞けます。完全無料。
               </p>
             </div>
-            <Link href="/mentors" style={{
+            <Link href="/companies" style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
-              background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+              background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
               color: "#fff", textDecoration: "none",
-              boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
+              boxShadow: "0 4px 16px rgba(0,35,102,0.25)",
               flexShrink: 0,
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
-              先輩メンターに相談する
+              企業のカジュアル面談を見る
             </Link>
           </div>
         </div>

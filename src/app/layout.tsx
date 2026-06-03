@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     template: "%s | OPINIO",
   },
   description:
-    "IT/SaaS業界の転職は、情報戦。OPINIO編集部が120社を取材し、先輩メンターが相談に乗る、26-35歳のための転職プラットフォーム。完全無料。",
+    "IT/SaaS業界の転職は、情報戦。OPINIO編集部が取材した企業情報と求人を掲載。スカウトなし・カジュアル面談で、納得のいくキャリア選択を。完全無料。",
   keywords: [
     "IT転職",
     "SaaS転職",
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     siteName: "OPINIO",
     title: "OPINIO｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
     description:
-      "IT/SaaS業界の転職は、情報戦。OPINIO編集部が120社を取材し、先輩メンターが相談に乗る、26-35歳のための転職プラットフォーム。完全無料。",
+      "IT/SaaS業界の転職は、情報戦。OPINIO編集部が120社を取材し、スカウトなし・カジュアル面談で、納得のいくキャリア選択を。完全無料。",
     images: [
       {
         url: "/og-image.png",
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "OPINIO｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
     description:
-      "OPINIO編集部が120社を取材し、先輩メンターが相談に乗る、26-35歳のための転職プラットフォーム。完全無料。",
+      "OPINIO編集部が120社を取材し、スカウトなし・カジュアル面談で、納得のいくキャリア選択を。完全無料。",
     images: ["/og-image.png"],
   },
   robots: {
@@ -122,7 +122,7 @@ const jsonLd = {
       url: "https://www.opinio.co.jp",
       name: "OPINIO",
       description:
-        "IT/SaaS業界の転職は、情報戦。OPINIO編集部が企業を取材し、先輩メンターが相談に乗る、キャリアプラットフォーム。完全無料。",
+        "IT/SaaS業界の転職は、情報戦。OPINIO編集部が取材した企業情報・求人を掲載。スカウトなし・カジュアル面談対応のキャリアプラットフォーム。完全無料。",
       publisher: { "@id": "https://www.opinio.co.jp/#organization" },
       potentialAction: {
         "@type": "SearchAction",

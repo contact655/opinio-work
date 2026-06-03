@@ -10,18 +10,18 @@ export const metadata: Metadata = {
     template: "%s | OPINIO",
   },
   description:
-    "IT/SaaS業界特化のキャリアプラットフォーム。36社の企業情報・求人を掲載し、現役先輩メンターに無料で相談できます。完全無料・営業電話なし・メール登録のみ。",
+    "IT/SaaS業界特化のキャリアプラットフォーム。編集部取材済みの企業情報・求人を掲載。スカウトなし・カジュアル面談対応。完全無料・営業電話なし・メール登録のみ。",
   openGraph: {
-    title: "OPINIO | IT/SaaS転職・キャリア相談。先輩と話して選ぶ。",
-    description: "IT/SaaS業界特化。36社の企業情報・求人と、現役先輩メンターへの無料相談が揃うキャリアプラットフォーム。",
+    title: "OPINIO | IT/SaaS転職・キャリア。先輩社員と話して選ぶ。",
+    description: "IT/SaaS業界特化。編集部取材の企業情報・求人と、カジュアル面談でリアルな声が聞けるキャリアプラットフォーム。",
     type: "website",
     url: "https://www.opinio.co.jp",
     siteName: "OPINIO",
   },
   twitter: {
     card: "summary_large_image",
-    title: "OPINIO | IT/SaaS転職・キャリア相談",
-    description: "IT/SaaS業界特化。企業情報・求人・先輩メンター相談が揃うキャリアプラットフォーム。完全無料。",
+    title: "OPINIO | IT/SaaS転職・キャリア",
+    description: "IT/SaaS業界特化。企業情報・求人・カジュアル面談が揃うキャリアプラットフォーム。完全無料。",
   },
   alternates: {
     canonical: "https://www.opinio.co.jp",

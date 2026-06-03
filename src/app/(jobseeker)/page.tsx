@@ -1059,7 +1059,7 @@ function HowItWorks() {
             OPINIOの、使い方
           </h2>
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: "var(--max-w-form)", margin: "0 auto" }}>
-            情報を集めて、先輩に相談して、自分で決める。<br />
+            企業を知って、現役社員に話を聞いて、自分で決める。<br />
             シンプルな3ステップで、納得のいくキャリア判断を。
           </p>
         </div>
