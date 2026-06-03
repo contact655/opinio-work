@@ -460,8 +460,8 @@ const COMPANY_DETAIL_COLS = [
   "org_teams",
   // Culture keywords
   "culture_keywords",
-  // Customer cases (rich JSONB)
-  "customer_cases",
+  // Customer cases (rich JSONB) — requires Migration 151 applied in DB
+  // "customer_cases",  ← temporarily commented out until column exists
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {
