@@ -3267,7 +3267,7 @@ export default async function CompanyDetailPage({
 
             {/* 7. 現役社員・OBOGプロフィール */}
             <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
-            {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
+            <AlumniSection alumni={employees.alumni} />
 
             {/* 7. 記事（OPINIO取材記事） */}
             <CompanyArticlesSection articles={companyArticles} />
