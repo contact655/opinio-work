@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { CompanyForCarousel } from '@/types/genre';
 import { showToast } from '@/lib/toast';
@@ -157,12 +156,15 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         overflow: 'hidden',
       }}>
         {company.logo_url && !logoError ? (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={company.logo_url}
             alt={`${company.name}のロゴ`}
-            fill
-            style={{ objectFit: 'contain', padding: '12%' }}
-            sizes="(max-width: 640px) 80vw, (max-width: 1024px) 40vw, 20vw"
+            style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'contain', padding: '12%',
+            }}
             onError={() => setLogoError(true)}
           />
         ) : (

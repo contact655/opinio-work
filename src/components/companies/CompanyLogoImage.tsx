@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 
 type Props = {
@@ -14,8 +13,9 @@ type Props = {
 /**
  * ロゴ画像表示コンポーネント
  * 画像読み込み失敗時（Clearbit 404等）は gradient + 頭文字にフォールバック
+ * ※ Next.js Image ではなく <img> を使用（remotePatterns 設定不要、外部URLを直接表示）
  */
-export function CompanyLogoImage({ logoUrl, name, fallbackLetter, size = 96, gradient = "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)" }: Props) {
+export function CompanyLogoImage({ logoUrl, name, fallbackLetter, size = 96 }: Props) {
   const [error, setError] = useState(false);
 
   if (error) {
@@ -33,7 +33,8 @@ export function CompanyLogoImage({ logoUrl, name, fallbackLetter, size = 96, gra
   }
 
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={logoUrl}
       alt={name}
       width={size}
