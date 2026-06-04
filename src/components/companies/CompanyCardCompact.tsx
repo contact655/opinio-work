@@ -148,7 +148,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
       {/* ─── ロゴエリア ─────────────────────────────────────── */}
       <div style={{
         aspectRatio: compact ? '2 / 1' : '16 / 10',
-        background: company.logo_url ? '#f8fafc' : headerGradient,
+        background: headerGradient,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -163,7 +163,8 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             style={{
               position: 'absolute', inset: 0,
               width: '100%', height: '100%',
-              objectFit: 'contain', padding: '12%',
+              objectFit: 'cover',
+              objectPosition: 'center',
             }}
             onError={() => setLogoError(true)}
           />
