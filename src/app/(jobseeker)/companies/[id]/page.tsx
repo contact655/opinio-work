@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { CompanyLogoImage } from "@/components/companies/CompanyLogoImage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
