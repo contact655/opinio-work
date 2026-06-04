@@ -98,6 +98,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
   const isEnName = !!cleanEnName(company.name_en);
   const router = useRouter();
   const [bookmarked, setBookmarked] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const bookmarkingRef = useRef(false);
 
   useEffect(() => {
@@ -155,13 +156,14 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {company.logo_url ? (
+        {company.logo_url && !logoError ? (
           <Image
             src={company.logo_url}
             alt={`${company.name}のロゴ`}
             fill
             style={{ objectFit: 'contain', padding: '12%' }}
             sizes="(max-width: 640px) 80vw, (max-width: 1024px) 40vw, 20vw"
+            onError={() => setLogoError(true)}
           />
         ) : (
           <>

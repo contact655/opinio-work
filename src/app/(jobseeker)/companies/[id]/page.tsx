@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { CompanyLogoImage } from "@/components/companies/CompanyLogoImage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
@@ -157,7 +158,7 @@ function Hero({
                 marginTop: -52,
                 position: "relative",
                 zIndex: 1,
-                background: company.logo_url ? "#fff" : company.gradient,
+                background: company.gradient,
                 border: "4px solid #fff",
                 display: "flex",
                 alignItems: "center",
@@ -171,12 +172,12 @@ function Hero({
               }}
             >
               {company.logo_url ? (
-                <Image
-                  src={company.logo_url}
-                  alt={company.name}
-                  width={96}
-                  height={96}
-                  style={{ objectFit: "contain", padding: 8 }}
+                <CompanyLogoImage
+                  logoUrl={company.logo_url}
+                  name={company.name}
+                  fallbackLetter={company.logo_letter ?? initial}
+                  size={96}
+                  gradient={company.gradient}
                 />
               ) : (
                 company.logo_letter ?? initial
