@@ -106,21 +106,35 @@ export async function searchCompanies(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const companyList: CompanyForCarousel[] = (rawCompanies ?? []) as any[];
 
-  // ── Step 2: 求人件数 + hiring フラグ（表示企業分のみ）
+  // ── Step 2: 求人件数 + 記事件数 + hiring フラグ（表示企業分のみ）
   const companyIds = companyList.map((c) => c.id);
   const hiringSet  = new Set<string>();
   const jobCountMap: Record<string, number> = {};
+  const articleCountMap: Record<string, number> = {};
 
   if (companyIds.length > 0) {
-    const { data: activeJobs } = await supabase
-      .from("ow_jobs")
-      .select("company_id")
-      .in("company_id", companyIds)
-      .in("status", ["published", "active"]);
+    const [activeJobsResult, articlesResult] = await Promise.all([
+      supabase
+        .from("ow_jobs")
+        .select("company_id")
+        .in("company_id", companyIds)
+        .in("status", ["published", "active"]),
+      supabase
+        .from("ow_articles")
+        .select("company_id")
+        .in("company_id", companyIds)
+        .eq("is_published", true),
+    ]);
 
-    (activeJobs ?? []).forEach((j: { company_id: string }) => {
+    (activeJobsResult.data ?? []).forEach((j: { company_id: string }) => {
       hiringSet.add(j.company_id);
       jobCountMap[j.company_id] = (jobCountMap[j.company_id] || 0) + 1;
+    });
+
+    (articlesResult.data ?? []).forEach((a: { company_id: string | null }) => {
+      if (a.company_id) {
+        articleCountMap[a.company_id] = (articleCountMap[a.company_id] || 0) + 1;
+      }
     });
   }
 
@@ -133,6 +147,7 @@ export async function searchCompanies(
     .map((c) => ({
       ...(c as CompanyForCarousel),
       job_count: jobCountMap[c.id] || 0,
+      article_count: articleCountMap[c.id] || 0,
     }));
 
   return {

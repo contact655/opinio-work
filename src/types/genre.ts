@@ -37,6 +37,7 @@ export type CompanyForCarousel = {
   job_count: number;            // ow_jobs.status='published' のCOUNT（実数）
   current_member_count: number; // Opinio 登録現役社員数
   obog_count: number;           // Opinio 登録OBOG社員数
+  article_count?: number;       // OPINIO 取材記事数
   // 追加情報（カード充実化）
   avg_salary?: string | null;
   founded_year?: number | null;

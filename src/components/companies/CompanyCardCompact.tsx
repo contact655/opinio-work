@@ -4,27 +4,47 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { MapPin, Users } from 'lucide-react';
 import type { CompanyForCarousel } from '@/types/genre';
 import { showToast } from '@/lib/toast';
 
-// Funding stage → display label + color
+// フェーズバッジ設定
 const STAGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  "pre-seed":  { label: "Pre-Seed",   color: "#6b5b2e", bg: "#fef9e7" },
-  seed:        { label: "Seed",       color: "#6b5b2e", bg: "#fef9e7" },
-  "series-a":  { label: "Series A",   color: "#1e63d8", bg: "#dbeafe" },
-  "series-b":  { label: "Series B",   color: "#6b3b9e", bg: "#ede9fe" },
-  "series-c":  { label: "Series C",   color: "#0f766e", bg: "#d1fae5" },
-  "series-d":  { label: "Series D+",  color: "#0f766e", bg: "#d1fae5" },
-  growth:      { label: "成長期",     color: "#0f766e", bg: "#d1fae5" },
-  listed:      { label: "上場",       color: "#1f7a48", bg: "#d4f0e3" },
-  ipo:         { label: "IPO準備",    color: "#b45309", bg: "#fef3c7" },
+  "pre-seed":   { label: "プレシード", color: "#78350f", bg: "#fff7ed" },
+  seed:         { label: "シード",     color: "#78350f", bg: "#fff7ed" },
+  "series-a":   { label: "Series A",  color: "#1e40af", bg: "#dbeafe" },
+  "series-b":   { label: "Series B",  color: "#5b21b6", bg: "#ede9fe" },
+  "series-c":   { label: "Series C",  color: "#065f46", bg: "#d1fae5" },
+  "series_c":   { label: "Series C",  color: "#065f46", bg: "#d1fae5" },
+  "series-d":   { label: "Series D+", color: "#064e3b", bg: "#ccfbf1" },
+  growth:       { label: "成長期",    color: "#065f46", bg: "#d1fae5" },
+  listed:       { label: "上場",      color: "#14532d", bg: "#dcfce7" },
+  "上場":       { label: "上場",      color: "#14532d", bg: "#dcfce7" },
+  unicorn:      { label: "ユニコーン", color: "#6d28d9", bg: "#ede9fe" },
+  ipo:          { label: "IPO準備",   color: "#9a3412", bg: "#ffedd5" },
 };
 
 function getStageCfg(stage: string | null) {
   if (!stage) return null;
   const key = stage.toLowerCase().replace(/\s+/g, "-");
-  return STAGE_CONFIG[key] ?? { label: stage, color: "#4a5260", bg: "#f1f5f9" };
+  return STAGE_CONFIG[key] ?? STAGE_CONFIG[stage] ?? { label: stage, color: "#4a5260", bg: "#f1f5f9" };
+}
+
+// 業種カラー
+const INDUSTRY_COLORS: Record<string, { color: string; bg: string }> = {
+  "HR Tech":       { color: "#1e40af", bg: "#dbeafe" },
+  "FinTech/SaaS":  { color: "#065f46", bg: "#d1fae5" },
+  "CRM":           { color: "#002366", bg: "#eff3fc" },
+  "CRM/SaaS":      { color: "#002366", bg: "#eff3fc" },
+  "AI Tech":       { color: "#6d28d9", bg: "#ede9fe" },
+  "Sales Tech":    { color: "#0f766e", bg: "#ccfbf1" },
+  "Med Tech":      { color: "#9a3412", bg: "#ffedd5" },
+  "ConTech":       { color: "#b45309", bg: "#fef3c7" },
+  "顧客コミュニケーション": { color: "#5b21b6", bg: "#ede9fe" },
+};
+
+function getIndustryStyle(industry: string | null) {
+  if (!industry) return { color: "#4a5260", bg: "#f1f5f9" };
+  return INDUSTRY_COLORS[industry] ?? { color: "#4a5260", bg: "#f1f5f9" };
 }
 
 export type MemberPreview = { id: string; name: string };
@@ -55,13 +75,6 @@ function fetchCompanyBookmarks(): Promise<BookmarkCache> {
   return _bookmarkPromise;
 }
 
-// ロゴなし企業のカードヘッダーは navy グラデーションで統一
-const NAVY_PLACEHOLDER = { bg: 'linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)', text: 'rgba(255,255,255,0.85)' };
-
-function getPlaceholderColor(_name: string) {
-  return NAVY_PLACEHOLDER;
-}
-
 /** 法人名サフィックス除去 */
 function cleanEnName(nameEn: string | null | undefined): string | null {
   if (!nameEn) return null;
@@ -75,28 +88,14 @@ function cleanEnName(nameEn: string | null | undefined): string | null {
   return cleaned || null;
 }
 
-/** ワークスタイルタグ生成
- * フルリモートのみ表示（会社全体ポリシーとして成立する項目に限定）
- * ハイブリッド → 職種・求人ごとに異なるため非表示
- * 気軽に相談  → 求人掲載企業でないと成立しないため非表示
- */
-function getWorkStyleTags(remoteWorkStatus: string | null | undefined) {
-  const tags: { label: string; bg: string; color: string; border: string }[] = [];
-
-  if (remoteWorkStatus) {
-    const v = remoteWorkStatus.toLowerCase();
-    if (v.includes('フルリモート') || v === 'remote' || v === 'full_remote' || v === 'fullremote') {
-      tags.push({ label: '🏠 フルリモート', bg: '#f0f4ff', color: '#3b5fd9', border: '#dce5f7' });
-    }
-  }
-
-  return tags;
-}
-
-
 export function CompanyCardCompact({ company, compact, members }: Props) {
-  const ph = getPlaceholderColor(company.name);
+  // ロゴエリアのグラデーション — DB の logo_gradient を優先使用
+  const headerGradient = company.logo_gradient
+    ?? 'linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)';
+
   const initial = company.logo_letter ?? company.name.slice(0, 1);
+  const displayName = cleanEnName(company.name_en) ?? company.name;
+  const isEnName = !!cleanEnName(company.name_en);
   const router = useRouter();
   const [bookmarked, setBookmarked] = useState(false);
   const bookmarkingRef = useRef(false);
@@ -138,21 +137,23 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
     }
   }, [bookmarked, company.id, company.name, router]);
 
-  const foundedYear = (company as { founded_year?: number | null }).founded_year;
-
-  const workStyleTags = getWorkStyleTags(company.remote_work_status);
+  const industryStyle = getIndustryStyle(company.industry);
+  const stageCfg = getStageCfg(company.funding_stage);
+  const articleCount = company.article_count ?? 0;
+  const hasMembers = (company.current_member_count || 0) + (company.obog_count || 0) > 0;
 
   return (
     <Link href={`/companies/${company.id}`} className="genre-card">
-      {/* ロゴエリア — 16:10 アスペクト比（compact時は 2:1） */}
+
+      {/* ─── ロゴエリア ─────────────────────────────────────── */}
       <div style={{
         aspectRatio: compact ? '2 / 1' : '16 / 10',
+        background: company.logo_url ? '#f8fafc' : headerGradient,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: company.logo_url ? '#f5f7fa' : ph.bg,
-        overflow: 'hidden',
         position: 'relative',
+        overflow: 'hidden',
       }}>
         {company.logo_url ? (
           <Image
@@ -160,275 +161,240 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             alt={`${company.name}のロゴ`}
             fill
             style={{ objectFit: 'contain', padding: '12%' }}
-            sizes="(max-width: 640px) 80vw, (max-width: 1024px) 40vw, (max-width: 1280px) 33vw, 20vw"
+            sizes="(max-width: 640px) 80vw, (max-width: 1024px) 40vw, 20vw"
           />
         ) : (
-          <span style={{
-            fontSize: compact ? 32 : 44,
-            fontWeight: 700,
-            color: ph.text,
-            letterSpacing: '-0.02em',
-            opacity: 0.8,
-          }}>
-            {initial}
-          </span>
+          <>
+            {/* 背景の薄いパターン */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'radial-gradient(circle at 70% 30%, rgba(255,255,255,0.12) 0%, transparent 60%)',
+              pointerEvents: 'none',
+            }} />
+            {/* イニシャル文字 */}
+            <span style={{
+              fontSize: compact ? 36 : 52,
+              fontWeight: 800,
+              color: 'rgba(255,255,255,0.92)',
+              letterSpacing: '-0.03em',
+              fontFamily: 'Inter, "Noto Sans JP", sans-serif',
+              textShadow: '0 2px 12px rgba(0,0,0,0.18)',
+              lineHeight: 1,
+              userSelect: 'none',
+            }}>
+              {initial}
+            </span>
+          </>
         )}
-        {/* Casual meeting badge — jobs_public=true の企業のみ表示 */}
-        {company.jobs_public === true && (
+
+        {/* 取材済みバッジ（左上） */}
+        {articleCount > 0 && (
           <span style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            fontSize: 9.5,
-            fontWeight: 700,
-            padding: '2px 7px',
-            borderRadius: 100,
-            background: 'rgba(255,255,255,0.9)',
-            color: '#d97706',
-            border: '1px solid rgba(217,119,6,0.3)',
+            position: 'absolute', top: 8, left: 8,
+            fontSize: 9.5, fontWeight: 700,
+            padding: '2px 7px', borderRadius: 100,
+            background: 'rgba(255,255,255,0.92)',
+            color: '#92400e',
+            border: '1px solid rgba(251,191,36,0.5)',
             whiteSpace: 'nowrap',
+            backdropFilter: 'blur(4px)',
           }}>
-            面談OK
+            ✍ 取材済み
           </span>
         )}
 
-        {/* Bookmark (heart) button — 正円 */}
+        {/* 面談OKバッジ（右上） */}
+        {company.accepting_casual_meetings && (
+          <span style={{
+            position: 'absolute', top: 8, right: 8,
+            fontSize: 9.5, fontWeight: 700,
+            padding: '2px 7px', borderRadius: 100,
+            background: 'rgba(255,255,255,0.92)',
+            color: '#059669',
+            border: '1px solid rgba(16,185,129,0.4)',
+            whiteSpace: 'nowrap',
+            backdropFilter: 'blur(4px)',
+          }}>
+            ● 面談受付中
+          </span>
+        )}
+
+        {/* ブックマークボタン（右下） */}
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBookmark(); }}
           style={{
-            position: 'absolute',
-            bottom: 10,
-            right: 10,
-            width: 30,
-            height: 30,
-            minWidth: 30,
-            minHeight: 30,
-            aspectRatio: '1 / 1',
+            position: 'absolute', bottom: 8, right: 8,
+            width: 28, height: 28,
             borderRadius: '50%',
             background: 'rgba(255,255,255,0.9)',
             border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            padding: 0,
-            overflow: 'hidden',
-            boxSizing: 'border-box',
-            flexShrink: 0,
-            lineHeight: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', padding: 0,
+            backdropFilter: 'blur(4px)',
           }}
           aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill={bookmarked ? 'var(--warm)' : 'none'} stroke={bookmarked ? 'var(--warm)' : '#94a3b8'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24"
+            fill={bookmarked ? 'var(--warm)' : 'none'}
+            stroke={bookmarked ? 'var(--warm)' : '#94a3b8'}
+            strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
         </button>
       </div>
 
-      {/* カード本体 — flex:1 で親の高さ（グリッドセル）を埋め、底部メタを下に固定 */}
-      <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+      {/* ─── カード本体 ─────────────────────────────────────── */}
+      <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
+
         {/* 業種 + フェーズ バッジ行 */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, minHeight: 20 }}>
           {company.industry && (
             <span style={{
               fontSize: 10, fontWeight: 700,
               padding: '2px 8px', borderRadius: 100,
-              background: 'var(--royal-50)', color: 'var(--royal)',
-              border: '1px solid var(--royal-100)',
+              background: industryStyle.bg, color: industryStyle.color,
             }}>
               {company.industry}
             </span>
           )}
-          {(() => {
-            const cfg = getStageCfg(company.funding_stage);
-            if (!cfg) return null;
-            return (
-              <span style={{
-                fontSize: 10, fontWeight: 700,
-                padding: '2px 8px', borderRadius: 100,
-                background: cfg.bg, color: cfg.color,
-              }}>
-                {cfg.label}
-              </span>
-            );
-          })()}
+          {stageCfg && (
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              padding: '2px 8px', borderRadius: 100,
+              background: stageCfg.bg, color: stageCfg.color,
+            }}>
+              {stageCfg.label}
+            </span>
+          )}
         </div>
 
         {/* 社名 */}
-        <div style={{
-          fontSize: 14,
-          fontWeight: 700,
-          color: 'var(--ink)',
-          lineHeight: 1.35,
-          overflow: 'hidden',
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical' as const,
-          fontFamily: cleanEnName(company.name_en) ? 'Inter, sans-serif' : undefined,
-        }}>
-          {cleanEnName(company.name_en) ?? company.name}
-        </div>
-        {cleanEnName(company.name_en) && (
-          <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 1, lineHeight: 1.3 }}>
-            {company.name}
-          </div>
-        )}
-
-        {/* タグライン — 3行まで */}
-        {company.tagline && (
+        <div>
           <div style={{
-            fontSize: 12,
-            color: 'var(--ink-soft)',
-            lineHeight: 1.55,
+            fontSize: 15,
+            fontWeight: 700,
+            color: 'var(--ink)',
+            lineHeight: 1.3,
+            fontFamily: isEnName ? 'Inter, sans-serif' : 'var(--font-noto-sans)',
             overflow: 'hidden',
             display: '-webkit-box',
-            WebkitLineClamp: 3,
+            WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical' as const,
+          }}>
+            {displayName}
+          </div>
+          {isEnName && (
+            <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 2 }}>
+              {company.name}
+            </div>
+          )}
+        </div>
+
+        {/* タグライン */}
+        {company.tagline && (
+          <div style={{
+            fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.6,
+            overflow: 'hidden', display: '-webkit-box',
+            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+            flex: 1,
           }}>
             {company.tagline}
           </div>
         )}
 
-        {/* カルチャーハイライト — fit_positives[0] */}
+        {/* fit_positive（カルチャーハイライト） */}
         {company.fit_positives && company.fit_positives.length > 0 && (
           <div style={{
-            fontSize: 10.5,
-            color: 'var(--success)',
-            background: 'var(--success-soft)',
-            border: '1px solid #A7F3D0',
-            borderRadius: 6,
+            fontSize: 10.5, fontWeight: 600,
+            color: 'var(--success)', background: 'var(--success-soft)',
+            border: '1px solid #A7F3D0', borderRadius: 6,
             padding: '3px 8px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            width: 'fit-content',
-            maxWidth: '100%',
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-            fontWeight: 600,
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            width: 'fit-content', maxWidth: '100%',
+            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
           }}>
             <span style={{ flexShrink: 0 }}>✓</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {company.fit_positives[0]}
             </span>
           </div>
         )}
 
-        {/* ワークスタイルタグ行 */}
-        {workStyleTags.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
-            {workStyleTags.map((tag, i) => (
-              <span key={i} style={{
-                fontSize: 10,
-                fontWeight: 600,
-                padding: '2px 7px',
-                borderRadius: 100,
-                background: tag.bg,
-                color: tag.color,
-                border: `1px solid ${tag.border}`,
-              }}>
-                {tag.label}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* ─── 下部メタ行 ──────────────────────────────────── */}
+        <div style={{ marginTop: 'auto', paddingTop: 6, borderTop: '1px solid var(--line-soft)', display: 'flex', flexDirection: 'column', gap: 5 }}>
 
-        {/* 所在地 · 従業員数 — 固定行（marginTop:auto で底部に固定） */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 'auto', paddingTop: 4, minHeight: 18, overflow: 'hidden' }}>
-          <MapPin size={13} strokeWidth={1.5} color="#E24B4A" style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: 12, color: 'var(--ink-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
-            {company.location ?? '—'}
-          </span>
-          <span style={{ color: 'var(--ink-mute)', flexShrink: 0, fontSize: 12 }}>·</span>
-          <Users size={13} strokeWidth={1.5} color="#639922" style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: 12, color: 'var(--ink-soft)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {company.employee_count ?? '—'}
-          </span>
-          {foundedYear && (
-            <>
-              <span style={{ color: 'var(--ink-mute)', flexShrink: 0, fontSize: 12 }}>·</span>
-              <span style={{ fontSize: 11, color: 'var(--ink-mute)', whiteSpace: 'nowrap', flexShrink: 0 }}>{foundedYear}年創業</span>
-            </>
-          )}
-        </div>
-
-        {/* Member avatar strip */}
-        {members && members.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", marginBottom: 2 }}>
-            {members.slice(0, 4).map((m, i) => {
-              const avatarColors = [
-                { bg: "#d8e6ff", text: "#1e63d8" },
-                { bg: "#e8dcf5", text: "#6b3b9e" },
-                { bg: "#d4f0e3", text: "#1f7a48" },
-                { bg: "#fce8b8", text: "#8b5e0f" },
-              ];
-              const c = avatarColors[i % avatarColors.length];
-              return (
-                <div key={m.id} style={{
-                  width: 22, height: 22, borderRadius: "50%",
-                  background: c.bg, color: c.text,
-                  fontSize: 9, fontWeight: 700,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  border: "2px solid #fff",
-                  marginLeft: i > 0 ? -6 : 0,
-                  zIndex: members.length - i,
-                  position: "relative",
-                  flexShrink: 0,
-                }}>
-                  {m.name.charAt(0)}
+          {/* 在籍メンバー（いる場合のみ） */}
+          {hasMembers && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              {members && members.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {members.slice(0, 3).map((m, i) => {
+                    const colors = [
+                      { bg: '#d8e6ff', text: '#1e63d8' },
+                      { bg: '#e8dcf5', text: '#6b3b9e' },
+                      { bg: '#d4f0e3', text: '#1f7a48' },
+                    ];
+                    const c = colors[i % colors.length];
+                    return (
+                      <div key={m.id} style={{
+                        width: 20, height: 20, borderRadius: '50%',
+                        background: c.bg, color: c.text,
+                        fontSize: 8.5, fontWeight: 700,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        border: '2px solid #fff',
+                        marginLeft: i > 0 ? -5 : 0,
+                        zIndex: 3 - i, position: 'relative', flexShrink: 0,
+                      }}>
+                        {m.name.charAt(0)}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-            {members.length > 4 && (
-              <div style={{
-                width: 22, height: 22, borderRadius: "50%",
-                background: "var(--line)", color: "var(--ink-mute)",
-                fontSize: 8, fontWeight: 700,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                border: "2px solid #fff",
-                marginLeft: -6, zIndex: 0, position: "relative", flexShrink: 0,
-              }}>
-                +{members.length - 4}
-              </div>
-            )}
-            <span style={{ marginLeft: 6, fontSize: 10, color: "var(--ink-mute)" }}>
-              在籍
-            </span>
-          </div>
-        )}
-
-        {/* Opinio 登録者数 + 募集中バッジ */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginTop: 2 }}>
-          {(company.current_member_count > 0 || company.obog_count > 0) ? (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              fontSize: 11, fontWeight: 600,
-              padding: '3px 8px', borderRadius: 6,
-              background: '#f0fdf4', border: '1px solid #bbf7d0',
-            }}>
-              <Users size={11} strokeWidth={2} color="#16a34a" />
-              <span style={{ color: '#15803d' }}>
-                社員 {company.current_member_count}名
-                {company.obog_count > 0 && <span style={{ color: '#16a34a', fontWeight: 500 }}> + OB {company.obog_count}名</span>}
+              )}
+              <span style={{ fontSize: 10.5, color: 'var(--ink-soft)', fontWeight: 500 }}>
+                {(company.current_member_count || 0) > 0 && `社員 ${company.current_member_count}名`}
+                {(company.current_member_count || 0) > 0 && (company.obog_count || 0) > 0 && ' · '}
+                {(company.obog_count || 0) > 0 && `OB/OG ${company.obog_count}名`}
+                {' 登録中'}
               </span>
             </div>
-          ) : (
-            <div />
           )}
-          {company.job_count > 0 && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              fontSize: 11, fontWeight: 700,
-              padding: '2px 8px', borderRadius: 100,
-              background: 'var(--royal-50)', color: 'var(--royal)',
-              border: '1px solid var(--royal-100)',
-              whiteSpace: 'nowrap', flexShrink: 0,
-            }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--royal)', display: 'inline-block' }} />
-              募集中 {company.job_count}
-            </span>
-          )}
+
+          {/* 所在地 · 従業員数 · 募集中 */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: 11, color: 'var(--ink-mute)', flexShrink: 0 }}>📍</span>
+              <span style={{
+                fontSize: 11, color: 'var(--ink-soft)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1,
+              }}>
+                {company.location ?? '—'}
+              </span>
+              {company.employee_count && (
+                <>
+                  <span style={{ color: 'var(--line)', fontSize: 11, flexShrink: 0 }}>·</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink-soft)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {company.employee_count}
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* 募集中バッジ */}
+            {company.job_count > 0 && (
+              <span style={{
+                fontSize: 10.5, fontWeight: 700,
+                padding: '2px 8px', borderRadius: 100,
+                background: 'var(--royal-50)', color: 'var(--royal)',
+                border: '1px solid var(--royal-100)',
+                whiteSpace: 'nowrap', flexShrink: 0,
+                display: 'inline-flex', alignItems: 'center', gap: 3,
+              }}>
+                <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--royal)', display: 'inline-block' }} />
+                募集中 {company.job_count}件
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </Link>
