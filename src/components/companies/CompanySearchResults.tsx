@@ -12,15 +12,17 @@ type Props = {
   workStyle?: string;
   hiring?: string;
   location?: string;
+  industry?: string;
 };
 
-export async function CompanySearchResults({ q, phase, workStyle, hiring, location }: Props) {
+export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry }: Props) {
   const params = {
     q: q || undefined,
     phase: phase || undefined,
     workStyle: (workStyle as WorkStyleValue) || undefined,
     hiring: hiring === "1" ? true : undefined,
     location: location || undefined,
+    industry: industry || undefined,
   };
 
   const { companies, totalCount } = await searchCompanies(params);

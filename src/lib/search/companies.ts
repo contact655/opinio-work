@@ -28,6 +28,7 @@ export type CompanySearchParams = {
   workStyle?: WorkStyleValue;
   hiring?: boolean;
   location?: string;  // 都道府県フィルタ（例: "東京都", "大阪府"）
+  industry?: string;  // 業種フィルタ（例: "HR Tech", "FinTech/SaaS"）
   // DB側ページネーション（hiring フィルターなしの場合のみ有効）
   limit?: number;
   offset?: number;
@@ -66,6 +67,7 @@ export async function searchCompanies(
     if (params.phase)     q = q.eq("phase", params.phase);
     if (params.workStyle) q = q.eq("remote_work_status", params.workStyle);
     if (params.location)  q = q.eq("location", params.location);
+    if (params.industry)  q = q.eq("industry", params.industry);
     return q;
   }
 

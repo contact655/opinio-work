@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { fetchGenresWithCompanies } from "@/lib/genres";
-import { fetchDistinctLocations, searchCompanies } from "@/lib/search/companies";
+import { fetchDistinctLocations, fetchDistinctIndustries, searchCompanies } from "@/lib/search/companies";
 import { createClient } from "@/lib/supabase/server";
 import { GenreTabs } from "@/components/companies/GenreTabs";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
@@ -43,6 +43,7 @@ type SearchParams = {
   workStyle?: string;
   hiring?: string;
   location?: string;
+  industry?: string;
   view?: string;
   sort?: string;
   page?: string;
@@ -108,9 +109,9 @@ function Pagination({
 }
 
 export default async function CompaniesPage({ searchParams }: Props) {
-  const { q, phase, workStyle, hiring, location, view, sort } = searchParams;
+  const { q, phase, workStyle, hiring, location, industry, view, sort } = searchParams;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
-  const hasFilter = Boolean(q || phase || workStyle || hiring || location);
+  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry);
   const isGridView = !hasFilter && (view === "grid" || !view);
   const isListView = !hasFilter && view === "list";
   const needsGrid = isGridView || isListView;
@@ -118,9 +119,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
   // ── 並列フェッチ（不要なクエリはスキップ）──────────────────────────────────
   const supabase = createClient();
 
-  const [locations, genresWithCompanies, companyNamesResult, allCompaniesResult] = await Promise.all([
+  const [locations, industries, genresWithCompanies, companyNamesResult, allCompaniesResult] = await Promise.all([
     // フィルターバー用ロケーション（キャッシュ済み）
     fetchDistinctLocations(),
+    // フィルターバー用業種リスト
+    fetchDistinctIndustries(),
     // GenreTabs はグリッド/リスト表示中は不要 → スキップ
     needsGrid ? Promise.resolve([]) : fetchGenresWithCompanies(),
     // 検索サジェスト用企業名リスト
@@ -170,7 +173,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 64, zIndex: 30 }}>
         <div className="max-w-[1440px] mx-auto px-4">
           <Suspense>
-            <CompanySearchBar locations={locations} companySuggestions={companySuggestions} />
+            <CompanySearchBar locations={locations} industries={industries} companySuggestions={companySuggestions} />
           </Suspense>
         </div>
       </div>
@@ -185,6 +188,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
             workStyle={workStyle}
             hiring={hiring}
             location={location}
+            industry={industry}
           />
         ) : (
           <div style={{ marginTop: 16 }}>

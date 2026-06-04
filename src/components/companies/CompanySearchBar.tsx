@@ -3,8 +3,26 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+// 業種ごとのカラー設定
+const INDUSTRY_COLORS: Record<string, { color: string; bg: string; dot: string }> = {
+  "HR Tech":        { color: "#1e40af", bg: "#dbeafe", dot: "#3b82f6" },
+  "FinTech/SaaS":   { color: "#065f46", bg: "#d1fae5", dot: "#10b981" },
+  "CRM":            { color: "#1e63d8", bg: "#eff3fc", dot: "#3b5fd9" },
+  "CRM/SaaS":       { color: "#1e63d8", bg: "#eff3fc", dot: "#3b5fd9" },
+  "AI Tech":        { color: "#7c3aed", bg: "#ede9fe", dot: "#8b5cf6" },
+  "Sales Tech":     { color: "#0f766e", bg: "#ccfbf1", dot: "#14b8a6" },
+  "Med Tech":       { color: "#9a3412", bg: "#ffedd5", dot: "#ea580c" },
+  "ConTech":        { color: "#b45309", bg: "#fef3c7", dot: "#f59e0b" },
+  "顧客コミュニケーション": { color: "#5b21b6", bg: "#ede9fe", dot: "#8b5cf6" },
+};
+
+function getIndustryCfg(industry: string) {
+  return INDUSTRY_COLORS[industry] ?? { color: "#4a5260", bg: "#f1f5f9", dot: "#94a3b8" };
+}
+
 type Props = {
   locations: string[];
+  industries?: string[];
   companySuggestions?: { id: string; name: string }[];
 };
 
@@ -211,7 +229,7 @@ function FilterChip({
 }
 
 // ── メインコンポーネント ──────────────────────────────────────────────────────
-export function CompanySearchBar({ locations, companySuggestions = [] }: Props) {
+export function CompanySearchBar({ locations, industries = [], companySuggestions = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -281,10 +299,11 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
   const currentPhase     = searchParams.get("phase") ?? "";
   const currentLocation  = searchParams.get("location") ?? "";
   const currentWorkStyle = searchParams.get("workStyle") ?? "";
+  const currentIndustry  = searchParams.get("industry") ?? "";
   const currentHiring    = searchParams.get("hiring") === "1";
 
   const hasAnyFilter = Boolean(
-    searchParams.get("q") || currentPhase || currentWorkStyle || currentHiring || currentLocation
+    searchParams.get("q") || currentPhase || currentWorkStyle || currentHiring || currentLocation || currentIndustry
   );
 
   const locationOptions = locations.map((l) => ({ value: l, label: l }));
@@ -469,6 +488,22 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
             isOpen={openChip === "workStyle"}
             onToggle={() => toggleChip("workStyle")}
           />
+
+          {/* 業種 */}
+          {industries.length > 0 && (
+            <FilterChip
+              label="業種"
+              value={currentIndustry}
+              options={industries.map((ind) => {
+                const cfg = getIndustryCfg(ind);
+                return { value: ind, label: ind, color: cfg.color, bg: cfg.bg, dot: cfg.dot };
+              })}
+              onSelect={(v) => { updateParam("industry", v); setOpenChip(null); }}
+              isOpen={openChip === "industry"}
+              onToggle={() => toggleChip("industry")}
+              phaseStyle
+            />
+          )}
 
           {/* 都道府県 */}
           {locations.length > 0 && (
