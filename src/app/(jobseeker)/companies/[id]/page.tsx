@@ -1474,10 +1474,31 @@ const EMPLOYEE_GRID_STYLE: React.CSSProperties = {
 function CurrentEmployeesSection({
   employees,
   categories,
+  alumniCount = 0,
 }: {
   employees: CompanyEmployee[];
   categories: CompanyEmployeeCategoryItem[];
+  alumniCount?: number;
 }) {
+  // 現役社員0名のときはセクションを描画しない（0という数値を見せない）
+  if (employees.length === 0) {
+    // OB/OGがいる場合は導線を表示
+    if (alumniCount > 0) {
+      return (
+        <section style={{
+          background: "#fff", border: "1px solid var(--line)",
+          borderRadius: 14, padding: "24px",
+        }}>
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7, margin: 0 }}>
+            <span style={{ fontWeight: 700, color: "var(--ink)" }}>先輩に話を聞く準備中。</span>
+            &nbsp;OB/OG&nbsp;<strong style={{ color: "var(--royal)" }}>{alumniCount}名</strong>に相談できます。
+          </p>
+        </section>
+      );
+    }
+    return null;
+  }
+
   // ── カテゴリ別社員マップ (roleId → employees) ──────────────────────────────
   const empsByCategory = new Map<string, CompanyEmployee[]>();
   for (const emp of employees) {
@@ -3254,7 +3275,7 @@ export default async function CompanyDetailPage({
           ...(!NUMBER_ITEMS.every(({ key }) => { const raw = detail.numbers[key]; return raw === null || raw === undefined || String(raw).trim() === ""; }) ? [{ id: "numbers", label: "数値で見る企業" }] : []),
           ...((detail.benefits?.length || detail.evaluationSystem) ? [{ id: "benefits", label: "福利厚生・評価制度" }] : []),
           { id: "jobs",             label: company.job_count > 0 ? `募集中の求人 ${company.job_count}件` : "募集中の求人" },
-          ...(employees.current.length > 0 ? [{ id: "current-employees", label: `現役社員 ${employees.current.length}名` }] : [{ id: "current-employees", label: "現役社員" }]),
+          ...(employees.current.length > 0 ? [{ id: "current-employees", label: `現役社員 ${employees.current.length}名` }] : employees.alumni.length > 0 ? [{ id: "current-employees", label: "先輩に話を聞く" }] : []),
           { id: "articles",         label: companyArticles.length > 0 ? `記事 ${companyArticles.length}件` : "記事" },
         ]} />
         <div
@@ -3288,7 +3309,7 @@ export default async function CompanyDetailPage({
             <JobsSection company={company} detail={detail} />
 
             {/* 7. 現役社員・OBOGプロフィール */}
-            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
+            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} alumniCount={employees.alumni.length} />
             <AlumniSection alumni={employees.alumni} />
 
             {/* 7. 記事（OPINIO取材記事） */}

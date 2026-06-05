@@ -123,7 +123,7 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
             </div>
             {(rj.salaryMin || rj.salaryMax) && (
               <div style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", flexShrink: 0 }}>
-                {rj.salaryMin && rj.salaryMax ? `${rj.salaryMin}–${rj.salaryMax}万` : rj.salaryMin ? `${rj.salaryMin}万〜` : `〜${rj.salaryMax}万`}
+                {rj.salaryMin && rj.salaryMax ? `${rj.salaryMin}〜${rj.salaryMax}万円` : rj.salaryMin ? `${rj.salaryMin}万円〜` : `〜${rj.salaryMax}万円`}
               </div>
             )}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5}><path d="M9 18l6-6-6-6" /></svg>
@@ -357,13 +357,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
                   fontFamily: "Inter, sans-serif",
                 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                    <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                  {job.salary_min && job.salary_max
-                    ? `${job.salary_min}〜${job.salary_max}万`
-                    : job.salary_min ? `${job.salary_min}万〜`
-                    : `〜${job.salary_max}万`}
+                  想定年収&nbsp;{job.salary_min && job.salary_max
+                    ? `${job.salary_min}〜${job.salary_max}万円`
+                    : job.salary_min ? `${job.salary_min}万円〜`
+                    : `〜${job.salary_max}万円`}
                 </span>
                 )}
               </div>
@@ -862,7 +859,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                           </div>
                           <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
                             {(rj.salary_min || rj.salary_max)
-                              ? `${rj.salary_min && rj.salary_max ? `${rj.salary_min}〜${rj.salary_max}万` : rj.salary_min ? `${rj.salary_min}万〜` : `〜${rj.salary_max}万`} · `
+                              ? `${rj.salary_min && rj.salary_max ? `${rj.salary_min}〜${rj.salary_max}万円` : rj.salary_min ? `${rj.salary_min}万円〜` : `〜${rj.salary_max}万円`} · `
                               : ""}{rj.work_style}
                           </div>
                         </div>
@@ -902,13 +899,12 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 <Link href={`/jobs/${job.id}/apply`} style={{
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                   width: "100%", padding: "14px 28px",
-                  background: "linear-gradient(135deg, #002366, #3B5FD9)",
-                  color: "#fff", border: "none", borderRadius: 8,
-                  fontSize: 15, fontWeight: 700, textDecoration: "none", textAlign: "center",
-                  boxShadow: "0 4px 14px rgba(0,35,102,0.3)",
+                  background: "transparent",
+                  color: "#002366", border: "1.5px solid #002366", borderRadius: 8,
+                  fontSize: 14, fontWeight: 700, textDecoration: "none", textAlign: "center",
                 }}>
                   応募する
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <path d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
                 </Link>
@@ -940,9 +936,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     fontFamily: "Inter, sans-serif", textAlign: "right" as const,
                   }}>
                     {job.salary_min && job.salary_max
-                      ? `${job.salary_min}〜${job.salary_max}万`
-                      : job.salary_min ? `${job.salary_min}万〜`
-                      : `〜${job.salary_max}万`}
+                      ? `${job.salary_min}〜${job.salary_max}万円`
+                      : job.salary_min ? `${job.salary_min}万円〜`
+                      : `〜${job.salary_max}万円`}
                   </span>
                 </div>
                 )}

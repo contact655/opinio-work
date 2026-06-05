@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { MapPin } from 'lucide-react';
 import type { CompanyForCarousel } from '@/types/genre';
 import { showToast } from '@/lib/toast';
 
@@ -368,7 +369,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
           {/* 所在地 · 従業員数 · 募集中 */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', flex: 1, minWidth: 0 }}>
-              <span style={{ fontSize: 11, color: 'var(--ink-mute)', flexShrink: 0 }}>📍</span>
+              <MapPin size={12} color="#6B7280" style={{ flexShrink: 0 }} />
               <span style={{
                 fontSize: 11, color: 'var(--ink-soft)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1,

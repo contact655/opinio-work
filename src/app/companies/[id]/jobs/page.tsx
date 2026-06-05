@@ -3,6 +3,7 @@ import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MapPin } from "lucide-react";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 300;
@@ -165,7 +166,7 @@ export default async function CompanyJobsPage({
                     <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>{company.industry}</span>
                   )}
                   {company.location && (
-                    <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>📍 {company.location}</span>
+                    <span style={{ fontSize: 13, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 3 }}><MapPin size={13} color="#6B7280" />{company.location}</span>
                   )}
                   {company.employee_count && (
                     <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
@@ -264,7 +265,7 @@ export default async function CompanyJobsPage({
                               background: "var(--bg-tint)", color: "var(--ink-mute)",
                               border: "1px solid var(--line)", fontWeight: 500,
                             }}>
-                              📍 {job.location}
+                              <MapPin size={11} color="#6B7280" style={{ flexShrink: 0 }} />{job.location}
                             </span>
                           )}
                         </div>

@@ -58,50 +58,55 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
         }}
         aria-hidden={!visible}
       >
+        {/* 主CTA: カジュアル面談 (65%) */}
         {casualHref && (
         <Link
           href={casualHref}
           tabIndex={visible ? 0 : -1}
           style={{
-            flex: 1,
+            flex: "0 0 65%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "12px 0",
+            height: 56,
+            padding: "0 8px",
             background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
             color: "#fff",
-            borderRadius: 8,
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: 700,
+            textDecoration: "none",
+            textAlign: "center",
+            boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+          }}
+        >
+          カジュアル面談を申し込む
+        </Link>
+        )}
+        {/* 副CTA: 応募する (35%) — 枠線のみ、背景透明 */}
+        <Link
+          href={applyHref}
+          tabIndex={visible ? 0 : -1}
+          style={{
+            flex: casualHref ? "0 0 calc(35% - 8px)" : 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            height: 56,
+            padding: "0 8px",
+            background: "transparent",
+            color: "var(--royal)",
+            border: "1.5px solid var(--royal)",
+            borderRadius: 10,
             fontSize: 13,
             fontWeight: 700,
             textDecoration: "none",
             textAlign: "center",
           }}
         >
-          カジュアル面談
-        </Link>
-        )}
-        <Link
-          href={applyHref}
-          tabIndex={visible ? 0 : -1}
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-            padding: "12px 0",
-            background: "linear-gradient(135deg, #002366, #3B5FD9)",
-            color: "#fff",
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 700,
-            textDecoration: "none",
-            textAlign: "center",
-            boxShadow: "0 4px 12px rgba(0,35,102,0.25)",
-          }}
-        >
           応募する
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </Link>
