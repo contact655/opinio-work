@@ -125,9 +125,9 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
         </div>
 
         {/* ── Body ── */}
-        <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
+        <div style={{ padding: "0 var(--space-4) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-2)", flex: 1 }}>
           {/* Logo + name: ロゴをカバー下端に重ねて表示 */}
-          <div style={{ display: "flex", gap: 12, alignItems: "flex-end", marginTop: -20 }}>
+          <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-end", marginTop: -20 }}>
             <div style={{
               flexShrink: 0,
               border: "3px solid #fff",
@@ -146,7 +146,7 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
             </div>
             <div style={{ flex: 1, minWidth: 0, paddingBottom: 2 }}>
               <div style={{
-                fontSize: 15, fontWeight: 600, color: "var(--ink)",
+                fontSize: "var(--text-base)", fontWeight: 600, color: "var(--ink)",
                 lineHeight: 1.3, marginBottom: 2,
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
@@ -165,7 +165,7 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
 
           {/* Tagline */}
           <p style={{
-            fontSize: 13,
+            fontSize: "var(--text-sm)",
             lineHeight: 1.8,
             color: "var(--ink-soft)",
             flex: 1,
@@ -194,11 +194,11 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
           {/* Footer: job count + freshness */}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            paddingTop: 10, borderTop: "1px solid var(--line-soft)",
+            paddingTop: "var(--space-2)", borderTop: "1px solid var(--line-soft)",
           }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
               <span style={{
-                fontSize: 20, fontWeight: 700,
+                fontSize: "var(--text-lg)", fontWeight: 700,
                 color: company.job_count > 0 ? "var(--royal)" : "var(--ink-mute)",
                 fontFamily: "Inter, sans-serif",
               }}>
@@ -207,7 +207,7 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
               <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>件の求人</span>
             </div>
             <span style={{
-              fontSize: 11,
+              fontSize: "var(--text-xs)",
               color: isFresh ? "var(--success)" : "var(--ink-mute)",
               fontWeight: isFresh ? 600 : 400,
             }}>
@@ -231,7 +231,7 @@ function Pagination({ current, total, onChange }: {
 
   const btnBase: React.CSSProperties = {
     height: 38, borderRadius: 8, border: "1px solid var(--line)",
-    background: "#fff", fontSize: 13, fontWeight: 500,
+    background: "#fff", fontSize: "var(--text-sm)", fontWeight: 500,
     cursor: "pointer", fontFamily: "Inter, sans-serif",
     transition: "border-color 0.1s, background 0.1s, color 0.1s",
   };
@@ -284,9 +284,9 @@ function Pagination({ current, total, onChange }: {
 
 function filterSelectStyle(active: boolean): React.CSSProperties {
   return {
-    height: 38, padding: "0 10px",
+    height: 38, padding: "0 var(--space-2)",
     border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
-    borderRadius: 8, fontSize: 13,
+    borderRadius: 8, fontSize: "var(--text-sm)",
     color: active ? "var(--royal)" : "var(--ink-soft)",
     background: "#fff", cursor: "pointer",
     fontWeight: active ? 600 : 400,
@@ -420,18 +420,18 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
         <div style={{ position: "absolute", left: -60, bottom: -80, width: 280, height: 280, borderRadius: "50%", background: "rgba(245,158,11,0.06)", pointerEvents: "none" }} />
         <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-5 md:px-12">
           {/* Eyebrow */}
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 12, textTransform: "uppercase" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: "var(--space-3)", textTransform: "uppercase" }}>
             COMPANIES
           </div>
           <h1 style={{
             fontFamily: "var(--font-noto-serif)",
             fontSize: "clamp(24px, 3.5vw, 34px)",
-            fontWeight: 700, color: "#fff", lineHeight: 1.35, marginBottom: 16,
+            fontWeight: 700, color: "#fff", lineHeight: 1.35, marginBottom: "var(--space-4)",
           }}>
             IT/SaaS 企業を探す
           </h1>
           {/* Stats chips */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginBottom: "var(--space-6)" }}>
             <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
               {companies.length}社掲載中
@@ -445,7 +445,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             </span>
           </div>
           {/* OPINIO differentiators */}
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
             {[
               { icon: "👥", label: "現役社員に相談できる" },
               { icon: "🎓", label: "OB・OGの話が聞ける" },
@@ -467,13 +467,13 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
       {/* ── Sticky filter bar ─────────────────────────────────────────────── */}
       <div style={{
         background: "#fff", borderBottom: "1px solid var(--line)",
-        padding: "10px 48px", position: "sticky", top: 60, zIndex: 50,
+        padding: "var(--space-2) 48px", position: "sticky", top: 60, zIndex: 50,
         boxShadow: filterBarScrolled ? "0 4px 12px rgba(0,35,102,0.07)" : "none",
         transition: "box-shadow 0.2s ease",
       }} className="px-5 md:px-12">
         <div style={{
           maxWidth: 1200, margin: "0 auto",
-          display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
+          display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap",
         }}>
           {/* Search input */}
           <div role="search" style={{ position: "relative", flex: "1 1 180px", minWidth: 140, maxWidth: 260 }}>
@@ -487,7 +487,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
                 width: "100%", height: 38,
                 padding: q ? "0 32px 0 12px" : "0 12px",
                 border: "1px solid var(--line)", borderRadius: 8,
-                fontSize: 13, color: "var(--ink)", outline: "none", background: "#fff",
+                fontSize: "var(--text-sm)", color: "var(--ink)", outline: "none", background: "#fff",
                 boxSizing: "border-box",
               }}
             />
@@ -499,7 +499,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
                 style={{
                   position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
                   background: "none", border: "none", cursor: "pointer",
-                  color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2,
+                  color: "var(--ink-mute)", fontSize: "var(--text-md)", lineHeight: 1, padding: 2,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}
               >
@@ -514,7 +514,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             onClick={() => setParam("hiring", hiring ? "" : "1")}
             aria-pressed={hiring}
             style={{
-              height: 38, padding: "0 14px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+              height: 38, padding: "0 14px", borderRadius: 8, fontSize: "var(--text-sm)", fontWeight: 500,
               border: `1px solid ${hiring ? "var(--royal)" : "var(--line)"}`,
               background: hiring ? "var(--royal)" : "#fff",
               color: hiring ? "#fff" : "var(--ink-soft)",
@@ -541,7 +541,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             type="button"
             onClick={() => setShowMoreFilters((v) => !v)}
             style={{
-              height: 38, padding: "0 12px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+              height: 38, padding: "0 12px", borderRadius: 8, fontSize: "var(--text-sm)", fontWeight: 500,
               border: `1px solid ${hasSecondaryFilter ? "var(--royal)" : "var(--line)"}`,
               background: hasSecondaryFilter ? "var(--royal-50)" : "#fff",
               color: hasSecondaryFilter ? "var(--royal)" : "var(--ink-mute)",
@@ -588,7 +588,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           )}
 
           {/* Sort + Layout toggle — pushed to the right */}
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <select
               value={sort}
               onChange={(e) => setParam("sort", e.target.value === "newest" ? "" : e.target.value)}
@@ -637,13 +637,13 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
       </div>
 
       {/* ── Result area ───────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 48px 64px" }} className="px-5 md:px-12">
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "var(--space-8) 48px 64px" }} className="px-5 md:px-12">
         {/* Count + clear filters */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          marginBottom: 20,
+          marginBottom: "var(--space-4)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span
               aria-live="polite"
               aria-atomic="true"
@@ -655,10 +655,10 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
                 border: hasFilters ? "1px solid var(--royal-100)" : "none",
                 transition: "all 0.2s",
               }}>
-              <strong style={{ fontSize: 20, color: "var(--royal)", fontFamily: "Inter, sans-serif", lineHeight: 1 }}>
+              <strong style={{ fontSize: "var(--text-lg)", color: "var(--royal)", fontFamily: "Inter, sans-serif", lineHeight: 1 }}>
                 {filtered.length}
               </strong>
-              <span style={{ fontSize: 14, color: hasFilters ? "var(--royal)" : "var(--ink-soft)" }}>
+              <span style={{ fontSize: "var(--text-base)", color: hasFilters ? "var(--royal)" : "var(--ink-soft)" }}>
                 {hasFilters ? "社 該当" : "社が該当"}
               </span>
             </span>
@@ -690,18 +690,18 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
         {paged.length === 0 ? (
           <div style={{
             textAlign: "center", padding: "64px 0", background: "#fff",
-            borderRadius: 16, border: "1px solid var(--line)", marginTop: 20,
+            borderRadius: 16, border: "1px solid var(--line)", marginTop: "var(--space-4)",
           }}>
             <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
               </svg>
             </div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う企業が見つかりませんでした</h3>
-            <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えてみてください</p>
+            <h3 style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)", marginBottom: "var(--space-2)" }}>条件に合う企業が見つかりませんでした</h3>
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", marginBottom: "var(--space-4)" }}>フィルター条件を変えてみてください</p>
             <button type="button" onClick={() => { setQ(""); router.replace("/companies"); }} style={{
-              padding: "10px 24px", borderRadius: 8, background: "var(--royal)",
-              color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer",
+              padding: "var(--space-2) var(--space-6)", borderRadius: 8, background: "var(--royal)",
+              color: "#fff", border: "none", fontSize: "var(--text-base)", fontWeight: 600, cursor: "pointer",
             }}>
               すべてリセット
             </button>
