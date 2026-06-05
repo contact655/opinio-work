@@ -44,9 +44,9 @@ async function getStats() {
 }
 
 const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg, #002366, #3B5FD9)",
+  "linear-gradient(135deg, var(--royal), #3B5FD9)",
   "linear-gradient(135deg, #7C3AED, #C4B5FD)",
-  "linear-gradient(135deg, #059669, #34D399)",
+  "linear-gradient(135deg, var(--success), #34D399)",
   "linear-gradient(135deg, #F59E0B, #FCD34D)",
   "linear-gradient(135deg, #DC2626, #FCA5A5)",
 ];
@@ -67,8 +67,8 @@ export default async function AdminDashboard() {
         </svg>
       ),
       iconBg: "#EFF3FC",
-      iconColor: "#002366",
-      accentBar: "#002366",
+      iconColor: "var(--royal)",
+      accentBar: "var(--royal)",
       href: "/admin/candidates",
     },
     {
@@ -81,8 +81,8 @@ export default async function AdminDashboard() {
         </svg>
       ),
       iconBg: "#ECFDF5",
-      iconColor: "#059669",
-      accentBar: "#059669",
+      iconColor: "var(--success)",
+      accentBar: "var(--success)",
       href: "/admin/companies",
     },
     {
@@ -313,7 +313,7 @@ export default async function AdminDashboard() {
                 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: 8,
-                    background: "#DCE5F7", color: "#002366",
+                    background: "#DCE5F7", color: "var(--royal)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     flexShrink: 0,
                   }}>
@@ -322,10 +322,10 @@ export default async function AdminDashboard() {
                     </svg>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#002366", margin: 0, marginBottom: 2 }}>カジュアル面談 申込待ち</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", margin: 0, marginBottom: 2 }}>カジュアル面談 申込待ち</p>
                     <p style={{ fontSize: 11, color: "#3B5FD9", margin: 0 }}>{stats.pendingMeetingsCount}件</p>
                   </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#002366" strokeWidth="2" strokeLinecap="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
                 </div>
@@ -367,7 +367,7 @@ export default async function AdminDashboard() {
                 padding: "16px 14px", borderRadius: 10,
                 background: "#ECFDF5", border: "1px solid #A7F3D0",
               }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round">
                   <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
                 </svg>
                 <p style={{ fontSize: 13, color: "#065F46", fontWeight: 600, margin: 0 }}>
@@ -404,7 +404,7 @@ export default async function AdminDashboard() {
               }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 8,
-                  background: "#002366", color: "#fff",
+                  background: "var(--royal)", color: "#fff",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   flexShrink: 0,
                 }}>
@@ -413,7 +413,7 @@ export default async function AdminDashboard() {
                   </svg>
                 </div>
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#002366", margin: 0, marginBottom: 2 }}>ユーザーを招待する</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", margin: 0, marginBottom: 2 }}>ユーザーを招待する</p>
                   <p style={{ fontSize: 11, color: "#475569", margin: 0 }}>求職者・企業担当者をメール招待</p>
                 </div>
               </div>
@@ -466,7 +466,7 @@ export default async function AdminDashboard() {
             marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid #F1F5F9",
           }}>
             <h2 style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0 }}>最近の登録ユーザー</h2>
-            <Link href="/admin/candidates" style={{ fontSize: 11, color: "#002366", fontWeight: 600, textDecoration: "none" }}>
+            <Link href="/admin/candidates" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
               すべて見る →
             </Link>
           </div>
@@ -537,7 +537,7 @@ export default async function AdminDashboard() {
               {
                 label: "登録ユーザー",
                 value: stats.usersCount,
-                color: "#002366",
+                color: "var(--royal)",
                 bg: "#EFF3FC",
                 bar: stats.usersCount,
                 max: Math.max(stats.usersCount, 1),
@@ -545,7 +545,7 @@ export default async function AdminDashboard() {
               {
                 label: "公開中の企業",
                 value: stats.activeCompaniesCount,
-                color: "#059669",
+                color: "var(--success)",
                 bg: "#ECFDF5",
                 bar: stats.activeCompaniesCount,
                 max: Math.max(stats.usersCount, 1),
@@ -597,17 +597,17 @@ export default async function AdminDashboard() {
             display: "flex", flexDirection: "column", gap: 6,
           }}>
             <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
-              審査待ち求人: <strong style={{ color: stats.pendingJobsCount > 0 ? "#B45309" : "#059669" }}>
+              審査待ち求人: <strong style={{ color: stats.pendingJobsCount > 0 ? "#B45309" : "var(--success)" }}>
                 {stats.pendingJobsCount}件
               </strong>
             </p>
             <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
-              面談申込待ち: <strong style={{ color: stats.pendingMeetingsCount > 0 ? "#002366" : "#059669" }}>
+              面談申込待ち: <strong style={{ color: stats.pendingMeetingsCount > 0 ? "var(--royal)" : "var(--success)" }}>
                 {stats.pendingMeetingsCount}件
               </strong>
             </p>
             <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
-              メンター相談転送待ち: <strong style={{ color: stats.pendingReservationsCount > 0 ? "#7C3AED" : "#059669" }}>
+              メンター相談転送待ち: <strong style={{ color: stats.pendingReservationsCount > 0 ? "#7C3AED" : "var(--success)" }}>
                 {stats.pendingReservationsCount}件
               </strong>
             </p>
@@ -625,7 +625,7 @@ export default async function AdminDashboard() {
           marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid #F1F5F9",
         }}>
           <h2 style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0 }}>企業一覧</h2>
-          <Link href="/admin/companies" style={{ fontSize: 11, color: "#002366", fontWeight: 600, textDecoration: "none" }}>
+          <Link href="/admin/companies" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
             すべて見る →
           </Link>
         </div>
@@ -658,12 +658,12 @@ export default async function AdminDashboard() {
                       display: "inline-flex", alignItems: "center", gap: 5,
                       padding: "3px 10px", borderRadius: 100, fontSize: 11, fontWeight: 600,
                       background: c.is_published ? "#ECFDF5" : "#F8FAFC",
-                      color: c.is_published ? "#059669" : "#94A3B8",
+                      color: c.is_published ? "var(--success)" : "#94A3B8",
                       border: `1px solid ${c.is_published ? "#A7F3D0" : "#E2E8F0"}`,
                     }}>
                       <span style={{
                         width: 5, height: 5, borderRadius: "50%",
-                        background: c.is_published ? "#059669" : "#94A3B8",
+                        background: c.is_published ? "var(--success)" : "#94A3B8",
                       }} />
                       {c.is_published ? "公開中" : "非公開"}
                     </span>

@@ -56,7 +56,7 @@ export default function Footer() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
                 fontSize: 13, fontWeight: 700,
-                background: "linear-gradient(135deg, var(--royal,#002366), #3B5FD9)",
+                background: "linear-gradient(135deg, var(--royal,var(--royal)), #3B5FD9)",
                 color: "#fff",
                 padding: "10px 20px", borderRadius: 8,
                 textDecoration: "none",

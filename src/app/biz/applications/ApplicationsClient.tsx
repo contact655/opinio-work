@@ -13,7 +13,7 @@ const STATUS_COLOR: Record<ApplicationStatus, string> = {
   interview: "#7C3AED",
   accepted:  "var(--success)",
   rejected:  "#DC2626",
-  hired:     "#059669",
+  hired:     "var(--success)",
 };
 
 const STATUS_BG: Record<ApplicationStatus, string> = {
@@ -50,7 +50,7 @@ function nameInitial(name: string): string {
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg, var(--royal), var(--accent))",
   "linear-gradient(135deg, #FBBF24, #D97706)",
-  "linear-gradient(135deg, #34D399, #059669)",
+  "linear-gradient(135deg, #34D399, var(--success))",
   "linear-gradient(135deg, #A78BFA, #7C3AED)",
   "linear-gradient(135deg, #DB2777, #9D174D)",
   "linear-gradient(135deg, #0EA5E9, #0369A1)",
@@ -668,7 +668,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
           borderRadius: 12, padding: "16px 20px",
           display: "flex", alignItems: "center", gap: 12,
         }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46" }}>採用確定済み</div>
             <div style={{ fontSize: 12, color: "#047857", marginTop: 2 }}>OPINIOから請求書をお送りします。</div>
@@ -697,7 +697,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
                 onClick={() => setShowHireForm(true)}
                 style={{
                   padding: "10px 20px", borderRadius: 8,
-                  background: "linear-gradient(135deg, #059669, #047857)",
+                  background: "linear-gradient(135deg, var(--success), #047857)",
                   color: "#fff", fontSize: 13, fontWeight: 700,
                   border: "none", cursor: "pointer", flexShrink: 0,
                   boxShadow: "0 2px 8px rgba(5,150,105,0.35)",
@@ -749,7 +749,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
                   disabled={hireSubmitting || !hiredSalary || Number(hiredSalary) < 100}
                   style={{
                     padding: "10px 24px", borderRadius: 8,
-                    background: hireSubmitting ? "#9CA3AF" : "linear-gradient(135deg, #059669, #047857)",
+                    background: hireSubmitting ? "#94a3b8" : "linear-gradient(135deg, var(--success), #047857)",
                     color: "#fff", fontSize: 13, fontWeight: 700,
                     border: "none", cursor: hireSubmitting ? "not-allowed" : "pointer",
                   }}

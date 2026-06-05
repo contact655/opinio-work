@@ -136,8 +136,8 @@ function TagButton({
           ? {
               fontSize: 14,
               fontWeight: 600,
-              background: "#059669",
-              border: "1.5px solid #059669",
+              background: "var(--success)",
+              border: "1.5px solid var(--success)",
               color: "#fff",
               borderRadius: 999,
               padding: "6px 16px",
@@ -154,8 +154,8 @@ function TagButton({
       }
       onMouseEnter={(e) => {
         if (!selected) {
-          e.currentTarget.style.borderColor = "#059669";
-          e.currentTarget.style.color = "#059669";
+          e.currentTarget.style.borderColor = "var(--success)";
+          e.currentTarget.style.color = "var(--success)";
           e.currentTarget.style.background = "#f0fdf4";
         }
       }}
@@ -285,7 +285,7 @@ function ListCard({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '120px', flexShrink: 0 }}>
           {matchScore != null && matchScore > 0 && (
             <div style={{
-              fontSize: '14px', fontWeight: 500, color: '#1D9E75',
+              fontSize: '14px', fontWeight: 500, color: 'var(--success)',
               border: '0.5px solid #d1d5db', borderRadius: '8px',
               padding: '9px 0', textAlign: 'center', background: 'white', width: '100%',
             }}>
@@ -401,7 +401,7 @@ function GridCard({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {matchScore != null && matchScore > 0 && (
             <div style={{
-              fontSize: '14px', fontWeight: 500, color: '#1D9E75',
+              fontSize: '14px', fontWeight: 500, color: 'var(--success)',
               border: '0.5px solid #d1d5db', borderRadius: '8px',
               padding: '9px 0', textAlign: 'center', background: 'white', width: '100%',
             }}>
@@ -454,7 +454,7 @@ function Grid5Card({ company }: { company: Company }) {
       {jobCount > 0 && (
         <span
           className="inline-block px-2 py-0.5 rounded-full"
-          style={{ fontSize: 13, fontWeight: 600, color: "#059669", background: "#f0fdf4" }}
+          style={{ fontSize: 13, fontWeight: 600, color: "var(--success)", background: "#f0fdf4" }}
         >
           求人 {jobCount}件
         </span>
@@ -505,7 +505,7 @@ function buildSections(companies: Company[]): SectionDef[] {
 // ─── View Toggle Icons ──────────────────────────────
 
 function ViewIcon({ type, active }: { type: string; active: boolean }) {
-  const c = active ? "#1D9E75" : "#9ca3af";
+  const c = active ? "var(--success)" : "#94a3b8";
   const w = 1.5;
 
   if (type === "list") {
@@ -648,7 +648,7 @@ function SectionCarousel({ section }: { section: SectionDef }) {
         {section.filter && (
           <Link
             href={`/companies/list?category=${encodeURIComponent(section.filter)}`}
-            className="text-[12px] text-gray-600 hover:text-[#1D9E75] transition-colors"
+            className="text-[12px] text-gray-600 hover:text-[var(--success)] transition-colors"
           >
             すべて見る →
           </Link>
@@ -678,7 +678,7 @@ function SectionCarousel({ section }: { section: SectionDef }) {
               style={{
                 width: currentPage === i ? 16 : 4,
                 height: 4,
-                background: currentPage === i ? "#1D9E75" : "#d1d5db",
+                background: currentPage === i ? "var(--success)" : "#d1d5db",
                 cursor: "pointer",
               }}
             />
@@ -836,7 +836,7 @@ export default function CompanyExplorer({
             placeholder="企業名・業界・キーワードで検索"
             className="w-full pl-12 pr-4 bg-white focus:outline-none transition-colors"
             style={{ height: 48, fontSize: 15, color: "#111827", border: "1.5px solid #e5e7eb", borderRadius: 10 }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "#059669"; }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--success)"; }}
             onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; }}
           />
         </div>
@@ -884,7 +884,7 @@ export default function CompanyExplorer({
           <p className="text-[13px] text-gray-500" style={{ margin: 0 }}>
             IT/SaaS厳選 <span className="font-semibold text-gray-900">{filtered.length}社</span>
           </p>
-          <p style={{ fontSize: 12, color: "#9ca3af", margin: "2px 0 0 0" }}>OPINIOが審査・掲載を承認した企業のみ</p>
+          <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>OPINIOが審査・掲載を承認した企業のみ</p>
         </div>
         <div className="flex items-center gap-3">
           <select
@@ -988,7 +988,7 @@ export default function CompanyExplorer({
               setLocationFilter("すべて");
             }}
             className="text-[13px] font-medium transition-colors"
-            style={{ color: "#1D9E75" }}
+            style={{ color: "var(--success)" }}
           >
             フィルターをクリア
           </button>

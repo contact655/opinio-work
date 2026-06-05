@@ -55,7 +55,7 @@ export default function AgentAuthPage() {
         <div
           style={{
             width: 52, height: 52, borderRadius: 14,
-            background: "linear-gradient(135deg, #002366, #3B5FD9)",
+            background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
             display: "flex", alignItems: "center", justifyContent: "center",
             marginBottom: 20,
           }}
@@ -90,7 +90,7 @@ export default function AgentAuthPage() {
             }}
           >
             <div style={{ fontSize: 28, marginBottom: 8 }}>✉️</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#059669", marginBottom: 6 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--success)", marginBottom: 6 }}>
               メールを送信しました
             </div>
             <div style={{ fontSize: 13, color: "#065F46", lineHeight: 1.6 }}>
@@ -101,7 +101,7 @@ export default function AgentAuthPage() {
               onClick={() => { setSuccess(false); setEmail(""); }}
               style={{
                 marginTop: 16, background: "none", border: "none", cursor: "pointer",
-                fontSize: 12, color: "#059669", textDecoration: "underline",
+                fontSize: 12, color: "var(--success)", textDecoration: "underline",
               }}
             >
               別のアドレスで試す
@@ -154,7 +154,7 @@ export default function AgentAuthPage() {
               disabled={submitting}
               style={{
                 width: "100%", padding: "12px",
-                background: "linear-gradient(135deg, #002366, #3B5FD9)",
+                background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
                 color: "#fff", border: "none", borderRadius: 8,
                 fontSize: 14, fontWeight: 700, cursor: "pointer",
                 opacity: submitting ? 0.7 : 1,

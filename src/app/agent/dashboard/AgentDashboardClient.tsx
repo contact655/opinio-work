@@ -15,8 +15,8 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   pending: { label: "書類選考", color: "#D97706", bg: "#FEF3C7" },
   reviewing: { label: "書類選考中", color: "#3B5FD9", bg: "#EFF3FC" },
   interview: { label: "面接", color: "#7C3AED", bg: "#F3E8FF" },
-  offer: { label: "内定", color: "#059669", bg: "#ECFDF5" },
-  rejected: { label: "不採用", color: "#64748B", bg: "#F1F5F9" },
+  offer: { label: "内定", color: "var(--success)", bg: "#ECFDF5" },
+  rejected: { label: "不採用", color: "#6b7280", bg: "#F1F5F9" },
 };
 
 function StatusBadge({ stageId }: { stageId: string | null }) {
@@ -74,7 +74,7 @@ export function AgentDashboardClient({ agencyName, assignedJobs, candidates }: P
       {/* Stats row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 32 }}>
         {[
-          { label: "担当求人", value: assignedJobs.length, color: "#002366", bg: "#EFF3FC" },
+          { label: "担当求人", value: assignedJobs.length, color: "var(--royal)", bg: "#EFF3FC" },
           { label: "推薦候補者", value: candidates.length, color: "#7C3AED", bg: "#F3E8FF" },
         ].map((stat) => (
           <div key={stat.label} style={{
@@ -134,7 +134,7 @@ export function AgentDashboardClient({ agencyName, assignedJobs, candidates }: P
                       style={{
                         display: "inline-flex", alignItems: "center", gap: 4,
                         padding: "7px 14px", borderRadius: 7,
-                        background: "linear-gradient(135deg, #002366, #3B5FD9)",
+                        background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
                         color: "#fff", textDecoration: "none",
                         fontSize: 12, fontWeight: 700,
                       }}

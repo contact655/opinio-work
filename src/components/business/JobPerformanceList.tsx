@@ -5,7 +5,7 @@ import { INDUSTRY_AVG_CONVERSION_RATE } from "@/lib/business/dashboard";
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   active:    { label: "公開中",   color: "#15803d", bg: "#f0fdf4" },
   draft:     { label: "下書き",   color: "#6b7280", bg: "#f3f4f6" },
-  closed:    { label: "終了",     color: "#9ca3af", bg: "#f9fafb" },
+  closed:    { label: "終了",     color: "#94a3b8", bg: "#f9fafb" },
   paused:    { label: "停止中",   color: "#92400e", bg: "#fffbeb" },
 };
 
@@ -14,7 +14,7 @@ export function JobPerformanceList({ jobs }: { jobs: JobPerformance[] }) {
     <section>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>求人のパフォーマンス</h2>
-        <span style={{ fontSize: 11, color: "#9ca3af" }}>業界平均応募率: {INDUSTRY_AVG_CONVERSION_RATE}%</span>
+        <span style={{ fontSize: 11, color: "#94a3b8" }}>業界平均応募率: {INDUSTRY_AVG_CONVERSION_RATE}%</span>
       </div>
 
       {jobs.length === 0 ? (
@@ -27,7 +27,7 @@ export function JobPerformanceList({ jobs }: { jobs: JobPerformance[] }) {
             href="/biz/jobs/new"
             style={{
               display: "inline-block", padding: "10px 20px", borderRadius: 8,
-              fontSize: 13, fontWeight: 600, background: "#1D9E75", color: "#fff", textDecoration: "none",
+              fontSize: 13, fontWeight: 600, background: "var(--success)", color: "#fff", textDecoration: "none",
             }}
           >
             求人を作成する →
@@ -99,7 +99,7 @@ function Stat({ label, value, valueColor = "var(--ink)" }: { label: string; valu
   return (
     <div style={{ textAlign: "right", minWidth: 64 }}>
       <div style={{ fontSize: 16, fontWeight: 700, color: valueColor, lineHeight: 1.1 }}>{value}</div>
-      <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{label}</div>
     </div>
   );
 }

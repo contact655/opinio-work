@@ -140,7 +140,7 @@ export function getCompanyBadges(c: any): Badge[] {
   const badges: Badge[] = [];
 
   if (checkIsNew(c)) {
-    badges.push({ label: "NEW", color: "#1D9E75", bg: "#E1F5EE" });
+    badges.push({ label: "NEW", color: "var(--success)", bg: "#E1F5EE" });
   }
   if (isGaishi(c)) {
     badges.push({ label: "外資系", color: "#2563EB", bg: "#EFF6FF" });

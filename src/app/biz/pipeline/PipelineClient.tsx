@@ -7,20 +7,20 @@ import type { PipelineStage, PipelineCandidate } from "@/lib/business/pipeline";
 // ─── Source config ────────────────────────────────────────────────────────────
 
 const SOURCE_CONFIG: Record<string, { label: string; color: string; bg: string; star?: boolean }> = {
-  opinio:   { label: "OPINIO",     color: "#002366", bg: "#EFF3FC", star: true },
+  opinio:   { label: "OPINIO",     color: "var(--royal)", bg: "#EFF3FC", star: true },
   bizreach: { label: "ビズリーチ",  color: "#E55A00", bg: "#FFF3ED" },
   green:    { label: "Green",      color: "#00A55E", bg: "#E8F8F0" },
   wantedly: { label: "Wantedly",   color: "#00A9A9", bg: "#E8F8F8" },
   agent:    { label: "エージェント", color: "#7C3AED", bg: "#F3E8FF" },
-  direct:   { label: "直接応募",    color: "#64748B", bg: "#F1F5F9" },
+  direct:   { label: "直接応募",    color: "#6b7280", bg: "#F1F5F9" },
   referral: { label: "リファラル",  color: "#D97706", bg: "#FEF3C7" },
 };
 
 const ALL_SOURCES = ["opinio", "bizreach", "green", "wantedly", "agent", "direct", "referral"];
 
 const PRESET_COLORS = [
-  "#64748B", "#3B5FD9", "#7C3AED", "#D97706",
-  "#059669", "#DC2626", "#0EA5E9", "#F59E0B",
+  "#6b7280", "#3B5FD9", "#7C3AED", "#D97706",
+  "var(--success)", "#DC2626", "#0EA5E9", "#F59E0B",
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

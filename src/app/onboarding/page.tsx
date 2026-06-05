@@ -217,7 +217,7 @@ function OnboardingInner() {
                 style={{
                   display: "flex", alignItems: "center", gap: 14,
                   padding: "16px 18px",
-                  background: "linear-gradient(135deg, #002366, #3B5FD9)",
+                  background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
                   color: "#fff", borderRadius: 12, textDecoration: "none",
                   border: "none",
                 }}

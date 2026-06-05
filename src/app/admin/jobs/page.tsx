@@ -192,7 +192,7 @@ export default function AdminJobsPage() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", margin: 0 }}>求人審査</h1>
-          <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>
+          <p style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>
             企業から申請された求人を審査・承認します
           </p>
         </div>
@@ -231,7 +231,7 @@ export default function AdminJobsPage() {
             outline: "none", boxSizing: "border-box",
             fontFamily: "inherit", transition: "border-color 0.15s",
           }}
-          onFocus={(e) => { e.target.style.borderColor = "#002366"; }}
+          onFocus={(e) => { e.target.style.borderColor = "var(--royal)"; }}
           onBlur={(e) => { e.target.style.borderColor = "#E2E8F0"; }}
         />
         {searchQuery && (
@@ -264,8 +264,8 @@ export default function AdminJobsPage() {
               style={{
                 padding: "6px 14px",
                 borderRadius: 100,
-                border: `1px solid ${activeTab === tab.key ? "#002366" : "#E2E8F0"}`,
-                background: activeTab === tab.key ? "#002366" : "#fff",
+                border: `1px solid ${activeTab === tab.key ? "var(--royal)" : "#E2E8F0"}`,
+                background: activeTab === tab.key ? "var(--royal)" : "#fff",
                 color: activeTab === tab.key ? "#fff" : "#475569",
                 fontSize: 13,
                 fontWeight: 600,
@@ -281,7 +281,7 @@ export default function AdminJobsPage() {
                 padding: "1px 6px",
                 borderRadius: 100,
                 background: activeTab === tab.key ? "rgba(255,255,255,0.2)" : "#F1F5F9",
-                color: activeTab === tab.key ? "#fff" : "#64748B",
+                color: activeTab === tab.key ? "#fff" : "#6b7280",
               }}>
                 {count}
               </span>
@@ -298,7 +298,7 @@ export default function AdminJobsPage() {
               {["求人タイトル", "企業名", "職種", "年収（万円）", "勤務地", "働き方", "ステータス", "申請日", "操作"].map((h) => (
                 <th key={h} scope="col" style={{
                   textAlign: "left", padding: "10px 14px",
-                  fontSize: 11, color: "#64748B", fontWeight: 600,
+                  fontSize: 11, color: "#6b7280", fontWeight: 600,
                   letterSpacing: "0.04em", whiteSpace: "nowrap",
                 }}>
                   {h}
@@ -326,7 +326,7 @@ export default function AdminJobsPage() {
                     {/* タイトル */}
                     <td style={{ padding: "12px 14px", fontWeight: 600, color: "#0F172A", maxWidth: 220 }}>
                       <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        <Link href={`/admin/jobs/${j.id}`} style={{ color: "#002366", textDecoration: "none" }}>
+                        <Link href={`/admin/jobs/${j.id}`} style={{ color: "var(--royal)", textDecoration: "none" }}>
                           {j.title || "—"}
                         </Link>
                       </div>
@@ -383,7 +383,7 @@ export default function AdminJobsPage() {
                               disabled={actionLoading === j.id}
                               style={{
                                 padding: "5px 12px", borderRadius: 6,
-                                background: "#059669", border: "none",
+                                background: "var(--success)", border: "none",
                                 color: "#fff", fontSize: 12, fontWeight: 600,
                                 cursor: "pointer", whiteSpace: "nowrap",
                                 opacity: actionLoading === j.id ? 0.5 : 1,
@@ -447,7 +447,7 @@ export default function AdminJobsPage() {
                             style={{
                               padding: "5px 12px", borderRadius: 6,
                               background: "#EFF3FC", border: "1px solid #B2C4F0",
-                              color: "#002366", fontSize: 12, fontWeight: 600,
+                              color: "var(--royal)", fontSize: 12, fontWeight: 600,
                               cursor: "pointer", whiteSpace: "nowrap",
                               opacity: actionLoading === j.id ? 0.5 : 1,
                             }}
@@ -486,7 +486,7 @@ export default function AdminJobsPage() {
             <h3 id="ajobs-reject-title" style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>
               差し戻し理由を入力
             </h3>
-            <p style={{ fontSize: 13, color: "#64748B", marginBottom: 16 }}>
+            <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
               「{rejectTarget.title}」（{rejectTarget.ow_companies?.name}）
             </p>
             <div style={{ marginBottom: 14 }}>

@@ -28,7 +28,7 @@ export default function GlobalError({
       <div style={{ textAlign: "center", maxWidth: 480 }}>
         {/* Logo */}
         <Link href="/" style={{ textDecoration: "none", display: "inline-block", marginBottom: 40 }}>
-          <span style={{ fontSize: 24, fontWeight: 800, color: "#002366", letterSpacing: "-0.02em" }}>OPINIO</span>
+          <span style={{ fontSize: 24, fontWeight: 800, color: "var(--royal)", letterSpacing: "-0.02em" }}>OPINIO</span>
         </Link>
 
         {/* Icon */}
@@ -48,7 +48,7 @@ export default function GlobalError({
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0f172a", margin: "0 0 12px" }}>
           エラーが発生しました
         </h1>
-        <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.7, margin: "0 0 8px" }}>
+        <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.7, margin: "0 0 8px" }}>
           予期しないエラーが発生しました。<br />
           しばらく時間をおいてから再度お試しください。
         </p>
@@ -64,7 +64,7 @@ export default function GlobalError({
             onClick={reset}
             style={{
               display: "inline-block",
-              background: "#002366",
+              background: "var(--royal)",
               color: "#fff",
               padding: "12px 28px",
               borderRadius: 8,
@@ -80,13 +80,13 @@ export default function GlobalError({
           <Link href="/" style={{
             display: "inline-block",
             background: "#fff",
-            color: "#002366",
+            color: "var(--royal)",
             padding: "12px 28px",
             borderRadius: 8,
             textDecoration: "none",
             fontWeight: 600,
             fontSize: 14,
-            border: "1.5px solid #002366",
+            border: "1.5px solid var(--royal)",
           }}>
             トップページへ
           </Link>

@@ -225,8 +225,8 @@ export default function AdminArticlesPage() {
               onClick={() => setTypeFilter(type)}
               style={{
                 padding: "7px 13px", borderRadius: 100, fontSize: 12, fontWeight: 600,
-                border: `1.5px solid ${typeFilter === type ? "var(--royal, #002366)" : "var(--line, #E2E8F0)"}`,
-                background: typeFilter === type ? "var(--royal, #002366)" : "#fff",
+                border: `1.5px solid ${typeFilter === type ? "var(--royal, var(--royal))" : "var(--line, #E2E8F0)"}`,
+                background: typeFilter === type ? "var(--royal, var(--royal))" : "#fff",
                 color: typeFilter === type ? "#fff" : "var(--ink-soft, #475569)",
                 cursor: "pointer", whiteSpace: "nowrap",
               }}
@@ -332,10 +332,10 @@ export default function AdminArticlesPage() {
                       disabled={linkingUser === article.id}
                       style={{
                         width: "100%", padding: "5px 8px", borderRadius: 6,
-                        border: `1px solid ${article.user_id ? "var(--royal, #002366)" : "var(--line, #E2E8F0)"}`,
+                        border: `1px solid ${article.user_id ? "var(--royal, var(--royal))" : "var(--line, #E2E8F0)"}`,
                         fontSize: 12, fontFamily: "inherit",
                         background: article.user_id ? "var(--royal-50, #EFF3FC)" : "#fff",
-                        color: article.user_id ? "var(--royal, #002366)" : "var(--ink-mute, #94A3B8)",
+                        color: article.user_id ? "var(--royal, var(--royal))" : "var(--ink-mute, #94A3B8)",
                         cursor: "pointer",
                         opacity: linkingUser === article.id ? 0.5 : 1,
                       }}

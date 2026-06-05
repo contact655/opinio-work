@@ -25,7 +25,7 @@ export async function GET() {
       workStyle: row.work_style,
       companyName: co?.name ?? "",
       logoLetter: co?.logo_letter ?? (co?.name ?? "?").charAt(0).toUpperCase(),
-      logoGradient: co?.logo_gradient ?? "linear-gradient(135deg,#002366,#3B5FD9)",
+      logoGradient: co?.logo_gradient ?? "linear-gradient(135deg,var(--royal),#3B5FD9)",
       logoUrl: co?.logo_url ?? null,
     };
   });

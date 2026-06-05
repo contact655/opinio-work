@@ -97,7 +97,7 @@ export function RecommendClient({ jobId, jobTitle, companyName, agencyName }: Pr
         <div style={{ fontSize: 11, fontWeight: 700, color: "#3B5FD9", letterSpacing: "0.08em", marginBottom: 4 }}>
           推薦先
         </div>
-        <div style={{ fontSize: 16, fontWeight: 800, color: "#002366" }}>{jobTitle}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: "var(--royal)" }}>{jobTitle}</div>
         <div style={{ fontSize: 13, color: "#3B5FD9", marginTop: 2 }}>{companyName}</div>
       </div>
 
@@ -107,7 +107,7 @@ export function RecommendClient({ jobId, jobTitle, companyName, agencyName }: Pr
           borderRadius: 14, padding: "40px 32px", textAlign: "center",
         }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>✓</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: "#059669", marginBottom: 8, fontFamily: "'Noto Serif JP', serif" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "var(--success)", marginBottom: 8, fontFamily: "'Noto Serif JP', serif" }}>
             推薦しました！
           </div>
           <div style={{ fontSize: 13, color: "#065F46", lineHeight: 1.7, marginBottom: 24 }}>
@@ -118,7 +118,7 @@ export function RecommendClient({ jobId, jobTitle, companyName, agencyName }: Pr
             href="/agent/dashboard"
             style={{
               display: "inline-block", padding: "11px 28px",
-              background: "linear-gradient(135deg, #002366, #3B5FD9)",
+              background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
               color: "#fff", textDecoration: "none", borderRadius: 8,
               fontWeight: 700, fontSize: 14,
             }}
@@ -208,7 +208,7 @@ export function RecommendClient({ jobId, jobTitle, companyName, agencyName }: Pr
             disabled={submitting}
             style={{
               width: "100%", padding: "13px",
-              background: "linear-gradient(135deg, #002366, #3B5FD9)",
+              background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
               color: "#fff", border: "none", borderRadius: 8,
               fontSize: 15, fontWeight: 700, cursor: "pointer",
               opacity: submitting ? 0.7 : 1,

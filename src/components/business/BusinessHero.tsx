@@ -16,7 +16,7 @@ const ROLES = [
 const MOCK_CANDIDATES = [
   {
     init: "山",
-    color: "linear-gradient(135deg, #002366, #3B5FD9)",
+    color: "linear-gradient(135deg, var(--royal), #3B5FD9)",
     name: "山田 健太郎",
     role: "フィールドセールス",
     company: "SmartHR 出身",
@@ -24,7 +24,7 @@ const MOCK_CANDIDATES = [
   },
   {
     init: "中",
-    color: "linear-gradient(135deg, #059669, #047857)",
+    color: "linear-gradient(135deg, var(--success), #047857)",
     name: "中村 さやか",
     role: "カスタマーサクセス",
     company: "Salesforce Japan 出身",
@@ -229,7 +229,7 @@ export function BusinessHero() {
           }}>
             <div style={{
               width: 32, height: 32, borderRadius: "50%",
-              background: "linear-gradient(135deg, #059669, #047857)",
+              background: "linear-gradient(135deg, var(--success), #047857)",
               color: "#fff", fontSize: 12, fontWeight: 700,
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0,

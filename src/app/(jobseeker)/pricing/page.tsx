@@ -14,7 +14,7 @@ export default function PricingPage() {
 
       {/* ── Hero ── */}
       <section style={{
-        background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
+        background: "linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)",
         padding: "72px 24px 80px",
         textAlign: "center",
       }}>
@@ -97,7 +97,7 @@ export default function PricingPage() {
 
           {/* 成果報酬 */}
           <div style={{
-            background: "linear-gradient(135deg, #001233 0%, #002366 100%)",
+            background: "linear-gradient(135deg, #001233 0%, var(--royal) 100%)",
             borderRadius: 16, padding: "32px 28px",
             border: "1.5px solid var(--royal)",
             display: "flex", flexDirection: "column", gap: 12,
@@ -321,7 +321,7 @@ export default function PricingPage() {
       {/* ── CTA ── */}
       <section style={{
         padding: "72px 24px",
-        background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
+        background: "linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)",
         textAlign: "center",
       }}>
         <div style={{ maxWidth: 600, margin: "0 auto" }}>

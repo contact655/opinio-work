@@ -8,7 +8,7 @@ export default function Loading() {
     }}>
       {/* Admin header bar */}
       <div style={{
-        background: "#002366",
+        background: "var(--royal)",
         padding: "16px 32px",
         display: "flex",
         alignItems: "center",

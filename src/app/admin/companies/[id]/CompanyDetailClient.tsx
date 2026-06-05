@@ -759,7 +759,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
               ) : (
                 <div
                   className="w-full h-full flex items-center justify-center text-white text-3xl font-bold"
-                  style={{ background: company.logo_gradient || 'linear-gradient(135deg, #002366, #3B5FD9)' }}
+                  style={{ background: company.logo_gradient || 'linear-gradient(135deg, var(--royal), #3B5FD9)' }}
                 >
                   {company.logo_letter || (company.name?.[0] ?? '?')}
                 </div>
@@ -948,7 +948,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
                 const u: AdminUser | null = Array.isArray(a.user) ? (a.user[0] ?? null) : a.user;
                 const displayName = u?.name ?? u?.email ?? '（名前未設定）';
                 const initial = displayName.trim().charAt(0).toUpperCase();
-                const avatarColor = u?.avatar_color ?? 'linear-gradient(135deg, #002366, #3B5FD9)';
+                const avatarColor = u?.avatar_color ?? 'linear-gradient(135deg, var(--royal), #3B5FD9)';
                 const joinedAt = new Date(a.created_at).toLocaleDateString('ja-JP', {
                   year: 'numeric', month: 'long', day: 'numeric',
                 });

@@ -64,8 +64,8 @@ export type Job = {
 // ─── Avatar gradient palette ──────────────────────────────────────────────────
 
 const G = [
-  "linear-gradient(135deg, #002366, #3B5FD9)",
-  "linear-gradient(135deg, #34D399, #059669)",
+  "linear-gradient(135deg, var(--royal), #3B5FD9)",
+  "linear-gradient(135deg, #34D399, var(--success))",
   "linear-gradient(135deg, #F472B6, #DB2777)",
   "linear-gradient(135deg, #FBBF24, #D97706)",
   "linear-gradient(135deg, #A78BFA, #7C3AED)",

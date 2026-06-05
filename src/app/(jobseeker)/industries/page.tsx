@@ -63,7 +63,7 @@ export default function IndustriesPage() {
 
       {/* Hero */}
       <div style={{
-        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
+        background: "linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1a3569 100%)",
         padding: "44px 0 40px",
         position: "relative",
         overflow: "hidden",

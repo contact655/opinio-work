@@ -145,13 +145,13 @@ export default function RootLayout({
     <html lang="ja" className={`${inter.variable} ${notoSansJP.variable} ${notoSerifJP.variable}`}>
       <head>
         {/* PWA */}
-        <meta name="theme-color" content="#002366" />
+        <meta name="theme-color" content="var(--royal)" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="OPINIO" />
         <link rel="apple-touch-icon" href="/icons/pwa/icon-192.png" />
-        <link rel="mask-icon" href="/icons/pwa/icon-192.png" color="#002366" />
+        <link rel="mask-icon" href="/icons/pwa/icon-192.png" color="var(--royal)" />
         {/* JSON-LD */}
         <script
           type="application/ld+json"
@@ -160,7 +160,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} antialiased`}>
         <NextTopLoader
-          color="var(--royal, #002366)"
+          color="var(--royal, var(--royal))"
           initialPosition={0.08}
           crawlSpeed={200}
           height={3}

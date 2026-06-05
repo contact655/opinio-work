@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { INDUSTRIES, PHASES, EMPLOYEE_RANGES } from "./mockCompanies";
 
 // ─── Design tokens ───
-const ROYAL = "#002366";
+const ROYAL = "var(--royal)";
 const LINE = "#E2E8F0";
 const INK_SOFT = "#475569";
 const INK_MUTE = "#94A3B8";

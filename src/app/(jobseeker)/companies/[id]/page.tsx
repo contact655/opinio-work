@@ -522,7 +522,7 @@ function Hero({
             },
             {
               iconBg: "#ECFDF5",
-              iconColor: "#059669",
+              iconColor: "var(--success)",
               icon: (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -567,7 +567,7 @@ function Hero({
                 }}>
                   {icon}
                 </span>
-                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase" as const, fontFamily: "Inter, sans-serif" }}>
+                <span style={{ fontSize: 12, color: "#6b7280", fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase" as const, fontFamily: "Inter, sans-serif" }}>
                   {label}
                 </span>
               </div>
@@ -614,7 +614,7 @@ function Hero({
               {recruiters.slice(0, 3).map((r, i) => (
                 <div key={r.id} style={{
                   width: 32, height: 32, borderRadius: "50%",
-                  background: r.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)",
+                  background: r.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
                   border: "2.5px solid #fff",
                   marginLeft: i === 0 ? 0 : -10,
                   display: "flex", alignItems: "center", justifyContent: "center",
@@ -740,7 +740,7 @@ function AboutSection({
         <div
           style={{
             padding: "28px 32px",
-            background: "linear-gradient(135deg, #0a1f4e 0%, #002366 60%, #1a3a8a 100%)",
+            background: "linear-gradient(135deg, #0a1f4e 0%, var(--royal) 60%, #1a3a8a 100%)",
             borderRadius: 14,
             marginBottom: 24,
             position: "relative",
@@ -1591,7 +1591,7 @@ function CurrentEmployeesSection({
         }
         const entries = Array.from(catCounts.entries()).sort((a, b) => b[1] - a[1]);
         const total = employees.length;
-        const COLORS = ["#002366", "#3B5FD9", "#7C3AED", "#059669", "#F59E0B", "#DC2626", "#64748B"];
+        const COLORS = ["var(--royal)", "#3B5FD9", "#7C3AED", "var(--success)", "#F59E0B", "#DC2626", "#6b7280"];
         return (
           <div style={{ marginBottom: 28 }}>
             <div style={{ display: "flex", height: 8, borderRadius: 100, overflow: "hidden", marginBottom: 10, gap: 2 }}>
@@ -2095,7 +2095,7 @@ function JobsSection({
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
             {job.salary && job.salary !== "—" && (
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 12, color: "#64748B", fontWeight: 600, letterSpacing: "0.03em", marginBottom: 2 }}>年収</div>
+                <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 600, letterSpacing: "0.03em", marginBottom: 2 }}>年収</div>
                 <div style={{ fontFamily: "Inter, sans-serif", fontSize: 15, fontWeight: 800, color: "var(--success)" }}>
                   {job.salary}
                 </div>
@@ -2260,9 +2260,9 @@ function JobsSection({
 }
 
 const AV_GRADIENTS = [
-  "linear-gradient(135deg, #002366, #3B5FD9)",
+  "linear-gradient(135deg, var(--royal), #3B5FD9)",
   "linear-gradient(135deg, #F472B6, #DB2777)",
-  "linear-gradient(135deg, #34D399, #059669)",
+  "linear-gradient(135deg, #34D399, var(--success))",
   "linear-gradient(135deg, #FBBF24, #D97706)",
   "linear-gradient(135deg, #818CF8, #6366F1)",
   "linear-gradient(135deg, #A78BFA, #7C3AED)",
@@ -2506,7 +2506,7 @@ const NUMBER_ITEMS: {
   accentColor: string;
   accentBg: string;
 }[] = [
-  { label: "平均年収", key: "avgSalary", format: (v) => String(v), icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/></svg>, accentColor: "#059669", accentBg: "#ECFDF5" },
+  { label: "平均年収", key: "avgSalary", format: (v) => String(v), icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/></svg>, accentColor: "var(--success)", accentBg: "#ECFDF5" },
   { label: "平均年齢", key: "avgAge", format: (v) => `${v} 歳`, icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, accentColor: "var(--royal)", accentBg: "var(--royal-50)" },
   { label: "有給取得率", key: "paidLeaveRate", format: (v) => `${v}%`, icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>, accentColor: "#7C3AED", accentBg: "#F3E8FF" },
   { label: "月間残業時間", key: "avgOvertimeHours", format: (v) => String(v), icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, accentColor: "#D97706", accentBg: "#FEF3C7" },

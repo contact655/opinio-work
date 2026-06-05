@@ -160,8 +160,8 @@ type SettingsState = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const DEFAULT_AVATAR_COLOR = "linear-gradient(135deg, #002366, #3B5FD9)";
-const DEFAULT_COVER_COLOR  = "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
+const DEFAULT_AVATAR_COLOR = "linear-gradient(135deg, var(--royal), #3B5FD9)";
+const DEFAULT_COVER_COLOR  = "linear-gradient(135deg, var(--royal), #3B5FD9, #818CF8)";
 
 // ─── ProfilePhotoUploader ─────────────────────────────────────────────────────
 
@@ -3372,8 +3372,8 @@ export default function ProfileEditClient({
                 const DOMAIN_COLORS: Record<string, string> = {
                   "実行力": "#7C3AED",
                   "影響力": "#D97706",
-                  "関係構築": "#059669",
-                  "戦略思考": "#002366",
+                  "関係構築": "var(--success)",
+                  "戦略思考": "var(--royal)",
                 };
 
                 const current = basicInfo.strengthsFinder;
@@ -4124,7 +4124,7 @@ export default function ProfileEditClient({
                         display: "inline-flex", alignItems: "center", gap: 4,
                         padding: "2px 8px", borderRadius: 100,
                         fontSize: 10, fontWeight: 700,
-                        background: "linear-gradient(135deg, #059669, #10B981)",
+                        background: "linear-gradient(135deg, var(--success), #10B981)",
                         color: "#fff",
                         fontFamily: "'Inter', sans-serif",
                       }}>

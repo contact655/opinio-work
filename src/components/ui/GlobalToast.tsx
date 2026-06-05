@@ -7,7 +7,7 @@ type ActiveToast = ToastEvent & { id: string };
 
 const VARIANT_STYLES: Record<ToastVariant, { bg: string; color: string; icon: string }> = {
   default: { bg: "#0F172A",    color: "#fff",      icon: "✓" },
-  success: { bg: "#059669",    color: "#fff",      icon: "✓" },
+  success: { bg: "var(--success)",    color: "#fff",      icon: "✓" },
   error:   { bg: "#DC2626",    color: "#fff",      icon: "✕" },
   warm:    { bg: "#D97706",    color: "#fff",      icon: "♥" },
 };

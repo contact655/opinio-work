@@ -199,7 +199,7 @@ async function getMemberProfile(
         skill_tags: cmMember.skill_tags || [],
         hobby_tags: cmMember.hobby_tags || [],
         hobby_description: cmMember.hobby_description,
-        header_color: cmMember.header_color || "#1D9E75",
+        header_color: cmMember.header_color || "var(--success)",
         honest_qa: honestQa,
         work_histories: workHistories,
         educations,
@@ -236,7 +236,7 @@ async function getMemberProfile(
         skill_tags: [],
         hobby_tags: [],
         hobby_description: undefined,
-        header_color: "#1D9E75",
+        header_color: "var(--success)",
         honest_qa: [],
         work_histories:
           workHistories.length > 0
@@ -301,7 +301,7 @@ function ProfileSection({
           style={{
             width: 3,
             height: 14,
-            background: "#1D9E75",
+            background: "var(--success)",
             borderRadius: 999,
             flexShrink: 0,
           }}
@@ -373,7 +373,7 @@ function MetaRow({
           href="/profile/edit"
           style={{
             fontSize: 14,
-            color: "#1D9E75",
+            color: "var(--success)",
             textDecoration: "underline",
             flexShrink: 0,
           }}
@@ -420,7 +420,7 @@ function EmptyState({
           href={href}
           style={{
             fontSize: 14,
-            color: "#1D9E75",
+            color: "var(--success)",
             textDecoration: "underline",
           }}
         >
@@ -643,7 +643,7 @@ export default async function MemberDetailPage({
                             style={{
                               fontSize: 13,
                               fontWeight: 500,
-                              color: "#1D9E75",
+                              color: "var(--success)",
                               margin: "0 0 6px 0",
                             }}
                           >
@@ -687,7 +687,7 @@ export default async function MemberDetailPage({
                             href="/profile/edit"
                             style={{
                               fontSize: 14,
-                              color: "#1D9E75",
+                              color: "var(--success)",
                               textDecoration: "underline",
                             }}
                           >
@@ -810,7 +810,7 @@ export default async function MemberDetailPage({
                                   href="/profile/edit"
                                   style={{
                                     fontSize: 14,
-                                    color: "#1D9E75",
+                                    color: "var(--success)",
                                     textDecoration: "underline",
                                   }}
                                 >
@@ -841,7 +841,7 @@ export default async function MemberDetailPage({
                                 style={{
                                   fontSize: 12,
                                   fontWeight: 500,
-                                  color: wh.description ? "#6b7280" : "#9ca3af",
+                                  color: wh.description ? "#6b7280" : "#94a3b8",
                                   margin: "0 0 4px 0",
                                 }}
                               >
@@ -863,7 +863,7 @@ export default async function MemberDetailPage({
                                   href="/profile/edit"
                                   style={{
                                     fontSize: 14,
-                                    color: "#1D9E75",
+                                    color: "var(--success)",
                                     textDecoration: "underline",
                                   }}
                                 >
@@ -957,7 +957,7 @@ export default async function MemberDetailPage({
                           <p
                             style={{
                               fontSize: 12,
-                              color: "#9ca3af",
+                              color: "#94a3b8",
                               margin: 0,
                             }}
                           >

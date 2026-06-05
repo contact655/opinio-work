@@ -565,7 +565,7 @@ const styles = {
   } as React.CSSProperties,
 
   brandSide: {
-    background: "linear-gradient(135deg, #002366 0%, #3B5FD9 60%, #5B21B6 100%)",
+    background: "linear-gradient(135deg, var(--royal) 0%, #3B5FD9 60%, #5B21B6 100%)",
     color: "#fff",
     padding: "48px",
     display: "flex",

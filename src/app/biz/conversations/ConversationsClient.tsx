@@ -318,7 +318,7 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
             const candidate = conv.candidate;
             const candidateName = candidate?.name ?? "名前未設定";
             const initial = candidateName.trim().charAt(0).toUpperCase();
-            const avatarColor = candidate?.avatar_color ?? "linear-gradient(135deg, #64748b, #475569)";
+            const avatarColor = candidate?.avatar_color ?? "linear-gradient(135deg, #6b7280, #475569)";
             const timeLabel = formatRelativeTime(conv.last_message_at ?? conv.created_at);
             // unread dot: show when there's recent activity (last 24h) on a non-closed conversation
             const lastActivity = conv.last_message_at ?? conv.created_at;

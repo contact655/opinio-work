@@ -120,7 +120,7 @@ export default async function BizConversationDetailPage({
   const candidateName = candidate?.name ?? "名前未設定";
   const candidateInitial = candidateName.trim().charAt(0).toUpperCase();
   const candidateAvatarColor =
-    candidate?.avatar_color ?? "linear-gradient(135deg, #64748b, #475569)";
+    candidate?.avatar_color ?? "linear-gradient(135deg, #6b7280, #475569)";
 
   const stageCfg = conv.stage
     ? (STAGE_CONFIG[conv.stage] ?? { label: conv.stage, color: "var(--ink-soft)", bg: "var(--line-soft)" })

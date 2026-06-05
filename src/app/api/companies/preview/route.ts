@@ -62,7 +62,7 @@ export async function GET() {
       name: row.name as string,
       industry: row.industry as string | null,
       phase: row.phase as string | null,
-      gradient: (row.logo_gradient as string | null) ?? "linear-gradient(135deg, #002366, #3B5FD9)",
+      gradient: (row.logo_gradient as string | null) ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
       letter: (row.logo_letter as string | null) ?? ((row.name as string)?.charAt(0) ?? "?"),
       logoUrl: row.logo_url as string | null,
       acceptingMeeting: row.accepting_casual_meetings as boolean,

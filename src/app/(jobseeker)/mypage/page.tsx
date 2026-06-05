@@ -238,7 +238,7 @@ export default async function MypagePage() {
       }
 
       const companyMap = new Map((companies ?? []).map((c) => [c.id as string, c]));
-      const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
+      const FALLBACK_GRADIENT = "linear-gradient(135deg, var(--royal), #3B5FD9)";
 
       casualMeetings = meetings.map((m): CasualMeeting => {
         const c = companyMap.get(m.company_id as string);

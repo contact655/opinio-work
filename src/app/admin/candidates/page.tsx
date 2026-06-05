@@ -4,14 +4,14 @@ import { getUserAge } from "@/lib/age";
 /** Deterministic gradient from a string (same pattern used elsewhere in the app) */
 function getAvatarGradient(str: string): string {
   const gradients = [
-    "linear-gradient(135deg, #002366, #3B5FD9)",
+    "linear-gradient(135deg, var(--royal), #3B5FD9)",
     "linear-gradient(135deg, #7C3AED, #A855F7)",
-    "linear-gradient(135deg, #059669, #10B981)",
+    "linear-gradient(135deg, var(--success), #10B981)",
     "linear-gradient(135deg, #F59E0B, #FBBF24)",
     "linear-gradient(135deg, #DC2626, #F87171)",
     "linear-gradient(135deg, #0EA5E9, #38BDF8)",
     "linear-gradient(135deg, #D97706, #F59E0B)",
-    "linear-gradient(135deg, #7C3AED, #002366)",
+    "linear-gradient(135deg, #7C3AED, var(--royal))",
   ];
   let hash = 0;
   for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) | 0;

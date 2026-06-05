@@ -85,7 +85,7 @@ export default function BizLandingPage() {
         zIndex: 100,
       }}>
         <Link href="/biz" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 18, fontWeight: 800, color: "#002366", letterSpacing: "-0.02em" }}>OPINIO</span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: "var(--royal)", letterSpacing: "-0.02em" }}>OPINIO</span>
           <span style={{
             fontSize: 9,
             fontWeight: 700,
@@ -98,15 +98,15 @@ export default function BizLandingPage() {
           }}>BUSINESS</span>
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/" style={{ fontSize: 13, color: "#64748b", textDecoration: "none" }}>
+          <Link href="/" style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>
             求職者の方はこちら
           </Link>
           <Link href="/biz/auth?mode=login" style={{
             fontSize: 13,
-            color: "#002366",
+            color: "var(--royal)",
             textDecoration: "none",
             padding: "7px 16px",
-            border: "1.5px solid #002366",
+            border: "1.5px solid var(--royal)",
             borderRadius: 8,
             fontWeight: 600,
           }}>
@@ -117,7 +117,7 @@ export default function BizLandingPage() {
             color: "#fff",
             textDecoration: "none",
             padding: "7px 16px",
-            background: "#002366",
+            background: "var(--royal)",
             borderRadius: 8,
             fontWeight: 700,
           }}>
@@ -128,7 +128,7 @@ export default function BizLandingPage() {
 
       {/* Hero */}
       <section style={{
-        background: "linear-gradient(135deg, #001A4D 0%, #002366 50%, #1e3a8a 100%)",
+        background: "linear-gradient(135deg, #001A4D 0%, var(--royal) 50%, #1e3a8a 100%)",
         color: "#fff",
         padding: "80px 40px",
       }}>
@@ -173,7 +173,7 @@ export default function BizLandingPage() {
                 <Link href="/biz/auth" style={{
                   display: "inline-block",
                   background: "#fff",
-                  color: "#002366",
+                  color: "var(--royal)",
                   padding: "14px 32px",
                   borderRadius: 10,
                   textDecoration: "none",
@@ -228,10 +228,10 @@ export default function BizLandingPage() {
       <section style={{ padding: "72px 40px", background: "#fff" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 48 }}>
-            <h2 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 12px", color: "#002366" }}>
+            <h2 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 12px", color: "var(--royal)" }}>
               OPINIO でできること
             </h2>
-            <p style={{ fontSize: 14, color: "#64748b", margin: 0 }}>
+            <p style={{ fontSize: 14, color: "#6b7280", margin: 0 }}>
               IT/SaaS 業界に特化した採用プラットフォームの機能をご紹介します。
             </p>
           </div>
@@ -249,7 +249,7 @@ export default function BizLandingPage() {
               }}>
                 <div style={{
                   width: 52, height: 52, borderRadius: 12,
-                  background: "rgba(0,35,102,0.06)", color: "#002366",
+                  background: "rgba(0,35,102,0.06)", color: "var(--royal)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   marginBottom: 16,
                 }}>{f.icon}</div>
@@ -265,7 +265,7 @@ export default function BizLandingPage() {
       <section style={{ padding: "72px 40px", background: "#f8fafc" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 48 }}>
-            <h2 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 12px", color: "#002366" }}>
+            <h2 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 12px", color: "var(--royal)" }}>
               はじめるのは3ステップ
             </h2>
           </div>
@@ -281,7 +281,7 @@ export default function BizLandingPage() {
                     width: 52,
                     height: 52,
                     borderRadius: "50%",
-                    background: "linear-gradient(135deg, #002366, #3B5FD9)",
+                    background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
                     color: "#fff",
                     fontWeight: 800,
                     fontSize: 16,
@@ -291,7 +291,7 @@ export default function BizLandingPage() {
                     margin: "0 auto 16px",
                   }}>{step.num}</div>
                   <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 8px" }}>{step.title}</h3>
-                  <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.7, margin: 0 }}>{step.desc}</p>
+                  <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7, margin: 0 }}>{step.desc}</p>
                 </div>
                 {i < STEPS.length - 1 && (
                   <div className="biz-lp-step-connector" style={{
@@ -311,7 +311,7 @@ export default function BizLandingPage() {
 
       {/* CTA */}
       <section style={{
-        background: "linear-gradient(135deg, #002366, #3B5FD9)",
+        background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
         color: "#fff",
         padding: "64px 40px",
         textAlign: "center",
@@ -327,7 +327,7 @@ export default function BizLandingPage() {
           <Link href="/biz/auth" style={{
             display: "inline-block",
             background: "#fff",
-            color: "#002366",
+            color: "var(--royal)",
             padding: "14px 36px",
             borderRadius: 10,
             textDecoration: "none",
@@ -360,7 +360,7 @@ export default function BizLandingPage() {
       {/* Footer */}
       <footer style={{
         background: "#0f172a",
-        color: "#64748b",
+        color: "#6b7280",
         padding: "28px 40px",
         display: "flex",
         alignItems: "center",
@@ -370,9 +370,9 @@ export default function BizLandingPage() {
       }}>
         <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>OPINIO</span>
         <div style={{ display: "flex", gap: 20, fontSize: 12 }}>
-          <Link href="/terms" style={{ color: "#64748b", textDecoration: "none" }}>利用規約</Link>
-          <Link href="/privacy" style={{ color: "#64748b", textDecoration: "none" }}>プライバシーポリシー</Link>
-          <Link href="/" style={{ color: "#64748b", textDecoration: "none" }}>求職者向けトップ</Link>
+          <Link href="/terms" style={{ color: "#6b7280", textDecoration: "none" }}>利用規約</Link>
+          <Link href="/privacy" style={{ color: "#6b7280", textDecoration: "none" }}>プライバシーポリシー</Link>
+          <Link href="/" style={{ color: "#6b7280", textDecoration: "none" }}>求職者向けトップ</Link>
         </div>
         <span style={{ fontSize: 12 }}>© 2026 OPINIO Inc.</span>
       </footer>

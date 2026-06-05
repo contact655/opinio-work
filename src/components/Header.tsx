@@ -391,13 +391,13 @@ export default function Header() {
         <div className="flex items-center justify-between" style={{ height: 64 }}>
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2" style={{ textDecoration: "none" }}>
-            <span style={{ fontSize: 20, fontWeight: 800, color: "var(--royal,#002366)", letterSpacing: "-0.5px", fontFamily: "'Inter', sans-serif" }}>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "var(--royal,var(--royal))", letterSpacing: "-0.5px", fontFamily: "'Inter', sans-serif" }}>
               OPINIO
             </span>
             <span style={{
               fontSize: 9, fontWeight: 700, letterSpacing: "0.12em",
               padding: "2px 6px", borderRadius: 3,
-              background: "var(--royal,#002366)", color: "#fff",
+              background: "var(--royal,var(--royal))", color: "#fff",
               textTransform: "uppercase",
               display: "inline-block",
             }}>

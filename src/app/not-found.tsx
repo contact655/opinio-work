@@ -20,7 +20,7 @@ export default function NotFound() {
       <div style={{ textAlign: "center", maxWidth: 480 }}>
         {/* Logo */}
         <Link href="/" style={{ textDecoration: "none", display: "inline-block", marginBottom: 40 }}>
-          <span style={{ fontSize: 24, fontWeight: 800, color: "#002366", letterSpacing: "-0.02em" }}>OPINIO</span>
+          <span style={{ fontSize: 24, fontWeight: 800, color: "var(--royal)", letterSpacing: "-0.02em" }}>OPINIO</span>
         </Link>
 
         {/* 404 Number */}
@@ -29,7 +29,7 @@ export default function NotFound() {
           fontWeight: 800,
           lineHeight: 1,
           marginBottom: 16,
-          background: "linear-gradient(135deg, #002366, #3B5FD9)",
+          background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
           backgroundClip: "text",
@@ -40,7 +40,7 @@ export default function NotFound() {
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0f172a", margin: "0 0 12px" }}>
           ページが見つかりません
         </h1>
-        <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.7, margin: "0 0 36px" }}>
+        <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.7, margin: "0 0 36px" }}>
           お探しのページは移動または削除された可能性があります。<br />
           URLをご確認いただくか、トップページからお探しください。
         </p>
@@ -49,7 +49,7 @@ export default function NotFound() {
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <Link href="/" style={{
             display: "inline-block",
-            background: "#002366",
+            background: "var(--royal)",
             color: "#fff",
             padding: "12px 28px",
             borderRadius: 8,
@@ -62,13 +62,13 @@ export default function NotFound() {
           <Link href="/companies" style={{
             display: "inline-block",
             background: "#fff",
-            color: "#002366",
+            color: "var(--royal)",
             padding: "12px 28px",
             borderRadius: 8,
             textDecoration: "none",
             fontWeight: 600,
             fontSize: 14,
-            border: "1.5px solid #002366",
+            border: "1.5px solid var(--royal)",
           }}>
             企業一覧を見る
           </Link>

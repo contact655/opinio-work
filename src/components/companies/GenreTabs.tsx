@@ -18,13 +18,13 @@ const GENRE_CONFIG: Record<string, { icon: string; color: string; bg: string; ac
   "foreign-capital":  { icon: "🌍", color: "#0D9488", bg: "#F0FDFA",  activeBg: "linear-gradient(135deg, #0F766E, #0D9488)" },
   "startup":          { icon: "🦄", color: "#7C3AED", bg: "#F3E8FF",  activeBg: "linear-gradient(135deg, #6D28D9, #7C3AED)" },
   "mega-venture":     { icon: "🏢", color: "#DC2626", bg: "#FEE2E2",  activeBg: "linear-gradient(135deg, #B91C1C, #DC2626)" },
-  "public-company":   { icon: "🏛", color: "#002366", bg: "#EFF3FC",  activeBg: "linear-gradient(135deg, #001233, #002366)" },
+  "public-company":   { icon: "🏛", color: "var(--royal)", bg: "#EFF3FC",  activeBg: "linear-gradient(135deg, #001233, var(--royal))" },
   // 業種タブ
-  "hrtech":           { icon: "👥", color: "#059669", bg: "#ECFDF5",  activeBg: "linear-gradient(135deg, #047857, #059669)" },
+  "hrtech":           { icon: "👥", color: "var(--success)", bg: "#ECFDF5",  activeBg: "linear-gradient(135deg, #047857, var(--success))" },
   "fintech":          { icon: "💰", color: "#D97706", bg: "#FEF3C7",  activeBg: "linear-gradient(135deg, #B45309, #D97706)" },
   "edtech":           { icon: "📚", color: "#0284C7", bg: "#E0F2FE",  activeBg: "linear-gradient(135deg, #0369A1, #0284C7)" },
   "ai-llm":           { icon: "🤖", color: "#0891B2", bg: "#ECFEFF",  activeBg: "linear-gradient(135deg, #0E7490, #0891B2)" },
-  "healthtech":       { icon: "🏥", color: "#059669", bg: "#ECFDF5",  activeBg: "linear-gradient(135deg, #047857, #059669)" },
+  "healthtech":       { icon: "🏥", color: "var(--success)", bg: "#ECFDF5",  activeBg: "linear-gradient(135deg, #047857, var(--success))" },
   "martech":          { icon: "📣", color: "#EA580C", bg: "#FFF7ED",  activeBg: "linear-gradient(135deg, #C2410C, #EA580C)" },
   "proptech":         { icon: "🏠", color: "#D97706", bg: "#FEF3C7",  activeBg: "linear-gradient(135deg, #B45309, #D97706)" },
   "legaltech":        { icon: "⚖️", color: "#475569", bg: "#F1F5F9",  activeBg: "linear-gradient(135deg, #334155, #475569)" },
@@ -34,14 +34,14 @@ const GENRE_CONFIG: Record<string, { icon: string; color: string; bg: string; ac
   "business-dx":      { icon: "🔧", color: "#0891B2", bg: "#ECFEFF",  activeBg: "linear-gradient(135deg, #0E7490, #0891B2)" },
   // レガシー（表示はしないが config として残す）
   "horizontal-saas":  { icon: "🔗", color: "#4F46E5", bg: "#EEF2FF",  activeBg: "linear-gradient(135deg, #3730A3, #4F46E5)" },
-  "vertical-saas":    { icon: "🏗️", color: "#002366", bg: "#EFF3FC",  activeBg: "linear-gradient(135deg, #002366, #3B5FD9)" },
-  "early-stage":      { icon: "🌱", color: "#059669", bg: "#ECFDF5",  activeBg: "linear-gradient(135deg, #047857, #059669)" },
+  "vertical-saas":    { icon: "🏗️", color: "var(--royal)", bg: "#EFF3FC",  activeBg: "linear-gradient(135deg, var(--royal), #3B5FD9)" },
+  "early-stage":      { icon: "🌱", color: "var(--success)", bg: "#ECFDF5",  activeBg: "linear-gradient(135deg, #047857, var(--success))" },
   "dx-consulting":    { icon: "📊", color: "#7C3AED", bg: "#F3E8FF",  activeBg: "linear-gradient(135deg, #6D28D9, #7C3AED)" },
   "ipo-ready":        { icon: "📈", color: "#D97706", bg: "#FEF3C7",  activeBg: "linear-gradient(135deg, #B45309, #D97706)" },
 };
 
 function getGenreConfig(slug: string) {
-  return GENRE_CONFIG[slug] ?? { icon: "🏢", color: "#002366", bg: "#EFF3FC", activeBg: "linear-gradient(135deg, #002366, #3B5FD9)" };
+  return GENRE_CONFIG[slug] ?? { icon: "🏢", color: "var(--royal)", bg: "#EFF3FC", activeBg: "linear-gradient(135deg, var(--royal), #3B5FD9)" };
 }
 
 // 特徴タブに表示するslug（表示順）

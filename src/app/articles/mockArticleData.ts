@@ -55,8 +55,8 @@ export type Article = {
 // ─── Gradient palette ─────────────────────────────────────────────────────────
 
 const G = {
-  royal:  "linear-gradient(135deg, #002366 0%, #1E40AF 100%)",
-  green:  "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+  royal:  "linear-gradient(135deg, var(--royal) 0%, #1E40AF 100%)",
+  green:  "linear-gradient(135deg, var(--success) 0%, #10B981 100%)",
   pink:   "linear-gradient(135deg, #DB2777 0%, #F472B6 100%)",
   amber:  "linear-gradient(135deg, #D97706 0%, #F59E0B 100%)",
   purple: "linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)",
@@ -68,16 +68,16 @@ const G = {
 };
 
 const CG = {
-  layerx:    "linear-gradient(135deg, #002366 0%, #3B5FD9 100%)",
+  layerx:    "linear-gradient(135deg, var(--royal) 0%, #3B5FD9 100%)",
   smarthr:   "linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)",
   hubspot:   "linear-gradient(135deg, #EA580C 0%, #F97316 100%)",
   salesforce:"linear-gradient(135deg, #0284C7 0%, #06B6D4 100%)",
-  ubie:      "linear-gradient(135deg, #059669 0%, #34D399 100%)",
+  ubie:      "linear-gradient(135deg, var(--success) 0%, #34D399 100%)",
   freee:     "linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)",
   sansan:    "linear-gradient(135deg, #D97706 0%, #F59E0B 100%)",
   moneyforward: "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)",
   datadog:   "linear-gradient(135deg, #7C3AED 0%, #DB2777 100%)",
-  kubell:    "linear-gradient(135deg, #059669 0%, #0D9488 100%)",
+  kubell:    "linear-gradient(135deg, var(--success) 0%, #0D9488 100%)",
   notion:    "linear-gradient(135deg, #0F172A 0%, #374151 100%)",
   pksha:     "linear-gradient(135deg, #E11D48 0%, #F43F5E 100%)",
 };
@@ -173,7 +173,7 @@ export const MOCK_ARTICLES: Article[] = [
     company_name: "LayerX",
     company_initial: "L",
     company_gradient: CG.layerx,
-    eyecatch_gradient: "linear-gradient(135deg, #002366 0%, #1E40AF 100%)",
+    eyecatch_gradient: "linear-gradient(135deg, var(--royal) 0%, #1E40AF 100%)",
     subject: {
       initial: "鈴", gradient: G.royal,
       name: "鈴木 拓海", role_at_interview: "バックエンドエンジニア / LayerX バクラク事業部",
@@ -594,7 +594,7 @@ export const MOCK_ARTICLES: Article[] = [
     company_name: "freee",
     company_initial: "F",
     company_gradient: CG.freee,
-    eyecatch_gradient: "linear-gradient(135deg, #059669 0%, #34D399 100%)",
+    eyecatch_gradient: "linear-gradient(135deg, var(--success) 0%, #34D399 100%)",
     subjects: [
       {
         initial: "野", gradient: G.royal,

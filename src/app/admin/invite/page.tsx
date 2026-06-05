@@ -57,7 +57,7 @@ export default function AdminInvitePage() {
     <div style={{ padding: "32px 40px", maxWidth: 720 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-        <Link href="/admin" style={{ fontSize: 13, color: "#64748b", textDecoration: "none" }}>← 管理TOP</Link>
+        <Link href="/admin" style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>← 管理TOP</Link>
         <span style={{ color: "#e2e8f0" }}>|</span>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", margin: 0 }}>ユーザー招待</h1>
         <span style={{
@@ -80,9 +80,9 @@ export default function AdminInvitePage() {
                 onClick={() => setRole(r)}
                 style={{
                   padding: "8px 20px", fontSize: 13, fontWeight: 600, borderRadius: 8,
-                  border: `1.5px solid ${role === r ? "#002366" : "#e2e8f0"}`,
+                  border: `1.5px solid ${role === r ? "var(--royal)" : "#e2e8f0"}`,
                   background: role === r ? "#eff3fc" : "#fff",
-                  color: role === r ? "#002366" : "#64748b",
+                  color: role === r ? "var(--royal)" : "#6b7280",
                   cursor: "pointer", fontFamily: "inherit",
                 }}
               >
@@ -145,7 +145,7 @@ export default function AdminInvitePage() {
           disabled={loading || emailList.length === 0}
           style={{
             padding: "12px 32px", fontSize: 14, fontWeight: 700,
-            background: loading || emailList.length === 0 ? "#e2e8f0" : "#002366",
+            background: loading || emailList.length === 0 ? "#e2e8f0" : "var(--royal)",
             color: loading || emailList.length === 0 ? "#94a3b8" : "#fff",
             border: "none", borderRadius: 10, cursor: loading || emailList.length === 0 ? "default" : "pointer",
             fontFamily: "inherit",
@@ -163,7 +163,7 @@ export default function AdminInvitePage() {
             background: summary.failed === 0 ? "#ecfdf5" : "#fffbeb",
             border: `1px solid ${summary.failed === 0 ? "#a7f3d0" : "#fde68a"}`,
           }}>
-            <span style={{ fontWeight: 700, color: summary.failed === 0 ? "#059669" : "#d97706", display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontWeight: 700, color: summary.failed === 0 ? "var(--success)" : "#d97706", display: "flex", alignItems: "center", gap: 6 }}>
               {summary.failed === 0
                 ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
                 : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>

@@ -130,7 +130,7 @@ function Hero({ stats }: { stats: SiteStats }) {
 
   return (
     <section style={{
-      background: `linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)`,
+      background: `linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1a3569 100%)`,
       padding: "80px 48px 100px",
       overflow: "hidden",
       position: "relative",
@@ -445,14 +445,14 @@ function DiffStrip() {
     },
     {
       icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
       ),
       title: "現役社員・OBの声",
       desc: "求人票の裏側にある「実際の働き方」「入社後のギャップ」を確認してから動けます。",
-      color: "#059669",
+      color: "var(--success)",
       bg: "#ECFDF5",
     },
   ];
@@ -522,9 +522,9 @@ type PreviewCompany = {
 };
 
 const PHASE_COLORS: Record<string, { bg: string; color: string }> = {
-  "シリーズA": { bg: "#EFF3FC", color: "#002366" },
+  "シリーズA": { bg: "#EFF3FC", color: "var(--royal)" },
   "シリーズB": { bg: "#F3E8FF", color: "#7C3AED" },
-  "シリーズC": { bg: "#ECFDF5", color: "#059669" },
+  "シリーズC": { bg: "#ECFDF5", color: "var(--success)" },
   "上場": { bg: "#FEF3C7", color: "#D97706" },
   "グロース": { bg: "#FEF3C7", color: "#D97706" },
   "プライム": { bg: "#FEF3C7", color: "#B45309" },
@@ -1045,7 +1045,7 @@ function HowItWorks() {
       desc: "応募する、今の会社に残る、もう少し考える。どの選択肢もあなたが主役です。",
       action: "→ 自分のペースで転職を判断",
       href: "/jobs",
-      iconBg: "linear-gradient(135deg, #059669, #047857)",
+      iconBg: "linear-gradient(135deg, var(--success), #047857)",
       icon: <CheckMark />,
     },
   ];
@@ -1187,7 +1187,7 @@ const USE_CASES = [
         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
       </svg>
     ),
-    gradient: "linear-gradient(135deg, #059669, #34D399)",
+    gradient: "linear-gradient(135deg, var(--success), #34D399)",
     href: "/jobs",
     cta: "求人を見る →",
   },
@@ -1439,7 +1439,7 @@ function StoryCard({ story }: { story: PreviewStory }) {
         {/* Cover image or gradient placeholder */}
         <div style={{
           height: 120,
-          background: story.companyLogoGradient ?? "linear-gradient(135deg, #001233, #002366)",
+          background: story.companyLogoGradient ?? "linear-gradient(135deg, #001233, var(--royal))",
           display: "flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0,
           overflow: "hidden",
@@ -1471,7 +1471,7 @@ function StoryCard({ story }: { story: PreviewStory }) {
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div style={{
               width: 20, height: 20, borderRadius: 4, flexShrink: 0,
-              background: story.companyLogoGradient ?? "linear-gradient(135deg, #001233, #002366)",
+              background: story.companyLogoGradient ?? "linear-gradient(135deg, #001233, var(--royal))",
               display: "flex", alignItems: "center", justifyContent: "center",
               overflow: "hidden",
             }}>

@@ -900,7 +900,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                   width: "100%", padding: "14px 28px",
                   background: "transparent",
-                  color: "#002366", border: "1.5px solid #002366", borderRadius: 8,
+                  color: "var(--royal)", border: "1.5px solid var(--royal)", borderRadius: 8,
                   fontSize: 14, fontWeight: 700, textDecoration: "none", textAlign: "center",
                 }}>
                   応募する

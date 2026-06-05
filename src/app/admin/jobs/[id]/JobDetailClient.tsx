@@ -66,7 +66,7 @@ const STATUS_BADGE: Record<string, { label: string; color: string; bg: string; b
   active:         { label: "公開中(旧)", color: "#065F46", bg: "#ECFDF5", border: "#A7F3D0" },
   draft:          { label: "下書き",     color: "#475569", bg: "#F1F5F9", border: "#E2E8F0" },
   rejected:       { label: "差し戻し",   color: "#991B1B", bg: "#FEE2E2", border: "#FCA5A5" },
-  private:        { label: "非公開",     color: "#64748B", bg: "#F8FAFC", border: "#E2E8F0" },
+  private:        { label: "非公開",     color: "#6b7280", bg: "#F8FAFC", border: "#E2E8F0" },
 };
 
 function normalizedStatus(s: string | null) {
@@ -101,7 +101,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
-      <div style={{ width: 140, flexShrink: 0, fontSize: 12, color: "#64748B", paddingTop: 1 }}>{label}</div>
+      <div style={{ width: 140, flexShrink: 0, fontSize: 12, color: "#6b7280", paddingTop: 1 }}>{label}</div>
       <div style={{ flex: 1, fontSize: 13, color: "#0F172A", lineHeight: 1.7 }}>{value || "—"}</div>
     </div>
   );
@@ -128,7 +128,7 @@ function TagList({ items }: { items: string[] }) {
       {items.map((item, i) => (
         <span key={i} style={{
           fontSize: 12, padding: "3px 10px", borderRadius: 100,
-          background: "#EFF3FC", color: "#002366", border: "1px solid #DCE5F7",
+          background: "#EFF3FC", color: "var(--royal)", border: "1px solid #DCE5F7",
         }}>
           {item}
         </span>
@@ -229,7 +229,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div style={{ marginBottom: 32 }}>
         <Link href="/admin/jobs" style={{
-          fontSize: 12, color: "#64748B", textDecoration: "none",
+          fontSize: 12, color: "#6b7280", textDecoration: "none",
           display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16,
         }}>
           ← 求人管理一覧
@@ -248,9 +248,9 @@ export default function JobDetailClient({ job }: { job: Job }) {
                 {badge.label}
               </span>
             </div>
-            <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#64748B" }}>
+            <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#6b7280" }}>
               {company && (
-                <Link href={`/admin/companies/${company.id}`} style={{ color: "#002366", textDecoration: "none", fontWeight: 600 }}>
+                <Link href={`/admin/companies/${company.id}`} style={{ color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>
                   {company.name}
                 </Link>
               )}
@@ -319,7 +319,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
                 style={{
                   padding: "8px 20px", borderRadius: 6, fontSize: 13, fontWeight: 600,
                   cursor: "pointer", border: "1px solid #B2C4F0",
-                  background: "#EFF3FC", color: "#002366",
+                  background: "#EFF3FC", color: "var(--royal)",
                   opacity: actionLoading ? 0.5 : 1,
                 }}
               >
@@ -426,7 +426,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
                   <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                     <span style={{
                       width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
-                      background: "#002366", color: "#fff",
+                      background: "var(--royal)", color: "#fff",
                       fontSize: 10, fontWeight: 700, display: "flex",
                       alignItems: "center", justifyContent: "center",
                     }}>
@@ -456,7 +456,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
             <Section title="企業情報">
               <Field label="企業名" value={
                 company ? (
-                  <Link href={`/admin/companies/${company.id}`} style={{ color: "#002366", textDecoration: "none" }}>
+                  <Link href={`/admin/companies/${company.id}`} style={{ color: "var(--royal)", textDecoration: "none" }}>
                     {company.name}
                   </Link>
                 ) : "—"
@@ -467,7 +467,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
                   background: company?.is_published ? "#ECFDF5" : "#F1F5F9",
-                  color: company?.is_published ? "#059669" : "#94A3B8",
+                  color: company?.is_published ? "var(--success)" : "#94A3B8",
                 }}>
                   {company?.is_published ? "公開中" : "非公開"}
                 </span>
@@ -521,7 +521,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
             <h2 id="reject-modal-title" style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>
               差し戻し理由を入力
             </h2>
-            <p style={{ fontSize: 12, color: "#64748B", marginBottom: 16, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 16, lineHeight: 1.6 }}>
               企業担当者に通知されます。修正してほしい箇所を具体的に記載してください。
             </p>
 
@@ -541,7 +541,7 @@ export default function JobDetailClient({ job }: { job: Job }) {
             />
 
             <div style={{ marginBottom: 20 }}>
-              <label htmlFor="jd-reviewer" style={{ fontSize: 12, color: "#64748B", display: "block", marginBottom: 4 }}>
+              <label htmlFor="jd-reviewer" style={{ fontSize: 12, color: "#6b7280", display: "block", marginBottom: 4 }}>
                 担当者名（表示用）
               </label>
               <input

@@ -138,7 +138,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
         <div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:8px">${j.title}</div>
         <div style="font-size:12px;color:#6b7280;margin-bottom:12px">${meta}</div>
         <a href="${BASE_URL}/jobs/${j.id}"
-           style="display:inline-block;background:#1D9E75;color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500">
+           style="display:inline-block;background:#059669;color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500">
           詳細を見る →
         </a>
       </div>`;
@@ -149,7 +149,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
     totalCount > 3
       ? `<div style="text-align:center;margin-top:8px;margin-bottom:16px">
            <a href="${BASE_URL}/jobs?sort=newest"
-              style="display:inline-block;border:1px solid #1D9E75;color:#1D9E75;padding:10px 24px;border-radius:8px;font-size:14px;text-decoration:none;font-weight:500">
+              style="display:inline-block;border:1px solid #059669;color:#059669;padding:10px 24px;border-radius:8px;font-size:14px;text-decoration:none;font-weight:500">
              他 ${totalCount - 3}件の新着を見る →
            </a>
          </div>`
@@ -161,7 +161,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
     <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111827;background:#f9fafb">
       <div style="margin-bottom:24px">
         <span style="font-size:20px;font-weight:700;color:#002366">OPINIO</span>
-        <span style="font-size:11px;color:#64748b;margin-left:8px">IT/SaaS業界のキャリアインフラ</span>
+        <span style="font-size:11px;color:#6b7280;margin-left:8px">IT/SaaS業界のキャリアインフラ</span>
       </div>
 
       <!-- 今週の注目バナー -->
@@ -196,9 +196,9 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
         <p style="font-size:12px;color:#6b7280;margin-bottom:4px">
           OPINIOは IT/SaaS業界専門のキャリアプラットフォームです
         </p>
-        <p style="font-size:11px;color:#9ca3af;line-height:1.6">
+        <p style="font-size:11px;color:#94a3b8;line-height:1.6">
           OPINIO &middot; IT/SaaS業界のキャリアインフラ<br>
-          配信停止は<a href="${BASE_URL}/mypage" style="color:#9ca3af">マイページ</a>から設定できます
+          配信停止は<a href="${BASE_URL}/mypage" style="color:#94a3b8">マイページ</a>から設定できます
         </p>
       </div>
     </body>

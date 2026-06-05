@@ -104,7 +104,7 @@ export default async function CompanyJobsPage({
     return Date.now() - new Date(publishedAt).getTime() < 7 * 24 * 60 * 60 * 1000;
   };
 
-  const gradient = company.logo_gradient || "linear-gradient(135deg,#002366,#3B5FD9)";
+  const gradient = company.logo_gradient || "linear-gradient(135deg,var(--royal),#3B5FD9)";
   const letter = company.logo_letter || (company.name ? company.name[0] : "?");
 
   return (

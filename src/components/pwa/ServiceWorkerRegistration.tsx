@@ -57,7 +57,7 @@ function showUpdateBanner() {
     bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
-    background: #002366;
+    background: var(--royal);
     color: white;
     padding: 12px 20px;
     border-radius: 12px;

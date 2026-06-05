@@ -23,7 +23,7 @@ export default function FaqSection() {
   return (
     <section style={{ background: "#ffffff", paddingTop: 72, paddingBottom: 72 }}>
       <div className="max-w-4xl mx-auto px-8">
-        <p className="text-xs font-medium text-[#1D9E75] tracking-wide mb-2">FAQ</p>
+        <p className="text-xs font-medium text-[var(--success)] tracking-wide mb-2">FAQ</p>
         <h2 className="text-[28px] font-medium text-[#0f172a] mb-8">あなたの不安に、第三者の目でお答えします</h2>
         <div className="max-w-2xl">
           {faqs.map((faq, i) => (
@@ -38,7 +38,7 @@ export default function FaqSection() {
               >
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-[15px] font-medium text-[#0f172a]">{faq.q}</span>
-                  <span className="text-[#1D9E75] text-xl flex-shrink-0 transition-transform" style={{ transform: open === i ? "rotate(45deg)" : "none" }} aria-hidden="true">+</span>
+                  <span className="text-[var(--success)] text-xl flex-shrink-0 transition-transform" style={{ transform: open === i ? "rotate(45deg)" : "none" }} aria-hidden="true">+</span>
                 </div>
               </button>
               {open === i && (

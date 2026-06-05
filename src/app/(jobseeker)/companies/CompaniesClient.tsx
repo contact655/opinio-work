@@ -68,7 +68,7 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
 
   // カバーエリア: 写真 or 統一グラデーション（バラバラな色を避けるため navy 系に統一）
   // ロゴアバターには logo_gradient をそのまま使う（小さいため色の多様性はOK）
-  const fallbackGradient = "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
+  const fallbackGradient = "linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)";
 
   return (
     <Link href={`/companies/${company.id}`} prefetch={true} style={{ textDecoration: "none", display: "block", height: "100%" }}>
@@ -410,7 +410,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
     <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
       {/* ── Page hero ─────────────────────────────────────────────────────── */}
       <div style={{
-        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
+        background: "linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1a3569 100%)",
         padding: "40px 0 36px",
         position: "relative",
         overflow: "hidden",

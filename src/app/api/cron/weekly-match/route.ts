@@ -173,7 +173,7 @@ function generateWeeklyEmail(topJobs: any[]): string {
           <strong>マッチ理由：</strong>${j.matchReason}
         </div>
         <a href="${BASE_URL}/jobs/${j.id}"
-           style="display:inline-block;background:#1D9E75;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500">
+           style="display:inline-block;background:#059669;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500">
           詳細を見る →
         </a>
       </div>
@@ -187,7 +187,7 @@ function generateWeeklyEmail(topJobs: any[]): string {
     <body style="font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
       <div style="margin-bottom:24px">
         <span style="font-size:18px;font-weight:600;color:#002366">OPINIO</span>
-        <span style="font-size:11px;color:#64748b;margin-left:8px">IT/SaaS業界のキャリアインフラ</span>
+        <span style="font-size:11px;color:#6b7280;margin-left:8px">IT/SaaS業界のキャリアインフラ</span>
       </div>
       <h1 style="font-size:20px;font-weight:600;margin-bottom:4px">今週のあなたへのおすすめ求人</h1>
       <p style="color:#6b7280;font-size:14px;margin-bottom:20px">
@@ -196,13 +196,13 @@ function generateWeeklyEmail(topJobs: any[]): string {
       ${jobsHtml}
       <div style="border-top:1px solid #e5e7eb;padding-top:16px;margin-top:20px">
         <a href="${BASE_URL}/jobs"
-           style="display:inline-block;border:1px solid #1D9E75;color:#1D9E75;padding:10px 20px;border-radius:8px;font-size:14px;text-decoration:none">
+           style="display:inline-block;border:1px solid #059669;color:#059669;padding:10px 20px;border-radius:8px;font-size:14px;text-decoration:none">
           すべての求人を見る
         </a>
       </div>
-      <p style="font-size:11px;color:#9ca3af;margin-top:20px">
+      <p style="font-size:11px;color:#94a3b8;margin-top:20px">
         OPINIO &middot; IT/SaaS業界のキャリアインフラ<br>
-        配信停止は<a href="${BASE_URL}/mypage" style="color:#9ca3af">マイページ</a>から設定できます
+        配信停止は<a href="${BASE_URL}/mypage" style="color:#94a3b8">マイページ</a>から設定できます
       </p>
     </body>
     </html>

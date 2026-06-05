@@ -31,7 +31,7 @@ export function AcceptInviteClient(props: Props) {
       }}>
         {/* Header */}
         <div style={{
-          background: "linear-gradient(135deg, #001A4D 0%, #002366 60%, #3B5FD9 100%)",
+          background: "linear-gradient(135deg, #001A4D 0%, var(--royal) 60%, #3B5FD9 100%)",
           padding: "28px 32px",
           color: "#fff",
         }}>

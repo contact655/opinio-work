@@ -19,8 +19,8 @@ const SIZES: Record<AvatarSize, { px: number; fontSize: number }> = {
 };
 
 const GRADIENTS: Record<AvatarGradient, string> = {
-  royal:  "linear-gradient(135deg, #002366, #3B5FD9)",
-  green:  "linear-gradient(135deg, #059669, #047857)",
+  royal:  "linear-gradient(135deg, var(--royal), #3B5FD9)",
+  green:  "linear-gradient(135deg, var(--success), #047857)",
   pink:   "linear-gradient(135deg, #DB2777, #BE185D)",
   purple: "linear-gradient(135deg, #A78BFA, #7C3AED)",
   cyan:   "linear-gradient(135deg, #22D3EE, #0891B2)",

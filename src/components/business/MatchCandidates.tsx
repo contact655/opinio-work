@@ -53,9 +53,9 @@ function CandidateCard({ c }: { c: MatchCandidate }) {
 
 // Dummy avatar gradients for illustration
 const PREVIEW_AVATARS = [
-  { initial: "A", gradient: "linear-gradient(135deg, #002366, #3B5FD9)" },
+  { initial: "A", gradient: "linear-gradient(135deg, var(--royal), #3B5FD9)" },
   { initial: "K", gradient: "linear-gradient(135deg, #7C3AED, #C4B5FD)" },
-  { initial: "M", gradient: "linear-gradient(135deg, #059669, #34D399)" },
+  { initial: "M", gradient: "linear-gradient(135deg, var(--success), #34D399)" },
   { initial: "T", gradient: "linear-gradient(135deg, #F59E0B, #FCD34D)" },
   { initial: "S", gradient: "linear-gradient(135deg, #DC2626, #FCA5A5)" },
 ];

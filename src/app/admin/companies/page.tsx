@@ -6,13 +6,13 @@ import { createClient } from "@/lib/supabase/client";
 
 function getCompanyGradient(str: string): string {
   const gradients = [
-    "linear-gradient(135deg, #002366, #3B5FD9)",
+    "linear-gradient(135deg, var(--royal), #3B5FD9)",
     "linear-gradient(135deg, #7C3AED, #A855F7)",
-    "linear-gradient(135deg, #059669, #10B981)",
+    "linear-gradient(135deg, var(--success), #10B981)",
     "linear-gradient(135deg, #F59E0B, #FBBF24)",
     "linear-gradient(135deg, #0EA5E9, #38BDF8)",
     "linear-gradient(135deg, #D97706, #F59E0B)",
-    "linear-gradient(135deg, #7C3AED, #002366)",
+    "linear-gradient(135deg, #7C3AED, var(--royal))",
     "linear-gradient(135deg, #DC2626, #F87171)",
   ];
   let hash = 0;
@@ -24,9 +24,9 @@ type EngagementStatus = "none" | "verified" | "contracted";
 type ListingStatus = "draft" | "listed";
 
 const ENGAGEMENT_CONFIG: Record<EngagementStatus, { label: string; bg: string; color: string; border: string; dot: string }> = {
-  none:       { label: "未認証",         bg: "#F1F5F9", color: "#64748B", border: "#E2E8F0", dot: "#94A3B8" },
-  verified:   { label: "ドメイン認証済", bg: "#EFF3FC", color: "#002366", border: "#DCE5F7", dot: "#3B5FD9" },
-  contracted: { label: "契約済み",       bg: "#ECFDF5", color: "#059669", border: "#A7F3D0", dot: "#059669" },
+  none:       { label: "未認証",         bg: "#F1F5F9", color: "#6b7280", border: "#E2E8F0", dot: "#94A3B8" },
+  verified:   { label: "ドメイン認証済", bg: "#EFF3FC", color: "var(--royal)", border: "#DCE5F7", dot: "#3B5FD9" },
+  contracted: { label: "契約済み",       bg: "#ECFDF5", color: "var(--success)", border: "#A7F3D0", dot: "var(--success)" },
 };
 
 const STATUS_TABS = [
@@ -246,9 +246,9 @@ export default function AdminCompaniesPage() {
         {/* KPI バッジ */}
         <div style={{ display: "flex", gap: 10 }}>
           {[
-            { label: "契約済み",         count: contractedCount, bg: "#ECFDF5", color: "#059669", border: "#A7F3D0" },
-            { label: "ドメイン認証済",   count: verifiedCount,   bg: "#EFF3FC", color: "#002366", border: "#DCE5F7" },
-            { label: "未認証",           count: noneCount,       bg: "#F1F5F9", color: "#64748B", border: "#E2E8F0" },
+            { label: "契約済み",         count: contractedCount, bg: "#ECFDF5", color: "var(--success)", border: "#A7F3D0" },
+            { label: "ドメイン認証済",   count: verifiedCount,   bg: "#EFF3FC", color: "var(--royal)", border: "#DCE5F7" },
+            { label: "未認証",           count: noneCount,       bg: "#F1F5F9", color: "#6b7280", border: "#E2E8F0" },
           ].map(({ label, count, bg, color, border }) => (
             <div key={label} style={{ textAlign: "center", padding: "8px 16px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
               <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "Inter, sans-serif", lineHeight: 1.2 }}>{count}</div>
@@ -262,7 +262,7 @@ export default function AdminCompaniesPage() {
       <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
         <strong style={{ color: "var(--ink)" }}>設計原則:</strong> 企業概要は広く掲載可（ディレクトリ）。
         ドメイン認証（<code style={{ background: "#EFF3FC", color: "var(--royal)", padding: "1px 5px", borderRadius: 4 }}>verified</code>）で企業情報の編集が可能。
-        規約同意（<code style={{ background: "#ECFDF5", color: "#059669", padding: "1px 5px", borderRadius: 4 }}>contracted</code>）のみ求人・面談OK公開・成果報酬請求可。
+        規約同意（<code style={{ background: "#ECFDF5", color: "var(--success)", padding: "1px 5px", borderRadius: 4 }}>contracted</code>）のみ求人・面談OK公開・成果報酬請求可。
       </div>
 
       {/* Search */}
@@ -274,7 +274,7 @@ export default function AdminCompaniesPage() {
         <input type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="企業名・業界・所在地で検索..."
           style={{ width: "100%", padding: "9px 36px 9px 36px", border: "1.5px solid #E2E8F0", borderRadius: 8, fontSize: 13, color: "#0F172A", background: "#fff", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
-          onFocus={(e) => { e.target.style.borderColor = "#002366"; }}
+          onFocus={(e) => { e.target.style.borderColor = "var(--royal)"; }}
           onBlur={(e) => { e.target.style.borderColor = "#E2E8F0"; }}
         />
       </div>
@@ -286,12 +286,12 @@ export default function AdminCompaniesPage() {
           const active = activeTab === tab.key;
           return (
             <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)} style={{
-              padding: "6px 14px", borderRadius: 100, border: `1px solid ${active ? "#002366" : "#E2E8F0"}`,
-              background: active ? "#002366" : "#fff", color: active ? "#fff" : "#475569",
+              padding: "6px 14px", borderRadius: 100, border: `1px solid ${active ? "var(--royal)" : "#E2E8F0"}`,
+              background: active ? "var(--royal)" : "#fff", color: active ? "#fff" : "#475569",
               fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
             }}>
               {tab.label}
-              <span style={{ fontSize: 11, padding: "1px 6px", borderRadius: 100, background: active ? "rgba(255,255,255,0.2)" : "#F1F5F9", color: active ? "#fff" : "#64748B" }}>
+              <span style={{ fontSize: 11, padding: "1px 6px", borderRadius: 100, background: active ? "rgba(255,255,255,0.2)" : "#F1F5F9", color: active ? "#fff" : "#6b7280" }}>
                 {count}
               </span>
             </button>
@@ -373,7 +373,7 @@ export default function AdminCompaniesPage() {
                         <button type="button" onClick={() => handleTogglePublish(c)} disabled={isLoading}
                           style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100, cursor: "pointer",
                             background: c.is_published ? "#ECFDF5" : "#F1F5F9",
-                            color: c.is_published ? "#059669" : "#94A3B8",
+                            color: c.is_published ? "var(--success)" : "#94A3B8",
                             border: `1px solid ${c.is_published ? "#A7F3D0" : "#E2E8F0"}`,
                             opacity: isLoading ? 0.5 : 1,
                           }}>
@@ -419,7 +419,7 @@ export default function AdminCompaniesPage() {
                             style={{
                               fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100, cursor: "pointer",
                               background: c.jobs_public ? "var(--royal)" : "#F1F5F9",
-                              color: c.jobs_public ? "#fff" : "#64748B",
+                              color: c.jobs_public ? "#fff" : "#6b7280",
                               border: `1px solid ${c.jobs_public ? "var(--royal)" : "#E2E8F0"}`,
                               opacity: isLoading ? 0.5 : 1,
                             }}>

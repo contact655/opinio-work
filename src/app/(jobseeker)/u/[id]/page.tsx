@@ -94,8 +94,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
   const owUser = user as OwUser;
 
-  const avatarColor = owUser.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)";
-  const coverColor = owUser.cover_color ?? "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)";
+  const avatarColor = owUser.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)";
+  const coverColor = owUser.cover_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9, #818CF8)";
   const initial = owUser.name.charAt(0);
   const viewerIsOwner = !!authUser && owUser.auth_id === authUser.id;
 
@@ -417,7 +417,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       display: "inline-flex", alignItems: "center", gap: 5,
                       padding: "3px 10px", borderRadius: 100,
                       fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
-                      background: "linear-gradient(135deg, #059669, #10B981)",
+                      background: "linear-gradient(135deg, var(--success), #10B981)",
                       color: "#fff",
                       boxShadow: "0 2px 8px rgba(5,150,105,0.3)",
                       verticalAlign: "middle",
@@ -490,7 +490,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       const HEADER_SKILL_COLORS: Record<string, { color: string; bg: string }> = {
                         "技術・開発":    { color: "#2563EB", bg: "#EFF6FF" },
                         "プロダクト・UX": { color: "#7C3AED", bg: "#F3E8FF" },
-                        "ビジネス・営業": { color: "#059669", bg: "#ECFDF5" },
+                        "ビジネス・営業": { color: "var(--success)", bg: "#ECFDF5" },
                         "マーケティング": { color: "#D97706", bg: "#FEF3C7" },
                         "データ・分析":  { color: "#0891B2", bg: "#ECFEFF" },
                         "マネジメント":  { color: "#DC2626", bg: "#FEE2E2" },
@@ -848,7 +848,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   const CATEGORY_COLORS: Record<string, { color: string; bg: string; border: string }> = {
                     "技術・開発":    { color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
                     "プロダクト・UX": { color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                    "ビジネス・営業": { color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                    "ビジネス・営業": { color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
                     "マーケティング": { color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
                     "データ・分析":  { color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
                     "マネジメント":  { color: "#DC2626", bg: "#FEE2E2", border: "#FECACA" },
@@ -1265,7 +1265,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         {/* Thumbnail or placeholder */}
                         <div style={{
                           width: 52, height: 52, borderRadius: 8, flexShrink: 0,
-                          background: m.thumbnail_url ? undefined : "linear-gradient(135deg, #334155, #64748B)",
+                          background: m.thumbnail_url ? undefined : "linear-gradient(135deg, #334155, #6b7280)",
                           overflow: "hidden",
                           display: "flex", alignItems: "center", justifyContent: "center",
                         }}>
@@ -1573,7 +1573,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   }}>
                     <div style={{
                       width: 48, height: 48, borderRadius: 10, flexShrink: 0,
-                      background: currentCareer.logo_gradient ?? "linear-gradient(135deg, #002366, #3B5FD9)",
+                      background: currentCareer.logo_gradient ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       color: "#fff", fontSize: 18, fontWeight: 700,
                       border: "1px solid rgba(0,0,0,0.06)",
@@ -1706,24 +1706,24 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   "自我": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
                   "社交性": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
                   // 人間関係構築
-                  "適応性": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "つながり": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "成長促進": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "共感": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "調和性": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "包含": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "個別化": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "ポジティブ": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "親密性": { label: "関係構築", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "適応性": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "つながり": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "成長促進": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "共感": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "調和性": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "包含": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "個別化": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "ポジティブ": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
+                  "親密性": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
                   // 戦略的思考
-                  "分析思考": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "文脈": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "未来志向": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "着想": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "収集心": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "内省": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "学習欲": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "戦略性": { label: "戦略思考", color: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "分析思考": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "文脈": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "未来志向": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "着想": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "収集心": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "内省": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "学習欲": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
+                  "戦略性": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
                 };
                 const strengths: string[] = [];
                 return (

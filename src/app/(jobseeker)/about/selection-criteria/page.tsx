@@ -70,7 +70,7 @@ export default function SelectionCriteriaPage() {
       </nav>
       {/* Hero */}
       <div style={{
-        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
+        background: "linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1a3569 100%)",
         padding: "44px 0 40px", position: "relative", overflow: "hidden",
       }}>
         <div style={{ position: "absolute", right: -60, top: -60, width: 300, height: 300, borderRadius: "50%", background: "rgba(59,95,217,0.1)", pointerEvents: "none" }} />

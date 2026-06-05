@@ -110,7 +110,7 @@ export default async function MemberProfilePage({
                 {member.photo_url ? (
                   <Image src={member.photo_url} alt={member.name} width={96} height={96} style={{ objectFit: "cover" }} />
                 ) : (
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
@@ -140,7 +140,7 @@ export default async function MemberProfilePage({
                       </div>
                     )}
                     {company.name}
-                    <span style={{ color: "#9ca3af", fontSize: 11 }}>→</span>
+                    <span style={{ color: "#94a3b8", fontSize: 11 }}>→</span>
                   </Link>
                 )}
               </div>
@@ -149,7 +149,7 @@ export default async function MemberProfilePage({
             {/* 職種タグ */}
             {member.job_types && Array.isArray(member.job_types) && member.job_types.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500, letterSpacing: "0.05em", marginBottom: 8 }}>職種</div>
+                <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500, letterSpacing: "0.05em", marginBottom: 8 }}>職種</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {member.job_types.map((type: string, i: number) => (
                     <span key={i} style={{
@@ -168,11 +168,11 @@ export default async function MemberProfilePage({
             {/* 経歴タイムライン（Fix 22） */}
             {career.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500, letterSpacing: "0.05em", marginBottom: 12 }}>経歴</div>
+                <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500, letterSpacing: "0.05em", marginBottom: 12 }}>経歴</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {career.map((c, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingLeft: 4 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "#1D9E75", minWidth: 56, flexShrink: 0, paddingTop: 2 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--success)", minWidth: 56, flexShrink: 0, paddingTop: 2 }}>
                         {c.year || "—"}
                       </div>
                       <div style={{ flex: 1 }}>
@@ -195,7 +195,7 @@ export default async function MemberProfilePage({
             {/* 経歴 (legacy background field) */}
             {!career.length && member.background && (
               <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500, letterSpacing: "0.05em", marginBottom: 8 }}>経歴</div>
+                <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500, letterSpacing: "0.05em", marginBottom: 8 }}>経歴</div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>
                   {member.background}
                 </p>
@@ -205,7 +205,7 @@ export default async function MemberProfilePage({
             {/* CTA */}
             <div style={{ marginTop: 28, padding: "14px 18px", background: "#f0faf4", borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
               <span style={{ fontSize: 13, color: "#0F6E56" }}>このメンバーやこの企業について話を聞きたい</span>
-              <Link href="/career-consultation" style={{ fontSize: 13, fontWeight: 600, color: "#fff", background: "#1D9E75", padding: "8px 16px", borderRadius: 8, textDecoration: "none", whiteSpace: "nowrap" }}>
+              <Link href="/career-consultation" style={{ fontSize: 13, fontWeight: 600, color: "#fff", background: "var(--success)", padding: "8px 16px", borderRadius: 8, textDecoration: "none", whiteSpace: "nowrap" }}>
                 このメンバーに相談する →
               </Link>
             </div>
@@ -217,12 +217,12 @@ export default async function MemberProfilePage({
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: "#0f172a", padding: "3px 10px", borderRadius: 6 }}>Interview</span>
                 {(member as any).article_published_at && (
-                  <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>
                     取材日: {new Date((member as any).article_published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
                   </span>
                 )}
                 {(member as any).interviewer && (
-                  <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>
                     · インタビュアー: {(member as any).interviewer}
                   </span>
                 )}
@@ -260,7 +260,7 @@ export default async function MemberProfilePage({
                       {m.photo_url ? (
                         <Image src={m.photo_url} alt={m.name} width={40} height={40} style={{ objectFit: "cover" }} />
                       ) : (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                           <circle cx="12" cy="7" r="4" />
                         </svg>

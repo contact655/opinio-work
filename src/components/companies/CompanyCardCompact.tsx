@@ -33,8 +33,8 @@ function getStageCfg(stage: string | null) {
 const INDUSTRY_COLORS: Record<string, { color: string; bg: string }> = {
   "HR Tech":       { color: "#1e40af", bg: "#dbeafe" },
   "FinTech/SaaS":  { color: "#065f46", bg: "#d1fae5" },
-  "CRM":           { color: "#002366", bg: "#eff3fc" },
-  "CRM/SaaS":      { color: "#002366", bg: "#eff3fc" },
+  "CRM":           { color: "var(--royal)", bg: "#eff3fc" },
+  "CRM/SaaS":      { color: "var(--royal)", bg: "#eff3fc" },
   "AI Tech":       { color: "#6d28d9", bg: "#ede9fe" },
   "Sales Tech":    { color: "#0f766e", bg: "#ccfbf1" },
   "Med Tech":      { color: "#9a3412", bg: "#ffedd5" },
@@ -91,7 +91,7 @@ function cleanEnName(nameEn: string | null | undefined): string | null {
 export function CompanyCardCompact({ company, compact, members }: Props) {
   // ロゴエリアのグラデーション — DB の logo_gradient を優先使用
   const headerGradient = company.logo_gradient
-    ?? 'linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)';
+    ?? 'linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)';
 
   const initial = company.logo_letter ?? company.name.slice(0, 1);
   const displayName = cleanEnName(company.name_en) ?? company.name;
@@ -216,7 +216,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             fontSize: 9.5, fontWeight: 700,
             padding: '2px 7px', borderRadius: 100,
             background: 'rgba(255,255,255,0.92)',
-            color: '#059669',
+            color: 'var(--success)',
             border: '1px solid rgba(16,185,129,0.4)',
             whiteSpace: 'nowrap',
             backdropFilter: 'blur(4px)',

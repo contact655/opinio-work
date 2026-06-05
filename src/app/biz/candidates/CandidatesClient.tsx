@@ -42,8 +42,8 @@ const JOB_TYPE_OPTIONS = [
 ];
 
 const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg, #002366, #3B5FD9)",
-  "linear-gradient(135deg, #059669, #10b981)",
+  "linear-gradient(135deg, var(--royal), #3B5FD9)",
+  "linear-gradient(135deg, var(--success), #10b981)",
   "linear-gradient(135deg, #7C3AED, #a78bfa)",
   "linear-gradient(135deg, #d97706, #f59e0b)",
   "linear-gradient(135deg, #dc2626, #f87171)",

@@ -130,7 +130,7 @@ export async function PATCH(
       subject: `【採用確定】${job?.ow_companies?.name ?? "企業"} が採用を確定しました`,
       html: `<!DOCTYPE html><html lang="ja"><body style="font-family:sans-serif;padding:32px;background:#f1f5f9">
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;padding:32px">
-  <div style="background:linear-gradient(135deg,#002366,#3B5FD9);padding:20px 28px;border-radius:8px;margin-bottom:28px">
+  <div style="background:linear-gradient(135deg,var(--royal),#3B5FD9);padding:20px 28px;border-radius:8px;margin-bottom:28px">
     <span style="font-size:20px;font-weight:800;color:#fff">OPINIO</span>
     <span style="font-size:12px;color:rgba(255,255,255,0.7);margin-left:12px">採用確定通知</span>
   </div>

@@ -9,7 +9,7 @@
  * - buildFutureData: ow_users row → FutureData | null
  *
  * 設計前提:
- * - avatarColor フォールバック: "linear-gradient(135deg, #002366, #3B5FD9)"
+ * - avatarColor フォールバック: "linear-gradient(135deg, var(--royal), #3B5FD9)"
  * - initial: name.charAt(0)（UserProfileCard / MypageClient と同一ロジック）
  * - enrolled_at が NULL の学歴エントリは除外（MergedTimeline.EducationEntry は必須）
  */
@@ -22,7 +22,7 @@ import type {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const FALLBACK_AVATAR_COLOR = "linear-gradient(135deg, #002366, #3B5FD9)";
+const FALLBACK_AVATAR_COLOR = "linear-gradient(135deg, var(--royal), #3B5FD9)";
 
 // ─── Logo fallback helpers ────────────────────────────────────────────────────
 
@@ -40,8 +40,8 @@ function hashGradientIndex(str: string): number {
 
 /** テスト会社 DB と同じ 6 色ローテーション */
 const COMPANY_GRADIENTS = [
-  "linear-gradient(135deg, #002366, #3B5FD9)", // royal
-  "linear-gradient(135deg, #064E3B, #059669)", // green
+  "linear-gradient(135deg, var(--royal), #3B5FD9)", // royal
+  "linear-gradient(135deg, #064E3B, var(--success))", // green
   "linear-gradient(135deg, #92400E, #D97706)", // amber
   "linear-gradient(135deg, #4C1D95, #7C3AED)", // purple
   "linear-gradient(135deg, #991B1B, #DC2626)", // red
@@ -49,7 +49,7 @@ const COMPANY_GRADIENTS = [
 ];
 
 /** 非公開企業用ニュートラルグラデーション */
-const ANON_GRADIENT = "linear-gradient(135deg, #475569, #64748B)";
+const ANON_GRADIENT = "linear-gradient(135deg, #475569, #6b7280)";
 
 // ─── buildTimelineCareerEntriesFromRaw ───────────────────────────────────────
 

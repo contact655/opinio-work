@@ -30,7 +30,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
           style={{
             fontFamily: "Inter, sans-serif",
             fontWeight: 800,
-            color: "#002366",
+            color: "var(--royal)",
             fontSize: 18,
             letterSpacing: "-0.02em",
           }}

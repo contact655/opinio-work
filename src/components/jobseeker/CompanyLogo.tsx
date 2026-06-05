@@ -32,7 +32,7 @@ interface CompanyLogoProps {
   borderRadius?: number;
 }
 
-const DEFAULT_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
+const DEFAULT_GRADIENT = "linear-gradient(135deg, var(--royal), #3B5FD9)";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 

@@ -764,7 +764,7 @@ export default function MypageClient({
 }) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
-  const userAvatar = owUser?.avatar_color ?? "linear-gradient(135deg, #002366, #3B5FD9)";
+  const userAvatar = owUser?.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)";
 
   // currentRole: 現職の careerEntry から動的に生成（MOCK_USER.currentRole を置き換え）
   const currentCareer = timelineCareers.find((c) => c.is_current);

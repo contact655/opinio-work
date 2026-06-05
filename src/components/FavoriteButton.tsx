@@ -63,7 +63,7 @@ export default function FavoriteButton({
         width="14"
         height="14"
         fill={favorited ? "#E24B4A" : "none"}
-        stroke={favorited ? "#E24B4A" : "#9ca3af"}
+        stroke={favorited ? "#E24B4A" : "#94a3b8"}
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"

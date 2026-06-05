@@ -21,7 +21,7 @@ function productStyle(name: string): { bg: string; border: string; color: string
     return { bg: "#FFF7ED", border: "#FED7AA", color: "#C2410C" };
   if (n.includes("slack") || n.includes("コミュニ"))
     return { bg: "#F0FDF4", border: "#BBF7D0", color: "#065F46" };
-  return { bg: "#EFF3FC", border: "#DCE5F7", color: "#002366" };
+  return { bg: "#EFF3FC", border: "#DCE5F7", color: "var(--royal)" };
 }
 
 type CustomerCase = NonNullable<CompanyDetail["customer_cases"]>[number];

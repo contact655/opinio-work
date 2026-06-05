@@ -208,7 +208,7 @@ export default function UpdatePasswordPage() {
                         <div key={level} style={{
                           flex: 1, height: 3, borderRadius: 2,
                           background: password.length >= level * 4
-                            ? level === 1 ? "#f59e0b" : level === 2 ? "#3b82f6" : "#059669"
+                            ? level === 1 ? "#f59e0b" : level === 2 ? "#3b82f6" : "var(--success)"
                             : "var(--line)",
                           transition: "background 0.2s",
                         }} />

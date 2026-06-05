@@ -49,8 +49,8 @@ export const MOCK_PROFILE: ProfileData = {
   ageRange: "30代前半",
   aboutMe:
     "リクルートで4年間営業を経験後、タイミーへ転職しPdM・エンタープライズ営業を経験。2024年よりLayerXにジョイン。Bakuraku事業のプロダクトマネージャーとして、企業の経費精算・請求書処理の自動化を推進しています。「業務の民主化」というビジョンに共感し、プロダクト・ビジネス両面から事業成長に貢献しています。",
-  avatarColor: "linear-gradient(135deg, #002366, #3B5FD9)",
-  coverColor: "linear-gradient(135deg, #002366, #3B5FD9, #818CF8)",
+  avatarColor: "linear-gradient(135deg, var(--royal), #3B5FD9)",
+  coverColor: "linear-gradient(135deg, var(--royal), #3B5FD9, #818CF8)",
   experiences: [
     {
       id: "exp-1",

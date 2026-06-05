@@ -25,12 +25,12 @@ export async function GET() {
     slug: row.slug as string,
     type: row.type as string,
     title: row.title as string,
-    eyecatch_gradient: (row.eyecatch_gradient as string | null) ?? "linear-gradient(135deg, #002366, #3B5FD9)",
+    eyecatch_gradient: (row.eyecatch_gradient as string | null) ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
     read_min: (row.read_min as number) ?? 5,
     date: row.published_at ? (row.published_at as string).slice(0, 10) : "",
     company_name: (row.company_name_text as string) ?? "",
     company_initial: (row.company_initial_text as string) ?? "",
-    company_gradient: (row.company_gradient_text as string) ?? "linear-gradient(135deg, #002366, #3B5FD9)",
+    company_gradient: (row.company_gradient_text as string) ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
   }));
 
   return NextResponse.json({ articles });

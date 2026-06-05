@@ -200,7 +200,7 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
     <div
       className="biz-brand-side"
       style={{
-        background: "linear-gradient(135deg, #001A4D 0%, #002366 40%, #3B5FD9 100%)",
+        background: "linear-gradient(135deg, #001A4D 0%, var(--royal) 40%, #3B5FD9 100%)",
         color: "#fff",
         padding: "44px 56px",
         display: "flex",

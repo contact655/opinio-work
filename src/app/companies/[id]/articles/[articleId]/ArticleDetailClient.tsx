@@ -43,7 +43,7 @@ export default function ArticleDetailClient({
       {/* 戻るリンク */}
       <Link
         href={`/companies/${companyId}`}
-        style={{ fontSize: "13px", color: "#1D9E75", textDecoration: "none", marginBottom: "20px", display: "inline-block" }}
+        style={{ fontSize: "13px", color: "var(--success)", textDecoration: "none", marginBottom: "20px", display: "inline-block" }}
       >
         &larr; {company.name} に戻る
       </Link>
@@ -77,7 +77,7 @@ export default function ArticleDetailClient({
             <div>
               <div style={{ fontSize: "13px", fontWeight: 500, color: "#0f172a" }}>{article.author_name}</div>
               {article.author_label && (
-                <div style={{ fontSize: "12px", color: "#64748b" }}>{article.author_label}</div>
+                <div style={{ fontSize: "12px", color: "#6b7280" }}>{article.author_label}</div>
               )}
             </div>
           </>
@@ -120,7 +120,7 @@ export default function ArticleDetailClient({
         <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
           <Link
             href={`/companies/${companyId}`}
-            style={{ fontSize: "13px", padding: "10px 24px", borderRadius: "8px", background: "#1D9E75", color: "#fff", textDecoration: "none" }}
+            style={{ fontSize: "13px", padding: "10px 24px", borderRadius: "8px", background: "var(--success)", color: "#fff", textDecoration: "none" }}
           >
             求人を見る
           </Link>

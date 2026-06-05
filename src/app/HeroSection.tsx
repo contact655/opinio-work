@@ -126,10 +126,10 @@ function MatchCard({ job }: { job: MatchJob }) {
         <div className="flex-1 h-[4px] bg-gray-100 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full"
-            style={{ width: `${job.match_percent}%`, background: "#1D9E75" }}
+            style={{ width: `${job.match_percent}%`, background: "var(--success)" }}
           />
         </div>
-        <span className="text-[12px] font-bold" style={{ color: "#1D9E75" }}>
+        <span className="text-[12px] font-bold" style={{ color: "var(--success)" }}>
           {job.match_percent}%
         </span>
       </div>
@@ -232,7 +232,7 @@ export default function HeroSection({
                   style={{
                     fontFamily: "var(--font-noto-serif)",
                     fontWeight: 500,
-                    color: "#1D9E75",
+                    color: "var(--success)",
                   }}
                 >
                   本当のことを。
@@ -268,7 +268,7 @@ export default function HeroSection({
                 style={{
                   display: "block",
                   padding: "20px 40px",
-                  background: "#1D9E75",
+                  background: "var(--success)",
                   borderRadius: 14,
                   maxWidth: 400,
                   marginBottom: 14,
@@ -277,27 +277,27 @@ export default function HeroSection({
                   letterSpacing: "-0.2px",
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = "#0F6E56")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "#1D9E75")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "var(--success)")}
               >
                 現役SaaS実務家に無料で相談する →
               </Link>
 
               {/* サブリンク：テキストのみ・小さく */}
               <div style={{ display: "flex", gap: 20, maxWidth: 380, justifyContent: "center", marginBottom: 16 }}>
-                <Link href="/consultation-cases" className="text-[12px] hover:text-primary transition-colors" style={{ color: "#9ca3af", textDecoration: "none" }}>
+                <Link href="/consultation-cases" className="text-[12px] hover:text-primary transition-colors" style={{ color: "#94a3b8", textDecoration: "none" }}>
                   相談事例を見る
                 </Link>
                 <span style={{ color: "#d1d5db" }}>·</span>
-                <Link href="/companies" className="text-[12px] hover:text-primary transition-colors" style={{ color: "#9ca3af", textDecoration: "none" }}>
+                <Link href="/companies" className="text-[12px] hover:text-primary transition-colors" style={{ color: "#94a3b8", textDecoration: "none" }}>
                   企業を探す
                 </Link>
                 <span style={{ color: "#d1d5db" }}>·</span>
-                <Link href="/auth/signup" className="text-[12px] hover:text-primary transition-colors" style={{ color: "#9ca3af", textDecoration: "none" }}>
+                <Link href="/auth/signup" className="text-[12px] hover:text-primary transition-colors" style={{ color: "#94a3b8", textDecoration: "none" }}>
                   無料登録
                 </Link>
               </div>
 
-              <div style={{ fontSize: 11, color: "#9ca3af", maxWidth: 380, marginBottom: 24 }}>
+              <div style={{ fontSize: 11, color: "#94a3b8", maxWidth: 380, marginBottom: 24 }}>
                 完全無料 · 営業なし · 30分で気づきが変わる
               </div>
 
@@ -316,7 +316,7 @@ export default function HeroSection({
                     <div className="flex items-baseline justify-center gap-0.5">
                       <span
                         className="font-bold"
-                        style={{ fontSize: 22, color: "#1D9E75" }}
+                        style={{ fontSize: 22, color: "var(--success)" }}
                       >
                         {s.value}
                       </span>
@@ -358,7 +358,7 @@ export default function HeroSection({
                         >
                           <span
                             className="text-[13px] font-medium px-4 py-2.5 rounded-lg text-white"
-                            style={{ background: "#1D9E75" }}
+                            style={{ background: "var(--success)" }}
                           >
                             登録してマッチ度を確認する →
                           </span>
@@ -429,7 +429,7 @@ export default function HeroSection({
                       display: "block",
                       textAlign: "center",
                       fontSize: 12,
-                      color: "#1D9E75",
+                      color: "var(--success)",
                       textDecoration: "none",
                       padding: "8px 0",
                     }}

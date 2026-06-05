@@ -319,7 +319,7 @@ type CompanySuggestion = {
   employee_count: string | null;
 };
 
-const AVATAR_COLORS = ["#4F46E5", "#059669", "#DC2626", "#D97706", "#0891B2", "#7C3AED"];
+const AVATAR_COLORS = ["#4F46E5", "var(--success)", "#DC2626", "#D97706", "#0891B2", "#7C3AED"];
 function getAvatarColor(name: string): string {
   const hash = name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];

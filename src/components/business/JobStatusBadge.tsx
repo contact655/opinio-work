@@ -6,7 +6,7 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; bg: string; color: strin
   pending_review: { label: "運営審査中", bg: "var(--purple-soft)",   color: "var(--purple)" },
   draft:          { label: "下書き",     bg: "var(--line-soft)",     color: "var(--ink-soft)" },
   rejected:       { label: "差し戻し",   bg: "var(--error-soft)",    color: "var(--error)" },
-  private:        { label: "非公開",     bg: "#F1F5F9",              color: "#64748B" },
+  private:        { label: "非公開",     bg: "#F1F5F9",              color: "#6b7280" },
 };
 
 type Props = {

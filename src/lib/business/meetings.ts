@@ -68,7 +68,7 @@ const INTENT_LABELS: Record<string, string> = {
 const GRADIENTS = [
   "linear-gradient(135deg, var(--royal), var(--accent))",
   "linear-gradient(135deg, #FBBF24, #D97706)",
-  "linear-gradient(135deg, #34D399, #059669)",
+  "linear-gradient(135deg, #34D399, var(--success))",
   "linear-gradient(135deg, #A78BFA, #7C3AED)",
   "linear-gradient(135deg, #DB2777, #9D174D)",
   "linear-gradient(135deg, #0EA5E9, #0369A1)",

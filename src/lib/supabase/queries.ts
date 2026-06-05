@@ -28,7 +28,7 @@ import { MOCK_ARTICLES } from "@/app/articles/mockArticleData";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
+const FALLBACK_GRADIENT = "linear-gradient(135deg, var(--royal), #3B5FD9)";
 
 const WORK_STYLE_LABELS: Record<string, string> = {
   full_remote: "フルリモート可",
@@ -819,7 +819,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
       avatarInitial: name.charAt(0),
       avatarGradient: hex
         ? `linear-gradient(135deg, ${hex}99, ${hex})`
-        : "linear-gradient(135deg, #002366, #3B5FD9)",
+        : "linear-gradient(135deg, var(--royal), #3B5FD9)",
       avatarUrl: (u?.avatar_url as string | null) ?? null,
       roleTitle: (row.role_title as string | null) ?? null,
       endedAt: endedAt ? (endedAt as string).slice(0, 7) : null,

@@ -28,7 +28,7 @@ export const APPLICATION_STATUS_TABS: ApplicationStatusTab[] = [
   { status: "interview", label: "Interview",  labelJa: "面接中",     color: "var(--purple)" },
   { status: "accepted",  label: "Accepted",   labelJa: "採用",       color: "var(--success)" },
   { status: "rejected",  label: "Rejected",   labelJa: "不採用",     color: "var(--error)" },
-  { status: "hired",     label: "Hired",      labelJa: "採用確定",   color: "#059669" },
+  { status: "hired",     label: "Hired",      labelJa: "採用確定",   color: "var(--success)" },
 ];
 
 export type ApplicationStatusCounts = Record<ApplicationStatus | "all", number>;

@@ -71,7 +71,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="font-family:'Noto Sans JP',sans-serif;background:#F8FAFC;margin:0;padding:40px 20px;">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-    <div style="background:linear-gradient(135deg,#002366,#3B5FD9);padding:32px;text-align:center;">
+    <div style="background:linear-gradient(135deg,var(--royal),#3B5FD9);padding:32px;text-align:center;">
       <span style="font-family:Inter,sans-serif;font-weight:800;font-size:24px;color:#fff;letter-spacing:-0.02em;">OPINIO</span>
       <div style="margin-top:8px;display:inline-block;background:rgba(255,255,255,0.15);border-radius:4px;padding:3px 10px;">
         <span style="font-size:11px;color:#fff;font-weight:600;letter-spacing:0.1em;">エージェントポータル</span>
@@ -85,7 +85,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       </p>
       <div style="text-align:center;margin:32px 0;">
         <a href="${magicLink}"
-           style="display:inline-block;background:linear-gradient(135deg,#002366,#3B5FD9);color:#fff;
+           style="display:inline-block;background:linear-gradient(135deg,var(--royal),#3B5FD9);color:#fff;
                   text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:700;
                   font-size:15px;letter-spacing:0.02em;">
           ポータルにログイン

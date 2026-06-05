@@ -25,7 +25,7 @@ export default function AboutPage() {
 
       {/* Hero */}
       <div style={{
-        background: "linear-gradient(135deg, #001233 0%, #002366 55%, #1a3569 100%)",
+        background: "linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1a3569 100%)",
         padding: "48px 0 44px",
         position: "relative",
         overflow: "hidden",

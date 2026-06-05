@@ -10,7 +10,7 @@ export default function OfflinePage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #001845 0%, #002366 100%)",
+        background: "linear-gradient(135deg, #001845 0%, var(--royal) 100%)",
         fontFamily: "'Noto Sans JP', sans-serif",
         padding: "20px",
       }}
@@ -75,7 +75,7 @@ export default function OfflinePage() {
               display: "block",
               width: "100%",
               padding: "14px 24px",
-              background: "linear-gradient(135deg, #3B5FD9, #002366)",
+              background: "linear-gradient(135deg, #3B5FD9, var(--royal))",
               color: "white",
               border: "none",
               borderRadius: "10px",
