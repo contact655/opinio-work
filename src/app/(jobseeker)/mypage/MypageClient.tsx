@@ -131,10 +131,10 @@ function RequestItem({
     >
       {avatar}
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+        <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
           {title}
         </div>
-        <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.5 }}>{meta}</div>
+        <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", lineHeight: 1.5 }}>{meta}</div>
       </div>
       <StatusPill statusKey={statusKey} label={statusLabel} />
     </div>
@@ -146,7 +146,7 @@ function CompanyAvatar({ initial, gradient }: { initial: string; gradient: strin
     <div style={{
       width: 40, height: 40, borderRadius: 8, background: gradient,
       color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 16, flexShrink: 0,
+      fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "var(--text-md)", flexShrink: 0,
     }}>
       {initial}
     </div>
@@ -183,13 +183,13 @@ function RecentActivityItem({
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minWidth: 0 }}>
         <div style={{ flexShrink: 0 }}>{avatar}</div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ ...truncStyle, fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+          <div style={{ ...truncStyle, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
             {companyName}
           </div>
           <div style={{ ...truncStyle, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 2 }}>
             {jobTitle}
           </div>
-          <div style={{ ...truncStyle, fontSize: 11, color: "var(--ink-mute)" }}>
+          <div style={{ ...truncStyle, fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>
             {kind} · {appliedAt}
           </div>
         </div>
@@ -204,7 +204,7 @@ function RecentActivityItem({
 
 function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: string; desc?: string }) {
   return (
-    <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13 }}>
+    <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--ink-mute)", fontSize: "var(--text-sm)" }}>
       <div style={{
         width: 48, height: 48, background: "var(--bg-tint)", color: "var(--ink-mute)",
         borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
@@ -266,7 +266,7 @@ function ProfileCompletenessCard({
       }} />
 
       {/* Header row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
@@ -299,7 +299,7 @@ function ProfileCompletenessCard({
             }}>
               {pct}
             </span>
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.75)" }}>%</span>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: "var(--text-sm)", fontWeight: 700, color: "rgba(255,255,255,0.75)" }}>%</span>
           </div>
         </div>
       </div>
@@ -307,7 +307,7 @@ function ProfileCompletenessCard({
       {/* Progress bar */}
       <div style={{
         height: 10, borderRadius: 100, background: "rgba(0,35,102,0.08)",
-        overflow: "hidden", marginBottom: 16,
+        overflow: "hidden", marginBottom: "var(--space-4)",
       }}>
         <div style={{
           height: "100%", borderRadius: 100,
@@ -330,7 +330,7 @@ function ProfileCompletenessCard({
             padding: "4px 10px", borderRadius: 100,
             background: c.done ? "var(--success-soft)" : "var(--bg-tint)",
             border: `1px solid ${c.done ? "#A7F3D0" : "var(--line)"}`,
-            fontSize: 11, fontWeight: 600,
+            fontSize: "var(--text-xs)", fontWeight: 600,
             color: c.done ? "var(--success)" : "var(--ink-mute)",
           }}>
             {c.done
@@ -617,13 +617,13 @@ function CasualView({ casualMeetings }: { casualMeetings: CasualMeeting[] }) {
         right={<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>全 {casualMeetings.length} 件</span>}
       >
         {casualMeetings.length === 0 ? (
-          <div style={{ padding: "8px 0" }}>
+          <div style={{ padding: "var(--space-2) 0" }}>
             <EmptyState
               icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>}
               title="申し込みはまだありません"
               desc="気になる企業にカジュアル面談を申し込んでみましょう"
             />
-            <div style={{ textAlign: "center", marginTop: 12 }}>
+            <div style={{ textAlign: "center", marginTop: "var(--space-3)" }}>
               <Link href="/companies" style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "9px 20px", borderRadius: 8,
@@ -668,7 +668,7 @@ function CasualView({ casualMeetings }: { casualMeetings: CasualMeeting[] }) {
 
 function BookmarkGrid({ items }: { items: Bookmark[] }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "var(--space-3)" }}>
       {items.map((bk) => (
         <Link key={bk.id} href={bk.href} style={{ textDecoration: "none" }}>
           <div style={{
@@ -827,10 +827,10 @@ export default function MypageClient({
   ];
 
   const dashboardRightColumn = (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
       {/* 最近の申込 */}
       <div>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
           <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>最近の申込</span>
           <button
             type="button"
@@ -841,7 +841,7 @@ export default function MypageClient({
           </button>
         </div>
         {recentActivity.length === 0 ? (
-          <div style={{ padding: "16px 0", textAlign: "center" }}>
+          <div style={{ padding: "var(--space-4) 0", textAlign: "center" }}>
             <div style={{
               width: 36, height: 36, borderRadius: "50%",
               background: "var(--warm-soft)", color: "#B45309",
@@ -858,7 +858,7 @@ export default function MypageClient({
             </Link>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             {recentActivity.map((item) => (
               <RecentActivityItem
                 key={item.id}
@@ -876,7 +876,7 @@ export default function MypageClient({
 
       {/* ブックマーク */}
       <div>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
           <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>ブックマーク</span>
           <button
             type="button"
@@ -887,7 +887,7 @@ export default function MypageClient({
           </button>
         </div>
         {companyBookmarks.length === 0 ? (
-          <div style={{ padding: "12px 0", textAlign: "center" }}>
+          <div style={{ padding: "var(--space-3) 0", textAlign: "center" }}>
             <div style={{
               width: 36, height: 36, borderRadius: "50%",
               background: "var(--bg-tint)", color: "var(--ink-mute)",
@@ -904,7 +904,7 @@ export default function MypageClient({
             </Link>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             {companyBookmarks.slice(0, 3).map((bk) => (
               <Link key={bk.id} href={bk.href} style={{ textDecoration: "none" }}>
                 <div
@@ -939,10 +939,10 @@ export default function MypageClient({
 
       {/* マイアクティビティ */}
       <div>
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: "var(--space-3)" }}>
           <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>マイアクティビティ</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--space-2)" }}>
           {statCards.map((card, i) => (
             <div
               key={i}
@@ -958,12 +958,12 @@ export default function MypageClient({
                 width: 28, height: 28, borderRadius: 8,
                 background: card.iconBg, color: card.iconColor,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                marginBottom: 8,
+                marginBottom: "var(--space-2)",
               }}>
                 {card.icon}
               </div>
               <div style={{
-                fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 700,
+                fontFamily: "Inter, sans-serif", fontSize: "var(--text-lg)", fontWeight: 700,
                 color: "var(--ink)", marginBottom: 2,
               }}>
                 {card.value}
