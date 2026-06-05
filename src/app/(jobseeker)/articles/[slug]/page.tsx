@@ -77,18 +77,18 @@ function SubjectCard({ subject }: { subject: ArticleSubject }) {
     <div style={{
       display: "grid",
       gridTemplateColumns: "60px 1fr",
-      gap: 16,
-      padding: "20px 22px",
+      gap: "var(--space-4)",
+      padding: "var(--space-4) var(--space-6)",
       background: "var(--bg-tint)",
       border: `1px solid ${LINE}`,
       borderRadius: 14,
-      marginBottom: 32,
+      marginBottom: "var(--space-8)",
     }}>
       <div style={{
         width: 60, height: 60, borderRadius: "50%",
         background: subject.gradient,
         display: "flex", alignItems: "center", justifyContent: "center",
-        color: "#fff", fontSize: 20, fontWeight: 700,
+        color: "#fff", fontSize: "var(--text-lg)", fontWeight: 700,
         boxShadow: `0 0 0 2.5px ${ROYAL}, 0 0 0 5px rgba(0,35,102,0.1)`,
         flexShrink: 0,
       }}>
@@ -96,8 +96,8 @@ function SubjectCard({ subject }: { subject: ArticleSubject }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 4 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: INK }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: INK }}>
             {subject.name}
           </span>
         </div>
@@ -123,7 +123,7 @@ function QASection({ qa }: { qa: QA[] }) {
       {qa.map((item, idx) => (
         <div key={idx} style={{ marginBottom: 40 }}>
           {/* Q */}
-          <div style={{ display: "flex", gap: 14, alignItems: "baseline", marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: 14, alignItems: "baseline", marginBottom: "var(--space-4)" }}>
             <span style={{
               fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
               color: ROYAL, letterSpacing: "0.1em", flexShrink: 0, paddingTop: 4,
@@ -132,7 +132,7 @@ function QASection({ qa }: { qa: QA[] }) {
             </span>
             <p style={{
               fontFamily: 'var(--font-noto-serif)',
-              fontSize: 17, fontWeight: 600, color: INK,
+              fontSize: "var(--text-md)", fontWeight: 600, color: INK,
               lineHeight: 1.6, margin: 0,
             }}>
               {item.q}
@@ -142,8 +142,8 @@ function QASection({ qa }: { qa: QA[] }) {
           <div style={{ paddingLeft: 36 }}>
             {item.a.map((para, pi) => (
               <p key={pi} style={{
-                fontSize: 16, lineHeight: 2, color: INK,
-                marginBottom: pi < item.a.length - 1 ? 16 : 0,
+                fontSize: "var(--text-md)", lineHeight: 2, color: INK,
+                marginBottom: pi < item.a.length - 1 ? "var(--space-4)" : 0,
               }}>
                 {para}
               </p>
@@ -159,15 +159,15 @@ function _ThemesSection({ themes }: { themes: ThemeItem[] }) {
   return (
     <div style={{
       marginTop: 48,
-      padding: 32,
+      padding: "var(--space-8)",
       background: "linear-gradient(135deg, #FEF3C7 0%, #fff 100%)",
       border: "1px solid #FDE68A",
       borderRadius: 16,
     }}>
-      <div style={{ marginBottom: 10, display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ marginBottom: "var(--space-2)", display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
         <h3 style={{
           fontFamily: 'var(--font-noto-serif)',
-          fontWeight: 700, fontSize: 20, color: INK, margin: 0,
+          fontWeight: 700, fontSize: "var(--text-lg)", color: INK, margin: 0,
         }}>
           相談できるテーマ
         </h3>
@@ -178,13 +178,13 @@ function _ThemesSection({ themes }: { themes: ThemeItem[] }) {
           CONSULTATION THEMES
         </span>
       </div>
-      <p style={{ fontSize: 13, color: INK_SOFT, lineHeight: 1.8, marginBottom: 24 }}>
+      <p style={{ fontSize: "var(--text-sm)", color: INK_SOFT, lineHeight: 1.8, marginBottom: "var(--space-6)" }}>
         このメンターが特に得意とするテーマです。相談時の参考にしてください。
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
         {themes.map((theme) => (
           <div key={theme.title} style={{
-            display: "grid", gridTemplateColumns: "32px 1fr", gap: 12,
+            display: "grid", gridTemplateColumns: "32px 1fr", gap: "var(--space-3)",
             padding: 14, background: "#fff",
             border: `1px solid ${LINE}`, borderRadius: 10,
             alignItems: "flex-start",
@@ -192,12 +192,12 @@ function _ThemesSection({ themes }: { themes: ThemeItem[] }) {
             <div style={{
               width: 32, height: 32, background: "var(--warm-soft)", color: "#B45309",
               borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 16, flexShrink: 0,
+              fontSize: "var(--text-md)", flexShrink: 0,
             }}>
               {theme.icon}
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: INK, marginBottom: 4, lineHeight: 1.5 }}>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: INK, marginBottom: 4, lineHeight: 1.5 }}>
                 {theme.title}
               </div>
               <div style={{ fontSize: 11, color: INK_SOFT, lineHeight: 1.7 }}>
@@ -217,27 +217,27 @@ function CompanyCTA({ article }: { article: Article }) {
       marginTop: 48,
       background: `linear-gradient(135deg, ${ROYAL} 0%, #3B5FD9 100%)`,
       color: "#fff",
-      padding: "32px 28px",
+      padding: "var(--space-8) var(--space-6)",
       borderRadius: 20,
       textAlign: "center",
       boxShadow: "0 20px 48px rgba(0,35,102,0.22)",
     }}>
-      <div style={{ marginBottom: 8, opacity: 0.9, fontSize: 13 }}>
+      <div style={{ marginBottom: "var(--space-2)", opacity: 0.9, fontSize: "var(--text-sm)" }}>
         この企業について、もっと知る
       </div>
       <h3 style={{
         fontFamily: 'var(--font-noto-serif)',
-        fontSize: 20, fontWeight: 500, marginBottom: 20, lineHeight: 1.5,
+        fontSize: "var(--text-lg)", fontWeight: 500, marginBottom: "var(--space-4)", lineHeight: 1.5,
       }}>
         {article.company_name}で、働く。
       </h3>
-      <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "center", flexWrap: "wrap" }}>
         <Link
           href={`/jobs?company=${article.company_id}`}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "11px 22px", background: "#fff", color: ROYAL,
-            borderRadius: 9, fontSize: 13, fontWeight: 700, textDecoration: "none",
+            padding: "11px var(--space-6)", background: "#fff", color: ROYAL,
+            borderRadius: 9, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
           }}
         >
           求人を見る
@@ -246,9 +246,9 @@ function CompanyCTA({ article }: { article: Article }) {
           href={`/companies/${article.company_id}`}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "11px 22px", background: "transparent", color: "#fff",
+            padding: "11px var(--space-6)", background: "transparent", color: "#fff",
             border: "2px solid rgba(255,255,255,0.5)",
-            borderRadius: 9, fontSize: 13, fontWeight: 700, textDecoration: "none",
+            borderRadius: 9, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
           }}
         >
           企業を見る
@@ -268,12 +268,12 @@ function ChaptersSection({ chapters }: { chapters: Chapter[] }) {
         }}>
           <h3 style={{
             fontFamily: 'var(--font-noto-serif)',
-            fontWeight: 700, fontSize: 22, lineHeight: 1.55,
-            color: INK, marginBottom: 24,
+            fontWeight: 700, fontSize: "var(--text-xl)", lineHeight: 1.55,
+            color: INK, marginBottom: "var(--space-6)",
             display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap",
           }}>
             <span style={{
-              fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
+              fontFamily: "Inter, sans-serif", fontSize: "var(--text-sm)", fontWeight: 700,
               color: "var(--purple)", letterSpacing: "0.1em",
               padding: "2px 10px",
               border: "2px solid #7C3AED",
@@ -286,8 +286,8 @@ function ChaptersSection({ chapters }: { chapters: Chapter[] }) {
 
           {ch.body.map((para, i) => (
             <p key={i} style={{
-              fontSize: 16, lineHeight: 2, color: INK,
-              marginBottom: i < ch.body.length - 1 ? 16 : 0,
+              fontSize: "var(--text-md)", lineHeight: 2, color: INK,
+              marginBottom: i < ch.body.length - 1 ? "var(--space-4)" : 0,
             }}>
               {para}
             </p>
@@ -295,15 +295,15 @@ function ChaptersSection({ chapters }: { chapters: Chapter[] }) {
 
           {ch.list && (
             <ul style={{
-              listStyle: "none", padding: "16px 20px",
-              background: "var(--bg-tint)", borderRadius: 10, margin: "20px 0",
+              listStyle: "none", padding: "var(--space-4)",
+              background: "var(--bg-tint)", borderRadius: 10, margin: "var(--space-4) 0",
             }}>
               {ch.list.map((item, i) => (
                 <li key={i} style={{
-                  padding: "8px 0",
+                  padding: "var(--space-2) 0",
                   borderBottom: i < ch.list!.length - 1 ? "1px dashed var(--line)" : "none",
-                  fontSize: 14, lineHeight: 1.8,
-                  display: "flex", gap: 12,
+                  fontSize: "var(--text-base)", lineHeight: 1.8,
+                  display: "flex", gap: "var(--space-3)",
                 }}>
                   <strong style={{
                     color: ROYAL, fontFamily: "Inter, sans-serif",
@@ -326,15 +326,15 @@ function ContributorsSection({ subjects }: { subjects: ArticleSubject[] }) {
   return (
     <div style={{
       marginTop: 56,
-      padding: "28px 30px",
+      padding: "var(--space-6) var(--space-8)",
       background: "linear-gradient(135deg, #F3E8FF 0%, #fff 100%)",
       border: "1px solid #E9D5FF",
       borderRadius: 16,
     }}>
-      <div style={{ marginBottom: 10, display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ marginBottom: "var(--space-2)", display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
         <h3 style={{
           fontFamily: 'var(--font-noto-serif)',
-          fontWeight: 700, fontSize: 18, color: INK, margin: 0,
+          fontWeight: 700, fontSize: "var(--text-md)", color: INK, margin: 0,
         }}>
           取材協力
         </h3>
@@ -345,27 +345,27 @@ function ContributorsSection({ subjects }: { subjects: ArticleSubject[] }) {
           CONTRIBUTORS
         </span>
       </div>
-      <p style={{ fontSize: 13, color: INK_SOFT, lineHeight: 1.8, marginBottom: 20 }}>
+      <p style={{ fontSize: "var(--text-sm)", color: INK_SOFT, lineHeight: 1.8, marginBottom: "var(--space-4)" }}>
         今回の取材にご協力いただいた方々です。
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
         {subjects.map((s) => (
           <div key={s.name} style={{
             display: "grid", gridTemplateColumns: "44px 1fr",
-            gap: 12, alignItems: "center",
-            padding: "12px 14px", background: "#fff",
+            gap: "var(--space-3)", alignItems: "center",
+            padding: "var(--space-3) 14px", background: "#fff",
             border: `1px solid ${LINE}`, borderRadius: 10,
           }}>
             <div style={{
               width: 44, height: 44, borderRadius: "50%",
               background: s.gradient, color: "#fff",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontWeight: 600, fontSize: 16, flexShrink: 0,
+              fontWeight: 600, fontSize: "var(--text-md)", flexShrink: 0,
             }}>
               {s.initial}
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: INK, marginBottom: 2 }}>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: INK, marginBottom: 2 }}>
                 {s.name}
               </div>
               <div style={{ fontSize: 11, color: INK_SOFT }}>{s.current_status}</div>
@@ -384,13 +384,13 @@ function RelatedArticles({ articles }: { articles: Article[] }) {
     <div style={{ marginBottom: 48 }}>
       <div style={{
         display: "flex", alignItems: "baseline", justifyContent: "space-between",
-        marginBottom: 20, paddingBottom: 10,
+        marginBottom: "var(--space-4)", paddingBottom: "var(--space-2)",
         borderBottom: `2px solid ${INK}`,
       }}>
         <h3 style={{
           fontFamily: 'var(--font-noto-serif)',
-          fontWeight: 700, fontSize: 20, color: INK,
-          display: "flex", alignItems: "baseline", gap: 12, margin: 0,
+          fontWeight: 700, fontSize: "var(--text-lg)", color: INK,
+          display: "flex", alignItems: "baseline", gap: "var(--space-3)", margin: 0,
         }}>
           関連記事
           <span style={{
@@ -405,7 +405,7 @@ function RelatedArticles({ articles }: { articles: Article[] }) {
         </Link>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "var(--space-4)" }}>
         {articles.map((a) => {
           const badge = TYPE_BADGE[a.type];
           return (
@@ -424,7 +424,7 @@ function RelatedArticles({ articles }: { articles: Article[] }) {
                 }}>
                   <span style={{ fontSize: 36, opacity: 0.3 }}>{TYPE_EYECATCH_ICON[a.type]}</span>
                 </div>
-                <div style={{ padding: "12px 14px", flex: 1, display: "flex", flexDirection: "column" }}>
+                <div style={{ padding: "var(--space-3) 14px", flex: 1, display: "flex", flexDirection: "column" }}>
                   <div style={{
                     display: "inline-flex", alignItems: "center",
                     padding: "2px 8px", borderRadius: 100,
@@ -436,7 +436,7 @@ function RelatedArticles({ articles }: { articles: Article[] }) {
                   <p style={{
                     fontFamily: 'var(--font-noto-serif)',
                     fontSize: 12, fontWeight: 600, lineHeight: 1.6,
-                    color: INK, marginBottom: 8,
+                    color: INK, marginBottom: "var(--space-2)",
                     display: "-webkit-box",
                     WebkitLineClamp: 3,
                     WebkitBoxOrient: "vertical",
@@ -481,7 +481,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
       <BackToTop />
 
       {/* Breadcrumb */}
-      <nav aria-label="パンくずリスト" style={{ background: "var(--bg-tint)", borderBottom: `1px solid ${LINE}`, padding: "10px 0" }}>
+      <nav aria-label="パンくずリスト" style={{ background: "var(--bg-tint)", borderBottom: `1px solid ${LINE}`, padding: "var(--space-2) 0" }}>
         <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: INK_MUTE, display: "flex", alignItems: "center", gap: 5 }}>
             <Link href="/" style={{ color: INK_MUTE }}>OPINIO</Link>
@@ -494,14 +494,14 @@ export default async function ArticlePage({ params }: { params: { slug: string }
       </nav>
 
       {/* Article body */}
-      <article style={{ maxWidth: "var(--max-w-text)", margin: "0 auto", padding: "32px 24px 80px" }}>
+      <article style={{ maxWidth: "var(--max-w-text)", margin: "0 auto", padding: "var(--space-8) var(--space-6) 80px" }}>
 
         {/* Hero */}
         <div style={{ marginBottom: 40 }}>
           {/* Eyecatch image */}
           <div style={{
             height: 260, background: article.eyecatch_gradient,
-            borderRadius: 16, marginBottom: 28,
+            borderRadius: 16, marginBottom: "var(--space-6)",
             display: "flex", alignItems: "center", justifyContent: "center",
             position: "relative",
           }}>
@@ -509,7 +509,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             <div style={{
               position: "absolute", top: 16, left: 16,
               display: "inline-flex", alignItems: "center",
-              padding: "4px 12px", borderRadius: 100,
+              padding: "var(--space-1) var(--space-3)", borderRadius: 100,
               background: badge.bg, color: badge.color,
               fontSize: 11, fontWeight: 700, letterSpacing: "0.05em",
             }}>
@@ -521,7 +521,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
           <h1 style={{
             fontFamily: 'var(--font-noto-serif)',
             fontWeight: 700, fontSize: "clamp(24px, 3vw, 34px)",
-            color: INK, lineHeight: 1.55, marginBottom: 16,
+            color: INK, lineHeight: 1.55, marginBottom: "var(--space-4)",
             letterSpacing: "0.02em",
           }}>
             {article.title}
@@ -529,7 +529,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
           <p style={{
             fontFamily: 'var(--font-noto-serif)',
-            fontSize: 16, color: INK_SOFT,
+            fontSize: "var(--text-md)", color: INK_SOFT,
             lineHeight: 1.7, marginBottom: 22,
           }}>
             {article.subtitle}
@@ -570,17 +570,17 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             {/* EDITOR'S NOTE */}
             {article.editor_note && (
               <div style={{
-                padding: "18px 22px", background: "var(--bg-tint)",
+                padding: "var(--space-4) var(--space-6)", background: "var(--bg-tint)",
                 borderLeft: `3px solid ${ROYAL}`, borderRadius: "0 10px 10px 0",
-                marginBottom: 32,
+                marginBottom: "var(--space-8)",
               }}>
                 <div style={{
                   fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: 8,
+                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S NOTE
                 </div>
-                <p style={{ fontSize: 14, lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
+                <p style={{ fontSize: "var(--text-base)", lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
                   {article.editor_note}
                 </p>
               </div>
@@ -589,8 +589,8 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             {/* Body paragraphs */}
             {article.body?.map((para, i) => (
               <p key={i} style={{
-                fontSize: 16, lineHeight: 2, color: INK,
-                marginBottom: 16,
+                fontSize: "var(--text-md)", lineHeight: 2, color: INK,
+                marginBottom: "var(--space-4)",
               }}>
                 {para}
               </p>
@@ -599,11 +599,11 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             {/* Pull quote */}
             {article.quote && (
               <blockquote style={{
-                padding: "20px 0 20px 20px",
-                margin: "24px 0",
+                padding: "var(--space-4) 0 var(--space-4) var(--space-4)",
+                margin: "var(--space-6) 0",
                 borderLeft: `3px solid ${ROYAL}`,
                 fontFamily: 'var(--font-noto-serif)',
-                fontSize: 17, color: INK,
+                fontSize: "var(--text-md)", color: INK,
                 fontStyle: "italic", lineHeight: 1.8,
               }}>
                 {article.quote}
@@ -616,16 +616,16 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             {/* Editor outro */}
             {article.editor_outro && (
               <div style={{
-                marginTop: 48, padding: "22px 24px",
+                marginTop: 48, padding: "var(--space-6)",
                 background: "var(--bg-tint)", borderRadius: 12,
               }}>
                 <div style={{
                   fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: 10,
+                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S OUTRO
                 </div>
-                <p style={{ fontSize: 14, lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
+                <p style={{ fontSize: "var(--text-base)", lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
                   {article.editor_outro}
                 </p>
               </div>
@@ -643,17 +643,17 @@ export default async function ArticlePage({ params }: { params: { slug: string }
           <>
             {article.editor_note && (
               <div style={{
-                padding: "18px 22px", background: "var(--bg-tint)",
+                padding: "var(--space-4) var(--space-6)", background: "var(--bg-tint)",
                 borderLeft: `3px solid ${ROYAL}`, borderRadius: "0 10px 10px 0",
-                marginBottom: 32,
+                marginBottom: "var(--space-8)",
               }}>
                 <div style={{
                   fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: 8,
+                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S NOTE
                 </div>
-                <p style={{ fontSize: 14, lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
+                <p style={{ fontSize: "var(--text-base)", lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
                   {article.editor_note}
                 </p>
               </div>
@@ -665,16 +665,16 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
             {article.editor_outro && (
               <div style={{
-                marginTop: 48, padding: "22px 24px",
+                marginTop: 48, padding: "var(--space-6)",
                 background: "var(--bg-tint)", borderRadius: 12,
               }}>
                 <div style={{
                   fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: 10,
+                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S OUTRO
                 </div>
-                <p style={{ fontSize: 14, lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
+                <p style={{ fontSize: "var(--text-base)", lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
                   {article.editor_outro}
                 </p>
               </div>
@@ -686,7 +686,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
       {/* Related section */}
       <div style={{
         background: "var(--bg-tint)",
-        padding: "56px 24px 72px",
+        padding: "56px var(--space-6) 72px",
         borderTop: `1px solid ${LINE}`,
         marginTop: 48,
       }}>
