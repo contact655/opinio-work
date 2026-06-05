@@ -139,14 +139,14 @@ function Hero({
         <div
           style={{
             display: "flex",
-            gap: 32,
+            gap: "var(--space-8)",
             alignItems: "flex-start",
             justifyContent: "space-between",
             flexWrap: "wrap",
           }}
         >
           {/* Left: logo + info */}
-          <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: "var(--space-4)", alignItems: "flex-start" }}>
             {/* Logo — overlaps cover band */}
             <div
               style={{
@@ -182,12 +182,12 @@ function Hero({
                 company.logo_letter ?? initial
               )}
             </div>
-            <div style={{ paddingTop: 14 }}>
+            <div style={{ paddingTop: "var(--space-3)" }}>
               <div
                 style={{
                   fontSize: 10.5,
                   color: "var(--ink-mute)",
-                  marginBottom: 7,
+                  marginBottom: "var(--space-2)",
                   fontWeight: 700,
                   letterSpacing: "0.13em",
                   textTransform: "uppercase" as const,
@@ -214,7 +214,7 @@ function Hero({
                         fontWeight: 800,
                         fontSize: "clamp(26px, 3vw, 40px)",
                         color: "var(--ink)",
-                        marginBottom: enName ? 4 : 8,
+                        marginBottom: enName ? "var(--space-1)" : "var(--space-2)",
                         letterSpacing: "-0.02em",
                         lineHeight: 1.18,
                       }}
@@ -222,7 +222,7 @@ function Hero({
                       {enName ?? company.name}
                     </h1>
                     {enName && (
-                      <div style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 8, fontWeight: 400 }}>
+                      <div style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", marginBottom: "var(--space-2)", fontWeight: 400 }}>
                         {company.name}
                       </div>
                     )}
@@ -231,11 +231,11 @@ function Hero({
               })()}
               <p
                 style={{
-                  fontSize: 17,
+                  fontSize: "var(--text-md)",
                   color: "#1e293b",
                   lineHeight: 1.75,
                   letterSpacing: "0.01em",
-                  marginBottom: 16,
+                  marginBottom: "var(--space-4)",
                   maxWidth: 560,
                   fontWeight: 500,
                 }}
@@ -244,14 +244,14 @@ function Hero({
               </p>
               {/* ジャンルチップ + フェーズバッジ */}
               {(company.genres.length > 0 || company.phase) && (
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 }}>
+                <div style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap", marginBottom: "var(--space-2)" }}>
                   {company.genres.map((g) => (
                     <span
                       key={g.id}
                       style={{
                         display: "inline-flex", alignItems: "center",
-                        padding: "3px 10px", borderRadius: 999,
-                        fontSize: 11, fontWeight: 700,
+                        padding: "var(--space-1) var(--space-2)", borderRadius: 999,
+                        fontSize: "var(--text-xs)", fontWeight: 700,
                         background: "var(--royal-50)",
                         color: "var(--royal)",
                         border: "1px solid var(--royal-100)",
@@ -274,8 +274,8 @@ function Hero({
                     return (
                       <span style={{
                         display: "inline-flex", alignItems: "center",
-                        padding: "3px 10px", borderRadius: 999,
-                        fontSize: 11, fontWeight: 700,
+                        padding: "var(--space-1) var(--space-2)", borderRadius: 999,
+                        fontSize: "var(--text-xs)", fontWeight: 700,
                         background: s.bg, color: s.color,
                         border: `1px solid ${s.border}`,
                         letterSpacing: "0.02em",
@@ -291,8 +291,8 @@ function Hero({
                 {/* バッジ1: 従業員 */}
                 <span
                   style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    padding: "5px 11px",
+                    display: "inline-flex", alignItems: "center", gap: "var(--space-1)",
+                    padding: "var(--space-1) var(--space-3)",
                     background: "var(--bg-tint)",
                     color: "#334155",
                     border: "1px solid var(--line)",
@@ -313,13 +313,13 @@ function Hero({
                   return age !== null ? (
                     <span
                       style={{
-                        display: "inline-flex", alignItems: "center", gap: 5,
-                        padding: "5px 11px",
+                        display: "inline-flex", alignItems: "center", gap: "var(--space-1)",
+                        padding: "var(--space-1) var(--space-3)",
                         background: "var(--bg-tint)",
                         color: "var(--ink-soft)",
                         border: "1px solid var(--line)",
                         borderRadius: 100,
-                        fontSize: 11,
+                        fontSize: "var(--text-xs)",
                         fontWeight: 500,
                       }}
                     >
@@ -334,13 +334,13 @@ function Hero({
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 5,
-                      padding: "5px 11px",
+                      gap: "var(--space-1)",
+                      padding: "var(--space-1) var(--space-3)",
                       background: "var(--success-soft)",
                       color: "var(--success)",
                       border: "1px solid #A7F3D0",
                       borderRadius: 100,
-                      fontSize: 11,
+                      fontSize: "var(--text-xs)",
                       fontWeight: 600,
                     }}
                   >
@@ -362,13 +362,13 @@ function Hero({
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 5,
-                      padding: "5px 11px",
+                      gap: "var(--space-1)",
+                      padding: "var(--space-1) var(--space-3)",
                       background: "var(--bg-tint)",
                       color: "var(--ink-soft)",
                       border: "1px solid var(--line)",
                       borderRadius: 100,
-                      fontSize: 11,
+                      fontSize: "var(--text-xs)",
                       fontWeight: 500,
                     }}
                   >
@@ -414,18 +414,18 @@ function Hero({
                 }
                 if (chips.length === 0) return null;
                 return (
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: "var(--space-3)" }}>
                     {chips.slice(0, 4).map(({ icon, label }) => (
                       <span
                         key={label}
                         style={{
-                          display: "inline-flex", alignItems: "center", gap: 4,
-                          padding: "4px 10px",
+                          display: "inline-flex", alignItems: "center", gap: "var(--space-1)",
+                          padding: "var(--space-1) var(--space-2)",
                           background: "rgba(0,35,102,0.05)",
                           color: "var(--ink-soft)",
                           border: "1px solid rgba(0,35,102,0.1)",
                           borderRadius: 100,
-                          fontSize: 11,
+                          fontSize: "var(--text-xs)",
                           fontWeight: 500,
                         }}
                       >
@@ -439,24 +439,24 @@ function Hero({
 
               {/* SNS リンク */}
               {(company.x_url || company.linkedin_url || detail.url) && (
-                <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-3)", flexWrap: "wrap" }}>
                   {company.x_url && (
                     <a href={company.x_url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, background: "#000", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+                      style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: 8, background: "#000", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.263 5.632 5.9-5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                       X (Twitter)
                     </a>
                   )}
                   {company.linkedin_url && (
                     <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, background: "#0A66C2", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+                      style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: 8, background: "#0A66C2", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
                       LinkedIn
                     </a>
                   )}
                   {detail.url && (
                     <a href={detail.url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>
+                      style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: 8, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                       公式サイト
                     </a>
@@ -467,7 +467,7 @@ function Hero({
           </div>
 
           {/* Right: bookmark + share */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, alignSelf: "flex-start", paddingTop: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, alignSelf: "flex-start", paddingTop: "var(--space-3)" }}>
             <BookmarkButton
               companyName={company.name}
               companyId={company.id}
@@ -482,9 +482,9 @@ function Hero({
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 12,
-            paddingTop: 24,
-            marginTop: 20,
+            gap: "var(--space-3)",
+            paddingTop: "var(--space-6)",
+            marginTop: "var(--space-4)", /* ⚠️ 20→16px 丸め */
             borderTop: "1px solid var(--line-soft)",
           }}
           className="[grid-template-columns:repeat(2,1fr)] sm:[grid-template-columns:repeat(4,1fr)]"
@@ -551,13 +551,13 @@ function Hero({
             },
           ].map(({ iconBg, iconColor, icon, label, value, unit, sub, isText }) => (
             <div key={label} style={{
-              padding: "16px 18px",
+              padding: "var(--space-4)",
               background: "#fff",
               borderRadius: 12,
               border: "1px solid var(--line)",
               boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
                 <span style={{
                   width: 28, height: 28, borderRadius: 8,
                   background: iconBg, color: iconColor,
@@ -574,7 +574,7 @@ function Hero({
               <div
                 style={{
                   fontFamily: isText ? "var(--font-noto-sans)" : "Inter, sans-serif",
-                  fontSize: isText ? 17 : 26,
+                  fontSize: isText ? "var(--text-md)" : "var(--text-xl)",
                   fontWeight: 800,
                   color: value === "—" ? "var(--ink-mute)" : "var(--ink)",
                   lineHeight: 1.1,
@@ -586,7 +586,7 @@ function Hero({
                 {unit && (
                   <span
                     style={{
-                      fontSize: 14,
+                      fontSize: "var(--text-base)",
                       color: "var(--ink-soft)",
                       fontWeight: 600,
                       marginLeft: 3,
@@ -598,7 +598,7 @@ function Hero({
                 )}
               </div>
               {sub && (
-                <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 3, fontFamily: "Inter, sans-serif", letterSpacing: "0.02em" }}>{sub}</div>
+                <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", marginTop: 3, fontFamily: "Inter, sans-serif", letterSpacing: "0.02em" }}>{sub}</div>
               )}
             </div>
           ))}
@@ -608,7 +608,7 @@ function Hero({
         {recruiters.length > 0 && (
           <div style={{
             display: "flex", alignItems: "center", gap: 10,
-            paddingTop: 16, marginTop: 16, borderTop: "1px solid var(--line-soft)",
+            paddingTop: "var(--space-4)", marginTop: "var(--space-4)", borderTop: "1px solid var(--line-soft)",
           }}>
             <div style={{ display: "flex" }}>
               {recruiters.slice(0, 3).map((r, i) => (
@@ -618,7 +618,7 @@ function Hero({
                   border: "2.5px solid #fff",
                   marginLeft: i === 0 ? 0 : -10,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontSize: 11, fontWeight: 700,
+                  color: "#fff", fontSize: "var(--text-xs)", fontWeight: 700,
                   boxShadow: "0 0 0 1px var(--line)",
                   position: "relative", zIndex: 3 - i,
                 }}>
@@ -666,10 +666,10 @@ function SecTitle({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 12,
+        gap: "var(--space-3)",
         fontFamily: 'var(--font-noto-serif)',
         fontWeight: 700,
-        fontSize: 21,
+        fontSize: "var(--text-lg)",
         color: "var(--ink)",
         letterSpacing: "0.01em",
         lineHeight: 1.3,
@@ -686,7 +686,7 @@ function SecTitle({
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          fontSize: 14,
+          fontSize: "var(--text-base)",
         }}
       >
         {icon}
@@ -713,13 +713,13 @@ function AboutSection({
         border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header with subtle gradient */}
       <div style={{
-        padding: "22px 28px 18px",
+        padding: "var(--space-6) var(--space-6) var(--space-4)",
         background: "#f5f8ff",
         borderBottom: "1px solid #dde4f5",
       }}>
@@ -734,15 +734,15 @@ function AboutSection({
           企業について
         </SecTitle>
       </div>
-      <div style={{ padding: "22px 28px 28px" }}>
+      <div style={{ padding: "var(--space-6)" }}>
 
         {/* MISSION — 常に表示 */}
         <div
           style={{
-            padding: "28px 32px",
+            padding: "var(--space-6) var(--space-8)",
             background: "linear-gradient(135deg, #0a1f4e 0%, var(--royal) 60%, #1a3a8a 100%)",
             borderRadius: 14,
-            marginBottom: 24,
+            marginBottom: "var(--space-6)",
             position: "relative",
             overflow: "hidden",
           }}
@@ -750,8 +750,8 @@ function AboutSection({
           <div style={{ position: "absolute", right: -40, top: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", left: -20, bottom: -60, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "linear-gradient(180deg, #F59E0B 0%, #3B5FD9 100%)", borderRadius: "14px 0 0 14px" }} />
-          <div style={{ paddingLeft: 12 }}>
-            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.45)", marginBottom: 12, textTransform: "uppercase" as const }}>
+          <div style={{ paddingLeft: "var(--space-3)" }}>
+            <div style={{ fontFamily: "Inter, sans-serif", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.45)", marginBottom: "var(--space-3)", textTransform: "uppercase" as const }}>
               MISSION
             </div>
             <div style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(18px, 2.2vw, 23px)", fontWeight: 500, color: detail.mission ? "#fff" : "rgba(255,255,255,0.35)", lineHeight: 1.7, letterSpacing: "0.02em", fontStyle: detail.mission ? "normal" : "italic" }}>
@@ -764,39 +764,39 @@ function AboutSection({
         <PhotoCarousel photos={photos} />
 
         {/* 会社説明 — 常に表示 */}
-        <p style={{ fontSize: 15, color: detail.about ? "var(--ink)" : "var(--ink-soft)", lineHeight: 1.9, marginTop: 20, fontStyle: detail.about ? "normal" : "italic" }}>
+        <p style={{ fontSize: "var(--text-base)", color: detail.about ? "var(--ink)" : "var(--ink-soft)", lineHeight: 1.9, marginTop: "var(--space-4)", fontStyle: detail.about ? "normal" : "italic" }}>
           {detail.about ?? "会社説明は現在準備中です。"}
         </p>
 
         {/* FEATURES / 会社の特徴・強み — 常に表示 */}
-        <div style={{ marginTop: 28 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
+        <div style={{ marginTop: "var(--space-6)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.02em", color: "var(--royal)", fontFamily: "var(--font-noto-sans)" }}>
+            <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "0.02em", color: "var(--royal)", fontFamily: "var(--font-noto-sans)" }}>
               会社の特徴・強み
             </span>
           </div>
           {detail.company_features && detail.company_features.length > 0 ? (
-            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
               {detail.company_features.map((f, i) => (
-                <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-2)" }}>
                   <span style={{
                     flexShrink: 0, marginTop: 3,
                     width: 20, height: 20, borderRadius: "50%",
                     background: "var(--royal-50)", border: "1px solid var(--royal-100)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 10, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif",
+                    fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif",
                   }}>
                     {i + 1}
                   </span>
-                  <span style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.8 }}>{f}</span>
+                  <span style={{ fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.8 }}>{f}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p style={{ margin: 0, fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.7 }}>
               会社の特徴・強みは現在準備中です。
             </p>
           )}
@@ -857,12 +857,12 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
         border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
-      <div style={{ padding: "22px 28px 18px", background: "#f5f8ff", borderBottom: "1px solid #dde4f5" }}>
+      <div style={{ padding: "var(--space-6) var(--space-6) var(--space-4)", background: "#f5f8ff", borderBottom: "1px solid #dde4f5" }}>
         <SecTitle
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -875,16 +875,16 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
         </SecTitle>
       </div>
 
-      <div style={{ padding: "24px 28px 28px", display: "flex", flexDirection: "column", gap: 28 }}>
+      <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
 
         {/* ── 製品・サービス ── */}
         {hasProducts && (
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
                 <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
               </svg>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
                 主な製品・サービス
               </span>
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
@@ -894,7 +894,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
             <div style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-              gap: 10,
+              gap: "var(--space-2)",
             }}>
               {detail.main_products!.map((raw, i) => {
                 const { name, sub } = parseProductName(raw);
@@ -906,15 +906,15 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                       background: s.bg,
                       border: `1px solid ${s.border}`,
                       borderRadius: 12,
-                      padding: "14px 16px",
+                      padding: "var(--space-3) var(--space-4)",
                       display: "flex",
                       alignItems: "flex-start",
-                      gap: 10,
+                      gap: "var(--space-2)",
                     }}
                   >
                     <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{s.emoji}</span>
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, fontFamily: "var(--font-noto-sans)" }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, fontFamily: "var(--font-noto-sans)" }}>
                         {name}
                       </p>
                       {sub && (
@@ -933,13 +933,13 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
         {/* ── リッチ導入事例カード ── */}
         {hasCases && (
           <div>
-            {hasProducts && <div style={{ height: 1, background: "var(--line)", marginBottom: 28, marginTop: -4 }} />}
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 16 }}>
+            {hasProducts && <div style={{ height: 1, background: "var(--line)", marginBottom: "var(--space-6)", marginTop: -4 }} />}
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-4)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth={2.5} strokeLinecap="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#B45309", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "#B45309", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
                 主な導入事例
               </span>
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
@@ -953,13 +953,13 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
         {/* ── 顧客タグ（customer_cases がない場合のフォールバック） ── */}
         {!hasCases && hasCustomers && (
           <div>
-            {hasProducts && <div style={{ height: 1, background: "var(--line)", marginBottom: 24, marginTop: -8 }} />}
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
+            {hasProducts && <div style={{ height: 1, background: "var(--line)", marginBottom: "var(--space-6)", marginTop: -8 }} />}
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth={2.5} strokeLinecap="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#B45309", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "#B45309", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
                 主な顧客
               </span>
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
@@ -978,7 +978,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                     borderRadius: 100,
                     background: "#FFFBEB",
                     border: "1px solid #FDE68A",
-                    fontSize: 13,
+                    fontSize: "var(--text-sm)",
                     fontWeight: 600,
                     color: "#92400E",
                     fontFamily: "var(--font-noto-sans)",
@@ -1003,10 +1003,10 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
 function BenefitsSection({ detail }: { detail: CompanyDetail }) {
   const SUBHEADER_STYLE: React.CSSProperties = {
     fontFamily: "var(--font-noto-sans)",
-    fontSize: 13,
+    fontSize: "var(--text-sm)",
     fontWeight: 700,
     color: "#334155",
-    marginBottom: 12,
+    marginBottom: "var(--space-3)",
     letterSpacing: "0.02em",
   };
   // UNSET_STYLE removed — replaced by inline "カジュアル面談でご確認ください" badges
@@ -1023,13 +1023,13 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
         border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 28px 18px",
+        padding: "var(--space-6) var(--space-6) var(--space-4)",
         background: "#f5f8ff",
         borderBottom: "1px solid #dde4f5",
       }}>
@@ -1043,7 +1043,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
           福利厚生・評価制度
         </SecTitle>
       </div>
-      <div style={{ padding: "22px 28px 28px" }}>
+      <div style={{ padding: "var(--space-6)" }}>
 
       {/* ── 福利厚生 ── */}
       {/* Benefit keyword → emoji mapping */}
@@ -1074,7 +1074,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
           return "✓";
         }
         return (
-      <div style={{ marginBottom: 28 }}>
+      <div style={{ marginBottom: "var(--space-6)" }}>
         <div style={SUBHEADER_STYLE}>福利厚生</div>
         {detail.benefits && detail.benefits.length > 0 ? (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -1089,7 +1089,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
                   background: "var(--royal-50)",
                   border: "1px solid var(--royal-100)",
                   borderRadius: 100,
-                  fontSize: 13,
+                  fontSize: "var(--text-sm)",
                   color: "var(--royal)",
                   fontWeight: 500,
                 }}
@@ -1149,13 +1149,13 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
         border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 28px 18px",
+        padding: "var(--space-6) var(--space-6) var(--space-4)",
         background: "#f5f8ff",
         borderBottom: "1px solid #dde4f5",
       }}>
@@ -1171,25 +1171,25 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
           働き方の選択肢
         </SecTitle>
       </div>
-      <div style={{ padding: "22px 28px 28px" }}>
+      <div style={{ padding: "var(--space-6)" }}>
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-6)" }}
         className="[grid-template-columns:1fr] sm:[grid-template-columns:1fr_1fr]"
       >
         <div>
           <div
             style={{
               fontFamily: "var(--font-noto-sans)",
-              fontSize: 13,
+              fontSize: "var(--text-sm)",
               fontWeight: 700,
               color: "#334155",
-              marginBottom: 10,
+              marginBottom: "var(--space-2)",
               letterSpacing: "0.02em",
             }}
           >
             勤務地・リモート
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
             {detail.work_location.map(({ label, note }, i) => (
               <div key={i}>
                 <span
@@ -1201,7 +1201,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
                     background: "var(--success-soft,#ECFDF5)",
                     border: "1px solid #A7F3D0",
                     borderRadius: 100,
-                    fontSize: 13,
+                    fontSize: "var(--text-sm)",
                     color: "var(--success)",
                     fontWeight: 600,
                   }}
@@ -1231,16 +1231,16 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
           <div
             style={{
               fontFamily: "var(--font-noto-sans)",
-              fontSize: 13,
+              fontSize: "var(--text-sm)",
               fontWeight: 700,
               color: "#334155",
-              marginBottom: 10,
+              marginBottom: "var(--space-2)",
               letterSpacing: "0.02em",
             }}
           >
             働き方
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
             {detail.work_style.map(({ label, note }, i) => (
               <div key={i}>
                 <span
@@ -1252,7 +1252,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
                     background: "var(--success-soft,#ECFDF5)",
                     border: "1px solid #A7F3D0",
                     borderRadius: 100,
-                    fontSize: 13,
+                    fontSize: "var(--text-sm)",
                     color: "var(--success)",
                     fontWeight: 600,
                   }}
@@ -1289,7 +1289,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
                     background: "var(--success-soft,#ECFDF5)",
                     border: "1px solid #A7F3D0",
                     borderRadius: 100,
-                    fontSize: 13,
+                    fontSize: "var(--text-sm)",
                     color: "var(--success)",
                     fontWeight: 600,
                   }}
@@ -1320,25 +1320,25 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
       </div>
 
       {/* workstyle_description — 常時表示、null は「未設定」(Commit BB) */}
-      <div style={{ marginTop: 20 }}>
+      <div style={{ marginTop: "var(--space-4)" }}>
         <div
           style={{
             fontFamily: "var(--font-noto-sans)",
-            fontSize: 13,
+            fontSize: "var(--text-sm)",
             fontWeight: 700,
             color: "#334155",
-            marginBottom: 10,
+            marginBottom: "var(--space-2)",
             letterSpacing: "0.02em",
           }}
         >
           補足・働き方メモ
         </div>
         {detail.workstyleDescription ? (
-          <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9, margin: 0 }}>
+          <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.9, margin: 0 }}>
             {detail.workstyleDescription}
           </p>
         ) : (
-          <p style={{ fontSize: 13, color: "var(--ink-mute)", margin: 0 }}>—</p>
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", margin: 0 }}>—</p>
         )}
       </div>
 
@@ -1346,12 +1346,12 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
         style={{
           fontSize: 12,
           color: "var(--ink-soft)",
-          marginTop: 16,
-          padding: "12px 14px",
+          marginTop: "var(--space-4)",
+          padding: "var(--space-3) var(--space-4)",
           background: "var(--bg-tint)",
           borderRadius: 8,
           display: "flex",
-          gap: 10,
+          gap: "var(--space-2)",
           alignItems: "flex-start",
           lineHeight: 1.7,
         }}
@@ -1418,7 +1418,7 @@ function EmployeeCard({
   const nameAndRole = (
     <div style={{ minWidth: 0, flex: 1 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap" }}>
           {employee.name}
         </span>
       </div>
@@ -1452,8 +1452,8 @@ function EmployeeCard({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 12,
-        padding: "12px 14px",
+        gap: "var(--space-3)",
+        padding: "var(--space-3) 14px",
         background: "var(--bg-tint)",
         border: "1px solid var(--line)",
         borderRadius: 12,
@@ -1468,7 +1468,7 @@ function EmployeeCard({
 
 const EMPLOYEE_GRID_STYLE: React.CSSProperties = {
   display: "grid",
-  gap: 10,
+  gap: "var(--space-2)",
 };
 
 function CurrentEmployeesSection({
@@ -1487,9 +1487,9 @@ function CurrentEmployeesSection({
       return (
         <section style={{
           background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "24px",
+          borderRadius: 14, padding: "var(--space-6)",
         }}>
-          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7, margin: 0 }}>
+          <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.7, margin: 0 }}>
             <span style={{ fontWeight: 700, color: "var(--ink)" }}>先輩に話を聞く準備中。</span>
             &nbsp;OB/OG&nbsp;<strong style={{ color: "var(--royal)" }}>{alumniCount}名</strong>に相談できます。
           </p>
@@ -1556,13 +1556,13 @@ function CurrentEmployeesSection({
         border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 28px 18px",
+        padding: "var(--space-6) var(--space-6) var(--space-4)",
         background: "#f5f8ff",
         borderBottom: "1px solid #dde4f5",
       }}>
@@ -1571,17 +1571,17 @@ function CurrentEmployeesSection({
           <span
             style={{
               fontFamily: "Inter, sans-serif",
-              fontSize: 13,
+              fontSize: "var(--text-sm)",
               fontWeight: 400,
               color: "var(--ink-mute)",
-              marginLeft: 8,
+              marginLeft: "var(--space-2)",
             }}
           >
             ({employees.length}名)
           </span>
         </SecTitle>
       </div>
-      <div style={{ padding: "22px 28px 28px" }}>
+      <div style={{ padding: "var(--space-6)" }}>
       {/* ── Role composition bar (3名以上 + カテゴリあり) ───────────────────── */}
       {employees.length >= 3 && categories.length > 0 && (() => {
         const catCounts = new Map<string, number>();
@@ -1593,8 +1593,8 @@ function CurrentEmployeesSection({
         const total = employees.length;
         const COLORS = ["var(--royal)", "#3B5FD9", "#7C3AED", "var(--success)", "#F59E0B", "#DC2626", "#6b7280"];
         return (
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ display: "flex", height: 8, borderRadius: 100, overflow: "hidden", marginBottom: 10, gap: 2 }}>
+          <div style={{ marginBottom: "var(--space-6)" }}>
+            <div style={{ display: "flex", height: 8, borderRadius: 100, overflow: "hidden", marginBottom: "var(--space-2)", gap: 2 }}>
               {entries.map(([name, count], i) => (
                 <div
                   key={name}
@@ -1623,7 +1623,7 @@ function CurrentEmployeesSection({
       {employees.length === 0 ? (
         <div style={{
           textAlign: "center", padding: "32px 20px",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+          display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)",
         }}>
           <div style={{
             width: 48, height: 48, borderRadius: "50%",
@@ -1635,7 +1635,7 @@ function CurrentEmployeesSection({
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)" }}>
+          <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--ink-soft)" }}>
             社員プロフィールを準備中
           </div>
           <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
@@ -1652,7 +1652,7 @@ function CurrentEmployeesSection({
         </div>
       ) : (
         // カテゴリ設定あり → 階層表示
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
           {groups.map((group) => {
             const totalInGroup = group.children.reduce(
               (sum, cat) => sum + (empsByCategory.get(cat.roleId)?.length ?? 0),
@@ -1668,12 +1668,12 @@ function CurrentEmployeesSection({
                     display: "flex",
                     alignItems: "baseline",
                     gap: 6,
-                    marginBottom: 12,
-                    paddingBottom: 8,
+                    marginBottom: "var(--space-3)",
+                    paddingBottom: "var(--space-2)",
                     borderBottom: "1px solid var(--line-soft)",
                   }}
                 >
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>
                     {group.parentName}
                   </span>
                   <span
@@ -1697,7 +1697,7 @@ function CurrentEmployeesSection({
                   </div>
                 ) : (
                   // 子カテゴリあり: 子見出し + グリッド
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                     {group.children.map((cat) => {
                       const empsInCat = empsByCategory.get(cat.roleId) ?? [];
                       if (empsInCat.length === 0) return null;
@@ -1708,7 +1708,7 @@ function CurrentEmployeesSection({
                               display: "flex",
                               alignItems: "baseline",
                               gap: 5,
-                              marginBottom: 8,
+                              marginBottom: "var(--space-2)",
                             }}
                           >
                             <span
@@ -1750,11 +1750,11 @@ function CurrentEmployeesSection({
             <div>
               <div
                 style={{
-                  fontSize: 13,
+                  fontSize: "var(--text-sm)",
                   fontWeight: 700,
                   color: "var(--ink)",
-                  marginBottom: 12,
-                  paddingBottom: 8,
+                  marginBottom: "var(--space-3)",
+                  paddingBottom: "var(--space-2)",
                   borderBottom: "1px solid var(--line-soft)",
                 }}
               >
@@ -1790,8 +1790,8 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 12,
-        padding: "12px 14px",
+        gap: "var(--space-3)",
+        padding: "var(--space-3) 14px",
         background: "var(--bg-tint)",
         border: "1px solid var(--line)",
         borderRadius: 12,
@@ -1835,7 +1835,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <span
             style={{
-              fontSize: 13,
+              fontSize: "var(--text-sm)",
               fontWeight: 600,
               color: "var(--ink)",
               whiteSpace: "nowrap",
@@ -1889,13 +1889,13 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
         border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 28px 18px",
+        padding: "var(--space-6) var(--space-6) var(--space-4)",
         background: "#f5f8ff",
         borderBottom: "1px solid #dde4f5",
       }}>
@@ -1911,17 +1911,17 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
           <span
             style={{
               fontFamily: "Inter, sans-serif",
-              fontSize: 13,
+              fontSize: "var(--text-sm)",
               fontWeight: 400,
               color: "var(--ink-mute)",
-              marginLeft: 8,
+              marginLeft: "var(--space-2)",
             }}
           >
             ({alumni.length}名)
           </span>
         </SecTitle>
       </div>
-      <div style={{ padding: "22px 28px 28px" }}>
+      <div style={{ padding: "var(--space-6)" }}>
       {alumni.length > 0 ? (
         <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
           {alumni.map((emp) => (
@@ -1931,7 +1931,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
       ) : (
         <div style={{
           textAlign: "center", padding: "24px 20px",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+          display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)",
         }}>
           <div style={{
             width: 48, height: 48, borderRadius: "50%",
@@ -1942,7 +1942,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
               <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
             </svg>
           </div>
-          <div style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+          <div style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", lineHeight: 1.7 }}>
             OB・OG情報は順次更新されます
           </div>
         </div>
@@ -1969,11 +1969,11 @@ function JobsSection({
           border: "1px solid var(--line)",
           borderRadius: 18,
           overflow: "hidden",
-          marginBottom: 24,
+          marginBottom: "var(--space-6)",
           boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
         }}
       >
-        <div style={{ padding: "22px 28px 18px", borderBottom: "1px solid var(--line-soft)", background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)" }}>
+        <div style={{ padding: "var(--space-6) var(--space-6) var(--space-4)", borderBottom: "1px solid var(--line-soft)", background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)" }}>
           <SecTitle
             icon={
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -1985,8 +1985,8 @@ function JobsSection({
             募集中の求人
           </SecTitle>
         </div>
-        <div style={{ padding: "22px 28px 28px" }}>
-          <p style={{ fontSize: 15, color: "var(--ink-soft)", textAlign: "center", padding: "24px 0", margin: 0 }}>
+        <div style={{ padding: "var(--space-6)" }}>
+          <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", textAlign: "center", padding: "24px 0", margin: 0 }}>
             現在、公開中の求人はありません。
           </p>
         </div>
@@ -2050,9 +2050,9 @@ function JobsSection({
         {/* Left accent bar in category color */}
         <div style={{ width: 4, flexShrink: 0, background: catColor.text, opacity: 0.7 }} />
         {/* Content */}
-        <div style={{ flex: 1, padding: "16px 18px", display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ flex: 1, padding: "var(--space-4)", display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 6, lineHeight: 1.35 }}>
+            <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)", marginBottom: 6, lineHeight: 1.35 }}>
               {job.title}
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
@@ -2092,11 +2092,11 @@ function JobsSection({
               })()}
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
             {job.salary && job.salary !== "—" && (
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 600, letterSpacing: "0.03em", marginBottom: 2 }}>年収</div>
-                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 15, fontWeight: 800, color: "var(--success)" }}>
+                <div style={{ fontFamily: "Inter, sans-serif", fontSize: "var(--text-base)", fontWeight: 800, color: "var(--success)" }}>
                   {job.salary}
                 </div>
               </div>
@@ -2134,20 +2134,20 @@ function JobsSection({
         border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 28px 18px",
+        padding: "var(--space-6) var(--space-6) var(--space-4)",
         background: "#f5f8ff",
         borderBottom: "1px solid #dde4f5",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         flexWrap: "wrap",
-        gap: 8,
+        gap: "var(--space-2)",
       }}>
         <SecTitle icon={sectionIcon}>
           募集中の求人
@@ -2157,15 +2157,15 @@ function JobsSection({
         </SecTitle>
         <Link
           href={`/companies/${company.id}/jobs`}
-          style={{ color: "var(--royal)", fontSize: 13, fontWeight: 500, textDecoration: "none" }}
+          style={{ color: "var(--royal)", fontSize: "var(--text-sm)", fontWeight: 500, textDecoration: "none" }}
         >
           すべての求人を見る →
         </Link>
       </div>
-      <div style={{ padding: "22px 28px 28px" }}>
+      <div style={{ padding: "var(--space-6)" }}>
       {totalJobs < JOB_GROUPING_THRESHOLD ? (
         // ── 1〜3 件: カテゴリヘッダーなし、直接リスト (γ-4 修正③) ──────────
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           {detail.jobs.flatMap((cat, ci) =>
             cat.items.map((job, ji) => (
               <JobCard
@@ -2182,20 +2182,20 @@ function JobsSection({
         // ── 4 件以上: カテゴリグルーピング表示 (既存構造を維持) ────────────
         <>
           {detail.jobs.map((cat) => (
-            <div key={cat.cat} style={{ marginBottom: 28 }}>
+            <div key={cat.cat} style={{ marginBottom: "var(--space-6)" }}>
               {/* カテゴリヘッダー (既存スタイル維持) */}
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: 12,
-                  padding: "10px 16px",
+                  marginBottom: "var(--space-3)",
+                  padding: "var(--space-2) var(--space-4)",
                   background: "var(--royal-50)",
                   borderRadius: 8,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: "var(--royal)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--royal)" }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                     <polyline points="16 18 22 12 16 6" />
                     <polyline points="8 6 2 12 8 18" />
@@ -2224,7 +2224,7 @@ function JobsSection({
                   </Link>
                 )}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {cat.items.slice(0, 4).map((job, i) => (
                   <JobCard key={job.id ?? i} job={job} catName={cat.cat} catId={cat.catId} index={i} />
                 ))}
@@ -2232,19 +2232,19 @@ function JobsSection({
             </div>
           ))}
 
-          <div style={{ textAlign: "center", marginTop: 20 }}>
+          <div style={{ textAlign: "center", marginTop: "var(--space-4)" }}>
             <Link
               href={`/companies/${company.id}/jobs`}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: "10px 24px",
+                padding: "var(--space-2) var(--space-6)",
                 background: "#fff",
                 color: "var(--royal)",
                 border: "1.5px solid var(--royal)",
                 borderRadius: 8,
-                fontSize: 14,
+                fontSize: "var(--text-base)",
                 fontWeight: 600,
                 textDecoration: "none",
               }}
@@ -2281,13 +2281,13 @@ function RecruitersSection({
         border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 28px 18px",
+        padding: "var(--space-6) var(--space-6) var(--space-4)",
         background: "#f5f8ff",
         borderBottom: "1px solid #dde4f5",
       }}>
@@ -2304,12 +2304,12 @@ function RecruitersSection({
           採用担当者
         </SecTitle>
       </div>
-      <div style={{ padding: "22px 28px 28px" }}>
+      <div style={{ padding: "var(--space-6)" }}>
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 12,
+          gap: "var(--space-3)",
         }}
         className="[grid-template-columns:repeat(2,1fr)] sm:[grid-template-columns:repeat(3,1fr)]"
       >
@@ -2318,8 +2318,8 @@ function RecruitersSection({
             key={r.id}
             style={{
               display: "flex",
-              gap: 14,
-              padding: "16px 18px",
+              gap: "var(--space-3)",
+              padding: "var(--space-4)",
               border: "1px solid var(--line)",
               borderRadius: 12,
               background: "#fff",
@@ -2348,7 +2348,7 @@ function RecruitersSection({
             <div style={{ minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: 14,
+                  fontSize: "var(--text-base)",
                   fontWeight: 700,
                   color: "var(--ink)",
                   marginBottom: 3,
@@ -2376,8 +2376,8 @@ function RecruitersSection({
 
       <div
         style={{
-          marginTop: 16,
-          padding: "12px 14px",
+          marginTop: "var(--space-4)",
+          padding: "var(--space-3) var(--space-4)",
           background: "var(--bg-tint)",
           borderRadius: 8,
           fontSize: 12,
@@ -2385,7 +2385,7 @@ function RecruitersSection({
           lineHeight: 1.7,
           display: "flex",
           alignItems: "center",
-          gap: 8,
+          gap: "var(--space-2)",
         }}
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
@@ -2411,13 +2411,13 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
         border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 28px 18px",
+        padding: "var(--space-6) var(--space-6) var(--space-4)",
         background: "#f5f8ff",
         borderBottom: "1px solid #dde4f5",
       }}>
@@ -2436,19 +2436,19 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
           OPINIO 取材記事
         </SecTitle>
       </div>
-      <div style={{ padding: "22px 28px 28px" }}>
+      <div style={{ padding: "var(--space-6)" }}>
         {articles.length === 0 ? (
           <div style={{ textAlign: "center", padding: "32px 0", color: "var(--ink-mute)" }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" style={{ margin: "0 auto 10px", display: "block", opacity: 0.4 }}>
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
             </svg>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 4 }}>まだ取材記事がありません</div>
+            <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink-soft)", marginBottom: 4 }}>まだ取材記事がありません</div>
             <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>OPINIO編集部による取材記事が順次公開されます</div>
           </div>
         ) : (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "var(--space-4)" }}>
               {displayed.map((article) => {
                 const badge = TYPE_BADGE[article.type];
                 const icon  = TYPE_EYECATCH_ICON[article.type];
@@ -2471,7 +2471,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
                           {article.read_min} min read
                         </div>
                       </div>
-                      <div style={{ padding: "12px 14px", flex: 1 }}>
+                      <div style={{ padding: "var(--space-3) 14px", flex: 1 }}>
                         <p style={{ margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 12, fontWeight: 700, lineHeight: 1.6, color: "var(--ink)", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
                           {article.title}
                         </p>
@@ -2481,7 +2481,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
                 );
               })}
             </div>
-            <div style={{ marginTop: 16, textAlign: "right" }}>
+            <div style={{ marginTop: "var(--space-4)", textAlign: "right" }}>
               <Link href="/articles" style={{ fontSize: 12, color: "var(--accent)", textDecoration: "none", fontFamily: "Inter, sans-serif", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
                 記事一覧を見る
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -2529,20 +2529,20 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
         borderRadius: 18,
         border: "1px solid var(--line)",
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "22px 28px 18px",
+        padding: "var(--space-6) var(--space-6) var(--space-4)",
         background: "#f5f8ff",
         borderBottom: "1px solid #dde4f5",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
           <SecTitle
             icon={
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
@@ -2558,7 +2558,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
               fontSize: 11, fontWeight: 600,
               color: "var(--success)", padding: "3px 10px", borderRadius: 100,
               background: "var(--success-soft)", border: "1px solid #A7F3D0",
-              marginLeft: 8,
+              marginLeft: "var(--space-2)",
             }}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
               企業が直接回答 · {new Date(numbersUpdatedAt).toLocaleDateString("ja-JP", { year: "numeric", month: "long" })}
@@ -2569,14 +2569,14 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
           企業アンケート回答
         </span>
       </div>
-      <div style={{ padding: "22px 28px 28px" }}>
+      <div style={{ padding: "var(--space-6)" }}>
         <>
           {/* 3-column grid */}
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(3, 1fr)",
-              gap: 12,
+              gap: "var(--space-3)",
             }}
             className="sm:grid-cols-3 grid-cols-2"
           >
@@ -2592,11 +2592,11 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
                     background: hasValue ? "#fff" : "#fafafa",
                     border: `1px solid ${hasValue ? "var(--line)" : "#efefef"}`,
                     borderRadius: 12,
-                    padding: "14px 16px 16px",
+                    padding: "var(--space-3) var(--space-4)",
                     minHeight: 88,
                     display: "flex",
                     flexDirection: "column",
-                    gap: 8,
+                    gap: "var(--space-2)",
                     boxShadow: hasValue ? "0 1px 4px rgba(0,0,0,0.04)" : "none",
                   }}
                 >
@@ -2626,7 +2626,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
                   {/* Value */}
                   <span
                     style={{
-                      fontSize: hasValue ? 20 : 14,
+                      fontSize: hasValue ? "var(--text-xl)" : "var(--text-base)",
                       fontWeight: hasValue ? 800 : 400,
                       fontFamily: hasValue ? "Inter, 'Noto Sans JP', sans-serif" : "'Noto Sans JP', sans-serif",
                       color: hasValue ? accentColor : "var(--ink-mute)",
@@ -2644,7 +2644,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
           {/* Disclaimer */}
           <p
             style={{
-              marginTop: 14,
+              marginTop: "var(--space-3)",
               fontSize: 12,
               color: "var(--ink-mute)",
               lineHeight: 1.6,
@@ -2692,11 +2692,11 @@ function MobileBottomCTA({ company }: { company: Company }) {
             background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
             color: "#fff",
             borderRadius: 8,
-            fontSize: 15,
+            fontSize: "var(--text-base)",
             fontWeight: 700,
             textAlign: "center",
             textDecoration: "none",
-            marginBottom: hasJobs ? 8 : 0,
+            marginBottom: hasJobs ? "var(--space-2)" : 0,
             boxShadow: "0 3px 12px rgba(245,158,11,0.35)",
           }}
         >
@@ -2723,7 +2723,7 @@ function MobileBottomCTA({ company }: { company: Company }) {
             color: "#fff",
             border: "1px solid rgba(255,255,255,0.28)",
             borderRadius: 8,
-            fontSize: 13,
+            fontSize: "var(--text-sm)",
             fontWeight: 600,
             textAlign: "center",
             textDecoration: "none",
@@ -2750,7 +2750,7 @@ function Sidebar({
         top: 132,
         alignSelf: "start",
         flexDirection: "column",
-        gap: 16,
+        gap: "var(--space-4)",
       }}
       className="hidden lg:flex"
     >
@@ -2763,7 +2763,7 @@ function Sidebar({
             style={{
               background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
               color: "#fff",
-              padding: 22,
+              padding: "var(--space-6)",
               borderRadius: 16,
               boxShadow: "0 12px 32px rgba(0,35,102,0.2)",
             }}
@@ -2785,9 +2785,9 @@ function Sidebar({
             <div
               style={{
                 fontFamily: "var(--font-noto-serif)",
-                fontSize: 17,
+                fontSize: "var(--text-md)",
                 fontWeight: 500,
-                marginBottom: 16,
+                marginBottom: "var(--space-4)",
                 lineHeight: 1.55,
               }}
             >
@@ -2814,7 +2814,7 @@ function Sidebar({
                     background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
                     color: "#fff",
                     borderRadius: 8,
-                    fontSize: 15,
+                    fontSize: "var(--text-base)",
                     fontWeight: 700,
                     textAlign: "center",
                     textDecoration: "none",
@@ -2883,7 +2883,7 @@ function Sidebar({
                   color: "#fff",
                   border: "1px solid rgba(255,255,255,0.28)",
                   borderRadius: 8,
-                  fontSize: 13,
+                  fontSize: "var(--text-sm)",
                   fontWeight: 600,
                   textAlign: "center",
                   textDecoration: "none",
@@ -2918,17 +2918,17 @@ function Sidebar({
             background: "#fff",
             border: "1px solid var(--line)",
             borderRadius: 16,
-            padding: "18px 20px",
+            padding: "var(--space-4)",
             boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
           }}
         >
           <div
             style={{
-              fontSize: 13,
+              fontSize: "var(--text-sm)",
               fontWeight: 700,
               color: "#334155",
               letterSpacing: "0.02em",
-              marginBottom: 16,
+              marginBottom: "var(--space-4)",
               fontFamily: "var(--font-noto-sans)",
             }}
           >
@@ -2940,7 +2940,7 @@ function Sidebar({
             { n: "3", label: "日程を調整" },
             { n: "4", label: "カジュアル面談（約30分）", sub: "無料・秘密厳守" },
           ].map(({ n, label, sub }, i, arr) => (
-            <div key={n} style={{ display: "flex", gap: 12, position: "relative" }}>
+            <div key={n} style={{ display: "flex", gap: "var(--space-3)", position: "relative" }}>
               {/* Connector line */}
               {i < arr.length - 1 && (
                 <div style={{
@@ -2964,7 +2964,7 @@ function Sidebar({
               {/* Label */}
               <div style={{ paddingBottom: i < arr.length - 1 ? 18 : 0 }}>
                 <div style={{
-                  fontSize: 13, fontWeight: i === 0 ? 600 : 500,
+                  fontSize: "var(--text-sm)", fontWeight: i === 0 ? 600 : 500,
                   color: i === 0 ? "var(--ink)" : "var(--ink-soft)",
                   lineHeight: 1.35,
                 }}>
@@ -2987,17 +2987,17 @@ function Sidebar({
           background: "#fff",
           border: "1px solid var(--line)",
           borderRadius: 16,
-          padding: 22,
+          padding: "var(--space-6)",
           boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
         }}
       >
         <div
           style={{
-            fontSize: 13,
+            fontSize: "var(--text-sm)",
             fontWeight: 700,
             letterSpacing: "0.02em",
             color: "#334155",
-            marginBottom: 14,
+            marginBottom: "var(--space-3)",
             fontFamily: "var(--font-noto-sans)",
           }}
         >
@@ -3010,10 +3010,10 @@ function Sidebar({
               style={{
                 display: "grid",
                 gridTemplateColumns: "76px 1fr",
-                gap: 10,
-                fontSize: 13,
+                gap: "var(--space-2)",
+                fontSize: "var(--text-sm)",
                 alignItems: "flex-start",
-                padding: "10px 0",
+                padding: "var(--space-2) 0",
                 borderBottom: "1px solid var(--line-soft)",
               }}
             >
@@ -3023,7 +3023,7 @@ function Sidebar({
                   <span
                     key={g.id}
                     style={{
-                      padding: "4px 12px",
+                      padding: "var(--space-1) var(--space-3)",
                       borderRadius: 14,
                       fontSize: 12,
                       background: "var(--bg-tint)",
@@ -3057,10 +3057,10 @@ function Sidebar({
                 style={{
                   display: "grid",
                   gridTemplateColumns: "90px 1fr",
-                  gap: 8,
-                  fontSize: 13,
+                  gap: "var(--space-2)",
+                  fontSize: "var(--text-sm)",
                   alignItems: "flex-start",
-                  padding: "10px 0",
+                  padding: "var(--space-2) 0",
                   borderBottom: "1px solid var(--line-soft)",
                 }}
               >
@@ -3077,7 +3077,7 @@ function Sidebar({
                       textDecoration: "underline",
                       fontWeight: 500,
                       wordBreak: "break-all",
-                      fontSize: 13,
+                      fontSize: "var(--text-sm)",
                     }}
                   >
                     {value} →
@@ -3085,7 +3085,7 @@ function Sidebar({
                 ) : isUnset ? (
                   <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>{value}</span>
                 ) : (
-                  <span style={{ color: "var(--ink)", fontWeight: 600, fontSize: 13 }}>{value}</span>
+                  <span style={{ color: "var(--ink)", fontWeight: 600, fontSize: "var(--text-sm)" }}>{value}</span>
                 )}
               </div>
             ))}
@@ -3142,20 +3142,20 @@ async function SimilarCompanies({ currentId, phase }: { currentId: string; phase
         border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
       {/* Section header */}
       <div style={{
-        padding: "20px 28px 16px",
+        padding: "var(--space-4) var(--space-6)",
         background: "#f5f8ff",
         borderBottom: "1px solid #dde4f5",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
           <div style={{
             width: 32, height: 32, borderRadius: 8,
             background: "var(--royal-50)",
@@ -3168,7 +3168,7 @@ async function SimilarCompanies({ currentId, phase }: { currentId: string; phase
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
+            <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
               同じフェーズの企業
             </div>
             <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 1 }}>
@@ -3185,14 +3185,14 @@ async function SimilarCompanies({ currentId, phase }: { currentId: string; phase
         </div>
         <a
           href={`/companies?phase=${encodeURIComponent(phase)}`}
-          style={{ fontSize: 13, color: "var(--royal)", textDecoration: "none", fontWeight: 600, flexShrink: 0 }}
+          style={{ fontSize: "var(--text-sm)", color: "var(--royal)", textDecoration: "none", fontWeight: 600, flexShrink: 0 }}
         >
           すべて見る →
         </a>
       </div>
 
       {/* Carousel */}
-      <div style={{ padding: "16px 0 20px" }}>
+      <div style={{ padding: "var(--space-4) 0 var(--space-4)" }}>
         <GenreCarousel companies={companies} />
       </div>
     </section>
