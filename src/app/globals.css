@@ -52,10 +52,7 @@
 
   /* === Typography Scale === */
 
-  /* ── 連番スケール（正式採用・STEP 0 追加） ───────────────────── */
-  /* インライン調査で最頻出だった 11px・13px を正式トークン化。    */
-  /* --text-base/md/3xl は旧名称(--text-body-sm/body/super)と同値。 */
-  /* 旧名称は使用0回のため STEP 1 で定義ごと削除予定。             */
+  /* ── Typography スケール ────────────────────────────────────── */
   --text-xs:   11px;   /* バッジ・極小ラベル（最頻出） */
   --text-sm:   13px;   /* メタ情報・サブラベル（最頻出） */
   --text-base: 14px;   /* 標準メタ・注記 ← --text-body-sm と同値 */
@@ -65,26 +62,6 @@
   --text-2xl:  32px;   /* 大見出し補完 */
   --text-3xl:  48px;   /* 大見出し ← --text-super と同値 */
 
-  /* ── 旧名称（STEP 1 廃止予定・使用0回） ──────────────────────── */
-  /* Display: ヒーロー級。求職者向けトップ・企業詳細最上部のみ使用 */
-  --text-display: 64px;
-  --text-super:   48px;   /* → --text-3xl に統一予定 */
-
-  /* Headings */
-  --text-h1: 36px;        /* セクション大見出し */
-  --text-h2: 28px;        /* セクション中見出し */
-  --text-h3: 22px;        /* サブ見出し */
-  --text-h4: 18px;        /* 小見出し、カードタイトル */
-
-  /* Body */
-  --text-body-lg: 18px;   /* 求職者向け本文（読み物向け、Stripe-like） */
-  --text-body:    16px;   /* 標準本文 → --text-md に統一予定 */
-  --text-body-sm: 14px;   /* メタ情報、注記 → --text-base に統一予定 */
-  --text-caption: 12px;   /* キャプション、ラベル、バッジ文字 */
-
-  /* Numerals (Inter 推奨 — ダッシュボード KPI 等) */
-  --text-stat-lg: 40px;   /* 大きい数値表示 */
-  --text-stat:    28px;   /* 標準数値表示 */
 
   /* Line Heights */
   --leading-tight:   1.15;  /* display, h1, h2 — 大見出し */
