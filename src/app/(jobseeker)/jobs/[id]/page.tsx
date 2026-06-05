@@ -82,7 +82,7 @@ function SecTitle({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-4)" }}>
       <span style={{
         width: 28, height: 28, borderRadius: 7, flexShrink: 0,
         background: color,
@@ -91,7 +91,7 @@ function SecTitle({
       }}>
         {icon}
       </span>
-      <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
+      <h2 style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)" }}>
         {children}
       </h2>
     </div>
@@ -103,22 +103,22 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
   return (
     <section style={{
       background: "#fff", border: "1px solid var(--line)",
-      borderRadius: 16, padding: "24px 28px", marginBottom: 20,
+      borderRadius: 16, padding: "var(--space-6)", marginBottom: "var(--space-4)",
     }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>同じ職種の求人</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
+        <h2 style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)" }}>同じ職種の求人</h2>
         <Link href="/jobs" style={{ fontSize: 12, color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>
           すべて見る →
         </Link>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         {jobs.map((rj) => (
-          <Link key={rj.id} href={`/jobs/${rj.id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: rj.logoGradient || "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 15, fontWeight: 700, overflow: "hidden" }}>
+          <Link key={rj.id} href={`/jobs/${rj.id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: "var(--space-3) 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
+            <div style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: rj.logoGradient || "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "var(--text-base)", fontWeight: 700, overflow: "hidden" }}>
               {rj.logoUrl ? <Image src={rj.logoUrl} alt={rj.companyName} width={40} height={40} style={{ objectFit: "contain" }} /> : rj.logoLetter}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rj.title}</div>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rj.title}</div>
               <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{rj.companyName}</div>
             </div>
             {(rj.salaryMin || rj.salaryMax) && (
@@ -260,7 +260,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
         }}
       />
       {/* Breadcrumb */}
-      <nav aria-label="パンくずリスト" style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
+      <nav aria-label="パンくずリスト" style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-2) 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
@@ -273,9 +273,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
       </nav>
 
       {/* Hero */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "28px 0" }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-6) 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-          <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: "var(--space-4)", alignItems: "flex-start" }}>
             <div style={{
               width: 64, height: 64, borderRadius: 14, flexShrink: 0,
               background: company.logo_url ? "#f8fafc" : company.gradient,
@@ -293,8 +293,8 @@ export default async function JobDetailPage({ params }: { params: { id: string }
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-                <Link href={`/companies/${company.id}`} style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 6, flexWrap: "wrap" }}>
+                <Link href={`/companies/${company.id}`} style={{ fontSize: "var(--text-sm)", color: "var(--royal)", fontWeight: 600 }}>
                   {company.name}
                 </Link>
                 <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
@@ -306,7 +306,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {job.urgency === "hot" && (
                 <div style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "4px 10px", borderRadius: 6, marginBottom: 10,
+                  padding: "4px 10px", borderRadius: 6, marginBottom: "var(--space-2)",
                   background: "#FEE2E2", color: "#DC2626",
                   fontSize: 11, fontWeight: 800, letterSpacing: "0.08em",
                   fontFamily: "Inter, sans-serif", border: "1px solid #FECACA",
@@ -322,7 +322,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   fontSize: 11, fontWeight: 800, letterSpacing: "0.08em",
                   padding: "4px 12px", borderRadius: 100,
                   background: "var(--success-soft)", color: "var(--success)",
-                  border: "1px solid #A7F3D0", marginBottom: 12,
+                  border: "1px solid #A7F3D0", marginBottom: "var(--space-3)",
                 }}>
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--success)", animation: "pulseDot 1.8s ease infinite" }} />
                   NEW — 7日以内に公開
@@ -332,7 +332,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               <h1 style={{
                 fontFamily: 'var(--font-noto-serif)',
                 fontSize: "clamp(18px,2vw,24px)", fontWeight: 700,
-                color: "var(--ink)", lineHeight: 1.4, marginBottom: 12,
+                color: "var(--ink)", lineHeight: 1.4, marginBottom: "var(--space-3)",
                 letterSpacing: "0.01em",
               }}>
                 {job.role}
@@ -381,11 +381,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
           <div className="grid gap-7 [grid-template-columns:1fr] lg:[grid-template-columns:1fr_320px]">
 
             {/* ── Main column ── */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
 
               {/* Overview */}
               {job.overview && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -394,14 +394,14 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 }>
                   ポジション概要
                 </SecTitle>
-                <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8 }}>{job.overview}</p>
+                <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.8 }}>{job.overview}</p>
               </section>
               )}
 
               {/* Position members — 0件のときは非表示 */}
-              {job.position_members.length > 0 && <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {job.position_members.length > 0 && <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: "var(--space-2)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                     <span style={{
                       width: 28, height: 28, borderRadius: 7, flexShrink: 0,
                       background: "var(--royal)",
@@ -412,7 +412,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                       </svg>
                     </span>
-                    <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
+                    <h2 style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)" }}>
                       {company.name}でこの職種を経験した人
                       <span style={{ fontFamily: "Inter, sans-serif", color: "var(--royal)", marginLeft: 6 }}>
                         {job.position_members.length}名
@@ -421,19 +421,19 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                 </div>
 
-                <p style={{ fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: 16 }}>
+                <p style={{ fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7, marginBottom: "var(--space-4)" }}>
                   過去・現在に関わらず、{company.name}でこの職種を経験したOpinio登録者です。
                   <strong style={{ color: "var(--ink-soft)" }}>現在のステータス</strong>もあわせて表示しています。
                 </p>
 
                 {/* Avatar row */}
-                <div style={{ display: "flex", marginBottom: 20 }}>
+                <div style={{ display: "flex", marginBottom: "var(--space-4)" }}>
                   {job.position_members.map((m, i) => (
                     <div key={i} style={{
                       width: 44, height: 44, borderRadius: "50%",
                       background: m.gradient,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 14, fontWeight: 700,
+                      color: "#fff", fontSize: "var(--text-base)", fontWeight: 700,
                       border: "2.5px solid #fff",
                       marginLeft: i === 0 ? 0 : -10,
                       position: "relative", zIndex: 10 - i,
@@ -444,11 +444,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </div>
 
                 {/* Interview cards */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                   {job.position_members.map((m, i) => (
                     <div key={i} style={{
                       display: "flex", alignItems: "center", gap: 14,
-                      padding: "14px 16px",
+                      padding: "14px var(--space-4)",
                       background: "var(--bg-tint)", border: "1px solid var(--line)",
                       borderRadius: 10,
                     }}>
@@ -456,14 +456,14 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
                         background: m.gradient,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        color: "#fff", fontSize: 13, fontWeight: 700,
+                        color: "#fff", fontSize: "var(--text-sm)", fontWeight: 700,
                         }}>
                         {m.initial}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
                           fontFamily: 'var(--font-noto-serif)',
-                          fontSize: 13, fontWeight: 500, color: "var(--ink)",
+                          fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--ink)",
                           lineHeight: 1.5, marginBottom: 4,
                         }}>
                           「{m.catch}」
@@ -483,8 +483,8 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
                 {/* Status legend */}
                 <div style={{
-                  marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-soft)",
-                  display: "flex", flexWrap: "wrap", gap: 12, fontSize: 11, color: "var(--ink-mute)",
+                  marginTop: "var(--space-4)", paddingTop: 14, borderTop: "1px solid var(--line-soft)",
+                  display: "flex", flexWrap: "wrap", gap: "var(--space-3)", fontSize: 11, color: "var(--ink-mute)",
                 }}>
                   {[
                     { dot: "var(--success)", label: "現役・現職継続" },
@@ -501,7 +501,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Main tasks */}
               {job.main_tasks.length > 0 && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="#0891B2" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
@@ -509,9 +509,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 }>
                   メイン業務
                 </SecTitle>
-                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                   {job.main_tasks.map((task, i) => (
-                    <li key={i} style={{ display: "flex", gap: 10, fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                    <li key={i} style={{ display: "flex", gap: "var(--space-2)", fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.7 }}>
                       <span style={{
                         width: 20, height: 20, borderRadius: "50%", flexShrink: 0, marginTop: 3,
                         background: "var(--royal-50)", color: "var(--royal)",
@@ -529,7 +529,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Skills */}
               {(job.required_skills.length > 0 || job.preferred_skills.length > 0) && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--warm)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <polyline points="20 6 9 17 4 12"/>
@@ -538,9 +538,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   必須スキル / 歓迎スキル
                 </SecTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
-                  <div style={{ padding: "16px", borderRadius: 10, background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+                  <div style={{ padding: "var(--space-4)", borderRadius: 10, background: "#FFFBEB", border: "1px solid #FDE68A" }}>
                     <div style={{
-                      display: "flex", alignItems: "center", gap: 6, marginBottom: 12,
+                      display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)",
                       fontSize: 11, fontWeight: 800, color: "#B45309", letterSpacing: "0.05em",
                     }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -548,9 +548,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       </svg>
                       必須スキル
                     </div>
-                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                       {job.required_skills.map((s, i) => (
-                        <li key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                        <li key={i} style={{ display: "flex", gap: "var(--space-2)", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
                             <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
                           </svg>
@@ -559,9 +559,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       ))}
                     </ul>
                   </div>
-                  <div style={{ padding: "16px", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
+                  <div style={{ padding: "var(--space-4)", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
                     <div style={{
-                      display: "flex", alignItems: "center", gap: 6, marginBottom: 12,
+                      display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)",
                       fontSize: 11, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.05em",
                     }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -569,9 +569,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       </svg>
                       歓迎スキル
                     </div>
-                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                       {job.preferred_skills.map((s, i) => (
-                        <li key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                        <li key={i} style={{ display: "flex", gap: "var(--space-2)", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
                             <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
                           </svg>
@@ -587,7 +587,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Benefits */}
               {job.benefits.length > 0 && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--success)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4M4 6v12c0 1.1.9 2 2 2h14v-4"/>
@@ -609,7 +609,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       }}>
                         {row.key}
                       </div>
-                      <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                      <div style={{ padding: "11px 14px", fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.6 }}>
                         {row.value}
                       </div>
                     </div>
@@ -621,11 +621,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* 入社後90日 */}
               {job.first_90_days && (
               <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
-                <div style={{ padding: "16px 22px 12px", background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)", display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ padding: "var(--space-4) var(--space-6) var(--space-3)", background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)", display: "flex", alignItems: "center", gap: 8 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)" }}>入社後90日でやること</span>
+                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)" }}>入社後90日でやること</span>
                 </div>
-                <div style={{ padding: "18px 22px", fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
+                <div style={{ padding: "var(--space-4) var(--space-6)", fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
                   {job.first_90_days}
                 </div>
               </div>
@@ -634,11 +634,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* チーム構成 */}
               {job.team_composition && (
               <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
-                <div style={{ padding: "16px 22px 12px", background: "#f5faf2", borderBottom: "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ padding: "var(--space-4) var(--space-6) var(--space-3)", background: "#f5faf2", borderBottom: "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: 8 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--success)" }}>チーム構成</span>
+                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--success)" }}>チーム構成</span>
                 </div>
-                <div style={{ padding: "18px 22px", fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
+                <div style={{ padding: "var(--space-4) var(--space-6)", fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
                   {job.team_composition}
                 </div>
               </div>
@@ -647,11 +647,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* なぜ今採用するか */}
               {job.why_hire && (
               <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
-                <div style={{ padding: "16px 22px 12px", background: "var(--warm-soft)", borderBottom: "1px solid #fde68a", display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ padding: "var(--space-4) var(--space-6) var(--space-3)", background: "var(--warm-soft)", borderBottom: "1px solid #fde68a", display: "flex", alignItems: "center", gap: 8 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#B45309" }}>なぜ今採用するか</span>
+                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "#B45309" }}>なぜ今採用するか</span>
                 </div>
-                <div style={{ padding: "18px 22px", fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
+                <div style={{ padding: "var(--space-4) var(--space-6)", fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
                   {job.why_hire}
                 </div>
               </div>
@@ -659,7 +659,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Selection flow */}
               {job.selection_flow.length > 0 && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--purple)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
@@ -672,7 +672,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     <div key={i} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
                       <div style={{
                         display: "flex", flexDirection: "column", alignItems: "center",
-                        padding: "12px 14px",
+                        padding: "var(--space-3) 14px",
                         background: i === 0 ? "var(--royal-50)" : i === job.selection_flow.length - 1 ? "var(--success-soft)" : "var(--bg-tint)",
                         border: `1px solid ${i === 0 ? "var(--royal-100)" : i === job.selection_flow.length - 1 ? "#A7F3D0" : "var(--line)"}`,
                         borderRadius: 10, minWidth: 88, textAlign: "center" as const,
@@ -699,7 +699,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {job.selection_note && (
                 <p style={{
                   marginTop: 14, fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.7,
-                  background: "var(--bg-tint)", padding: "10px 14px", borderRadius: 8,
+                  background: "var(--bg-tint)", padding: "var(--space-2) 14px", borderRadius: 8,
                   borderLeft: "3px solid var(--royal-100)",
                 }}>
                   {job.selection_note}
@@ -710,7 +710,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Related article */}
               {job.related_article_title && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--ink)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -721,7 +721,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </SecTitle>
                 {(
                   <div style={{
-                    display: "flex", gap: 14, padding: "14px 16px",
+                    display: "flex", gap: 14, padding: "14px var(--space-4)",
                     border: "1px solid var(--line)", borderRadius: 10, background: "var(--bg-tint)",
                   }}>
                     <div style={{
@@ -759,7 +759,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               )}
 
               {/* Company summary */}
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--ink-mute)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <rect x="2" y="7" width="20" height="14" rx="2"/>
@@ -769,15 +769,15 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   企業について
                 </SecTitle>
                 <div style={{
-                  display: "flex", gap: 16, alignItems: "flex-start",
-                  padding: "16px", background: "var(--bg-tint)", borderRadius: 12,
+                  display: "flex", gap: "var(--space-4)", alignItems: "flex-start",
+                  padding: "var(--space-4)", background: "var(--bg-tint)", borderRadius: 12,
                 }}>
                   <div style={{
                     width: 52, height: 52, borderRadius: 12, flexShrink: 0,
                     background: company.logo_url ? "#f8fafc" : company.gradient,
                     border: company.logo_url ? "1px solid var(--line)" : "none",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontSize: 20, fontWeight: 700,
+                    color: "#fff", fontSize: "var(--text-lg)", fontWeight: 700,
                     overflow: "hidden",
                   }}>
                     {company.logo_url ? (
@@ -788,8 +788,8 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
-                      display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-                      fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 5,
+                      display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap",
+                      fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)", marginBottom: 5,
                     }}>
                       {company.name}
                       <span style={{
@@ -801,11 +801,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     </div>
                     <div style={{
                       fontFamily: 'var(--font-noto-serif)',
-                      fontSize: 12.5, color: "var(--royal)", lineHeight: 1.5, marginBottom: 10,
+                      fontSize: 12.5, color: "var(--royal)", lineHeight: 1.5, marginBottom: "var(--space-2)",
                     }}>
                       {company.tagline}
                     </div>
-                    <div style={{ display: "flex", gap: 16, fontSize: 11, color: "var(--ink-mute)", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: "var(--space-4)", fontSize: 11, color: "var(--ink-mute)", flexWrap: "wrap" }}>
                       <span>業種 <strong style={{ color: "var(--ink)" }}>{company.industry}</strong></span>
                       <span>従業員 <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{company.employee_count.toLocaleString()}</strong>名</span>
                     </div>
@@ -814,7 +814,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     href={`/companies/${company.id}`}
                     style={{
                       alignSelf: "center", flexShrink: 0,
-                      padding: "8px 14px", borderRadius: 8,
+                      padding: "var(--space-2) 14px", borderRadius: 8,
                       border: "1.5px solid var(--royal)", color: "var(--royal)",
                       fontSize: 12, fontWeight: 600, background: "#fff",
                     }}
@@ -826,7 +826,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Related jobs */}
               {relatedJobs.length > 0 && (
-                <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px" }}>
+                <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                   <SecTitle color="var(--accent)" icon={
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                       <rect x="2" y="7" width="20" height="14" rx="2"/>
@@ -835,10 +835,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   }>
                     {company.name}の他の求人
                   </SecTitle>
-                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
                     {relatedJobs.map((rj) => (
                       <Link key={rj.id} href={`/jobs/${rj.id}`} style={{
-                        display: "flex", gap: 12, alignItems: "flex-start",
+                        display: "flex", gap: "var(--space-3)", alignItems: "flex-start",
                         padding: 14, border: "1px solid var(--line)", borderRadius: 10,
                         background: "var(--bg-tint)", textDecoration: "none",
                         transition: "border-color 0.2s, transform 0.2s",
@@ -849,7 +849,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                           width: 36, height: 36, borderRadius: 8, flexShrink: 0,
                           background: company.gradient,
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          color: "#fff", fontSize: 14, fontWeight: 700,
+                          color: "#fff", fontSize: "var(--text-base)", fontWeight: 700,
                         }}>
                           {initial}
                         </div>
@@ -874,22 +874,22 @@ export default async function JobDetailPage({ params }: { params: { id: string }
             </div>
 
             {/* ── Sidebar ── */}
-            <aside className="hidden lg:flex" style={{ flexDirection: "column", gap: 16, alignSelf: "flex-start", position: "sticky", top: 80 }}>
+            <aside className="hidden lg:flex" style={{ flexDirection: "column", gap: "var(--space-4)", alignSelf: "flex-start", position: "sticky", top: 80 }}>
               {/* CTA */}
-              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "22px", display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 {company.jobs_public && (
                 <div style={{
                   background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
-                  borderRadius: 10, padding: "18px", textAlign: "center" as const,
+                  borderRadius: 10, padding: "var(--space-4)", textAlign: "center" as const,
                 }}>
                   <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 6 }}>まずは気軽に話してみる</div>
-                  <div style={{ color: "#fff", fontSize: 14, fontWeight: 700, marginBottom: 14, lineHeight: 1.4 }}>
+                  <div style={{ color: "#fff", fontSize: "var(--text-base)", fontWeight: 700, marginBottom: 14, lineHeight: 1.4 }}>
                     {company.name}の<br />社員に相談する
                   </div>
                   <Link href={`/companies/${job.company_id}/casual-meeting?job_id=${job.id}`} style={{
                     display: "block", width: "100%", padding: "11px 0",
                     background: "#fff", color: "#B45309",
-                    borderRadius: 8, fontSize: 13, fontWeight: 700,
+                    borderRadius: 8, fontSize: "var(--text-sm)", fontWeight: 700,
                     textDecoration: "none", textAlign: "center",
                   }}>
                     カジュアル面談を申し込む
@@ -897,11 +897,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </div>
                 )}
                 <Link href={`/jobs/${job.id}/apply`} style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  width: "100%", padding: "14px 28px",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
+                  width: "100%", padding: "14px var(--space-6)",
                   background: "transparent",
                   color: "var(--royal)", border: "1.5px solid var(--royal)", borderRadius: 8,
-                  fontSize: 14, fontWeight: 700, textDecoration: "none", textAlign: "center",
+                  fontSize: "var(--text-base)", fontWeight: 700, textDecoration: "none", textAlign: "center",
                 }}>
                   応募する
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -919,7 +919,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               </div>
 
               {/* Job summary */}
-              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "18px" }}>
+              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-4)" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 14 }}>
                   求人サマリー
                 </div>
@@ -927,12 +927,12 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {(job.salary_min || job.salary_max) && (
                 <div style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "10px 12px", marginBottom: 8, borderRadius: 8,
-                  background: "var(--royal-50)", border: "1px solid var(--royal-100)", gap: 8,
+                  padding: "var(--space-2) var(--space-3)", marginBottom: "var(--space-2)", borderRadius: 8,
+                  background: "var(--royal-50)", border: "1px solid var(--royal-100)", gap: "var(--space-2)",
                 }}>
                   <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, flexShrink: 0 }}>想定年収</span>
                   <span style={{
-                    fontSize: 20, fontWeight: 700, color: "var(--royal)",
+                    fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--royal)",
                     fontFamily: "Inter, sans-serif", textAlign: "right" as const,
                   }}>
                     {job.salary_min && job.salary_max
@@ -951,7 +951,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 ].map(({ key, value }) => (
                   <div key={key} style={{
                     display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-                    padding: "8px 0", borderBottom: "1px solid var(--line-soft, #F1F5F9)", gap: 8,
+                    padding: "var(--space-2) 0", borderBottom: "1px solid var(--line-soft, #F1F5F9)", gap: "var(--space-2)",
                   }}>
                     <span style={{ fontSize: 11, color: "var(--ink-mute)", flexShrink: 0 }}>{key}</span>
                     <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", textAlign: "right" as const }}>{value}</span>
@@ -960,9 +960,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               </div>
 
               {/* Share buttons */}
-              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "18px 22px" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 12, letterSpacing: "0.08em" }}>SHARE</div>
-                <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-4) var(--space-6)" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: "var(--space-3)", letterSpacing: "0.08em" }}>SHARE</div>
+                <div style={{ display: "flex", gap: "var(--space-2)" }}>
                   <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(job.role + ' — ' + company.name)}&url=${encodeURIComponent('https://opinio.jp/jobs/' + job.id)}`}
                      target="_blank" rel="noopener noreferrer"
                      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 8, background: "#000", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>
