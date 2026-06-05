@@ -355,7 +355,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         {/* Cover + Avatar header — full width above grid */}
         <div style={{
           background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 16, overflow: "hidden", marginBottom: 24,
+          borderRadius: 16, overflow: "hidden", marginBottom: "var(--space-6)",
         }}>
           {/* Cover area: photo or gradient */}
           <div className="profile-cover" style={{ height: 200, position: "relative", background: owUser.cover_photo_url ? undefined : coverColor, overflow: "hidden" }}>
@@ -390,7 +390,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
               fontSize: 42, fontWeight: 600,
               border: "5px solid #fff",
               boxShadow: "0 4px 16px rgba(15,23,42,0.12)",
-              marginBottom: 12, position: "relative",
+              marginBottom: "var(--space-3)", position: "relative",
               overflow: owUser.avatar_url ? "hidden" : "visible",
             }}>
               {owUser.avatar_url ? (
@@ -404,7 +404,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
               ) : initial}
             </div>
 
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
               <div>
                 <div className="profile-name" style={{
                   fontFamily: 'var(--font-noto-serif)',
@@ -416,7 +416,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     <span style={{
                       display: "inline-flex", alignItems: "center", gap: 5,
                       padding: "3px 10px", borderRadius: 100,
-                      fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
+                      fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.04em",
                       background: "linear-gradient(135deg, var(--success), #10B981)",
                       color: "#fff",
                       boxShadow: "0 2px 8px rgba(5,150,105,0.3)",
@@ -432,7 +432,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 </div>
                 {/* Current role subtitle */}
                 {currentCareer && (
-                  <div style={{ fontSize: 14, color: "var(--ink-soft)", marginBottom: 8, lineHeight: 1.4 }}>
+                  <div style={{ fontSize: 14, color: "var(--ink-soft)", marginBottom: "var(--space-2)", lineHeight: 1.4 }}>
                     {currentCareer.role_label}
                     {currentCareer.company_name && (
                       <> @ {currentCareer.company_id
@@ -442,9 +442,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     )}
                   </div>
                 )}
-                <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "var(--space-4)", flexWrap: "wrap" }}>
                   {ageDisplay && (
-                    <span style={{ fontSize: 13, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 5 }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                         <circle cx="12" cy="8" r="4" /><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
                       </svg>
@@ -452,7 +452,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </span>
                   )}
                   {owUser.location && (
-                    <span style={{ fontSize: 13, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 5 }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                         <circle cx="12" cy="10" r="3" />
@@ -464,19 +464,19 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 {/* Career stats strip */}
                 {careerSummary && (
                   <div style={{ display: "inline-flex", alignItems: "center", gap: 0, marginTop: 14, flexWrap: "wrap", background: "var(--bg-tint)", borderRadius: 100, padding: "4px 8px", border: "1px solid var(--line)" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)", padding: "4px 12px 4px 0" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "var(--text-sm)", color: "var(--ink-soft)", padding: "4px 12px 4px 0" }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
                       <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{careerSummary.companyCount}</strong>社の経験
                     </span>
                     <span style={{ width: 1, height: 14, background: "var(--line)", margin: "0 4px", flexShrink: 0 }} />
-                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)", padding: "4px 12px" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "var(--text-sm)", color: "var(--ink-soft)", padding: "4px 12px" }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                       <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{careerSummary.totalYears}</strong>年のキャリア
                     </span>
                     {skillTags.length > 0 && (
                       <>
                         <span style={{ width: 1, height: 14, background: "var(--line)", margin: "0 4px", flexShrink: 0 }} />
-                        <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)", padding: "4px 0 4px 12px" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "var(--text-sm)", color: "var(--ink-soft)", padding: "4px 0 4px 12px" }}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                           <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{skillTags.length}</strong>スキル
                         </span>
@@ -523,7 +523,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </div>
                 )}
                 {activeSocials.length > 0 && (
-                  <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-2)", flexWrap: "wrap" }}>
                     {activeSocials.map((platform) => {
                       const url = socialLinks[platform]!;
                       const label = SOCIAL_META[platform].label;
@@ -539,7 +539,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </div>
 
               {/* Right-side CTA: context-aware */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
                 {/* シェアボタン（オーナー以外のみ表示） */}
                 {!viewerIsOwner && (
                   <ProfileShareButton userId={owUser.id} name={owUser.name} />
@@ -552,7 +552,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "8px 18px", borderRadius: 8,
                     border: "1.5px solid var(--line)", background: "#fff",
-                    color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, textDecoration: "none",
+                    color: "var(--ink-soft)", fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
                     flexShrink: 0,
                   }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -568,7 +568,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "9px 18px", borderRadius: 8,
                   border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
-                  color: "var(--royal)", fontSize: 13, fontWeight: 600, textDecoration: "none",
+                  color: "var(--royal)", fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
                   flexShrink: 0,
                 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -643,7 +643,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
               return (
                 <section style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+                  <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
                     ハイライト
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: `repeat(${highlights.length}, 1fr)`, gap: 10 }}>
@@ -671,7 +671,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           {h.icon}
                         </div>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)", marginBottom: 3, letterSpacing: "0.02em" }}>
+                          <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink)", marginBottom: 3, letterSpacing: "0.02em" }}>
                             {h.label}
                           </div>
                           {h.body}
@@ -704,12 +704,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   border: "1px solid #fde68a", borderRadius: 14,
                   padding: "18px 22px", marginBottom: 20,
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: "var(--space-2)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round">
                         <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
                       </svg>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#92400E" }}>
+                      <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "#92400E" }}>
                         プロフィール完成度 {percentage}%
                       </span>
                     </div>
@@ -774,7 +774,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 borderRadius: 14, padding: "24px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
                   <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
                     About Me
                   </span>
@@ -809,14 +809,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: 10 }}>
                   <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                 </svg>
-                <p style={{ fontSize: 13, color: "var(--ink-mute)", margin: "0 0 12px" }}>
+                <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", margin: "0 0 12px" }}>
                   自己紹介を書いて、あなたのことを伝えましょう
                 </p>
                 <Link href="/profile/edit" style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "8px 18px", borderRadius: 8,
                   background: "var(--royal)", color: "#fff",
-                  fontSize: 13, fontWeight: 600, textDecoration: "none",
+                  fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
                 }}>
                   プロフィールを編集する →
                 </Link>
@@ -871,13 +871,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   if (!hasGroups) {
                     // グルーピングなし（全部カテゴリ未設定）→ 旧来のフラット表示
                     return (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                         {skillTags.map((tag) => (
                           <span key={tag.id as string} style={{
                             display: "inline-flex", alignItems: "center", gap: 6,
                             padding: "7px 14px", borderRadius: 8,
                             background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                            fontSize: 13, color: "var(--royal)", fontWeight: 600,
+                            fontSize: "var(--text-sm)", color: "var(--royal)", fontWeight: 600,
                           }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                               <polyline points="20 6 9 17 4 12" />
@@ -893,15 +893,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   const groupedKeys = Array.from(grouped.keys());
                   const orderedKeys = [...CATEGORY_ORDER.filter((k) => grouped.has(k)), ...groupedKeys.filter((k) => !CATEGORY_ORDER.includes(k))];
                   return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
                       {orderedKeys.map((cat) => {
                         const tags = grouped.get(cat)!;
                         const style = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS["その他"];
                         return (
                           <div key={cat}>
                             <div style={{
-                              fontSize: 11, fontWeight: 700, color: style.color,
-                              letterSpacing: "0.06em", marginBottom: 8,
+                              fontSize: "var(--text-xs)", fontWeight: 700, color: style.color,
+                              letterSpacing: "0.06em", marginBottom: "var(--space-2)",
                               display: "flex", alignItems: "center", gap: 6,
                             }}>
                               <span style={{
@@ -950,7 +950,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "var(--space-3)" }}>
                   {achievements.map((a) => (
                     <div key={a.id} style={{
                       textAlign: "center", padding: "18px 12px 14px",
@@ -971,7 +971,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       }}>
                         {a.value ?? "—"}
                         {a.unit && (
-                          <span style={{ fontSize: 13, fontWeight: 600, marginLeft: 2, opacity: 0.8 }}>
+                          <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, marginLeft: 2, opacity: 0.8 }}>
                             {a.unit}
                           </span>
                         )}
@@ -989,12 +989,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   ))}
                 </div>
                 {achievements.filter((a) => a.description).length > 0 && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginTop: 14 }}>
                     {achievements.filter((a) => a.description).map((a) => (
                       <div key={a.id + "_d"} style={{
                         padding: "10px 14px", borderRadius: 8,
                         background: "var(--bg-tint)", border: "1px solid var(--line)",
-                        fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7,
+                        fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.7,
                       }}>
                         <span style={{ fontWeight: 700, color: "var(--ink)", marginRight: 6 }}>{a.title}:</span>
                         {a.description}
@@ -1044,7 +1044,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, marginBottom: 4 }}>
                           {award.title}
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
                           {award.issuer && (
                             <span style={{
                               fontSize: 12, color: "var(--ink-soft)",
@@ -1058,7 +1058,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           )}
                           {award.awarded_at && (
                             <span style={{
-                              fontSize: 11, color: "var(--ink-mute)",
+                              fontSize: "var(--text-xs)", color: "var(--ink-mute)",
                               fontFamily: "Inter, sans-serif",
                               background: "var(--bg-tint)", border: "1px solid var(--line)",
                               padding: "1px 7px", borderRadius: 100,
@@ -1068,7 +1068,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           )}
                         </div>
                         {award.description && (
-                          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "6px 0 0", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+                          <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", margin: "6px 0 0", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
                             {award.description}
                           </p>
                         )}
@@ -1139,13 +1139,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
                                 width: 40, height: 40, borderRadius: 9, flexShrink: 0,
                                 background: c.logo_gradient ?? (c.is_current ? "var(--royal)" : "var(--line)"),
                                 display: "flex", alignItems: "center", justifyContent: "center",
-                                color: "#fff", fontSize: 16, fontWeight: 700,
+                                color: "#fff", fontSize: "var(--text-md)", fontWeight: 700,
                               }}>
                                 {c.logo_letter ?? c.company_name.charAt(0)}
                               </div>
                             </div>
                             <div style={{
-                              fontSize: 11, fontWeight: 600, color: c.is_current ? "var(--royal)" : "var(--ink)",
+                              fontSize: "var(--text-xs)", fontWeight: 600, color: c.is_current ? "var(--royal)" : "var(--ink)",
                               textAlign: "center", lineHeight: 1.3, wordBreak: "break-all",
                               overflow: "hidden", display: "-webkit-box",
                               WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
@@ -1189,11 +1189,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     ACTIVITY
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                  <Link href="/feed" style={{ fontSize: 11, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>
+                  <Link href="/feed" style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>
                     すべて見る →
                   </Link>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                   {recentPosts.map((post) => {
                     const likeCount = (post.likes as Array<{ count: number }>)[0]?.count ?? 0;
                     const commentCount = (post.comments as Array<{ count: number }>)[0]?.count ?? 0;
@@ -1211,7 +1211,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           </div>
                         )}
                         <p style={{
-                          fontSize: 13, color: "var(--ink)", lineHeight: 1.75, margin: "0 0 10px",
+                          fontSize: "var(--text-sm)", color: "var(--ink)", lineHeight: 1.75, margin: "0 0 10px",
                           whiteSpace: "pre-wrap",
                           display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical",
                           overflow: "hidden",
@@ -1219,16 +1219,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           {post.content}
                         </p>
                         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                          <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                             {relTime}
                           </span>
-                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--ink-mute)" }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                             </svg>
                             {likeCount}
                           </span>
-                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--ink-mute)" }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                             </svg>
@@ -1295,7 +1295,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                             )}
                           </div>
                           <div style={{
-                            fontSize: 13, fontWeight: 600, color: m.url ? "var(--royal)" : "var(--ink)", lineHeight: 1.5,
+                            fontSize: "var(--text-sm)", fontWeight: 600, color: m.url ? "var(--royal)" : "var(--ink)", lineHeight: 1.5,
                             overflow: "hidden", display: "-webkit-box",
                             WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                           }}>
@@ -1303,7 +1303,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           </div>
                           {m.description && (
                             <div style={{
-                              fontSize: 11, color: "var(--ink-mute)", marginTop: 3, lineHeight: 1.5,
+                              fontSize: "var(--text-xs)", color: "var(--ink-mute)", marginTop: 3, lineHeight: 1.5,
                               overflow: "hidden", display: "-webkit-box",
                               WebkitLineClamp: 1, WebkitBoxOrient: "vertical",
                             }}>
@@ -1321,7 +1321,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     );
                     return m.url ? (
                       <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" style={{
-                        display: "flex", alignItems: "flex-start", gap: 12,
+                        display: "flex", alignItems: "flex-start", gap: "var(--space-3)",
                         padding: "12px", borderRadius: 10,
                         border: "1px solid var(--line)", background: "var(--bg-tint)",
                         textDecoration: "none", transition: "border-color 0.15s",
@@ -1330,7 +1330,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       </a>
                     ) : (
                       <div key={m.id} style={{
-                        display: "flex", alignItems: "flex-start", gap: 12,
+                        display: "flex", alignItems: "flex-start", gap: "var(--space-3)",
                         padding: "12px", borderRadius: 10,
                         border: "1px solid var(--line)", background: "var(--bg-tint)",
                       }}>
@@ -1358,7 +1358,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                   {featuredArticles.map((article) => (
                     <Link
                       key={article.id}
@@ -1399,7 +1399,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           )}
                         </div>
                         <div style={{
-                          fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.5,
+                          fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", lineHeight: 1.5,
                           overflow: "hidden", display: "-webkit-box",
                           WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                         }}>
@@ -1419,7 +1419,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
                   <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
                     発信コンテンツ
                   </span>
@@ -1429,7 +1429,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                   {viewerIsOwner && (
                     <Link href="/profile/edit" style={{
-                      fontSize: 11, fontWeight: 600, color: "var(--royal)",
+                      fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)",
                       textDecoration: "none", display: "flex", alignItems: "center", gap: 4,
                     }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -1442,7 +1442,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
                 {contentLinks.length === 0 && viewerIsOwner && (
                   <div style={{ textAlign: "center", padding: "20px 0" }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: 8 }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: "var(--space-2)" }}>
                       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                     </svg>
@@ -1525,7 +1525,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           </span>
                           {/* タイトル */}
                           <div style={{
-                            fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5,
+                            fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.5,
                             overflow: "hidden", display: "-webkit-box",
                             WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                           }}>
@@ -1534,7 +1534,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           {/* 説明 */}
                           {link.description && (
                             <div style={{
-                              fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6,
+                              fontSize: "var(--text-xs)", color: "var(--ink-mute)", lineHeight: 1.6,
                               overflow: "hidden", display: "-webkit-box",
                               WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                               marginTop: "auto",
@@ -1554,7 +1554,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
           {/* ── Sidebar ─────────────────────────────────────────────── */}
           <aside className="profile-sidebar">
-            <div className="profile-sidebar-sticky" style={{ position: "sticky", top: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="profile-sidebar-sticky" style={{ position: "sticky", top: 24, display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
 
               {/* Current company card — 企業ページへ + カジュアル面談CTA */}
               {currentCareer && currentCareer.company_id && (
@@ -1563,13 +1563,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   borderRadius: 14, padding: "18px 20px",
                   boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
                 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
+                  <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", marginBottom: "var(--space-3)", textTransform: "uppercase" }}>
                     在籍企業
                   </div>
                   {/* Company link */}
                   <Link href={`/companies/${currentCareer.company_id}`} style={{
-                    textDecoration: "none", display: "flex", alignItems: "center", gap: 12,
-                    marginBottom: 12,
+                    textDecoration: "none", display: "flex", alignItems: "center", gap: "var(--space-3)",
+                    marginBottom: "var(--space-3)",
                   }}>
                     <div style={{
                       width: 48, height: 48, borderRadius: 10, flexShrink: 0,
@@ -1602,7 +1602,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     {currentCareerTenure && (
                       <span style={{
                         display: "inline-flex", alignItems: "center", gap: 4,
-                        fontSize: 11, color: "var(--ink-mute)",
+                        fontSize: "var(--text-xs)", color: "var(--ink-mute)",
                         background: "var(--bg-tint)", border: "1px solid var(--line)",
                         padding: "2px 8px", borderRadius: 100,
                       }}>
@@ -1613,7 +1613,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     {currentCompanyPhase && (
                       <span style={{
                         display: "inline-flex", alignItems: "center",
-                        fontSize: 11, color: "var(--royal)",
+                        fontSize: "var(--text-xs)", color: "var(--royal)",
                         background: "var(--royal-50)", border: "1px solid var(--royal-100)",
                         padding: "2px 8px", borderRadius: 100, fontWeight: 600,
                       }}>
@@ -1630,7 +1630,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                         padding: "10px 14px", borderRadius: 8,
                         background: "linear-gradient(135deg, var(--warm) 0%, #D97706 100%)",
-                        color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                        color: "#fff", fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
                         boxShadow: "0 2px 10px rgba(245,158,11,0.25)",
                       }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -1639,7 +1639,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         </svg>
                         カジュアル面談を申し込む
                       </Link>
-                      <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
+                      <p style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
                         {currentCareer.company_name}の担当者が返信します
                       </p>
                     </>
@@ -1649,13 +1649,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   {currentCompanyJobs.length > 0 && (
                     <>
                       <div style={{ height: 1, background: "var(--line)", margin: "14px 0 12px" }} />
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 8 }}>
+                      <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: "var(--space-2)" }}>
                         募集中の求人 {currentCompanyJobs.length}件
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         {currentCompanyJobs.map((job) => (
                           <Link key={job.id} href={`/jobs/${job.id}`} style={{
-                            display: "flex", alignItems: "center", gap: 8,
+                            display: "flex", alignItems: "center", gap: "var(--space-2)",
                             padding: "7px 10px", borderRadius: 7,
                             background: "var(--bg-tint)", border: "1px solid var(--line)",
                             textDecoration: "none",
@@ -1674,7 +1674,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       </div>
                       <Link href={`/companies/${currentCareer.company_id}`} style={{
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                        marginTop: 8, fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
+                        marginTop: "var(--space-2)", fontSize: "var(--text-xs)", color: "var(--royal)", fontWeight: 600, textDecoration: "none",
                       }}>
                         すべての求人を見る →
                       </Link>
@@ -1735,7 +1735,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                       </svg>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                      <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
                         StrengthsFinder
                       </span>
                     </div>
@@ -1757,7 +1757,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                             </div>
                             {/* 資質名 */}
                             <span style={{
-                              fontSize: 13, fontWeight: 600,
+                              fontSize: "var(--text-sm)", fontWeight: 600,
                               color: domain ? domain.color : "var(--ink)",
                               flex: 1,
                             }}>
@@ -1790,10 +1790,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   background: "#fff", border: "1px solid var(--line)",
                   borderRadius: 14, padding: "18px 20px",
                 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" }}>
+                  <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: "var(--space-3)", textTransform: "uppercase" }}>
                     資格・認定
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                     {certifications.map((cert) => (
                       <div key={cert.id} style={{
                         display: "flex", alignItems: "center", gap: 10,
