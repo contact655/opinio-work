@@ -246,7 +246,7 @@ function ProfilePhotoUploader({
         display: "inline-flex", alignItems: "center", gap: 6,
         padding: "7px 12px", background: "#fff", color: "var(--ink)",
         border: "1px solid var(--line)", borderRadius: 6,
-        fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+        fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: 600,
         cursor: loading ? "default" : "pointer",
         opacity: loading ? 0.6 : 1,
       }}
@@ -267,7 +267,7 @@ function ProfilePhotoUploader({
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "10px 14px", marginBottom: 14, borderRadius: 8,
           background: "var(--error-soft)", border: "1px solid #FCA5A5",
-          fontSize: 13, color: "var(--error)", fontWeight: 600,
+          fontSize: "var(--text-sm)", color: "var(--error)", fontWeight: 600,
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{uploadError}</span>
           <button type="button" onClick={() => setUploadError(null)} aria-label="エラーを閉じる" style={{
@@ -301,7 +301,7 @@ function ProfilePhotoUploader({
                 background: "rgba(0,0,0,0.35)",
                 border: "none", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontSize: 11, fontWeight: 600, gap: 4,
+                color: "#fff", fontSize: "var(--text-xs)", fontWeight: 600, gap: 4,
                 opacity: 0,
                 transition: "opacity 0.2s",
               }}
@@ -322,7 +322,7 @@ function ProfilePhotoUploader({
                 background: avatarUrl ? undefined : settings.avatarColor,
                 overflow: "hidden",
                 color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 22, fontWeight: 600,
+                fontSize: "var(--text-xl)", fontWeight: 600,
                 border: "3px solid #fff",
                 boxShadow: "0 2px 8px rgba(15,23,42,0.1)",
                 cursor: "pointer",
@@ -357,21 +357,21 @@ function ProfilePhotoUploader({
       </div>
 
       {/* Upload controls */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {/* Avatar */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>プロフィール画像</div>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.7 }}>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", marginBottom: "var(--space-2)", lineHeight: 1.7 }}>
             JPG / PNG・推奨サイズ 400×400px以上
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: "var(--space-2)" }}>
             {uploadBtn("画像をアップロード", uploadingAvatar, () => avatarInputRef.current?.click())}
             {avatarUrl && (
               <button
                 type="button"
                 onClick={() => removePhoto("avatar")}
                 style={{
-                  padding: "7px 12px", fontSize: 11, fontWeight: 600,
+                  padding: "7px 12px", fontSize: "var(--text-xs)", fontWeight: 600,
                   color: "var(--error)", border: "1px solid var(--error)",
                   background: "#fff", borderRadius: 6, cursor: "pointer", fontFamily: "inherit",
                 }}
@@ -386,17 +386,17 @@ function ProfilePhotoUploader({
         {/* Cover */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>カバー写真</div>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.7 }}>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", marginBottom: "var(--space-2)", lineHeight: 1.7 }}>
             JPG / PNG・推奨サイズ 1200×400px以上（横長）
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: "var(--space-2)" }}>
             {uploadBtn("カバー写真をアップロード", uploadingCover, () => coverInputRef.current?.click())}
             {coverPhotoUrl && (
               <button
                 type="button"
                 onClick={() => removePhoto("cover")}
                 style={{
-                  padding: "7px 12px", fontSize: 11, fontWeight: 600,
+                  padding: "7px 12px", fontSize: "var(--text-xs)", fontWeight: 600,
                   color: "var(--error)", border: "1px solid var(--error)",
                   background: "#fff", borderRadius: 6, cursor: "pointer", fontFamily: "inherit",
                 }}
@@ -492,9 +492,9 @@ function FormGroup({
 
 function inputStyle(extra?: React.CSSProperties): React.CSSProperties {
   return {
-    width: "100%", padding: "10px 12px",
+    width: "100%", padding: "10px var(--space-3)",
     border: "1.5px solid var(--line)", borderRadius: 8,
-    fontFamily: "inherit", fontSize: 13, color: "var(--ink)",
+    fontFamily: "inherit", fontSize: "var(--text-sm)", color: "var(--ink)",
     background: "#fff", outline: "none", transition: "border-color 0.15s",
     ...extra,
   };
@@ -549,22 +549,22 @@ function NotificationSettingsSection() {
   ];
 
   return (
-    <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px 24px 20px", marginBottom: 24 }}>
+    <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px 24px 20px", marginBottom: "var(--space-6)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>メール通知設定</div>
+          <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>メール通知設定</div>
           <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>
             受け取りたいお知らせを選択してください。設定はいつでも変更できます。
           </div>
         </div>
         {saved && (
-          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--success)", display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--success)", display: "flex", alignItems: "center", gap: 4 }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
             保存済み
           </span>
         )}
       </div>
-      <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         {items.map(({ key, label, desc, icon }) => (
           <label
             key={key}
@@ -576,10 +576,10 @@ function NotificationSettingsSection() {
               cursor: "pointer", transition: "all 0.15s",
             }}
           >
-            <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+            <span style={{ fontSize: "var(--text-lg)", flexShrink: 0, marginTop: 1 }}>{icon}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>{label}</div>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>{desc}</div>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>{label}</div>
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", lineHeight: 1.6 }}>{desc}</div>
             </div>
             <div style={{ flexShrink: 0, marginTop: 2 }}>
               {/* Toggle switch */}
@@ -620,7 +620,7 @@ function _PlaceholderTabContent({ label }: { label: string }) {
           background: "#fff", border: "1px solid var(--line)",
           borderRadius: 14, padding: "48px 32px",
           display: "flex", flexDirection: "column", alignItems: "center",
-          gap: 12, marginBottom: 24,
+          gap: "var(--space-3)", marginBottom: "var(--space-6)",
         }}
       >
         <div style={{
@@ -768,7 +768,7 @@ function SkillTagsEditor({
     >
       {/* 確定済みタグのチップ列 */}
       {skillTags.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", marginBottom: "var(--space-4)" }}>
           {skillTags.map((tag) => (
             <span
               key={tag.id}
@@ -776,7 +776,7 @@ function SkillTagsEditor({
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "5px 10px 5px 12px", borderRadius: 100,
                 background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                fontSize: 13, color: "var(--royal)", fontWeight: 500,
+                fontSize: "var(--text-sm)", color: "var(--royal)", fontWeight: 500,
                 opacity: tag.id.startsWith("pending-") ? 0.55 : 1,
                 transition: "opacity 0.2s",
               }}
@@ -817,7 +817,7 @@ function SkillTagsEditor({
       {/* 入力エリア（上限未達の場合のみ表示） */}
       {!isAtLimit && (
         <div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
             <div style={{ position: "relative", flex: 1 }}>
               <input
                 type="text"
@@ -836,7 +836,7 @@ function SkillTagsEditor({
                 <span style={{
                   position: "absolute", right: 12, top: "50%",
                   transform: "translateY(-50%)",
-                  fontSize: 11,
+                  fontSize: "var(--text-xs)",
                   color: charIsAmber ? "var(--warm)" : "var(--ink-mute)",
                   fontFamily: "Inter, sans-serif",
                   pointerEvents: "none",
@@ -884,9 +884,9 @@ function SkillTagsEditor({
       )}
 
       {/* タグカウンター（n / 15） */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "var(--space-3)" }}>
         <span style={{
-          fontSize: 11, fontFamily: "Inter, sans-serif",
+          fontSize: "var(--text-xs)", fontFamily: "Inter, sans-serif",
           color: isAtLimit ? "var(--error)" : isAlmost ? "var(--warm)" : "var(--ink-mute)",
         }}>
           {isAtLimit
@@ -942,17 +942,17 @@ function TextareaField({
       />
       <div style={{
         display: "flex", justifyContent: "space-between",
-        alignItems: "flex-start", marginTop: 6, gap: 8,
+        alignItems: "flex-start", marginTop: 6, gap: "var(--space-2)",
       }}>
         {isOver ? (
-          <div style={{ fontSize: 11, color: "var(--warm)", lineHeight: 1.6, flex: 1 }}>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--warm)", lineHeight: 1.6, flex: 1 }}>
             {softLimit}字の目安を超えています。保存は可能ですが、読み手が読みやすい長さを意識してみてください。
           </div>
         ) : (
           <div style={{ flex: 1 }} />
         )}
         <div style={{
-          fontSize: 11,
+          fontSize: "var(--text-xs)",
           color: isOver ? "var(--warm)" : "var(--ink-mute)",
           fontFamily: "Inter, sans-serif",
           flexShrink: 0,
@@ -986,7 +986,7 @@ function SocialLinksEditor({
             <div
               key={platform}
               style={{
-                display: "flex", alignItems: "center", gap: 12,
+                display: "flex", alignItems: "center", gap: "var(--space-3)",
                 marginBottom: 14,
               }}
             >
@@ -1111,7 +1111,7 @@ function EduIconButton({
           ? danger ? "var(--error-soft)" : "var(--line-soft)"
           : "transparent",
         borderRadius: 5,
-        fontSize: 13,
+        fontSize: "var(--text-sm)",
         color: danger ? "var(--error)" : "var(--ink-mute)",
         cursor: "pointer",
         transition: "background 0.12s",
@@ -1144,12 +1144,12 @@ function EducationCard({
       onMouseLeave={() => setHovered(false)}
       style={{ padding: "10px 0", position: "relative" }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2)" }}>
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* School name + "在学中" badge */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+            <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>
               {edu.school}
             </span>
             {edu.is_current && (
@@ -1222,7 +1222,7 @@ function EducationForm({
     boxSizing: "border-box", transition: "border-color 0.15s",
   });
   const el = (): React.CSSProperties => ({
-    display: "block", fontSize: 11, fontWeight: 700,
+    display: "block", fontSize: "var(--text-xs)", fontWeight: 700,
     color: "var(--ink-mute)", letterSpacing: "0.08em",
     textTransform: "uppercase", marginBottom: 4,
   });
@@ -1236,7 +1236,7 @@ function EducationForm({
     <div style={{
       background: "var(--bg-tint)",
       border: "1.5px solid var(--royal)",
-      borderRadius: 10, padding: 16,
+      borderRadius: 10, padding: "var(--space-4)",
       display: "flex", flexDirection: "column", gap: 14,
       boxShadow: "0 0 0 3px rgba(0,35,102,0.06)",
     }}>
@@ -1329,7 +1329,7 @@ function EducationForm({
       {/* 入学年月 */}
       <div>
         <label style={el()}>入学年月</label>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
           <select
             value={draft.enrolledYear}
             onChange={(e) => set("enrolledYear", e.target.value)}
@@ -1369,7 +1369,7 @@ function EducationForm({
       {/* 卒業年月 */}
       <div style={{ opacity: draft.isCurrent ? 0.4 : 1, transition: "opacity 0.2s" }}>
         <label style={el()}>卒業年月</label>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
           <select
             value={draft.graduatedYear}
             onChange={(e) => set("graduatedYear", e.target.value)}
@@ -1394,7 +1394,7 @@ function EducationForm({
       </div>
 
       {/* Action buttons */}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: 2 }}>
         <button
           type="button"
           onClick={onCancel}
@@ -1441,8 +1441,8 @@ function SchoolRequestBanner({
   onClose: () => void;
 }) {
   const bannerBase: React.CSSProperties = {
-    marginBottom: 16,
-    padding: "14px 16px",
+    marginBottom: "var(--space-4)",
+    padding: "14px var(--space-4)",
     borderRadius: 10,
     fontSize: 12,
     lineHeight: 1.7,
@@ -1451,7 +1451,7 @@ function SchoolRequestBanner({
   if (status === "success") {
     return (
       <div style={{ ...bannerBase, background: "var(--success-soft)", border: "1px solid #6ee7b7", color: "var(--ink-soft)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
           <span style={{ color: "var(--success)", fontWeight: 600 }}>
             ✓ 「{schoolName}」のマスター追加リクエストを送信しました
           </span>
@@ -1474,12 +1474,12 @@ function SchoolRequestBanner({
 
   return (
     <div style={{ ...bannerBase, background: "var(--purple-soft)", border: "1px solid #c4b5fd", color: "var(--ink-soft)" }}>
-      <div style={{ marginBottom: 8 }}>
+      <div style={{ marginBottom: "var(--space-2)" }}>
         あなたの学校「<strong style={{ color: "var(--ink)" }}>{schoolName}</strong>」はマスターにありません。
         運営に追加リクエストを送信できます。
       </div>
       <div style={{ marginBottom: error ? 6 : 10 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
           <span style={{ flexShrink: 0, color: "var(--ink-mute)" }}>ふりがな（任意）：</span>
           <input
             type="text"
@@ -1488,7 +1488,7 @@ function SchoolRequestBanner({
             placeholder="例: とうきょうだいがく"
             disabled={status === "submitting"}
             style={{
-              flex: 1, minWidth: 0, padding: "4px 8px",
+              flex: 1, minWidth: 0, padding: "4px var(--space-2)",
               border: "1px solid var(--line)", borderRadius: 6,
               fontSize: 12, fontFamily: "inherit",
               background: status === "submitting" ? "var(--bg-tint)" : "#fff",
@@ -1501,7 +1501,7 @@ function SchoolRequestBanner({
           エラー: {error}
         </div>
       )}
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: "var(--space-2)" }}>
         <button
           type="button"
           onClick={onSubmit}
@@ -1730,7 +1730,7 @@ function EducationEditor({
   }, []);
 
   return (
-    <div style={{ marginTop: 32 }}>
+    <div style={{ marginTop: "var(--space-8)" }}>
       {/* Section header — フラット（職歴と同じ構造、白カードなし） */}
       <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>
         学歴
@@ -1853,8 +1853,8 @@ function CertCard({
   return (
     <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       style={{ padding: "10px 0", position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
+        <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", flex: 1, minWidth: 0 }}>
           {cert.name}
         </span>
         <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
@@ -2026,7 +2026,7 @@ function AchieveIconBtn({
         width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center",
         border: "none",
         background: hovered ? (danger ? "var(--error-soft)" : "var(--line-soft)") : "transparent",
-        borderRadius: 5, fontSize: 13,
+        borderRadius: 5, fontSize: "var(--text-sm)",
         color: danger ? "var(--error)" : "var(--ink-mute)",
         cursor: "pointer", transition: "background 0.12s", padding: 0, fontFamily: "inherit", flexShrink: 0,
       }}>{children}</button>
@@ -2035,17 +2035,17 @@ function AchieveIconBtn({
 
 const aef = (): React.CSSProperties => ({
   width: "100%", border: "1.5px solid var(--line)", borderRadius: 8,
-  padding: "8px 10px", fontSize: 13, color: "var(--ink)",
+  padding: "8px 10px", fontSize: "var(--text-sm)", color: "var(--ink)",
   background: "#fff", outline: "none", fontFamily: "inherit",
   boxSizing: "border-box", transition: "border-color 0.15s",
 });
 const ael = (): React.CSSProperties => ({
-  display: "block", fontSize: 11, fontWeight: 700,
+  display: "block", fontSize: "var(--text-xs)", fontWeight: 700,
   color: "var(--ink-mute)", letterSpacing: "0.08em",
   textTransform: "uppercase", marginBottom: 4,
 });
 const formBox: React.CSSProperties = {
-  background: "var(--bg-tint)", border: "1.5px solid var(--royal)", borderRadius: 10, padding: 16,
+  background: "var(--bg-tint)", border: "1.5px solid var(--royal)", borderRadius: 10, padding: "var(--space-4)",
   display: "flex", flexDirection: "column", gap: 14, boxShadow: "0 0 0 3px rgba(0,35,102,0.06)",
 };
 function AchieveFormActions({ isSaving, justSaved, canSave, onSave, onCancel }: {
@@ -2053,7 +2053,7 @@ function AchieveFormActions({ isSaving, justSaved, canSave, onSave, onCancel }: 
 }) {
   const effectivelyDisabled = !canSave || !!justSaved;
   return (
-    <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
+    <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: 2 }}>
       <button type="button" onClick={onCancel} disabled={isSaving}
         style={{ padding: "7px 16px", background: "#fff", color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isSaving ? "default" : "pointer", fontFamily: "inherit", opacity: isSaving ? 0.5 : 1 }}>
         キャンセル
@@ -2152,12 +2152,12 @@ function AchievementCard({
   return (
     <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       style={{ padding: "10px 0", position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2)" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{item.title}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 2, flexWrap: "wrap" }}>
+            <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>{item.title}</span>
             {item.value !== null && (
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", fontFamily: "Inter, sans-serif" }}>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--accent)", fontFamily: "Inter, sans-serif" }}>
                 {item.value.toLocaleString()}{item.unit || ""}
               </span>
             )}
@@ -2347,9 +2347,9 @@ function AwardCard({
   return (
     <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       style={{ padding: "10px 0", position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2)" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{item.title}</div>
+          <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{item.title}</div>
           {(item.issuer || item.awarded_at) && (
             <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 1 }}>
               {[item.issuer, fmtYM(item.awarded_at)].filter(Boolean).join("　")}
@@ -2552,9 +2552,9 @@ function MediaAppearanceCard({
   return (
     <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       style={{ padding: "10px 0", position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2)" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+          <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
             {item.url ? (
               <a href={item.url} target="_blank" rel="noopener noreferrer"
                 style={{ color: "var(--ink)", textDecoration: "underline", textUnderlineOffset: 2 }}>
@@ -3098,8 +3098,8 @@ export default function ProfileEditClient({
             background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
             border: "1.5px solid #F59E0B",
             borderRadius: 14,
-            padding: "16px 20px",
-            marginBottom: 24,
+            padding: "var(--space-4) 20px",
+            marginBottom: "var(--space-6)",
             marginTop: -8,
           }}>
             <div style={{
@@ -3115,14 +3115,14 @@ export default function ProfileEditClient({
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#92400E", marginBottom: 4 }}>
+              <div style={{ fontWeight: 700, fontSize: "var(--text-base)", color: "#92400E", marginBottom: 4 }}>
                 ようこそ！まずはプロフィールを完成させましょう
               </div>
               <div style={{ fontSize: 12, color: "#B45309", lineHeight: 1.7 }}>
                 自己紹介・職歴・スキルを入力すると、企業のカジュアル面談やメンター相談が
                 スムーズになります。<strong>入力内容は自動保存</strong>されます。
               </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "var(--space-2)", marginTop: 10, flexWrap: "wrap" }}>
                 {[
                   { tab: "basic" as ProfileTab, label: "① 基本情報" },
                   { tab: "career" as ProfileTab, label: "② 職歴" },
@@ -3137,7 +3137,7 @@ export default function ProfileEditClient({
                       background: activeTab === tab ? "#F59E0B" : "rgba(245,158,11,0.15)",
                       color: activeTab === tab ? "#fff" : "#92400E",
                       border: `1px solid ${activeTab === tab ? "#D97706" : "transparent"}`,
-                      fontFamily: "inherit", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                      fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: 700, cursor: "pointer",
                     }}
                   >
                     {label}
@@ -3161,9 +3161,9 @@ export default function ProfileEditClient({
         )}
 
         {/* ── ヘッダー行: タイトル + 保存状態 + ← マイページ ───────────────── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: -16, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: -16, marginBottom: "var(--space-3)" }}>
           <h1 style={{
-            fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
+            fontFamily: '"Noto Serif JP", serif', fontSize: "var(--text-xl)", fontWeight: 700,
             color: "var(--ink)", margin: 0,
           }}>プロフィール</h1>
 
@@ -3195,7 +3195,7 @@ export default function ProfileEditClient({
               href="/mypage"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 16px", fontSize: 13, fontWeight: 600,
+                padding: "var(--space-2) var(--space-4)", fontSize: "var(--text-sm)", fontWeight: 600,
                 border: "1px solid var(--line)", borderRadius: 8,
                 background: "#fff", color: "var(--ink-soft)",
                 textDecoration: "none",
@@ -3259,7 +3259,7 @@ export default function ProfileEditClient({
                 label="生年月日"
                 hint="生年月日を入力すると年齢が自動で計算されます。入力しない場合は年齢非公開となります。"
               >
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: "var(--space-2)" }}>
                   {/* 年 */}
                   <div style={{ position: "relative", flex: "0 0 110px" }}>
                     <select
@@ -3402,13 +3402,13 @@ export default function ProfileEditClient({
                 if (slots.length < 5 && current.length < 5) slots.push(undefined);
 
                 return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                     {Array.from({ length: 5 }).map((_, idx) => {
                       const val = current[idx] ?? "";
                       const domain = ALL_THEMES.find(t => t.name === val)?.domain;
                       const color = domain ? DOMAIN_COLORS[domain] : undefined;
                       return (
-                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                           {/* 順位バッジ */}
                           <div style={{
                             width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
@@ -3427,7 +3427,7 @@ export default function ProfileEditClient({
                               flex: 1,
                               padding: "7px 10px", borderRadius: 7,
                               border: `1.5px solid ${val ? (color ?? "var(--royal)") : "var(--line)"}`,
-                              fontSize: 13, fontFamily: "inherit",
+                              fontSize: "var(--text-sm)", fontFamily: "inherit",
                               color: val ? (color ?? "var(--ink)") : "var(--ink-mute)",
                               fontWeight: val ? 600 : 400,
                               background: "#fff",
@@ -3495,13 +3495,13 @@ export default function ProfileEditClient({
             </FormSection>
 
             {/* ── 保存・キャンセルボタン ────────────────────────────────────────── */}
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, marginBottom: 24 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-6)" }}>
               <button
                 type="button"
                 onClick={handleCancelBasic}
                 disabled={!isBasicDirty || basicSaving || basicJustSaved}
                 style={{
-                  padding: "10px 20px", fontSize: 13, fontWeight: 600,
+                  padding: "10px 20px", fontSize: "var(--text-sm)", fontWeight: 600,
                   background: "#fff", color: "var(--ink-soft)",
                   border: "1px solid var(--line)", borderRadius: 8,
                   fontFamily: "inherit",
@@ -3516,7 +3516,7 @@ export default function ProfileEditClient({
                 onClick={handleSaveBasic}
                 disabled={!isBasicDirty || basicSaving || basicJustSaved}
                 style={{
-                  padding: "10px 24px", fontSize: 13, fontWeight: 600, minWidth: 140,
+                  padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 140,
                   background: basicJustSaved ? "var(--success)" : (!isBasicDirty || basicSaving) ? "var(--ink-mute)" : "var(--royal)",
                   color: "#fff",
                   border: "none", borderRadius: 8,
@@ -3567,8 +3567,8 @@ export default function ProfileEditClient({
             {/* 保存状態インジケーター */}
             {(prefSaving || prefSaved) && (
               <div style={{
-                display: "flex", alignItems: "center", gap: 6, marginBottom: 16,
-                padding: "8px 14px", borderRadius: 8,
+                display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-4)",
+                padding: "var(--space-2) 14px", borderRadius: 8,
                 background: prefSaved ? "var(--success-soft)" : "var(--royal-50)",
                 border: `1px solid ${prefSaved ? "#A7F3D0" : "var(--royal-100)"}`,
                 fontSize: 12, fontWeight: 600,
@@ -3674,9 +3674,9 @@ export default function ProfileEditClient({
               title="希望年収"
               desc="非公開にしたい場合は未入力のままにしてください。入力した場合は企業側に表示されます。"
             >
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
                 <FormGroup label="希望年収（下限）" htmlFor="pe-salary-min">
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                     <input
                       id="pe-salary-min"
                       type="number"
@@ -3695,7 +3695,7 @@ export default function ProfileEditClient({
                   </div>
                 </FormGroup>
                 <FormGroup label="希望年収（上限）" htmlFor="pe-salary-max">
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                     <input
                       id="pe-salary-max"
                       type="number"
@@ -3733,11 +3733,11 @@ export default function ProfileEditClient({
                       key={phase}
                       style={{
                         display: "flex", alignItems: "center", gap: 7, cursor: "pointer",
-                        padding: "7px 14px", borderRadius: 8,
+                        padding: "7px var(--space-3)", borderRadius: 8,
                         background: checked ? "var(--royal-50)" : "var(--bg-tint)",
                         border: `1.5px solid ${checked ? "var(--accent)" : "var(--line)"}`,
                         color: checked ? "var(--royal)" : "var(--ink-soft)",
-                        fontSize: 13, fontWeight: checked ? 600 : 400,
+                        fontSize: "var(--text-sm)", fontWeight: checked ? 600 : 400,
                         transition: "all 0.15s",
                       }}
                     >
@@ -3838,13 +3838,13 @@ export default function ProfileEditClient({
               setSocialLinks={setSocialLinks}
             />
             {/* 保存・キャンセルボタン */}
-            <div style={{ maxWidth: 680, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, marginBottom: 24 }}>
+            <div style={{ maxWidth: 680, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-6)" }}>
               <button
                 type="button"
                 onClick={handleCancelSocial}
                 disabled={!isSocialDirty || socialSaving || socialJustSaved}
                 style={{
-                  padding: "10px 20px", fontSize: 13, fontWeight: 600,
+                  padding: "10px 20px", fontSize: "var(--text-sm)", fontWeight: 600,
                   background: "#fff", color: "var(--ink-soft)",
                   border: "1px solid var(--line)", borderRadius: 8,
                   fontFamily: "inherit",
@@ -3859,7 +3859,7 @@ export default function ProfileEditClient({
                 onClick={handleSaveSocial}
                 disabled={!isSocialDirty || socialSaving || socialJustSaved}
                 style={{
-                  padding: "10px 24px", fontSize: 13, fontWeight: 600, minWidth: 140,
+                  padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 140,
                   background: socialJustSaved ? "var(--success)" : (!isSocialDirty || socialSaving) ? "var(--ink-mute)" : "var(--royal)",
                   color: "#fff",
                   border: "none", borderRadius: 8,
@@ -3890,10 +3890,10 @@ export default function ProfileEditClient({
             >
               {/* 既存リスト */}
               {contentLinks.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: 20 }}>
                   {contentLinks.map((link) => (
                     <div key={link.id} style={{
-                      display: "flex", alignItems: "flex-start", gap: 12,
+                      display: "flex", alignItems: "flex-start", gap: "var(--space-3)",
                       padding: "12px 14px", borderRadius: 10,
                       border: "1px solid var(--line)", background: "var(--bg-tint)",
                     }}>
@@ -4078,7 +4078,7 @@ export default function ProfileEditClient({
                 </select>
               </FormGroup>
               {owUser?.id && settings.visibility !== "private" && (
-                <div style={{ marginTop: 12 }}>
+                <div style={{ marginTop: "var(--space-3)" }}>
                   <a
                     href={`/u/${owUser.id}`}
                     target="_blank"
@@ -4122,7 +4122,7 @@ export default function ProfileEditClient({
                     {settings.isOpenToWork && (
                       <span style={{
                         display: "inline-flex", alignItems: "center", gap: 4,
-                        padding: "2px 8px", borderRadius: 100,
+                        padding: "2px var(--space-2)", borderRadius: 100,
                         fontSize: 10, fontWeight: 700,
                         background: "linear-gradient(135deg, var(--success), #10B981)",
                         color: "#fff",
@@ -4195,13 +4195,13 @@ export default function ProfileEditClient({
             </div>
 
             {/* ── アカウント設定タブの保存・キャンセル ───────────────────── */}
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "var(--space-2)" }}>
               <button
                 type="button"
                 onClick={handleCancelAccount}
                 disabled={!isAccountDirty || accountSaving || accountJustSaved}
                 style={{
-                  padding: "10px 20px", fontSize: 13, fontWeight: 600,
+                  padding: "10px 20px", fontSize: "var(--text-sm)", fontWeight: 600,
                   background: "#fff", color: "var(--ink-soft)",
                   border: "1px solid var(--line)", borderRadius: 8,
                   fontFamily: "inherit",
@@ -4216,7 +4216,7 @@ export default function ProfileEditClient({
                 onClick={handleSaveAccount}
                 disabled={!isAccountDirty || accountSaving || accountJustSaved}
                 style={{
-                  padding: "10px 24px", fontSize: 13, fontWeight: 600, minWidth: 140,
+                  padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 140,
                   background: accountJustSaved ? "var(--success)" : (!isAccountDirty || accountSaving) ? "var(--ink-mute)" : "var(--royal)",
                   color: "#fff",
                   border: "none", borderRadius: 8,
