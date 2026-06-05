@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import type { TeamMember } from "@/lib/business/jobs";
 import Link from "next/link";
@@ -890,7 +891,7 @@ export function JobEditForm({
               background: "var(--error-soft)", border: "1px solid #FCA5A5",
               fontSize: 13, color: "var(--error)", fontWeight: 600,
             }} role="alert">
-              <span>⚠ {errorMessage}</span>
+              <AlertTriangle size={14} style={{ flexShrink: 0 }} /><span>{errorMessage}</span>
               <button type="button" onClick={() => setErrorMessage(null)} style={{
                 background: "none", border: "none", cursor: "pointer",
                 color: "var(--error)", fontSize: 16, padding: "0 4px",

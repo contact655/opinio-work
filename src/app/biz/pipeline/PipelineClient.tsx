@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import type { PipelineStage, PipelineCandidate } from "@/lib/business/pipeline";
 
 // ─── Source config ────────────────────────────────────────────────────────────
@@ -385,7 +386,7 @@ export function PipelineClient({ initialStages, initialCandidates, jobs, agencie
           color: "var(--error)", fontSize: 13,
           display: "flex", alignItems: "center", gap: 8,
         }}>
-          <span>⚠</span>
+          <AlertTriangle size={16} color="var(--error)" style={{ flexShrink: 0 }} />
           <span>{error}</span>
           <button onClick={() => setError(null)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "var(--error)", fontSize: 16 }}>×</button>
         </div>

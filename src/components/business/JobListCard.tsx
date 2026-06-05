@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import type { BizJob, JobStatus } from "@/lib/business/mockJobs";
 import { JobStatusBadge } from "./JobStatusBadge";
 
@@ -381,10 +382,10 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
 
         {/* 下書き完成度 */}
         {job.status === "draft" && (
-          <span style={{ color: job.completionPercent === 100 ? "var(--success)" : "var(--warm)" }}>
+          <span style={{ color: job.completionPercent === 100 ? "var(--success)" : "var(--warm)", display: "inline-flex", alignItems: "center", gap: 3 }}>
             {job.completionPercent === 100
               ? `✓ 全項目入力済み`
-              : `⚠ ${Math.round((100 - job.completionPercent) / 10)}/${10}項目が未入力`
+              : <><AlertTriangle size={12} style={{ flexShrink: 0 }} />{Math.round((100 - job.completionPercent) / 10)}/{10}項目が未入力</>
             }
           </span>
         )}

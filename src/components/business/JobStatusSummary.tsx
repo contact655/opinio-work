@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertTriangle } from "lucide-react";
 import type { JobStatus } from "@/lib/business/mockJobs";
 import type { JobStatusCounts } from "@/lib/business/mockJobs";
 
@@ -67,8 +68,10 @@ export function JobStatusSummary({ counts, activeStatus, onStatusClick }: Props)
               color: isUrgent ? "var(--error)" : "var(--ink-soft)",
               fontWeight: isUrgent ? 600 : 400,
               marginBottom: 4,
+              display: "flex", alignItems: "center", gap: 3,
             }}>
-              {isUrgent ? `⚠ ${card.label}` : card.label}
+              {isUrgent && <AlertTriangle size={11} style={{ flexShrink: 0 }} />}
+              {card.label}
             </div>
             <div style={{
               fontFamily: "'Inter', sans-serif",

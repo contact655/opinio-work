@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { AlertTriangle } from "lucide-react";
 import {
   MAX_PHOTOS_PER_CATEGORY,
   buildStoragePath,
@@ -738,7 +739,7 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
           background: "var(--error-soft)", border: "1px solid #FCA5A5",
           fontSize: 13, color: "var(--error)", fontWeight: 600,
         }} role="alert">
-          <span>⚠ {photoError}</span>
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} /><span>{photoError}</span>
           <button type="button" onClick={() => setPhotoError(null)} style={{
             background: "none", border: "none", cursor: "pointer",
             color: "var(--error)", fontSize: 16, padding: "0 4px",

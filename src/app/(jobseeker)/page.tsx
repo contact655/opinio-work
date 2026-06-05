@@ -616,7 +616,7 @@ function CompanyMiniCard({ c }: { c: PreviewCompany }) {
               display: "flex", alignItems: "center", gap: 3,
               whiteSpace: "nowrap" as const,
             }}>
-              ✍ 取材済み
+              ✍️ 取材済み
             </span>
           )}
           {/* 登録メンバーバッジ */}

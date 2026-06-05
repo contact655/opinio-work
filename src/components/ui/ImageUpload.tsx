@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { AlertTriangle } from "lucide-react";
 
 type Props = {
   currentUrl?: string | null;
@@ -67,8 +68,9 @@ export function ImageUpload({
           fontSize: 11, color: "var(--error)", background: "var(--error-soft)",
           border: "1px solid #FCA5A5", borderRadius: 6, padding: "6px 10px",
           textAlign: "center", maxWidth: 200,
+          display: "flex", alignItems: "center", gap: 4,
         }}>
-          ⚠ {uploadError}
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} />{uploadError}
         </div>
       )}
       <label style={{ cursor: uploading ? "not-allowed" : "pointer" }}>

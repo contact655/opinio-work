@@ -37,8 +37,6 @@
   --error-soft:   #FEE2E2;
   --pink:         #DB2777;  /* scheduled */
   --pink-soft:    #FCE7F3;
-  --gold:         #D97706;
-  --gold-soft:    #FEF3C7;
 
   /* === Spacing Scale (8px grid) === */
   --space-1:   4px;   /* atomic — アイコンとテキスト間など極小間隔 */

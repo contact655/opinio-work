@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import type { TodoCounts, MonthlyStatsWithDelta } from "@/lib/business/dashboard";
 
 type Props = {
@@ -153,7 +154,7 @@ export function DashboardStatCards({ todoCounts, monthlyStats, activeJobCount = 
         href="/biz/meetings"
         trend={
           pendingCount > 0
-            ? <span style={{ color: "#B45309" }}>⚠ 要対応 — 面談管理へ →</span>
+            ? <span style={{ color: "#B45309", display: "inline-flex", alignItems: "center", gap: 4 }}><AlertTriangle size={13} style={{ flexShrink: 0 }} /> 要対応 — 面談管理へ →</span>
             : <span style={{ color: "var(--success)" }}>✓ すべて対応済み</span>
         }
       />

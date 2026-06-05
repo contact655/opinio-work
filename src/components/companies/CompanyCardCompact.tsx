@@ -205,7 +205,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             whiteSpace: 'nowrap',
             backdropFilter: 'blur(4px)',
           }}>
-            ✍ 取材済み
+            ✍️ 取材済み
           </span>
         )}
 
