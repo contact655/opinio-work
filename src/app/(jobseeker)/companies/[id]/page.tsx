@@ -887,7 +887,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
               <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
                 主な製品・サービス
               </span>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                 {detail.main_products!.length} 製品
               </span>
             </div>
@@ -918,7 +918,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                         {name}
                       </p>
                       {sub && (
-                        <p style={{ margin: "3px 0 0", fontSize: 11, color: s.color, fontWeight: 600, lineHeight: 1.4 }}>
+                        <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs)", color: s.color, fontWeight: 600, lineHeight: 1.4 }}>
                           {sub}
                         </p>
                       )}
@@ -942,7 +942,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
               <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "#B45309", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
                 主な導入事例
               </span>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                 {detail.customer_cases!.length} 社
               </span>
             </div>
@@ -962,7 +962,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
               <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "#B45309", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
                 主な顧客
               </span>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                 {detail.main_customers!.length} 社
               </span>
             </div>
@@ -1679,7 +1679,7 @@ function CurrentEmployeesSection({
                   <span
                     style={{
                       fontFamily: "Inter, sans-serif",
-                      fontSize: 11,
+                      fontSize: "var(--text-xs)",
                       fontWeight: 400,
                       color: "var(--ink-mute)",
                     }}
@@ -1723,7 +1723,7 @@ function CurrentEmployeesSection({
                             <span
                               style={{
                                 fontFamily: "Inter, sans-serif",
-                                fontSize: 11,
+                                fontSize: "var(--text-xs)",
                                 fontWeight: 400,
                                 color: "var(--ink-mute)",
                               }}
@@ -1867,7 +1867,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
           <p
             style={{
               margin: 0,
-              fontSize: 11,
+              fontSize: "var(--text-xs)",
               color: "var(--ink-mute)",
               marginTop: 2,
             }}
@@ -2204,7 +2204,7 @@ function JobsSection({
                   <span
                     style={{
                       fontFamily: "Inter, sans-serif",
-                      fontSize: 11,
+                      fontSize: "var(--text-xs)",
                       color: "var(--royal)",
                       background: "#fff",
                       padding: "2px 10px",
@@ -2555,7 +2555,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
           {numbersUpdatedAt && (
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 5,
-              fontSize: 11, fontWeight: 600,
+              fontSize: "var(--text-xs)", fontWeight: 600,
               color: "var(--success)", padding: "3px 10px", borderRadius: 100,
               background: "var(--success-soft)", border: "1px solid #A7F3D0",
               marginLeft: "var(--space-2)",
@@ -2971,7 +2971,7 @@ function Sidebar({
                   {label}
                 </div>
                 {sub && (
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+                  <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", marginTop: 2 }}>
                     {sub}
                   </div>
                 )}
@@ -3017,7 +3017,7 @@ function Sidebar({
                 borderBottom: "1px solid var(--line-soft)",
               }}
             >
-              <span style={{ color: "var(--ink-soft)", fontSize: 11, fontWeight: 600, paddingTop: 3 }}>ジャンル</span>
+              <span style={{ color: "var(--ink-soft)", fontSize: "var(--text-xs)", fontWeight: 600, paddingTop: 3 }}>ジャンル</span>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {company.genres.map((g) => (
                   <span
@@ -3064,7 +3064,7 @@ function Sidebar({
                   borderBottom: "1px solid var(--line-soft)",
                 }}
               >
-                <span style={{ color: "var(--ink-soft)", fontSize: 11, fontWeight: 600, paddingTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ color: "var(--ink-soft)", fontSize: "var(--text-xs)", fontWeight: 600, paddingTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
                   {icon}{key}
                 </span>
                 {isLink ? (
@@ -3176,7 +3176,7 @@ async function SimilarCompanies({ currentId, phase }: { currentId: string; phase
             </div>
           </div>
           <span style={{
-            fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+            fontSize: "var(--text-xs)", fontWeight: 700, padding: "3px 10px", borderRadius: 100,
             background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
             marginLeft: 4,
           }}>

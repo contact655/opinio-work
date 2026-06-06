@@ -228,7 +228,7 @@ function Hero({ stats }: { stats: SiteStats }) {
                 borderRight: i < 1 ? "1px solid rgba(255,255,255,0.1)" : "none",
               }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 2 }}>
-                  <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "#fff" }}>
+                  <span style={{ fontSize: "var(--text-xl)", fontWeight: 700, fontFamily: "Inter, sans-serif", color: "#fff" }}>
                     {s.value}
                   </span>
                   <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "#F59E0B" }}>{s.unit}</span>
@@ -354,7 +354,7 @@ function Hero({ stats }: { stats: SiteStats }) {
                       padding: "var(--space-4) var(--space-4)", borderRadius: 12,
                       background: "var(--line-soft)", textAlign: "center",
                     }}>
-                      <div style={{ fontSize: 28, marginBottom: 8 }}>🏗️</div>
+                      <div style={{ fontSize: 28, marginBottom: "var(--space-2)" }}>🏗️</div>
                       <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", marginBottom: 4 }}>
                         求人は近日公開予定です
                       </div>
