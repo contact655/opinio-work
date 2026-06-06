@@ -84,7 +84,7 @@ function Breadcrumb({ company }: { company: Company }) {
       style={{
         background: "var(--bg-tint)",
         borderBottom: "1px solid var(--line)",
-        fontSize: 12,
+        fontSize: "var(--text-xs)",
         color: "var(--ink-mute)",
       }}
     >
@@ -297,7 +297,7 @@ function Hero({
                     color: "#334155",
                     border: "1px solid var(--line)",
                     borderRadius: 100,
-                    fontSize: 12,
+                    fontSize: "var(--text-xs)",
                     fontWeight: 500,
                   }}
                 >
@@ -429,7 +429,7 @@ function Hero({
                           fontWeight: 500,
                         }}
                       >
-                        <span style={{ fontSize: 12 }}>{icon}</span>
+                        <span style={{ fontSize: "var(--text-xs)" }}>{icon}</span>
                         {label}
                       </span>
                     ))}
@@ -567,7 +567,7 @@ function Hero({
                 }}>
                   {icon}
                 </span>
-                <span style={{ fontSize: 12, color: "#6b7280", fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase" as const, fontFamily: "Inter, sans-serif" }}>
+                <span style={{ fontSize: "var(--text-xs)", color: "#6b7280", fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase" as const, fontFamily: "Inter, sans-serif" }}>
                   {label}
                 </span>
               </div>
@@ -626,7 +626,7 @@ function Hero({
                 </div>
               ))}
             </div>
-            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>
               採用担当: <strong style={{ color: "var(--ink)" }}>{recruiters.slice(0, 2).map(r => r.name ?? "担当者").join(" · ")}</strong>
               {recruiters.length > 2 && ` 他${recruiters.length - 2}名`}
             </span>
@@ -912,7 +912,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                       gap: "var(--space-2)",
                     }}
                   >
-                    <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{s.emoji}</span>
+                    <span style={{ fontSize: "var(--text-lg)", lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{s.emoji}</span>
                     <div style={{ minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, fontFamily: "var(--font-noto-sans)" }}>
                         {name}
@@ -966,7 +966,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                 {detail.main_customers!.length} 社
               </span>
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
               {detail.main_customers!.map((c, i) => (
                 <span
                   key={i}
@@ -1077,7 +1077,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
       <div style={{ marginBottom: "var(--space-6)" }}>
         <div style={SUBHEADER_STYLE}>福利厚生</div>
         {detail.benefits && detail.benefits.length > 0 ? (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
             {detail.benefits.map((b) => (
               <span
                 key={b}
@@ -1094,7 +1094,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
                   fontWeight: 500,
                 }}
               >
-                <span style={{ fontSize: 14, lineHeight: 1 }}>{getBenefitIcon(b)}</span>
+                <span style={{ fontSize: "var(--text-base)", lineHeight: 1 }}>{getBenefitIcon(b)}</span>
                 {b}
               </span>
             ))}
@@ -1104,7 +1104,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "8px 14px", borderRadius: 8,
             background: "var(--bg-tint)", border: "1px solid var(--line)",
-            fontSize: 12, color: "var(--ink-soft)",
+            fontSize: "var(--text-xs)", color: "var(--ink-soft)",
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
               <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
@@ -1126,7 +1126,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "8px 14px", borderRadius: 8,
             background: "var(--bg-tint)", border: "1px solid var(--line)",
-            fontSize: 12, color: "var(--ink-soft)",
+            fontSize: "var(--text-xs)", color: "var(--ink-soft)",
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
               <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
@@ -1214,7 +1214,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
                 {note && (
                   <div
                     style={{
-                      fontSize: 12,
+                      fontSize: "var(--text-xs)",
                       color: "var(--ink-soft)",
                       marginTop: 6,
                       paddingLeft: 14,
@@ -1265,7 +1265,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
                 {note && (
                   <div
                     style={{
-                      fontSize: 12,
+                      fontSize: "var(--text-xs)",
                       color: "var(--ink-soft)",
                       marginTop: 6,
                       paddingLeft: 14,
@@ -1307,7 +1307,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
                     background: "var(--bg-tint)",
                     border: "1px solid var(--line)",
                     borderRadius: 100,
-                    fontSize: 12,
+                    fontSize: "var(--text-xs)",
                     color: "var(--ink-soft)",
                   }}
                 >
@@ -1344,7 +1344,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
 
       <div
         style={{
-          fontSize: 12,
+          fontSize: "var(--text-xs)",
           color: "var(--ink-soft)",
           marginTop: "var(--space-4)",
           padding: "var(--space-3) var(--space-4)",
@@ -1426,7 +1426,7 @@ function EmployeeCard({
         <p
           style={{
             margin: 0,
-            fontSize: 12,
+            fontSize: "var(--text-xs)",
             color: "var(--ink-soft)",
             marginTop: 2,
             overflow: "hidden",
@@ -1438,7 +1438,7 @@ function EmployeeCard({
         </p>
       )}
       {showEndedAt && employee.endedAt && (
-        <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
+        <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--ink-soft)", marginTop: 2 }}>
           退職: {employee.endedAt}
         </p>
       )}
@@ -1713,7 +1713,7 @@ function CurrentEmployeesSection({
                           >
                             <span
                               style={{
-                                fontSize: 12,
+                                fontSize: "var(--text-xs)",
                                 fontWeight: 600,
                                 color: "var(--ink-soft)",
                               }}
@@ -1850,7 +1850,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
           <p
             style={{
               margin: 0,
-              fontSize: 12,
+              fontSize: "var(--text-xs)",
               color: "var(--ink-soft)",
               marginTop: 2,
               overflow: "hidden",
@@ -2095,7 +2095,7 @@ function JobsSection({
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
             {job.salary && job.salary !== "—" && (
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 600, letterSpacing: "0.03em", marginBottom: 2 }}>年収</div>
+                <div style={{ fontSize: "var(--text-xs)", color: "#6b7280", fontWeight: 600, letterSpacing: "0.03em", marginBottom: 2 }}>年収</div>
                 <div style={{ fontFamily: "Inter, sans-serif", fontSize: "var(--text-base)", fontWeight: 800, color: "var(--success)" }}>
                   {job.salary}
                 </div>
@@ -2106,7 +2106,7 @@ function JobsSection({
               padding: "7px 14px", borderRadius: 8,
               background: "var(--royal-50)", color: "var(--royal)",
               border: "1px solid var(--royal-100)",
-              fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+              fontSize: "var(--text-xs)", fontWeight: 700, whiteSpace: "nowrap",
             }}>
               詳細を見る
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -2151,7 +2151,7 @@ function JobsSection({
       }}>
         <SecTitle icon={sectionIcon}>
           募集中の求人
-          <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--royal)", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>
             · {company.job_count}件
           </span>
         </SecTitle>
@@ -2218,7 +2218,7 @@ function JobsSection({
                 {cat.total > 4 && (
                   <Link
                     href={cat.catId ? `/jobs?company=${company.id}&category=${cat.catId}` : `/jobs?company=${company.id}`}
-                    style={{ fontSize: 12, color: "var(--royal)", fontWeight: 500, textDecoration: "none" }}
+                    style={{ fontSize: "var(--text-xs)", color: "var(--royal)", fontWeight: 500, textDecoration: "none" }}
                   >
                     すべて見る →
                   </Link>
@@ -2339,7 +2339,7 @@ function RecruitersSection({
                 justifyContent: "center",
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 700,
-                fontSize: 20,
+                fontSize: "var(--text-lg)",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
               }}
             >
@@ -2360,12 +2360,12 @@ function RecruitersSection({
                 {r.name}
               </div>
               {r.role_title && (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {r.role_title}
                 </div>
               )}
               {r.department && (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {r.department}
                 </div>
               )}
@@ -2380,7 +2380,7 @@ function RecruitersSection({
           padding: "var(--space-3) var(--space-4)",
           background: "var(--bg-tint)",
           borderRadius: 8,
-          fontSize: 12,
+          fontSize: "var(--text-xs)",
           color: "var(--ink-soft)",
           lineHeight: 1.7,
           display: "flex",
@@ -2482,7 +2482,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
               })}
             </div>
             <div style={{ marginTop: "var(--space-4)", textAlign: "right" }}>
-              <Link href="/articles" style={{ fontSize: 12, color: "var(--accent)", textDecoration: "none", fontFamily: "Inter, sans-serif", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Link href="/articles" style={{ fontSize: "var(--text-xs)", color: "var(--accent)", textDecoration: "none", fontFamily: "Inter, sans-serif", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
                 記事一覧を見る
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                   <polyline points="9 18 15 12 9 6"/>
@@ -2613,7 +2613,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
                     )}
                     <span
                       style={{
-                        fontSize: 12,
+                        fontSize: "var(--text-xs)",
                         fontFamily: "Inter, sans-serif",
                         fontWeight: 600,
                         letterSpacing: "0.03em",
@@ -2645,7 +2645,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
           <p
             style={{
               marginTop: "var(--space-3)",
-              fontSize: 12,
+              fontSize: "var(--text-xs)",
               color: "var(--ink-mute)",
               lineHeight: 1.6,
             }}
@@ -2687,8 +2687,8 @@ function MobileBottomCTA({ company }: { company: Company }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 8,
-            padding: "12px 0",
+            gap: "var(--space-2)",
+            padding: "var(--space-3) 0",
             background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
             color: "#fff",
             borderRadius: 8,
@@ -2771,7 +2771,7 @@ function Sidebar({
             {/* Eyebrow */}
             <div
               style={{
-                fontSize: 12,
+                fontSize: "var(--text-xs)",
                 fontWeight: 600,
                 opacity: 0.72,
                 marginBottom: 6,
@@ -2808,7 +2808,7 @@ function Sidebar({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 8,
+                    gap: "var(--space-2)",
                     width: "100%",
                     padding: "14px 0",
                     background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
@@ -2837,7 +2837,7 @@ function Sidebar({
                 {/* 補足テキスト: Primary ボタン直下、Primary 表示時のみ */}
                 <p
                   style={{
-                    fontSize: 12,
+                    fontSize: "var(--text-xs)",
                     textAlign: "center",
                     margin: "8px 0",
                     opacity: 0.68,
@@ -2860,7 +2860,7 @@ function Sidebar({
                       color: "#fff",
                       border: "1px solid rgba(255,255,255,0.28)",
                       borderRadius: 8,
-                      fontSize: 12,
+                      fontSize: "var(--text-xs)",
                       fontWeight: 600,
                       textDecoration: "none",
                     }}
@@ -2897,7 +2897,7 @@ function Sidebar({
             {!hasMeeting && !hasJobs && (
               <p
                 style={{
-                  fontSize: 12,
+                  fontSize: "var(--text-xs)",
                   textAlign: "center",
                   opacity: 0.68,
                   lineHeight: 1.7,
@@ -3025,7 +3025,7 @@ function Sidebar({
                     style={{
                       padding: "var(--space-1) var(--space-3)",
                       borderRadius: 14,
-                      fontSize: 12,
+                      fontSize: "var(--text-xs)",
                       background: "var(--bg-tint)",
                       color: "var(--ink-soft)",
                       border: "1px solid var(--line)",

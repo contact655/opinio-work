@@ -12,7 +12,7 @@ export default function EvaluationText({ text }: { text: string }) {
     <div>
       <p
         style={{
-          fontSize: 14,
+          fontSize: "var(--text-base)",
           color: "var(--ink-soft)",
           lineHeight: 1.9,
           margin: 0,
@@ -29,12 +29,12 @@ export default function EvaluationText({ text }: { text: string }) {
           type="button"
           onClick={() => setExpanded((v) => !v)}
           style={{
-            marginTop: 8,
+            marginTop: "var(--space-2)",
             background: "none",
             border: "none",
             padding: 0,
             cursor: "pointer",
-            fontSize: 13,
+            fontSize: "var(--text-sm)",
             color: "var(--accent)",
             fontWeight: 600,
           }}

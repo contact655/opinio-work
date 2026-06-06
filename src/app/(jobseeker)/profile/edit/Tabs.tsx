@@ -43,7 +43,7 @@ export default function Tabs({
             onClick={() => onTabChange(tab.key)}
             style={{
               padding: "10px 18px",
-              fontSize: 13,
+              fontSize: "var(--text-sm)",
               fontWeight: active ? 700 : 500,
               color: active ? "var(--royal)" : "var(--ink-soft)",
               background: "transparent",

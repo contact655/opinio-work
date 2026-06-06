@@ -223,9 +223,9 @@ function JobCard({
       <div
         style={{
           display: "flex",
-          gap: 12,
+          gap: "var(--space-3)",
           alignItems: "flex-start",
-          marginBottom: 12,
+          marginBottom: "var(--space-3)",
           paddingRight: job.is_new ? 32 : 0,
         }}
       >
@@ -331,7 +331,7 @@ function JobCard({
       {(job.location || job.work_style) && (
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
-          marginBottom: 10, flexWrap: "wrap" as const,
+          marginBottom: 10, flexWrap: "wrap",
         }}>
           {job.location && (
             <span style={{
@@ -410,7 +410,7 @@ function JobCard({
                   alignItems: "center",
                   gap: 3,
                   fontSize: 10,
-                  padding: "3px 8px",
+                  padding: "3px var(--space-2)",
                   borderRadius: 100,
                   background: isRemote
                     ? "var(--success-soft)"
@@ -462,12 +462,12 @@ function JobCard({
       <div
         style={{
           marginTop: "auto",
-          paddingTop: 12,
+          paddingTop: "var(--space-3)",
           borderTop: "1px solid var(--line-soft,#F1F5F9)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 8,
+          gap: "var(--space-2)",
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -542,7 +542,7 @@ function Pagination({
         display: "flex",
         justifyContent: "center",
         gap: 6,
-        marginTop: 32,
+        marginTop: "var(--space-8)",
       }}
     >
       <button
@@ -551,13 +551,13 @@ function Pagination({
         disabled={current === 1}
         aria-label="前のページへ"
         style={{
-          padding: "8px 14px",
+          padding: "var(--space-2) 14px",
           border: "1px solid var(--line)",
           borderRadius: 8,
           background: "#fff",
           color: current === 1 ? "var(--ink-mute)" : "var(--ink)",
           cursor: current === 1 ? "default" : "pointer",
-          fontSize: 13,
+          fontSize: "var(--text-sm)",
           opacity: current === 1 ? 0.4 : 1,
         }}
       >
@@ -571,7 +571,7 @@ function Pagination({
           aria-label={`${p}ページ目`}
           aria-current={p === current ? "page" : undefined}
           style={{
-            padding: "8px 14px",
+            padding: "var(--space-2) 14px",
             border: "1px solid var(--line)",
             borderRadius: 8,
             background: p === current ? "var(--royal)" : "#fff",
@@ -579,7 +579,7 @@ function Pagination({
             fontFamily: "Inter, sans-serif",
             fontWeight: p === current ? 700 : 400,
             cursor: "pointer",
-            fontSize: 13,
+            fontSize: "var(--text-sm)",
           }}
         >
           {p}
@@ -591,13 +591,13 @@ function Pagination({
         disabled={current === total}
         aria-label="次のページへ"
         style={{
-          padding: "8px 14px",
+          padding: "var(--space-2) 14px",
           border: "1px solid var(--line)",
           borderRadius: 8,
           background: "#fff",
           color: current === total ? "var(--ink-mute)" : "var(--ink)",
           cursor: current === total ? "default" : "pointer",
-          fontSize: 13,
+          fontSize: "var(--text-sm)",
           opacity: current === total ? 0.4 : 1,
         }}
       >
@@ -676,7 +676,7 @@ function FilterChip({
           border: `1.5px solid ${chipBorder}`,
           background: chipBg,
           color: chipColor,
-          fontSize: 13, fontWeight: isActive ? 600 : 400,
+          fontSize: "var(--text-sm)", fontWeight: isActive ? 600 : 400,
           cursor: "pointer", whiteSpace: "nowrap",
           transition: "all 0.12s",
           fontFamily: "inherit",
@@ -739,7 +739,7 @@ function FilterChip({
                       background: rc.color, flexShrink: 0,
                     }} />
                     <span style={{
-                      fontSize: 13, fontWeight: sel ? 700 : 500,
+                      fontSize: "var(--text-sm)", fontWeight: sel ? 700 : 500,
                       color: sel ? rc.color : "var(--ink)",
                       flex: 1,
                     }}>
@@ -773,7 +773,7 @@ function FilterChip({
                       border: "none",
                       background: sel ? "var(--royal-50)" : "transparent",
                       color: sel ? "var(--royal)" : "var(--ink)",
-                      fontSize: 13, fontWeight: sel ? 700 : 400,
+                      fontSize: "var(--text-sm)", fontWeight: sel ? 700 : 400,
                       cursor: "pointer", textAlign: "left",
                       fontFamily: "inherit",
                       transition: "background 0.1s",
@@ -789,7 +789,7 @@ function FilterChip({
             </div>
           ) : (
             /* default: pill wrap */
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
               {options.map((o) => {
                 const sel = value === o.value;
                 return (
@@ -802,7 +802,7 @@ function FilterChip({
                       border: `1.5px solid ${sel ? "var(--royal)" : "var(--line)"}`,
                       background: sel ? "var(--royal)" : "#fff",
                       color: sel ? "#fff" : "var(--ink)",
-                      fontSize: 13, fontWeight: sel ? 700 : 400,
+                      fontSize: "var(--text-sm)", fontWeight: sel ? 700 : 400,
                       cursor: "pointer", whiteSpace: "nowrap",
                       fontFamily: "inherit",
                       transition: "all 0.1s",
@@ -847,7 +847,7 @@ function SidebarFilter({
   const sectionTitle: React.CSSProperties = {
     fontSize: 10, fontWeight: 700, letterSpacing: "0.1em",
     textTransform: "uppercase", color: "var(--ink-mute)",
-    fontFamily: "Inter, sans-serif", marginBottom: 8,
+    fontFamily: "Inter, sans-serif", marginBottom: "var(--space-2)",
   };
   const pillBase: React.CSSProperties = {
     display: "inline-flex", alignItems: "center",
@@ -864,7 +864,7 @@ function SidebarFilter({
   return (
     <aside style={{
       position: "sticky", top: 88,
-      display: "flex", flexDirection: "column", gap: 24,
+      display: "flex", flexDirection: "column", gap: "var(--space-6)",
       background: "#fff", borderRadius: 16, padding: "20px 18px",
       border: "1px solid var(--line)",
       alignSelf: "flex-start",
@@ -884,7 +884,7 @@ function SidebarFilter({
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="職種・企業名で検索"
-            style={{ border: "none", outline: "none", fontSize: 13, flex: 1, background: "transparent", color: "var(--ink)", fontFamily: "inherit" }}
+            style={{ border: "none", outline: "none", fontSize: "var(--text-sm)", flex: 1, background: "transparent", color: "var(--ink)", fontFamily: "inherit" }}
           />
           {q && <button type="button" onClick={() => setQ("")} style={{ border: "none", background: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}>×</button>}
         </div>
@@ -903,8 +903,8 @@ function SidebarFilter({
                 type="button"
                 onClick={() => setParam("category", active ? "" : r.id)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "8px 10px", borderRadius: 8, border: "none",
+                  display: "flex", alignItems: "center", gap: "var(--space-2)",
+                  padding: "var(--space-2) 10px", borderRadius: 8, border: "none",
                   background: active ? rc.bg : "transparent",
                   cursor: "pointer", textAlign: "left", fontFamily: "inherit",
                   transition: "background 0.1s",
@@ -913,7 +913,7 @@ function SidebarFilter({
                 onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
               >
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: active ? rc.color : "#cbd5e1", flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, color: active ? rc.color : "var(--ink)" }}>
+                <span style={{ fontSize: "var(--text-sm)", fontWeight: active ? 700 : 400, color: active ? rc.color : "var(--ink)" }}>
                   {r.name}
                 </span>
                 {active && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round" style={{ marginLeft: "auto" }}><polyline points="20 6 9 17 4 12"/></svg>}
@@ -965,7 +965,7 @@ function SidebarFilter({
                   padding: "6px 10px", borderRadius: 6, border: "none",
                   background: prefecture === p ? "var(--royal-50)" : "transparent",
                   color: prefecture === p ? "var(--royal)" : "var(--ink)",
-                  fontSize: 13, fontWeight: prefecture === p ? 700 : 400,
+                  fontSize: "var(--text-sm)", fontWeight: prefecture === p ? 700 : 400,
                   cursor: "pointer", textAlign: "left", fontFamily: "inherit",
                 }}
               >
@@ -982,7 +982,7 @@ function SidebarFilter({
           style={{
             padding: "9px 0", borderRadius: 8, border: "1px solid var(--line)",
             background: "var(--bg-tint)", color: "var(--ink-soft)",
-            fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            fontSize: "var(--text-sm)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
           }}
         >
           ✕ フィルターをリセット
@@ -1071,7 +1071,7 @@ function JobListCard({
       </button>
 
       <Link href={`/jobs/${job.id}`} prefetch className="job-list-card-link" style={{
-        display: "flex", gap: 16, alignItems: "flex-start",
+        display: "flex", gap: "var(--space-4)", alignItems: "flex-start",
         background: "#fff", borderRadius: 14,
         padding: "18px 20px 16px",
         textDecoration: "none",
@@ -1094,7 +1094,7 @@ function JobListCard({
 
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 5, flexWrap: "wrap" }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", lineHeight: 1.35 }}>
               {job.role}
             </span>
@@ -1107,7 +1107,7 @@ function JobListCard({
             )}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-2)", flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>{company.name}</span>
             {job.location && (
               <>
@@ -1122,7 +1122,7 @@ function JobListCard({
               <>
                 <span style={{ fontSize: 10, color: "var(--line)" }}>·</span>
                 <span style={{
-                  fontSize: 11, fontWeight: 600,
+                  fontSize: "var(--text-xs)", fontWeight: 600,
                   color: job.work_style.includes("リモート") ? "var(--success)" : "var(--ink-soft)",
                 }}>
                   {job.work_style}
@@ -1140,7 +1140,7 @@ function JobListCard({
             </p>
           )}
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
             {job.dept && (
               <span style={{
                 fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
@@ -1150,7 +1150,7 @@ function JobListCard({
               </span>
             )}
             <span style={{
-              fontSize: 14, fontWeight: 700, fontFamily: "Inter, sans-serif",
+              fontSize: "var(--text-base)", fontWeight: 700, fontFamily: "Inter, sans-serif",
               color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
             }}>
               {formatSalary(job.salary_min, job.salary_max)}
@@ -1335,13 +1335,13 @@ export default function JobsClient({
         }}
       >
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-          <div style={{ padding: "0 0 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ padding: "0 0 14px", display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
 
             {/* 検索インプット — 企業側と同スタイル */}
             <div
               role="search"
               style={{
-                display: "flex", alignItems: "center", gap: 8,
+                display: "flex", alignItems: "center", gap: "var(--space-2)",
                 background: "#fff",
                 border: "1.5px solid #e6e9ef",
                 borderRadius: 999,
@@ -1381,7 +1381,7 @@ export default function JobsClient({
                 }}
               />
               {q && (
-                <button type="button" onClick={() => setQ("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 14, padding: "2px", lineHeight: 1, flexShrink: 0 }}>×</button>
+                <button type="button" onClick={() => setQ("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: "var(--text-base)", padding: "2px", lineHeight: 1, flexShrink: 0 }}>×</button>
               )}
             </div>
 
@@ -1479,10 +1479,10 @@ export default function JobsClient({
             {/* ─ Results column ─ */}
             <main style={{ minWidth: 0 }}>
               {/* 件数・並び順 */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
                 <span aria-live="polite" aria-atomic="true" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                   <strong style={{ color: "var(--royal)", fontSize: 18, fontFamily: "Inter, sans-serif", fontWeight: 800 }}>{filtered.length}</strong>
-                  <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>件の求人</span>
+                  <span style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)" }}>件の求人</span>
                   {(hasFilter || q) && (
                     <span style={{ fontSize: 12, color: "var(--ink-mute)", marginLeft: 4 }}>（絞り込み中）</span>
                   )}
@@ -1516,12 +1516,12 @@ export default function JobsClient({
                   <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う求人が見つかりませんでした</h3>
-              <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えるか、企業のカジュアル面談で直接聞いてみましょう</p>
+              <h3 style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う求人が見つかりませんでした</h3>
+              <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えるか、企業のカジュアル面談で直接聞いてみましょう</p>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                 <button type="button" onClick={() => router.replace("/jobs")} style={{
                   padding: "10px 24px", borderRadius: 8, background: "var(--royal)",
-                  color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer",
+                  color: "#fff", border: "none", fontSize: "var(--text-base)", fontWeight: 600, cursor: "pointer",
                 }}>
                   すべてリセット
                 </button>
@@ -1529,7 +1529,7 @@ export default function JobsClient({
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "10px 20px", borderRadius: 8,
                   background: "linear-gradient(135deg, var(--royal), var(--accent))",
-                  color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none",
+                  color: "#fff", fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
                 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
@@ -1573,7 +1573,7 @@ export default function JobsClient({
                   background: "rgba(255,255,255,0.04)",
                   pointerEvents: "none",
                 }} />
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.55)", marginBottom: 10, textTransform: "uppercase" as const }}>
+                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.55)", marginBottom: 10, textTransform: "uppercase" as const }}>
                   OPINIO独自の機能
                 </div>
                 <h3 style={{
@@ -1583,15 +1583,15 @@ export default function JobsClient({
                 }}>
                   気になる求人を見つけたら、<br />その企業の現役社員に話を聞いてみよう。
                 </h3>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", lineHeight: 1.75, marginBottom: 22, maxWidth: 480 }}>
+                <p style={{ fontSize: "var(--text-sm)", color: "rgba(255,255,255,0.65)", lineHeight: 1.75, marginBottom: 22, maxWidth: 480 }}>
                   「応募前にもっとリアルな声を聞きたい」なら、企業ページからカジュアル面談を申し込めます。営業される心配ゼロ・完全無料。
                 </p>
                 <Link href="/companies" style={{
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  padding: "12px 28px",
+                  display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
+                  padding: "var(--space-3) 28px",
                   background: "rgba(255,255,255,0.15)",
                   color: "#fff", borderRadius: 8, textDecoration: "none",
-                  fontSize: 14, fontWeight: 700,
+                  fontSize: "var(--text-base)", fontWeight: 700,
                   border: "1px solid rgba(255,255,255,0.3)",
                 }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -1599,7 +1599,7 @@ export default function JobsClient({
                   </svg>
                   カジュアル面談できる企業を見る
                 </Link>
-                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 12 }}>
+                <p style={{ fontSize: "var(--text-xs)", color: "rgba(255,255,255,0.4)", marginTop: 12 }}>
                   OPINIO編集部が取材・審査した企業のみ掲載
                 </p>
               </div>

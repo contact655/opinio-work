@@ -53,7 +53,7 @@ function CaptionOverlay({ text, category }: { text?: string; category?: string }
       )}
       {text && (
         <span style={{
-          color: "#fff", fontSize: 11, fontWeight: 500,
+          color: "#fff", fontSize: "var(--text-xs)", fontWeight: 500,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
           {text}
@@ -163,7 +163,7 @@ function Lightbox({
       <div
         style={{
           position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)",
-          color: "rgba(255,255,255,0.6)", fontSize: 13, fontFamily: "Inter, sans-serif",
+          color: "rgba(255,255,255,0.6)", fontSize: "var(--text-sm)", fontFamily: "Inter, sans-serif",
         }}
       >
         {idx + 1} / {photos.length}
@@ -319,7 +319,7 @@ function PhotoStrip({
       {/* 外側ラッパー：右フェードのための position:relative + overflow:hidden */}
       <div
         className={`ps-outer${!canRight ? " scrolled-end" : ""}`}
-        style={{ position: "relative", overflow: "hidden", borderRadius: 12, marginBottom: 8 }}
+        style={{ position: "relative", overflow: "hidden", borderRadius: 12, marginBottom: "var(--space-2)" }}
       >
         {/* 左矢印 */}
         <button
@@ -387,11 +387,11 @@ function PhotoStrip({
       <div
         style={{
           textAlign: "right",
-          fontSize: 11,
+          fontSize: "var(--text-xs)",
           color: "var(--ink-mute)",
           fontFamily: "Inter, sans-serif",
           marginTop: 6,
-          marginBottom: 16,
+          marginBottom: "var(--space-4)",
         }}
       >
         {photos.length}枚の写真
@@ -424,7 +424,7 @@ export function PhotoCarousel({ photos }: { photos: CompanyPhoto[] }) {
         background: "var(--bg-tint)",
         border: "1px dashed var(--line)",
         borderRadius: 12,
-        display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+        display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)",
       }}>
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={1.5} strokeLinecap="round">
           <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
@@ -462,7 +462,7 @@ export function PhotoCarousel({ photos }: { photos: CompanyPhoto[] }) {
     <>
       {/* Category tabs — show only when more than one category exists */}
       {availableTabs.length > 2 && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: "var(--space-3)" }}>
           {availableTabs.map((tab) => {
             const active = activeCategory === tab.value;
             const count = tab.value === "all" ? photos.length : (categoryCounts[tab.value] ?? 0);

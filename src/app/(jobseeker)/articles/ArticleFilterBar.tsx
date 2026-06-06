@@ -76,7 +76,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                 type="button"
                 onClick={() => handleQueryChange("")}
                 aria-label="検索をクリア"
-                style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: INK_MUTE, fontSize: 14, lineHeight: 1, padding: 0 }}
+                style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: INK_MUTE, fontSize: "var(--text-base)", lineHeight: 1, padding: 0 }}
               ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             )}
           </div>
@@ -117,7 +117,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
           <div style={{ flex: 1 }} />
 
           {/* Count */}
-          <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: INK_MUTE, whiteSpace: "nowrap" }}>
+          <span aria-live="polite" aria-atomic="true" style={{ fontSize: "var(--text-sm)", color: INK_MUTE, whiteSpace: "nowrap" }}>
             <strong style={{ color: "var(--royal)", fontSize: 15, fontFamily: "Inter, sans-serif" }}>{total}</strong> 本
           </span>
 
@@ -129,7 +129,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
             onChange={(e) => updateParam("sort", e.target.value === "latest" ? null : e.target.value)}
             style={{
               padding: "7px 12px", border: `1px solid ${LINE}`, borderRadius: 8,
-              background: "#fff", fontSize: 13, color: INK_SOFT, cursor: "pointer", outline: "none",
+              background: "#fff", fontSize: "var(--text-sm)", color: INK_SOFT, cursor: "pointer", outline: "none",
             }}
           >
             <option value="latest">新着順</option>

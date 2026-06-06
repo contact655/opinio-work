@@ -125,7 +125,7 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
         border: "1px solid var(--line)",
         borderRadius: 18,
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: "var(--space-6)",
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
@@ -154,7 +154,7 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
       </div>
 
       {/* Divisions */}
-      <div style={{ padding: "20px 28px 0", display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ padding: "20px 28px 0", display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         {visibleDivisions.map((div) => {
           const teams = grouped.get(div)!;
           const config = DIVISION_CONFIG[div] ?? {
@@ -166,7 +166,7 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
             <div key={div}>
               {/* Division header */}
               <div style={{
-                display: "flex", alignItems: "center", gap: 8,
+                display: "flex", alignItems: "center", gap: "var(--space-2)",
                 marginBottom: 10, paddingBottom: 8, borderBottom: `2px solid ${config.border}`,
               }}>
                 <span style={{
@@ -305,12 +305,12 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
       {!showAll && hiddenCount > 0 ? (
         <div style={{
           padding: "0 28px 28px",
-          marginTop: 8,
+          marginTop: "var(--space-2)",
         }}>
           {/* グラデーションフェード */}
           <div style={{
             height: 48,
-            marginBottom: 16,
+            marginBottom: "var(--space-4)",
             background: "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 100%)",
             marginLeft: -28, marginRight: -28,
             pointerEvents: "none",
@@ -324,14 +324,14 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
               border: "1.5px solid var(--royal-100)",
               background: "var(--royal-50)",
               color: "var(--royal)",
-              fontSize: 14,
+              fontSize: "var(--text-base)",
               fontWeight: 700,
               fontFamily: "var(--font-noto-sans)",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 8,
+              gap: "var(--space-2)",
               transition: "background 0.15s, border-color 0.15s",
             }}
           >
@@ -352,7 +352,7 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
               border: "1px solid var(--line)",
               background: "#fff",
               color: "var(--ink-soft)",
-              fontSize: 13,
+              fontSize: "var(--text-sm)",
               fontWeight: 600,
               fontFamily: "var(--font-noto-sans)",
               cursor: "pointer",

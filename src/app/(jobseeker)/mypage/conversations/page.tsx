@@ -132,10 +132,10 @@ export default function ConversationsPage() {
     return (
       <MypageLayout activeKey="conversations">
         <h1 style={{
-          fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
-          color: "var(--ink)", marginBottom: 24,
+          fontFamily: '"Noto Serif JP", serif', fontSize: "var(--text-xl)", fontWeight: 700,
+          color: "var(--ink)", marginBottom: "var(--space-6)",
         }}>対話一覧</h1>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           {[1, 2, 3].map((i) => (
             <div key={i} className="skeleton-shimmer" style={{
               height: 72, borderRadius: 12,
@@ -157,9 +157,9 @@ export default function ConversationsPage() {
       {error && (
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "12px 16px", marginBottom: 16, borderRadius: 8,
+          padding: "var(--space-3) var(--space-4)", marginBottom: "var(--space-4)", borderRadius: 8,
           background: "var(--error-soft)", border: "1px solid #FCA5A5",
-          fontSize: 13, color: "var(--error)", fontWeight: 600, gap: 12,
+          fontSize: "var(--text-sm)", color: "var(--error)", fontWeight: 600, gap: "var(--space-3)",
         }} role="alert">
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>データの読み込みに失敗しました。</span>
           <button
@@ -183,14 +183,14 @@ export default function ConversationsPage() {
             気になる企業にカジュアル面談を申し込んで<br />
             対話を始めてみましょう。
           </p>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "center", flexWrap: "wrap" }}>
             <Link
               href="/companies"
               style={{
                 display: "inline-flex", alignItems: "center",
                 padding: "10px 20px",
                 background: "var(--royal)", color: "#fff",
-                borderRadius: 8, fontSize: 13, fontWeight: 600,
+                borderRadius: 8, fontSize: "var(--text-sm)", fontWeight: 600,
                 textDecoration: "none",
               }}
             >

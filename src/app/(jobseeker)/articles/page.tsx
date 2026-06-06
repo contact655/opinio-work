@@ -138,7 +138,7 @@ function ArticleCard({ article }: { article: Article }) {
           <h2 style={{
             fontFamily: 'var(--font-noto-serif)',
             fontSize: 15, fontWeight: 700, lineHeight: 1.6,
-            color: "var(--ink)", marginBottom: 8,
+            color: "var(--ink)", marginBottom: "var(--space-2)",
             display: "-webkit-box",
             WebkitLineClamp: 3,
             WebkitBoxOrient: "vertical",
@@ -176,7 +176,7 @@ function ArticleCard({ article }: { article: Article }) {
 
           {/* Footer: company + mentor CTA + date */}
           <div style={{
-            display: "flex", alignItems: "center", gap: 8,
+            display: "flex", alignItems: "center", gap: "var(--space-2)",
             paddingTop: 10, borderTop: "1px solid var(--line-soft, #F1F5F9)",
           }}>
             {/* Company logo */}
@@ -188,7 +188,7 @@ function ArticleCard({ article }: { article: Article }) {
             }}>
               {article.company_initial}
             </div>
-            <span style={{ fontSize: 11, color: "var(--ink-soft)", flex: 1, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", flex: 1, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {article.company_name}
             </span>
 
@@ -266,10 +266,10 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                   <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" /><path d="M18 14h-8" /><path d="M15 18h-5" /><path d="M10 6h8v4h-8V6z" />
                 </svg>
               </div>
-              <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--ink-soft)" }}>
+              <p style={{ fontSize: "var(--text-md)", fontWeight: 600, marginBottom: "var(--space-2)", color: "var(--ink-soft)" }}>
                 該当する記事が見つかりませんでした
               </p>
-              <p style={{ fontSize: 14 }}>カテゴリを変更してみてください</p>
+              <p style={{ fontSize: "var(--text-base)" }}>カテゴリを変更してみてください</p>
             </div>
           ) : (
             <>
@@ -280,7 +280,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                 const icon = TYPE_EYECATCH_ICON[featured.type];
                 const mainSubject = featured.subject ?? featured.subjects?.[0];
                 return (
-                  <Link href={`/articles/${featured.slug}`} style={{ textDecoration: "none", display: "block", marginBottom: 24 }}>
+                  <Link href={`/articles/${featured.slug}`} style={{ textDecoration: "none", display: "block", marginBottom: "var(--space-6)" }}>
                     <article
                       className="article-card"
                       style={{
@@ -324,7 +324,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                       </div>
                       {/* Body */}
                       <div style={{ padding: "28px 32px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
                           <div style={{
                             width: 28, height: 28, borderRadius: 7,
                             background: featured.company_gradient,
@@ -336,20 +336,20 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                           <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>
                             {featured.company_name}
                           </span>
-                          <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                          <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>
                             · {featured.date.replace(/-/g, "/").slice(2)}
                           </span>
                         </div>
                         <h2 style={{
                           fontFamily: "var(--font-noto-serif)",
-                          fontSize: 20, fontWeight: 700, lineHeight: 1.55,
+                          fontSize: "var(--text-lg)", fontWeight: 700, lineHeight: 1.55,
                           color: "var(--ink)", marginBottom: 10,
                         }}>
                           {featured.title}
                         </h2>
                         <p style={{
-                          fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75,
-                          marginBottom: 16,
+                          fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.75,
+                          marginBottom: "var(--space-4)",
                           display: "-webkit-box",
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: "vertical",
@@ -373,7 +373,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                           )}
                           {featured.read_min && (
                             <span style={{
-                              fontSize: 11, color: "var(--ink-mute)",
+                              fontSize: "var(--text-xs)", color: "var(--ink-mute)",
                               fontFamily: "Inter, sans-serif",
                               display: "inline-flex", alignItems: "center", gap: 3,
                             }}>
@@ -411,13 +411,13 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
               {totalPages > 1 && (
                 <div style={{
                   display: "flex", justifyContent: "center", alignItems: "center",
-                  gap: 8, marginTop: 40,
+                  gap: "var(--space-2)", marginTop: 40,
                 }}>
                   {safePage > 1 && (
                     <Link
                       href={`/articles?${new URLSearchParams({ ...(typeParam ? { type: typeParam } : {}), ...(sortParam ? { sort: sortParam } : {}), page: String(safePage - 1) })}`}
                       style={{
-                        padding: "8px 16px", borderRadius: 8, fontSize: 13,
+                        padding: "var(--space-2) var(--space-4)", borderRadius: 8, fontSize: "var(--text-sm)",
                         border: "1px solid var(--line)", background: "#fff",
                         color: "var(--ink-soft)", textDecoration: "none",
                         fontWeight: 500,
@@ -433,7 +433,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                       style={{
                         width: 36, height: 36, borderRadius: 8,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 13, fontWeight: p === safePage ? 700 : 400,
+                        fontSize: "var(--text-sm)", fontWeight: p === safePage ? 700 : 400,
                         background: p === safePage ? "var(--royal)" : "#fff",
                         color: p === safePage ? "#fff" : "var(--ink-soft)",
                         border: `1px solid ${p === safePage ? "var(--royal)" : "var(--line)"}`,
@@ -447,7 +447,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                     <Link
                       href={`/articles?${new URLSearchParams({ ...(typeParam ? { type: typeParam } : {}), ...(sortParam ? { sort: sortParam } : {}), page: String(safePage + 1) })}`}
                       style={{
-                        padding: "8px 16px", borderRadius: 8, fontSize: 13,
+                        padding: "var(--space-2) var(--space-4)", borderRadius: 8, fontSize: "var(--text-sm)",
                         border: "1px solid var(--line)", background: "#fff",
                         color: "var(--ink-soft)", textDecoration: "none",
                         fontWeight: 500,
@@ -474,11 +474,11 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 24,
+            gap: "var(--space-6)",
             flexWrap: "wrap",
           }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "#B45309", marginBottom: 8, textTransform: "uppercase" }}>
+              <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: "#B45309", marginBottom: "var(--space-2)", textTransform: "uppercase" }}>
                 NEXT STEP
               </div>
               <p style={{
@@ -488,13 +488,13 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
               }}>
                 記事を読んで気になったら、その先輩に直接話を聞いてみよう。
               </p>
-              <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8, lineHeight: 1.7 }}>
+              <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", marginTop: "var(--space-2)", lineHeight: 1.7 }}>
                 記事を読んで気になった企業にカジュアル面談を申し込んで、直接話を聞けます。完全無料。
               </p>
             </div>
             <Link href="/companies" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
+              display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
+              padding: "var(--space-3) var(--space-6)", borderRadius: 8, fontSize: "var(--text-base)", fontWeight: 700,
               background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
               color: "#fff", textDecoration: "none",
               boxShadow: "0 4px 16px rgba(0,35,102,0.25)",

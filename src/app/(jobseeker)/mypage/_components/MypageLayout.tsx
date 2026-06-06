@@ -184,7 +184,7 @@ export default function MypageLayout({
         {/* 左サイドバー（デスクトップのみ） */}
         <aside style={{
           background: "#fff", borderRight: "1px solid var(--line)",
-          padding: "24px 0",
+          padding: "var(--space-6) 0",
           position: "sticky", top: topOffset, alignSelf: "start",
           height: `calc(100vh - ${topOffset}px)`, overflowY: "auto",
         }}>

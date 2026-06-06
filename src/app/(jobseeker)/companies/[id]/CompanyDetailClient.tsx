@@ -95,7 +95,7 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
               onClick={() => scrollTo(id)}
               style={{
                 padding: "6px 13px",
-                fontSize: 13,
+                fontSize: "var(--text-sm)",
                 fontWeight: active ? 700 : 500,
                 color: active ? "var(--royal)" : "var(--ink-mute)",
                 background: active ? "var(--royal-50)" : "none",

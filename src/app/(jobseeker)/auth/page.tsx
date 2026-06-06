@@ -185,10 +185,10 @@ function AuthPageInner() {
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
-              <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
+              <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: "var(--space-3)" }}>
                 確認メールを送りました
               </h2>
-              <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
+              <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
                 <strong>{email}</strong> に確認メールを送信しました。<br />
                 メール内のリンクをクリックして登録を完了してください。
               </p>
@@ -217,7 +217,7 @@ function AuthPageInner() {
       <div style={styles.formSide}>
         {/* スマホのみ：簡易ヘッダー */}
         <div className="flex md:hidden" style={{ marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--line)" }}>
-          <a href="/" style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em", color: "var(--royal)", textDecoration: "none" }}>
+          <a href="/" style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: "var(--text-lg)", letterSpacing: "-0.02em", color: "var(--royal)", textDecoration: "none" }}>
             OPINIO
           </a>
         </div>
@@ -478,12 +478,12 @@ function BrandSide() {
           リアルな企業の声と出会えます。
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 440 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", maxWidth: 440 }}>
           {BRAND_FEATURES.map((f, i) => (
             <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
               <div style={styles.featureIcon}>{f.icon}</div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{f.title}</div>
+                <div style={{ fontWeight: 700, fontSize: "var(--text-base)", marginBottom: 3 }}>{f.title}</div>
                 <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.6 }}>{f.desc}</div>
               </div>
             </div>
@@ -494,7 +494,7 @@ function BrandSide() {
         <div style={{
           marginTop: 40,
           display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 12,
+          gap: "var(--space-3)",
         }}>
           {[
             { value: "36社", label: "掲載企業" },
@@ -506,7 +506,7 @@ function BrandSide() {
               border: "1px solid rgba(255,255,255,0.15)",
               borderRadius: 10, padding: "12px 10px", textAlign: "center",
             }}>
-              <div style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
+              <div style={{ fontFamily: "Inter, sans-serif", fontSize: "var(--text-lg)", fontWeight: 700, color: "#fff", lineHeight: 1 }}>
                 {value}
               </div>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", marginTop: 4, fontWeight: 500 }}>
@@ -653,7 +653,7 @@ const styles = {
     border: "none",
     borderRadius: 8,
     fontFamily: "inherit",
-    fontSize: 13,
+    fontSize: "var(--text-sm)",
     fontWeight: 600,
     color: "var(--ink-soft)",
     cursor: "pointer",
@@ -670,15 +670,15 @@ const styles = {
     background: "var(--error-soft)",
     border: "1px solid #FECACA",
     borderRadius: 10,
-    padding: "12px 16px",
-    fontSize: 13,
+    padding: "var(--space-3) var(--space-4)",
+    fontSize: "var(--text-sm)",
     color: "var(--error)",
     marginBottom: 20,
     lineHeight: 1.6,
   } as React.CSSProperties,
 
   formHead: {
-    marginBottom: 32,
+    marginBottom: "var(--space-8)",
   } as React.CSSProperties,
 
   formTitle: {
@@ -686,12 +686,12 @@ const styles = {
     fontWeight: 700,
     fontSize: 28,
     color: "var(--ink)",
-    marginBottom: 8,
+    marginBottom: "var(--space-2)",
     letterSpacing: "0.02em",
   } as React.CSSProperties,
 
   formSubtitle: {
-    fontSize: 13,
+    fontSize: "var(--text-sm)",
     color: "var(--ink-soft)",
     lineHeight: 1.8,
   } as React.CSSProperties,
@@ -704,7 +704,7 @@ const styles = {
     border: "1.5px solid #E2E8F0",
     borderRadius: 10,
     fontFamily: "inherit",
-    fontSize: 14,
+    fontSize: "var(--text-base)",
     fontWeight: 600,
     cursor: "pointer",
     display: "flex",
@@ -720,10 +720,10 @@ const styles = {
     alignItems: "center",
     margin: "20px 0",
     color: "var(--ink-mute)",
-    fontSize: 11,
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
     letterSpacing: "0.1em",
-    gap: 12,
+    gap: "var(--space-3)",
     // ─ 線は ::before/::after が使えないので親に border-image trick は諦め JS で再現
   } as React.CSSProperties,
 
@@ -733,10 +733,10 @@ const styles = {
 
   label: {
     display: "block",
-    fontSize: 13,
+    fontSize: "var(--text-sm)",
     fontWeight: 600,
     color: "var(--ink)",
-    marginBottom: 8,
+    marginBottom: "var(--space-2)",
   } as React.CSSProperties,
 
   required: {
@@ -746,11 +746,11 @@ const styles = {
 
   input: {
     width: "100%",
-    padding: "12px 14px",
+    padding: "var(--space-3) 14px",
     border: "1.5px solid #E2E8F0",
     borderRadius: 10,
     fontFamily: "inherit",
-    fontSize: 14,
+    fontSize: "var(--text-base)",
     color: "var(--ink)",
     background: "#fff",
     outline: "none",
@@ -774,7 +774,7 @@ const styles = {
   } as React.CSSProperties,
 
   hint: {
-    fontSize: 11,
+    fontSize: "var(--text-xs)",
     color: "var(--ink-mute)",
     marginTop: 6,
     lineHeight: 1.6,
@@ -784,7 +784,7 @@ const styles = {
     display: "flex",
     alignItems: "flex-start",
     gap: 10,
-    marginTop: 16,
+    marginTop: "var(--space-4)",
     cursor: "pointer",
   } as React.CSSProperties,
 
@@ -805,7 +805,7 @@ const styles = {
     fontSize: 15,
     fontWeight: 700,
     cursor: "pointer",
-    marginTop: 16,
+    marginTop: "var(--space-4)",
     boxShadow: "0 4px 14px rgba(0,35,102,0.2)",
     transition: "all 0.2s",
   } as React.CSSProperties,
@@ -813,9 +813,9 @@ const styles = {
   switchRow: {
     textAlign: "center" as const,
     marginTop: 28,
-    paddingTop: 24,
+    paddingTop: "var(--space-6)",
     borderTop: "1px solid #E2E8F0",
-    fontSize: 13,
+    fontSize: "var(--text-sm)",
     color: "var(--ink-soft)",
   },
 
@@ -827,7 +827,7 @@ const styles = {
     border: "none",
     cursor: "pointer",
     fontFamily: "inherit",
-    fontSize: 13,
+    fontSize: "var(--text-sm)",
     textDecoration: "underline",
   } as React.CSSProperties,
 } as const;

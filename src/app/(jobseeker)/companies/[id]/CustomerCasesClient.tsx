@@ -69,9 +69,9 @@ function CaseCard({ c }: { c: CustomerCase }) {
         </div>
       </div>
       {/* 活用内容 */}
-      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+      <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
         <span style={{
-          fontSize: 11, fontWeight: 700, color: "var(--ink-soft)",
+          fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-soft)",
           background: "#F1F5F9", borderRadius: 6, padding: "2px 7px",
           whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--font-noto-sans)",
         }}>
@@ -82,9 +82,9 @@ function CaseCard({ c }: { c: CustomerCase }) {
         </p>
       </div>
       {/* 成果 */}
-      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+      <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
         <span style={{
-          fontSize: 11, fontWeight: 700, color: "#065F46",
+          fontSize: "var(--text-xs)", fontWeight: 700, color: "#065F46",
           background: "#D1FAE5", borderRadius: 6, padding: "2px 7px",
           whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--font-noto-sans)",
         }}>
@@ -106,7 +106,7 @@ export default function CustomerCasesClient({ cases }: { cases: NonNullable<Comp
 
   return (
     <div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         {visible.map((c, i) => (
           <CaseCard key={i} c={c} />
         ))}
@@ -133,7 +133,7 @@ export default function CustomerCasesClient({ cases }: { cases: NonNullable<Comp
               background: "#FFFBEB",
               border: "1px solid #FDE68A",
               borderRadius: 10,
-              fontSize: 13,
+              fontSize: "var(--text-sm)",
               fontWeight: 600,
               color: "#92400E",
               cursor: "pointer",
@@ -159,12 +159,12 @@ export default function CustomerCasesClient({ cases }: { cases: NonNullable<Comp
             justifyContent: "center",
             gap: 6,
             width: "100%",
-            marginTop: 12,
+            marginTop: "var(--space-3)",
             padding: "10px 0",
             background: "transparent",
             border: "1px solid var(--line)",
             borderRadius: 10,
-            fontSize: 13,
+            fontSize: "var(--text-sm)",
             fontWeight: 500,
             color: "var(--ink-soft)",
             cursor: "pointer",
