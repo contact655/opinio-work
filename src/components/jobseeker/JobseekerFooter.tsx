@@ -3,7 +3,7 @@ import { MOCK_ARTICLES } from "@/app/articles/mockArticleData";
 
 const TYPE_LABEL: Record<string, string> = {
   employee: "社員インタビュー",
-  mentor: "メンタートーク",
+  mentor: "インタビュー",
   ceo: "代表インタビュー",
   report: "取材レポート",
 };

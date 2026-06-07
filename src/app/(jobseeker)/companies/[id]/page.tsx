@@ -1362,7 +1362,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
         </svg>
         <div>
           実際のリモート頻度や残業時間は部署・職種によって異なります。
-          <strong style={{ color: "var(--royal)" }}>「先輩への相談」</strong>
+          <strong style={{ color: "var(--royal)" }}>カジュアル面談</strong>
           で、あなたが受ける可能性のあるポジションの実態をご確認ください。
         </div>
       </div>
@@ -1490,8 +1490,8 @@ function CurrentEmployeesSection({
           borderRadius: 14, padding: "var(--space-6)",
         }}>
           <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.7, margin: 0 }}>
-            <span style={{ fontWeight: 700, color: "var(--ink)" }}>先輩に話を聞く準備中。</span>
-            &nbsp;OB/OG&nbsp;<strong style={{ color: "var(--royal)" }}>{alumniCount}名</strong>に相談できます。
+            <span style={{ fontWeight: 700, color: "var(--ink)" }}>OB/OGのプロフィールを準備中。</span>
+            &nbsp;<strong style={{ color: "var(--royal)" }}>{alumniCount}名</strong>のキャリア情報を近日公開予定です。
           </p>
         </section>
       );
@@ -3276,7 +3276,7 @@ export default async function CompanyDetailPage({
           ...(!NUMBER_ITEMS.every(({ key }) => { const raw = detail.numbers[key]; return raw === null || raw === undefined || String(raw).trim() === ""; }) ? [{ id: "numbers", label: "数値で見る企業" }] : []),
           ...((detail.benefits?.length || detail.evaluationSystem) ? [{ id: "benefits", label: "福利厚生・評価制度" }] : []),
           { id: "jobs",             label: company.job_count > 0 ? `募集中の求人 ${company.job_count}件` : "募集中の求人" },
-          ...(employees.current.length > 0 ? [{ id: "current-employees", label: `現役社員 ${employees.current.length}名` }] : employees.alumni.length > 0 ? [{ id: "current-employees", label: "先輩に話を聞く" }] : []),
+          ...(employees.current.length > 0 ? [{ id: "current-employees", label: `現役社員 ${employees.current.length}名` }] : employees.alumni.length > 0 ? [{ id: "current-employees", label: `OB/OG ${employees.alumni.length}名` }] : []),
           { id: "articles",         label: companyArticles.length > 0 ? `記事 ${companyArticles.length}件` : "記事" },
         ]} />
         <div

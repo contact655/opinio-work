@@ -6,13 +6,13 @@ import { GlobalToast } from "@/components/ui/GlobalToast";
 
 export const metadata: Metadata = {
   title: {
-    default: "OPINIO | IT/SaaS転職・キャリア相談。先輩と話して選ぶ。",
+    default: "OPINIO | IT/SaaS業界の転職・求人情報",
     template: "%s | OPINIO",
   },
   description:
     "IT/SaaS業界特化のキャリアプラットフォーム。編集部取材済みの企業情報・求人を掲載。スカウトなし・カジュアル面談対応。完全無料・営業電話なし・メール登録のみ。",
   openGraph: {
-    title: "OPINIO | IT/SaaS転職・キャリア。先輩社員と話して選ぶ。",
+    title: "OPINIO | IT/SaaS業界特化の転職・求人情報",
     description: "IT/SaaS業界特化。編集部取材の企業情報・求人と、カジュアル面談でリアルな声が聞けるキャリアプラットフォーム。",
     type: "website",
     url: "https://www.opinio.co.jp",
