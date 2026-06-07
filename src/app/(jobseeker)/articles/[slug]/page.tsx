@@ -227,7 +227,7 @@ function CompanyCTA({ article }: { article: Article }) {
       </div>
       <h3 style={{
         fontFamily: 'var(--font-noto-serif)',
-        fontSize: "var(--text-lg)", fontWeight: 500, marginBottom: "var(--space-4)", lineHeight: 1.5,
+        fontSize: "var(--text-lg)", fontWeight: 700, marginBottom: "var(--space-4)", lineHeight: 1.5,
       }}>
         {article.company_name}で、働く。
       </h3>
@@ -334,7 +334,7 @@ function ContributorsSection({ subjects }: { subjects: ArticleSubject[] }) {
       <div style={{ marginBottom: "var(--space-2)", display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
         <h3 style={{
           fontFamily: 'var(--font-noto-serif)',
-          fontWeight: 700, fontSize: "var(--text-md)", color: INK, margin: 0,
+          fontWeight: 700, fontSize: "var(--text-lg)", color: INK, margin: 0,
         }}>
           取材協力
         </h3>

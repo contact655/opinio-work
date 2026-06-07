@@ -81,19 +81,51 @@ function SecTitle({
   color: string;
   children: React.ReactNode;
 }) {
+  // Map solid color → pastel bg / colored fg (matches companies/[id] pattern)
+  const iconBgMap: Record<string, string> = {
+    "var(--royal)":   "var(--royal-50)",
+    "var(--accent)":  "var(--royal-50)",
+    "var(--success)": "var(--success-soft,#ECFDF5)",
+    "var(--purple)":  "var(--purple-soft,#F3E8FF)",
+    "var(--warm)":    "var(--warm-soft,#FEF3C7)",
+    "var(--ink)":     "var(--bg-tint,#F8FAFC)",
+    "var(--ink-mute)":"var(--bg-tint,#F8FAFC)",
+    "#0891B2":        "#E0F2FE",
+  };
+  const iconFgMap: Record<string, string> = {
+    "var(--royal)":   "var(--royal)",
+    "var(--accent)":  "var(--accent)",
+    "var(--success)": "var(--success)",
+    "var(--purple)":  "var(--purple)",
+    "var(--warm)":    "#B45309",
+    "var(--ink)":     "var(--ink-soft)",
+    "var(--ink-mute)":"var(--ink-mute)",
+    "#0891B2":        "#0891B2",
+  };
+  const iconBg = iconBgMap[color] ?? "var(--royal-50)";
+  const iconFg = iconFgMap[color] ?? color;
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-4)" }}>
+    <div style={{
+      display: "flex", alignItems: "center", gap: "var(--space-3)",
+      marginBottom: "var(--space-4)",
+      fontFamily: "var(--font-noto-serif)",
+      fontWeight: 700,
+      fontSize: "var(--text-lg)",
+      color: "var(--ink)",
+      letterSpacing: "0.01em",
+      lineHeight: 1.3,
+    }}>
       <span style={{
-        width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-        background: color,
+        width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+        background: iconBg,
+        color: iconFg,
         display: "flex", alignItems: "center", justifyContent: "center",
-        color: "#fff",
+        fontSize: "var(--text-base)",
       }}>
         {icon}
       </span>
-      <h2 style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)" }}>
-        {children}
-      </h2>
+      {children}
     </div>
   );
 }
