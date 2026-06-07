@@ -876,46 +876,67 @@ export default async function JobDetailPage({ params }: { params: { id: string }
             {/* ── Sidebar ── */}
             <aside className="hidden lg:flex" style={{ flexDirection: "column", gap: "var(--space-4)", alignSelf: "flex-start", position: "sticky", top: 80 }}>
               {/* CTA */}
-              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                {company.jobs_public && (
+              <div style={{
+                background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
+                overflow: "hidden",
+                boxShadow: "0 4px 20px rgba(0,35,102,0.08)",
+              }}>
+                {/* Header strip */}
                 <div style={{
-                  background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
-                  borderRadius: 10, padding: "var(--space-4)", textAlign: "center" as const,
+                  background: "linear-gradient(135deg, #001233 0%, var(--royal) 100%)",
+                  padding: "16px var(--space-6)",
                 }}>
-                  <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 6 }}>まずは気軽に話してみる</div>
-                  <div style={{ color: "#fff", fontSize: "var(--text-base)", fontWeight: 700, marginBottom: 14, lineHeight: 1.4 }}>
-                    {company.name}の<br />社員に相談する
+                  <div style={{ fontSize: "var(--text-xs)", color: "rgba(255,255,255,0.6)", marginBottom: 4, fontWeight: 500 }}>
+                    {company.name}
                   </div>
-                  <Link href={`/companies/${job.company_id}/casual-meeting?job_id=${job.id}`} style={{
-                    display: "block", width: "100%", padding: "11px 0",
-                    background: "#fff", color: "#B45309",
-                    borderRadius: 8, fontSize: "var(--text-sm)", fontWeight: 700,
-                    textDecoration: "none", textAlign: "center",
-                  }}>
-                    カジュアル面談を申し込む
-                  </Link>
+                  <div style={{ fontSize: "var(--text-sm)", color: "#fff", fontWeight: 700, lineHeight: 1.45 }}>
+                    {job.role}
+                  </div>
                 </div>
-                )}
-                <Link href={`/jobs/${job.id}/apply`} style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
-                  width: "100%", padding: "14px var(--space-6)",
-                  background: "transparent",
-                  color: "var(--royal)", border: "1.5px solid var(--royal)", borderRadius: 8,
-                  fontSize: "var(--text-base)", fontWeight: 700, textDecoration: "none", textAlign: "center",
-                }}>
-                  応募する
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </Link>
-                <BookmarkButton
-                  targetType="job"
-                  targetId={job.id}
-                  label="気になるに追加"
-                  initialBookmarked={initialBookmarked}
-                  isAuthenticated={isAuthenticated}
-                  variant="with-text"
-                />
+
+                <div style={{ padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                  {/* Primary: 応募する */}
+                  <Link href={`/jobs/${job.id}/apply`} style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
+                    width: "100%", padding: "15px var(--space-6)",
+                    background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
+                    color: "#fff", borderRadius: 10,
+                    fontSize: "var(--text-base)", fontWeight: 700, textDecoration: "none", textAlign: "center",
+                    boxShadow: "0 4px 16px rgba(0,35,102,0.28)",
+                    transition: "opacity 0.15s",
+                  }}>
+                    この求人に応募する
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+
+                  {/* Secondary: カジュアル面談 */}
+                  {company.jobs_public && (
+                    <Link href={`/companies/${job.company_id}/casual-meeting?job_id=${job.id}`} style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
+                      width: "100%", padding: "13px var(--space-6)",
+                      background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+                      color: "#fff", borderRadius: 10,
+                      fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none", textAlign: "center",
+                      boxShadow: "0 4px 12px rgba(245,158,11,0.3)",
+                    }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                      まず社員に話を聞く（無料）
+                    </Link>
+                  )}
+
+                  <BookmarkButton
+                    targetType="job"
+                    targetId={job.id}
+                    label="気になるに追加"
+                    initialBookmarked={initialBookmarked}
+                    isAuthenticated={isAuthenticated}
+                    variant="with-text"
+                  />
+                </div>
               </div>
 
               {/* Job summary */}

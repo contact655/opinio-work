@@ -83,7 +83,7 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
           カジュアル面談を申し込む
         </Link>
         )}
-        {/* 副CTA: 応募する (35%) — 枠線のみ、背景透明 */}
+        {/* 副CTA（面談あり）または 主CTA（面談なし）: 応募する */}
         <Link
           href={applyHref}
           tabIndex={visible ? 0 : -1}
@@ -95,14 +95,18 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
             gap: 4,
             height: 56,
             padding: "0 8px",
-            background: "transparent",
-            color: "var(--royal)",
-            border: "1.5px solid var(--royal)",
+            // 面談なしの場合は solid primary、あれば outline
+            background: casualHref
+              ? "transparent"
+              : "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
+            color: casualHref ? "var(--royal)" : "#fff",
+            border: casualHref ? "1.5px solid var(--royal)" : "none",
             borderRadius: 10,
             fontSize: 13,
             fontWeight: 700,
             textDecoration: "none",
             textAlign: "center",
+            boxShadow: casualHref ? "none" : "0 4px 14px rgba(0,35,102,0.3)",
           }}
         >
           応募する
