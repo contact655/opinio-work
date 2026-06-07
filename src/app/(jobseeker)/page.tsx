@@ -171,8 +171,8 @@ function Hero({ stats }: { stats: SiteStats }) {
             color: "#fff", marginBottom: "var(--space-6)",
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            <span style={{ color: "#F59E0B" }}>IT/SaaS業界</span>の転職を、<br />
-            情報から始める。
+            <span style={{ color: "#F59E0B" }}>IT/SaaS業界</span>の転職は、<br />
+            OPINIOで。
           </h1>
 
           {/* Lead */}
@@ -968,14 +968,26 @@ function InfraSection() {
       bg: "var(--royal-50)",
     },
     {
+      num: "02",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+      ),
+      title: "企業×人の図鑑",
+      body: "どの企業にどんな人が在籍・在籍したかが一覧できます。現役社員・OBOGのプロフィールが各企業ページに集まり、入社後のイメージがリアルに描けます。",
+      color: "var(--purple)",
+      bg: "var(--purple-soft,#F3E8FF)",
+    },
+    {
       num: "03",
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       ),
-      title: "現役社員・OBOGが見える",
-      body: "企業ページには実際にその会社で働く人・働いた人のプロフィールが掲載。入社後のイメージが描けます。",
+      title: "カジュアル面談で直接聞ける",
+      body: "気になった企業には直接カジュアル面談を申し込めます。現役メンバーに30分話を聞いてから、応募を判断できます。",
       color: "var(--success)",
       bg: "var(--success-soft)",
     },
