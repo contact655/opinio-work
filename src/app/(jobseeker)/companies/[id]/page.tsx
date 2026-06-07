@@ -126,7 +126,7 @@ function Hero({
   return (
     <section style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
       {/* Gradient cover band — taller for visual impact */}
-      <div style={{ height: 210, background: company.gradient, position: "relative", overflow: "hidden" }}>
+      <div style={{ height: 240, background: company.gradient, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.32) 100%)" }} />
         {/* Decorative circles */}
         <div style={{ position: "absolute", right: -60, top: -60, width: 280, height: 280, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
@@ -154,7 +154,7 @@ function Hero({
                 height: 96,
                 borderRadius: 18,
                 flexShrink: 0,
-                marginTop: -52,
+                marginTop: -56,
                 position: "relative",
                 zIndex: 1,
                 background: company.gradient,

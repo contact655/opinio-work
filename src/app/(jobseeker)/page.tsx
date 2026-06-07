@@ -53,8 +53,11 @@ const PAIN_POINTS = [
 function SectionTag({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
+      display: "inline-block",
       fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.12em",
       color: "var(--royal)", textTransform: "uppercase" as const, marginBottom: "var(--space-4)",
+      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+      padding: "4px 14px", borderRadius: 100,
     }}>
       {children}
     </div>
@@ -982,7 +985,7 @@ function InfraSection() {
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {points.map((p) => (
-            <div key={p.num} style={{
+            <div key={p.num} className="card-hover" style={{
               background: "#fff",
               border: "1px solid var(--line)",
               borderRadius: 20,
@@ -990,6 +993,7 @@ function InfraSection() {
               display: "flex",
               flexDirection: "column",
               gap: "var(--space-4)",
+              cursor: "default",
             }}>
               <div style={{
                 width: 48, height: 48, borderRadius: 14,
@@ -1067,10 +1071,11 @@ function HowItWorks() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_40px_1fr_40px_1fr] items-center">
           {STEPS.map((s, i) => (
             <React.Fragment key={i}>
-              <div style={{
+              <div className="card-hover" style={{
                 background: s.highlight ? "linear-gradient(135deg, var(--royal-50) 0%, #fff 100%)" : "#fff",
                 border: `1px solid ${s.highlight ? "var(--royal-100)" : "var(--line)"}`,
                 borderRadius: 16, padding: 28,
+                cursor: "default",
               }}>
                 <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: "var(--space-3)" }}>{s.step}</div>
                 <div style={{
@@ -1089,7 +1094,11 @@ function HowItWorks() {
                 </Link>
               </div>
               {i < 2 && (
-                <div className="hidden md:flex justify-center" style={{ fontSize: "var(--text-xl)", color: "var(--line)", fontWeight: 300 }}>→</div>
+                <div className="hidden md:flex justify-center" style={{ color: "var(--ink-mute)" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M13 5l7 7-7 7" />
+                  </svg>
+                </div>
               )}
             </React.Fragment>
           ))}
