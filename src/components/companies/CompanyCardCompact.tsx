@@ -142,9 +142,15 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
   const stageCfg = getStageCfg(company.funding_stage);
   const articleCount = company.article_count ?? 0;
   const hasMembers = (company.current_member_count || 0) + (company.obog_count || 0) > 0;
+  const [hovered, setHovered] = useState(false);
 
   return (
-    <Link href={`/companies/${company.id}`} className="genre-card">
+    <Link
+      href={`/companies/${company.id}`}
+      className="genre-card"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
 
       {/* ─── ロゴエリア ─────────────────────────────────────── */}
       <div style={{
@@ -225,6 +231,79 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
           </span>
         )}
 
+        {/* ホバーオーバーレイ CTA */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(180deg, rgba(0,18,50,0.55) 0%, rgba(0,18,50,0.78) 100%)',
+          backdropFilter: 'blur(2px)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          gap: 10,
+          padding: '12px',
+          opacity: hovered ? 1 : 0,
+          pointerEvents: hovered ? 'auto' : 'none',
+          transition: 'opacity 0.22s ease',
+          zIndex: 2,
+        }}>
+          {/* タグライン（ホバー時に表示） */}
+          {company.tagline && (
+            <div style={{
+              fontSize: 10.5, color: 'rgba(255,255,255,0.85)',
+              textAlign: 'center', lineHeight: 1.5,
+              maxWidth: '90%',
+              overflow: 'hidden', display: '-webkit-box',
+              WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+            }}>
+              {company.tagline}
+            </div>
+          )}
+          {/* 主CTA: 面談受付中 → orange、求人あり → royal、なければ ghost */}
+          {company.accepting_casual_meetings ? (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}/casual-meeting`); }}
+              style={{
+                background: 'linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)',
+                color: '#fff', border: 'none', borderRadius: 8,
+                fontSize: 12, fontWeight: 700,
+                padding: '8px 18px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(245,158,11,0.45)',
+                whiteSpace: 'nowrap',
+                letterSpacing: '0.01em',
+              }}
+            >
+              話を聞く →
+            </button>
+          ) : company.job_count > 0 ? (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}#jobs`); }}
+              style={{
+                background: 'linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)',
+                color: '#fff', border: 'none', borderRadius: 8,
+                fontSize: 12, fontWeight: 700,
+                padding: '8px 18px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(0,35,102,0.35)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              求人 {company.job_count}件を見る →
+            </button>
+          ) : (
+            <div style={{
+              background: 'rgba(255,255,255,0.15)',
+              color: 'rgba(255,255,255,0.92)',
+              border: '1px solid rgba(255,255,255,0.4)',
+              borderRadius: 8,
+              fontSize: 11.5, fontWeight: 600,
+              padding: '7px 18px',
+              whiteSpace: 'nowrap',
+            }}>
+              詳細を見る →
+            </div>
+          )}
+        </div>
+
         {/* ブックマークボタン（右下） */}
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBookmark(); }}
@@ -237,6 +316,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', padding: 0,
             backdropFilter: 'blur(4px)',
+            zIndex: 3,
           }}
           aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
         >
