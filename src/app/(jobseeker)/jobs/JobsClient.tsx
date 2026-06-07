@@ -261,10 +261,10 @@ function JobCard({
         <div style={{ minWidth: 0 }}>
           <div
             style={{
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: 700,
               color: "var(--ink)",
-              lineHeight: 1.4,
+              lineHeight: 1.35,
               marginBottom: 5,
               display: "-webkit-box",
               WebkitLineClamp: 2,
@@ -486,7 +486,7 @@ function JobCard({
             style={{
               fontFamily: "Inter, sans-serif",
               fontSize: 15,
-              fontWeight: (job.salary_min || job.salary_max) ? 700 : 400,
+              fontWeight: (job.salary_min || job.salary_max) ? 800 : 400,
               color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
             }}
           >
@@ -1073,11 +1073,10 @@ function JobListCard({
       <Link href={`/jobs/${job.id}`} prefetch className="job-list-card-link" style={{
         display: "flex", gap: "var(--space-4)", alignItems: "flex-start",
         background: "#fff", borderRadius: 14,
-        padding: "18px 20px 16px",
+        padding: "20px 56px 18px 20px",
         textDecoration: "none",
         border: "1px solid var(--line)",
-        transition: "box-shadow 0.2s, transform 0.2s",
-        paddingRight: 56,
+        transition: "box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease",
       }}>
         {/* Logo */}
         <div style={{
@@ -1095,7 +1094,7 @@ function JobListCard({
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 5, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", lineHeight: 1.35 }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", lineHeight: 1.35 }}>
               {job.role}
             </span>
             {isFresh && (
@@ -1150,12 +1149,23 @@ function JobListCard({
               </span>
             )}
             <span style={{
-              fontSize: "var(--text-base)", fontWeight: 700, fontFamily: "Inter, sans-serif",
+              fontSize: 15, fontWeight: 800, fontFamily: "Inter, sans-serif",
               color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
             }}>
               {formatSalary(job.salary_min, job.salary_max)}
             </span>
           </div>
+        </div>
+
+        {/* CTA arrow */}
+        <div style={{
+          display: "flex", alignItems: "center", flexShrink: 0,
+          alignSelf: "center", marginLeft: "auto",
+          color: "var(--royal)", opacity: 0.5,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
         </div>
       </Link>
     </div>

@@ -250,7 +250,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
       </div>
 
       {/* ─── カード本体 ─────────────────────────────────────── */}
-      <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
+      <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
 
         {/* 業種 + フェーズ バッジ行 */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, minHeight: 20 }}>
@@ -277,10 +277,10 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         {/* 社名 */}
         <div>
           <div style={{
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: 700,
             color: 'var(--ink)',
-            lineHeight: 1.3,
+            lineHeight: 1.25,
             fontFamily: isEnName ? 'Inter, sans-serif' : 'var(--font-noto-sans)',
             overflow: 'hidden',
             display: '-webkit-box',
@@ -299,7 +299,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         {/* タグライン */}
         {company.tagline && (
           <div style={{
-            fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.6,
+            fontSize: "var(--text-sm)", color: 'var(--ink-soft)', lineHeight: 1.65,
             overflow: 'hidden', display: '-webkit-box',
             WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
             flex: 1,
@@ -327,7 +327,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         )}
 
         {/* ─── 下部メタ行 ──────────────────────────────────── */}
-        <div style={{ marginTop: 'auto', paddingTop: 6, borderTop: '1px solid var(--line-soft)', display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--line-soft)', display: 'flex', flexDirection: 'column', gap: 6 }}>
 
           {/* 在籍メンバー（いる場合のみ） */}
           {hasMembers && (

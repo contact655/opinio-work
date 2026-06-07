@@ -288,6 +288,11 @@ p, .description, .desc {
   box-shadow: 0 8px 24px rgba(0, 35, 102, 0.10) !important;
   transform: translateY(-2px);
 }
+.job-list-card-link:hover {
+  border-color: var(--royal-100) !important;
+  box-shadow: 0 4px 16px rgba(0, 35, 102, 0.09) !important;
+  transform: translateY(-1px);
+}
 
 /* ── Pulse dot animation ── */
 @keyframes pulseDot {
@@ -469,12 +474,13 @@ details > summary:hover { background: var(--bg-tint); }
   will-change: transform;
 }
 .genre-card:hover {
-  box-shadow: 0 12px 36px rgba(0, 35, 102, 0.18), 0 2px 8px rgba(0, 35, 102, 0.08);
-  transform: translateY(-6px);
+  box-shadow: 0 8px 28px rgba(0, 35, 102, 0.15), 0 2px 8px rgba(0, 35, 102, 0.07);
+  transform: translateY(-4px);
+  border-color: var(--royal-100);
 }
 .genre-card:active {
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.10);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   transition-duration: 0.06s;
 }
 
