@@ -10,7 +10,7 @@
 
 :root {
   /* === Brand Colors === */
-  --royal:      var(--royal);    /* メインカラー: ヘッダー・CTA・アクティブ */
+  --royal:      #002366;    /* メインカラー: ヘッダー・CTA・アクティブ */
   --royal-deep: #001A4D;    /* ホバー・ダークバリアント */
   --royal-50:   #EFF3FC;    /* 極薄背景 */
   --royal-100:  #DCE5F7;    /* 薄背景・ホバー */
@@ -27,7 +27,7 @@
   --bg-tint:    #F8FAFC;    /* ページ背景 (薄グレー) */
 
   /* === Status === */
-  --success:      var(--success);  /* 成功・published・accepted */
+  --success:      #059669;  /* 成功・published・accepted */
   --success-soft: #ECFDF5;
   --warm:         #F59E0B;  /* 注意・pending */
   --warm-soft:    #FEF3C7;

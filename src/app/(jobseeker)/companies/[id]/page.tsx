@@ -2670,14 +2670,15 @@ function MobileBottomCTA({ company }: { company: Company }) {
       className="md:hidden"
       style={{
         position: "fixed",
-        bottom: 0,
+        bottom: 64, // モバイルボトムナビ（64px）の上に配置
         left: 0,
         right: 0,
         zIndex: 40,
-        background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
-        padding: "12px 16px",
-        paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
-        boxShadow: "0 -4px 12px rgba(0,0,0,0.06)",
+        background: "rgba(255,255,255,0.97)",
+        backdropFilter: "blur(10px)",
+        borderTop: "1px solid var(--line)",
+        padding: "10px 16px",
+        boxShadow: "0 -2px 10px rgba(0,0,0,0.06)",
       }}
     >
       {hasMeeting && (
@@ -3283,7 +3284,7 @@ export default async function CompanyDetailPage({
           className="px-5 md:px-12 py-7 grid gap-7 [grid-template-columns:1fr] lg:[grid-template-columns:1fr_320px]"
         >
           {/* γ-7: モバイルで fixed bottom bar 分の余白を確保 */}
-          <main className="pb-28 md:pb-0">
+          <main className="pb-36 md:pb-0">
             {/* 1. 企業概要 */}
             <AboutSection
               detail={detail}

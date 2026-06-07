@@ -41,12 +41,11 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
         className="lg:hidden"
         style={{
           position: "fixed",
-          bottom: 0,
+          bottom: 64, // モバイルボトムナビ（64px）の上に配置
           left: 0,
           right: 0,
           zIndex: 50,
           padding: "12px 16px",
-          paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
           background: "rgba(255,255,255,0.96)",
           backdropFilter: "blur(10px)",
           borderTop: "1px solid var(--line)",
