@@ -125,8 +125,8 @@ function Hero({
 
   return (
     <section style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
-      {/* Gradient cover band — taller for visual impact */}
-      <div style={{ height: 240, background: company.gradient, position: "relative", overflow: "hidden" }}>
+      {/* Gradient cover band */}
+      <div style={{ height: 200, background: company.gradient, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.32) 100%)" }} />
         {/* Decorative circles */}
         <div style={{ position: "absolute", right: -60, top: -60, width: 280, height: 280, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
@@ -477,129 +477,57 @@ function Hero({
           </div>
         </div>
 
-        {/* Stats grid — colored stat cards */}
+        {/* Stats strip — compact inline row */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "var(--space-3)",
-            paddingTop: "var(--space-6)",
-            marginTop: "var(--space-4)", /* ⚠️ 20→16px 丸め */
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0",
+            paddingTop: "var(--space-5)",
+            marginTop: "var(--space-4)",
             borderTop: "1px solid var(--line-soft)",
           }}
-          className="[grid-template-columns:repeat(2,1fr)] sm:[grid-template-columns:repeat(4,1fr)]"
         >
-          {[
-            {
-              iconBg: "var(--royal-50)",
-              iconColor: "var(--royal)",
-              icon: (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                </svg>
-              ),
-              label: "社員数",
-              value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s + "名"; })() : "—",
-              unit: "",
-              sub: "直近公表値",
-              isText: true,
-            },
-            {
-              iconBg: "#F3E8FF",
-              iconColor: "#7C3AED",
-              icon: (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                  <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4" />
-                </svg>
-              ),
-              label: "事業ステージ",
-              value: company.phase ?? "—",
-              unit: "",
-              sub: "",
-              isText: true,
-            },
-            {
-              iconBg: "#ECFDF5",
-              iconColor: "var(--success)",
-              icon: (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                  <rect x="3" y="4" width="18" height="18" rx="2" />
-                  <path d="M16 2v4M8 2v4M3 10h18" />
-                </svg>
-              ),
-              label: "設立",
-              value: detail.established || "—",
-              unit: "",
-              sub: "",
-              isText: true,
-            },
-            {
-              iconBg: "#FEF3C7",
-              iconColor: "#D97706",
-              icon: (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                  <rect x="3" y="4" width="18" height="16" rx="2" />
-                  <path d="M3 10h18" />
-                </svg>
-              ),
-              label: "募集中の求人",
-              value: String(company.job_count),
-              unit: "件",
-              sub: "",
-            },
-          ].map(({ iconBg, iconColor, icon, label, value, unit, sub, isText }) => (
+          {(
+            [
+              {
+                icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>,
+                label: "社員数",
+                value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s + "名"; })() : null,
+                color: "var(--royal)",
+              },
+              {
+                icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>,
+                label: "事業ステージ",
+                value: company.phase ?? null,
+                color: "#7C3AED",
+              },
+              {
+                icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
+                label: "設立",
+                value: detail.established || null,
+                color: "var(--success)",
+              },
+              ...(company.job_count > 0 ? [{
+                icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>,
+                label: "募集中の求人",
+                value: `${company.job_count}件`,
+                color: "#D97706",
+              }] : []),
+            ] as { icon: React.ReactNode; label: string; value: string | null; color: string }[]
+          ).filter(s => s.value).map(({ icon, label, value, color }, i, arr) => (
             <div key={label} style={{
-              padding: "var(--space-4)",
-              background: "#fff",
-              borderRadius: 12,
-              border: "1px solid var(--line)",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              paddingRight: "var(--space-5)",
+              marginRight: i < arr.length - 1 ? "var(--space-5)" : 0,
+              borderRight: i < arr.length - 1 ? "1px solid var(--line-soft)" : "none",
+              marginBottom: "var(--space-3)",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
-                <span style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background: iconBg, color: iconColor,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
-                  boxShadow: `0 1px 4px ${iconBg}`,
-                }}>
-                  {icon}
-                </span>
-                <span style={{ fontSize: "var(--text-xs)", color: "#6b7280", fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase" as const, fontFamily: "Inter, sans-serif" }}>
-                  {label}
-                </span>
-              </div>
-              <div
-                style={{
-                  fontFamily: isText ? "var(--font-noto-sans)" : "Inter, sans-serif",
-                  fontSize: isText ? "var(--text-md)" : "var(--text-xl)",
-                  fontWeight: 800,
-                  color: value === "—" ? "var(--ink-mute)" : "var(--ink)",
-                  lineHeight: 1.1,
-                  marginBottom: sub ? 5 : 0,
-                  letterSpacing: isText ? "0.01em" : "-0.02em",
-                }}
-              >
-                {value}
-                {unit && (
-                  <span
-                    style={{
-                      fontSize: "var(--text-base)",
-                      color: "var(--ink-soft)",
-                      fontWeight: 600,
-                      marginLeft: 3,
-                      letterSpacing: 0,
-                    }}
-                  >
-                    {unit}
-                  </span>
-                )}
-              </div>
-              {sub && (
-                <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", marginTop: 3, fontFamily: "Inter, sans-serif", letterSpacing: "0.02em" }}>{sub}</div>
-              )}
+              <span style={{ color, flexShrink: 0, display: "flex", alignItems: "center" }}>{icon}</span>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", fontWeight: 500 }}>{label}</span>
+              <span style={{ fontSize: "var(--text-sm)", color: "var(--ink)", fontWeight: 700, fontFamily: "var(--font-noto-sans)" }}>{value}</span>
             </div>
           ))}
         </div>
@@ -720,8 +648,7 @@ function AboutSection({
       {/* Section header with subtle gradient */}
       <div style={{
         padding: "var(--space-6) var(--space-6) var(--space-4)",
-        background: "#f5f8ff",
-        borderBottom: "1px solid #dde4f5",
+        borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
           icon={
@@ -1030,8 +957,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
       {/* Section header */}
       <div style={{
         padding: "var(--space-6) var(--space-6) var(--space-4)",
-        background: "#f5f8ff",
-        borderBottom: "1px solid #dde4f5",
+        borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
           icon={
@@ -1156,8 +1082,7 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
       {/* Section header */}
       <div style={{
         padding: "var(--space-6) var(--space-6) var(--space-4)",
-        background: "#f5f8ff",
-        borderBottom: "1px solid #dde4f5",
+        borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
           iconColor="warm"
@@ -1563,8 +1488,7 @@ function CurrentEmployeesSection({
       {/* Section header */}
       <div style={{
         padding: "var(--space-6) var(--space-6) var(--space-4)",
-        background: "#f5f8ff",
-        borderBottom: "1px solid #dde4f5",
+        borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle icon={SECTION_ICON}>
           現役社員
@@ -1896,8 +1820,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
       {/* Section header */}
       <div style={{
         padding: "var(--space-6) var(--space-6) var(--space-4)",
-        background: "#f5f8ff",
-        borderBottom: "1px solid #dde4f5",
+        borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
           icon={
@@ -2141,8 +2064,7 @@ function JobsSection({
       {/* Section header */}
       <div style={{
         padding: "var(--space-6) var(--space-6) var(--space-4)",
-        background: "#f5f8ff",
-        borderBottom: "1px solid #dde4f5",
+        borderBottom: "1px solid var(--line-soft)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -2288,8 +2210,7 @@ function RecruitersSection({
       {/* Section header */}
       <div style={{
         padding: "var(--space-6) var(--space-6) var(--space-4)",
-        background: "#f5f8ff",
-        borderBottom: "1px solid #dde4f5",
+        borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
           iconColor="green"
@@ -2418,8 +2339,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
       {/* Section header */}
       <div style={{
         padding: "var(--space-6) var(--space-6) var(--space-4)",
-        background: "#f5f8ff",
-        borderBottom: "1px solid #dde4f5",
+        borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
           iconColor="default"
@@ -2536,8 +2456,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
       {/* Section header */}
       <div style={{
         padding: "var(--space-6) var(--space-6) var(--space-4)",
-        background: "#f5f8ff",
-        borderBottom: "1px solid #dde4f5",
+        borderBottom: "1px solid var(--line-soft)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -2570,54 +2489,56 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
         </span>
       </div>
       <div style={{ padding: "var(--space-6)" }}>
-        <>
-          {/* 3-column grid */}
+          {/* number grid — only cells with actual values */}
+          {(() => {
+            const filledItems = NUMBER_ITEMS.filter(({ key }) => {
+              const raw = numbers[key];
+              return raw !== null && raw !== undefined && String(raw).trim() !== "";
+            });
+            const cols = filledItems.length <= 3 ? filledItems.length : filledItems.length <= 4 ? 2 : 3;
+            return (
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
+              gridTemplateColumns: `repeat(${cols}, 1fr)`,
               gap: "var(--space-3)",
             }}
             className="sm:grid-cols-3 grid-cols-2"
           >
-            {NUMBER_ITEMS.map(({ label, key, format, icon, accentColor, accentBg }) => {
+            {filledItems.map(({ label, key, format, icon, accentColor, accentBg }) => {
               const raw = numbers[key];
-              const hasValue = raw !== null && raw !== undefined && String(raw).trim() !== "";
-              const display = hasValue ? format(raw as string | number) : "—";
+              const display = format(raw as string | number);
 
               return (
                 <div
                   key={key}
                   style={{
-                    background: hasValue ? "#fff" : "#fafafa",
-                    border: `1px solid ${hasValue ? "var(--line)" : "#efefef"}`,
+                    background: "#fff",
+                    border: "1px solid var(--line)",
                     borderRadius: 12,
-                    padding: "var(--space-3) var(--space-4)",
-                    minHeight: 88,
+                    padding: "var(--space-4)",
                     display: "flex",
                     flexDirection: "column",
                     gap: "var(--space-2)",
-                    boxShadow: hasValue ? "0 1px 4px rgba(0,0,0,0.04)" : "none",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
                   }}
                 >
                   {/* Icon + Label row */}
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    {hasValue && (
-                      <span style={{
-                        width: 24, height: 24, borderRadius: 6, flexShrink: 0,
-                        background: accentBg, display: "flex",
-                        alignItems: "center", justifyContent: "center",
-                      }}>
-                        {icon}
-                      </span>
-                    )}
+                    <span style={{
+                      width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+                      background: accentBg, display: "flex",
+                      alignItems: "center", justifyContent: "center",
+                    }}>
+                      {icon}
+                    </span>
                     <span
                       style={{
                         fontSize: "var(--text-xs)",
                         fontFamily: "Inter, sans-serif",
                         fontWeight: 600,
                         letterSpacing: "0.03em",
-                        color: hasValue ? "var(--ink-soft)" : "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                       }}
                     >
                       {label}
@@ -2626,12 +2547,12 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
                   {/* Value */}
                   <span
                     style={{
-                      fontSize: hasValue ? "var(--text-xl)" : "var(--text-base)",
-                      fontWeight: hasValue ? 800 : 400,
-                      fontFamily: hasValue ? "Inter, 'Noto Sans JP', sans-serif" : "'Noto Sans JP', sans-serif",
-                      color: hasValue ? accentColor : "var(--ink-mute)",
+                      fontSize: "var(--text-xl)",
+                      fontWeight: 800,
+                      fontFamily: "Inter, 'Noto Sans JP', sans-serif",
+                      color: accentColor,
                       lineHeight: 1.2,
-                      letterSpacing: hasValue ? "-0.01em" : 0,
+                      letterSpacing: "-0.01em",
                     }}
                   >
                     {display}
@@ -2640,6 +2561,8 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
               );
             })}
           </div>
+            );
+          })()}
 
           {/* Disclaimer */}
           <p
@@ -2651,9 +2574,7 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
             }}
           >
             企業が自己申告した値です。実態は求人ページ・カジュアル面談でご確認ください。
-            「—」は企業が情報を公開していない項目です。
           </p>
-        </>
       </div>
     </section>
   );
@@ -3150,8 +3071,7 @@ async function SimilarCompanies({ currentId, phase }: { currentId: string; phase
       {/* Section header */}
       <div style={{
         padding: "var(--space-4) var(--space-6)",
-        background: "#f5f8ff",
-        borderBottom: "1px solid #dde4f5",
+        borderBottom: "1px solid var(--line-soft)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -3271,13 +3191,13 @@ export default async function CompanyDetailPage({
         <CompanyStickyNav items={[
           { id: "about",            label: "企業概要" },
           ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
-          { id: "work-style",       label: "働き方の選択肢" },
-          ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: `組織体制 ${detail.orgTeams.length}チーム` }] : []),
-          ...(!NUMBER_ITEMS.every(({ key }) => { const raw = detail.numbers[key]; return raw === null || raw === undefined || String(raw).trim() === ""; }) ? [{ id: "numbers", label: "数値で見る企業" }] : []),
-          ...((detail.benefits?.length || detail.evaluationSystem) ? [{ id: "benefits", label: "福利厚生・評価制度" }] : []),
-          { id: "jobs",             label: company.job_count > 0 ? `募集中の求人 ${company.job_count}件` : "募集中の求人" },
-          ...(employees.current.length > 0 ? [{ id: "current-employees", label: `現役社員 ${employees.current.length}名` }] : employees.alumni.length > 0 ? [{ id: "current-employees", label: `OB/OG ${employees.alumni.length}名` }] : []),
-          { id: "articles",         label: companyArticles.length > 0 ? `記事 ${companyArticles.length}件` : "記事" },
+          { id: "work-style",       label: "働き方" },
+          ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: `組織 ${detail.orgTeams.length}チーム` }] : []),
+          ...(!NUMBER_ITEMS.every(({ key }) => { const raw = detail.numbers[key]; return raw === null || raw === undefined || String(raw).trim() === ""; }) ? [{ id: "numbers", label: "数値" }] : []),
+          ...((detail.benefits?.length || detail.evaluationSystem) ? [{ id: "benefits", label: "福利厚生" }] : []),
+          ...(company.job_count > 0 ? [{ id: "jobs", label: `求人 ${company.job_count}件` }] : []),
+          ...(employees.current.length > 0 ? [{ id: "current-employees", label: `社員 ${employees.current.length}名` }] : employees.alumni.length > 0 ? [{ id: "current-employees", label: `OB/OG ${employees.alumni.length}名` }] : []),
+          ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
         ]} />
         <div
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
