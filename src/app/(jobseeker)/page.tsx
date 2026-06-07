@@ -43,8 +43,8 @@ const PAIN_POINTS = [
   },
   {
     icon: <PersonIcon />,
-    q: "キャリアを、誰に相談すればいいか分からない",
-    a: "家族や社内の人には聞きづらい。数年先を歩く、似た経歴の先輩が、30分から気軽に話を聞いてくれます。営業される心配もありません。",
+    q: "応募前に、社内の雰囲気や文化を確かめられない",
+    a: "求人票だけでは入社後のギャップが不安。OPINIOでは企業のカジュアル面談に直接申し込めます。現役メンバーから生の声を聞いてから、応募を判断できます。",
   },
 ];
 
@@ -171,14 +171,14 @@ function Hero({ stats }: { stats: SiteStats }) {
             color: "#fff", marginBottom: "var(--space-6)",
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            <span style={{ color: "#F59E0B" }}>IT/SaaS業界</span>の求人と企業を、<br />
-            先輩と話しながら選ぶ。
+            <span style={{ color: "#F59E0B" }}>IT/SaaS業界</span>の転職を、<br />
+            情報から始める。
           </h1>
 
           {/* Lead */}
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "rgba(255,255,255,0.75)", marginBottom: 40, maxWidth: "var(--max-w-form)" }}>
-            転職を検討していなくても、使えるキャリアサービスを目指しています。<br />
-            企業の<strong style={{ color: "#F59E0B" }}>今</strong>を知り、現役先輩に<strong style={{ color: "#F59E0B" }}>相談</strong>し、自分のペースで選ぶ。
+            編集部が取材した<strong style={{ color: "#F59E0B" }}>企業情報</strong>と求人票が揃っています。<br />
+            カジュアル面談で確かめて、<strong style={{ color: "#F59E0B" }}>自分のペース</strong>で動けます。
           </p>
 
           {/* CTAs */}
@@ -441,8 +441,8 @@ function DiffStrip() {
           <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
         </svg>
       ),
-      title: "スカウトなし",
-      desc: "企業からの一方的な勧誘はありません。気になった企業に、自分のペースで接触できます。",
+      title: "スカウト・電話なし",
+      desc: "企業からの一方的な勧誘はありません。登録後に営業電話が来ることもなく、自分のペースで進められます。",
       color: "#DC2626",
       bg: "#FEF2F2",
     },
@@ -453,10 +453,21 @@ function DiffStrip() {
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
       ),
-      title: "現役社員・OBの声",
+      title: "現役社員の声",
       desc: "求人票の裏側にある「実際の働き方」「入社後のギャップ」を確認してから動けます。",
       color: "var(--success)",
       bg: "#ECFDF5",
+    },
+    {
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+      ),
+      title: "編集部の取材情報",
+      desc: "求人票には載らない、組織文化・ミッション・フェーズ感をOPINIO編集部が定期取材してお届けします。",
+      color: "var(--royal)",
+      bg: "var(--royal-50)",
     },
   ];
 
@@ -471,7 +482,7 @@ function DiffStrip() {
               style={{
                 display: "flex", alignItems: "flex-start", gap: 18,
                 padding: "36px var(--space-6)",
-                borderRight: i < 2 ? "1px solid var(--line)" : "none",
+                borderRight: i < DIFFS.length - 1 ? "1px solid var(--line)" : "none",
                 transition: "background 0.2s",
               }}>
               <div
@@ -1029,7 +1040,7 @@ function HowItWorks() {
   const STEPS = [
     {
       step: "STEP 01", title: "登録なしで見る", en: "Browse",
-      desc: "会員登録不要。企業の取材記事・求人・先輩プロフィールを自由に閲覧できます。",
+      desc: "会員登録不要。企業の取材記事・求人情報を自由に閲覧できます。",
       action: "→ まず企業・求人を見てみる",
       href: "/companies",
       iconBg: "linear-gradient(135deg, var(--royal), var(--accent))",
@@ -1168,7 +1179,7 @@ const USE_CASES = [
     persona: "転職を迷っている",
     detail: "SaaS営業 · 3〜5年目",
     scene: "「今すぐ転職したいわけじゃないけど、このままでいいのか不安」",
-    how: "企業の取材記事で文化を把握 → 似たキャリアの先輩に30分相談 → 応募するかどうかは自分で判断",
+    how: "企業の取材記事で文化を把握 → カジュアル面談で現役社員の話を聞く → 応募するかどうかは自分で判断",
     outcome: "焦らず、比較しながら、納得して動ける",
     tag: "キャリア探索",
     tagColor: "var(--royal)",
@@ -1186,7 +1197,7 @@ const USE_CASES = [
     persona: "転職活動を本格化したい",
     detail: "PdM / エンジニア · 実績あり",
     scene: "「スカウトも来てるけど、自分から動くならOPINIOの企業が気になる」",
-    how: "求人を条件で絞り込み → 気になる企業の現役社員・OBに相談 → カジュアル面談で雰囲気を確認",
+    how: "求人を条件で絞り込み → カジュアル面談で社内の雰囲気を確認 → 入社後ギャップを減らして応募",
     outcome: "入社後ギャップを減らして、ミスマッチのない転職を",
     tag: "転職活動",
     tagColor: "var(--success)",

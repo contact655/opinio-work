@@ -85,9 +85,8 @@ export function JobseekerFooter() {
               OPINIO
             </div>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.9, maxWidth: 260, marginBottom: 20 }}>
-              IT/SaaS業界のキャリアインフラ。<br />
-              企業の今を知り、先輩と話し、自分で決める。<br />
-              対話から始まる、新しい転職の形。
+              IT/SaaS業界に特化した転職サービス。<br />
+              取材された企業情報と求人が、ここに揃っています。
             </p>
             {/* Trust chips */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
