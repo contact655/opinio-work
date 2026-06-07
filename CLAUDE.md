@@ -13,6 +13,35 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🎯 次のセッションでやること（2026-06-08 セッション14 更新）
+
+### ✅ 完了 2026-06-08 セッション14: 企業詳細ページ可読性改善 + `/u/[id]` バグ修正
+
+  **企業詳細ページ（`/companies/[id]/page.tsx`）可読性大幅改善:**
+  - 青いセクションヘッダーバンドを全セクションから削除（background #f5f8ff → borderBottom のみ）
+  - Heroカバー高さ 240→200px に短縮
+  - Hero stats: 4カードグリッド → コンパクトなインラインストリップ（アイコン+ラベル+値、区切り線区切り）
+  - 数値セクション: NULL値のセルを非表示に（filledItems フィルタリング）、動的グリッドカラム数
+  - Sticky nav: より短いラベル、空のタブを非表示（製品・顧客、組織、数値、福利厚生、求人、社員、記事）
+
+  **`/u/[id]` プロフィールページ: 致命的バグ修正:**
+  - 原因: Server Component 内で `onMouseEnter`/`onMouseLeave` イベントハンドラーが使われていた
+  - 影響: Suspense バウンダリが解決されず、プロフィールが表示されない（ローディングスケルトンが永続表示）
+  - 修正: 2箇所のイベントハンドラーを CSS クラス（`.u-sidebar-link:hover`・`.u-content-card:hover`）に置換
+  - 副次効果: `転職検討中`バッジ（Migration 146 で追加済み `is_open_to_work`）も正常に表示されることを確認
+
+  **`ow_articles.company_id` 紐づけ調査:**
+  - 16記事のうち8件は既に company_id 設定済み（Salesforce, HubSpot, Archi Village, irodas, Opinio, Timee, Translead, Shinka）
+  - 残り8件（LayerX×2, SmartHR×2, Sansan, PKSHA, Ubie, freee）は ow_companies に企業が存在しないためリンク不可
+  - 8件のバッジは企業詳細ページで自動表示される
+
+### 🟢 次の優先候補（2026-06-08 セッション14後）
+- **Migration 146 の手動適用確認** ✅ 適用済み（Supabase ダッシュボードで実行確認済み）
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- **`ow_articles` の残り8件 company_id 設定** — LayerX等を ow_companies に追加すれば自動表示
+
+---
+
 ## 🎯 次のセッションでやること（2026-06-03 セッション13 更新）
 
 ### ✅ 完了 2026-06-03 セッション13: 転職サイトへのピボット + 3大機能着手

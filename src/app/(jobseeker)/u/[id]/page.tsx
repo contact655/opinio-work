@@ -348,6 +348,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
           .tl-node-label { font-size: 10px !important; }
           .tl-node-year { font-size: 8px !important; }
         }
+        .u-sidebar-link:hover { box-shadow: 0 4px 12px rgba(15,23,42,0.10) !important; }
+        .u-content-card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.12) !important; transform: translateY(-2px) !important; }
       `}</style>
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px 80px" }}>
@@ -653,6 +655,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         href={h.href ?? "#"}
                         target={h.href?.startsWith("http") ? "_blank" : undefined}
                         rel={h.href?.startsWith("http") ? "noopener noreferrer" : undefined}
+                        className="u-sidebar-link"
                         style={{
                           display: "flex", alignItems: "flex-start", gap: 10,
                           padding: "14px 16px", borderRadius: 12,
@@ -660,8 +663,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           textDecoration: "none", boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
                           transition: "box-shadow 0.15s",
                         }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px rgba(15,23,42,0.10)"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 4px rgba(15,23,42,0.06)"; }}
                       >
                         <div style={{
                           width: 32, height: 32, borderRadius: 8, flexShrink: 0,
@@ -1473,6 +1474,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
+                        className="u-content-card"
                         style={{
                           display: "flex", flexDirection: "column",
                           borderRadius: 12, overflow: "hidden",
@@ -1481,14 +1483,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           textDecoration: "none",
                           transition: "box-shadow 0.15s, transform 0.15s",
                           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(15,23,42,0.12)";
-                          (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 4px rgba(15,23,42,0.06)";
-                          (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
                         }}
                       >
                         {/* サムネイル or プラットフォームカラーバナー */}
