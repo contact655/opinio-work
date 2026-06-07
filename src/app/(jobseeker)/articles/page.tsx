@@ -122,7 +122,7 @@ function ArticleCard({ article }: { article: Article }) {
         </div>
 
         {/* Body */}
-        <div style={{ padding: "18px 20px 20px", flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "16px 18px 18px", flex: 1, display: "flex", flexDirection: "column" }}>
           {/* 取材対象者の役職（社員/メンター/CEO記事のみ） */}
           {mainSubject?.role_at_interview && (
             <div style={{
@@ -137,7 +137,7 @@ function ArticleCard({ article }: { article: Article }) {
 
           <h2 style={{
             fontFamily: 'var(--font-noto-serif)',
-            fontSize: 15, fontWeight: 700, lineHeight: 1.6,
+            fontSize: 16, fontWeight: 700, lineHeight: 1.55,
             color: "var(--ink)", marginBottom: "var(--space-2)",
             display: "-webkit-box",
             WebkitLineClamp: 3,
@@ -164,7 +164,7 @@ function ArticleCard({ article }: { article: Article }) {
 
           {/* Subtitle */}
           <p style={{
-            fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.7,
+            fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
             marginBottom: 14, flex: 1,
             display: "-webkit-box",
             WebkitLineClamp: 2,

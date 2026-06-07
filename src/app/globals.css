@@ -294,6 +294,13 @@ p, .description, .desc {
   transform: translateY(-1px);
 }
 
+/* ── Article card hover ── */
+.article-card:hover {
+  border-color: var(--royal-100) !important;
+  box-shadow: 0 6px 20px rgba(0, 35, 102, 0.10) !important;
+  transform: translateY(-3px);
+}
+
 /* ── Pulse dot animation ── */
 @keyframes pulseDot {
   0%, 100% { opacity: 1; transform: scale(1); }
