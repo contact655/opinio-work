@@ -324,7 +324,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
           }}
           aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24"
+          <svg width="16" height="14" viewBox="0 0 24 24"
             fill={bookmarked ? 'var(--warm)' : 'none'}
             stroke={bookmarked ? 'var(--warm)' : '#94a3b8'}
             strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
