@@ -154,28 +154,27 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
 
       {/* ─── ロゴエリア ─────────────────────────────────────── */}
       <div style={{
-        aspectRatio: compact ? '2 / 1' : '16 / 9',
-        // logo_url あり → 白背景でロゴを直接表示 / なし → グラデーション＋イニシャル
-        background: (company.logo_url && !logoError) ? '#fff' : headerGradient,
+        aspectRatio: compact ? '3 / 2' : '16 / 9',
+        background: headerGradient,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
         overflow: 'hidden',
-        borderBottom: (company.logo_url && !logoError) ? '1px solid var(--line-soft)' : 'none',
       }}>
         {company.logo_url && !logoError ? (
-          // 白背景にロゴを直接表示
+          // 画像をヘッダー全体にカバー表示（ロゴ画像も写真も対応）
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={company.logo_url}
             alt={`${company.name}のロゴ`}
             style={{
-              maxWidth: '75%',
-              maxHeight: compact ? 72 : 96,
-              width: 'auto',
-              height: 'auto',
-              objectFit: 'contain',
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
               display: 'block',
             }}
             onError={() => setLogoError(true)}
