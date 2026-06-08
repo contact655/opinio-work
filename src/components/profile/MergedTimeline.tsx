@@ -98,11 +98,12 @@ type RenderEntry =
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** "YYYY-MM-DD" → "YYYY.MM" */
+/** "YYYY-MM-DD" → "YYYY年M月" */
 function formatYM(dateStr: string): string {
   const parts = dateStr.split("-");
   if (parts.length < 2) return dateStr;
-  return `${parts[0]}.${parts[1]}`;
+  const month = parseInt(parts[1], 10); // "07" → 7（ゼロ除去）
+  return `${parts[0]}年${month}月`;
 }
 
 /** 期間文字列を生成: "2年3ヶ月" */
@@ -548,11 +549,11 @@ function CareerContent({
   const duration = formatDuration(data.started_at, data.ended_at);
   const startLabel = formatYM(data.started_at);
   const endLabel = data.is_current ? "現在" : data.ended_at ? formatYM(data.ended_at) : "";
-  const hasDesc = !!data.description || !!data.employment_type;
+  const hasDesc = !!data.description;
 
   return (
     <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
-      {/* Company + badges */}
+      {/* Company + employment type + badges */}
       <div style={{ marginBottom: 3, lineHeight: 1.3 }}>
         {data.company_id ? (
           <Link
@@ -578,6 +579,11 @@ function CareerContent({
             {data.company_name}
           </span>
         )}
+        {data.employment_type && (
+          <span style={{ fontSize: 14, fontWeight: 400, color: "var(--ink-soft)" }}>
+            {" · "}{data.employment_type}
+          </span>
+        )}
         {data.is_current && <CurrentBadge />}
         {isParallel && <ParallelBadge />}
       </div>
@@ -594,20 +600,6 @@ function CareerContent({
       }}>
         {startLabel} – {endLabel}{duration && ` · ${duration}`}
       </div>
-
-      {/* Employment type badge */}
-      {data.employment_type && (
-        <span style={{
-          display: "inline-flex", alignItems: "center",
-          fontSize: 10, fontWeight: 600,
-          color: "var(--ink-soft)",
-          background: "var(--bg-tint)", border: "1px solid var(--line)",
-          padding: "1px 7px", borderRadius: 100,
-          marginBottom: 8,
-        }}>
-          {data.employment_type}
-        </span>
-      )}
 
       {/* Description */}
       {data.description && (
@@ -726,7 +718,7 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
       className="d2-parallel-card"
       style={{ flex: 1, padding: "12px 14px 16px", minWidth: 0 }}
     >
-      {/* Company 名行: 小ロゴ + 会社名 + badges */}
+      {/* Company 名行: 小ロゴ + 会社名 + 雇用形態 + badges */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
         <SmallLogo />
         {data.company_id ? (
@@ -751,6 +743,11 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
             }}
           >
             {data.company_name}
+          </span>
+        )}
+        {data.employment_type && (
+          <span style={{ fontSize: 13, fontWeight: 400, color: "var(--ink-soft)" }}>
+            · {data.employment_type}
           </span>
         )}
         {data.is_current && <CurrentBadge />}
