@@ -12,7 +12,6 @@ import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 import { CompanyUserDndGrid } from "@/components/companies/CompanyUserDndGrid";
-import { LogoWall } from "@/components/companies/LogoWall";
 
 type MemberPreview = { id: string; name: string };
 
@@ -119,7 +118,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   // ── 並列フェッチ（不要なクエリはスキップ）──────────────────────────────────
   const supabase = createClient();
 
-  const [locations, industries, genresWithCompanies, companyNamesResult, allCompaniesResult, logoRows] = await Promise.all([
+  const [locations, industries, genresWithCompanies, companyNamesResult, allCompaniesResult] = await Promise.all([
     // フィルターバー用ロケーション（キャッシュ済み）
     fetchDistinctLocations(),
     // フィルターバー用業種リスト
@@ -132,23 +131,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
     needsGrid
       ? searchCompanies({ limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE })
       : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
-    // ロゴウォール用: 全企業ロゴ（軽量）
-    supabase.from("ow_companies")
-      .select("id, name, logo_url, logo_letter, logo_gradient")
-      .eq("is_published", true)
-      .order("updated_at", { ascending: false }),
   ]);
-
-  // ロゴウォール用データに変換
-  const logoWallCompanies = ((logoRows.data ?? []) as Array<Record<string, unknown>>)
-    .filter((r) => r.id && r.name)
-    .map((r) => ({
-      id: r.id as string,
-      name: r.name as string,
-      logoUrl: (r.logo_url as string | null) ?? null,
-      letter: (r.logo_letter as string | null) ?? ((r.name as string).charAt(0) ?? "?"),
-      gradient: (r.logo_gradient as string | null) ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
-    }));
 
   const companySuggestions: { id: string; name: string }[] =
     (companyNamesResult.data ?? []) as { id: string; name: string }[];
@@ -194,28 +177,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
         </div>
       </div>
 
-      {/* ── ロゴウォール（フィルターなし時のみ表示） ── */}
-      {!hasFilter && logoWallCompanies.length > 0 && (
-        <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "28px 0 32px" }}>
-          <div className="max-w-[1440px] mx-auto px-4">
-            <div style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: "0.14em",
-              color: "var(--ink-mute)", textTransform: "uppercase",
-              marginBottom: 16, display: "flex", alignItems: "center", gap: 6,
-            }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-              編集部が取材・審査した掲載企業
-              <span style={{ fontFamily: "Inter, sans-serif", marginLeft: 4, color: "var(--royal)", fontWeight: 700 }}>
-                {logoWallCompanies.length}社
-              </span>
-            </div>
-            <LogoWall companies={logoWallCompanies} />
-          </div>
-        </div>
-      )}
 
       <div className="max-w-[1440px] mx-auto px-4 pt-6 pb-8">
 
