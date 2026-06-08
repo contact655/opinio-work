@@ -159,7 +159,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: (company.logo_url && !logoError) ? '8%' : 0,
+        padding: (company.logo_url && !logoError) ? '4% 6%' : 0,
         position: 'relative',
         overflow: 'hidden',
         borderBottom: (company.logo_url && !logoError) ? '1px solid #e2e8f0' : 'none',
