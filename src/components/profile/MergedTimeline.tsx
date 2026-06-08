@@ -7,6 +7,34 @@ import FutureSectionEditor from "./FutureSectionEditor";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import SchoolLogoImg from "./SchoolLogoImg";
 
+// ─── ExpandableDesc: 長い説明文を150字で折りたたみ ───────────────────────────
+const DESC_THRESHOLD = 150;
+function ExpandableDesc({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const needsTruncation = text.length > DESC_THRESHOLD;
+  const display = needsTruncation && !expanded ? text.slice(0, DESC_THRESHOLD) + "…" : text;
+  return (
+    <>
+      <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" }}>
+        {display}
+      </p>
+      {needsTruncation && (
+        <button
+          onClick={() => setExpanded(v => !v)}
+          style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--royal)", fontSize: 12, fontWeight: 600,
+            padding: "4px 0 0", fontFamily: "inherit",
+            display: "inline-flex", alignItems: "center", gap: 3,
+          }}
+        >
+          {expanded ? "折りたたむ ▲" : "続きを読む ▼"}
+        </button>
+      )}
+    </>
+  );
+}
+
 // ─── Public types (re-exported for use in Commit C) ───────────────────────────
 
 export interface CareerEntry {
@@ -394,11 +422,13 @@ function CompanyLogoIcon({
   logo_url,
   logo_letter,
   logo_gradient,
+  company_name,
 }: {
   isCurrent: boolean;
   logo_url?: string | null;
   logo_letter?: string | null;
   logo_gradient?: string | null;
+  company_name?: string;
 }) {
   const wrapStyle: React.CSSProperties = {
     width: 44,
@@ -436,15 +466,16 @@ function CompanyLogoIcon({
     );
   }
 
-  // ステップ 3: どちらもなし → Briefcase（段階6-3-2 と同一のフォールバック）
+  // ステップ 3: どちらもなし → 会社名イニシャル円（Briefcase より視認性が高い）
+  const fallbackLetter = company_name ? company_name.charAt(0) : "?";
+  const fallbackGrad = isCurrent
+    ? "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)"
+    : "linear-gradient(135deg, #64748B 0%, #94A3B8 100%)";
   return (
-    <div
-      style={{
-        ...wrapStyle,
-        background: isCurrent ? "var(--royal)" : "var(--ink-mute)",
-      }}
-    >
-      <Briefcase size={20} color="#fff" strokeWidth={2} />
+    <div style={{ ...wrapStyle, background: fallbackGrad }}>
+      <span style={{ color: "#fff", fontSize: 18, fontWeight: 700, fontFamily: "Inter, sans-serif", lineHeight: 1 }}>
+        {fallbackLetter}
+      </span>
     </div>
   );
 }
@@ -607,9 +638,9 @@ function CareerContent({
       {/* Description */}
       {data.description && (
         isAuthenticated ? (
-          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.65, margin: 0, maxWidth: 560, whiteSpace: "pre-wrap" }}>
-            {data.description}
-          </p>
+          <div style={{ maxWidth: 560 }}>
+            <ExpandableDesc text={data.description} />
+          </div>
         ) : (
           <DescriptionGate />
         )
@@ -773,9 +804,9 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
       {/* Description */}
       {data.description && (
         isAuthenticated ? (
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.65, margin: 0, maxWidth: 480, whiteSpace: "pre-wrap" }}>
-            {data.description}
-          </p>
+          <div style={{ maxWidth: 480 }}>
+            <ExpandableDesc text={data.description} />
+          </div>
         ) : (
           <DescriptionGate />
         )
@@ -932,6 +963,7 @@ export default function MergedTimeline({
                     logo_url={c.logo_url}
                     logo_letter={c.logo_letter}
                     logo_gradient={c.logo_gradient}
+                    company_name={c.company_name}
                   />
                 </div>
                 <CareerContent data={c} isParallel={entry.isParallel} isAuthenticated={isAuthenticated} />
@@ -1018,6 +1050,7 @@ export default function MergedTimeline({
                     logo_url={head.logo_url}
                     logo_letter={head.logo_letter}
                     logo_gradient={head.logo_gradient}
+                    company_name={head.company_name}
                   />
                 </div>
                 <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
@@ -1056,9 +1089,9 @@ export default function MergedTimeline({
                             </div>
                             {c.description && (
                               isAuthenticated ? (
-                                <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.65, margin: 0, maxWidth: 520, whiteSpace: "pre-wrap" }}>
-                                  {c.description}
-                                </p>
+                                <div style={{ maxWidth: 520 }}>
+                                  <ExpandableDesc text={c.description} />
+                                </div>
                               ) : (
                                 <DescriptionGate />
                               )

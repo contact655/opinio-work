@@ -766,7 +766,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 <section style={{
                   background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
                   border: "1px solid #fde68a", borderRadius: 14,
-                  padding: "18px 22px", marginBottom: 20,
+                  padding: "18px 22px", marginBottom: 32,
                 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: "var(--space-2)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
@@ -822,7 +822,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {owUser.about_me ? (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+                borderRadius: 14, padding: "24px 28px", marginBottom: 32,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
@@ -854,7 +854,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             ) : viewerIsOwner ? (
               <section style={{
                 background: "var(--bg-tint)", border: "1.5px dashed var(--line)",
-                borderRadius: 14, padding: "28px", marginBottom: 20,
+                borderRadius: 14, padding: "28px", marginBottom: 32,
                 textAlign: "center",
               }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: 10 }}>
@@ -874,122 +874,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </section>
             ) : null}
 
-            {/* ── スキル・専門性 (LinkedIn-style skills section in main column) ── */}
-            {skillTags.length > 0 && (
-              <section style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-                    スキル・専門性
-                  </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                    SKILLS
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
-                    {skillTags.length}件
-                  </span>
-                </div>
-                {(() => {
-                  // カテゴリ別にグループ化
-                  const CATEGORY_ORDER = ["技術・開発", "プロダクト・UX", "ビジネス・営業", "マーケティング", "データ・分析", "マネジメント", "その他"];
-                  const CATEGORY_COLORS: Record<string, { color: string; bg: string; border: string }> = {
-                    "技術・開発":    { color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
-                    "プロダクト・UX": { color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                    "ビジネス・営業": { color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
-                    "マーケティング": { color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
-                    "データ・分析":  { color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
-                    "マネジメント":  { color: "#DC2626", bg: "#FEE2E2", border: "#FECACA" },
-                    "その他":        { color: "var(--ink-soft)", bg: "var(--bg-tint)", border: "var(--line)" },
-                  };
-
-                  // カテゴリあり/なしで分類
-                  const grouped = new Map<string, typeof skillTags>();
-                  const uncategorized: typeof skillTags = [];
-                  for (const tag of skillTags) {
-                    const cat = (tag.category as string | null) ?? null;
-                    if (!cat) { uncategorized.push(tag); continue; }
-                    if (!grouped.has(cat)) grouped.set(cat, []);
-                    grouped.get(cat)!.push(tag);
-                  }
-                  if (uncategorized.length > 0) grouped.set("その他", [...(grouped.get("その他") ?? []), ...uncategorized]);
-
-                  const hasGroups = grouped.size > 1 || (grouped.size === 1 && !grouped.has("その他"));
-
-                  if (!hasGroups) {
-                    // グルーピングなし（全部カテゴリ未設定）→ 旧来のフラット表示
-                    return (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                        {skillTags.map((tag) => (
-                          <span key={tag.id as string} style={{
-                            display: "inline-flex", alignItems: "center", gap: 6,
-                            padding: "7px 14px", borderRadius: 8,
-                            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                            fontSize: "var(--text-sm)", color: "var(--royal)", fontWeight: 600,
-                          }}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            {tag.label as string}
-                          </span>
-                        ))}
-                      </div>
-                    );
-                  }
-
-                  // カテゴリ別グルーピング表示
-                  const groupedKeys = Array.from(grouped.keys());
-                  const orderedKeys = [...CATEGORY_ORDER.filter((k) => grouped.has(k)), ...groupedKeys.filter((k) => !CATEGORY_ORDER.includes(k))];
-                  return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                      {orderedKeys.map((cat) => {
-                        const tags = grouped.get(cat)!;
-                        const style = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS["その他"];
-                        return (
-                          <div key={cat}>
-                            <div style={{
-                              fontSize: "var(--text-xs)", fontWeight: 700, color: style.color,
-                              letterSpacing: "0.06em", marginBottom: "var(--space-2)",
-                              display: "flex", alignItems: "center", gap: 6,
-                            }}>
-                              <span style={{
-                                display: "inline-block", width: 8, height: 8,
-                                borderRadius: "50%", background: style.color, flexShrink: 0,
-                              }} />
-                              {cat}
-                            </div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                              {tags.map((tag) => (
-                                <span key={tag.id as string} style={{
-                                  display: "inline-flex", alignItems: "center", gap: 5,
-                                  padding: "6px 12px", borderRadius: 8,
-                                  background: style.bg, border: `1px solid ${style.border}`,
-                                  fontSize: 12, color: style.color, fontWeight: 600,
-                                }}>
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                  {tag.label as string}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </section>
-            )}
-
             {/* ── 数値実績 ── */}
             {achievements.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1060,7 +949,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {awards.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1134,7 +1023,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {certifications.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1191,7 +1080,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {(timelineCareers.length > 0 || futureData != null) && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+                borderRadius: 14, padding: "24px 28px", marginBottom: 32,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
@@ -1284,7 +1173,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {timelineEdus.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+                borderRadius: 14, padding: "24px 28px", marginBottom: 32,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
@@ -1302,11 +1191,111 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </section>
             )}
 
+            {/* ── スキル・専門性 (LinkedIn順: 学歴の直後) ── */}
+            {skillTags.length > 0 && (
+              <section style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                    スキル・専門性
+                  </span>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                    SKILLS
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
+                    {skillTags.length}件
+                  </span>
+                </div>
+                {(() => {
+                  const CATEGORY_ORDER = ["技術・開発", "プロダクト・UX", "ビジネス・営業", "マーケティング", "データ・分析", "マネジメント", "その他"];
+                  const CATEGORY_COLORS: Record<string, { color: string; bg: string; border: string }> = {
+                    "技術・開発":    { color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
+                    "プロダクト・UX": { color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
+                    "ビジネス・営業": { color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
+                    "マーケティング": { color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
+                    "データ・分析":  { color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
+                    "マネジメント":  { color: "#DC2626", bg: "#FEE2E2", border: "#FECACA" },
+                    "その他":        { color: "var(--ink-soft)", bg: "var(--bg-tint)", border: "var(--line)" },
+                  };
+                  const grouped = new Map<string, typeof skillTags>();
+                  const uncategorized: typeof skillTags = [];
+                  for (const tag of skillTags) {
+                    const cat = (tag.category as string | null) ?? null;
+                    if (!cat) { uncategorized.push(tag); continue; }
+                    if (!grouped.has(cat)) grouped.set(cat, []);
+                    grouped.get(cat)!.push(tag);
+                  }
+                  if (uncategorized.length > 0) grouped.set("その他", [...(grouped.get("その他") ?? []), ...uncategorized]);
+                  const hasGroups = grouped.size > 1 || (grouped.size === 1 && !grouped.has("その他"));
+                  if (!hasGroups) {
+                    return (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+                        {skillTags.map((tag) => (
+                          <span key={tag.id as string} style={{
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            padding: "7px 14px", borderRadius: 8,
+                            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                            fontSize: "var(--text-sm)", color: "var(--royal)", fontWeight: 600,
+                          }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            {tag.label as string}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  }
+                  const groupedKeys = Array.from(grouped.keys());
+                  const orderedKeys = [...CATEGORY_ORDER.filter((k) => grouped.has(k)), ...groupedKeys.filter((k) => !CATEGORY_ORDER.includes(k))];
+                  return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                      {orderedKeys.map((cat) => {
+                        const tags = grouped.get(cat)!;
+                        const style = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS["その他"];
+                        return (
+                          <div key={cat}>
+                            <div style={{
+                              fontSize: "var(--text-xs)", fontWeight: 700, color: style.color,
+                              letterSpacing: "0.06em", marginBottom: "var(--space-2)",
+                              display: "flex", alignItems: "center", gap: 6,
+                            }}>
+                              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: style.color, flexShrink: 0 }} />
+                              {cat}
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                              {tags.map((tag) => (
+                                <span key={tag.id as string} style={{
+                                  display: "inline-flex", alignItems: "center", gap: 5,
+                                  padding: "6px 12px", borderRadius: 8,
+                                  background: style.bg, border: `1px solid ${style.border}`,
+                                  fontSize: 12, color: style.color, fontWeight: 600,
+                                }}>
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                  {tag.label as string}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </section>
+            )}
+
             {/* ── アクティビティ（投稿フォーム + 最近の投稿） ── */}
             {(viewerIsOwner || recentPostsTyped.length > 0) && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1363,7 +1352,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {mediaAppearances.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1463,7 +1452,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {featuredArticles.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1533,7 +1522,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {(recommendations.length > 0 || (!viewerIsOwner && !!authUser)) && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1588,7 +1577,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {(contentLinks.length > 0 || viewerIsOwner) && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
