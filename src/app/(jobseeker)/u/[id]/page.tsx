@@ -362,17 +362,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
     <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
       <style>{`
         .profile-grid {
-          display: grid;
-          grid-template-columns: 1fr 260px;
-          gap: 24px;
-          align-items: start;
+          display: block;
+        }
+        .profile-sidebar {
+          display: none;
         }
         @media (max-width: 960px) {
           .profile-grid {
-            grid-template-columns: 1fr;
-          }
-          .profile-sidebar {
-            display: contents;
+            display: block;
           }
           .profile-sidebar-sticky {
             position: static !important;
