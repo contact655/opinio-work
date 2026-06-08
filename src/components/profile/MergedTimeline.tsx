@@ -586,9 +586,9 @@ function CareerContent({
   const hasDesc = !!data.description;
 
   return (
-    <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
+    <div style={{ paddingTop: 10, paddingBottom: 36, paddingLeft: 8 }}>
       {/* Company + employment type + badges */}
-      <div style={{ marginBottom: 3, lineHeight: 1.3 }}>
+      <div style={{ marginBottom: 4, lineHeight: 1.35 }}>
         {data.company_id ? (
           <Link
             href={`/companies/${data.company_id}`}
@@ -623,14 +623,14 @@ function CareerContent({
       </div>
 
       {/* Role — merged to single line */}
-      <div style={{ fontSize: 14, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.4 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 5, lineHeight: 1.45 }}>
         {data.role_label}{data.role_title && ` · ${data.role_title}`}
       </div>
 
       {/* Date + duration — always inline */}
       <div style={{
         fontFamily: "Inter, sans-serif", fontSize: 12,
-        color: "var(--ink-mute)", marginBottom: hasDesc ? 10 : 0, lineHeight: 1.4,
+        color: "var(--ink-mute)", marginBottom: hasDesc ? 12 : 0, lineHeight: 1.4,
       }}>
         {startLabel} – {endLabel}{duration && ` · ${duration}`}
       </div>
@@ -865,19 +865,26 @@ export default function MergedTimeline({
         .merged-timeline::before {
           content: "";
           position: absolute;
-          top: 18px;
-          bottom: 18px;
-          left: 32px; /* center of 64px icon col */
-          width: 2px;
+          top: 40px;
+          bottom: 40px;
+          left: 31px; /* center of 64px icon col */
+          width: 1px;
           background: var(--line);
           z-index: 0;
         }
 
         .tl-row {
           display: grid;
-          grid-template-columns: 72px 1fr;
+          grid-template-columns: 80px 1fr;
           align-items: start;
           min-height: 60px;
+        }
+
+        /* エントリ間セパレーター */
+        .tl-row + .tl-row {
+          border-top: 1px solid var(--line-soft);
+          padding-top: 8px;
+          margin-top: 4px;
         }
 
         /* d-2: 並行勤務グループ — 横並びカード */
