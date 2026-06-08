@@ -109,11 +109,14 @@ function formatYM(dateStr: string): string {
 /** 期間文字列を生成: "2年3ヶ月" */
 function formatDuration(start: string, end: string | null): string {
   const startDate = new Date(start);
+  // "YYYY-MM" 形式の終了日は月末まで在籍を意味するため +1ヶ月して計算
+  // 例: 2013-04 〜 2017-03 → 4年ちょうど（47ヶ月+1=48ヶ月）
   const endDate = end ? new Date(end) : new Date();
+  const endAdjusted = end ? new Date(endDate.getFullYear(), endDate.getMonth() + 1, 1) : endDate;
 
   const totalMonths =
-    (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-    (endDate.getMonth() - startDate.getMonth());
+    (endAdjusted.getFullYear() - startDate.getFullYear()) * 12 +
+    (endAdjusted.getMonth() - startDate.getMonth());
 
   if (totalMonths <= 0) return "";
 
