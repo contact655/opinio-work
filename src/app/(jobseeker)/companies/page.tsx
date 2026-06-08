@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Link from "next/link";
 import { fetchGenresWithCompanies } from "@/lib/genres";
 import { fetchDistinctLocations, fetchDistinctIndustries, searchCompanies } from "@/lib/search/companies";
 import { createClient } from "@/lib/supabase/server";
