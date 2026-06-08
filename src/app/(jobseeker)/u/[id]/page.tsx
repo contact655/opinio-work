@@ -1194,12 +1194,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 borderRadius: 14, padding: "24px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-                  <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
                     経歴
-                  </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                    TIMELINE
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>

@@ -607,20 +607,22 @@ function CareerContent({
   isAuthenticated?: boolean;
 }) {
   const duration = formatDuration(data.started_at, data.ended_at);
+  const startLabel = formatYM(data.started_at);
+  const endLabel = data.is_current ? "現在" : data.ended_at ? formatYM(data.ended_at) : "";
+  const hasDesc = !!data.description || !!data.employment_type;
 
   return (
-    <div style={{ paddingTop: 8, paddingBottom: 20, paddingLeft: 12 }}>
+    <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
       {/* Company + badges */}
-      <div style={{ marginBottom: 2 }}>
+      <div style={{ marginBottom: 3, lineHeight: 1.3 }}>
         {data.company_id ? (
           <Link
             href={`/companies/${data.company_id}`}
             className="company-name-link"
             style={{
-              fontFamily: "'Noto Serif JP', serif",
               fontSize: 16,
               fontWeight: 700,
-              color: "var(--ink)",
+              color: "#111",
               textDecoration: "none",
             }}
           >
@@ -629,10 +631,9 @@ function CareerContent({
         ) : (
           <span
             style={{
-              fontFamily: "'Noto Serif JP', serif",
               fontSize: 16,
               fontWeight: 700,
-              color: "var(--ink)",
+              color: "#111",
             }}
           >
             {data.company_name}
@@ -642,29 +643,18 @@ function CareerContent({
         {isParallel && <ParallelBadge />}
       </div>
 
-      {/* Role label */}
-      <div
-        style={{
-          fontSize: 13,
-          color: "var(--ink-soft)",
-          marginBottom: data.role_title ? 2 : 0,
-        }}
-      >
-        {data.role_label}
+      {/* Role — merged to single line */}
+      <div style={{ fontSize: 14, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.4 }}>
+        {data.role_label}{data.role_title && ` · ${data.role_title}`}
       </div>
 
-      {/* Role title (free text) */}
-      {data.role_title && (
-        <div
-          style={{
-            fontSize: 12,
-            color: "var(--ink-mute)",
-            marginBottom: 4,
-          }}
-        >
-          {data.role_title}
-        </div>
-      )}
+      {/* Date + duration — always inline */}
+      <div style={{
+        fontFamily: "Inter, sans-serif", fontSize: 12,
+        color: "var(--ink-mute)", marginBottom: hasDesc ? 10 : 0, lineHeight: 1.4,
+      }}>
+        {startLabel} – {endLabel}{duration && ` · ${duration}`}
+      </div>
 
       {/* Employment type badge */}
       {data.employment_type && (
@@ -674,34 +664,16 @@ function CareerContent({
           color: "var(--ink-soft)",
           background: "var(--bg-tint)", border: "1px solid var(--line)",
           padding: "1px 7px", borderRadius: 100,
-          marginBottom: 4,
+          marginBottom: 8,
         }}>
           {data.employment_type}
         </span>
       )}
 
-      {/* Duration (mobile only — desktop shows in DateCol) */}
-      {duration && (
-        <div
-          className="tl-duration-mobile"
-          style={{
-            fontFamily: "Inter, sans-serif",
-            fontSize: 11,
-            color: "var(--ink-mute)",
-            marginBottom: 4,
-          }}
-        >
-          {formatYM(data.started_at)}
-          {" — "}
-          {data.is_current ? "現在" : data.ended_at ? formatYM(data.ended_at) : ""}
-          {" "}（{duration}）
-        </div>
-      )}
-
       {/* Description */}
       {data.description && (
         isAuthenticated ? (
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75, margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.65, margin: 0, maxWidth: 560, whiteSpace: "pre-wrap" }}>
             {data.description}
           </p>
         ) : (
@@ -712,11 +684,12 @@ function CareerContent({
       {/* Join reason — "なぜこの会社を選んだか" */}
       {data.join_reason && (
         <div style={{
-          marginTop: 10,
+          marginTop: 12,
           padding: "10px 12px",
           borderRadius: 8,
           background: "linear-gradient(135deg, #f8f4ff 0%, #eff6ff 100%)",
           border: "1px solid #e8e0ff",
+          maxWidth: 560,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.5" strokeLinecap="round">
@@ -726,7 +699,7 @@ function CareerContent({
               Why I joined
             </span>
           </div>
-          <p style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>
+          <p style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" }}>
             {data.join_reason}
           </p>
         </div>
@@ -737,17 +710,18 @@ function CareerContent({
 
 function EducationContent({ data }: { data: EducationEntry }) {
   const duration = formatDuration(data.enrolled_at, data.graduated_at);
+  const startLabel = formatYM(data.enrolled_at);
+  const endLabel = data.is_current ? "現在" : data.graduated_at ? formatYM(data.graduated_at) : "";
 
   return (
-    <div style={{ paddingTop: 8, paddingBottom: 20, paddingLeft: 12 }}>
+    <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
       {/* School + badge */}
-      <div style={{ marginBottom: 2 }}>
+      <div style={{ marginBottom: 3, lineHeight: 1.3 }}>
         <span
           style={{
-            fontFamily: "'Noto Serif JP', serif",
             fontSize: 16,
             fontWeight: 700,
-            color: "var(--ink)",
+            color: "#111",
           }}
         >
           {data.school}
@@ -757,27 +731,18 @@ function EducationContent({ data }: { data: EducationEntry }) {
 
       {/* Faculty / Degree */}
       {(data.faculty || data.degree) && (
-        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.4 }}>
           {[data.faculty, data.degree].filter(Boolean).join(" · ")}
         </div>
       )}
 
-      {/* Duration (mobile) */}
-      {duration && (
-        <div
-          className="tl-duration-mobile"
-          style={{
-            fontFamily: "Inter, sans-serif",
-            fontSize: 11,
-            color: "var(--ink-mute)",
-          }}
-        >
-          {formatYM(data.enrolled_at)}
-          {" — "}
-          {data.is_current ? "現在" : data.graduated_at ? formatYM(data.graduated_at) : ""}
-          {" "}（{duration}）
-        </div>
-      )}
+      {/* Date + duration — always inline */}
+      <div style={{
+        fontFamily: "Inter, sans-serif", fontSize: 12,
+        color: "var(--ink-mute)", lineHeight: 1.4,
+      }}>
+        {startLabel} – {endLabel}{duration && ` · ${duration}`}
+      </div>
     </div>
   );
 }
@@ -814,23 +779,25 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
     return null; // フォールバックなし = 小ロゴ非表示
   };
 
+  const startLabel = formatYM(data.started_at);
+  const endLabel = data.is_current ? "現在" : data.ended_at ? formatYM(data.ended_at) : "";
+
   return (
     <div
       className="d2-parallel-card"
-      style={{ flex: 1, padding: "10px 14px 14px", minWidth: 0 }}
+      style={{ flex: 1, padding: "12px 14px 16px", minWidth: 0 }}
     >
       {/* Company 名行: 小ロゴ + 会社名 + badges */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
         <SmallLogo />
         {data.company_id ? (
           <Link
             href={`/companies/${data.company_id}`}
             className="company-name-link"
             style={{
-              fontFamily: "'Noto Serif JP', serif",
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: 700,
-              color: "var(--ink)",
+              color: "#111",
               textDecoration: "none",
             }}
           >
@@ -839,10 +806,9 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
         ) : (
           <span
             style={{
-              fontFamily: "'Noto Serif JP', serif",
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: 700,
-              color: "var(--ink)",
+              color: "#111",
             }}
           >
             {data.company_name}
@@ -852,46 +818,23 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
         <ParallelBadge />
       </div>
 
-      {/* Role label */}
-      <div
-        style={{
-          fontSize: 13,
-          color: "var(--ink-soft)",
-          marginBottom: data.role_title ? 2 : 0,
-        }}
-      >
-        {data.role_label}
+      {/* Role — merged to single line */}
+      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.4 }}>
+        {data.role_label}{data.role_title && ` · ${data.role_title}`}
       </div>
 
-      {/* Role title (free text) */}
-      {data.role_title && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 4 }}>
-          {data.role_title}
-        </div>
-      )}
-
-      {/* Duration (mobile only — DateCol shows group range on desktop) */}
-      {duration && (
-        <div
-          className="tl-duration-mobile"
-          style={{
-            fontFamily: "Inter, sans-serif",
-            fontSize: 11,
-            color: "var(--ink-mute)",
-            marginBottom: 4,
-          }}
-        >
-          {formatYM(data.started_at)}
-          {" — "}
-          {data.is_current ? "現在" : data.ended_at ? formatYM(data.ended_at) : ""}
-          {" "}（{duration}）
-        </div>
-      )}
+      {/* Date + duration — always inline */}
+      <div style={{
+        fontFamily: "Inter, sans-serif", fontSize: 12,
+        color: "var(--ink-mute)", marginBottom: data.description ? 8 : 0, lineHeight: 1.4,
+      }}>
+        {startLabel} – {endLabel}{duration && ` · ${duration}`}
+      </div>
 
       {/* Description */}
       {data.description && (
         isAuthenticated ? (
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75, margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.65, margin: 0, maxWidth: 480, whiteSpace: "pre-wrap" }}>
             {data.description}
           </p>
         ) : (
@@ -954,7 +897,7 @@ export default function MergedTimeline({
           position: absolute;
           top: 18px;
           bottom: 18px;
-          left: 92px; /* 64px date col + center of 56px icon col */
+          left: 28px; /* center of 56px icon col */
           width: 2px;
           background: var(--line);
           z-index: 0;
@@ -962,17 +905,9 @@ export default function MergedTimeline({
 
         .tl-row {
           display: grid;
-          grid-template-columns: 64px 56px 1fr;
+          grid-template-columns: 56px 1fr;
           align-items: start;
           min-height: 60px;
-        }
-
-        .tl-date-col {
-          /* visible on desktop */
-        }
-
-        .tl-duration-mobile {
-          display: none;
         }
 
         /* d-2: 並行勤務グループ — 横並びカード */
@@ -991,22 +926,6 @@ export default function MergedTimeline({
         }
 
         @media (max-width: 639px) {
-          .merged-timeline::before {
-            left: 28px; /* center of 56px icon col */
-          }
-
-          .tl-row {
-            grid-template-columns: 56px 1fr;
-          }
-
-          .tl-date-col {
-            display: none;
-          }
-
-          .tl-duration-mobile {
-            display: block;
-          }
-
           /* モバイル: カードを縦積みに切り替え */
           .d2-parallel-inner {
             flex-direction: column;
@@ -1021,12 +940,12 @@ export default function MergedTimeline({
 
         /* Company name hover link */
         .company-name-link {
-          transition: color 0.15s;
+          transition: color 0.15s, text-decoration 0.15s;
         }
         .company-name-link:hover {
           color: var(--royal) !important;
           text-decoration: underline;
-          text-underline-offset: 2px;
+          text-underline-offset: 3px;
         }
       `}</style>
 
@@ -1035,7 +954,6 @@ export default function MergedTimeline({
           if (entry.kind === "future") {
             return (
               <div key="future" className="tl-row">
-                <div className="tl-date-col" />
                 <div
                   style={{
                     display: "flex",
@@ -1059,19 +977,9 @@ export default function MergedTimeline({
 
           if (entry.kind === "career") {
             const c = entry.data;
-            const startLabel = formatYM(c.started_at);
-            const endLabel = c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : "";
-            const duration = formatDuration(c.started_at, c.ended_at);
 
             return (
               <div key={`career-${c.id}`} className="tl-row">
-                <div className="tl-date-col">
-                  <DateCol
-                    startLabel={startLabel}
-                    endLabel={endLabel}
-                    duration={duration}
-                  />
-                </div>
                 <div
                   style={{
                     display: "flex",
@@ -1110,13 +1018,6 @@ export default function MergedTimeline({
 
             return (
               <div key={`group-${groupStart.slice(0, 7)}`} className="tl-row">
-                <div className="tl-date-col">
-                  <DateCol
-                    startLabel={startLabel}
-                    endLabel={endLabel}
-                    duration={duration}
-                  />
-                </div>
                 {/* アイコン: グループ内に is_current があれば royal, なければ muted（暫定 A-1 pending） */}
                 <div
                   style={{
@@ -1129,7 +1030,11 @@ export default function MergedTimeline({
                   <CareerIcon isCurrent={anyIsCurrent} />
                 </div>
                 {/* d-2: bg-tint 背景 + border-left 区切り */}
-                <div style={{ paddingTop: 8, paddingBottom: 20, paddingLeft: 12 }}>
+                <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
+                  {/* グループ期間インライン表示 */}
+                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.4 }}>
+                    {startLabel} – {endLabel}{duration && ` · ${duration}`}
+                  </div>
                   <div className="d2-parallel-inner">
                     {items.map((c) => (
                       <ParallelCareerCard key={c.id} data={c} isAuthenticated={isAuthenticated} />
@@ -1169,9 +1074,6 @@ export default function MergedTimeline({
 
             return (
               <div key={`same-company-${entry.companyKey}`} className="tl-row">
-                <div className="tl-date-col">
-                  <DateCol startLabel={startLabel} endLabel={endLabel} duration={duration} />
-                </div>
                 <div
                   style={{
                     display: "flex",
@@ -1187,86 +1089,69 @@ export default function MergedTimeline({
                     logo_gradient={head.logo_gradient}
                   />
                 </div>
-                <div style={{ paddingTop: 8, paddingBottom: 20, paddingLeft: 12 }}>
+                <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
                   <div>
                     {/* 会社名ヘッダー */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, flexWrap: "wrap", lineHeight: 1.3 }}>
                       {head.company_id ? (
                         <Link href={`/companies/${head.company_id}`} className="company-name-link"
-                          style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", textDecoration: "none" }}>
+                          style={{ fontSize: 16, fontWeight: 700, color: "#111", textDecoration: "none" }}>
                           {head.company_name}
                         </Link>
                       ) : (
-                        <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+                        <span style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>
                           {head.company_name}
                         </span>
                       )}
-                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
+                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", fontWeight: 400 }}>
                         {duration}
                       </span>
                       {anyIsCurrent && <CurrentBadge />}
                     </div>
 
-                    {/* ポジションリスト — LinkedIn スタイル */}
-                    <div style={{ display: "flex", flexDirection: "column" }}>
+                    {/* ポジションリスト — 左ボーダースタイル */}
+                    <div style={{ paddingLeft: 14, borderLeft: "2px solid var(--line)" }}>
                       {items.map((c, idx) => {
                         const posDuration = formatDuration(c.started_at, c.ended_at);
                         const isLast = idx === items.length - 1;
                         return (
-                          <div key={c.id} style={{ display: "flex", gap: 10, position: "relative" }}>
-                            {/* bullet + connector */}
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 16, flexShrink: 0, paddingTop: 3 }}>
+                          <div key={c.id} style={{ paddingBottom: isLast ? 0 : 16 }}>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 3, lineHeight: 1.4 }}>
+                              {c.role_label}{c.role_title && ` · ${c.role_title}`}
+                            </div>
+                            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginBottom: c.description ? 8 : 0, lineHeight: 1.4 }}>
+                              {formatYM(c.started_at)} – {c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
+                              {posDuration && ` · ${posDuration}`}
+                            </div>
+                            {c.description && (
+                              isAuthenticated ? (
+                                <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.65, margin: 0, maxWidth: 520, whiteSpace: "pre-wrap" }}>
+                                  {c.description}
+                                </p>
+                              ) : (
+                                <DescriptionGate />
+                              )
+                            )}
+                            {c.join_reason && (
                               <div style={{
-                                width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                                background: accentColor, border: `2px solid ${accentColor}`,
-                              }} />
-                              {!isLast && (
-                                <div style={{ width: 2, flex: 1, minHeight: 16, background: "var(--line)", marginTop: 2 }} />
-                              )}
-                            </div>
-                            {/* content */}
-                            <div style={{ flex: 1, paddingBottom: isLast ? 0 : 14 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: c.role_title ? 1 : 0 }}>
-                                {c.role_label}
-                              </div>
-                              {c.role_title && (
-                                <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 3 }}>
-                                  {c.role_title}
+                                marginTop: 8,
+                                padding: "8px 10px",
+                                borderRadius: 7,
+                                background: "linear-gradient(135deg, #f8f4ff 0%, #eff6ff 100%)",
+                                border: "1px solid #e8e0ff",
+                                maxWidth: 520,
+                              }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.5" strokeLinecap="round">
+                                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+                                  </svg>
+                                  <span style={{ fontSize: 9, fontWeight: 700, color: "var(--purple)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Why I joined</span>
                                 </div>
-                              )}
-                              <div style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "var(--ink-mute)", marginBottom: c.description ? 6 : 0 }}>
-                                {formatYM(c.started_at)} – {c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
-                                {posDuration && <> · {posDuration}</>}
+                                <p style={{ fontSize: 12, color: "var(--ink)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" }}>
+                                  {c.join_reason}
+                                </p>
                               </div>
-                              {c.description && (
-                                isAuthenticated ? (
-                                  <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75, margin: "4px 0 0", whiteSpace: "pre-wrap" }}>
-                                    {c.description}
-                                  </p>
-                                ) : (
-                                  <DescriptionGate />
-                                )
-                              )}
-                              {c.join_reason && (
-                                <div style={{
-                                  marginTop: 8,
-                                  padding: "8px 10px",
-                                  borderRadius: 7,
-                                  background: "linear-gradient(135deg, #f8f4ff 0%, #eff6ff 100%)",
-                                  border: "1px solid #e8e0ff",
-                                }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.5" strokeLinecap="round">
-                                      <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-                                    </svg>
-                                    <span style={{ fontSize: 9, fontWeight: 700, color: "var(--purple)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Why I joined</span>
-                                  </div>
-                                  <p style={{ fontSize: 12, color: "var(--ink)", lineHeight: 1.7, margin: 0, whiteSpace: "pre-wrap" }}>
-                                    {c.join_reason}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1279,19 +1164,9 @@ export default function MergedTimeline({
 
           if (entry.kind === "education") {
             const e = entry.data;
-            const startLabel = formatYM(e.enrolled_at);
-            const endLabel = e.is_current ? "現在" : e.graduated_at ? formatYM(e.graduated_at) : "";
-            const duration = formatDuration(e.enrolled_at, e.graduated_at);
 
             return (
               <div key={`edu-${e.id}`} className="tl-row">
-                <div className="tl-date-col">
-                  <DateCol
-                    startLabel={startLabel}
-                    endLabel={endLabel}
-                    duration={duration}
-                  />
-                </div>
                 <div
                   style={{
                     display: "flex",
