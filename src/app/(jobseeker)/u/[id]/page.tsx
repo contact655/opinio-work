@@ -4,6 +4,8 @@ import Link from "next/link";
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
 import { PostCard } from "@/components/profile/PostCard";
+import { RecommendationCard } from "@/components/profile/RecommendationCard";
+import { RecommendationForm } from "@/components/profile/RecommendationForm";
 import {
   buildTimelineCareerEntriesFromRaw,
   toTimelineEducationEntries,
@@ -112,12 +114,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
     (k) => socialLinks[k] && socialLinks[k]!.trim() !== ""
   );
 
-  // Fetch experiences + skill tags + educations + certifications + content links + achievements + awards + media in parallel
+  // Fetch experiences + skill tags + educations + certifications + content links + achievements + awards + media + recommendations in parallel
   const [
     { data: expRows }, { data: allRoles }, { data: skillTagsRaw },
     { data: educationsRaw }, { data: certificationsRaw }, { data: contentLinksRaw },
     { data: achievementsRaw }, { data: awardsRaw }, { data: mediaAppearancesRaw },
-    { data: recentPostsRaw },
+    { data: recentPostsRaw }, { data: recommendationsRaw },
   ] = await Promise.all([
     supabase
       .from("ow_experiences")
@@ -167,6 +169,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .eq("user_id", owUser.id)
       .order("created_at", { ascending: false })
       .limit(6),
+    supabase
+      .from("ow_user_recommendations")
+      .select("id, recommender_user_id, recommender_name, recommender_title, recommender_company, relationship, content, is_visible, created_at")
+      .eq("target_user_id", owUser.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const skillTags      = skillTagsRaw      ?? [];
@@ -193,6 +200,17 @@ export default async function UserProfilePage({ params }: { params: { id: string
     id: string; content: string; image_url: string | null; created_at: string;
     likes: Array<{ count: number }>;
   }>;
+  type RecRow = {
+    id: string; recommender_user_id: string | null;
+    recommender_name: string; recommender_title: string | null;
+    recommender_company: string | null; relationship: string | null;
+    content: string; is_visible: boolean; created_at: string;
+  };
+  // オーナーは全件（非表示含む）、他者は表示中のみ
+  const allRecommendations = (recommendationsRaw ?? []) as RecRow[];
+  const recommendations = viewerIsOwner
+    ? allRecommendations
+    : allRecommendations.filter((r) => r.is_visible);
 
   // ログインユーザーがいいねしている投稿ID一覧
   const likedPostIds = new Set<string>();
@@ -285,14 +303,20 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const careerSummary = (() => {
     if (timelineCareers.length === 0) return null;
     let totalMonths = 0;
+    // 会社カウント: company_id で重複排除 → 名前テキスト → 非公開は各エントリーを1社としてカウント
     const companySet = new Set<string>();
-    const roleSet = new Set<string>();
     for (const c of timelineCareers) {
       const start = new Date(c.started_at);
       const end = c.ended_at ? new Date(c.ended_at) : new Date();
       totalMonths += Math.max(0, (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth());
-      if (c.company_name && c.company_name !== "非公開") companySet.add(c.company_name);
-      if (c.role_label) roleSet.add(c.role_label);
+      if (c.company_id) {
+        companySet.add(`id:${c.company_id}`);
+      } else if (c.company_name && c.company_name !== "非公開" && c.company_name !== "不明な企業") {
+        companySet.add(`name:${c.company_name}`);
+      } else {
+        // 非公開企業: experience ID で1社としてカウント
+        companySet.add(`anon:${c.id}`);
+      }
     }
     const totalYears = Math.max(1, Math.round(totalMonths / 12));
     return { totalYears, companyCount: companySet.size };
@@ -1106,6 +1130,63 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </section>
             )}
 
+            {/* ── 資格・認定（メインカラム） ── */}
+            {certifications.length > 0 && (
+              <section style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                    資格・認定
+                  </span>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                    LICENSES &amp; CERTIFICATIONS
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
+                    {certifications.length}件
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {certifications.map((cert) => (
+                    <div key={cert.id} style={{
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "12px 14px", borderRadius: 10,
+                      background: "var(--bg-tint)", border: "1px solid var(--line)",
+                    }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                        background: "linear-gradient(135deg, var(--warm) 0%, #D97706 100%)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        boxShadow: "0 2px 6px rgba(217,119,6,0.2)",
+                      }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
+                          <circle cx="12" cy="8" r="6" />
+                          <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+                        </svg>
+                      </div>
+                      <span style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, lineHeight: 1.4 }}>
+                        {cert.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {viewerIsOwner && (
+                  <Link href="/profile/edit?tab=certs" style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    marginTop: 14, fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
+                  }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    資格を追加
+                  </Link>
+                )}
+              </section>
+            )}
+
             {/* 経歴 — キャリア + 学歴 + 未来を MergedTimeline で統合表示 */}
             {(timelineCareers.length > 0 || timelineEdus.length > 0 || futureData != null) && (
               <section style={{
@@ -1426,6 +1507,61 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </Link>
                   ))}
                 </div>
+              </section>
+            )}
+
+            {/* ── 推薦文 (LinkedIn Recommendations) ── */}
+            {(recommendations.length > 0 || (!viewerIsOwner && !!authUser)) && (
+              <section style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                    推薦文
+                  </span>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                    RECOMMENDATIONS
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                  {recommendations.length > 0 && (
+                    <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
+                      {recommendations.filter((r) => r.is_visible).length}件
+                    </span>
+                  )}
+                </div>
+
+                {/* 推薦文カード一覧 */}
+                {recommendations.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: !viewerIsOwner && !!authUser ? 16 : 0 }}>
+                    {recommendations.map((rec) => (
+                      <RecommendationCard
+                        key={rec.id}
+                        rec={rec}
+                        isOwner={viewerIsOwner}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* 推薦文を書くフォーム（ログイン済み非オーナーのみ） */}
+                {!viewerIsOwner && !!authUser && (
+                  <RecommendationForm
+                    targetUserId={owUser.id}
+                    targetName={owUser.name}
+                    defaultName=""
+                    defaultTitle=""
+                    defaultCompany=""
+                  />
+                )}
+
+                {/* 非ログイン向け案内 */}
+                {!viewerIsOwner && !authUser && recommendations.length === 0 && (
+                  <div style={{ textAlign: "center", padding: "20px 0", color: "var(--ink-mute)", fontSize: 13 }}>
+                    まだ推薦文がありません
+                  </div>
+                )}
               </section>
             )}
 
