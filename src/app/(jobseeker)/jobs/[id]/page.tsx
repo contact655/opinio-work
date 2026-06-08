@@ -415,7 +415,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
             {/* ── Main column ── */}
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
 
-              {/* Overview */}
+              {/* Overview → 仕事内容 */}
               {job.overview && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--royal)" icon={
@@ -424,9 +424,91 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     <path d="M14 2v6h6M16 13H8M16 17H8"/>
                   </svg>
                 }>
-                  ポジション概要
+                  仕事内容
                 </SecTitle>
                 <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.8 }}>{job.overview}</p>
+              </section>
+              )}
+
+              {/* 勤務条件 */}
+              {(job.salary_min || job.salary_max || job.location || job.work_style || job.employment_type) && (
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                <SecTitle color="var(--success)" icon={
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+                  </svg>
+                }>
+                  勤務条件
+                </SecTitle>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+                  {/* 年収 */}
+                  {(job.salary_min || job.salary_max) && (
+                  <div style={{ gridColumn: "1 / -1", padding: "16px 20px", borderRadius: 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ width: 28, height: 28, borderRadius: 7, background: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round">
+                          <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>想定年収</span>
+                    </div>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
+                      {job.salary_min && job.salary_max
+                        ? `${job.salary_min}〜${job.salary_max}万円`
+                        : job.salary_min ? `${job.salary_min}万円〜`
+                        : `〜${job.salary_max}万円`}
+                    </span>
+                  </div>
+                  )}
+                  {/* 勤務地 */}
+                  {job.location && (
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                      </svg>
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>勤務地</span>
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.location}</span>
+                  </div>
+                  )}
+                  {/* 働き方 */}
+                  {job.work_style && (
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+                      </svg>
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>働き方</span>
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.work_style}</span>
+                  </div>
+                  )}
+                  {/* 雇用形態 */}
+                  {job.employment_type && (
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      </svg>
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>雇用形態</span>
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.employment_type}</span>
+                  </div>
+                  )}
+                  {/* 職種 */}
+                  {job.dept && (
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                      </svg>
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>職種</span>
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.dept}</span>
+                  </div>
+                  )}
+                </div>
               </section>
               )}
 
@@ -617,38 +699,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               )}
 
-              {/* Benefits */}
-              {job.benefits.length > 0 && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--success)" icon={
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                    <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4M4 6v12c0 1.1.9 2 2 2h14v-4"/>
-                    <circle cx="16" cy="14" r="2"/>
-                  </svg>
-                }>
-                  待遇・福利厚生
-                </SecTitle>
-                <div style={{ border: "1px solid var(--line)", borderRadius: 10, overflow: "hidden" }}>
-                  {job.benefits.map((row, i) => (
-                    <div key={i} style={{
-                      display: "grid", gridTemplateColumns: "120px 1fr",
-                      borderBottom: i < job.benefits.length - 1 ? "1px solid var(--line-soft, #F1F5F9)" : "none",
-                    }}>
-                      <div style={{
-                        padding: "11px 14px", fontSize: 12, fontWeight: 600,
-                        color: "var(--ink-mute)", background: "var(--bg-tint)",
-                        borderRight: "1px solid var(--line-soft, #F1F5F9)",
-                      }}>
-                        {row.key}
-                      </div>
-                      <div style={{ padding: "11px 14px", fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                        {row.value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-              )}
 
               {/* 入社後90日 */}
               {job.first_90_days && (
