@@ -155,13 +155,14 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
       {/* ─── ロゴエリア ─────────────────────────────────────── */}
       <div style={{
         aspectRatio: compact ? '3 / 2' : '16 / 9',
-        background: headerGradient,
+        background: (company.logo_url && !logoError) ? '#fff' : headerGradient,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '12%',
+        padding: (company.logo_url && !logoError) ? '8%' : 0,
         position: 'relative',
         overflow: 'hidden',
+        borderBottom: (company.logo_url && !logoError) ? '1px solid #e2e8f0' : 'none',
         boxSizing: 'border-box',
       }}>
         {company.logo_url && !logoError ? (
