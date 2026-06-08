@@ -232,10 +232,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const timelineEdus    = toTimelineEducationEntries(educations as RawEducation[]);
   const futureData      = buildFutureData(owUser, viewerIsOwner);
 
-  // Current company for sidebar card
-  const currentCareer = timelineCareers.find((c) => c.is_current && c.company_id) ?? null;
-  // 企業が ow_companies に実在するか（"不明な企業" = company_id はあるが未登録）
-  const isCurrentCompanyKnown = !!currentCareer?.company_id && currentCareer.company_name !== "不明な企業";
+  // Current company for sidebar card（company_id の有無は問わない — 在籍中なら表示）
+  const currentCareer = timelineCareers.find((c) => c.is_current) ?? null;
+  // timeline.ts が company_id を null にするのは「ow_companies に未登録」の場合のみ
+  // → company_id が非 null = 企業ページへのリンクが有効
+  const isCurrentCompanyKnown = !!currentCareer?.company_id;
 
   // 在籍企業の募集中求人（サイドバー表示用）
   let currentCompanyJobs: Array<{ id: string; title: string }> = [];

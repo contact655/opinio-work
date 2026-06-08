@@ -105,13 +105,17 @@ export function buildTimelineCareerEntriesFromRaw(
     const companyInfo = r.company_id ? companyInfoById.get(r.company_id) : undefined;
 
     // 会社名解決: master（company_id）> custom（company_text）> anon（company_anonymized）
+    // company_id があっても companyInfoById に存在しない場合は「未解決」= null として扱う
     let company_name: string;
-    if (r.company_id) {
-      company_name = companyInfo?.name ?? "不明な企業";
+    const resolvedCompanyId = (r.company_id && companyInfo) ? r.company_id : null;
+    if (r.company_id && companyInfo) {
+      company_name = companyInfo.name;
     } else if (r.company_text) {
+      // 自由入力テキスト（company_id なし）
       company_name = r.company_text;
     } else {
-      company_name = r.company_anonymized ?? "非公開企業";
+      // 非公開（company_id が解決しなかった場合も含む）
+      company_name = r.company_anonymized ?? "非公開";
     }
 
     // ow_roles.name は日本語表示ラベルそのものなので変換不要
@@ -144,7 +148,7 @@ export function buildTimelineCareerEntriesFromRaw(
 
     return {
       id:            r.id,
-      company_id:    r.company_id,
+      company_id:    resolvedCompanyId,
       company_name,
       logo_url:      companyInfo?.logoUrl ?? null,
       logo_letter,
