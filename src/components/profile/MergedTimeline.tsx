@@ -431,8 +431,8 @@ function CompanyLogoIcon({
   company_name?: string;
 }) {
   const wrapStyle: React.CSSProperties = {
-    width: 52,
-    height: 52,
+    width: 64,
+    height: 64,
     borderRadius: 11,
     flexShrink: 0,
     margin: "0 auto",
@@ -451,7 +451,7 @@ function CompanyLogoIcon({
           logoUrl={logo_url}
           logoLetter={logo_letter ?? null}
           logoGradient={logo_gradient ?? null}
-          size={52}
+          size={64}
         />
       </div>
     );
@@ -461,7 +461,7 @@ function CompanyLogoIcon({
   if (logo_letter && logo_gradient) {
     return (
       <div style={wrapStyle}>
-        <LetterCircle letter={logo_letter} gradient={logo_gradient} size={52} />
+        <LetterCircle letter={logo_letter} gradient={logo_gradient} size={64} />
       </div>
     );
   }
@@ -485,8 +485,8 @@ function CareerIcon({ isCurrent }: { isCurrent: boolean }) {
   return (
     <div
       style={{
-        width: 52,
-        height: 52,
+        width: 64,
+        height: 64,
         borderRadius: 11,
         background: isCurrent ? "var(--royal)" : "var(--ink-mute)",
         display: "flex",
@@ -867,7 +867,7 @@ export default function MergedTimeline({
           position: absolute;
           top: 18px;
           bottom: 18px;
-          left: 28px; /* center of 56px icon col */
+          left: 32px; /* center of 64px icon col */
           width: 2px;
           background: var(--line);
           z-index: 0;
@@ -875,7 +875,7 @@ export default function MergedTimeline({
 
         .tl-row {
           display: grid;
-          grid-template-columns: 56px 1fr;
+          grid-template-columns: 72px 1fr;
           align-items: start;
           min-height: 60px;
         }
@@ -1139,7 +1139,7 @@ export default function MergedTimeline({
                     paddingTop: 8,
                   }}
                 >
-                  <SchoolLogoImg schoolMaster={e.school_master ?? null} size={52} />
+                  <SchoolLogoImg schoolMaster={e.school_master ?? null} size={64} />
                 </div>
                 <EducationContent data={e} />
               </div>
