@@ -295,48 +295,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
             </Suspense>
           )}
 
-          {/* ── 先輩に相談 CTA ── */}
-          <div style={{
-            padding: "32px 36px",
-            background: "var(--royal-50)",
-            border: "1.5px solid var(--royal-100)",
-            borderRadius: 16,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 24,
-            flexWrap: "wrap",
-          }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: 8, textTransform: "uppercase" as const }}>
-              CASUAL MEETING
-            </div>
-            <p style={{
-              fontFamily: "var(--font-noto-serif)",
-              fontSize: "clamp(15px, 2vw, 18px)", fontWeight: 500,
-              color: "var(--ink)", margin: 0, lineHeight: 1.55,
-            }}>
-              気になった企業の現役社員と30分話してみよう。
-            </p>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8, lineHeight: 1.7 }}>
-              カジュアル面談はカジュアルな情報交換の場です。選考とは無関係。完全無料。
-            </p>
-          </div>
-          <Link href="/articles" style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
-            background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
-            color: "#fff", textDecoration: "none",
-            boxShadow: "0 4px 16px rgba(0,35,102,0.25)",
-            flexShrink: 0,
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-            </svg>
-            取材記事を読む
-          </Link>
-          </div>
-
         </div>{/* フッターエリア end */}
       </div>
 
