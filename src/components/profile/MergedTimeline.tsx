@@ -1151,10 +1151,7 @@ export default function MergedTimeline({
             const accentColor = head.logo_gradient
               ? (head.logo_gradient.match(/#[0-9a-fA-F]{3,6}/)?.[0] ?? "var(--royal)")
               : "var(--royal)";
-            // 背景: 会社色 6% 透過
-            const bgTint = head.logo_gradient
-              ? `${accentColor}0F`
-              : "var(--bg-tint)";
+            // bgTint は LinkedIn スタイルリデザインで不要になったため削除済み
 
             return (
               <div key={`same-company-${entry.companyKey}`} className="tl-row">
