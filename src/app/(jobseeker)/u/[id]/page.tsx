@@ -786,26 +786,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
               );
             })()}
 
-            {/* ── キャッチフレーズ大見出し ── */}
-            {owUser.future_aspirations && (
-              <section style={{ marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid var(--line)" }}>
-                <p style={{
-                  fontSize: 20,
-                  fontWeight: 800,
-                  fontFamily: "'Noto Serif JP', serif",
-                  color: "var(--ink)",
-                  lineHeight: 1.75,
-                  margin: 0,
-                  letterSpacing: "-0.01em",
-                }}>
-                  {owUser.future_aspirations}
-                </p>
-                <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: "var(--purple)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                  ASPIRATION
-                </div>
-              </section>
-            )}
-
             {/* About Me */}
             {owUser.about_me ? (
               <section style={{
