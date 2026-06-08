@@ -9,7 +9,6 @@ import { RecommendationForm } from "@/components/profile/RecommendationForm";
 import {
   buildTimelineCareerEntriesFromRaw,
   toTimelineEducationEntries,
-  buildFutureData,
   type RawExperienceRow,
   type RawEducation,
   type CompanyLogoInfo,
@@ -265,7 +264,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
     companyInfoById,
   );
   const timelineEdus    = toTimelineEducationEntries(educations as RawEducation[]);
-  const futureData      = buildFutureData(owUser, viewerIsOwner);
 
   // Current company for sidebar card（company_id の有無は問わない — 在籍中なら表示）
   const currentCareer = timelineCareers.find((c) => c.is_current) ?? null;
