@@ -532,15 +532,19 @@ export async function getCompanyById(
 // ─── Role queries ─────────────────────────────────────────────────────────────
 
 /** 求職者向け /jobs カテゴリピル用: ow_roles の親カテゴリ (parent_id IS NULL) を取得 */
-export async function getParentRoles(): Promise<{ id: string; name: string }[]> {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from("ow_roles")
-    .select("id, name, display_order")
-    .is("parent_id", null)
-    .order("display_order", { ascending: true, nullsFirst: false });
-  return (data ?? []).map((r) => ({ id: r.id as string, name: r.name as string }));
-}
+export const getParentRoles = unstable_cache(
+  async (): Promise<{ id: string; name: string }[]> => {
+    const supabase = createPublicClient();
+    const { data } = await supabase
+      .from("ow_roles")
+      .select("id, name, display_order")
+      .is("parent_id", null)
+      .order("display_order", { ascending: true, nullsFirst: false });
+    return (data ?? []).map((r) => ({ id: r.id as string, name: r.name as string }));
+  },
+  ["parent-roles"],
+  { revalidate: 3600 } // 1時間キャッシュ（ロールはほぼ変わらない）
+);
 
 // ─── Job queries ──────────────────────────────────────────────────────────────
 
