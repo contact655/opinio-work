@@ -171,8 +171,8 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             src={company.logo_url}
             alt={`${company.name}のロゴ`}
             style={{
-              maxWidth: '60%',
-              maxHeight: compact ? 52 : 72,
+              maxWidth: '75%',
+              maxHeight: compact ? 72 : 96,
               width: 'auto',
               height: 'auto',
               objectFit: 'contain',
