@@ -155,46 +155,31 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
       {/* ─── ロゴエリア ─────────────────────────────────────── */}
       <div style={{
         aspectRatio: compact ? '2 / 1' : '16 / 9',
-        // 常にブランドグラデーション — ロゴはその上に白コンテナで表示
-        background: headerGradient,
+        // logo_url あり → 白背景でロゴを直接表示 / なし → グラデーション＋イニシャル
+        background: (company.logo_url && !logoError) ? '#fff' : headerGradient,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
         overflow: 'hidden',
+        borderBottom: (company.logo_url && !logoError) ? '1px solid var(--line-soft)' : 'none',
       }}>
-        {/* 背景の薄いパターン */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'radial-gradient(circle at 70% 30%, rgba(255,255,255,0.10) 0%, transparent 60%)',
-          pointerEvents: 'none',
-        }} />
-
         {company.logo_url && !logoError ? (
-          // ロゴを白コンテナに入れて背景色に依存しない表示
-          <div style={{
-            background: '#fff',
-            borderRadius: 12,
-            padding: '12px 22px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
-            maxWidth: '72%',
-          }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={company.logo_url}
-              alt={`${company.name}のロゴ`}
-              style={{
-                maxWidth: 140,
-                maxHeight: 48,
-                width: 'auto',
-                height: 'auto',
-                objectFit: 'contain',
-                display: 'block',
-              }}
-              onError={() => setLogoError(true)}
-            />
-          </div>
+          // 白背景にロゴを直接表示
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={company.logo_url}
+            alt={`${company.name}のロゴ`}
+            style={{
+              maxWidth: '60%',
+              maxHeight: compact ? 52 : 72,
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+            onError={() => setLogoError(true)}
+          />
         ) : (
           /* ロゴなし → イニシャル文字 */
           <span style={{
