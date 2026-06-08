@@ -234,6 +234,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
   // Current company for sidebar card
   const currentCareer = timelineCareers.find((c) => c.is_current && c.company_id) ?? null;
+  // 企業が ow_companies に実在するか（"不明な企業" = company_id はあるが未登録）
+  const isCurrentCompanyKnown = !!currentCareer?.company_id && currentCareer.company_name !== "不明な企業";
 
   // 在籍企業の募集中求人（サイドバー表示用）
   let currentCompanyJobs: Array<{ id: string; title: string }> = [];
@@ -437,11 +439,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 {currentCareer && (
                   <div style={{ fontSize: 14, color: "var(--ink-soft)", marginBottom: "var(--space-2)", lineHeight: 1.4 }}>
                     {currentCareer.role_label}
-                    {currentCareer.company_name && (
-                      <> @ {currentCareer.company_id
-                        ? <Link href={`/companies/${currentCareer.company_id}`} style={{ color: "var(--ink-soft)", textDecoration: "none", borderBottom: "1px solid var(--line)" }}>{currentCareer.company_name}</Link>
-                        : currentCareer.company_name
-                      }</>
+                    {currentCareer.company_name && isCurrentCompanyKnown && (
+                      <> @ <Link href={`/companies/${currentCareer.company_id!}`} style={{ color: "var(--ink-soft)", textDecoration: "none", borderBottom: "1px solid var(--line)" }}>{currentCareer.company_name}</Link></>
+                    )}
+                    {currentCareer.company_name && !isCurrentCompanyKnown && currentCareer.company_name !== "不明な企業" && (
+                      <> @ {currentCareer.company_name}</>
                     )}
                   </div>
                 )}
@@ -548,8 +550,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <ProfileShareButton userId={owUser.id} name={owUser.name} />
                 )}
 
-                {/* カジュアル面談ボタン（can_casual_meeting = true かつ非オーナー） */}
-                {!viewerIsOwner && owUser.can_casual_meeting && currentCareer?.company_id && (
+                {/* カジュアル面談ボタン（can_casual_meeting = true かつ非オーナー かつ企業が判明） */}
+                {!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown && (
                   <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "9px 18px", borderRadius: 8,
@@ -583,9 +585,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     プロフィールを編集
                   </Link>
                 </>
-                ) : currentCareer?.company_id ? (
-                /* 一般社員: 企業ページへの控えめなリンク */
-                <Link href={`/companies/${currentCareer.company_id}`} style={{
+                ) : isCurrentCompanyKnown ? (
+                /* 一般社員: 企業ページへの控えめなリンク（会社が判明している場合のみ） */
+                <Link href={`/companies/${currentCareer!.company_id!}`} style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "9px 18px", borderRadius: 8,
                   border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
@@ -595,7 +597,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                   </svg>
-                  {currentCareer.company_name} の企業ページを見る
+                  {currentCareer!.company_name} の企業ページを見る
                 </Link>
               ) : null
               }
@@ -614,8 +616,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {(() => {
               const highlights: { icon: React.ReactNode; label: string; body: React.ReactNode; href?: string; color: string }[] = [];
 
-              // Card 1: 現在の在籍企業 → カジュアル面談CTA（非オーナー、company_id あり）
-              if (!viewerIsOwner && currentCareer?.company_id) {
+              // Card 1: カジュアル面談CTA（非オーナー、can_casual_meeting=true かつ企業判明時のみ）
+              if (!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown) {
                 highlights.push({
                   color: "var(--warm)",
                   icon: (
@@ -627,10 +629,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   label: "カジュアル面談",
                   body: (
                     <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                      {currentCareer.company_name}のメンバーと<br/>気軽に話してみませんか
+                      {currentCareer!.company_name}のメンバーと<br/>気軽に話してみませんか
                     </span>
                   ),
-                  href: `/companies/${currentCareer.company_id}/casual-meeting`,
+                  href: `/companies/${currentCareer!.company_id}/casual-meeting?person=${owUser.id}`,
                 });
               }
 
@@ -1579,7 +1581,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", marginBottom: "var(--space-3)", textTransform: "uppercase" }}>
                     在籍企業
                   </div>
-                  {/* Company link */}
+                  {/* Company link — 企業が判明している場合のみリンク化 */}
+                  {isCurrentCompanyKnown ? (
                   <Link href={`/companies/${currentCareer.company_id}`} style={{
                     textDecoration: "none", display: "flex", alignItems: "center", gap: "var(--space-3)",
                     marginBottom: "var(--space-3)",
@@ -1609,6 +1612,28 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                   </Link>
+                  ) : (
+                  /* 企業不明: 非リンク表示 */
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+                    <div style={{
+                      width: 48, height: 48, borderRadius: 10, flexShrink: 0,
+                      background: currentCareer.logo_gradient ?? "linear-gradient(135deg, #64748b, #94a3b8)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontSize: 18, fontWeight: 700,
+                      border: "1px solid rgba(0,0,0,0.06)",
+                    }}>
+                      {currentCareer.logo_letter ?? "非"}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 2 }}>
+                        非公開企業
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                        {currentCareer.role_label}
+                      </div>
+                    </div>
+                  </div>
+                  )}
 
                   {/* 在籍期間 + フェーズ */}
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: !viewerIsOwner ? 10 : 0 }}>
@@ -1635,11 +1660,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     )}
                   </div>
 
-                  {/* カジュアル面談CTA — 企業へのアクション（非オーナーのみ） */}
-                  {!viewerIsOwner && (
+                  {/* カジュアル面談CTA — can_casual_meeting=true の人のみ表示（非オーナー） */}
+                  {!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown && (
                     <>
                       <div style={{ height: 1, background: "var(--line)", margin: "0 0 14px" }} />
-                      <Link href={`/companies/${currentCareer.company_id}/casual-meeting`} style={{
+                      <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                         padding: "10px 14px", borderRadius: 8,
                         background: "linear-gradient(135deg, var(--warm) 0%, #D97706 100%)",
@@ -1653,7 +1678,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         カジュアル面談を申し込む
                       </Link>
                       <p style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
-                        {currentCareer.company_name}の担当者が返信します
+                        担当者が返信します
                       </p>
                     </>
                   )}
