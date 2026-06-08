@@ -1187,8 +1187,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </section>
             )}
 
-            {/* 経歴 — キャリア + 学歴 + 未来を MergedTimeline で統合表示 */}
-            {(timelineCareers.length > 0 || timelineEdus.length > 0 || futureData != null) && (
+            {/* ── 職歴セクション ── */}
+            {(timelineCareers.length > 0 || futureData != null) && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "24px 28px", marginBottom: 20,
@@ -1196,14 +1196,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
                   <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-                    経歴
+                    職歴
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
 
                 {/* ── 視覚的キャリアパス ── */}
                 {timelineCareers.length >= 2 && (
-                  <div style={{ marginBottom: 28, overflowX: "auto", paddingBottom: 8, padding: "0 2px 8px" }}>
+                  <div style={{ marginBottom: 28, overflowX: "auto", padding: "0 2px 8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 0, minWidth: "max-content" }}>
                       {[...timelineCareers].reverse().map((c, i) => (
                         <div key={c.id} style={{ display: "flex", alignItems: "center" }}>
@@ -1272,10 +1272,32 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
                 <MergedTimeline
                   careers={timelineCareers}
-                  educations={timelineEdus}
+                  educations={[]}
                   future={futureData}
                   viewerIsOwner={viewerIsOwner}
                   collapseAfter={4}
+                />
+              </section>
+            )}
+
+            {/* ── 学歴セクション ── */}
+            {timelineEdus.length > 0 && (
+              <section style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                    学歴
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                </div>
+                <MergedTimeline
+                  careers={[]}
+                  educations={timelineEdus}
+                  future={null}
+                  viewerIsOwner={viewerIsOwner}
                 />
               </section>
             )}
