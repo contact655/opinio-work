@@ -759,6 +759,8 @@ export type CompanyEmployee = {
   roleCategoryName: string | null;
   roleParentId: string | null;
   roleParentName: string | null;
+  // === Migration 160: カジュアル面談受付フラグ ===
+  canCasualMeeting: boolean;
 };
 
 export async function getCompanyEmployees(companyId: string): Promise<{
@@ -781,7 +783,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // 現役社員 (is_current = true)
   const { data: currentRows, error: e1 } = await supabase
     .from("ow_experiences")
-    .select("role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url)")
+    .select("role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting)")
     .eq("company_id", companyId)
     .eq("is_current", true);
 
@@ -793,7 +795,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // OB 社員 (is_current = false, ended_at あり)
   const { data: alumniRows, error: e2 } = await supabase
     .from("ow_experiences")
-    .select("role_title, role_category_id, ended_at, ow_users!inner(id, name, avatar_color, avatar_url)")
+    .select("role_title, role_category_id, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .not("ended_at", "is", null)
@@ -827,6 +829,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
       roleCategoryName: (role?.name as string | null) ?? null,
       roleParentId: (role?.parent_id as string | null) ?? null,
       roleParentName: (parent?.name as string | null) ?? null,
+      canCasualMeeting: (u?.can_casual_meeting as boolean) ?? false,
     };
   }
 

@@ -37,6 +37,7 @@ type OwUser = {
   social_links: SocialLinks | null;
   future_aspirations: string | null;
   is_open_to_work: boolean | null;
+  can_casual_meeting: boolean | null;
   auth_id: string;
 };
 
@@ -82,7 +83,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     supabase.auth.getUser(),
     supabase
       .from("ow_users")
-      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, birth_date, location, social_links, future_aspirations, is_open_to_work, auth_id")
+      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, birth_date, location, social_links, future_aspirations, is_open_to_work, can_casual_meeting, auth_id")
       .eq("id", params.id)
       .maybeSingle(),
   ]);
@@ -545,6 +546,24 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 {/* シェアボタン（オーナー以外のみ表示） */}
                 {!viewerIsOwner && (
                   <ProfileShareButton userId={owUser.id} name={owUser.name} />
+                )}
+
+                {/* カジュアル面談ボタン（can_casual_meeting = true かつ非オーナー） */}
+                {!viewerIsOwner && owUser.can_casual_meeting && currentCareer?.company_id && (
+                  <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "9px 18px", borderRadius: 8,
+                    background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+                    color: "#fff", fontSize: "var(--text-sm)", fontWeight: 700,
+                    textDecoration: "none", flexShrink: 0,
+                    boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+                    whiteSpace: "nowrap",
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    カジュアル面談する
+                  </Link>
                 )}
 
                 {viewerIsOwner ? (

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUserAge } from "@/lib/age";
+import { CanCasualMeetingToggle } from "./CanCasualMeetingToggle";
 
 /** Deterministic gradient from a string (same pattern used elsewhere in the app) */
 function getAvatarGradient(str: string): string {
@@ -22,7 +23,7 @@ async function getUsers(query?: string) {
   const supabase = createClient();
   let q = supabase
     .from("ow_users")
-    .select("id, name, email, is_mentor, location, birth_date, visibility, created_at")
+    .select("id, name, email, is_mentor, can_casual_meeting, location, birth_date, visibility, created_at")
     .order("created_at", { ascending: false });
 
   if (query) {
@@ -119,7 +120,7 @@ export default async function AdminCandidatesPage({
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
-              {["名前", "メール", "居住地", "年代", "公開設定", "メンター", "登録日"].map((h) => (
+              {["名前", "メール", "居住地", "年代", "公開設定", "面談可", "メンター", "登録日"].map((h) => (
                 <th
                   key={h}
                   scope="col"
@@ -138,7 +139,7 @@ export default async function AdminCandidatesPage({
             {users.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}
                 >
                   <div style={{ marginBottom: 8, fontSize: 28 }}>👤</div>
@@ -213,6 +214,13 @@ export default async function AdminCandidatesPage({
                         border: "1px solid var(--line)",
                       }}>非公開</span>
                     )}
+                  </td>
+                  {/* 面談可 */}
+                  <td style={{ padding: "11px 14px" }}>
+                    <CanCasualMeetingToggle
+                      userId={u.id}
+                      initialValue={!!u.can_casual_meeting}
+                    />
                   </td>
                   {/* メンター */}
                   <td style={{ padding: "11px 14px" }}>

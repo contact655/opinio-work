@@ -1380,13 +1380,27 @@ function EmployeeCard({
         gap: "var(--space-3)",
         padding: "var(--space-3) 14px",
         background: "var(--bg-tint)",
-        border: "1px solid var(--line)",
+        border: employee.canCasualMeeting ? "1px solid rgba(245,158,11,0.35)" : "1px solid var(--line)",
         borderRadius: 12,
         textDecoration: "none",
       }}
     >
       {avatar}
       {nameAndRole}
+      {/* カジュアル面談受付中の人だけボタン表示 */}
+      {employee.canCasualMeeting && (
+        <span style={{
+          flexShrink: 0,
+          fontSize: 10.5, fontWeight: 700,
+          padding: "4px 10px", borderRadius: 100,
+          background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
+          color: "#92400E",
+          border: "1px solid #FCD34D",
+          whiteSpace: "nowrap",
+        }}>
+          話を聞ける
+        </span>
+      )}
     </a>
   );
 }

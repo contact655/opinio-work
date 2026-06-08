@@ -154,53 +154,61 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
 
       {/* ─── ロゴエリア ─────────────────────────────────────── */}
       <div style={{
-        aspectRatio: compact ? '2 / 1' : '16 / 10',
-        // ロゴあり→白背景で均一に、ロゴなし→グラデーション＋イニシャル
-        background: (company.logo_url && !logoError) ? '#f5f7fa' : headerGradient,
+        aspectRatio: compact ? '2 / 1' : '16 / 9',
+        // 常にブランドグラデーション — ロゴはその上に白コンテナで表示
+        background: headerGradient,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
         overflow: 'hidden',
       }}>
+        {/* 背景の薄いパターン */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(circle at 70% 30%, rgba(255,255,255,0.10) 0%, transparent 60%)',
+          pointerEvents: 'none',
+        }} />
+
         {company.logo_url && !logoError ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={company.logo_url}
-            alt={`${company.name}のロゴ`}
-            style={{
-              maxWidth: '68%',
-              maxHeight: '68%',
-              width: 'auto',
-              height: 'auto',
-              objectFit: 'contain',
-              display: 'block',
-              filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.08))',
-            }}
-            onError={() => setLogoError(true)}
-          />
+          // ロゴを白コンテナに入れて背景色に依存しない表示
+          <div style={{
+            background: '#fff',
+            borderRadius: 12,
+            padding: '12px 22px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+            maxWidth: '72%',
+          }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={company.logo_url}
+              alt={`${company.name}のロゴ`}
+              style={{
+                maxWidth: 140,
+                maxHeight: 48,
+                width: 'auto',
+                height: 'auto',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+              onError={() => setLogoError(true)}
+            />
+          </div>
         ) : (
-          <>
-            {/* 背景の薄いパターン */}
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'radial-gradient(circle at 70% 30%, rgba(255,255,255,0.12) 0%, transparent 60%)',
-              pointerEvents: 'none',
-            }} />
-            {/* イニシャル文字 */}
-            <span style={{
-              fontSize: compact ? 36 : 52,
-              fontWeight: 800,
-              color: 'rgba(255,255,255,0.92)',
-              letterSpacing: '-0.03em',
-              fontFamily: 'Inter, "Noto Sans JP", sans-serif',
-              textShadow: '0 2px 12px rgba(0,0,0,0.18)',
-              lineHeight: 1,
-              userSelect: 'none',
-            }}>
-              {initial}
-            </span>
-          </>
+          /* ロゴなし → イニシャル文字 */
+          <span style={{
+            fontSize: compact ? 36 : 52,
+            fontWeight: 800,
+            color: 'rgba(255,255,255,0.92)',
+            letterSpacing: '-0.03em',
+            fontFamily: 'Inter, "Noto Sans JP", sans-serif',
+            textShadow: '0 2px 12px rgba(0,0,0,0.18)',
+            lineHeight: 1,
+            userSelect: 'none',
+          }}>
+            {initial}
+          </span>
         )}
 
         {/* 取材済みバッジ（左上） */}
@@ -361,10 +369,11 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         {/* 社名 */}
         <div>
           <div style={{
-            fontSize: 16,
-            fontWeight: 700,
+            fontSize: 19,
+            fontWeight: 800,
             color: 'var(--ink)',
-            lineHeight: 1.25,
+            lineHeight: 1.2,
+            letterSpacing: isEnName ? '-0.02em' : '0',
             fontFamily: isEnName ? 'Inter, sans-serif' : 'var(--font-noto-sans)',
             overflow: 'hidden',
             display: '-webkit-box',
@@ -374,7 +383,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             {displayName}
           </div>
           {isEnName && (
-            <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 2 }}>
+            <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginTop: 3 }}>
               {company.name}
             </div>
           )}
@@ -383,7 +392,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         {/* タグライン */}
         {company.tagline && (
           <div style={{
-            fontSize: "var(--text-sm)", color: 'var(--ink-soft)', lineHeight: 1.65,
+            fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.7,
             overflow: 'hidden', display: '-webkit-box',
             WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
             flex: 1,

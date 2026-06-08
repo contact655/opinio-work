@@ -757,8 +757,8 @@ function LogoStripSection() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: c.logoUrl ? "#f5f7fa" : c.gradient,
-                border: "1px solid var(--line)",
+                background: c.gradient,
+                border: "none",
                 textDecoration: "none",
                 transition: "opacity 0.15s, transform 0.15s",
               }}
@@ -769,7 +769,7 @@ function LogoStripSection() {
                 <img
                   src={c.logoUrl}
                   alt={c.name}
-                  style={{ width: "80%", height: "80%", objectFit: "contain" }}
+                  style={{ width: "72%", height: "72%", objectFit: "contain", filter: "brightness(0) invert(1)" }}
                 />
               ) : (
                 <span style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "#fff", lineHeight: 1 }}>
