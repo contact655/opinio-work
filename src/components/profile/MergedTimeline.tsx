@@ -920,8 +920,22 @@ export default function MergedTimeline({
   const renderEntries = groupSameCompanyEntries(groupParallelEntries(entries));
 
   const [isExpanded, setIsExpanded] = useState(false);
-  const hasMore = collapseAfter !== undefined && renderEntries.length > collapseAfter;
-  const visibleEntries = hasMore && !isExpanded ? renderEntries.slice(0, collapseAfter) : renderEntries;
+  // education + future entries are always visible; only career entries count toward the collapse limit
+  const alwaysVisibleEntries = renderEntries.filter(
+    (e) => e.kind === "education" || e.kind === "future"
+  );
+  const collapsibleEntries = renderEntries.filter(
+    (e) => e.kind !== "education" && e.kind !== "future"
+  );
+  const hasMore = collapseAfter !== undefined && collapsibleEntries.length > collapseAfter;
+  const hiddenCount = hasMore ? collapsibleEntries.length - collapseAfter : 0;
+  const visibleCollapsible = hasMore && !isExpanded
+    ? collapsibleEntries.slice(0, collapseAfter)
+    : collapsibleEntries;
+  const visibleSet = new Set([...alwaysVisibleEntries, ...visibleCollapsible]);
+  const visibleEntries = hasMore && !isExpanded
+    ? renderEntries.filter((e) => visibleSet.has(e))
+    : renderEntries;
 
   if (renderEntries.length === 0) return null;
 
@@ -1310,7 +1324,7 @@ export default function MergedTimeline({
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <polyline points="6 9 12 15 18 9" />
           </svg>
-          すべての経歴を見る ({renderEntries.length - collapseAfter!}件)
+          すべての経歴を見る ({hiddenCount}件)
         </button>
       )}
       {isExpanded && hasMore && (
