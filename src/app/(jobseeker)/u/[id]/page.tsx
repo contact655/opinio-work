@@ -1067,7 +1067,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             )}
 
             {/* ── 職歴セクション ── */}
-            {(timelineCareers.length > 0 || futureData != null) && (
+            {timelineCareers.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "24px 28px", marginBottom: 32,
@@ -1083,7 +1083,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 <MergedTimeline
                   careers={timelineCareers}
                   educations={[]}
-                  future={futureData}
+                  future={null}
                   viewerIsOwner={viewerIsOwner}
                   collapseAfter={4}
                 />
