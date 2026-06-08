@@ -159,10 +159,10 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: (company.logo_url && !logoError) ? '4% 6%' : 0,
+        padding: 0,
         position: 'relative',
         overflow: 'hidden',
-        borderBottom: (company.logo_url && !logoError) ? '1px solid #e2e8f0' : 'none',
+        borderBottom: (company.logo_url && !logoError) ? '1px solid #e8ecf0' : 'none',
         boxSizing: 'border-box',
       }}>
         {company.logo_url && !logoError ? (
@@ -171,11 +171,12 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
             src={company.logo_url}
             alt={`${company.name}のロゴ`}
             style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              objectPosition: 'center',
               display: 'block',
+              objectFit: 'contain',
+              maxWidth: '62%',
+              maxHeight: '52%',
+              width: 'auto',
+              height: 'auto',
             }}
             onError={() => setLogoError(true)}
           />
