@@ -353,7 +353,7 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         {/* 社名 */}
         <div>
           <div style={{
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: 800,
             color: 'var(--ink)',
             lineHeight: 1.2,
