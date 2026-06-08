@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import HomeFaq from "@/app/HomeFaq";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import { CountUp } from "@/components/jobseeker/CountUp";
+import { LogoWall, type LogoWallCompany } from "@/components/companies/LogoWall";
 
 // ─── Site stats type ─────────────────────────────────────────────────────────
 
@@ -693,109 +694,44 @@ function CompanyMiniCardSkeleton() {
 // ─── Logo Strip Section ───────────────────────────────────────────────────────
 
 function LogoStripSection() {
-  const [companies, setCompanies] = useState<PreviewCompany[]>([]);
+  const [companies, setCompanies] = useState<LogoWallCompany[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch("/api/companies/preview")
+    fetch("/api/companies/logos")
       .then((r) => r.json())
       .then((d) => { setCompanies(Array.isArray(d.companies) ? d.companies : []); })
-      .catch(() => setCompanies([]));
+      .catch(() => setCompanies([]))
+      .finally(() => setLoaded(true));
   }, []);
 
-  if (companies.length === 0) return null;
+  if (!loaded || companies.length === 0) return null;
 
   return (
     <section style={{
       background: "#fff",
       borderBottom: "1px solid var(--line)",
-      padding: "var(--space-4) 0",
-      overflow: "hidden",
+      padding: "32px 0 36px",
     }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-5 md:px-12">
+        {/* ヘッダーラベル */}
         <div style={{
           fontSize: 10, fontWeight: 700, letterSpacing: "0.14em",
           color: "var(--ink-mute)", textTransform: "uppercase" as const,
-          marginBottom: "var(--space-3)", display: "flex", alignItems: "center", gap: "var(--space-2)",
+          marginBottom: 16, display: "flex", alignItems: "center", gap: 6,
         }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             <polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
           編集部が取材・審査した掲載企業
+          <span style={{ fontFamily: "Inter, sans-serif", marginLeft: 4, color: "var(--royal)", fontWeight: 700 }}>
+            {companies.length}社
+          </span>
         </div>
+
+        <LogoWall companies={companies} />
       </div>
-
-      {/* Auto-scrolling marquee */}
-      <div style={{ overflow: "hidden", position: "relative" }}>
-        {/* Fade edges */}
-        <div style={{
-          position: "absolute", left: 0, top: 0, bottom: 0, width: 72,
-          background: "linear-gradient(to right, #fff 0%, transparent 100%)",
-          zIndex: 2, pointerEvents: "none",
-        }} />
-        <div style={{
-          position: "absolute", right: 0, top: 0, bottom: 0, width: 72,
-          background: "linear-gradient(to left, #fff 0%, transparent 100%)",
-          zIndex: 2, pointerEvents: "none",
-        }} />
-
-        <div
-          className="logo-marquee-track"
-          style={{ display: "flex", gap: "var(--space-3)", width: "max-content", paddingLeft: "var(--space-6)" }}
-        >
-          {/* Duplicate for seamless loop */}
-          {[...companies, ...companies].map((c, i) => (
-            <Link
-              key={i}
-              href={`/companies/${c.id}`}
-              style={{
-                flexShrink: 0,
-                width: 72,
-                height: 44,
-                borderRadius: 10,
-                overflow: "hidden",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: c.gradient,
-                border: "none",
-                textDecoration: "none",
-                transition: "opacity 0.15s, transform 0.15s",
-              }}
-              title={c.name}
-            >
-              {c.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={c.logoUrl}
-                  alt={c.name}
-                  style={{ width: "72%", height: "72%", objectFit: "contain", filter: "brightness(0) invert(1)" }}
-                />
-              ) : (
-                <span style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "#fff", lineHeight: 1 }}>
-                  {c.letter}
-                </span>
-              )}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <style>{`
-        .logo-marquee-track {
-          animation: logoMarquee 30s linear infinite;
-        }
-        .logo-marquee-track:hover {
-          animation-play-state: paused;
-        }
-        @keyframes logoMarquee {
-          from { transform: translateX(0); }
-          to   { transform: translateX(-50%); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .logo-marquee-track { animation: none; overflow-x: auto; }
-        }
-      `}</style>
     </section>
   );
 }
