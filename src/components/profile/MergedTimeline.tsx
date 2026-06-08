@@ -497,67 +497,6 @@ function FutureIcon({ avatarColor, initial }: { avatarColor: string; initial: st
   );
 }
 
-// ─── Date column sub-component ────────────────────────────────────────────────
-
-function DateCol({
-  startLabel,
-  endLabel,
-  duration,
-}: {
-  startLabel: string;
-  endLabel: string;
-  duration: string;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-end",
-        gap: 2,
-        paddingTop: 8,
-        paddingRight: 8,
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "Inter, sans-serif",
-          fontSize: 11,
-          fontWeight: 600,
-          color: "var(--ink-soft)",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {startLabel}
-      </span>
-      {endLabel && (
-        <span
-          style={{
-            fontFamily: "Inter, sans-serif",
-            fontSize: 11,
-            color: "var(--ink-mute)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {endLabel}
-        </span>
-      )}
-      {duration && (
-        <span
-          style={{
-            fontFamily: "Inter, sans-serif",
-            fontSize: 10,
-            color: "var(--ink-mute)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {duration}
-        </span>
-      )}
-    </div>
-  );
-}
-
 // ─── Description gate (未ログイン時) ─────────────────────────────────────────
 
 function DescriptionGate() {
@@ -1062,15 +1001,7 @@ export default function MergedTimeline({
                   return !latest || c.ended_at > latest ? c.ended_at : latest;
                 }, null);
 
-            const startLabel = formatYM(earliestStart);
-            const endLabel = anyIsCurrent ? "現在" : latestEnd ? formatYM(latestEnd) : "";
             const duration = formatDuration(earliestStart, latestEnd);
-
-            // 会社色（logo_gradient の最初の色を抽出。フォールバックは royal 系）
-            const accentColor = head.logo_gradient
-              ? (head.logo_gradient.match(/#[0-9a-fA-F]{3,6}/)?.[0] ?? "var(--royal)")
-              : "var(--royal)";
-            // bgTint は LinkedIn スタイルリデザインで不要になったため削除済み
 
             return (
               <div key={`same-company-${entry.companyKey}`} className="tl-row">
