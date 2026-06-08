@@ -339,13 +339,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const currentCompanyPhase = currentCareer?.company_id ? (companyPhaseById.get(currentCareer.company_id) ?? null) : null;
 
   // キャリアパスノード用 年表示
-  const fmtYearRange = (startedAt: string, endedAt: string | null, isCurrent: boolean) => {
-    const sy = new Date(startedAt).getFullYear();
-    if (isCurrent) return `${sy}年〜`;
-    const ey = new Date(endedAt!).getFullYear();
-    return sy === ey ? `${sy}年` : `${sy}〜${ey}年`;
-  };
-
   // プラットフォームメタ（アイコン色・表示名）
   const PLATFORM_META: Record<string, { label: string; color: string; bg: string }> = {
     youtube:      { label: "YouTube",      color: "#FF0000", bg: "#FFF0F0" },
@@ -1089,75 +1082,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
-
-                {/* ── 視覚的キャリアパス ── */}
-                {timelineCareers.length >= 2 && (
-                  <div style={{ marginBottom: 28, overflowX: "auto", padding: "0 2px 8px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 0, minWidth: "max-content" }}>
-                      {[...timelineCareers].reverse().map((c, i) => (
-                        <div key={c.id} style={{ display: "flex", alignItems: "center" }}>
-                          {i > 0 && (
-                            <div style={{ display: "flex", alignItems: "center", gap: 0, padding: "0 4px" }}>
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round">
-                                <path d="M5 12h14M12 5l7 7-7 7" />
-                              </svg>
-                            </div>
-                          )}
-                          <div style={{
-                            display: "flex", flexDirection: "column", alignItems: "center",
-                            padding: "10px 14px", borderRadius: 10,
-                            background: c.is_current ? "var(--royal-50)" : "var(--bg-tint)",
-                            border: `1.5px solid ${c.is_current ? "var(--royal-100)" : "var(--line)"}`,
-                            minWidth: 100, maxWidth: 130,
-                            position: "relative",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                            transition: "box-shadow 0.15s",
-                          }}>
-                            {c.is_current && (
-                              <span style={{
-                                position: "absolute", top: -9,
-                                background: "var(--royal)", color: "#fff",
-                                fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
-                                padding: "2px 8px", borderRadius: 100,
-                              }}>現在</span>
-                            )}
-                            <div style={{ position: "relative", marginBottom: 6 }}>
-                              {c.is_current && (
-                                <div style={{
-                                  position: "absolute", inset: -5, borderRadius: 12,
-                                  border: "2px solid var(--royal)", opacity: 0.4,
-                                  animation: "pulseDot 2s ease-in-out infinite",
-                                }} />
-                              )}
-                              <div style={{
-                                width: 40, height: 40, borderRadius: 9, flexShrink: 0,
-                                background: c.logo_gradient ?? (c.is_current ? "var(--royal)" : "var(--line)"),
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                color: "#fff", fontSize: "var(--text-md)", fontWeight: 700,
-                              }}>
-                                {c.logo_letter ?? c.company_name.charAt(0)}
-                              </div>
-                            </div>
-                            <div style={{
-                              fontSize: "var(--text-xs)", fontWeight: 600, color: c.is_current ? "var(--royal)" : "var(--ink)",
-                              textAlign: "center", lineHeight: 1.3, wordBreak: "break-all",
-                              overflow: "hidden", display: "-webkit-box",
-                              WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                            }}>
-                              {c.company_name}
-                            </div>
-                            <div style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center", marginTop: 3, lineHeight: 1.2 }}>
-                              {c.role_label.length > 12 ? c.role_label.slice(0, 12) + "…" : c.role_label}
-                            </div>
-                            <div style={{ fontSize: 9, color: "var(--ink-mute)", textAlign: "center", marginTop: 2, fontFamily: "Inter, sans-serif", opacity: 0.7 }}>
-                              {fmtYearRange(c.started_at, c.ended_at ?? null, c.is_current)}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 <MergedTimeline
                   careers={timelineCareers}
