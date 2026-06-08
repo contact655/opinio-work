@@ -6,6 +6,7 @@ import MypageLayout, { type MypageActiveKey } from "./_components/MypageLayout";
 import { useMypageMock } from "./_components/MypageMockContext";
 import UserProfileCard from "@/components/profile/UserProfileCard";
 import MergedTimeline, { type CareerEntry } from "@/components/profile/MergedTimeline";
+import { PostComposer } from "@/components/profile/PostComposer";
 import {
   toTimelineEducationEntries,
   buildFutureData,
@@ -442,6 +443,23 @@ function DashboardView({
         userCertifications={userCertifications}
         isMentor={false}
       />
+
+      {/* ── アクティビティ投稿フォーム ── */}
+      <SectionBlock title="アクティビティ" titleEn="ACTIVITY">
+        <PostComposer
+          avatarColor={userAvatar ?? "linear-gradient(135deg, var(--royal), #3B5FD9)"}
+          initial={userInitial}
+          avatarUrl={null}
+        />
+        <div style={{ marginTop: 8 }}>
+          <Link href={`/u/${userId}`} style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
+          }}>
+            投稿を公開プロフィールで確認する →
+          </Link>
+        </div>
+      </SectionBlock>
 
       {/* 経歴タイムライン（キャリア + 学歴 + 未来を統合表示） */}
       {hasMergedTimeline && (

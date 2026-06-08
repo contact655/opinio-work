@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import MergedTimeline from "@/components/profile/MergedTimeline";
+import { PostComposer } from "@/components/profile/PostComposer";
+import { PostCard } from "@/components/profile/PostCard";
 import {
   buildTimelineCareerEntriesFromRaw,
   toTimelineEducationEntries,
@@ -161,10 +163,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .order("sort_order", { ascending: true }),
     supabase
       .from("ow_posts")
-      .select("id, content, image_url, created_at, likes:ow_post_likes(count), comments:ow_post_comments(count)")
+      .select("id, content, image_url, created_at, likes:ow_post_likes(count)")
       .eq("user_id", owUser.id)
       .order("created_at", { ascending: false })
-      .limit(3),
+      .limit(6),
   ]);
 
   const skillTags      = skillTagsRaw      ?? [];
@@ -187,10 +189,25 @@ export default async function UserProfilePage({ params }: { params: { id: string
     id: string; title: string; media_name: string | null; url: string | null;
     thumbnail_url: string | null; appeared_at: string | null; description: string | null; sort_order: number;
   }>;
-  const recentPosts = (recentPostsRaw ?? []) as Array<{
+  const recentPostsTyped = (recentPostsRaw ?? []) as Array<{
     id: string; content: string; image_url: string | null; created_at: string;
-    likes: Array<{ count: number }>; comments: Array<{ count: number }>;
+    likes: Array<{ count: number }>;
   }>;
+
+  // ログインユーザーがいいねしている投稿ID一覧
+  const likedPostIds = new Set<string>();
+  if (authUser && recentPostsTyped.length > 0) {
+    const { data: owViewer } = await supabase
+      .from("ow_users").select("id").eq("auth_id", authUser.id).maybeSingle();
+    if (owViewer) {
+      const { data: likedRows } = await supabase
+        .from("ow_post_likes")
+        .select("post_id")
+        .eq("user_id", owViewer.id)
+        .in("post_id", recentPostsTyped.map((p) => p.id));
+      for (const r of likedRows ?? []) likedPostIds.add(r.post_id as string);
+    }
+  }
 
   // ロール表示名を直接参照（ow_roles.name が日本語表示ラベルそのもの、slug 変換不要）
   const roleNameById = new Map<string, string>();
@@ -1185,8 +1202,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </section>
             )}
 
-            {/* ── アクティビティ（最近の投稿） ── */}
-            {recentPosts.length > 0 && (
+            {/* ── アクティビティ（投稿フォーム + 最近の投稿） ── */}
+            {(viewerIsOwner || recentPostsTyped.length > 0) && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "22px 28px", marginBottom: 20,
@@ -1200,56 +1217,45 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     ACTIVITY
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                  <Link href="/feed" style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>
-                    すべて見る →
-                  </Link>
+                  {recentPostsTyped.length > 0 && (
+                    <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 600, color: "var(--ink-mute)" }}>
+                      {recentPostsTyped.length}件
+                    </span>
+                  )}
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                  {recentPosts.map((post) => {
-                    const likeCount = (post.likes as Array<{ count: number }>)[0]?.count ?? 0;
-                    const commentCount = (post.comments as Array<{ count: number }>)[0]?.count ?? 0;
-                    const diff = Date.now() - new Date(post.created_at).getTime();
-                    const mins = Math.floor(diff / 60000);
-                    const relTime = mins < 60 ? `${mins}分前` : mins < 1440 ? `${Math.floor(mins / 60)}時間前` : `${Math.floor(mins / 1440)}日前`;
-                    return (
-                      <div key={post.id} style={{
-                        padding: "14px 16px", borderRadius: 10,
-                        background: "var(--bg-tint)", border: "1px solid var(--line)",
-                      }}>
-                        {post.image_url && (
-                          <div style={{ marginBottom: 10, borderRadius: 8, overflow: "hidden", maxHeight: 200 }}>
-                            <img src={post.image_url} alt="" style={{ width: "100%", objectFit: "cover", maxHeight: 200 }} />
-                          </div>
-                        )}
-                        <p style={{
-                          fontSize: "var(--text-sm)", color: "var(--ink)", lineHeight: 1.75, margin: "0 0 10px",
-                          whiteSpace: "pre-wrap",
-                          display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                        }}>
-                          {post.content}
-                        </p>
-                        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                          <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
-                            {relTime}
-                          </span>
-                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                            </svg>
-                            {likeCount}
-                          </span>
-                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                            </svg>
-                            {commentCount}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+
+                {/* 投稿フォーム（オーナーのみ） */}
+                {viewerIsOwner && (
+                  <PostComposer
+                    avatarColor={avatarColor}
+                    initial={initial}
+                    avatarUrl={owUser.avatar_url}
+                  />
+                )}
+
+                {/* 投稿リスト */}
+                {recentPostsTyped.length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {recentPostsTyped.map((post) => (
+                      <PostCard
+                        key={post.id}
+                        post={{
+                          id: post.id,
+                          content: post.content,
+                          image_url: post.image_url,
+                          created_at: post.created_at,
+                          likeCount: post.likes[0]?.count ?? 0,
+                          isLiked: likedPostIds.has(post.id),
+                          isOwner: viewerIsOwner,
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : viewerIsOwner ? (
+                  <div style={{ textAlign: "center", padding: "16px 0 4px", color: "var(--ink-mute)", fontSize: 13 }}>
+                    まだ投稿がありません。近況や知見を発信してみましょう！
+                  </div>
+                ) : null}
               </section>
             )}
 
@@ -1471,11 +1477,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </div>
                 )}
 
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-                  gap: 14,
-                }}>
+                {/* 横並びリスト（LinkedIn Featured 風） */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {contentLinks.map((link) => {
                     const meta = PLATFORM_META[link.platform ?? "other"] ?? PLATFORM_META.other;
                     return (
@@ -1486,50 +1489,50 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         rel="noopener noreferrer"
                         className="u-content-card"
                         style={{
-                          display: "flex", flexDirection: "column",
-                          borderRadius: 12, overflow: "hidden",
+                          display: "flex", alignItems: "center", gap: 14,
+                          borderRadius: 12,
                           border: "1px solid var(--line)",
                           background: "#fff",
                           textDecoration: "none",
+                          padding: "12px 14px",
                           transition: "box-shadow 0.15s, transform 0.15s",
-                          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+                          boxShadow: "0 1px 3px rgba(15,23,42,0.05)",
+                          minWidth: 0,
                         }}
                       >
-                        {/* サムネイル or プラットフォームカラーバナー */}
-                        {link.thumbnail_url ? (
-                          <div style={{ width: "100%", height: 140, overflow: "hidden", flexShrink: 0 }}>
-                            <img
-                              src={link.thumbnail_url}
-                              alt=""
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            />
-                          </div>
-                        ) : (
-                          <div style={{
-                            width: "100%", height: 80, flexShrink: 0,
-                            background: `linear-gradient(135deg, ${meta.color}22 0%, ${meta.color}44 100%)`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                          }}>
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={meta.color} strokeWidth="1.5" strokeLinecap="round">
+                        {/* サムネイル or プラットフォームカラーアイコン */}
+                        <div style={{
+                          width: 64, height: 64, borderRadius: 10, flexShrink: 0, overflow: "hidden",
+                          background: link.thumbnail_url
+                            ? undefined
+                            : `linear-gradient(135deg, ${meta.color}18 0%, ${meta.color}38 100%)`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          {link.thumbnail_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={link.thumbnail_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={meta.color} strokeWidth="1.8" strokeLinecap="round">
                               <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                               <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                             </svg>
-                          </div>
-                        )}
+                          )}
+                        </div>
+
                         {/* テキスト情報 */}
-                        <div style={{ padding: "12px 14px 14px", flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
                           {/* プラットフォームバッジ */}
                           <span style={{
                             display: "inline-flex", alignItems: "center", gap: 4,
                             fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
                             background: meta.bg, color: meta.color,
-                            alignSelf: "flex-start",
+                            marginBottom: 5,
                           }}>
                             {meta.label}
                           </span>
                           {/* タイトル */}
                           <div style={{
-                            fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.5,
+                            fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5,
                             overflow: "hidden", display: "-webkit-box",
                             WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                           }}>
@@ -1538,15 +1541,20 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           {/* 説明 */}
                           {link.description && (
                             <div style={{
-                              fontSize: "var(--text-xs)", color: "var(--ink-mute)", lineHeight: 1.6,
+                              fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.5, marginTop: 3,
                               overflow: "hidden", display: "-webkit-box",
-                              WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                              marginTop: "auto",
+                              WebkitLineClamp: 1, WebkitBoxOrient: "vertical",
                             }}>
                               {link.description}
                             </div>
                           )}
                         </div>
+
+                        {/* 外部リンクアイコン */}
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                        </svg>
                       </a>
                     );
                   })}

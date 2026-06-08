@@ -1226,12 +1226,31 @@ export default function MergedTimeline({
                               </div>
                               {c.description && (
                                 isAuthenticated ? (
-                                  <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>
+                                  <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75, margin: "4px 0 0", whiteSpace: "pre-wrap" }}>
                                     {c.description}
                                   </p>
                                 ) : (
                                   <DescriptionGate />
                                 )
+                              )}
+                              {c.join_reason && (
+                                <div style={{
+                                  marginTop: 8,
+                                  padding: "8px 10px",
+                                  borderRadius: 7,
+                                  background: "linear-gradient(135deg, #f8f4ff 0%, #eff6ff 100%)",
+                                  border: "1px solid #e8e0ff",
+                                }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.5" strokeLinecap="round">
+                                      <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+                                    </svg>
+                                    <span style={{ fontSize: 9, fontWeight: 700, color: "var(--purple)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Why I joined</span>
+                                  </div>
+                                  <p style={{ fontSize: 12, color: "var(--ink)", lineHeight: 1.7, margin: 0, whiteSpace: "pre-wrap" }}>
+                                    {c.join_reason}
+                                  </p>
+                                </div>
                               )}
                             </div>
                           </div>
