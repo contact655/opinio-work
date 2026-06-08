@@ -1567,52 +1567,6 @@ export default function JobsClient({
                 onPage={goPage}
               />
 
-              {/* ── カジュアル面談 CTA ── */}
-              <div style={{
-                marginTop: 48, padding: "28px 32px",
-                background: "linear-gradient(135deg, #001A4D 0%, var(--royal) 60%, #1D4ED8 100%)",
-                borderRadius: 16,
-                display: "flex", flexDirection: "column", alignItems: "center",
-                textAlign: "center",
-                position: "relative", overflow: "hidden",
-              }}>
-                {/* 背景デコ */}
-                <div style={{
-                  position: "absolute", top: -30, right: -30,
-                  width: 180, height: 180, borderRadius: "50%",
-                  background: "rgba(255,255,255,0.04)",
-                  pointerEvents: "none",
-                }} />
-                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.55)", marginBottom: 10, textTransform: "uppercase" as const }}>
-                  OPINIO独自の機能
-                </div>
-                <h3 style={{
-                  fontFamily: "var(--font-noto-serif)",
-                  fontSize: "clamp(16px,2.5vw,20px)", fontWeight: 500,
-                  color: "#fff", marginBottom: 10, lineHeight: 1.5,
-                }}>
-                  気になる求人を見つけたら、<br />その企業の現役社員に話を聞いてみよう。
-                </h3>
-                <p style={{ fontSize: "var(--text-sm)", color: "rgba(255,255,255,0.65)", lineHeight: 1.75, marginBottom: 22, maxWidth: 480 }}>
-                  「応募前にもっとリアルな声を聞きたい」なら、企業ページからカジュアル面談を申し込めます。営業される心配ゼロ・完全無料。
-                </p>
-                <Link href="/companies" style={{
-                  display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
-                  padding: "var(--space-3) 28px",
-                  background: "rgba(255,255,255,0.15)",
-                  color: "#fff", borderRadius: 8, textDecoration: "none",
-                  fontSize: "var(--text-base)", fontWeight: 700,
-                  border: "1px solid rgba(255,255,255,0.3)",
-                }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                  </svg>
-                  カジュアル面談できる企業を見る
-                </Link>
-                <p style={{ fontSize: "var(--text-xs)", color: "rgba(255,255,255,0.4)", marginTop: 12 }}>
-                  OPINIO編集部が取材・審査した企業のみ掲載
-                </p>
-              </div>
             </>
           )}
             </main>
