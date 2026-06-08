@@ -757,36 +757,23 @@ export default async function UserProfilePage({ params }: { params: { id: string
               );
             })()}
 
-            {/* ── 目指していること (Wantedly-style aspirations card) ── */}
+            {/* ── キャッチフレーズ大見出し ── */}
             {owUser.future_aspirations && (
-              <section style={{
-                background: "linear-gradient(135deg, #f8f4ff 0%, #eff6ff 100%)",
-                border: "1px solid #e8e0ff",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-                boxShadow: "0 1px 4px rgba(124,58,237,0.08)",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                    background: "linear-gradient(135deg, var(--purple), #a855f7)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", fontFamily: "'Noto Serif JP', serif" }}>
-                      目指していること
-                    </div>
-                    <div style={{ fontSize: 10, color: "var(--purple)", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                      ASPIRATION
-                    </div>
-                  </div>
-                </div>
-                <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0, paddingLeft: 42 }}>
+              <section style={{ marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid var(--line)" }}>
+                <p style={{
+                  fontSize: 20,
+                  fontWeight: 800,
+                  fontFamily: "'Noto Serif JP', serif",
+                  color: "var(--ink)",
+                  lineHeight: 1.75,
+                  margin: 0,
+                  letterSpacing: "-0.01em",
+                }}>
                   {owUser.future_aspirations}
                 </p>
+                <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: "var(--purple)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                  ASPIRATION
+                </div>
               </section>
             )}
 
@@ -1193,6 +1180,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   educations={timelineEdus}
                   future={futureData}
                   viewerIsOwner={viewerIsOwner}
+                  collapseAfter={4}
                 />
               </section>
             )}

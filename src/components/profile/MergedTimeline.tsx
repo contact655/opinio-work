@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { Briefcase } from "lucide-react";
 import FutureSectionEditor from "./FutureSectionEditor";
@@ -69,6 +72,8 @@ export interface MergedTimelineProps {
   viewerIsOwner?: boolean;
   /** ログイン済みかどうか（false の場合、経歴の詳細説明をゲート） */
   isAuthenticated?: boolean;
+  /** この件数を超えた経歴を折りたたむ（未指定の場合は折りたたみなし） */
+  collapseAfter?: number;
 }
 
 // ─── Internal discriminated union ─────────────────────────────────────────────
@@ -907,11 +912,16 @@ export default function MergedTimeline({
   future,
   viewerIsOwner = false,
   isAuthenticated = true,
+  collapseAfter,
 }: MergedTimelineProps) {
   const hasFuture = future != null && (!!(future.text?.trim()) || viewerIsOwner);
   const parallelIds = buildParallelMap(careers);
   const entries = buildTimeline(careers, educations, hasFuture, parallelIds);
   const renderEntries = groupSameCompanyEntries(groupParallelEntries(entries));
+
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasMore = collapseAfter !== undefined && renderEntries.length > collapseAfter;
+  const visibleEntries = hasMore && !isExpanded ? renderEntries.slice(0, collapseAfter) : renderEntries;
 
   if (renderEntries.length === 0) return null;
 
@@ -1007,7 +1017,7 @@ export default function MergedTimeline({
       `}</style>
 
       <div className="merged-timeline">
-        {renderEntries.map((entry, _idx) => {
+        {visibleEntries.map((entry, _idx) => {
           if (entry.kind === "future") {
             return (
               <div key="future" className="tl-row">
@@ -1167,107 +1177,66 @@ export default function MergedTimeline({
                   />
                 </div>
                 <div style={{ paddingTop: 8, paddingBottom: 20, paddingLeft: 12 }}>
-                  <div
-                    style={{
-                      background: bgTint,
-                      borderLeft: `4px solid ${accentColor}`,
-                      borderRadius: 8,
-                      padding: "12px 14px",
-                    }}
-                  >
+                  <div>
                     {/* 会社名ヘッダー */}
-                    <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
                       {head.company_id ? (
-                        <Link
-                          href={`/companies/${head.company_id}`}
-                          className="company-name-link"
-                          style={{
-                            fontFamily: "'Noto Serif JP', serif",
-                            fontSize: 16,
-                            fontWeight: 700,
-                            color: "var(--ink)",
-                            textDecoration: "none",
-                          }}
-                        >
+                        <Link href={`/companies/${head.company_id}`} className="company-name-link"
+                          style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", textDecoration: "none" }}>
                           {head.company_name}
                         </Link>
                       ) : (
-                        <span
-                          style={{
-                            fontFamily: "'Noto Serif JP', serif",
-                            fontSize: 16,
-                            fontWeight: 700,
-                            color: "var(--ink)",
-                          }}
-                        >
+                        <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
                           {head.company_name}
                         </span>
                       )}
+                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
+                        {duration}
+                      </span>
                       {anyIsCurrent && <CurrentBadge />}
                     </div>
 
-                    {/* ポジションカード群 */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {items.map((c) => {
+                    {/* ポジションリスト — LinkedIn スタイル */}
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      {items.map((c, idx) => {
                         const posDuration = formatDuration(c.started_at, c.ended_at);
+                        const isLast = idx === items.length - 1;
                         return (
-                          <div
-                            key={c.id}
-                            style={{
-                              background: "#fff",
-                              border: "1px solid var(--line)",
-                              borderRadius: 6,
-                              padding: "10px 12px",
-                            }}
-                          >
-                            {/* role label + role title */}
-                            <div
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 600,
-                                color: "var(--ink)",
-                                marginBottom: c.role_title ? 2 : 0,
-                              }}
-                            >
-                              {c.role_label}
+                          <div key={c.id} style={{ display: "flex", gap: 10, position: "relative" }}>
+                            {/* bullet + connector */}
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 16, flexShrink: 0, paddingTop: 3 }}>
+                              <div style={{
+                                width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                                background: accentColor, border: `2px solid ${accentColor}`,
+                              }} />
+                              {!isLast && (
+                                <div style={{ width: 2, flex: 1, minHeight: 16, background: "var(--line)", marginTop: 2 }} />
+                              )}
                             </div>
-                            {c.role_title && (
-                              <div
-                                style={{
-                                  fontSize: 12,
-                                  color: "var(--ink-mute)",
-                                  marginBottom: 4,
-                                }}
-                              >
-                                {c.role_title}
+                            {/* content */}
+                            <div style={{ flex: 1, paddingBottom: isLast ? 0 : 14 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: c.role_title ? 1 : 0 }}>
+                                {c.role_label}
                               </div>
-                            )}
-                            {/* 期間 */}
-                            {posDuration && (
-                              <div
-                                style={{
-                                  fontFamily: "Inter, sans-serif",
-                                  fontSize: 11,
-                                  color: "var(--ink-mute)",
-                                  marginBottom: c.description ? 4 : 0,
-                                }}
-                              >
-                                {formatYM(c.started_at)}
-                                {" — "}
-                                {c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
-                                {" "}（{posDuration}）
+                              {c.role_title && (
+                                <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 3 }}>
+                                  {c.role_title}
+                                </div>
+                              )}
+                              <div style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "var(--ink-mute)", marginBottom: c.description ? 6 : 0 }}>
+                                {formatYM(c.started_at)} – {c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
+                                {posDuration && <> · {posDuration}</>}
                               </div>
-                            )}
-                            {/* description */}
-                            {c.description && (
-                              isAuthenticated ? (
-                                <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75, margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
-                                  {c.description}
-                                </p>
-                              ) : (
-                                <DescriptionGate />
-                              )
-                            )}
+                              {c.description && (
+                                isAuthenticated ? (
+                                  <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>
+                                    {c.description}
+                                  </p>
+                                ) : (
+                                  <DescriptionGate />
+                                )
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -1311,6 +1280,39 @@ export default function MergedTimeline({
           return null;
         })}
       </div>
+      {hasMore && !isExpanded && (
+        <button
+          onClick={() => setIsExpanded(true)}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            marginTop: 4, padding: "8px 0",
+            background: "none", border: "none", cursor: "pointer",
+            fontSize: 13, fontWeight: 600, color: "var(--royal)",
+            textDecoration: "none",
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+          すべての経歴を見る ({renderEntries.length - collapseAfter!}件)
+        </button>
+      )}
+      {isExpanded && hasMore && (
+        <button
+          onClick={() => setIsExpanded(false)}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            marginTop: 4, padding: "8px 0",
+            background: "none", border: "none", cursor: "pointer",
+            fontSize: 13, fontWeight: 600, color: "var(--ink-mute)",
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
+          折りたたむ
+        </button>
+      )}
     </>
   );
 }
