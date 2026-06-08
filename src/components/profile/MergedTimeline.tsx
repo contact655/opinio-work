@@ -431,9 +431,9 @@ function CompanyLogoIcon({
   company_name?: string;
 }) {
   const wrapStyle: React.CSSProperties = {
-    width: 44,
-    height: 44,
-    borderRadius: 9,
+    width: 52,
+    height: 52,
+    borderRadius: 11,
     flexShrink: 0,
     margin: "0 auto",
     position: "relative",
@@ -451,7 +451,7 @@ function CompanyLogoIcon({
           logoUrl={logo_url}
           logoLetter={logo_letter ?? null}
           logoGradient={logo_gradient ?? null}
-          size={44}
+          size={52}
         />
       </div>
     );
@@ -461,7 +461,7 @@ function CompanyLogoIcon({
   if (logo_letter && logo_gradient) {
     return (
       <div style={wrapStyle}>
-        <LetterCircle letter={logo_letter} gradient={logo_gradient} size={44} />
+        <LetterCircle letter={logo_letter} gradient={logo_gradient} size={52} />
       </div>
     );
   }
@@ -485,9 +485,9 @@ function CareerIcon({ isCurrent }: { isCurrent: boolean }) {
   return (
     <div
       style={{
-        width: 44,
-        height: 44,
-        borderRadius: 9,
+        width: 52,
+        height: 52,
+        borderRadius: 11,
         background: isCurrent ? "var(--royal)" : "var(--ink-mute)",
         display: "flex",
         alignItems: "center",
@@ -594,7 +594,7 @@ function CareerContent({
             href={`/companies/${data.company_id}`}
             className="company-name-link"
             style={{
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: 700,
               color: "#111",
               textDecoration: "none",
@@ -605,7 +605,7 @@ function CareerContent({
         ) : (
           <span
             style={{
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: 700,
               color: "#111",
             }}
@@ -614,7 +614,7 @@ function CareerContent({
           </span>
         )}
         {data.employment_type && (
-          <span style={{ fontSize: 14, fontWeight: 400, color: "var(--ink-soft)" }}>
+          <span style={{ fontSize: 15, fontWeight: 400, color: "var(--ink-soft)" }}>
             {" · "}{data.employment_type}
           </span>
         )}
@@ -1059,11 +1059,11 @@ export default function MergedTimeline({
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, flexWrap: "wrap", lineHeight: 1.3 }}>
                       {head.company_id ? (
                         <Link href={`/companies/${head.company_id}`} className="company-name-link"
-                          style={{ fontSize: 16, fontWeight: 700, color: "#111", textDecoration: "none" }}>
+                          style={{ fontSize: 18, fontWeight: 700, color: "#111", textDecoration: "none" }}>
                           {head.company_name}
                         </Link>
                       ) : (
-                        <span style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>
+                        <span style={{ fontSize: 18, fontWeight: 700, color: "#111" }}>
                           {head.company_name}
                         </span>
                       )}
@@ -1139,7 +1139,7 @@ export default function MergedTimeline({
                     paddingTop: 8,
                   }}
                 >
-                  <SchoolLogoImg schoolMaster={e.school_master ?? null} size={44} />
+                  <SchoolLogoImg schoolMaster={e.school_master ?? null} size={52} />
                 </div>
                 <EducationContent data={e} />
               </div>
