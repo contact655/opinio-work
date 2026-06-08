@@ -370,8 +370,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
       <style>{`
         .profile-grid {
           display: grid;
-          grid-template-columns: 1fr 300px;
-          gap: 28px;
+          grid-template-columns: 1fr 260px;
+          gap: 24px;
           align-items: start;
         }
         @media (max-width: 960px) {
@@ -397,7 +397,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         .u-content-card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.12) !important; transform: translateY(-2px) !important; }
       `}</style>
 
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "32px 20px 80px" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 20px 80px" }}>
 
         {/* Cover + Avatar header — full width above grid */}
         <div style={{
