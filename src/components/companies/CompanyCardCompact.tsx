@@ -155,25 +155,26 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
       {/* ─── ロゴエリア ─────────────────────────────────────── */}
       <div style={{
         aspectRatio: compact ? '3 / 2' : '16 / 9',
-        background: headerGradient,
+        background: (company.logo_url && !logoError) ? '#f8fafc' : headerGradient,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        padding: (company.logo_url && !logoError) ? '14% 18%' : 0,
         position: 'relative',
         overflow: 'hidden',
+        borderBottom: (company.logo_url && !logoError) ? '1px solid var(--line)' : 'none',
+        boxSizing: 'border-box',
       }}>
         {company.logo_url && !logoError ? (
-          // 画像をヘッダー全体にカバー表示（ロゴ画像も写真も対応）
+          // ロゴを余白付きで contain 表示（クロップなし・均一サイズ）
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={company.logo_url}
             alt={`${company.name}のロゴ`}
             style={{
-              position: 'absolute',
-              inset: 0,
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
+              objectFit: 'contain',
               objectPosition: 'center',
               display: 'block',
             }}
