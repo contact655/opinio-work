@@ -213,38 +213,32 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             overflow: "hidden",
           }}
         >
-          {/* ── 左: グラデーション帯 + ロゴ ── */}
+          {/* ── 左: グラデーション帯 + ロゴ（幅80pxで視認性向上） ── */}
           <div style={{
-            width: 64, flexShrink: 0,
+            width: 80, flexShrink: 0,
             background: headerGradient,
             display: "flex", alignItems: "center", justifyContent: "center",
             position: "relative", overflow: "hidden",
           }}>
-            <span style={{
-              position: "absolute", right: -4, bottom: -8,
-              fontSize: 52, fontWeight: 900,
-              color: "rgba(255,255,255,0.1)",
-              fontFamily: "Inter, sans-serif", lineHeight: 1,
-              userSelect: "none", pointerEvents: "none",
-            }}>{initial}</span>
             {company.logo_url ? (
               <div style={{
-                width: 40, height: 40, borderRadius: 8,
-                background: "#fff", border: "1px solid rgba(255,255,255,0.9)",
-                boxShadow: "0 1px 6px rgba(0,0,0,0.12)",
+                width: 48, height: 48, borderRadius: 10,
+                background: "#fff", border: "2px solid rgba(255,255,255,0.95)",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.18)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 overflow: "hidden", position: "relative", zIndex: 1,
                 flexShrink: 0,
               }}>
                 <Image src={company.logo_url} alt={`${company.name}のロゴ`} fill
-                  style={{ objectFit: "contain", padding: "15%" }} sizes="40px" />
+                  style={{ objectFit: "contain", padding: "12%" }} sizes="48px" />
               </div>
             ) : (
               <span style={{
-                fontSize: 24, fontWeight: 800,
-                color: "rgba(255,255,255,0.9)",
+                fontSize: 28, fontWeight: 900,
+                color: "#fff",
                 fontFamily: "Inter, sans-serif",
                 lineHeight: 1, userSelect: "none", zIndex: 1, position: "relative",
+                textShadow: "0 2px 8px rgba(0,0,0,0.3)",
               }}>{initial}</span>
             )}
           </div>
@@ -276,14 +270,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                       fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 100,
                       background: "var(--royal-50)", color: "var(--royal)",
                       border: "1px solid var(--royal-100)",
-                    }}>{company.industry}</span>
-                  )}
-                  {company.accepting_casual_meetings && (
-                    <span style={{
-                      fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 100,
-                      background: "#ecfdf5", color: "var(--success)",
-                      border: "1px solid #a7f3d0",
-                    }}>● 面談OK</span>
+                    }}>{company.industry.replace(/\/SaaS$/i, "")}</span>
                   )}
                 </div>
               </div>
@@ -429,19 +416,13 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               <span style={{
                 fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
                 background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
-              }}>{company.industry}</span>
+              }}>{company.industry.replace(/\/SaaS$/i, "")}</span>
             )}
             {stageCfg && (
               <span style={{
                 fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
                 background: stageCfg.bg, color: stageCfg.color,
               }}>{stageCfg.label}</span>
-            )}
-            {company.accepting_casual_meetings && (
-              <span style={{
-                fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                background: "#fff7ed", color: "#c2410c", border: "1px solid #fed7aa",
-              }}>面談OK</span>
             )}
             {/* #9: 更新日 */}
             {ago && (

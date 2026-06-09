@@ -252,16 +252,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
                     fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 100,
                     background: industryStyle.bg, color: industryStyle.color,
                   }}>
-                    {company.industry}
-                  </span>
-                )}
-                {company.accepting_casual_meetings && (
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 100,
-                    background: '#ecfdf5', color: 'var(--success)',
-                    border: '1px solid #a7f3d0',
-                  }}>
-                    ● 面談OK
+                    {company.industry?.replace(/\/SaaS$/i, '')}
                   </span>
                 )}
                 {articleCount > 0 && (
