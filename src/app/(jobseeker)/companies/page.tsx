@@ -10,6 +10,8 @@ import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 import { CompanyUserDndGrid } from "@/components/companies/CompanyUserDndGrid";
+import { CompaniesFilterSidebar } from "@/components/companies/CompaniesFilterSidebar";
+import { CompareBar } from "@/components/companies/CompareBar";
 
 type MemberPreview = { id: string; name: string };
 
@@ -127,8 +129,9 @@ export default async function CompaniesPage({ searchParams }: Props) {
     // 検索サジェスト用企業名リスト
     supabase.from("ow_companies").select("id, name").eq("is_published", true).order("name"),
     // グリッド/リスト表示: DB側でページ分だけ取得（総件数も同時取得）
+    // #10: sort パラメータをDB側へ渡してサーバーサイドソート
     needsGrid
-      ? searchCompanies({ limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE })
+      ? searchCompanies({ limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE, sort: sort ?? "newest" })
       : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
   ]);
 
@@ -178,6 +181,32 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
 
       <div className="max-w-[1440px] mx-auto px-4 pt-6 pb-8">
+        <style>{`
+          .companies-page-layout { display: flex; gap: 24px; align-items: flex-start; }
+          .companies-sidebar-wrap { flex-shrink: 0; }
+          @media (max-width: 1023px) { .companies-sidebar-wrap { display: none !important; } }
+          .companies-main-content { flex: 1; min-width: 0; }
+          .companies-list2-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
+          @media (max-width: 767px) {
+            .companies-list2-grid { grid-template-columns: 1fr; gap: 8px; }
+          }
+        `}</style>
+
+        <div className="companies-page-layout">
+
+          {/* #4: サイドバーフィルター（デスクトップ専用） */}
+          <div className="companies-sidebar-wrap">
+            <Suspense fallback={null}>
+              <CompaniesFilterSidebar industries={industries} locations={locations} />
+            </Suspense>
+          </div>
+
+          {/* メインコンテンツ */}
+          <div className="companies-main-content">
 
         {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル or コンパクトグリッド */}
         {hasFilter ? (
@@ -190,7 +219,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
             industry={industry}
           />
         ) : (
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: 0 }}>
 
             {/* ── メインコンテンツ ── */}
             <div>
@@ -218,18 +247,12 @@ export default async function CompaniesPage({ searchParams }: Props) {
                       }
                     `}</style>
                   )}
+                  {/* #10: sort=jobs の場合はアプリ側で補完ソート（求人数はDB側で計算できないため） */}
                   {(() => {
-                    // DB側でページ分だけ取得済み。ソートは名前順のみDB側で完結。
-                    // job数・社員数ソートはアプリ側（ページ内のみ再ソート）
+                    // #10: DB側でソート済み（updated_at DESC for "newest", employee_count DESC for "employees"）
+                    // "jobs" のみアプリ側で補完（job_count は集計値のため DB ソート不可）
                     const paged = [...allCompaniesResult.companies];
                     if (sort === "jobs") paged.sort((a, b) => b.job_count - a.job_count);
-                    else if (sort === "employees") {
-                      paged.sort((a, b) => {
-                        const numA = parseInt(String(a.employee_count ?? "0").replace(/\D/g, "")) || 0;
-                        const numB = parseInt(String(b.employee_count ?? "0").replace(/\D/g, "")) || 0;
-                        return numB - numA;
-                      });
-                    }
 
                     // totalCount は DB の COUNT クエリから取得済み
                     const totalPages = Math.max(1, Math.ceil(allCompaniesResult.totalCount / PAGE_SIZE));
@@ -257,29 +280,16 @@ export default async function CompaniesPage({ searchParams }: Props) {
                             topMargin={safePage > 1 ? 24 : 0}
                           />
                         ) : isListView2 ? (
-                          <>
-                            <style>{`
-                              .companies-list2-grid {
-                                display: grid;
-                                grid-template-columns: repeat(2, 1fr);
-                                gap: 8px;
-                                margin-top: ${safePage > 1 ? 24 : 0}px;
-                              }
-                              @media (max-width: 767px) {
-                                .companies-list2-grid { grid-template-columns: 1fr; }
-                              }
-                            `}</style>
-                            <div className="companies-list2-grid">
-                              {paged.map(c => (
-                                <CompanyCardList
-                                  key={c.id}
-                                  company={c}
-                                  members={membersByCompany[c.id] ?? []}
-                                  compact
-                                />
-                              ))}
-                            </div>
-                          </>
+                          <div className="companies-list2-grid" style={{ marginTop: safePage > 1 ? 24 : 0 }}>
+                            {paged.map(c => (
+                              <CompanyCardList
+                                key={c.id}
+                                company={c}
+                                members={membersByCompany[c.id] ?? []}
+                                compact
+                              />
+                            ))}
+                          </div>
                         ) : (
                           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: safePage > 1 ? 24 : 0 }}>
                             {paged.map(c => (
@@ -314,12 +324,18 @@ export default async function CompaniesPage({ searchParams }: Props) {
           )}
 
         </div>{/* フッターエリア end */}
-      </div>
+
+          </div>{/* companies-main-content end */}
+        </div>{/* companies-page-layout end */}
+      </div>{/* max-w container end */}
 
     </div>
 
     {/* 管理者専用: 企業並び替えオーバーレイ（非管理者には何も表示されない） */}
     <CompanyAdminDndOverlay />
+
+    {/* #13: 比較バー（最大3社選択で表示） */}
+    <CompareBar />
     </>
   );
 }

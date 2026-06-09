@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import { MapPin } from 'lucide-react';
 import type { CompanyForCarousel } from '@/types/genre';
 import { showToast } from '@/lib/toast';
+import { addToCompare, removeFromCompare, isInCompareList } from './CompareBar';
+
+const COMPARE_EVENT = 'opinio-compare-update';
 
 // フェーズバッジ設定
 const STAGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -143,6 +146,28 @@ export function CompanyCardCompact({ company, compact, members: _members }: Prop
   const articleCount = company.article_count ?? 0;
   // const hasMembers = (company.current_member_count || 0) + (company.obog_count || 0) > 0;
   const [hovered, setHovered] = useState(false);
+
+  // ── 比較機能 ─────────────────────────────────────────────────────────────────
+  const [inCompare, setInCompare] = useState(false);
+  useEffect(() => {
+    setInCompare(isInCompareList(company.id));
+    const onUpdate = () => setInCompare(isInCompareList(company.id));
+    window.addEventListener(COMPARE_EVENT, onUpdate);
+    return () => window.removeEventListener(COMPARE_EVENT, onUpdate);
+  }, [company.id]);
+
+  const handleCompare = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const headerGrad = company.logo_gradient ?? 'linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)';
+    const initChar = company.logo_letter ?? company.name.slice(0, 1);
+    if (inCompare) {
+      removeFromCompare(company.id);
+    } else {
+      const added = addToCompare({ id: company.id, name: company.name, initial: initChar, gradient: headerGrad });
+      if (!added) showToast('比較できるのは最大3社までです', 'warm');
+    }
+  }, [inCompare, company.id, company.name, company.logo_gradient, company.logo_letter]);
 
   return (
     <Link
@@ -521,6 +546,39 @@ export function CompanyCardCompact({ company, compact, members: _members }: Prop
               求人を見る（{company.job_count}件）
             </button>
           ) : null}
+
+          {/* 比較ボタン */}
+          <button
+            onClick={handleCompare}
+            style={{
+              width: '100%', padding: '6px 0',
+              background: inCompare ? 'var(--royal-50)' : 'transparent',
+              color: inCompare ? 'var(--royal)' : 'var(--ink-mute)',
+              border: `1px solid ${inCompare ? 'var(--royal-100)' : 'var(--line)'}`,
+              borderRadius: 8,
+              fontSize: 11, fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+              transition: 'all 0.15s',
+            }}
+            title={inCompare ? '比較リストから削除' : 'この企業を比較リストに追加'}
+          >
+            {inCompare ? (
+              <>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                比較中
+              </>
+            ) : (
+              <>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                比較に追加
+              </>
+            )}
+          </button>
         </div>
       </div>
     </Link>

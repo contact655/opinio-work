@@ -2,6 +2,7 @@
 // 検索結果グリッド — Server Component
 // キーワード / フィルタが適用されているときのみ表示（カルーセルの代わり）
 
+import Link from "next/link";
 import { searchCompanies } from "@/lib/search/companies";
 import type { WorkStyleValue } from "@/lib/search/companies";
 import { CompanyCardCompact } from "./CompanyCardCompact";
@@ -81,32 +82,61 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
           {totalCount}社
         </span>
         <span style={{ fontSize: 13, color: "var(--ink-mute)" }}>が見つかりました</span>
+        {totalCount > 0 && (
+          <Link href="/companies" style={{ marginLeft: "auto", fontSize: 12, color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>
+            絞り込みをリセット
+          </Link>
+        )}
       </div>
 
       {/* 検索結果グリッド */}
       {companies.length === 0 ? (
         <div style={{
           background: "var(--bg-tint)",
-          borderRadius: 12,
-          padding: "48px 24px",
+          borderRadius: 16,
+          padding: "56px 24px",
           textAlign: "center",
+          border: "1px solid var(--line)",
         }}>
           <div style={{
-            width: 56, height: 56, borderRadius: "50%",
+            width: 64, height: 64, borderRadius: "50%",
             background: "var(--royal-50)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 12px",
+            margin: "0 auto 16px",
           }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
           </div>
-          <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
+          <p style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
             条件に合う企業が見つかりませんでした
           </p>
-          <p style={{ fontSize: 13, color: "var(--ink-mute)" }}>
-            キーワードや絞り込み条件を変えてお試しください
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 24, maxWidth: 360, margin: "0 auto 24px" }}>
+            検索キーワードを変えるか、絞り込み条件を減らしてみてください
           </p>
+          {/* 提案アクション */}
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link href="/companies" style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "9px 20px", borderRadius: 9,
+              fontSize: 13, fontWeight: 700,
+              background: "var(--royal)", color: "#fff",
+              textDecoration: "none",
+              boxShadow: "0 2px 8px rgba(0,35,102,0.20)",
+            }}>
+              すべての企業を見る →
+            </Link>
+            <Link href="/companies?hiring=1" style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "9px 20px", borderRadius: 9,
+              fontSize: 13, fontWeight: 700,
+              background: "#fff7ed", color: "#c2410c",
+              border: "1px solid #fed7aa",
+              textDecoration: "none",
+            }}>
+              面談受付中の企業を見る
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="search-results-grid">

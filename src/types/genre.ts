@@ -43,6 +43,9 @@ export type CompanyForCarousel = {
   founded_year?: number | null;
   fit_positives?: string[] | null;
   sort_order?: number | null;
+  // 14項目改善で追加
+  company_features?: string[] | null;  // #3 カルチャー・特徴タグ
+  top_job_titles?: string[] | null;    // #2 求人ポジション名（最大2件）
 };
 
 export type GenreWithCompanies = Genre & {

@@ -29,6 +29,7 @@ export type CompanySearchParams = {
   hiring?: boolean;
   location?: string;  // 都道府県フィルタ（例: "東京都", "大阪府"）
   industry?: string;  // 業種フィルタ（例: "HR Tech", "FinTech/SaaS"）
+  sort?: string;      // "newest" | "jobs" | "employees"
   // DB側ページネーション（hiring フィルターなしの場合のみ有効）
   limit?: number;
   offset?: number;
@@ -58,11 +59,15 @@ export async function searchCompanies(
   const useDbPagination = !params.hiring && params.limit !== undefined;
 
   // ── フィルター条件を組み立てるヘルパー
+  // #14: スペース区切りで AND 検索（例: "SaaS PM" → name.ilike.%SaaS% AND name.ilike.%PM%）
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function applyFilters(q: any) {
     if (params.q?.trim()) {
-      const pattern = `%${params.q.trim()}%`;
-      q = q.or(`name.ilike.${pattern},description.ilike.${pattern},industry.ilike.${pattern}`);
+      const words = params.q.trim().split(/\s+/).filter(Boolean);
+      for (const word of words) {
+        const p = `%${word}%`;
+        q = q.or(`name.ilike.${p},description.ilike.${p},industry.ilike.${p},tagline.ilike.${p}`);
+      }
     }
     if (params.phase)     q = q.eq("phase", params.phase);
     if (params.workStyle) q = q.eq("remote_work_status", params.workStyle);
@@ -82,16 +87,21 @@ export async function searchCompanies(
   }
 
   // ── Step 1b: データ取得
+  // #3: company_features を SELECT に追加
+  // #10: sort パラメータに応じて ORDER BY を切り替え（server-side sort）
+  const orderCol = params.sort === "employees" ? "employee_count" : "updated_at";
+  const orderAsc = false; // 全ソート DESC
+
   let dataQuery = applyFilters(
     supabase
       .from("ow_companies")
       .select(
         "id, name, name_en, tagline, industry, funding_stage:phase, employee_count, description, " +
         "accepting_casual_meetings, remote_work_status, location, logo_letter, logo_gradient, logo_url, updated_at, " +
-        "current_member_count, obog_count, avg_salary"
+        "current_member_count, obog_count, avg_salary, company_features"
       )
       .eq("is_published", true)
-  ).order("name");
+  ).order(orderCol, { ascending: orderAsc });
 
   // DB ページネーション適用
   if (useDbPagination) {
@@ -112,11 +122,15 @@ export async function searchCompanies(
   const jobCountMap: Record<string, number> = {};
   const articleCountMap: Record<string, number> = {};
 
+  // #2: 求人タイトルマップ（最大2件/企業）
+  const jobTitlesMap: Record<string, string[]> = {};
+
   if (companyIds.length > 0) {
     const [activeJobsResult, articlesResult] = await Promise.all([
+      // #2: title カラムも取得
       supabase
         .from("ow_jobs")
-        .select("company_id")
+        .select("company_id, title")
         .in("company_id", companyIds)
         .in("status", ["published", "active"]),
       supabase
@@ -126,9 +140,16 @@ export async function searchCompanies(
         .eq("is_published", true),
     ]);
 
-    (activeJobsResult.data ?? []).forEach((j: { company_id: string }) => {
+    (activeJobsResult.data ?? []).forEach((j: { company_id: string; title?: string }) => {
       hiringSet.add(j.company_id);
       jobCountMap[j.company_id] = (jobCountMap[j.company_id] || 0) + 1;
+      // #2: 最大2件のタイトルを記録
+      if (j.title) {
+        if (!jobTitlesMap[j.company_id]) jobTitlesMap[j.company_id] = [];
+        if (jobTitlesMap[j.company_id].length < 2) {
+          jobTitlesMap[j.company_id].push(j.title);
+        }
+      }
     });
 
     (articlesResult.data ?? []).forEach((a: { company_id: string | null }) => {
@@ -148,6 +169,11 @@ export async function searchCompanies(
       ...(c as CompanyForCarousel),
       job_count: jobCountMap[c.id] || 0,
       article_count: articleCountMap[c.id] || 0,
+      // #2 求人タイトル / #3 カルチャータグ
+      top_job_titles: jobTitlesMap[c.id] || [],
+      company_features: Array.isArray((c as CompanyForCarousel).company_features)
+        ? (c as CompanyForCarousel).company_features
+        : [],
     }));
 
   return {

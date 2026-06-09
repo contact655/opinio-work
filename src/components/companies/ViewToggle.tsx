@@ -30,10 +30,12 @@ export function ViewToggle() {
     background: "transparent",
   };
 
-  const options: { value: "grid" | "list" | "card"; label: string; icon: React.ReactNode }[] = [
+  // #12: ビュー名を分かりやすくリネーム（grid=2列カード / list=詳細リスト / card=4列ミニカード）
+  const options: { value: "grid" | "list" | "card"; label: string; icon: React.ReactNode; tooltip: string }[] = [
     {
       value: "grid",
-      label: "グリッド",
+      label: "カード",
+      tooltip: "2列カードビュー（おすすめ）",
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <line x1="2" y1="6" x2="10" y2="6"/>
@@ -47,7 +49,8 @@ export function ViewToggle() {
     },
     {
       value: "list",
-      label: "リスト",
+      label: "詳細",
+      tooltip: "詳細リストビュー",
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <line x1="8" y1="6" x2="21" y2="6"/>
@@ -61,7 +64,8 @@ export function ViewToggle() {
     },
     {
       value: "card",
-      label: "カード",
+      label: "一覧",
+      tooltip: "4列コンパクト一覧",
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -75,14 +79,14 @@ export function ViewToggle() {
 
   return (
     <div style={{ display: "flex", gap: 4 }}>
-      {options.map(({ value, label, icon }) => {
+      {options.map(({ value, label, icon, tooltip }) => {
         const active = currentView === value;
         return (
           <button
             key={value}
             type="button"
             onClick={() => toggle(value)}
-            title={label}
+            title={tooltip}
             style={{
               ...btnBase,
               background: active ? "var(--royal)" : "#fff",
