@@ -180,34 +180,6 @@ export function CompanyCardList({ company, members, compact }: Props) {
             </div>
           )}
 
-          {/* compact時: 先輩に話を聞けるバッジ */}
-          {compact && (memberCount + obogCount > 0) && (
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              padding: "4px 10px", borderRadius: 6, marginBottom: 5,
-              background: "linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)",
-              border: "1px solid #fde68a",
-            }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#92400e" }}>
-                先輩{memberCount + obogCount}名に話を聞ける
-              </span>
-              {memberCount > 0 && obogCount > 0 && (
-                <span style={{ fontSize: 10, color: "#b45309" }}>
-                  現役{memberCount} · OB/OG{obogCount}
-                </span>
-              )}
-              {memberCount > 0 && obogCount === 0 && (
-                <span style={{ fontSize: 10, color: "#b45309" }}>現役{memberCount}名</span>
-              )}
-              {memberCount === 0 && obogCount > 0 && (
-                <span style={{ fontSize: 10, color: "#b45309" }}>OB/OG{obogCount}名</span>
-              )}
-            </div>
-          )}
-
           {/* 所在地 + 従業員数 + (compact時) 求人バッジ */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             {company.location && (
@@ -246,10 +218,6 @@ export function CompanyCardList({ company, members, compact }: Props) {
         {/* ── スタット列（リストビューのみ） ── */}
         {!compact && (
           <div className="clc-stats" style={{ display: "flex", alignItems: "center", gap: 0, flexShrink: 0 }}>
-            <StatCol label="現役社員" value={memberCount} unit="名" />
-            <div className="clc-stat-divider" />
-            <StatCol label="OB・OG" value={obogCount} unit="名" />
-            <div className="clc-stat-divider" />
             <StatCol label="求人" value={company.job_count} unit="件" highlight={company.job_count > 0} />
           </div>
         )}

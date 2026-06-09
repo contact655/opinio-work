@@ -443,53 +443,6 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         {/* ─── 下部メタ行 ──────────────────────────────────── */}
         <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--line-soft)', display: 'flex', flexDirection: 'column', gap: 6 }}>
 
-          {/* ── OPINIO 差別化: 先輩に話を聞ける ── */}
-          {hasMembers ? (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '6px 10px', borderRadius: 8,
-              background: 'linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)',
-              border: '1px solid #fde68a',
-            }}>
-              {/* アバター積み重ね */}
-              {members && members.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                  {members.slice(0, 3).map((m, i) => {
-                    const colors = [
-                      { bg: '#fde68a', text: '#92400e' },
-                      { bg: '#fcd34d', text: '#78350f' },
-                      { bg: '#fbbf24', text: '#451a03' },
-                    ];
-                    const c = colors[i % colors.length];
-                    return (
-                      <div key={m.id} style={{
-                        width: 22, height: 22, borderRadius: '50%',
-                        background: c.bg, color: c.text,
-                        fontSize: 9, fontWeight: 800,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        border: '2px solid #fff7ed',
-                        marginLeft: i > 0 ? -6 : 0,
-                        zIndex: 3 - i, position: 'relative',
-                      }}>
-                        {m.name.charAt(0)}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e' }}>
-                  先輩{(company.current_member_count || 0) + (company.obog_count || 0)}名に話を聞ける
-                </span>
-                <span style={{ fontSize: 10, color: '#b45309', marginLeft: 4 }}>
-                  {(company.current_member_count || 0) > 0 && `現役${company.current_member_count}名`}
-                  {(company.current_member_count || 0) > 0 && (company.obog_count || 0) > 0 && ' · '}
-                  {(company.obog_count || 0) > 0 && `OB/OG${company.obog_count}名`}
-                </span>
-              </div>
-            </div>
-          ) : null}
-
           {/* 所在地 · 従業員数 · 募集中 */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', flex: 1, minWidth: 0 }}>
