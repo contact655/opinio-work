@@ -104,6 +104,8 @@ type PreviewJob = {
   salaryMin: number | null;
   salaryMax: number | null;
   workStyle: string | null;
+  employmentType: string | null;
+  location: string | null;
   companyName: string;
   logoLetter: string;
   logoGradient: string;
@@ -350,79 +352,102 @@ function Hero({ stats }: { stats: SiteStats }) {
             )}
 
             {/* Job list */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {jobs.length === 0
                 ? (
                     <div style={{
-                      padding: "var(--space-4) var(--space-4)", borderRadius: 12,
-                      background: "var(--line-soft)", textAlign: "center",
+                      padding: "20px 16px", borderRadius: 12,
+                      background: "rgba(255,255,255,0.08)", textAlign: "center",
+                      border: "1px solid rgba(255,255,255,0.12)",
                     }}>
-                      <div style={{ fontSize: 28, marginBottom: "var(--space-2)" }}>🏗️</div>
-                      <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", marginBottom: 4 }}>
-                        求人は近日公開予定です
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", marginBottom: 10 }}>
+                        求人を読み込み中…
                       </div>
-                      <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", marginBottom: "var(--space-3)" }}>
-                        企業担当者が準備中。まずは企業情報を見てみましょう。
-                      </div>
-                      <Link href="/companies" style={{
+                      <Link href="/jobs" style={{
                         display: "inline-block", padding: "7px 16px",
-                        borderRadius: 20, background: "var(--royal)", color: "#fff",
+                        borderRadius: 20, background: "rgba(255,255,255,0.15)", color: "#fff",
                         fontSize: 12, fontWeight: 600, textDecoration: "none",
+                        border: "1px solid rgba(255,255,255,0.2)",
                       }}>
-                        企業を見てみる →
+                        すべての求人を見る →
                       </Link>
                     </div>
                   )
                 : jobs.map((job) => {
                     const salary = formatSalary(job.salaryMin, job.salaryMax);
                     return (
-                      <div key={job.id} style={{
+                      <Link key={job.id} href={`/jobs/${job.id}`} style={{
                         display: "flex", alignItems: "center", gap: 10,
-                        padding: "10px var(--space-3)", borderRadius: 8, background: "var(--line-soft)",
+                        padding: "10px 12px", borderRadius: 10,
+                        background: "rgba(255,255,255,0.08)",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        textDecoration: "none",
+                        transition: "background 0.15s",
                       }}>
+                        {/* ロゴ */}
                         <div style={{
-                          width: 32, height: 32, borderRadius: 8,
+                          width: 34, height: 34, borderRadius: 8,
                           background: job.logoGradient,
-                          color: "#fff", fontSize: "var(--text-sm)", fontWeight: 700,
+                          color: "#fff", fontSize: 13, fontWeight: 700,
                           display: "flex", alignItems: "center", justifyContent: "center",
                           flexShrink: 0, overflow: "hidden",
                         }}>
                           {job.logoUrl
-                            ? <Image src={job.logoUrl} alt={job.companyName} width={36} height={36} style={{ objectFit: "contain" }} />
+                            ? <Image src={job.logoUrl} alt={job.companyName} width={34} height={34} style={{ objectFit: "contain" }} />
                             : job.logoLetter}
                         </div>
+                        {/* テキスト */}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>{job.companyName}</div>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)" }}>{job.title}</div>
-                          <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.companyName}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.title}</div>
+                          <div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}>
                             {job.workStyle && (
                               <span style={{
-                                fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 3,
-                                background: "var(--royal-50)", color: "var(--royal)",
+                                fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
+                                background: "rgba(59,95,217,0.5)", color: "rgba(255,255,255,0.9)",
+                                border: "1px solid rgba(59,95,217,0.4)",
                               }}>{job.workStyle}</span>
+                            )}
+                            {job.employmentType && (
+                              <span style={{
+                                fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
+                                background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.65)",
+                              }}>{job.employmentType}</span>
                             )}
                           </div>
                         </div>
+                        {/* 年収 */}
                         {salary && (
                           <div style={{
-                            fontSize: "var(--text-sm)", fontWeight: 700,
-                            color: "var(--success)", flexShrink: 0,
+                            fontSize: 13, fontWeight: 800,
+                            color: "#4ade80", flexShrink: 0,
                             fontFamily: "Inter, sans-serif",
-                          }}>{salary}</div>
+                            textAlign: "right",
+                          }}>
+                            {salary}
+                            <div style={{ fontSize: 9, fontWeight: 500, color: "rgba(255,255,255,0.4)", textAlign: "right" }}>万円</div>
+                          </div>
                         )}
-                      </div>
+                      </Link>
                     );
                   })
               }
             </div>
 
-            {/* Footer note */}
+            {/* Footer: 件数 + 全件リンク */}
             <div style={{
-              marginTop: "var(--space-3)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--line)",
-              fontSize: "var(--text-xs)", color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 6,
+              marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.1)",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
-              <ChatIcon />
-              すべての求人に「OPINIO編集部の見解」付き
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "Inter" }}>
+                全 {DEFAULT_STATS.jobs} 件掲載中
+              </span>
+              <Link href="/jobs" style={{
+                fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)",
+                textDecoration: "none", display: "flex", alignItems: "center", gap: 4,
+              }}>
+                すべて見る <ArrowIcon />
+              </Link>
             </div>
           </div>
         </div>
