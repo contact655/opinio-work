@@ -83,6 +83,7 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
     logo_letter: (row.logo_letter as string | null) ?? null,
     x_url: (row.x_url as string | null) ?? null,
     linkedin_url: (row.linkedin_url as string | null) ?? null,
+    careers_url: (row.careers_url as string | null) ?? null,
     genres,
     is_editors_pick: false,
     is_dimmed: false,
@@ -175,10 +176,10 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
         const rolesMap = new Map(roles.map((r) => [r.id as string, r]));
 
         // role_category_id → 親カテゴリ {name, id} を解決
-        function getParentCatInfo(roleId: string | null | undefined): { name: string; id?: string } {
-          if (!roleId) return { name: "その他" };
+        function getParentCatInfo(roleId: string | null | undefined, jobCategory?: string | null): { name: string; id?: string } {
+          if (!roleId) return { name: jobCategory?.trim() || "その他" };
           const role = rolesMap.get(roleId);
-          if (!role) return { name: "その他" };
+          if (!role) return { name: jobCategory?.trim() || "その他" };
           if (!role.parent_id) return { name: role.name as string, id: role.id as string };  // 自身が親
           const parent = rolesMap.get(role.parent_id as string);
           return parent
@@ -189,7 +190,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
         // 親カテゴリごとにグループ化 (catId も記録)
         const grouped = new Map<string, { items: typeof jobs; catId: string | undefined }>();
         for (const j of jobs) {
-          const { name: cat, id: catId } = getParentCatInfo(j.role_category_id as string | null);
+          const { name: cat, id: catId } = getParentCatInfo(j.role_category_id as string | null, j.job_category as string | null);
           if (!grouped.has(cat)) grouped.set(cat, { items: [], catId });
           grouped.get(cat)!.items.push(j);
         }
@@ -207,6 +208,16 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
               title: (j.title as string) ?? "",
               tags: [],
               salary,
+              salaryMin: (j.salary_min as number) || null,
+              salaryMax: (j.salary_max as number) || null,
+              description: (j.description as string) || null,
+              requirements: (j.requirements as string) || null,
+              selectionProcess: (j.selection_process as string) || null,
+              whyHire: (j.why_hire as string) || null,
+              catchCopy: (j.catch_copy as string) || null,
+              workStyle: (j.work_style as string) || null,
+              location: (j.location as string) || null,
+              employmentType: (j.employment_type as string) || null,
             };
             const pub = j.published_at as string | null;
             if (pub && daysSince(pub) <= 7) item.is_new = true;
@@ -455,7 +466,7 @@ const COMPANY_DETAIL_COLS = [
   // Numbers survey timestamp
   "numbers_updated_at",
   // Social links
-  "x_url", "linkedin_url",
+  "x_url", "linkedin_url", "careers_url",
   // Org teams
   "org_teams",
   // Culture keywords
@@ -476,6 +487,39 @@ export async function getCompanies(): Promise<Company[]> {
     return [];
   }
   return (data ?? []).map((row) => mapCompany(row));
+}
+
+/** 同業界・異なるフェーズの類似企業を最大4件取得 */
+export async function getSimilarCompanies(companyId: string, industry: string, phase: string): Promise<Company[]> {
+  const supabase = createClient();
+  let q = supabase
+    .from("ow_companies")
+    .select(COMPANY_LIST_COLS)
+    .eq("industry", industry)
+    .neq("id", companyId)
+    .neq("phase", phase)
+    .order("updated_at", { ascending: false })
+    .limit(4);
+  if (process.env.NODE_ENV !== "development") {
+    q = q.eq("is_published", true);
+  }
+  const { data, error } = await q;
+  if (error || !data || data.length === 0) {
+    // fallback: 業界問わず異フェーズ
+    let q2 = supabase
+      .from("ow_companies")
+      .select(COMPANY_LIST_COLS)
+      .neq("id", companyId)
+      .neq("phase", phase)
+      .order("updated_at", { ascending: false })
+      .limit(4);
+    if (process.env.NODE_ENV !== "development") {
+      q2 = q2.eq("is_published", true);
+    }
+    const { data: data2 } = await q2;
+    return (data2 ?? []).map((row) => mapCompany(row));
+  }
+  return data.map((row) => mapCompany(row));
 }
 
 export async function getCompanyById(
@@ -501,7 +545,7 @@ export async function getCompanyById(
   const [{ data: jobRows }, { data: roleRows }, employeeCategories, { data: genreRows }] = await Promise.all([
     supabase
       .from("ow_jobs")
-      .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at, urgency")
+      .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at, urgency, description, requirements, selection_process, why_hire, catch_copy, work_style, employment_type, location")
       .eq("company_id", id),
     supabase
       .from("ow_roles")
@@ -697,6 +741,7 @@ export type CompanyRecruiter = {
   avatar_color: string | null;
   department: string | null;
   role_title: string | null;
+  catchphrase: string | null;
 };
 
 export async function getCompanyRecruiters(companyId: string): Promise<CompanyRecruiter[]> {
@@ -725,7 +770,7 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
 
   const { data: userRows } = await supabase
     .from("ow_users")
-    .select("id, name, avatar_color")
+    .select("id, name, avatar_color, catchphrase")
     .in("id", userIds);
 
   const userMap = new Map(
@@ -744,6 +789,7 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
       avatar_color: (user?.avatar_color as string) ?? null,
       department: (row.department as string) ?? null,
       role_title: (row.role_title as string) ?? null,
+      catchphrase: (user?.catchphrase as string) ?? null,
     };
   });
 }
@@ -769,6 +815,8 @@ export type CompanyEmployee = {
   // === OB/OG: 退職後の現在のキャリア ===
   currentRoleTitle: string | null;
   currentCompanyName: string | null;
+  // === Session 9: 一言コメント ===
+  catchphrase: string | null;
 };
 
 export async function getCompanyEmployees(companyId: string): Promise<{
@@ -791,7 +839,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // 現役社員 (is_current = true)
   const { data: currentRows, error: e1 } = await supabase
     .from("ow_experiences")
-    .select("role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting)")
+    .select("role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase)")
     .eq("company_id", companyId)
     .eq("is_current", true);
 
@@ -803,7 +851,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // OB 社員 (is_current = false, ended_at あり)
   const { data: alumniRows, error: e2 } = await supabase
     .from("ow_experiences")
-    .select("role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting)")
+    .select("role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .not("ended_at", "is", null)
@@ -841,6 +889,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
       canCasualMeeting: (u?.can_casual_meeting as boolean) ?? false,
       currentRoleTitle: null,   // 退職後キャリア: 後で補完
       currentCompanyName: null, // 退職後キャリア: 後で補完
+      catchphrase: (u?.catchphrase as string | null) ?? null,
     };
   }
 

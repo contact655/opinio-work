@@ -13,6 +13,7 @@ export type DbCompany = {
   phase: string | null;
   business_stage: string | null;
   url: string | null;
+  careers_url: string | null;
   logo_gradient: string | null;
   logo_letter: string | null;
   logo_url: string | null;
@@ -49,7 +50,7 @@ export type DbCompany = {
 
 const SELECT_COLUMNS = [
   "id", "user_id", "name", "tagline", "mission", "why_join", "company_features",
-  "industry", "phase", "business_stage", "url",
+  "industry", "phase", "business_stage", "url", "careers_url",
   "logo_gradient", "logo_letter", "logo_url", "about_markdown", "employee_count", "established_at",
   "avg_age", "avg_salary", "funding_total", "gender_ratio", "evaluation_system", "benefits", "fit_positives", "fit_negatives", "location", "nearest_station",
   "remote_work_status", "work_time_system", "avg_overtime_hours", "paid_leave_rate",
@@ -92,6 +93,7 @@ export function transformDbToForm(row: DbCompany, currentPublishedGenres: string
     genres,
     phase: row.phase ?? row.business_stage ?? "",
     url: row.url ?? "",
+    careersUrl: row.careers_url ?? "",
     logoGradient: row.logo_gradient ?? "linear-gradient(135deg, var(--royal), var(--accent))",
     logoLetter: row.logo_letter ?? (row.name ? row.name[0] : "?"),
     logoUrl: row.logo_url ?? "",
@@ -144,6 +146,7 @@ export function transformFormToDb(form: BizCompany): Record<string, unknown> {
     genres: form.genres ?? [],
     phase: form.phase || null,
     url: form.url || null,
+    careers_url: form.careersUrl || null,
     logo_gradient: form.logoGradient || null,
     logo_letter: form.logoLetter || null,
     logo_url: form.logoUrl || null,

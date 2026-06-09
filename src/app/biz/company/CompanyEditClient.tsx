@@ -631,6 +631,11 @@ export function CompanyEditClient({
                 <FormLabel htmlFor="ce-url">公式サイトURL</FormLabel>
                 <FormInput id="ce-url" type="url" value={form.url} onChange={(v) => update("url", v)} placeholder="https://example.co.jp" />
               </FormGroup>
+              <FormGroup>
+                <FormLabel htmlFor="ce-careers-url">採用情報ページURL</FormLabel>
+                <FormInput id="ce-careers-url" type="url" value={form.careersUrl} onChange={(v) => update("careersUrl", v)} placeholder="https://careers.example.co.jp" />
+                <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>設定すると企業詳細ページに「採用情報ページ」リンクが表示されます</p>
+              </FormGroup>
             </SectionCard>
           </>
         );

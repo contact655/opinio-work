@@ -19,6 +19,7 @@ export type BizCompany = {
   genres: string[];         // slug 配列。ow_company_genres と同期。空配列を許容
   phase: string;
   url: string;
+  careersUrl: string;
   logoGradient: string;
   logoLetter: string;
   logoUrl: string;
@@ -79,6 +80,7 @@ export const MOCK_COMPANY: BizCompany = {
   genres: [],
   phase: "上場(東証グロース)",
   url: "https://timee.co.jp",
+  careersUrl: "",
   logoGradient: "linear-gradient(135deg, #F97316, #EA580C)",
   logoLetter: "T",
   logoUrl: "",

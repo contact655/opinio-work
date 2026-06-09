@@ -13,8 +13,19 @@ export type JobItem = {
   title: string;
   tags: string[];
   salary: string;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
   is_new?: boolean;
   urgency?: "open" | "hot";
+  // Accordion detail fields
+  description?: string | null;
+  requirements?: string | null;
+  selectionProcess?: string | null;
+  whyHire?: string | null;
+  catchCopy?: string | null;
+  workStyle?: string | null;
+  location?: string | null;
+  employmentType?: string | null;
 };
 
 export type JobCat = {
