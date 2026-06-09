@@ -246,15 +246,35 @@ export default async function CompaniesPage({ searchParams }: Props) {
                           <Pagination currentPage={safePage} totalPages={totalPages} baseHref={baseHref} />
                         )}
                         {isGridView ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: safePage > 1 ? 24 : 0 }}>
-                            {paged.map(c => (
-                              <CompanyCardList
-                                key={c.id}
-                                company={c}
-                                members={membersByCompany[c.id] ?? []}
-                              />
-                            ))}
-                          </div>
+                          <>
+                            <style>{`
+                              .companies-grid4 {
+                                display: grid;
+                                grid-template-columns: repeat(4, 1fr);
+                                gap: 10px;
+                                margin-top: ${safePage > 1 ? 24 : 0}px;
+                              }
+                              @media (max-width: 1279px) {
+                                .companies-grid4 { grid-template-columns: repeat(3, 1fr); }
+                              }
+                              @media (max-width: 767px) {
+                                .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+                              }
+                              @media (max-width: 480px) {
+                                .companies-grid4 { grid-template-columns: 1fr; }
+                              }
+                            `}</style>
+                            <div className="companies-grid4">
+                              {paged.map(c => (
+                                <CompanyCardList
+                                  key={c.id}
+                                  company={c}
+                                  members={membersByCompany[c.id] ?? []}
+                                  compact
+                                />
+                              ))}
+                            </div>
+                          </>
                         ) : isListView2 ? (
                           <div className="companies-list2-grid" style={{ marginTop: safePage > 1 ? 24 : 0 }}>
                             {paged.map(c => (
