@@ -443,18 +443,6 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         {/* ─── 下部メタ行 ──────────────────────────────────── */}
         <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--line-soft)', display: 'flex', flexDirection: 'column', gap: 6 }}>
 
-          {/* 平均年収（ある場合のみ） */}
-          {company.avg_salary && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2} strokeLinecap="round">
-                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-              </svg>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', fontFamily: 'Inter, sans-serif' }}>
-                {company.avg_salary}
-              </span>
-            </div>
-          )}
-
           {/* 在籍メンバー（いる場合のみ） */}
           {hasMembers && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>

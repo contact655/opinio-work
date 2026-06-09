@@ -153,16 +153,8 @@ export function CompanyCardList({ company, members, compact }: Props) {
               {company.tagline}
             </div>
           )}
-          {/* 給与 + 所在地 + 従業員数 */}
+          {/* 所在地 + 従業員数 */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
-            {company.avg_salary && (
-              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", display: "flex", alignItems: "center", gap: 3, fontFamily: "Inter, sans-serif" }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2} strokeLinecap="round">
-                  <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-                </svg>
-                {company.avg_salary}
-              </span>
-            )}
             {company.location && (
               <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2 }}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" strokeWidth={2} strokeLinecap="round">
