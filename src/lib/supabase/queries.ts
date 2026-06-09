@@ -466,7 +466,10 @@ const COMPANY_DETAIL_COLS = [
   // Numbers survey timestamp
   "numbers_updated_at",
   // Social links
-  "x_url", "linkedin_url", "careers_url",
+  // NOTE: "careers_url" intentionally omitted — column added by Migration 163
+  // (ALTER TABLE ow_companies ADD COLUMN IF NOT EXISTS careers_url TEXT)
+  // Re-add here once the migration is applied to the database.
+  "x_url", "linkedin_url",
   // Org teams
   "org_teams",
   // Culture keywords
