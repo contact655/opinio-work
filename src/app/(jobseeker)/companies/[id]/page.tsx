@@ -1768,8 +1768,8 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         </div>
       </div>
 
-      {/* 下段: 現在のキャリア */}
-      {(employee.currentCompanyName || employee.currentRoleTitle) && (
+      {/* 下段: 現在のキャリア（会社名がある場合のみ表示） */}
+      {employee.currentCompanyName && (
         <div style={{
           display: "flex", alignItems: "center", gap: 6,
           padding: "6px 10px", borderRadius: 8,
@@ -1780,8 +1780,8 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
             <polyline points="9 18 15 12 9 6"/>
           </svg>
           <span style={{ color: "var(--ink-mute)", flexShrink: 0 }}>現在:</span>
-          <span style={{ color: "var(--ink-soft)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {employee.currentCompanyName ?? ""}{employee.currentRoleTitle ? ` · ${employee.currentRoleTitle}` : ""}
+          <span style={{ color: "var(--ink-soft)", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {employee.currentCompanyName}{employee.currentRoleTitle ? ` · ${employee.currentRoleTitle}` : ""}
           </span>
         </div>
       )}
