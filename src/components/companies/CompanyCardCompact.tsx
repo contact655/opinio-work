@@ -164,6 +164,24 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
         borderBottom: '1px solid rgba(0,0,0,0.06)',
         boxSizing: 'border-box',
       }}>
+        {/* ─ 装飾背景: 大きなイニシャル文字（奥行き感・企業ごとの差別化） ─ */}
+        <span style={{
+          position: 'absolute',
+          right: -8,
+          bottom: -12,
+          fontSize: 110,
+          fontWeight: 900,
+          color: 'rgba(255,255,255,0.07)',
+          fontFamily: 'Inter, sans-serif',
+          lineHeight: 1,
+          userSelect: 'none',
+          pointerEvents: 'none',
+          letterSpacing: '-0.05em',
+          zIndex: 0,
+        }}>
+          {initial}
+        </span>
+
         {/* ─ ロゴ表示（ロゴあり→白い正方形コンテナ、なし→イニシャル直接） ─ */}
         {company.logo_url && !logoError ? (
           /* 白い正方形コンテナ（WorkCircle方式） */
@@ -509,6 +527,49 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
               </span>
             )}
           </div>
+
+          {/* ── 常時表示 CTA ─────────────────────────────────── */}
+          {company.accepting_casual_meetings ? (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}/casual-meeting`); }}
+              style={{
+                width: '100%', padding: '9px 0',
+                background: 'linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)',
+                color: '#fff', border: 'none', borderRadius: 8,
+                fontSize: 12.5, fontWeight: 700,
+                cursor: 'pointer', letterSpacing: '0.01em',
+                boxShadow: '0 2px 8px rgba(245,158,11,0.30)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                transition: 'opacity 0.15s',
+                marginTop: 2,
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              話を聞く
+            </button>
+          ) : company.job_count > 0 ? (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}#jobs`); }}
+              style={{
+                width: '100%', padding: '9px 0',
+                background: 'linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)',
+                color: '#fff', border: 'none', borderRadius: 8,
+                fontSize: 12.5, fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,35,102,0.20)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                transition: 'opacity 0.15s',
+                marginTop: 2,
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8l-2 4h12l-2-4z"/>
+              </svg>
+              求人を見る（{company.job_count}件）
+            </button>
+          ) : null}
         </div>
       </div>
     </Link>
