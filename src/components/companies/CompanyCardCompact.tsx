@@ -154,47 +154,65 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
 
       {/* ─── ロゴエリア ─────────────────────────────────────── */}
       <div style={{
-        aspectRatio: compact ? '3 / 2' : '4 / 3',
-        background: (company.logo_url && !logoError) ? '#fff' : headerGradient,
+        height: compact ? 128 : 140,
+        background: '#f2f4f7',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 0,
         position: 'relative',
         overflow: 'hidden',
-        borderBottom: (company.logo_url && !logoError) ? '1px solid #e8ecf0' : 'none',
+        borderBottom: '1px solid #e8ecf0',
         boxSizing: 'border-box',
       }}>
-        {company.logo_url && !logoError ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={company.logo_url}
-            alt={`${company.name}のロゴ`}
-            style={{
-              display: 'block',
-              objectFit: 'contain',
-              maxWidth: '72%',
-              maxHeight: '62%',
-              width: 'auto',
-              height: 'auto',
-            }}
-            onError={() => setLogoError(true)}
-          />
-        ) : (
-          /* ロゴなし → イニシャル文字 */
-          <span style={{
-            fontSize: compact ? 36 : 52,
-            fontWeight: 800,
-            color: 'rgba(255,255,255,0.92)',
-            letterSpacing: '-0.03em',
-            fontFamily: 'Inter, "Noto Sans JP", sans-serif',
-            textShadow: '0 2px 12px rgba(0,0,0,0.18)',
-            lineHeight: 1,
-            userSelect: 'none',
-          }}>
-            {initial}
-          </span>
-        )}
+        {/* ─ ロゴ正方形コンテナ（WorkCircle方式） ─ */}
+        <div style={{
+          width: 80,
+          height: 80,
+          borderRadius: 14,
+          background: (company.logo_url && !logoError) ? '#fff' : headerGradient,
+          border: (company.logo_url && !logoError) ? '1px solid #dde2ea' : 'none',
+          boxShadow: (company.logo_url && !logoError)
+            ? '0 1px 6px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.03)'
+            : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          flexShrink: 0,
+          position: 'relative',
+          zIndex: 1,
+        }}>
+          {company.logo_url && !logoError ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={company.logo_url}
+              alt={`${company.name}のロゴ`}
+              style={{
+                display: 'block',
+                objectFit: 'contain',
+                width: '100%',
+                height: '100%',
+                padding: '10px',
+                boxSizing: 'border-box',
+              }}
+              onError={() => setLogoError(true)}
+            />
+          ) : (
+            /* ロゴなし → グラデーション + イニシャル文字 */
+            <span style={{
+              fontSize: 32,
+              fontWeight: 800,
+              color: 'rgba(255,255,255,0.92)',
+              letterSpacing: '-0.03em',
+              fontFamily: 'Inter, "Noto Sans JP", sans-serif',
+              textShadow: '0 2px 12px rgba(0,0,0,0.18)',
+              lineHeight: 1,
+              userSelect: 'none',
+            }}>
+              {initial}
+            </span>
+          )}
+        </div>
 
         {/* 取材済みバッジ（左上） */}
         {articleCount > 0 && (
