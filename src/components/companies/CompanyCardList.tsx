@@ -218,6 +218,10 @@ export function CompanyCardList({ company, members, compact }: Props) {
         {/* ── スタット列（リストビューのみ） ── */}
         {!compact && (
           <div className="clc-stats" style={{ display: "flex", alignItems: "center", gap: 0, flexShrink: 0 }}>
+            <StatCol label="現役社員" value={memberCount} unit="名" />
+            <div className="clc-stat-divider" />
+            <StatCol label="OB・OG" value={obogCount} unit="名" />
+            <div className="clc-stat-divider" />
             <StatCol label="求人" value={company.job_count} unit="件" highlight={company.job_count > 0} />
           </div>
         )}
