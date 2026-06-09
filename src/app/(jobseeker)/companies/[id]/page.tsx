@@ -11,10 +11,6 @@ import {
   getCompanyEmployees,
   getSimilarCompanies,
 } from "@/lib/supabase/queries";
-
-// Deduplicate getCompanyById calls within a single request
-// (generateMetadata and CompanyDetailPage both call it)
-const getCompanyByIdCached = cache(getCompanyById);
 import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
@@ -34,6 +30,10 @@ import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatarColor } from "@/lib/jobCategoryColors";
 import { JOB_GROUPING_THRESHOLD } from "@/lib/constants";
+
+// Deduplicate getCompanyById calls within a single request
+// (generateMetadata and CompanyDetailPage both call it)
+const getCompanyByIdCached = cache(getCompanyById);
 
 
 
