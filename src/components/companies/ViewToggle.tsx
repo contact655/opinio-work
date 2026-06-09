@@ -47,7 +47,7 @@ export function ViewToggle() {
     },
     {
       value: "list2",
-      label: "リスト２列",
+      label: "グリッド",
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <line x1="2" y1="6" x2="10" y2="6"/>
@@ -61,7 +61,7 @@ export function ViewToggle() {
     },
     {
       value: "grid",
-      label: "縦",
+      label: "カード",
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <rect x="3" y="3" width="7" height="7" rx="1"/>
