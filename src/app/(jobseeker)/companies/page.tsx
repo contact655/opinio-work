@@ -9,7 +9,6 @@ import { ViewToggle } from "@/components/companies/ViewToggle";
 import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
-import { CompanyUserDndGrid } from "@/components/companies/CompanyUserDndGrid";
 import { CompareBar } from "@/components/companies/CompareBar";
 
 type MemberPreview = { id: string; name: string };
@@ -220,21 +219,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
               {isListView2 || isListView || isGridView ? (
                 <>
-                  {isGridView && (
-                    <style>{`
-                      .companies-compact-grid {
-                        display: grid;
-                        grid-template-columns: repeat(3, 1fr);
-                        gap: 12px;
-                      }
-                      @media (max-width: 1023px) {
-                        .companies-compact-grid { grid-template-columns: repeat(2, 1fr); }
-                      }
-                      @media (max-width: 600px) {
-                        .companies-compact-grid { grid-template-columns: 1fr; gap: 8px; }
-                      }
-                    `}</style>
-                  )}
                   {/* #10: sort=jobs の場合はアプリ側で補完ソート（求人数はDB側で計算できないため） */}
                   {(() => {
                     // #10: DB側でソート済み（updated_at DESC for "newest", employee_count DESC for "employees"）
@@ -262,11 +246,15 @@ export default async function CompaniesPage({ searchParams }: Props) {
                           <Pagination currentPage={safePage} totalPages={totalPages} baseHref={baseHref} />
                         )}
                         {isGridView ? (
-                          <CompanyUserDndGrid
-                            companies={paged}
-                            membersMap={membersByCompany}
-                            topMargin={safePage > 1 ? 24 : 0}
-                          />
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: safePage > 1 ? 24 : 0 }}>
+                            {paged.map(c => (
+                              <CompanyCardList
+                                key={c.id}
+                                company={c}
+                                members={membersByCompany[c.id] ?? []}
+                              />
+                            ))}
+                          </div>
                         ) : isListView2 ? (
                           <div className="companies-list2-grid" style={{ marginTop: safePage > 1 ? 24 : 0 }}>
                             {paged.map(c => (
