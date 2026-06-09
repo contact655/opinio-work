@@ -744,28 +744,36 @@ function AboutSection({
         {/* ② WHY JOIN */}
         {detail.why_join && (
           <div style={{
-            borderRadius: 14,
-            overflow: "hidden",
-            border: "1px solid var(--royal-100)",
-            boxShadow: "0 1px 6px rgba(0,35,102,0.06)",
+            borderRadius: 12,
+            background: "#fff",
+            border: "1px solid var(--line)",
+            borderLeft: "4px solid var(--royal)",
+            padding: "20px 24px",
           }}>
-            {/* ヘッダー帯 */}
-            <div style={{
-              background: "linear-gradient(135deg, var(--royal) 0%, #1a3a8f 100%)",
-              padding: "10px 20px",
-              display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+            {/* 見出し */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
               </svg>
-              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", color: "#fff", textTransform: "uppercase" as const, fontFamily: "Inter, sans-serif" }}>Why Join</span>
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", fontFamily: "var(--font-noto-sans)", marginLeft: 4 }}>— この会社に入る理由</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "var(--royal)", fontFamily: "var(--font-noto-sans)" }}>なぜこの会社に入るのか</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", opacity: 0.5, fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const }}>WHY JOIN</span>
             </div>
-            {/* 本文 */}
-            <div style={{ padding: "18px 20px", background: "#f7f9ff" }}>
-              <p style={{ margin: 0, fontSize: 14, color: "var(--ink)", lineHeight: 2, fontFamily: "var(--font-noto-sans)", whiteSpace: "pre-wrap" }}>
-                {detail.why_join}
-              </p>
+            {/* 本文: 「。」区切りでポイント表示 */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {detail.why_join.split(/。(?!\s*$)/).filter(s => s.trim()).map((sentence, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{
+                    flexShrink: 0, width: 20, height: 20, borderRadius: "50%",
+                    background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 10, fontWeight: 800, color: "var(--royal)", fontFamily: "Inter",
+                    marginTop: 2,
+                  }}>{i + 1}</span>
+                  <p style={{ margin: 0, fontSize: 14, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>
+                    {sentence.trim()}。
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -773,70 +781,67 @@ function AboutSection({
         {/* ③ CULTURE */}
         {detail.culture_description && (
           <div style={{
-            borderRadius: 14,
-            overflow: "hidden",
+            borderRadius: 12,
+            background: "#fffbeb",
             border: "1px solid #FDE68A",
-            boxShadow: "0 1px 6px rgba(245,158,11,0.08)",
+            borderLeft: "4px solid #F59E0B",
+            padding: "20px 24px",
           }}>
-            {/* ヘッダー帯 */}
-            <div style={{
-              background: "linear-gradient(135deg, #D97706 0%, #F59E0B 100%)",
-              padding: "10px 20px",
-              display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            {/* 見出し */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
-              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", color: "#fff", textTransform: "uppercase" as const, fontFamily: "Inter, sans-serif" }}>Culture</span>
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", fontFamily: "var(--font-noto-sans)", marginLeft: 4 }}>— 組織文化・働く環境</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "#92400E", fontFamily: "var(--font-noto-sans)" }}>組織文化・働く環境</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "#D97706", opacity: 0.7, fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const }}>CULTURE</span>
             </div>
-            {/* 本文 + キーワード */}
-            <div style={{ padding: "18px 20px", background: "#fffdf7" }}>
-              <p style={{ margin: 0, fontSize: 14, color: "var(--ink)", lineHeight: 2, fontFamily: "var(--font-noto-sans)", whiteSpace: "pre-wrap" }}>
-                {detail.culture_description}
-              </p>
-              {detail.culture_keywords && detail.culture_keywords.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 14 }}>
-                  {detail.culture_keywords.map((kw, i) => (
-                    <span key={i} style={{
-                      fontSize: 12, padding: "4px 12px", borderRadius: 100,
-                      background: "#FEF3C7", color: "#92400E",
-                      border: "1px solid #FDE68A", fontWeight: 700,
-                      fontFamily: "var(--font-noto-sans)",
-                    }}>
-                      {kw}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* キーワードを先に（一番目立つ場所） */}
+            {detail.culture_keywords && detail.culture_keywords.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+                {detail.culture_keywords.map((kw, i) => (
+                  <span key={i} style={{
+                    fontSize: 13, padding: "5px 14px", borderRadius: 100,
+                    background: "#FEF3C7", color: "#92400E",
+                    border: "1.5px solid #FCD34D", fontWeight: 700,
+                    fontFamily: "var(--font-noto-sans)",
+                  }}>
+                    {kw}
+                  </span>
+                ))}
+              </div>
+            )}
+            {/* 説明テキスト（キーワードの補足として下に） */}
+            <p style={{ margin: 0, fontSize: 13, color: "#78350F", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>
+              {detail.culture_description}
+            </p>
           </div>
         )}
 
-        {/* ④ 会社の特徴・強み — 全幅ピルタグ */}
+        {/* ④ 会社の特徴・強み */}
         {detail.company_features && detail.company_features.length > 0 && (
-          <div style={{
-            borderTop: "1px solid var(--line-soft)",
-            paddingTop: 20,
-            marginTop: 4,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth={2.5} strokeLinecap="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-soft)", fontFamily: "var(--font-noto-sans)" }}>会社の特徴・強み</span>
+          <div style={{ marginTop: 8 }}>
+            {/* セクション区切り見出し */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10, marginBottom: 12,
+            }}>
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+              <span style={{
+                fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
+                letterSpacing: "0.1em", fontFamily: "var(--font-noto-sans)",
+                textTransform: "uppercase" as const, whiteSpace: "nowrap" as const,
+              }}>会社の特徴・強み</span>
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
               {detail.company_features.map((f, i) => (
                 <span key={i} style={{
-                  display: "inline-flex", alignItems: "center", gap: 3,
-                  padding: "5px 13px", borderRadius: 6,
-                  background: "#fff", border: "1.5px solid var(--line)",
-                  fontSize: 13, fontWeight: 600, color: "var(--ink)",
-                  fontFamily: "var(--font-noto-sans)", lineHeight: 1.4,
+                  padding: "5px 14px", borderRadius: 6,
+                  background: "var(--bg-tint)", border: "1px solid var(--line)",
+                  fontSize: 13, fontWeight: 600, color: "var(--ink-soft)",
+                  fontFamily: "var(--font-noto-sans)",
                 }}>
-                  <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter" }}>#</span>{f}
+                  {f}
                 </span>
               ))}
             </div>
