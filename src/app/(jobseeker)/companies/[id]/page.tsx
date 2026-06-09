@@ -640,26 +640,26 @@ function SecTitle({
         display: "flex",
         alignItems: "center",
         gap: "var(--space-3)",
-        fontFamily: 'var(--font-noto-serif)',
-        fontWeight: 700,
-        fontSize: "var(--text-lg)",
+        fontFamily: 'var(--font-noto-sans)',
+        fontWeight: 800,
+        fontSize: 20,
         color: "var(--ink)",
-        letterSpacing: "0.01em",
-        lineHeight: 1.3,
+        letterSpacing: "-0.01em",
+        lineHeight: 1.25,
       }}
     >
       <span
         style={{
-          width: 30,
-          height: 30,
-          borderRadius: 8,
+          width: 34,
+          height: 34,
+          borderRadius: 9,
           background: iconBg[iconColor],
           color: iconFg[iconColor],
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          fontSize: "var(--text-base)",
+          fontSize: 15,
         }}
       >
         {icon}
@@ -713,40 +713,40 @@ function AboutSection({
 
         {/* ① 会社概要 — 全幅 */}
         {detail.about && (
-          <p style={{ margin: "0 0 var(--space-6)", fontSize: 15, color: "var(--ink)", lineHeight: 2, fontFamily: "var(--font-noto-sans)" }}>
-            {detail.about}
-          </p>
+          <div style={{ marginBottom: "var(--space-6)" }}>
+            {detail.about.split("\n").filter(line => line.trim()).map((line, i) => (
+              <p key={i} style={{ margin: i > 0 ? "14px 0 0" : 0, fontSize: 15, color: "var(--ink)", lineHeight: 2, fontFamily: "var(--font-noto-sans)" }}>
+                {line.trim()}
+              </p>
+            ))}
+          </div>
         )}
 
         {/* ② WHY JOIN */}
         {detail.why_join && (
-          <div style={{
-            borderRadius: 12,
-            background: "#fff",
-            border: "1px solid var(--line)",
-            borderLeft: "4px solid var(--royal)",
-            padding: "20px 24px",
-          }}>
-            {/* 見出し */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
-              </svg>
-              <span style={{ fontSize: 15, fontWeight: 800, color: "var(--royal)", fontFamily: "var(--font-noto-sans)" }}>なぜこの会社に入るのか</span>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", opacity: 0.5, fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const }}>WHY JOIN</span>
+          <div style={{ paddingTop: 4 }}>
+            {/* サブセクション見出し */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>
+                なぜこの会社に入るのか
+              </h3>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const, flexShrink: 0 }}>
+                WHY JOIN
+              </span>
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
             {/* 本文: 「。」区切りでポイント表示 */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {detail.why_join.split(/。(?!\s*$)/).filter(s => s.trim()).map((sentence, i) => (
-                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
                   <span style={{
-                    flexShrink: 0, width: 20, height: 20, borderRadius: "50%",
-                    background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
+                    flexShrink: 0, width: 24, height: 24, borderRadius: "50%",
+                    background: "var(--royal)", color: "#fff",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 10, fontWeight: 800, color: "var(--royal)", fontFamily: "Inter",
-                    marginTop: 2,
+                    fontSize: 11, fontWeight: 800, fontFamily: "Inter",
+                    marginTop: 1,
                   }}>{i + 1}</span>
-                  <p style={{ margin: 0, fontSize: 14, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>
+                  <p style={{ margin: 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.9, fontFamily: "var(--font-noto-sans)" }}>
                     {sentence.trim().replace(/。$/, "")}。
                   </p>
                 </div>
@@ -757,30 +757,25 @@ function AboutSection({
 
         {/* ③ CULTURE */}
         {detail.culture_description && (
-          <div style={{
-            borderRadius: 12,
-            background: "#fffbeb",
-            border: "1px solid #FDE68A",
-            borderLeft: "4px solid #F59E0B",
-            padding: "20px 24px",
-          }}>
-            {/* 見出し */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              <span style={{ fontSize: 15, fontWeight: 800, color: "#92400E", fontFamily: "var(--font-noto-sans)" }}>組織文化・働く環境</span>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "#D97706", opacity: 0.7, fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const }}>CULTURE</span>
+          <div style={{ marginTop: 28 }}>
+            {/* サブセクション見出し */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>
+                組織文化・働く環境
+              </h3>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const, flexShrink: 0 }}>
+                CULTURE
+              </span>
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
-            {/* キーワードを先に（一番目立つ場所） */}
+            {/* キーワードを先に */}
             {detail.culture_keywords && detail.culture_keywords.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
                 {detail.culture_keywords.map((kw, i) => (
                   <span key={i} style={{
-                    fontSize: 13, padding: "5px 14px", borderRadius: 100,
-                    background: "#FEF3C7", color: "#92400E",
-                    border: "1.5px solid #FCD34D", fontWeight: 700,
+                    fontSize: 13, padding: "6px 14px", borderRadius: 100,
+                    background: "var(--royal-50)", color: "var(--royal)",
+                    border: "1px solid var(--royal-100)", fontWeight: 700,
                     fontFamily: "var(--font-noto-sans)",
                   }}>
                     {kw}
@@ -788,8 +783,8 @@ function AboutSection({
                 ))}
               </div>
             )}
-            {/* 説明テキスト（キーワードの補足として下に） */}
-            <p style={{ margin: 0, fontSize: 13, color: "#78350F", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>
+            {/* 説明テキスト */}
+            <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, fontFamily: "var(--font-noto-sans)" }}>
               {detail.culture_description}
             </p>
           </div>
@@ -797,23 +792,17 @@ function AboutSection({
 
         {/* ④ 会社の特徴・強み */}
         {detail.company_features && detail.company_features.length > 0 && (
-          <div style={{ marginTop: 8 }}>
-            {/* セクション区切り見出し */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10, marginBottom: 12,
-            }}>
-              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-              <span style={{
-                fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
-                letterSpacing: "0.1em", fontFamily: "var(--font-noto-sans)",
-                textTransform: "uppercase" as const, whiteSpace: "nowrap" as const,
-              }}>会社の特徴・強み</span>
+          <div style={{ marginTop: 28 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>
+                会社の特徴・強み
+              </h3>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
               {detail.company_features.map((f, i) => (
                 <span key={i} style={{
-                  padding: "5px 14px", borderRadius: 6,
+                  padding: "6px 14px", borderRadius: 8,
                   background: "var(--bg-tint)", border: "1px solid var(--line)",
                   fontSize: 13, fontWeight: 600, color: "var(--ink-soft)",
                   fontFamily: "var(--font-noto-sans)",
@@ -1320,8 +1309,8 @@ function EmployeeCard({
   const avatar = (
     <div
       style={{
-        width: 48,
-        height: 48,
+        width: 60,
+        height: 60,
         borderRadius: "50%",
         background: employee.avatarUrl ? undefined : avatarColor.bg,
         flexShrink: 0,
@@ -1330,7 +1319,7 @@ function EmployeeCard({
         justifyContent: "center",
         fontFamily: "var(--font-noto-serif)",
         fontWeight: 700,
-        fontSize: 19,
+        fontSize: 22,
         color: avatarColor.text,
         overflow: "hidden",
         border: "2px solid var(--line)",
@@ -1352,7 +1341,7 @@ function EmployeeCard({
   const nameAndRole = (
     <div style={{ minWidth: 0, flex: 1 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
           {employee.name}
         </span>
       </div>
@@ -1360,9 +1349,9 @@ function EmployeeCard({
         <p
           style={{
             margin: 0,
-            fontSize: "var(--text-xs)",
+            fontSize: "var(--text-sm)",
             color: "var(--ink-soft)",
-            marginTop: 2,
+            marginTop: 3,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
