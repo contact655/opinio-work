@@ -30,9 +30,9 @@ export function RecentlyViewedSection() {
   if (!loaded || companyItems.length === 0 || companies.length === 0) return null;
 
   return (
-    <div style={{ padding: "20px 24px", background: "#fff", borderRadius: 12, border: "1px solid var(--line)" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+    <div style={{ padding: "20px 24px", background: "#fff", borderRadius: 14, border: "1px solid var(--line)" }}>
+      {/* ヘッダー */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>最近見た企業</span>
         <button
           type="button"
@@ -43,31 +43,48 @@ export function RecentlyViewedSection() {
         </button>
       </div>
 
-      {/* Same card grid as main grid */}
-      <div className="recently-viewed-grid">
-        {companies.map((c) => (
-          <CompanyCardHoverWrap
-            key={c.id}
-            company={c}
-            members={membersByCompany[c.id] ?? []}
-          />
-        ))}
+      {/* 横スクロールカルーセル */}
+      <div className="recently-viewed-scroll-wrap">
+        <div className="recently-viewed-row">
+          {companies.map((c) => (
+            <div key={c.id} className="recently-viewed-item">
+              <CompanyCardHoverWrap
+                company={c}
+                members={membersByCompany[c.id] ?? []}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       <style>{`
-        .recently-viewed-grid {
-          display: grid;
-          grid-template-columns: repeat(5, 1fr);
+        .recently-viewed-scroll-wrap {
+          position: relative;
+          margin: 0 -24px;
+          padding: 0 24px;
+          overflow: hidden;
+        }
+        .recently-viewed-row {
+          display: flex;
+          flex-direction: row;
           gap: 14px;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          -webkit-overflow-scrolling: touch;
+          padding-bottom: 4px;
+          /* スクロールバーを非表示 */
+          scrollbar-width: none;
+          -ms-overflow-style: none;
         }
-        @media (max-width: 1279px) {
-          .recently-viewed-grid { grid-template-columns: repeat(4, 1fr); }
+        .recently-viewed-row::-webkit-scrollbar {
+          display: none;
         }
-        @media (max-width: 1023px) {
-          .recently-viewed-grid { grid-template-columns: repeat(3, 1fr); }
+        .recently-viewed-item {
+          flex: 0 0 220px;
+          scroll-snap-align: start;
         }
-        @media (max-width: 639px) {
-          .recently-viewed-grid { grid-template-columns: repeat(2, 1fr); }
+        @media (max-width: 767px) {
+          .recently-viewed-item { flex: 0 0 180px; }
         }
       `}</style>
     </div>
