@@ -300,15 +300,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               >{bookmarked ? "♥" : "♡"}</button>
             </div>
 
-            {/* タグライン */}
-            {company.tagline && (
-              <div style={{
-                fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.4,
-                overflow: "hidden", display: "-webkit-box",
-                WebkitLineClamp: 1, WebkitBoxOrient: "vertical",
-              }}>{company.tagline}</div>
-            )}
-
             {/* 下段: 所在地 + 従業員数 */}
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {company.location && (
