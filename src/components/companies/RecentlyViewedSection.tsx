@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
-import { CompanyCardHoverWrap } from "./CompanyCardHoverWrap";
+import { CompanyCardList } from "./CompanyCardList";
 import type { CompanyForCarousel } from "@/types/genre";
 import type { MemberPreview } from "./CompanyCardCompact";
 
@@ -43,48 +43,26 @@ export function RecentlyViewedSection() {
         </button>
       </div>
 
-      {/* 横スクロールカルーセル */}
-      <div className="recently-viewed-scroll-wrap">
-        <div className="recently-viewed-row">
-          {companies.map((c) => (
-            <div key={c.id} className="recently-viewed-item">
-              <CompanyCardHoverWrap
-                company={c}
-                members={membersByCompany[c.id] ?? []}
-              />
-            </div>
-          ))}
-        </div>
+      {/* グリッドビューと同じ 2列レイアウト */}
+      <div className="recently-viewed-grid">
+        {companies.map((c) => (
+          <CompanyCardList
+            key={c.id}
+            company={c}
+            members={membersByCompany[c.id] ?? []}
+            compact
+          />
+        ))}
       </div>
 
       <style>{`
-        .recently-viewed-scroll-wrap {
-          position: relative;
-          margin: 0 -24px;
-          padding: 0 24px;
-          overflow: hidden;
-        }
-        .recently-viewed-row {
-          display: flex;
-          flex-direction: row;
-          gap: 14px;
-          overflow-x: auto;
-          scroll-snap-type: x mandatory;
-          -webkit-overflow-scrolling: touch;
-          padding-bottom: 4px;
-          /* スクロールバーを非表示 */
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        .recently-viewed-row::-webkit-scrollbar {
-          display: none;
-        }
-        .recently-viewed-item {
-          flex: 0 0 220px;
-          scroll-snap-align: start;
+        .recently-viewed-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
         }
         @media (max-width: 767px) {
-          .recently-viewed-item { flex: 0 0 180px; }
+          .recently-viewed-grid { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>
