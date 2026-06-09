@@ -152,38 +152,37 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
       onMouseLeave={() => setHovered(false)}
     >
 
-      {/* ─── ロゴエリア ─────────────────────────────────────── */}
+      {/* ─── ロゴエリア（ブランドカラーグラデーション背景） ─────────────────────── */}
       <div style={{
         height: compact ? 128 : 140,
-        background: '#f2f4f7',
+        background: headerGradient,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
         overflow: 'hidden',
-        borderBottom: '1px solid #e8ecf0',
+        borderBottom: '1px solid rgba(0,0,0,0.06)',
         boxSizing: 'border-box',
       }}>
-        {/* ─ ロゴ正方形コンテナ（WorkCircle方式） ─ */}
-        <div style={{
-          width: 80,
-          height: 80,
-          borderRadius: 14,
-          background: (company.logo_url && !logoError) ? '#fff' : headerGradient,
-          border: (company.logo_url && !logoError) ? '1px solid #dde2ea' : 'none',
-          boxShadow: (company.logo_url && !logoError)
-            ? '0 1px 6px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.03)'
-            : 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          flexShrink: 0,
-          position: 'relative',
-          zIndex: 1,
-        }}>
-          {company.logo_url && !logoError ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
+        {/* ─ ロゴ表示（ロゴあり→白い正方形コンテナ、なし→イニシャル直接） ─ */}
+        {company.logo_url && !logoError ? (
+          /* 白い正方形コンテナ（WorkCircle方式） */
+          <div style={{
+            width: 80,
+            height: 80,
+            borderRadius: 14,
+            background: '#fff',
+            border: '1px solid rgba(255,255,255,0.9)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            flexShrink: 0,
+            position: 'relative',
+            zIndex: 1,
+          }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={company.logo_url}
               alt={`${company.name}のロゴ`}
@@ -197,22 +196,23 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
               }}
               onError={() => setLogoError(true)}
             />
-          ) : (
-            /* ロゴなし → グラデーション + イニシャル文字 */
-            <span style={{
-              fontSize: 32,
-              fontWeight: 800,
-              color: 'rgba(255,255,255,0.92)',
-              letterSpacing: '-0.03em',
-              fontFamily: 'Inter, "Noto Sans JP", sans-serif',
-              textShadow: '0 2px 12px rgba(0,0,0,0.18)',
-              lineHeight: 1,
-              userSelect: 'none',
-            }}>
-              {initial}
-            </span>
-          )}
-        </div>
+          </div>
+        ) : (
+          /* ロゴなし → グラデーション背景に直接イニシャル */
+          <span style={{
+            fontSize: 48,
+            fontWeight: 800,
+            color: 'rgba(255,255,255,0.88)',
+            letterSpacing: '-0.03em',
+            fontFamily: 'Inter, "Noto Sans JP", sans-serif',
+            textShadow: '0 2px 16px rgba(0,0,0,0.25)',
+            lineHeight: 1,
+            userSelect: 'none',
+            zIndex: 1,
+          }}>
+            {initial}
+          </span>
+        )}
 
         {/* 取材済みバッジ（左上） */}
         {articleCount > 0 && (
@@ -424,6 +424,18 @@ export function CompanyCardCompact({ company, compact, members }: Props) {
 
         {/* ─── 下部メタ行 ──────────────────────────────────── */}
         <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--line-soft)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+          {/* 平均年収（ある場合のみ） */}
+          {company.avg_salary && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2} strokeLinecap="round">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+              </svg>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', fontFamily: 'Inter, sans-serif' }}>
+                {company.avg_salary}
+              </span>
+            </div>
+          )}
 
           {/* 在籍メンバー（いる場合のみ） */}
           {hasMembers && (
