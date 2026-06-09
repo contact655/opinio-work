@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MapPin } from 'lucide-react';
 import type { CompanyForCarousel } from '@/types/genre';
 import { showToast } from '@/lib/toast';
 import { addToCompare, removeFromCompare, isInCompareList } from './CompareBar';
@@ -223,7 +222,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
         </div>
 
         {/* 右: 情報エリア */}
-        <div style={{ flex: 1, minWidth: 0, padding: '11px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 5 }}>
+        <div style={{ flex: 1, minWidth: 0, padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
 
           {/* 上段: 社名 + バッジ + ブックマーク */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
@@ -237,8 +236,8 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
               }}>
                 {displayName}
               </div>
-              {/* バッジ行 */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+              {/* バッジ行 + 比較 */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4, alignItems: 'center' }}>
                 {stageCfg && (
                   <span style={{
                     fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 100,
@@ -264,6 +263,17 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
                     ✍ 取材済
                   </span>
                 )}
+                {/* 比較 */}
+                <button onClick={handleCompare} style={{
+                  marginLeft: 'auto',
+                  padding: '2px 7px', borderRadius: 4,
+                  background: inCompare ? 'var(--royal-50)' : 'transparent',
+                  color: inCompare ? 'var(--royal)' : 'var(--ink-mute)',
+                  border: `1px solid ${inCompare ? 'var(--royal-100)' : 'var(--line)'}`,
+                  fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                }}>
+                  {inCompare ? '✓ 比較中' : '+ 比較'}
+                </button>
               </div>
             </div>
             {/* ブックマーク */}
@@ -297,45 +307,6 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
             </div>
           )}
 
-          {/* 下段: メタ情報 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', flex: 1, minWidth: 0 }}>
-              <MapPin size={11} color="#9ca3af" style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: 11, color: 'var(--ink-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {company.location ?? '—'}
-              </span>
-              {company.employee_count && (
-                <>
-                  <span style={{ color: 'var(--line)', fontSize: 11, flexShrink: 0 }}>·</span>
-                  <span style={{ fontSize: 11, color: 'var(--ink-mute)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    {company.employee_count}
-                  </span>
-                </>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-              {/* 比較 */}
-              <button onClick={handleCompare} style={{
-                padding: '2px 7px', borderRadius: 4,
-                background: inCompare ? 'var(--royal-50)' : 'transparent',
-                color: inCompare ? 'var(--royal)' : 'var(--ink-mute)',
-                border: `1px solid ${inCompare ? 'var(--royal-100)' : 'var(--line)'}`,
-                fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
-              }}>
-                {inCompare ? '✓ 比較中' : '+ 比較'}
-              </button>
-              {/* 求人バッジ */}
-              {company.job_count > 0 && (
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100,
-                  background: 'var(--royal-50)', color: 'var(--royal)',
-                  border: '1px solid var(--royal-100)', whiteSpace: 'nowrap',
-                }}>
-                  求人 {company.job_count}件
-                </span>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </Link>

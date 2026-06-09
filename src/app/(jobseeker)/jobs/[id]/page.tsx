@@ -347,20 +347,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </div>
               )}
 
-              {/* NEW badge */}
-              {job.is_new && (
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  fontSize: 11, fontWeight: 800, letterSpacing: "0.08em",
-                  padding: "4px 12px", borderRadius: 100,
-                  background: "var(--success-soft)", color: "var(--success)",
-                  border: "1px solid #A7F3D0", marginBottom: "var(--space-3)",
-                }}>
-                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--success)", animation: "pulseDot 1.8s ease infinite" }} />
-                  NEW — 7日以内に公開
-                </span>
-              )}
-
               <h1 style={{
                 fontFamily: 'var(--font-noto-serif)',
                 fontSize: "clamp(18px,2vw,24px)", fontWeight: 700,

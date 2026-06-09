@@ -180,27 +180,6 @@ function JobCard({
       }}
       className="job-card-link"
     >
-      {/* NEW ribbon */}
-      {job.is_new && (
-        <div
-          style={{
-            position: "absolute",
-            top: 12,
-            right: -28,
-            transform: "rotate(45deg)",
-            background: "var(--success)",
-            color: "#fff",
-            fontSize: 8,
-            fontWeight: 800,
-            letterSpacing: "0.12em",
-            padding: "3px 32px",
-            zIndex: 2,
-          }}
-        >
-          NEW
-        </div>
-      )}
-
       {/* HOT badge */}
       {job.urgency === "hot" && (
         <span style={{
@@ -226,7 +205,7 @@ function JobCard({
           gap: "var(--space-3)",
           alignItems: "flex-start",
           marginBottom: "var(--space-3)",
-          paddingRight: job.is_new ? 32 : 0,
+          paddingRight: 0,
         }}
       >
         <div
@@ -293,37 +272,9 @@ function JobCard({
               {company.name}
             </span>
             <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>·</span>
-            {isFresh ? (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  padding: "2px 7px",
-                  borderRadius: 100,
-                  background: "var(--success-soft)",
-                  color: "var(--success)",
-                  border: "1px solid #A7F3D0",
-                }}
-              >
-                <span
-                  style={{
-                    width: 4,
-                    height: 4,
-                    borderRadius: "50%",
-                    background: "var(--success)",
-                    flexShrink: 0,
-                  }}
-                />
-                {label}
-              </span>
-            ) : (
-              <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>
-                {label}
-              </span>
-            )}
+            <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>
+              {label}
+            </span>
           </div>
         </div>
       </div>
@@ -944,13 +895,6 @@ function JobListCard({
             <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", lineHeight: 1.35 }}>
               {job.role}
             </span>
-            {isFresh && (
-              <span style={{
-                fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
-                background: "var(--success-soft)", color: "var(--success)",
-                border: "1px solid #A7F3D0",
-              }}>NEW</span>
-            )}
           </div>
 
           {/* 企業名 + ロケーション + 勤務形態 */}
