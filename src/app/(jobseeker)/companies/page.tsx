@@ -183,10 +183,13 @@ export default async function CompaniesPage({ searchParams }: Props) {
         <style>{`
           .companies-list2-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 12px;
           }
-          @media (max-width: 767px) {
+          @media (max-width: 1023px) {
+            .companies-list2-grid { grid-template-columns: repeat(2, 1fr); }
+          }
+          @media (max-width: 600px) {
             .companies-list2-grid { grid-template-columns: 1fr; gap: 8px; }
           }
         `}</style>

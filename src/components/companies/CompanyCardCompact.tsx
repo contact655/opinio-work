@@ -177,208 +177,98 @@ export function CompanyCardCompact({ company, compact, members: _members }: Prop
       onMouseLeave={() => setHovered(false)}
     >
 
-      {/* ─── ロゴエリア（ブランドカラーグラデーション背景） ─────────────────────── */}
+      {/* ─── ロゴエリア（コンパクト: 80px） ──────────────────── */}
       <div style={{
-        height: compact ? 128 : 140,
+        height: 80,
         background: headerGradient,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         position: 'relative',
         overflow: 'hidden',
         borderBottom: '1px solid rgba(0,0,0,0.06)',
+        padding: '0 12px',
         boxSizing: 'border-box',
       }}>
-        {/* ─ 装飾背景: 大きなイニシャル文字（奥行き感・企業ごとの差別化） ─ */}
+        {/* 装飾イニシャル */}
         <span style={{
-          position: 'absolute',
-          right: -8,
-          bottom: -12,
-          fontSize: 110,
-          fontWeight: 900,
+          position: 'absolute', right: -6, bottom: -10,
+          fontSize: 80, fontWeight: 900,
           color: 'rgba(255,255,255,0.07)',
-          fontFamily: 'Inter, sans-serif',
-          lineHeight: 1,
-          userSelect: 'none',
-          pointerEvents: 'none',
-          letterSpacing: '-0.05em',
-          zIndex: 0,
+          fontFamily: 'Inter, sans-serif', lineHeight: 1,
+          userSelect: 'none', pointerEvents: 'none',
+          letterSpacing: '-0.05em', zIndex: 0,
         }}>
           {initial}
         </span>
 
-        {/* ─ ロゴ表示（ロゴあり→白い正方形コンテナ、なし→イニシャル直接） ─ */}
+        {/* ロゴ or イニシャル */}
         {company.logo_url && !logoError ? (
-          /* 白い正方形コンテナ（WorkCircle方式） */
           <div style={{
-            width: 80,
-            height: 80,
-            borderRadius: 14,
+            width: 52, height: 52, borderRadius: 10,
             background: '#fff',
             border: '1px solid rgba(255,255,255,0.9)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-            flexShrink: 0,
-            position: 'relative',
-            zIndex: 1,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            overflow: 'hidden', flexShrink: 0, position: 'relative', zIndex: 1,
           }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={company.logo_url}
-              alt={`${company.name}のロゴ`}
-              style={{
-                display: 'block',
-                objectFit: 'contain',
-                width: '100%',
-                height: '100%',
-                padding: '10px',
-                boxSizing: 'border-box',
-              }}
+              src={company.logo_url} alt={`${company.name}のロゴ`}
+              style={{ display: 'block', objectFit: 'contain', width: '100%', height: '100%', padding: '8px', boxSizing: 'border-box' }}
               onError={() => setLogoError(true)}
             />
           </div>
         ) : (
-          /* ロゴなし → グラデーション背景に直接イニシャル */
           <span style={{
-            fontSize: 48,
-            fontWeight: 800,
+            fontSize: 32, fontWeight: 800,
             color: 'rgba(255,255,255,0.88)',
             letterSpacing: '-0.03em',
             fontFamily: 'Inter, "Noto Sans JP", sans-serif',
-            textShadow: '0 2px 16px rgba(0,0,0,0.25)',
-            lineHeight: 1,
-            userSelect: 'none',
-            zIndex: 1,
+            textShadow: '0 2px 10px rgba(0,0,0,0.25)',
+            lineHeight: 1, userSelect: 'none', zIndex: 1,
           }}>
             {initial}
           </span>
         )}
 
-        {/* 取材済みバッジ（左上） */}
-        {articleCount > 0 && (
-          <span style={{
-            position: 'absolute', top: 8, left: 8,
-            fontSize: 9.5, fontWeight: 700,
-            padding: '2px 7px', borderRadius: 100,
-            background: 'rgba(255,255,255,0.92)',
-            color: '#92400e',
-            border: '1px solid rgba(251,191,36,0.5)',
-            whiteSpace: 'nowrap',
-            backdropFilter: 'blur(4px)',
-          }}>
-            ✍️ 取材済み
-          </span>
-        )}
-
-        {/* 面談OKバッジ（右上） */}
-        {company.accepting_casual_meetings && (
-          <span style={{
-            position: 'absolute', top: 8, right: 8,
-            fontSize: 9.5, fontWeight: 700,
-            padding: '2px 7px', borderRadius: 100,
-            background: 'rgba(255,255,255,0.92)',
-            color: 'var(--success)',
-            border: '1px solid rgba(16,185,129,0.4)',
-            whiteSpace: 'nowrap',
-            backdropFilter: 'blur(4px)',
-          }}>
-            ● 面談受付中
-          </span>
-        )}
-
-        {/* ホバーオーバーレイ CTA */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(180deg, rgba(0,18,50,0.55) 0%, rgba(0,18,50,0.78) 100%)',
-          backdropFilter: 'blur(2px)',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          gap: 10,
-          padding: '12px',
-          opacity: hovered ? 1 : 0,
-          pointerEvents: hovered ? 'auto' : 'none',
-          transition: 'opacity 0.22s ease',
-          zIndex: 2,
-        }}>
-          {/* タグライン（ホバー時に表示） */}
-          {company.tagline && (
-            <div style={{
-              fontSize: 10.5, color: 'rgba(255,255,255,0.85)',
-              textAlign: 'center', lineHeight: 1.5,
-              maxWidth: '90%',
-              overflow: 'hidden', display: '-webkit-box',
-              WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+        {/* 右上バッジ群 */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, zIndex: 2 }}>
+          {company.accepting_casual_meetings && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              padding: '2px 6px', borderRadius: 100,
+              background: 'rgba(255,255,255,0.92)', color: 'var(--success)',
+              border: '1px solid rgba(16,185,129,0.4)', whiteSpace: 'nowrap',
             }}>
-              {company.tagline}
-            </div>
+              ● 面談OK
+            </span>
           )}
-          {/* 主CTA: 面談受付中 → orange、求人あり → royal、なければ ghost */}
-          {company.accepting_casual_meetings ? (
-            <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}/casual-meeting`); }}
-              style={{
-                background: 'linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)',
-                color: '#fff', border: 'none', borderRadius: 8,
-                fontSize: 12, fontWeight: 700,
-                padding: '8px 18px',
-                cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(245,158,11,0.45)',
-                whiteSpace: 'nowrap',
-                letterSpacing: '0.01em',
-              }}
-            >
-              話を聞く →
-            </button>
-          ) : company.job_count > 0 ? (
-            <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}#jobs`); }}
-              style={{
-                background: 'linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)',
-                color: '#fff', border: 'none', borderRadius: 8,
-                fontSize: 12, fontWeight: 700,
-                padding: '8px 18px',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,35,102,0.35)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              求人 {company.job_count}件を見る →
-            </button>
-          ) : (
-            <div style={{
-              background: 'rgba(255,255,255,0.15)',
-              color: 'rgba(255,255,255,0.92)',
-              border: '1px solid rgba(255,255,255,0.4)',
-              borderRadius: 8,
-              fontSize: 11.5, fontWeight: 600,
-              padding: '7px 18px',
-              whiteSpace: 'nowrap',
+          {articleCount > 0 && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              padding: '2px 6px', borderRadius: 100,
+              background: 'rgba(255,255,255,0.92)', color: '#92400e',
+              border: '1px solid rgba(251,191,36,0.5)', whiteSpace: 'nowrap',
             }}>
-              詳細を見る →
-            </div>
+              ✍️ 取材済み
+            </span>
           )}
         </div>
 
-        {/* ブックマークボタン（右下） */}
+        {/* ブックマークボタン（左下） */}
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBookmark(); }}
           style={{
-            position: 'absolute', bottom: 8, right: 8,
-            width: 28, height: 28,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.9)',
-            border: 'none',
+            position: 'absolute', bottom: 6, left: 8,
+            width: 24, height: 24, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.85)', border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', padding: 0,
-            backdropFilter: 'blur(4px)',
-            zIndex: 3,
+            cursor: 'pointer', padding: 0, zIndex: 3,
           }}
           aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
         >
-          <svg width="16" height="14" viewBox="0 0 24 24"
+          <svg width="13" height="12" viewBox="0 0 24 24"
             fill={bookmarked ? 'var(--warm)' : 'none'}
             stroke={bookmarked ? 'var(--warm)' : '#94a3b8'}
             strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -387,15 +277,15 @@ export function CompanyCardCompact({ company, compact, members: _members }: Prop
         </button>
       </div>
 
-      {/* ─── カード本体 ─────────────────────────────────────── */}
-      <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+      {/* ─── カード本体（コンパクト） ────────────────────────── */}
+      <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
 
         {/* 業種 + フェーズ バッジ行 */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, minHeight: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
           {company.industry && (
             <span style={{
-              fontSize: 10, fontWeight: 700,
-              padding: '2px 8px', borderRadius: 100,
+              fontSize: 9.5, fontWeight: 700,
+              padding: '1px 6px', borderRadius: 100,
               background: industryStyle.bg, color: industryStyle.color,
             }}>
               {company.industry}
@@ -403,8 +293,8 @@ export function CompanyCardCompact({ company, compact, members: _members }: Prop
           )}
           {stageCfg && (
             <span style={{
-              fontSize: 10, fontWeight: 700,
-              padding: '2px 8px', borderRadius: 100,
+              fontSize: 9.5, fontWeight: 700,
+              padding: '1px 6px', borderRadius: 100,
               background: stageCfg.bg, color: stageCfg.color,
             }}>
               {stageCfg.label}
@@ -415,62 +305,40 @@ export function CompanyCardCompact({ company, compact, members: _members }: Prop
         {/* 社名 */}
         <div>
           <div style={{
-            fontSize: 18,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            lineHeight: 1.2,
+            fontSize: 15, fontWeight: 800,
+            color: 'var(--ink)', lineHeight: 1.3,
             letterSpacing: isEnName ? '-0.02em' : '0',
             fontFamily: isEnName ? 'Inter, sans-serif' : 'var(--font-noto-sans)',
-            overflow: 'hidden',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical' as const,
+            overflow: 'hidden', display: '-webkit-box',
+            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
           }}>
             {displayName}
           </div>
           {isEnName && (
-            <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginTop: 3 }}>
+            <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 2 }}>
               {company.name}
             </div>
           )}
         </div>
 
-        {/* タグライン */}
+        {/* タグライン（1行のみ） */}
         {company.tagline && (
           <div style={{
-            fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.7,
+            fontSize: 11.5, color: 'var(--ink-soft)', lineHeight: 1.5,
             overflow: 'hidden', display: '-webkit-box',
-            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+            WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' as const,
             flex: 1,
           }}>
             {company.tagline}
           </div>
         )}
 
-        {/* fit_positive（カルチャーハイライト） */}
-        {company.fit_positives && company.fit_positives.length > 0 && (
-          <div style={{
-            fontSize: 10.5, fontWeight: 600,
-            color: 'var(--success)', background: 'var(--success-soft)',
-            border: '1px solid #A7F3D0', borderRadius: 6,
-            padding: '3px 8px',
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            width: 'fit-content', maxWidth: '100%',
-            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-          }}>
-            <span style={{ flexShrink: 0 }}>✓</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {company.fit_positives[0]}
-            </span>
-          </div>
-        )}
-
-        {/* company_features タグ */}
+        {/* company_features タグ（最大3件） */}
         {Array.isArray(company.company_features) && company.company_features.length > 0 && (
-          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 6 }}>
-            {(company.company_features as string[]).slice(0, 2).map((f, fi) => (
+          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            {(company.company_features as string[]).slice(0, 3).map((f, fi) => (
               <span key={fi} style={{
-                fontSize: 9.5, padding: '1px 5px', borderRadius: 3,
+                fontSize: 9, padding: '1px 5px', borderRadius: 3,
                 background: 'var(--royal-50)', color: 'var(--royal)',
                 border: '1px solid var(--royal-100)', fontWeight: 500,
               }}>
@@ -481,119 +349,63 @@ export function CompanyCardCompact({ company, compact, members: _members }: Prop
         )}
 
         {/* ─── 下部メタ行 ──────────────────────────────────── */}
-        <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--line-soft)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--line-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
 
-          {/* 所在地 · 従業員数 · 募集中 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', flex: 1, minWidth: 0 }}>
-              <MapPin size={12} color="#6B7280" style={{ flexShrink: 0 }} />
-              <span style={{
-                fontSize: 11, color: 'var(--ink-soft)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1,
-              }}>
-                {company.location ?? '—'}
-              </span>
-              {company.employee_count && (
-                <>
-                  <span style={{ color: 'var(--line)', fontSize: 11, flexShrink: 0 }}>·</span>
-                  <span style={{ fontSize: 11, color: 'var(--ink-soft)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    {company.employee_count}
-                  </span>
-                </>
-              )}
-            </div>
+          {/* 所在地 · 従業員数 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3, overflow: 'hidden', flex: 1, minWidth: 0 }}>
+            <MapPin size={10} color="#6B7280" style={{ flexShrink: 0 }} />
+            <span style={{
+              fontSize: 10.5, color: 'var(--ink-soft)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {company.location ?? '—'}
+            </span>
+            {company.employee_count && (
+              <>
+                <span style={{ color: 'var(--line)', fontSize: 10 }}>·</span>
+                <span style={{ fontSize: 10.5, color: 'var(--ink-soft)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  {company.employee_count}
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* 右側: 比較 + 求人バッジ */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+            {/* 比較ボタン（コンパクト） */}
+            <button
+              onClick={handleCompare}
+              style={{
+                padding: '2px 7px',
+                background: inCompare ? 'var(--royal-50)' : 'transparent',
+                color: inCompare ? 'var(--royal)' : 'var(--ink-mute)',
+                border: `1px solid ${inCompare ? 'var(--royal-100)' : 'var(--line)'}`,
+                borderRadius: 6,
+                fontSize: 9.5, fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 2,
+                transition: 'all 0.15s', whiteSpace: 'nowrap',
+              }}
+              title={inCompare ? '比較リストから削除' : 'この企業を比較リストに追加'}
+            >
+              {inCompare ? '✓ 比較中' : '+ 比較'}
+            </button>
 
             {/* 募集中バッジ */}
             {company.job_count > 0 && (
               <span style={{
-                fontSize: 10.5, fontWeight: 700,
-                padding: '2px 8px', borderRadius: 100,
+                fontSize: 10, fontWeight: 700,
+                padding: '2px 7px', borderRadius: 100,
                 background: 'var(--royal-50)', color: 'var(--royal)',
                 border: '1px solid var(--royal-100)',
-                whiteSpace: 'nowrap', flexShrink: 0,
-                display: 'inline-flex', alignItems: 'center', gap: 3,
+                whiteSpace: 'nowrap',
+                display: 'inline-flex', alignItems: 'center', gap: 2,
               }}>
                 <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--royal)', display: 'inline-block' }} />
-                募集中 {company.job_count}件
+                {company.job_count}件
               </span>
             )}
           </div>
-
-          {/* ── 常時表示 CTA ─────────────────────────────────── */}
-          {company.accepting_casual_meetings ? (
-            <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}/casual-meeting`); }}
-              style={{
-                width: '100%', padding: '9px 0',
-                background: 'linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)',
-                color: '#fff', border: 'none', borderRadius: 8,
-                fontSize: 12.5, fontWeight: 700,
-                cursor: 'pointer', letterSpacing: '0.01em',
-                boxShadow: '0 2px 8px rgba(245,158,11,0.30)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                transition: 'opacity 0.15s',
-                marginTop: 2,
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              話を聞く
-            </button>
-          ) : company.job_count > 0 ? (
-            <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}#jobs`); }}
-              style={{
-                width: '100%', padding: '9px 0',
-                background: 'linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)',
-                color: '#fff', border: 'none', borderRadius: 8,
-                fontSize: 12.5, fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,35,102,0.20)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                transition: 'opacity 0.15s',
-                marginTop: 2,
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8l-2 4h12l-2-4z"/>
-              </svg>
-              求人を見る（{company.job_count}件）
-            </button>
-          ) : null}
-
-          {/* 比較ボタン */}
-          <button
-            onClick={handleCompare}
-            style={{
-              width: '100%', padding: '6px 0',
-              background: inCompare ? 'var(--royal-50)' : 'transparent',
-              color: inCompare ? 'var(--royal)' : 'var(--ink-mute)',
-              border: `1px solid ${inCompare ? 'var(--royal-100)' : 'var(--line)'}`,
-              borderRadius: 8,
-              fontSize: 11, fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-              transition: 'all 0.15s',
-            }}
-            title={inCompare ? '比較リストから削除' : 'この企業を比較リストに追加'}
-          >
-            {inCompare ? (
-              <>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-                比較中
-              </>
-            ) : (
-              <>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                比較に追加
-              </>
-            )}
-          </button>
         </div>
       </div>
     </Link>
