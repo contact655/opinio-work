@@ -109,9 +109,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const { q, phase, workStyle, hiring, location, industry, view, sort } = searchParams;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry);
-  const isGridView = !hasFilter && (view === "grid" || !view || view === "genre");
-  const isListView = !hasFilter && view === "list";
-  const isListView2 = !hasFilter && view === "list2";
+  // グリッド（2列）= デフォルト（パラメータなし or 旧 list2）
+  const isListView2 = !hasFilter && (!view || view === "grid" || view === "list2");
+  const isListView  = !hasFilter && view === "list";
+  // カード（縦グリッド）= view=card（旧 view=grid も後方互換）
+  const isGridView  = !hasFilter && (view === "card");
   const needsGrid = isGridView || isListView || isListView2;
 
   // ── 並列フェッチ（不要なクエリはスキップ）──────────────────────────────────
@@ -199,7 +201,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                 </Suspense>
               </div>
 
-              {isGridView || isListView || isListView2 ? (
+              {isListView2 || isListView || isGridView ? (
                 <>
                   {isGridView && (
                     <style>{`

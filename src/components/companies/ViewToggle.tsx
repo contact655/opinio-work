@@ -4,12 +4,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 export function ViewToggle() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentView = searchParams.get("view") ?? "grid";
+  const currentView = searchParams.get("view") ?? "grid"; // デフォルト = グリッド
 
-  const toggle = (view: "grid" | "list2" | "list") => {
+  const toggle = (view: "grid" | "list" | "card") => {
     const params = new URLSearchParams(searchParams.toString());
     if (view === "grid") {
-      params.delete("view"); // grid = デフォルト（パラメータなし）
+      params.delete("view"); // グリッド = デフォルト（パラメータなし）
     } else {
       params.set("view", view);
     }
@@ -30,7 +30,21 @@ export function ViewToggle() {
     background: "transparent",
   };
 
-  const options: { value: "grid" | "list2" | "list"; label: string; icon: React.ReactNode }[] = [
+  const options: { value: "grid" | "list" | "card"; label: string; icon: React.ReactNode }[] = [
+    {
+      value: "grid",
+      label: "グリッド",
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <line x1="2" y1="6" x2="10" y2="6"/>
+          <line x1="2" y1="12" x2="10" y2="12"/>
+          <line x1="2" y1="18" x2="10" y2="18"/>
+          <line x1="14" y1="6" x2="22" y2="6"/>
+          <line x1="14" y1="12" x2="22" y2="12"/>
+          <line x1="14" y1="18" x2="22" y2="18"/>
+        </svg>
+      ),
+    },
     {
       value: "list",
       label: "リスト",
@@ -46,21 +60,7 @@ export function ViewToggle() {
       ),
     },
     {
-      value: "list2",
-      label: "グリッド",
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <line x1="2" y1="6" x2="10" y2="6"/>
-          <line x1="2" y1="12" x2="10" y2="12"/>
-          <line x1="2" y1="18" x2="10" y2="18"/>
-          <line x1="14" y1="6" x2="22" y2="6"/>
-          <line x1="14" y1="12" x2="22" y2="12"/>
-          <line x1="14" y1="18" x2="22" y2="18"/>
-        </svg>
-      ),
-    },
-    {
-      value: "grid",
+      value: "card",
       label: "カード",
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
