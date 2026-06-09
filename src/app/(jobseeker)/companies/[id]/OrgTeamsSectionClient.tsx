@@ -8,42 +8,42 @@ const DIVISION_CONFIG: Record<string, { label: string; icon: React.ReactNode; co
   "Sales": {
     label: "営業",
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
-    color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE", missionBg: "#DBEAFE",
+    color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)", missionBg: "var(--royal-50)",
   },
   "Inside Sales": {
     label: "インサイドセールス",
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.14 13.5 19.79 19.79 0 0 1 1.07 4.84 2 2 0 0 1 3.04 2.68h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 10.9a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 18z"/></svg>,
-    color: "#92400E", bg: "#FFFBEB", border: "#FDE68A", missionBg: "#FEF3C7",
+    color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)", missionBg: "var(--royal-50)",
   },
   "Solution Engineering": {
     label: "ソリューションエンジニアリング（プリセールス）",
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
-    color: "#0E7490", bg: "#ECFEFF", border: "#A5F3FC", missionBg: "#CFFAFE",
+    color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)", missionBg: "var(--royal-50)",
   },
   "Customer Success": {
     label: "カスタマーサクセス",
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-    color: "#6D28D9", bg: "#F5F3FF", border: "#DDD6FE", missionBg: "#EDE9FE",
+    color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)", missionBg: "var(--royal-50)",
   },
   "Professional Services": {
     label: "プロフェッショナルサービス",
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>,
-    color: "#065F46", bg: "#F0FDF4", border: "#BBF7D0", missionBg: "#DCFCE7",
+    color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)", missionBg: "var(--royal-50)",
   },
   "Marketing": {
     label: "マーケティング",
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
-    color: "#9D174D", bg: "#FFF1F2", border: "#FECDD3", missionBg: "#FCE7F3",
+    color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)", missionBg: "var(--royal-50)",
   },
   "Operations": {
     label: "オペレーション",
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>,
-    color: "#374151", bg: "#F9FAFB", border: "#E5E7EB", missionBg: "#F3F4F6",
+    color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)", missionBg: "var(--royal-50)",
   },
   "People": {
     label: "ピープル（HR）",
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
-    color: "#B45309", bg: "#FFFBEB", border: "#FDE68A", missionBg: "#FEF3C7",
+    color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)", missionBg: "var(--royal-50)",
   },
 };
 

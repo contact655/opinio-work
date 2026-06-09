@@ -130,19 +130,18 @@ export default function CustomerCasesClient({ cases }: { cases: NonNullable<Comp
               gap: 6,
               width: "100%",
               padding: "11px 0",
-              background: "#FFFBEB",
-              border: "1px solid #FDE68A",
+              background: "var(--bg-tint)",
+              border: "1px solid var(--line)",
               borderRadius: 10,
               fontSize: "var(--text-sm)",
               fontWeight: 600,
-              color: "#92400E",
+              color: "var(--royal)",
               cursor: "pointer",
               fontFamily: "var(--font-noto-sans)",
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
+              <polyline points="6 9 12 15 18 9"/>
             </svg>
             すべての導入事例を見る（残り {hiddenCount} 社）
           </button>
