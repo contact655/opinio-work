@@ -1892,6 +1892,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
           </span>
         </SecTitle>
       </div>
+      <style>{`.alumni-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}`}</style>
       <div style={{ padding: "var(--space-6)" }}>
       {alumni.length > 0 ? (
         <>
