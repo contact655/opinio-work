@@ -925,6 +925,96 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
   );
 }
 
+// ─── Fit Section（こんな人に向いている / 向いていない）────────────────────────
+
+function FitSection({ detail }: { detail: CompanyDetail }) {
+  const positives = detail.fit_positives ?? [];
+  const negatives = detail.fit_negatives ?? [];
+  if (positives.length === 0 && negatives.length === 0) return null;
+
+  return (
+    <section
+      id="fit"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: "var(--space-6)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      <div style={{ padding: "var(--space-6) var(--space-6) var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          }
+        >
+          こんな人に向いている
+        </SecTitle>
+      </div>
+      <div style={{ padding: "var(--space-6)", display: "grid", gridTemplateColumns: positives.length > 0 && negatives.length > 0 ? "1fr 1fr" : "1fr", gap: 20 }}>
+        {/* 向いている */}
+        {positives.length > 0 && (
+          <div>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 6, marginBottom: 12,
+              fontSize: 12, fontWeight: 700, color: "#059669",
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              こんな人に向いている
+            </div>
+            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+              {positives.map((item, i) => (
+                <li key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  padding: "8px 12px", borderRadius: 10,
+                  background: "var(--success-soft)", border: "1px solid #a7f3d0",
+                  fontSize: "var(--text-sm)", color: "var(--ink)", lineHeight: 1.55,
+                }}>
+                  <span style={{ color: "#059669", fontWeight: 700, flexShrink: 0, marginTop: 1 }}>✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {/* 向いていない */}
+        {detail.show_fit_negatives && negatives.length > 0 && (
+          <div>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 6, marginBottom: 12,
+              fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth={2.5} strokeLinecap="round">
+                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+              こんな人には向いていないかも
+            </div>
+            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+              {negatives.map((item, i) => (
+                <li key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  padding: "8px 12px", borderRadius: 10,
+                  background: "var(--line-soft)", border: "1px solid var(--line)",
+                  fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.55,
+                }}>
+                  <span style={{ color: "var(--ink-mute)", fontWeight: 700, flexShrink: 0, marginTop: 1 }}>—</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── Benefits Section ─────────────────────────────────────────────────────────
 
 function BenefitsSection({ detail }: { detail: CompanyDetail }) {
@@ -1716,10 +1806,25 @@ function CurrentEmployeesSection({
 
 function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
-  // "2022-11" → "2022.11" フォーマット変換
-  const formattedEndedAt = employee.endedAt
-    ? employee.endedAt.replace(/-/g, ".")
-    : null;
+
+  // 在籍期間を計算（"YYYY-MM" 形式）
+  function calcTenure(startedAt: string | null, endedAt: string | null): string | null {
+    if (!startedAt || !endedAt) return null;
+    const [sy, sm] = startedAt.split("-").map(Number);
+    const [ey, em] = endedAt.split("-").map(Number);
+    const months = (ey - sy) * 12 + (em - sm);
+    if (months <= 0) return null;
+    const years = Math.floor(months / 12);
+    const rem = months % 12;
+    if (years === 0) return `${rem}ヶ月`;
+    if (rem === 0) return `${years}年`;
+    return `${years}年${rem}ヶ月`;
+  }
+
+  const tenure = calcTenure(employee.startedAt, employee.endedAt);
+  const period = employee.startedAt && employee.endedAt
+    ? `${employee.startedAt.slice(0, 7).replace("-", ".")} 〜 ${employee.endedAt.replace("-", ".")}`
+    : employee.endedAt ? `〜 ${employee.endedAt.replace("-", ".")} 退職` : null;
 
   return (
     <a
@@ -1727,93 +1832,70 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
       className="employee-card-link"
       style={{
         display: "flex",
-        alignItems: "center",
-        gap: "var(--space-3)",
-        padding: "var(--space-3) 14px",
+        flexDirection: "column",
+        gap: 10,
+        padding: "14px 16px",
         background: "var(--bg-tint)",
         border: "1px solid var(--line)",
-        borderRadius: 12,
+        borderRadius: 14,
         textDecoration: "none",
       }}
     >
-      {/* アバター — 写真優先、なければ頭文字グラデーション */}
-      <div
-        style={{
-          width: 48,
-          height: 48,
-          borderRadius: "50%",
+      {/* 上段: アバター + 名前・役職 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: "50%",
           background: employee.avatarUrl ? undefined : avatarColor.bg,
           flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "var(--font-noto-serif)",
-          fontWeight: 700,
-          fontSize: 19,
-          color: avatarColor.text,
-          overflow: "hidden",
-          border: "2px solid var(--line)",
-        }}
-      >
-        {employee.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={employee.avatarUrl}
-            alt={employee.name}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          employee.avatarInitial
-        )}
-      </div>
-
-      {/* 情報エリア */}
-      <div style={{ minWidth: 0 }}>
-        {/* 名前 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <span
-            style={{
-              fontSize: "var(--text-sm)",
-              fontWeight: 600,
-              color: "var(--ink)",
-              whiteSpace: "nowrap",
-            }}
-          >
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 19,
+          color: avatarColor.text, overflow: "hidden", border: "2px solid var(--line)",
+        }}>
+          {employee.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={employee.avatarUrl} alt={employee.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : employee.avatarInitial}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>
             {employee.name}
           </span>
+          {employee.roleTitle && (
+            <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {employee.roleTitle}
+            </p>
+          )}
+          {/* 在籍期間 */}
+          {(period || tenure) && (
+            <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)", marginTop: 3, display: "flex", alignItems: "center", gap: 4 }}>
+              {period && <span>{period}</span>}
+              {tenure && (
+                <span style={{ background: "var(--royal-50)", color: "var(--royal)", padding: "1px 6px", borderRadius: 100, fontWeight: 600, fontSize: 10 }}>
+                  {tenure}
+                </span>
+              )}
+            </p>
+          )}
         </div>
-
-        {/* 役職 */}
-        {employee.roleTitle && (
-          <p
-            style={{
-              margin: 0,
-              fontSize: "var(--text-xs)",
-              color: "var(--ink-soft)",
-              marginTop: 2,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {employee.roleTitle}
-          </p>
-        )}
-
-        {/* 退職時期 */}
-        {formattedEndedAt && (
-          <p
-            style={{
-              margin: 0,
-              fontSize: "var(--text-xs)",
-              color: "var(--ink-mute)",
-              marginTop: 2,
-            }}
-          >
-            退職: {formattedEndedAt}
-          </p>
-        )}
       </div>
+
+      {/* 下段: 現在のキャリア */}
+      {(employee.currentCompanyName || employee.currentRoleTitle) && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "6px 10px", borderRadius: 8,
+          background: "#fff", border: "1px solid var(--line-soft)",
+          fontSize: 11,
+        }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+          <span style={{ color: "var(--ink-mute)", flexShrink: 0 }}>現在:</span>
+          <span style={{ color: "var(--ink-soft)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {employee.currentCompanyName ?? ""}{employee.currentRoleTitle ? ` · ${employee.currentRoleTitle}` : ""}
+          </span>
+        </div>
+      )}
     </a>
   );
 }
@@ -3036,13 +3118,18 @@ function Sidebar({
 async function SimilarCompanies({ currentId, phase }: { currentId: string; phase: string | null }) {
   if (!phase) return null;
   const supabase = createClient();
+
+  // 「上場」と「listed」は同義として扱う
+  const listedEquivalents = ["上場", "listed"];
+  const phaseFilter = listedEquivalents.includes(phase) ? listedEquivalents : [phase];
+
   const { data } = await supabase
     .from("ow_companies")
     .select("id, name, tagline, industry, phase, logo_url, logo_letter, logo_gradient, accepting_casual_meetings, jobs_public, employee_count, current_member_count, obog_count, funding_stage, location")
     .eq("is_published", true)
-    .eq("phase", phase)
+    .in("phase", phaseFilter)
     .neq("id", currentId)
-    .limit(6);
+    .limit(8);
 
   if (!data || data.length === 0) return null;
 
@@ -3224,6 +3311,9 @@ export default async function CompanyDetailPage({
               detail={detail}
               photos={photos}
             />
+
+            {/* 1.5 こんな人に向いている / 向いていない */}
+            <FitSection detail={detail} />
 
             {/* 2. 製品・顧客 */}
             <ProductsClientsSection detail={detail} />

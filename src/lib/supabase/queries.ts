@@ -757,7 +757,8 @@ export type CompanyEmployee = {
   avatarGradient: string;
   avatarUrl: string | null; // プロフィール写真
   roleTitle: string | null;
-  endedAt: string | null; // "YYYY-MM" 形式、OB のみ使用
+  startedAt: string | null; // "YYYY-MM" 形式
+  endedAt: string | null;   // "YYYY-MM" 形式、OB のみ使用
   // === Phase Q-5 追加: カテゴリ情報 ===
   roleCategoryId: string | null;
   roleCategoryName: string | null;
@@ -765,6 +766,9 @@ export type CompanyEmployee = {
   roleParentName: string | null;
   // === Migration 160: カジュアル面談受付フラグ ===
   canCasualMeeting: boolean;
+  // === OB/OG: 退職後の現在のキャリア ===
+  currentRoleTitle: string | null;
+  currentCompanyName: string | null;
 };
 
 export async function getCompanyEmployees(companyId: string): Promise<{
@@ -799,7 +803,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // OB 社員 (is_current = false, ended_at あり)
   const { data: alumniRows, error: e2 } = await supabase
     .from("ow_experiences")
-    .select("role_title, role_category_id, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting)")
+    .select("role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .not("ended_at", "is", null)
@@ -811,7 +815,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function mapEmp(row: Record<string, any>, endedAt?: string | null): CompanyEmployee {
+  function mapEmp(row: Record<string, any>, endedAt?: string | null, startedAt?: string | null): CompanyEmployee {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const u = row.ow_users as Record<string, any>;
     const name = (u?.name as string) ?? "—";
@@ -828,12 +832,15 @@ export async function getCompanyEmployees(companyId: string): Promise<{
         : "linear-gradient(135deg, var(--royal), #3B5FD9)",
       avatarUrl: (u?.avatar_url as string | null) ?? null,
       roleTitle: (row.role_title as string | null) ?? null,
+      startedAt: startedAt ? (startedAt as string).slice(0, 7) : null,
       endedAt: endedAt ? (endedAt as string).slice(0, 7) : null,
       roleCategoryId,
       roleCategoryName: (role?.name as string | null) ?? null,
       roleParentId: (role?.parent_id as string | null) ?? null,
       roleParentName: (parent?.name as string | null) ?? null,
       canCasualMeeting: (u?.can_casual_meeting as boolean) ?? false,
+      currentRoleTitle: null,   // 退職後キャリア: 後で補完
+      currentCompanyName: null, // 退職後キャリア: 後で補完
     };
   }
 
@@ -847,12 +854,43 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     });
   };
 
-  const result = {
-    current: dedupeByUser((currentRows ?? []).map((r) => mapEmp(r))),
-    alumni: dedupeByUser((alumniRows ?? []).map((r) => mapEmp(r, r.ended_at))),
-  };
+  const currentEmps = dedupeByUser((currentRows ?? []).map((r) => mapEmp(r)));
+  const alumniEmps  = dedupeByUser((alumniRows ?? []).map((r) => mapEmp(r, r.ended_at, r.started_at)));
 
-  return result;
+  // OB/OG の「退職後の現在キャリア」を取得（is_current=true の経験から）
+  if (alumniEmps.length > 0) {
+    const alumniUserIds = alumniEmps.map((e) => e.userId);
+    const { data: currentExpRows } = await supabase
+      .from("ow_experiences")
+      .select("user_id, role_title, company_text, ow_companies(name)")
+      .in("user_id", alumniUserIds)
+      .eq("is_current", true);
+
+    if (currentExpRows) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nextMap = new Map<string, { roleTitle: string | null; companyName: string | null }>();
+      for (const row of currentExpRows) {
+        const uid = row.user_id as string;
+        if (!nextMap.has(uid)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const co = row.ow_companies as Record<string, any> | null;
+          nextMap.set(uid, {
+            roleTitle: (row.role_title as string | null) ?? null,
+            companyName: (co?.name as string | null) ?? (row.company_text as string | null) ?? null,
+          });
+        }
+      }
+      for (const emp of alumniEmps) {
+        const next = nextMap.get(emp.userId);
+        if (next) {
+          emp.currentRoleTitle = next.roleTitle;
+          emp.currentCompanyName = next.companyName;
+        }
+      }
+    }
+  }
+
+  return { current: currentEmps, alumni: alumniEmps };
 }
 
 // ─── Company employee categories (ow_company_employee_categories) ─────────────
