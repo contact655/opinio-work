@@ -203,7 +203,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           style={{
             display: "flex",
             alignItems: "stretch",
-            minHeight: 96,
+            minHeight: 106,
             background: "#fff",
             borderRadius: 10,
             border: "1px solid var(--line)",
@@ -244,13 +244,13 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           </div>
 
           {/* ── 右: 情報エリア ── */}
-          <div style={{ flex: 1, minWidth: 0, padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4 }}>
+          <div style={{ flex: 1, minWidth: 0, padding: "11px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 5 }}>
 
             {/* 上段: 社名 + ブックマーク */}
             <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="clv-name" style={{
-                  fontSize: 14, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3,
+                  fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3,
                   letterSpacing: isEnName ? "-0.02em" : "0",
                   fontFamily: isEnName ? "Inter, sans-serif" : "var(--font-noto-sans)",
                   overflow: "hidden", display: "-webkit-box",
@@ -258,16 +258,16 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   transition: "color 0.15s",
                 }}>{displayName}</div>
                 {/* バッジ */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 3 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 4 }}>
                   {stageCfg && (
                     <span style={{
-                      fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 100,
+                      fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 100,
                       background: stageCfg.bg, color: stageCfg.color,
                     }}>{stageCfg.label}</span>
                   )}
                   {company.industry && (
                     <span style={{
-                      fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 100,
+                      fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 100,
                       background: "var(--royal-50)", color: "var(--royal)",
                       border: "1px solid var(--royal-100)",
                     }}>{company.industry.replace(/\/SaaS$/i, "")}</span>
@@ -279,11 +279,11 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 onClick={handleBookmark}
                 disabled={bookmarking}
                 style={{
-                  width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
+                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
                   background: "var(--line-soft)", border: "none",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   cursor: "pointer", padding: 0,
-                  color: bookmarked ? "#ef4444" : "var(--ink-mute)", fontSize: 13,
+                  color: bookmarked ? "#ef4444" : "var(--ink-mute)", fontSize: 14,
                 }}
               >{bookmarked ? "♥" : "♡"}</button>
             </div>
@@ -291,7 +291,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             {/* 中段: タグライン */}
             {company.tagline && (
               <div style={{
-                fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4,
+                fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.4,
                 overflow: "hidden", display: "-webkit-box",
                 WebkitLineClamp: 1, WebkitBoxOrient: "vertical",
               }}>{company.tagline}</div>
@@ -299,21 +299,21 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
 
             {/* 下段: メタ + 比較 + 求人 */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 3, overflow: "hidden", flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, overflow: "hidden", flex: 1, minWidth: 0 }}>
                 {company.location && (
                   <>
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                     </svg>
-                    <span style={{ fontSize: 10.5, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {company.location}
                     </span>
                   </>
                 )}
                 {company.employee_count && (
                   <>
-                    <span style={{ color: "var(--line)", fontSize: 10, flexShrink: 0 }}>·</span>
-                    <span style={{ fontSize: 10.5, color: "var(--ink-mute)", whiteSpace: "nowrap", flexShrink: 0 }}>
+                    <span style={{ color: "var(--line)", fontSize: 11, flexShrink: 0 }}>·</span>
+                    <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", flexShrink: 0 }}>
                       {company.employee_count}
                     </span>
                   </>
@@ -321,15 +321,15 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
                 <button onClick={handleCompare} style={{
-                  padding: "2px 6px", borderRadius: 4,
+                  padding: "2px 7px", borderRadius: 4,
                   background: inCompare ? "var(--royal-50)" : "transparent",
                   color: inCompare ? "var(--royal)" : "var(--ink-mute)",
                   border: `1px solid ${inCompare ? "var(--royal-100)" : "var(--line)"}`,
-                  fontSize: 9, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                  fontSize: 10, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
                 }}>{inCompare ? "✓ 比較中" : "+ 比較"}</button>
                 {company.job_count > 0 && (
                   <span style={{
-                    fontSize: 9.5, fontWeight: 700, padding: "2px 6px", borderRadius: 100,
+                    fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
                     background: "var(--royal-50)", color: "var(--royal)",
                     border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
                   }}>求人 {company.job_count}件</span>

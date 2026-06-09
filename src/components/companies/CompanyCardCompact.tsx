@@ -175,13 +175,13 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
 
       {/* ─── 横型コンパクトカード ──────────────────────────────── */}
       <div style={{
-        display: 'flex', alignItems: 'stretch', minHeight: 96,
+        display: 'flex', alignItems: 'stretch', minHeight: 106,
         background: '#fff', borderRadius: 10, overflow: 'hidden',
       }}>
 
         {/* 左: ブランドカラー帯 + ロゴ */}
         <div style={{
-          width: 64, flexShrink: 0,
+          width: 72, flexShrink: 0,
           background: headerGradient,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           position: 'relative', overflow: 'hidden',
@@ -223,13 +223,13 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
         </div>
 
         {/* 右: 情報エリア */}
-        <div style={{ flex: 1, minWidth: 0, padding: '10px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 4 }}>
+        <div style={{ flex: 1, minWidth: 0, padding: '11px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 5 }}>
 
           {/* 上段: 社名 + バッジ + ブックマーク */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
-                fontSize: 14, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.3,
+                fontSize: 15, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.3,
                 letterSpacing: isEnName ? '-0.02em' : '0',
                 fontFamily: isEnName ? 'Inter, sans-serif' : 'var(--font-noto-sans)',
                 overflow: 'hidden', display: '-webkit-box',
@@ -238,10 +238,10 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
                 {displayName}
               </div>
               {/* バッジ行 */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 3 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
                 {stageCfg && (
                   <span style={{
-                    fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 100,
+                    fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 100,
                     background: stageCfg.bg, color: stageCfg.color,
                   }}>
                     {stageCfg.label}
@@ -249,7 +249,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
                 )}
                 {company.industry && (
                   <span style={{
-                    fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 100,
+                    fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 100,
                     background: industryStyle.bg, color: industryStyle.color,
                   }}>
                     {company.industry?.replace(/\/SaaS$/i, '')}
@@ -257,7 +257,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
                 )}
                 {articleCount > 0 && (
                   <span style={{
-                    fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 100,
+                    fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 100,
                     background: '#fef3c7', color: '#92400e',
                     border: '1px solid #fde68a',
                   }}>
@@ -270,14 +270,14 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBookmark(); }}
               style={{
-                width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                 background: 'var(--line-soft)', border: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', padding: 0,
               }}
               aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
             >
-              <svg width="12" height="11" viewBox="0 0 24 24"
+              <svg width="13" height="12" viewBox="0 0 24 24"
                 fill={bookmarked ? 'var(--warm)' : 'none'}
                 stroke={bookmarked ? 'var(--warm)' : '#94a3b8'}
                 strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -289,7 +289,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
           {/* 中段: タグライン */}
           {company.tagline && (
             <div style={{
-              fontSize: 11, color: 'var(--ink-soft)', lineHeight: 1.4,
+              fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.4,
               overflow: 'hidden', display: '-webkit-box',
               WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' as const,
             }}>
@@ -299,15 +299,15 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
 
           {/* 下段: メタ情報 */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3, overflow: 'hidden', flex: 1, minWidth: 0 }}>
-              <MapPin size={10} color="#9ca3af" style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', flex: 1, minWidth: 0 }}>
+              <MapPin size={11} color="#9ca3af" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 11, color: 'var(--ink-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {company.location ?? '—'}
               </span>
               {company.employee_count && (
                 <>
-                  <span style={{ color: 'var(--line)', fontSize: 10, flexShrink: 0 }}>·</span>
-                  <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  <span style={{ color: 'var(--line)', fontSize: 11, flexShrink: 0 }}>·</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink-mute)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     {company.employee_count}
                   </span>
                 </>
@@ -316,18 +316,18 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
               {/* 比較 */}
               <button onClick={handleCompare} style={{
-                padding: '2px 6px', borderRadius: 4,
+                padding: '2px 7px', borderRadius: 4,
                 background: inCompare ? 'var(--royal-50)' : 'transparent',
                 color: inCompare ? 'var(--royal)' : 'var(--ink-mute)',
                 border: `1px solid ${inCompare ? 'var(--royal-100)' : 'var(--line)'}`,
-                fontSize: 9, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
               }}>
                 {inCompare ? '✓ 比較中' : '+ 比較'}
               </button>
               {/* 求人バッジ */}
               {company.job_count > 0 && (
                 <span style={{
-                  fontSize: 9.5, fontWeight: 700, padding: '2px 6px', borderRadius: 100,
+                  fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100,
                   background: 'var(--royal-50)', color: 'var(--royal)',
                   border: '1px solid var(--royal-100)', whiteSpace: 'nowrap',
                 }}>

@@ -224,14 +224,14 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     <style>{`
                       .companies-compact-grid {
                         display: grid;
-                        grid-template-columns: repeat(4, 1fr);
-                        gap: 14px;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 12px;
                       }
-                      @media (max-width: 1279px) {
-                        .companies-compact-grid { grid-template-columns: repeat(3, 1fr); }
-                      }
-                      @media (max-width: 767px) {
+                      @media (max-width: 1023px) {
                         .companies-compact-grid { grid-template-columns: repeat(2, 1fr); }
+                      }
+                      @media (max-width: 600px) {
+                        .companies-compact-grid { grid-template-columns: 1fr; gap: 8px; }
                       }
                     `}</style>
                   )}
