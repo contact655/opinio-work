@@ -144,8 +144,6 @@ export function CompanyCardCompact({ company, compact, members: _members }: Prop
   const industryStyle = getIndustryStyle(company.industry);
   const stageCfg = getStageCfg(company.funding_stage);
   const articleCount = company.article_count ?? 0;
-  // const hasMembers = (company.current_member_count || 0) + (company.obog_count || 0) > 0;
-  const [hovered, setHovered] = useState(false);
 
   // ── 比較機能 ─────────────────────────────────────────────────────────────────
   const [inCompare, setInCompare] = useState(false);
@@ -173,238 +171,179 @@ export function CompanyCardCompact({ company, compact, members: _members }: Prop
     <Link
       href={`/companies/${company.id}`}
       className="genre-card"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
 
-      {/* ─── ロゴエリア（コンパクト: 80px） ──────────────────── */}
+      {/* ─── 横型コンパクトカード ──────────────────────────────── */}
       <div style={{
-        height: 80,
-        background: headerGradient,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'relative',
-        overflow: 'hidden',
-        borderBottom: '1px solid rgba(0,0,0,0.06)',
-        padding: '0 12px',
-        boxSizing: 'border-box',
+        display: 'flex', alignItems: 'stretch', minHeight: 96,
+        background: '#fff', borderRadius: 10, overflow: 'hidden',
       }}>
-        {/* 装飾イニシャル */}
-        <span style={{
-          position: 'absolute', right: -6, bottom: -10,
-          fontSize: 80, fontWeight: 900,
-          color: 'rgba(255,255,255,0.07)',
-          fontFamily: 'Inter, sans-serif', lineHeight: 1,
-          userSelect: 'none', pointerEvents: 'none',
-          letterSpacing: '-0.05em', zIndex: 0,
-        }}>
-          {initial}
-        </span>
 
-        {/* ロゴ or イニシャル */}
-        {company.logo_url && !logoError ? (
-          <div style={{
-            width: 52, height: 52, borderRadius: 10,
-            background: '#fff',
-            border: '1px solid rgba(255,255,255,0.9)',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden', flexShrink: 0, position: 'relative', zIndex: 1,
-          }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={company.logo_url} alt={`${company.name}のロゴ`}
-              style={{ display: 'block', objectFit: 'contain', width: '100%', height: '100%', padding: '8px', boxSizing: 'border-box' }}
-              onError={() => setLogoError(true)}
-            />
-          </div>
-        ) : (
+        {/* 左: ブランドカラー帯 + ロゴ */}
+        <div style={{
+          width: 64, flexShrink: 0,
+          background: headerGradient,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          {/* 装飾イニシャル */}
           <span style={{
-            fontSize: 32, fontWeight: 800,
-            color: 'rgba(255,255,255,0.88)',
-            letterSpacing: '-0.03em',
-            fontFamily: 'Inter, "Noto Sans JP", sans-serif',
-            textShadow: '0 2px 10px rgba(0,0,0,0.25)',
-            lineHeight: 1, userSelect: 'none', zIndex: 1,
+            position: 'absolute', right: -4, bottom: -8,
+            fontSize: 52, fontWeight: 900,
+            color: 'rgba(255,255,255,0.1)',
+            fontFamily: 'Inter, sans-serif', lineHeight: 1,
+            userSelect: 'none', pointerEvents: 'none',
           }}>
             {initial}
           </span>
-        )}
-
-        {/* 右上バッジ群 */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, zIndex: 2 }}>
-          {company.accepting_casual_meetings && (
-            <span style={{
-              fontSize: 9, fontWeight: 700,
-              padding: '2px 6px', borderRadius: 100,
-              background: 'rgba(255,255,255,0.92)', color: 'var(--success)',
-              border: '1px solid rgba(16,185,129,0.4)', whiteSpace: 'nowrap',
+          {company.logo_url && !logoError ? (
+            <div style={{
+              width: 40, height: 40, borderRadius: 8,
+              background: '#fff', border: '1px solid rgba(255,255,255,0.9)',
+              boxShadow: '0 1px 6px rgba(0,0,0,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden', position: 'relative', zIndex: 1,
             }}>
-              ● 面談OK
-            </span>
-          )}
-          {articleCount > 0 && (
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={company.logo_url} alt={`${company.name}のロゴ`}
+                style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6, boxSizing: 'border-box' }}
+                onError={() => setLogoError(true)}
+              />
+            </div>
+          ) : (
             <span style={{
-              fontSize: 9, fontWeight: 700,
-              padding: '2px 6px', borderRadius: 100,
-              background: 'rgba(255,255,255,0.92)', color: '#92400e',
-              border: '1px solid rgba(251,191,36,0.5)', whiteSpace: 'nowrap',
+              fontSize: 24, fontWeight: 800,
+              color: 'rgba(255,255,255,0.9)',
+              fontFamily: 'Inter, "Noto Sans JP", sans-serif',
+              lineHeight: 1, userSelect: 'none', zIndex: 1, position: 'relative',
             }}>
-              ✍️ 取材済み
-            </span>
-          )}
-        </div>
-
-        {/* ブックマークボタン（左下） */}
-        <button
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBookmark(); }}
-          style={{
-            position: 'absolute', bottom: 6, left: 8,
-            width: 24, height: 24, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.85)', border: 'none',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', padding: 0, zIndex: 3,
-          }}
-          aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
-        >
-          <svg width="13" height="12" viewBox="0 0 24 24"
-            fill={bookmarked ? 'var(--warm)' : 'none'}
-            stroke={bookmarked ? 'var(--warm)' : '#94a3b8'}
-            strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-          </svg>
-        </button>
-      </div>
-
-      {/* ─── カード本体（コンパクト） ────────────────────────── */}
-      <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-
-        {/* 業種 + フェーズ バッジ行 */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-          {company.industry && (
-            <span style={{
-              fontSize: 9.5, fontWeight: 700,
-              padding: '1px 6px', borderRadius: 100,
-              background: industryStyle.bg, color: industryStyle.color,
-            }}>
-              {company.industry}
-            </span>
-          )}
-          {stageCfg && (
-            <span style={{
-              fontSize: 9.5, fontWeight: 700,
-              padding: '1px 6px', borderRadius: 100,
-              background: stageCfg.bg, color: stageCfg.color,
-            }}>
-              {stageCfg.label}
+              {initial}
             </span>
           )}
         </div>
 
-        {/* 社名 */}
-        <div>
-          <div style={{
-            fontSize: 15, fontWeight: 800,
-            color: 'var(--ink)', lineHeight: 1.3,
-            letterSpacing: isEnName ? '-0.02em' : '0',
-            fontFamily: isEnName ? 'Inter, sans-serif' : 'var(--font-noto-sans)',
-            overflow: 'hidden', display: '-webkit-box',
-            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
-          }}>
-            {displayName}
+        {/* 右: 情報エリア */}
+        <div style={{ flex: 1, minWidth: 0, padding: '10px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 4 }}>
+
+          {/* 上段: 社名 + バッジ + ブックマーク */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontSize: 14, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.3,
+                letterSpacing: isEnName ? '-0.02em' : '0',
+                fontFamily: isEnName ? 'Inter, sans-serif' : 'var(--font-noto-sans)',
+                overflow: 'hidden', display: '-webkit-box',
+                WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' as const,
+              }}>
+                {displayName}
+              </div>
+              {/* バッジ行 */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 3 }}>
+                {stageCfg && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 100,
+                    background: stageCfg.bg, color: stageCfg.color,
+                  }}>
+                    {stageCfg.label}
+                  </span>
+                )}
+                {company.industry && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 100,
+                    background: industryStyle.bg, color: industryStyle.color,
+                  }}>
+                    {company.industry}
+                  </span>
+                )}
+                {company.accepting_casual_meetings && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 100,
+                    background: '#ecfdf5', color: 'var(--success)',
+                    border: '1px solid #a7f3d0',
+                  }}>
+                    ● 面談OK
+                  </span>
+                )}
+                {articleCount > 0 && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 100,
+                    background: '#fef3c7', color: '#92400e',
+                    border: '1px solid #fde68a',
+                  }}>
+                    ✍ 取材済
+                  </span>
+                )}
+              </div>
+            </div>
+            {/* ブックマーク */}
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBookmark(); }}
+              style={{
+                width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                background: 'var(--line-soft)', border: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', padding: 0,
+              }}
+              aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
+            >
+              <svg width="12" height="11" viewBox="0 0 24 24"
+                fill={bookmarked ? 'var(--warm)' : 'none'}
+                stroke={bookmarked ? 'var(--warm)' : '#94a3b8'}
+                strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            </button>
           </div>
-          {isEnName && (
-            <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 2 }}>
-              {company.name}
+
+          {/* 中段: タグライン */}
+          {company.tagline && (
+            <div style={{
+              fontSize: 11, color: 'var(--ink-soft)', lineHeight: 1.4,
+              overflow: 'hidden', display: '-webkit-box',
+              WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' as const,
+            }}>
+              {company.tagline}
             </div>
           )}
-        </div>
 
-        {/* タグライン（1行のみ） */}
-        {company.tagline && (
-          <div style={{
-            fontSize: 11.5, color: 'var(--ink-soft)', lineHeight: 1.5,
-            overflow: 'hidden', display: '-webkit-box',
-            WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' as const,
-            flex: 1,
-          }}>
-            {company.tagline}
-          </div>
-        )}
-
-        {/* company_features タグ（最大3件） */}
-        {Array.isArray(company.company_features) && company.company_features.length > 0 && (
-          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-            {(company.company_features as string[]).slice(0, 3).map((f, fi) => (
-              <span key={fi} style={{
-                fontSize: 9, padding: '1px 5px', borderRadius: 3,
-                background: 'var(--royal-50)', color: 'var(--royal)',
-                border: '1px solid var(--royal-100)', fontWeight: 500,
-              }}>
-                #{f}
+          {/* 下段: メタ情報 */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, overflow: 'hidden', flex: 1, minWidth: 0 }}>
+              <MapPin size={10} color="#9ca3af" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {company.location ?? '—'}
               </span>
-            ))}
-          </div>
-        )}
-
-        {/* ─── 下部メタ行 ──────────────────────────────────── */}
-        <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--line-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-
-          {/* 所在地 · 従業員数 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 3, overflow: 'hidden', flex: 1, minWidth: 0 }}>
-            <MapPin size={10} color="#6B7280" style={{ flexShrink: 0 }} />
-            <span style={{
-              fontSize: 10.5, color: 'var(--ink-soft)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
-              {company.location ?? '—'}
-            </span>
-            {company.employee_count && (
-              <>
-                <span style={{ color: 'var(--line)', fontSize: 10 }}>·</span>
-                <span style={{ fontSize: 10.5, color: 'var(--ink-soft)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  {company.employee_count}
-                </span>
-              </>
-            )}
-          </div>
-
-          {/* 右側: 比較 + 求人バッジ */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-            {/* 比較ボタン（コンパクト） */}
-            <button
-              onClick={handleCompare}
-              style={{
-                padding: '2px 7px',
+              {company.employee_count && (
+                <>
+                  <span style={{ color: 'var(--line)', fontSize: 10, flexShrink: 0 }}>·</span>
+                  <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {company.employee_count}
+                  </span>
+                </>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              {/* 比較 */}
+              <button onClick={handleCompare} style={{
+                padding: '2px 6px', borderRadius: 4,
                 background: inCompare ? 'var(--royal-50)' : 'transparent',
                 color: inCompare ? 'var(--royal)' : 'var(--ink-mute)',
                 border: `1px solid ${inCompare ? 'var(--royal-100)' : 'var(--line)'}`,
-                borderRadius: 6,
-                fontSize: 9.5, fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 2,
-                transition: 'all 0.15s', whiteSpace: 'nowrap',
-              }}
-              title={inCompare ? '比較リストから削除' : 'この企業を比較リストに追加'}
-            >
-              {inCompare ? '✓ 比較中' : '+ 比較'}
-            </button>
-
-            {/* 募集中バッジ */}
-            {company.job_count > 0 && (
-              <span style={{
-                fontSize: 10, fontWeight: 700,
-                padding: '2px 7px', borderRadius: 100,
-                background: 'var(--royal-50)', color: 'var(--royal)',
-                border: '1px solid var(--royal-100)',
-                whiteSpace: 'nowrap',
-                display: 'inline-flex', alignItems: 'center', gap: 2,
+                fontSize: 9, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
               }}>
-                <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--royal)', display: 'inline-block' }} />
-                {company.job_count}件
-              </span>
-            )}
+                {inCompare ? '✓ 比較中' : '+ 比較'}
+              </button>
+              {/* 求人バッジ */}
+              {company.job_count > 0 && (
+                <span style={{
+                  fontSize: 9.5, fontWeight: 700, padding: '2px 6px', borderRadius: 100,
+                  background: 'var(--royal-50)', color: 'var(--royal)',
+                  border: '1px solid var(--royal-100)', whiteSpace: 'nowrap',
+                }}>
+                  求人 {company.job_count}件
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
