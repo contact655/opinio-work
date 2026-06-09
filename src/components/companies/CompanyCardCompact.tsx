@@ -91,7 +91,7 @@ function cleanEnName(nameEn: string | null | undefined): string | null {
   return cleaned || null;
 }
 
-export function CompanyCardCompact({ company, compact, members: _members }: Props) {
+export function CompanyCardCompact({ company, compact: _compact, members: _members }: Props) {
   // ロゴエリアのグラデーション — DB の logo_gradient を優先使用
   const headerGradient = company.logo_gradient
     ?? 'linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)';
