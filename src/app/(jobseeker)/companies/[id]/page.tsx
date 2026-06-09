@@ -677,7 +677,7 @@ function AboutSection({
         {detail.about && (
           <div style={{ marginBottom: "var(--space-6)" }}>
             {detail.about.split("\n").filter(line => line.trim()).map((line, i) => (
-              <p key={i} style={{ margin: i > 0 ? "14px 0 0" : 0, fontSize: 15, color: "var(--ink)", lineHeight: 2, fontFamily: "var(--font-noto-sans)" }}>
+              <p key={i} style={{ margin: i > 0 ? "14px 0 0" : 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>
                 {line.trim()}
               </p>
             ))}
@@ -702,11 +702,12 @@ function AboutSection({
               {detail.why_join.split(/。(?!\s*$)/).filter(s => s.trim()).map((sentence, i) => (
                 <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
                   <span style={{
-                    flexShrink: 0, width: 24, height: 24, borderRadius: "50%",
-                    background: "var(--royal)", color: "#fff",
+                    flexShrink: 0, width: 22, height: 22, borderRadius: "50%",
+                    background: "var(--royal-50)", color: "var(--royal)",
+                    border: "1.5px solid var(--royal-100)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 11, fontWeight: 800, fontFamily: "Inter",
-                    marginTop: 1,
+                    marginTop: 2,
                   }}>{i + 1}</span>
                   <p style={{ margin: 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.9, fontFamily: "var(--font-noto-sans)" }}>
                     {sentence.trim().replace(/。$/, "")}。
@@ -794,40 +795,36 @@ function parseProductName(raw: string): { name: string; sub: string | null } {
   return { name: raw, sub: null };
 }
 
-/** キーワードベースで製品カードのアイコン＋カラーを決める */
+/** キーワードベースで製品カードのアイコンを決める（色は全て royal blue で統一） */
 function productStyle(name: string): { bg: string; border: string; color: string; icon: React.ReactNode } {
   const n = name.toLowerCase();
+  const C = { bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
   // CRM / Sales
   if (/(crm|sales|営業|セールス)/.test(n))
-    return { bg: "#eff6ff", border: "#bfdbfe", color: "#1d4ed8",
-      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> };
+    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> };
   // Marketing
   if (/(market|マーケ|メール|email)/.test(n))
-    return { bg: "#fdf4ff", border: "#e9d5ff", color: "#7c3aed",
-      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> };
+    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> };
   // Analytics / Data
   if (/(analytic|data|分析|レポ|insight|tableau|bi)/.test(n))
-    return { bg: "#f0fdf4", border: "#bbf7d0", color: "#15803d",
-      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> };
+    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> };
   // Service / Support
   if (/(service|support|サービス|サポート|cs|カスタマ)/.test(n))
-    return { bg: "#fff7ed", border: "#fed7aa", color: "#c2410c",
-      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> };
+    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> };
   // Platform / Cloud
   if (/(platform|cloud|クラウド|プラットフォーム)/.test(n))
-    return { bg: "#f0f9ff", border: "#bae6fd", color: "#0369a1",
-      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg> };
+    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg> };
   // AI / ML
-  if (/(ai|ml|機械学習|人工知能|llm|gpt)/.test(n))
-    return { bg: "#faf5ff", border: "#ddd6fe", color: "#6d28d9",
-      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> };
+  if (/(ai|ml|機械学習|人工知能|llm|gpt|agentforce|einstein)/.test(n))
+    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> };
+  // Integration / API
+  if (/(integrat|api|連携|インテグレ|mule|slack|コラボ)/.test(n))
+    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> };
   // HR / People
   if (/(hr|human|採用|人事|タレント|talent)/.test(n))
-    return { bg: "#fef9c3", border: "#fef08a", color: "#854d0e",
-      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg> };
+    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg> };
   // Default
-  return { bg: "#f8fafc", border: "var(--line)", color: "var(--ink-soft)",
-    icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> };
+  return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> };
 }
 
 function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
@@ -937,11 +934,11 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
           <div>
             {hasProducts && <div style={{ height: 1, background: "var(--line)", marginBottom: "var(--space-6)", marginTop: -8 }} />}
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth={2.5} strokeLinecap="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
-              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "#B45309", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
                 主な顧客
               </span>
               <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
@@ -958,11 +955,11 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                     gap: 5,
                     padding: "6px 14px",
                     borderRadius: 100,
-                    background: "#FFFBEB",
-                    border: "1px solid #FDE68A",
+                    background: "var(--royal-50)",
+                    border: "1px solid var(--royal-100)",
                     fontSize: "var(--text-sm)",
                     fontWeight: 600,
-                    color: "#92400E",
+                    color: "var(--royal)",
                     fontFamily: "var(--font-noto-sans)",
                     lineHeight: 1.4,
                   }}

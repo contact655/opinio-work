@@ -5,23 +5,8 @@ import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 
 const INITIAL_CASES = 3;
 
-function productStyle(name: string): { bg: string; border: string; color: string } {
-  const n = name.toLowerCase();
-  if (n.includes("sales") || n.includes("crm"))
-    return { bg: "#EFF6FF", border: "#BFDBFE", color: "#1D4ED8" };
-  if (n.includes("service") || n.includes("サポート"))
-    return { bg: "#F5F3FF", border: "#DDD6FE", color: "#6D28D9" };
-  if (n.includes("market") || n.includes("マーケ"))
-    return { bg: "#FFF1F2", border: "#FECDD3", color: "#9D174D" };
-  if (n.includes("data") || n.includes("analytics") || n.includes("tableau"))
-    return { bg: "#ECFEFF", border: "#A5F3FC", color: "#0E7490" };
-  if (n.includes("commerce") || n.includes("ec") || n.includes("コマース"))
-    return { bg: "#F0FDF4", border: "#BBF7D0", color: "#065F46" };
-  if (n.includes("ai") || n.includes("agentforce") || n.includes("einstein"))
-    return { bg: "#FFF7ED", border: "#FED7AA", color: "#C2410C" };
-  if (n.includes("slack") || n.includes("コミュニ"))
-    return { bg: "#F0FDF4", border: "#BBF7D0", color: "#065F46" };
-  return { bg: "#EFF3FC", border: "#DCE5F7", color: "var(--royal)" };
+function productStyle(_name: string): { bg: string; border: string; color: string } {
+  return { bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
 }
 
 type CustomerCase = NonNullable<CompanyDetail["customer_cases"]>[number];
@@ -30,8 +15,8 @@ function CaseCard({ c }: { c: CustomerCase }) {
   return (
     <div
       style={{
-        background: "#FFFDF7",
-        border: "1px solid #FDE68A",
+        background: "#fff",
+        border: "1px solid var(--line)",
         borderRadius: 14,
         padding: "18px 20px",
         display: "flex",
@@ -45,8 +30,8 @@ function CaseCard({ c }: { c: CustomerCase }) {
           🏢 {c.name}
         </span>
         <span style={{
-          fontSize: 10, fontWeight: 600, color: "#92400E",
-          background: "#FEF3C7", border: "1px solid #FDE68A",
+          fontSize: 10, fontWeight: 600, color: "var(--ink-soft)",
+          background: "var(--bg-tint)", border: "1px solid var(--line)",
           borderRadius: 100, padding: "2px 9px",
           fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap",
         }}>
