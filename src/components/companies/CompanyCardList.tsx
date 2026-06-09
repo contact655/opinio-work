@@ -188,264 +188,164 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const features = Array.isArray(company.company_features) ? company.company_features : [];
   const jobTitles = Array.isArray(company.top_job_titles) ? company.top_job_titles : [];
 
-  // ── 縦カード（compact=true, 2列グリッド） ────────────────────────────────────
+  // ── 横型コンパクトカード（compact=true, グリッド表示） ─────────────────────────
   if (compact) {
     return (
       <>
         <style>{`
           .clv-card { transition: box-shadow 0.18s, border-color 0.18s, transform 0.18s; }
-          .clv-card:hover { box-shadow: 0 8px 32px rgba(0,35,102,0.14) !important; border-color: var(--royal-100) !important; transform: translateY(-2px); }
+          .clv-card:hover { box-shadow: 0 6px 24px rgba(0,35,102,0.13) !important; border-color: var(--royal-100) !important; transform: translateY(-2px); }
           .clv-card:hover .clv-name { color: var(--royal) !important; }
-          .clv-bookmark-btn { transition: color 0.15s, transform 0.15s; }
-          .clv-bookmark-btn:hover { transform: scale(1.2); }
-          .clv-feature-tag:hover { background: var(--royal-50) !important; }
         `}</style>
         <Link
           href={`/companies/${company.id}`}
           className="clv-card"
           style={{
             display: "flex",
-            flexDirection: "column",
+            alignItems: "stretch",
+            minHeight: 96,
             background: "#fff",
-            borderRadius: 14,
+            borderRadius: 10,
             border: "1px solid var(--line)",
-            boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
             textDecoration: "none",
             color: "inherit",
             overflow: "hidden",
           }}
         >
-          {/* ── カバーバンド ── */}
+          {/* ── 左: グラデーション帯 + ロゴ ── */}
           <div style={{
-            height: 80,
-            background: company.logo_url ? "#f0f4f8" : headerGradient,
-            position: "relative",
-            flexShrink: 0,
+            width: 64, flexShrink: 0,
+            background: headerGradient,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            position: "relative", overflow: "hidden",
           }}>
-            {/* #1: カバー画像があれば表示（logo_urlを大きく） */}
-            {company.logo_url && (
+            <span style={{
+              position: "absolute", right: -4, bottom: -8,
+              fontSize: 52, fontWeight: 900,
+              color: "rgba(255,255,255,0.1)",
+              fontFamily: "Inter, sans-serif", lineHeight: 1,
+              userSelect: "none", pointerEvents: "none",
+            }}>{initial}</span>
+            {company.logo_url ? (
               <div style={{
-                position: "absolute", inset: 0,
-                background: headerGradient,
-                opacity: 0.85,
-              }} />
-            )}
-
-            {/* ロゴ（カバー下部にオーバーラップ） */}
-            <div style={{
-              position: "absolute",
-              bottom: -18,
-              left: 14,
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: company.logo_url ? "#fff" : "rgba(255,255,255,0.18)",
-              border: "2px solid #fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-            }}>
-              {company.logo_url ? (
-                <Image
-                  src={company.logo_url}
-                  alt={`${company.name}のロゴ`}
-                  fill
-                  style={{ objectFit: "contain", padding: "10%" }}
-                  sizes="44px"
-                />
-              ) : (
-                <span style={{
-                  fontSize: 20, fontWeight: 800,
-                  color: "rgba(255,255,255,0.92)",
-                  fontFamily: "Inter, sans-serif",
-                  letterSpacing: "-0.03em",
-                  userSelect: "none",
-                }}>
-                  {initial}
-                </span>
-              )}
-            </div>
-
-            {/* #6: ブックマークボタン */}
-            <button
-              type="button"
-              className="clv-bookmark-btn"
-              onClick={handleBookmark}
-              disabled={bookmarking}
-              title={bookmarked ? "気になりリストから削除" : "気になりリストに追加"}
-              style={{
-                position: "absolute", top: 8, right: 10,
-                background: "rgba(255,255,255,0.22)",
-                border: "none", borderRadius: "50%",
-                width: 28, height: 28,
+                width: 40, height: 40, borderRadius: 8,
+                background: "#fff", border: "1px solid rgba(255,255,255,0.9)",
+                boxShadow: "0 1px 6px rgba(0,0,0,0.12)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer", padding: 0,
-                color: bookmarked ? "#ef4444" : "rgba(255,255,255,0.85)",
-                fontSize: 15,
-                backdropFilter: "blur(4px)",
-              }}
-            >
-              {bookmarked ? "♥" : "♡"}
-            </button>
-
-            {/* 面談OK バッジ */}
-            {company.accepting_casual_meetings && (
-              <div style={{
-                position: "absolute", top: 8, left: 10,
-                fontSize: 10, fontWeight: 700,
-                padding: "2px 7px", borderRadius: 100,
-                background: "rgba(245,158,11,0.92)",
-                color: "#fff",
-                backdropFilter: "blur(4px)",
+                overflow: "hidden", position: "relative", zIndex: 1,
+                flexShrink: 0,
               }}>
-                面談OK
+                <Image src={company.logo_url} alt={`${company.name}のロゴ`} fill
+                  style={{ objectFit: "contain", padding: "15%" }} sizes="40px" />
               </div>
+            ) : (
+              <span style={{
+                fontSize: 24, fontWeight: 800,
+                color: "rgba(255,255,255,0.9)",
+                fontFamily: "Inter, sans-serif",
+                lineHeight: 1, userSelect: "none", zIndex: 1, position: "relative",
+              }}>{initial}</span>
             )}
           </div>
 
-          {/* ── コンテンツ ── */}
-          <div style={{
-            padding: "26px 14px 14px",
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: 0,
-          }}>
-            {/* フェーズ + 業種バッジ */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
-              {stageCfg && (
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
-                  background: stageCfg.bg, color: stageCfg.color,
-                }}>{stageCfg.label}</span>
-              )}
-              {company.industry && (
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
-                  background: "var(--royal-50)", color: "var(--royal)",
-                  border: "1px solid var(--royal-100)",
-                  maxWidth: 100, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
-                }}>{company.industry}</span>
-              )}
+          {/* ── 右: 情報エリア ── */}
+          <div style={{ flex: 1, minWidth: 0, padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4 }}>
+
+            {/* 上段: 社名 + ブックマーク */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="clv-name" style={{
+                  fontSize: 14, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3,
+                  letterSpacing: isEnName ? "-0.02em" : "0",
+                  fontFamily: isEnName ? "Inter, sans-serif" : "var(--font-noto-sans)",
+                  overflow: "hidden", display: "-webkit-box",
+                  WebkitLineClamp: 1, WebkitBoxOrient: "vertical",
+                  transition: "color 0.15s",
+                }}>{displayName}</div>
+                {/* バッジ */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 3 }}>
+                  {stageCfg && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 100,
+                      background: stageCfg.bg, color: stageCfg.color,
+                    }}>{stageCfg.label}</span>
+                  )}
+                  {company.industry && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 100,
+                      background: "var(--royal-50)", color: "var(--royal)",
+                      border: "1px solid var(--royal-100)",
+                    }}>{company.industry}</span>
+                  )}
+                  {company.accepting_casual_meetings && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 100,
+                      background: "#ecfdf5", color: "var(--success)",
+                      border: "1px solid #a7f3d0",
+                    }}>● 面談OK</span>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleBookmark}
+                disabled={bookmarking}
+                style={{
+                  width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
+                  background: "var(--line-soft)", border: "none",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", padding: 0,
+                  color: bookmarked ? "#ef4444" : "var(--ink-mute)", fontSize: 13,
+                }}
+              >{bookmarked ? "♥" : "♡"}</button>
             </div>
 
-            {/* 会社名 */}
-            <div className="clv-name" style={{
-              fontSize: 15, fontWeight: 800,
-              color: "var(--ink)",
-              fontFamily: isEnName ? "Inter, sans-serif" : "var(--font-noto-sans)",
-              letterSpacing: isEnName ? "-0.02em" : "0",
-              transition: "color 0.15s",
-              marginBottom: 4,
-              lineHeight: 1.3,
-            }}>
-              {displayName}
-            </div>
-
-            {/* タグライン */}
+            {/* 中段: タグライン */}
             {company.tagline && (
               <div style={{
-                fontSize: 12, color: "var(--ink-soft)", marginBottom: 6,
+                fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4,
                 overflow: "hidden", display: "-webkit-box",
-                WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                lineHeight: 1.5,
-              }}>
-                {company.tagline}
-              </div>
+                WebkitLineClamp: 1, WebkitBoxOrient: "vertical",
+              }}>{company.tagline}</div>
             )}
 
-            {/* #3: カルチャー・特徴タグ */}
-            {features.length > 0 && (
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
-                {features.slice(0, 3).map((f, i) => (
-                  <span key={i} className="clv-feature-tag" style={{
-                    fontSize: 10, padding: "2px 7px", borderRadius: 100,
-                    background: "#f1f5f9", color: "var(--ink-soft)",
-                    border: "1px solid var(--line)",
-                    transition: "background 0.15s",
-                  }}>
-                    #{f}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* #2: 求人ポジション名 */}
-            {jobTitles.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 8 }}>
-                {jobTitles.slice(0, 2).map((title, i) => (
-                  <div key={i} style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    fontSize: 11, color: "var(--ink-soft)",
-                  }}>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
-                      <rect x="2" y="7" width="20" height="14" rx="2"/>
-                      <path d="M16 3h-8l-2 4h12l-2-4z"/>
-                    </svg>
-                    <span style={{
-                      overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
-                      maxWidth: 160,
-                    }}>{title}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* フッター: メンバーアバター + 更新日 */}
-            <div style={{
-              marginTop: "auto",
-              paddingTop: 8,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}>
-              {/* #7: メンバーアバター */}
-              <div style={{ display: "flex", alignItems: "center" }}>
-                {members.length > 0 ? (
+            {/* 下段: メタ + 比較 + 求人 */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 3, overflow: "hidden", flex: 1, minWidth: 0 }}>
+                {company.location && (
                   <>
-                    <div style={{ display: "flex", alignItems: "center", paddingLeft: 6 }}>
-                      {members.slice(0, 4).map((m) => (
-                        <MemberAvatar key={m.id} name={m.name} size={22} />
-                      ))}
-                    </div>
-                    <span style={{ fontSize: 10, color: "var(--ink-mute)", marginLeft: 8 }}>
-                      {memberCount}名在籍
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    <span style={{ fontSize: 10.5, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {company.location}
                     </span>
                   </>
-                ) : memberCount > 0 ? (
-                  <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>
-                    社員 {memberCount}名
-                  </span>
-                ) : (
-                  <span style={{ fontSize: 10, color: "var(--line)" }}>—</span>
+                )}
+                {company.employee_count && (
+                  <>
+                    <span style={{ color: "var(--line)", fontSize: 10, flexShrink: 0 }}>·</span>
+                    <span style={{ fontSize: 10.5, color: "var(--ink-mute)", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      {company.employee_count}
+                    </span>
+                  </>
                 )}
               </div>
-
-              {/* 比較ボタン + 更新日 */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                <button
-                  onClick={handleCompare}
-                  style={{
-                    padding: "3px 8px", borderRadius: 100,
-                    background: inCompare ? "var(--royal-50)" : "transparent",
-                    color: inCompare ? "var(--royal)" : "var(--ink-mute)",
-                    border: `1px solid ${inCompare ? "var(--royal-100)" : "var(--line)"}`,
-                    fontSize: 10, fontWeight: 600,
-                    cursor: "pointer",
-                    display: "inline-flex", alignItems: "center", gap: 3,
-                    transition: "all 0.15s",
-                    whiteSpace: "nowrap",
-                  }}
-                  title={inCompare ? "比較リストから削除" : "比較に追加"}
-                >
-                  {inCompare ? "✓ 比較中" : "+ 比較"}
-                </button>
-                {ago && (
-                  <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>
-                    {ago}
-                  </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                <button onClick={handleCompare} style={{
+                  padding: "2px 6px", borderRadius: 4,
+                  background: inCompare ? "var(--royal-50)" : "transparent",
+                  color: inCompare ? "var(--royal)" : "var(--ink-mute)",
+                  border: `1px solid ${inCompare ? "var(--royal-100)" : "var(--line)"}`,
+                  fontSize: 9, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                }}>{inCompare ? "✓ 比較中" : "+ 比較"}</button>
+                {company.job_count > 0 && (
+                  <span style={{
+                    fontSize: 9.5, fontWeight: 700, padding: "2px 6px", borderRadius: 100,
+                    background: "var(--royal-50)", color: "var(--royal)",
+                    border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
+                  }}>求人 {company.job_count}件</span>
                 )}
               </div>
             </div>
