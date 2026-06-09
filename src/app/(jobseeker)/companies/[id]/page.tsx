@@ -9,6 +9,7 @@ import {
   getCompanyRecruiters,
   getArticlesByCompany,
   getCompanyEmployees,
+  getSimilarCompanies,
 } from "@/lib/supabase/queries";
 
 // Deduplicate getCompanyById calls within a single request
@@ -22,9 +23,11 @@ import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail, CompanyNumbers } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
 import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker } from "./CompanyDetailClient";
+import { HeroCompareButton } from "./HeroCompareButton";
+import { JobAccordionItem } from "./JobAccordionItem";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
-import { GenreCarousel } from "@/components/companies/GenreCarousel";
+// import { GenreCarousel } from "@/components/companies/GenreCarousel";
 import EvaluationText from "./EvaluationText";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
@@ -438,7 +441,7 @@ function Hero({
               })()}
 
               {/* SNS リンク */}
-              {(company.x_url || company.linkedin_url || detail.url) && (
+              {(company.x_url || company.linkedin_url || detail.url || company.careers_url) && (
                 <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-3)", flexWrap: "wrap" }}>
                   {company.x_url && (
                     <a href={company.x_url} target="_blank" rel="noopener noreferrer"
@@ -461,76 +464,119 @@ function Hero({
                       公式サイト
                     </a>
                   )}
+                  {company.careers_url && (
+                    <a href={company.careers_url} target="_blank" rel="noopener noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: 8, background: "linear-gradient(135deg, var(--success-soft,#ECFDF5), #d1fae5)", color: "var(--success)", border: "1px solid #A7F3D0", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                      採用情報ページ
+                    </a>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Right: bookmark + share */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, alignSelf: "flex-start", paddingTop: "var(--space-3)" }}>
+          {/* Right: bookmark + compare */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0, alignSelf: "flex-start", paddingTop: "var(--space-3)" }}>
             <BookmarkButton
               companyName={company.name}
               companyId={company.id}
               initialBookmarked={initialBookmarked}
               isAuthenticated={isAuthenticated}
             />
+            <HeroCompareButton
+              companyId={company.id}
+              companyName={company.name}
+              companyInitial={company.logo_letter ?? company.name.charAt(0).toUpperCase()}
+              companyGradient={company.gradient}
+            />
           </div>
         </div>
 
-        {/* Stats strip — compact inline row */}
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "0",
-            paddingTop: "var(--space-5)",
-            marginTop: "var(--space-4)",
-            borderTop: "1px solid var(--line-soft)",
-          }}
-        >
-          {(
+        {/* Stats strip — full-width grid */}
+        {(() => {
+          // 年収レンジを求人データから計算
+          const allJobItems = detail.jobs.flatMap(c => c.items);
+          const salaryMins = allJobItems.map(j => j.salaryMin).filter((v): v is number => v != null && v > 0);
+          const salaryMaxs = allJobItems.map(j => j.salaryMax).filter((v): v is number => v != null && v > 0);
+          const globalSalaryMin = salaryMins.length > 0 ? Math.min(...salaryMins) : null;
+          const globalSalaryMax = salaryMaxs.length > 0 ? Math.max(...salaryMaxs) : null;
+          const salaryRangeValue = globalSalaryMin && globalSalaryMax
+            ? `${globalSalaryMin}〜${globalSalaryMax}万円`
+            : globalSalaryMin ? `${globalSalaryMin}万円〜`
+            : null;
+
+          const stats = (
             [
               {
-                icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>,
+                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>,
                 label: "社員数",
-                value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s + "名"; })() : null,
+                value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s + "名以上"; })() : null,
                 color: "var(--royal)",
               },
               {
-                icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>,
+                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>,
                 label: "事業ステージ",
                 value: company.phase ?? null,
                 color: "#7C3AED",
               },
               {
-                icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
+                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
                 label: "設立",
                 value: detail.established || null,
                 color: "var(--success)",
               },
+              ...(salaryRangeValue ? [{
+                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+                label: "想定年収",
+                value: salaryRangeValue,
+                color: "var(--success)",
+              }] : []),
               ...(company.job_count > 0 ? [{
-                icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>,
+                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>,
                 label: "募集中の求人",
                 value: `${company.job_count}件`,
                 color: "#D97706",
               }] : []),
+              ...(detail.numbers.fundingTotal ? [{
+                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+                label: "累計調達",
+                value: detail.numbers.fundingTotal,
+                color: "#7C3AED",
+              }] : []),
             ] as { icon: React.ReactNode; label: string; value: string | null; color: string }[]
-          ).filter(s => s.value).map(({ icon, label, value, color }, i, arr) => (
-            <div key={label} style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              paddingRight: "var(--space-5)",
-              marginRight: i < arr.length - 1 ? "var(--space-5)" : 0,
-              borderRight: i < arr.length - 1 ? "1px solid var(--line-soft)" : "none",
-              marginBottom: "var(--space-3)",
-            }}>
-              <span style={{ color, flexShrink: 0, display: "flex", alignItems: "center" }}>{icon}</span>
-              <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", fontWeight: 500 }}>{label}</span>
-              <span style={{ fontSize: "var(--text-sm)", color: "var(--ink)", fontWeight: 700, fontFamily: "var(--font-noto-sans)" }}>{value}</span>
+          ).filter(s => s.value);
+          if (stats.length === 0) return null;
+          return (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${stats.length}, 1fr)`,
+                paddingTop: "var(--space-4)",
+                marginTop: "var(--space-4)",
+                borderTop: "1px solid var(--line-soft)",
+              }}
+            >
+              {stats.map(({ icon, label, value, color }, i) => (
+                <div key={label} style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                  padding: "10px 0",
+                  borderRight: i < stats.length - 1 ? "1px solid var(--line-soft)" : "none",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ color, flexShrink: 0, display: "flex", alignItems: "center" }}>{icon}</span>
+                    <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>{label}</span>
+                  </div>
+                  <span style={{ fontSize: 15, color: "var(--ink)", fontWeight: 700, fontFamily: "var(--font-noto-sans)" }}>{value}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          );
+        })()}
 
         {/* Recruiter strip */}
         {recruiters.length > 0 && (
@@ -661,75 +707,139 @@ function AboutSection({
           企業について
         </SecTitle>
       </div>
-      <div style={{ padding: "var(--space-6)" }}>
+      <div style={{ padding: "var(--space-5) var(--space-6) var(--space-6)" }}>
 
-        {/* MISSION — 常に表示 */}
-        <div
-          style={{
-            padding: "var(--space-6) var(--space-8)",
-            background: "linear-gradient(135deg, #0a1f4e 0%, var(--royal) 60%, #1a3a8a 100%)",
-            borderRadius: 14,
-            marginBottom: "var(--space-6)",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ position: "absolute", right: -40, top: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", left: -20, bottom: -60, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "linear-gradient(180deg, #F59E0B 0%, #3B5FD9 100%)", borderRadius: "14px 0 0 14px" }} />
-          <div style={{ paddingLeft: "var(--space-3)" }}>
-            <div style={{ fontFamily: "Inter, sans-serif", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.45)", marginBottom: "var(--space-3)", textTransform: "uppercase" as const }}>
-              MISSION
-            </div>
-            <div style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(18px, 2.2vw, 23px)", fontWeight: 500, color: detail.mission ? "#fff" : "rgba(255,255,255,0.35)", lineHeight: 1.7, letterSpacing: "0.02em", fontStyle: detail.mission ? "normal" : "italic" }}>
-              {detail.mission ?? "ミッションは現在準備中です。"}
+        {/* MISSION — コンパクト横帯 */}
+        {detail.mission && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--space-4)",
+              padding: "var(--space-4) var(--space-5)",
+              background: "linear-gradient(135deg, #0a1f4e 0%, var(--royal) 60%, #1a3a8a 100%)",
+              borderRadius: 12,
+              marginBottom: "var(--space-5)",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div style={{ position: "absolute", right: -30, top: -30, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "linear-gradient(180deg, #F59E0B, #3B5FD9)", borderRadius: "12px 0 0 12px" }} />
+            <div style={{ paddingLeft: "var(--space-2)" }}>
+              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" as const, display: "block", marginBottom: 4 }}>
+                MISSION
+              </span>
+              <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(15px, 1.8vw, 19px)", fontWeight: 500, color: "#fff", lineHeight: 1.6 }}>
+                {detail.mission}
+              </span>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* オフィス写真 */}
+        {/* オフィス写真グリッド */}
         <PhotoCarousel photos={photos} />
 
-        {/* 会社説明 — 常に表示 */}
-        <p style={{ fontSize: "var(--text-base)", color: detail.about ? "var(--ink)" : "var(--ink-soft)", lineHeight: 1.9, marginTop: "var(--space-4)", fontStyle: detail.about ? "normal" : "italic" }}>
-          {detail.about ?? "会社説明は現在準備中です。"}
-        </p>
+        {/* 説明文 + 特徴・強み — 2カラム (デスクトップ) */}
+        <div className="about-body-grid">
+          {/* 左: 会社説明 */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+            {detail.about && (
+              <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9 }}>
+                {detail.about}
+              </p>
+            )}
 
-        {/* FEATURES / 会社の特徴・強み — 常に表示 */}
-        <div style={{ marginTop: "var(--space-6)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-            <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "0.02em", color: "var(--royal)", fontFamily: "var(--font-noto-sans)" }}>
-              会社の特徴・強み
-            </span>
+            {/* なぜ今この会社なのか */}
+            {detail.why_join && (
+              <div style={{
+                padding: "var(--space-4) var(--space-5)",
+                background: "linear-gradient(135deg, var(--royal-50) 0%, #f0f4ff 100%)",
+                borderRadius: 12,
+                borderLeft: "3px solid var(--royal)",
+              }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", textTransform: "uppercase" as const, marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
+                  WHY JOIN
+                </div>
+                <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>
+                  {detail.why_join}
+                </p>
+              </div>
+            )}
+
+            {/* カルチャー */}
+            {detail.culture_description && (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-2)" }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} strokeLinecap="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>カルチャー</span>
+                </div>
+                <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.85 }}>
+                  {detail.culture_description}
+                </p>
+                {detail.culture_keywords && detail.culture_keywords.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: "var(--space-2)" }}>
+                    {detail.culture_keywords.map((kw, i) => (
+                      <span key={i} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A", fontWeight: 600 }}>
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          {detail.company_features && detail.company_features.length > 0 ? (
-            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-              {detail.company_features.map((f, i) => (
-                <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-2)" }}>
-                  <span style={{
-                    flexShrink: 0, marginTop: 3,
-                    width: 20, height: 20, borderRadius: "50%",
-                    background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif",
+
+          {/* 右: 会社の特徴・強み */}
+          {detail.company_features && detail.company_features.length > 0 && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)" }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-noto-sans)" }}>
+                  会社の特徴・強み
+                </span>
+              </div>
+              {/* ピルタグ形式で横並び表示 */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {detail.company_features.map((f, i) => (
+                  <span key={i} style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    padding: "6px 14px", borderRadius: 100,
+                    background: "var(--royal-50)",
+                    border: "1px solid var(--royal-100)",
+                    fontSize: 13, fontWeight: 600, color: "var(--royal)",
+                    fontFamily: "var(--font-noto-sans)",
+                    lineHeight: 1.4,
+                    letterSpacing: "0.01em",
                   }}>
-                    {i + 1}
+                    <span style={{ fontSize: 10, opacity: 0.6 }}>#</span>
+                    {f}
                   </span>
-                  <span style={{ fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.8 }}>{f}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.7 }}>
-              会社の特徴・強みは現在準備中です。
-            </p>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 
       </div>
+
+      <style>{`
+        .about-body-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 32px;
+          margin-top: var(--space-4);
+          align-items: start;
+        }
+        @media (max-width: 767px) {
+          .about-body-grid { grid-template-columns: 1fr; gap: 20px; }
+        }
+      `}</style>
     </section>
   );
 }
@@ -748,25 +858,8 @@ function parseProductName(raw: string): { name: string; sub: string | null } {
 }
 
 /** キーワードベースで製品カードのアイコン＋カラーを決める */
-function productStyle(name: string): { emoji: string; bg: string; border: string; color: string } {
-  const n = name.toLowerCase();
-  if (n.includes("sales") || n.includes("営業") || n.includes("crm"))
-    return { emoji: "📊", bg: "#EFF6FF", border: "#BFDBFE", color: "#1D4ED8" };
-  if (n.includes("service") || n.includes("サービス") || n.includes("サポート"))
-    return { emoji: "🎧", bg: "#F5F3FF", border: "#DDD6FE", color: "#6D28D9" };
-  if (n.includes("market") || n.includes("マーケ"))
-    return { emoji: "📣", bg: "#FFF1F2", border: "#FECDD3", color: "#9D174D" };
-  if (n.includes("data") || n.includes("analytics") || n.includes("分析") || n.includes("tableau"))
-    return { emoji: "📈", bg: "#ECFEFF", border: "#A5F3FC", color: "#0E7490" };
-  if (n.includes("commerce") || n.includes("ec") || n.includes("コマース"))
-    return { emoji: "🛒", bg: "#F0FDF4", border: "#BBF7D0", color: "#065F46" };
-  if (n.includes("platform") || n.includes("cloud") || n.includes("クラウド"))
-    return { emoji: "☁️", bg: "#EFF6FF", border: "#BFDBFE", color: "#1D4ED8" };
-  if (n.includes("ai") || n.includes("agentforce") || n.includes("einstein"))
-    return { emoji: "🤖", bg: "#FFF7ED", border: "#FED7AA", color: "#C2410C" };
-  if (n.includes("slack") || n.includes("コミュニ") || n.includes("チャット"))
-    return { emoji: "💬", bg: "#F0FDF4", border: "#BBF7D0", color: "#065F46" };
-  return { emoji: "💡", bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
+function productStyle(_name: string): { bg: string; border: string; color: string } {
+  return { bg: "#fff", border: "var(--line)", color: "var(--ink-soft)" };
 }
 
 function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
@@ -832,20 +925,18 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                     style={{
                       background: s.bg,
                       border: `1px solid ${s.border}`,
-                      borderRadius: 12,
-                      padding: "var(--space-3) var(--space-4)",
+                      borderRadius: 10,
+                      padding: "10px var(--space-4)",
                       display: "flex",
                       alignItems: "flex-start",
-                      gap: "var(--space-2)",
                     }}
                   >
-                    <span style={{ fontSize: "var(--text-lg)", lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{s.emoji}</span>
                     <div style={{ minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, fontFamily: "var(--font-noto-sans)" }}>
                         {name}
                       </p>
                       {sub && (
-                        <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs)", color: s.color, fontWeight: 600, lineHeight: 1.4 }}>
+                        <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs)", color: "var(--ink-soft)", fontWeight: 500, lineHeight: 1.4 }}>
                           {sub}
                         </p>
                       )}
@@ -1386,6 +1477,127 @@ function WorkStyleSection({ detail }: { detail: CompanyDetail }) {
   );
 }
 
+// ─── Employee Voices Section ─────────────────────────────────────────────────
+
+function EmployeeVoicesSection({ employees }: { employees: CompanyEmployee[] }) {
+  const voices = employees.filter(e => e.catchphrase && e.catchphrase.trim().length > 0);
+  if (voices.length === 0) return null;
+
+  return (
+    <section
+      id="voices"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: "var(--space-6)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      <div style={{ padding: "var(--space-6) var(--space-6) var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
+        <SecTitle
+          iconColor="purple"
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          }
+        >
+          社員の声
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontWeight: 400, fontFamily: "Inter, sans-serif", marginLeft: "var(--space-2)" }}>
+            {voices.length}名
+          </span>
+        </SecTitle>
+      </div>
+      <div style={{ padding: "var(--space-6)" }}>
+        <style>{`
+          .voices-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-4);
+          }
+          @media (max-width: 767px) {
+            .voices-grid { grid-template-columns: 1fr; }
+          }
+        `}</style>
+        <div className="voices-grid">
+          {voices.slice(0, 6).map((emp) => {
+            const avatarColor = resolveAvatarColor(emp.roleParentId, emp.roleCategoryId);
+            return (
+              <a
+                key={emp.userId}
+                href={`/u/${emp.userId}`}
+                style={{ textDecoration: "none" }}
+              >
+                <div style={{
+                  padding: "var(--space-4)",
+                  border: "1px solid var(--line)",
+                  borderRadius: 14,
+                  background: "var(--bg-tint)",
+                  transition: "border-color 0.15s, box-shadow 0.15s",
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--space-3)",
+                }}
+                className="voice-card"
+                >
+                  {/* Quote text */}
+                  <div style={{ position: "relative", flex: 1 }}>
+                    <svg
+                      width="22" height="22" viewBox="0 0 24 24" fill="var(--purple-soft,#F3E8FF)"
+                      style={{ position: "absolute", top: -4, left: -4, opacity: 0.8 }}
+                    >
+                      <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
+                      <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
+                    </svg>
+                    <p style={{
+                      margin: 0,
+                      paddingLeft: 20,
+                      fontSize: "var(--text-sm)",
+                      color: "var(--ink)",
+                      lineHeight: 1.75,
+                      fontWeight: 500,
+                    }}>
+                      {emp.catchphrase}
+                    </p>
+                  </div>
+                  {/* Attribution */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", borderTop: "1px solid var(--line-soft)", paddingTop: "var(--space-2)" }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: "50%",
+                      background: emp.avatarUrl ? undefined : avatarColor.bg,
+                      flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                      fontWeight: 700, fontSize: 13, color: avatarColor.text,
+                      overflow: "hidden", border: "1.5px solid var(--line)",
+                    }}>
+                      {emp.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={emp.avatarUrl} alt={emp.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : emp.avatarInitial}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {emp.name}
+                      </div>
+                      {emp.roleTitle && (
+                        <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {emp.roleTitle}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Employee Sections ────────────────────────────────────────────────────────
 
 function EmployeeCard({
@@ -1452,6 +1664,20 @@ function EmployeeCard({
           {employee.roleTitle}
         </p>
       )}
+      {employee.catchphrase && (
+        <p
+          style={{
+            margin: "5px 0 0",
+            fontSize: "var(--text-xs)",
+            color: "var(--ink-soft)",
+            lineHeight: 1.55,
+            borderLeft: "2px solid var(--royal-100)",
+            paddingLeft: 7,
+          }}
+        >
+          {employee.catchphrase}
+        </p>
+      )}
       {showEndedAt && employee.endedAt && (
         <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--ink-soft)", marginTop: 2 }}>
           退職: {employee.endedAt}
@@ -1495,10 +1721,21 @@ function EmployeeCard({
   );
 }
 
-const EMPLOYEE_GRID_STYLE: React.CSSProperties = {
-  display: "grid",
-  gap: "var(--space-2)",
-};
+// employee-grid: 均等2列 (md以上) / 3列 (xl以上) — CSS classで定義
+const EMPLOYEE_GRID_CSS = `
+  .employee-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  @media (max-width: 767px) {
+    .employee-grid { grid-template-columns: 1fr; }
+  }
+  @media (min-width: 1280px) {
+    .employee-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+`;
+
 
 function CurrentEmployeesSection({
   employees,
@@ -1578,6 +1815,8 @@ function CurrentEmployeesSection({
   );
 
   return (
+    <>
+    <style>{EMPLOYEE_GRID_CSS}</style>
     <section
       id="current-employees"
       style={{
@@ -1673,7 +1912,7 @@ function CurrentEmployeesSection({
         </div>
       ) : categories.length === 0 ? (
         // カテゴリ設定なし → レスポンシブ列
-        <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
+        <div className="employee-grid">
           {employees.map((emp) => (
             <EmployeeCard key={emp.userId} employee={emp} />
           ))}
@@ -1718,7 +1957,7 @@ function CurrentEmployeesSection({
 
                 {group.isParentDirect ? (
                   // 親直: 子見出しなしでグリッドを直接表示
-                  <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
+                  <div className="employee-grid">
                     {(empsByCategory.get(group.children[0].roleId) ?? []).map((emp) => (
                       <EmployeeCard key={emp.userId} employee={emp} />
                     ))}
@@ -1759,7 +1998,7 @@ function CurrentEmployeesSection({
                               {empsInCat.length}名
                             </span>
                           </div>
-                          <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
+                          <div className="employee-grid">
                             {empsInCat.map((emp) => (
                               <EmployeeCard key={emp.userId} employee={emp} />
                             ))}
@@ -1788,7 +2027,7 @@ function CurrentEmployeesSection({
               >
                 その他
               </div>
-              <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
+              <div className="employee-grid">
                 {uncategorized.map((emp) => (
                   <EmployeeCard key={emp.userId} employee={emp} />
                 ))}
@@ -1799,6 +2038,7 @@ function CurrentEmployeesSection({
       )}
       </div>
     </section>
+    </>
   );
 }
 
@@ -1942,11 +2182,26 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
       </div>
       <div style={{ padding: "var(--space-6)" }}>
       {alumni.length > 0 ? (
-        <div style={EMPLOYEE_GRID_STYLE} className="[grid-template-columns:1fr] sm:[grid-template-columns:repeat(2,1fr)] lg:[grid-template-columns:repeat(3,1fr)]">
-          {alumni.map((emp) => (
-            <AlumniCard key={emp.userId} employee={emp} />
-          ))}
-        </div>
+        <>
+          <style>{`
+            .alumni-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: var(--space-3);
+            }
+            @media (max-width: 767px) {
+              .alumni-grid { grid-template-columns: 1fr; }
+            }
+            @media (min-width: 1280px) {
+              .alumni-grid { grid-template-columns: repeat(3, 1fr); }
+            }
+          `}</style>
+          <div className="alumni-grid">
+            {alumni.map((emp) => (
+              <AlumniCard key={emp.userId} employee={emp} />
+            ))}
+          </div>
+        </>
       ) : (
         <div style={{
           textAlign: "center", padding: "24px 20px",
@@ -2016,127 +2271,8 @@ function JobsSection({
   // γ-4 修正③: 求人合計件数で表示モードを切り替え
   const totalJobs = detail.jobs.reduce((sum, cat) => sum + cat.total, 0);
 
-  // 求人カード内の職種カラーバッジ (γ-4 修正②連携)
-  function JobCatBadge({ catName, catId }: { catName: string; catId?: string }) {
-    const color = resolveAvatarColor(catId ?? null, null);
-    return (
-      <span
-        style={{
-          display: "inline-block",
-          fontSize: 10,
-          padding: "2px 8px",
-          borderRadius: 4,
-          background: color.bg,
-          color: color.text,
-          fontWeight: 600,
-        }}
-      >
-        {catName}
-      </span>
-    );
-  }
-
-  // 求人カード共通コンポーネント
-  function JobCard({
-    job,
-    catName,
-    catId,
-    index,
-  }: {
-    job: { id?: string; title: string; salary: string; is_new?: boolean; urgency?: "open" | "hot" };
-    catName: string;
-    catId?: string;
-    index: number;
-  }) {
-    const catColor = resolveAvatarColor(catId ?? null, null);
-    return (
-      <Link
-        key={job.id ?? index}
-        href={job.id ? `/jobs/${job.id}` : `/jobs?company=${company.id}`}
-        style={{
-          display: "flex",
-          gap: 0,
-          border: "1px solid var(--line)",
-          borderRadius: 12,
-          cursor: "pointer",
-          background: "#fff",
-          textDecoration: "none",
-          overflow: "hidden",
-          transition: "box-shadow 0.2s, transform 0.2s",
-        }}
-        className="job-item-link"
-      >
-        {/* Left accent bar in category color */}
-        <div style={{ width: 4, flexShrink: 0, background: catColor.text, opacity: 0.7 }} />
-        {/* Content */}
-        <div style={{ flex: 1, padding: "var(--space-4)", display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)", marginBottom: 6, lineHeight: 1.35 }}>
-              {job.title}
-            </div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-              {job.urgency === "hot" && (
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 3,
-                  padding: "2px 7px", borderRadius: 4,
-                  background: "#FEE2E2", color: "#DC2626",
-                  fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
-                  fontFamily: "Inter, sans-serif",
-                  border: "1px solid #FECACA",
-                }}>
-                  🔥 HOT
-                </span>
-              )}
-              {job.is_new && (
-                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: "var(--success-soft,#ECFDF5)", color: "var(--success)", fontWeight: 700, border: "1px solid #A7F3D0" }}>
-                  新着
-                </span>
-              )}
-              <JobCatBadge catName={catName} catId={catId} />
-              {detail.work_location.length > 0 && (() => {
-                const wl = detail.work_location[0].label;
-                const isRemote = wl.includes("リモート") || wl.includes("在宅") || wl.includes("テレワーク") || wl.includes("フルリモート");
-                return (
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", gap: 3,
-                    fontSize: 10, padding: "2px 7px", borderRadius: 4,
-                    background: isRemote ? "#f0fdf4" : "var(--bg-tint)",
-                    color: isRemote ? "var(--success)" : "var(--ink-mute)",
-                    border: `1px solid ${isRemote ? "#A7F3D0" : "var(--line)"}`,
-                    fontWeight: 500,
-                  }}>
-                    {isRemote ? "🏠" : "🏢"} {wl}
-                  </span>
-                );
-              })()}
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
-            {job.salary && job.salary !== "—" && (
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: "var(--text-xs)", color: "#6b7280", fontWeight: 600, letterSpacing: "0.03em", marginBottom: 2 }}>年収</div>
-                <div style={{ fontFamily: "Inter, sans-serif", fontSize: "var(--text-base)", fontWeight: 800, color: "var(--success)" }}>
-                  {job.salary}
-                </div>
-              </div>
-            )}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 4,
-              padding: "7px 14px", borderRadius: 8,
-              background: "var(--royal-50)", color: "var(--royal)",
-              border: "1px solid var(--royal-100)",
-              fontSize: "var(--text-xs)", fontWeight: 700, whiteSpace: "nowrap",
-            }}>
-              詳細を見る
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </Link>
-    );
-  }
+  // 求人アコーディオンラッパー
+  const defaultWorkLocation = detail.work_location.length > 0 ? detail.work_location[0].label : "";
 
   const sectionIcon = (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -2186,12 +2322,13 @@ function JobsSection({
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           {detail.jobs.flatMap((cat, ci) =>
             cat.items.map((job, ji) => (
-              <JobCard
+              <JobAccordionItem
                 key={job.id ?? `${ci}-${ji}`}
                 job={job}
                 catName={cat.cat}
                 catId={cat.catId}
-                index={ji}
+                companyId={company.id}
+                defaultWorkLocation={defaultWorkLocation}
               />
             ))
           )}
@@ -2244,7 +2381,14 @@ function JobsSection({
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {cat.items.slice(0, 4).map((job, i) => (
-                  <JobCard key={job.id ?? i} job={job} catName={cat.cat} catId={cat.catId} index={i} />
+                  <JobAccordionItem
+                    key={job.id ?? i}
+                    job={job}
+                    catName={cat.cat}
+                    catId={cat.catId}
+                    companyId={company.id}
+                    defaultWorkLocation={defaultWorkLocation}
+                  />
                 ))}
               </div>
             </div>
@@ -2271,6 +2415,46 @@ function JobsSection({
             </Link>
           </div>
         </>
+      )}
+
+      {/* CTA: 求人に迷ったらカジュアル面談 */}
+      {company.jobs_public && (
+        <div style={{
+          marginTop: "var(--space-5)",
+          padding: "var(--space-4) var(--space-5)",
+          borderRadius: 12,
+          background: "linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)",
+          border: "1px solid #FCD34D",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "var(--space-4)",
+          flexWrap: "wrap",
+        }}>
+          <div>
+            <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
+              気になる求人があったら、まず話を聞いてみませんか？
+            </div>
+            <div style={{ fontSize: 12, color: "#B45309" }}>
+              カジュアル面談は完全無料・選考なし。転職意欲がなくても参加できます。
+            </div>
+          </div>
+          <Link
+            href={`/companies/${company.id}/casual-meeting`}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "10px 20px", borderRadius: 8, fontSize: "var(--text-sm)", fontWeight: 700,
+              background: "linear-gradient(135deg, #F59E0B, #D97706)",
+              color: "#fff", textDecoration: "none", flexShrink: 0,
+              boxShadow: "0 2px 8px rgba(245,158,11,0.35)",
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            担当者に相談する
+          </Link>
+        </div>
       )}
       </div>
     </section>
@@ -2386,6 +2570,19 @@ function RecruitersSection({
                   {r.department}
                 </div>
               )}
+              {r.catchphrase && (
+                <p style={{
+                  margin: "5px 0 0",
+                  fontSize: "var(--text-xs)",
+                  color: "var(--ink-soft)",
+                  lineHeight: 1.5,
+                  borderLeft: "2px solid var(--warm)",
+                  paddingLeft: 7,
+                  fontStyle: "italic",
+                }}>
+                  &ldquo;{r.catchphrase}&rdquo;
+                </p>
+              )}
             </div>
           </div>
         ))}
@@ -2410,6 +2607,207 @@ function RecruitersSection({
         </svg>
         カジュアル面談を申し込むと、上記担当者から連絡が届きます。
       </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Company Phase Timeline ──────────────────────────────────────────────────
+
+function CompanyPhaseTimeline({ company, detail }: { company: Company; detail: CompanyDetail }) {
+  const foundedYear = (() => {
+    const raw = detail.established;
+    if (!raw) return null;
+    const m = raw.match(/(\d{4})/);
+    return m ? parseInt(m[1], 10) : null;
+  })();
+  const currentYear = new Date().getFullYear();
+  const phase = company.phase ?? null;
+  if (!phase && !foundedYear) return null;
+
+  const PHASE_STYLES: Record<string, { bg: string; border: string; color: string; dot: string }> = {
+    "シード":        { bg: "#F1F5F9", border: "#CBD5E1", color: "#475569", dot: "#94A3B8" },
+    "シリーズA":     { bg: "#ECFDF5", border: "#A7F3D0", color: "#065F46", dot: "#059669" },
+    "シリーズB":     { bg: "#EFF6FF", border: "#BFDBFE", color: "#1D4ED8", dot: "#3B82F6" },
+    "シリーズC":     { bg: "#F3E8FF", border: "#DDD6FE", color: "#6D28D9", dot: "#7C3AED" },
+    "シリーズD以降": { bg: "#FFF7ED", border: "#FDBA74", color: "#C2410C", dot: "#F97316" },
+    "IPO準備":       { bg: "#FFF7ED", border: "#FDBA74", color: "#C2410C", dot: "#F97316" },
+  };
+  const LISTED_STYLES = { bg: "#FEF3C7", border: "#FDE68A", color: "#92400E", dot: "#F59E0B" };
+
+  function isListed(p: string): boolean {
+    return p.includes("上場") || p.includes("listed") || p.startsWith("東証") || p.includes("NYSE") || p.includes("NASDAQ");
+  }
+  const PHASE_ORDER = ["シード", "シリーズA", "シリーズB", "シリーズC", "シリーズD以降", "IPO準備", "上場"];
+  function phaseIndex(p: string | null): number {
+    if (!p) return -1;
+    if (isListed(p)) return 6;
+    return PHASE_ORDER.findIndex((x) => p.startsWith(x) || p === x);
+  }
+
+  type Milestone = { icon: string; title: string; sub: string; isCurrent: boolean; color: string; bgColor: string; borderColor: string; };
+  const milestones: Milestone[] = [];
+
+  if (foundedYear) milestones.push({ icon: "🏢", title: "創業", sub: `${foundedYear}年`, isCurrent: false, color: "var(--ink-soft)", bgColor: "var(--bg-tint)", borderColor: "var(--line)" });
+
+  if (phase && foundedYear) {
+    const ci = phaseIndex(phase);
+    if (ci >= 2 && !phase.startsWith("シリーズA")) { const s = PHASE_STYLES["シリーズA"]; milestones.push({ icon: "📈", title: "シリーズA", sub: "資金調達", isCurrent: false, color: s.color, bgColor: s.bg, borderColor: s.border }); }
+    if (ci >= 3 && !phase.startsWith("シリーズB")) { const s = PHASE_STYLES["シリーズB"]; milestones.push({ icon: "📈", title: "シリーズB", sub: "資金調達", isCurrent: false, color: s.color, bgColor: s.bg, borderColor: s.border }); }
+  }
+
+  if (phase) {
+    const listed = isListed(phase);
+    const s = listed ? LISTED_STYLES : (PHASE_STYLES[phase] ?? { bg: "#F1F5F9", border: "#CBD5E1", color: "#475569", dot: "#94A3B8" });
+    milestones.push({ icon: listed ? "🎉" : phaseIndex(phase) <= 1 ? "🌱" : "📈", title: listed ? (phase.replace("上場","").trim() || "上場") : phase, sub: listed ? (foundedYear ? `${foundedYear}年〜` : "上場企業") : "現在のフェーズ", isCurrent: true, color: s.color, bgColor: s.bg, borderColor: s.border });
+  }
+
+  if (company.employee_count) milestones.push({ icon: "👥", title: "現在の規模", sub: String(company.employee_count).includes("名") ? String(company.employee_count) : `${company.employee_count}名+`, isCurrent: false, color: "var(--royal)", bgColor: "var(--royal-50)", borderColor: "var(--royal-100)" });
+
+  if (foundedYear && milestones.length >= 2 && currentYear - foundedYear > 0) {
+    milestones.push({ icon: "🕐", title: `創業${currentYear - foundedYear}年目`, sub: `${currentYear}年現在`, isCurrent: false, color: "var(--ink-mute)", bgColor: "var(--bg-tint)", borderColor: "var(--line)" });
+  }
+
+  if (milestones.length < 2) return null;
+
+  return (
+    <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 18, overflow: "hidden", marginBottom: "var(--space-6)", boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)" }}>
+      <div style={{ padding: "var(--space-6) var(--space-6) var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
+        <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>}>成長フェーズ</SecTitle>
+      </div>
+      <div style={{ padding: "var(--space-5) var(--space-6) var(--space-6)" }}>
+        <div style={{ overflowX: "auto", paddingBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", minWidth: "max-content" }}>
+            {milestones.map((m, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 110, gap: 6 }}>
+                  <div style={{ width: m.isCurrent ? 44 : 36, height: m.isCurrent ? 44 : 36, borderRadius: "50%", background: m.bgColor, border: `2px solid ${m.borderColor}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: m.isCurrent ? 18 : 15, boxShadow: m.isCurrent ? `0 0 0 4px ${m.bgColor}` : "none", flexShrink: 0 }}>{m.icon}</div>
+                  <div style={{ fontSize: m.isCurrent ? 12 : 11, fontWeight: m.isCurrent ? 800 : 600, color: m.isCurrent ? m.color : "var(--ink)", textAlign: "center", lineHeight: 1.25 }}>{m.title}</div>
+                  <div style={{ fontSize: 10, color: m.isCurrent ? m.color : "var(--ink-mute)", textAlign: "center", lineHeight: 1.3, fontFamily: "Inter, sans-serif", fontWeight: m.isCurrent ? 600 : 400 }}>{m.sub}</div>
+                </div>
+                {i < milestones.length - 1 && <div style={{ width: 36, height: 2, background: "linear-gradient(90deg, var(--line) 0%, var(--royal-100) 100%)", flexShrink: 0, marginBottom: 28 }} />}
+              </div>
+            ))}
+          </div>
+        </div>
+        {foundedYear && phase && (
+          <p style={{ margin: "var(--space-4) 0 0", fontSize: "var(--text-xs)", color: "var(--ink-mute)", lineHeight: 1.7 }}>
+            {foundedYear}年の創業から{currentYear - foundedYear}年。現在は<strong style={{ color: "var(--ink-soft)" }}>{phase}</strong>ステージ{company.employee_count ? `、従業員${String(company.employee_count).includes("名") ? String(company.employee_count) : String(company.employee_count) + "名"}規模` : ""}。
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── Similar Companies Section ───────────────────────────────────────────────
+
+function SimilarCompaniesSection({ companies, currentIndustry }: { companies: Company[]; currentIndustry: string }) {
+  if (companies.length === 0) return null;
+
+  return (
+    <section
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: "var(--space-6)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      <div style={{ padding: "var(--space-6) var(--space-6) var(--space-4)", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-2)" }}>
+        <SecTitle
+          iconColor="warm"
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          }
+        >
+          {currentIndustry}の他の企業
+        </SecTitle>
+        <Link href={`/companies?industry=${encodeURIComponent(currentIndustry)}`} style={{ fontSize: "var(--text-sm)", color: "var(--royal)", fontWeight: 500, textDecoration: "none" }}>
+          一覧を見る →
+        </Link>
+      </div>
+      <div style={{ padding: "var(--space-5) var(--space-6)" }}>
+        <style>{`
+          .similar-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-3);
+          }
+          @media (max-width: 1023px) {
+            .similar-grid { grid-template-columns: repeat(2, 1fr); }
+          }
+          @media (max-width: 639px) {
+            .similar-grid { grid-template-columns: repeat(2, 1fr); }
+          }
+          .similar-card:hover {
+            border-color: var(--royal-100) !important;
+            box-shadow: 0 4px 16px rgba(0,35,102,0.08) !important;
+            transform: translateY(-2px);
+          }
+        `}</style>
+        <div className="similar-grid">
+          {companies.map((co) => {
+            const initial = co.name.charAt(0).toUpperCase();
+            return (
+              <Link key={co.id} href={`/companies/${co.id}`} style={{ textDecoration: "none" }}>
+                <div
+                  className="similar-card"
+                  style={{
+                    border: "1px solid var(--line)",
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    background: "#fff",
+                    transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+                  }}
+                >
+                  {/* Mini cover */}
+                  <div style={{ height: 56, background: co.gradient, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {co.logo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={co.logo_url} alt={co.name} style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 6, background: "#fff" }} />
+                    ) : (
+                      <span style={{ fontSize: 22, fontWeight: 800, color: "#fff", fontFamily: "Inter, sans-serif", opacity: 0.9 }}>
+                        {co.logo_letter ?? initial}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ padding: "var(--space-2) 10px var(--space-3)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 4 }}>
+                      {co.name}
+                    </div>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 4 }}>
+                      {co.phase && (
+                        <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)", fontWeight: 500 }}>
+                          {co.phase}
+                        </span>
+                      )}
+                      {co.accepting_casual_meetings && (
+                        <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "var(--success-soft,#ECFDF5)", color: "var(--success)", border: "1px solid #A7F3D0", fontWeight: 600 }}>
+                          面談可
+                        </span>
+                      )}
+                    </div>
+                    {Array.isArray((co as { company_features?: string[] | null }).company_features) && ((co as { company_features?: string[] | null }).company_features as string[]).length > 0 && (
+                      <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                        {((co as { company_features?: string[] | null }).company_features as string[]).slice(0, 2).map((f: string, fi: number) => (
+                          <span key={fi} style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontWeight: 500 }}>
+                            #{f}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
@@ -2653,6 +3051,25 @@ function NumbersSection({ numbers, numbersUpdatedAt }: { numbers: CompanyNumbers
                   >
                     {display}
                   </span>
+                  {/* Progress bar for percentage values */}
+                  {(() => {
+                    const numStr = String(raw ?? "");
+                    const pct = parseFloat(numStr.replace(/[^0-9.]/g, ""));
+                    if (!isNaN(pct) && (numStr.includes("%") || key === "genderRatio") && pct >= 0 && pct <= 100) {
+                      return (
+                        <div style={{ marginTop: 6, height: 4, background: "var(--line)", borderRadius: 2, overflow: "hidden" }}>
+                          <div style={{
+                            width: `${pct}%`,
+                            height: "100%",
+                            background: key === "genderRatio" ? "var(--purple, #7C3AED)" : "var(--royal)",
+                            borderRadius: 2,
+                            transition: "width 0.6s ease",
+                          }} />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               );
             })}
@@ -2737,14 +3154,15 @@ function MobileBottomCTA({ company }: { company: Company }) {
           style={{
             display: "block",
             padding: "10px 0",
-            background: "rgba(255,255,255,0.08)",
-            color: "#fff",
-            border: "1px solid rgba(255,255,255,0.28)",
+            background: hasMeeting ? "var(--royal-50)" : "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
+            color: hasMeeting ? "var(--royal)" : "#fff",
+            border: hasMeeting ? "1px solid var(--royal-100)" : "none",
             borderRadius: 8,
             fontSize: "var(--text-sm)",
             fontWeight: 600,
             textAlign: "center",
             textDecoration: "none",
+            boxShadow: hasMeeting ? "none" : "0 3px 12px rgba(0,35,102,0.25)",
           }}
         >
           求人を見て応募する
@@ -3113,114 +3531,6 @@ function Sidebar({
   );
 }
 
-// ─── SimilarCompanies ─────────────────────────────────────────────────────────
-
-async function SimilarCompanies({ currentId, phase }: { currentId: string; phase: string | null }) {
-  if (!phase) return null;
-  const supabase = createClient();
-
-  // 「上場」と「listed」は同義として扱う
-  const listedEquivalents = ["上場", "listed"];
-  const phaseFilter = listedEquivalents.includes(phase) ? listedEquivalents : [phase];
-
-  const { data } = await supabase
-    .from("ow_companies")
-    .select("id, name, tagline, industry, phase, logo_url, logo_letter, logo_gradient, accepting_casual_meetings, jobs_public, employee_count, current_member_count, obog_count, funding_stage, location")
-    .eq("is_published", true)
-    .in("phase", phaseFilter)
-    .neq("id", currentId)
-    .limit(8);
-
-  if (!data || data.length === 0) return null;
-
-  // CompanyForCarousel 型に合わせて変換
-  const companies = data.map((c) => ({
-    id: c.id,
-    name: c.name,
-    tagline: c.tagline ?? null,
-    industry: c.industry ?? null,
-    funding_stage: c.funding_stage ?? null,
-    employee_count: c.employee_count ?? null,
-    description: null,
-    accepting_casual_meetings: c.accepting_casual_meetings ?? false,
-    jobs_public: (c as Record<string, unknown>).jobs_public != null
-      ? (c as Record<string, unknown>).jobs_public as boolean
-      : c.accepting_casual_meetings ?? false,
-    remote_work_status: null,
-    location: c.location ?? null,
-    logo_letter: c.logo_letter ?? null,
-    logo_gradient: c.logo_gradient ?? null,
-    logo_url: c.logo_url ?? null,
-    updated_at: "",
-    job_count: 0,
-    current_member_count: (c as Record<string, unknown>).current_member_count as number ?? 0,
-    obog_count: (c as Record<string, unknown>).obog_count as number ?? 0,
-  }));
-
-  return (
-    <section
-      id="similar"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
-    >
-      {/* Section header */}
-      <div style={{
-        padding: "var(--space-4) var(--space-6)",
-        borderBottom: "1px solid var(--line-soft)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: "var(--royal-50)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2"/>
-              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-            </svg>
-          </div>
-          <div>
-            <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
-              同じフェーズの企業
-            </div>
-            <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 1 }}>
-              {phase} の他の企業と比較してみよう
-            </div>
-          </div>
-          <span style={{
-            fontSize: "var(--text-xs)", fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-            background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
-            marginLeft: 4,
-          }}>
-            {phase}
-          </span>
-        </div>
-        <a
-          href={`/companies?phase=${encodeURIComponent(phase)}`}
-          style={{ fontSize: "var(--text-sm)", color: "var(--royal)", textDecoration: "none", fontWeight: 600, flexShrink: 0 }}
-        >
-          すべて見る →
-        </a>
-      </div>
-
-      {/* Carousel */}
-      <div style={{ padding: "var(--space-4) 0 var(--space-4)" }}>
-        <GenreCarousel companies={companies} />
-      </div>
-    </section>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function CompanyDetailPage({
@@ -3264,6 +3574,9 @@ export default async function CompanyDetailPage({
     initialBookmarked = !!bmark;
   }
 
+  // 類似企業（同業界・異フェーズ）
+  const similarCompanies = await getSimilarCompanies(params.id, company.industry, company.phase);
+
   return (
     <>
       <ReadingProgress />
@@ -3292,11 +3605,10 @@ export default async function CompanyDetailPage({
         <CompanyStickyNav items={[
           { id: "about",            label: "企業概要" },
           ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
-          { id: "work-style",       label: "働き方" },
           ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: `組織 ${detail.orgTeams.length}チーム` }] : []),
-          ...(!NUMBER_ITEMS.every(({ key }) => { const raw = detail.numbers[key]; return raw === null || raw === undefined || String(raw).trim() === ""; }) ? [{ id: "numbers", label: "数値" }] : []),
           ...((detail.benefits?.length || detail.evaluationSystem) ? [{ id: "benefits", label: "福利厚生" }] : []),
           ...(company.job_count > 0 ? [{ id: "jobs", label: `求人 ${company.job_count}件` }] : []),
+          ...(employees.current.some(e => e.catchphrase) ? [{ id: "voices", label: "社員の声" }] : []),
           ...(employees.current.length > 0 ? [{ id: "current-employees", label: `社員 ${employees.current.length}名` }] : employees.alumni.length > 0 ? [{ id: "current-employees", label: `OB/OG ${employees.alumni.length}名` }] : []),
           ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
         ]} />
@@ -3312,17 +3624,8 @@ export default async function CompanyDetailPage({
               photos={photos}
             />
 
-            {/* 1.5 こんな人に向いている / 向いていない */}
-            <FitSection detail={detail} />
-
             {/* 2. 製品・顧客 */}
             <ProductsClientsSection detail={detail} />
-
-            {/* 3. 働き方の選択肢 */}
-            <WorkStyleSection detail={detail} />
-
-            {/* 4. 数値で見る企業 */}
-            <NumbersSection numbers={detail.numbers} numbersUpdatedAt={detail.numbersUpdatedAt} />
 
             {/* 5. 組織体制 */}
             <OrgTeamsSectionClient detail={detail} />
@@ -3333,6 +3636,9 @@ export default async function CompanyDetailPage({
             {/* 6. 募集中の求人 */}
             <JobsSection company={company} detail={detail} />
 
+            {/* 6.5 社員の声 */}
+            <EmployeeVoicesSection employees={employees.current} />
+
             {/* 7. 現役社員・OBOGプロフィール */}
             <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} alumniCount={employees.alumni.length} />
             <AlumniSection alumni={employees.alumni} />
@@ -3340,13 +3646,16 @@ export default async function CompanyDetailPage({
             {/* 7. 記事（OPINIO取材記事） */}
             <CompanyArticlesSection articles={companyArticles} />
 
-
             {recruiters.length > 0 && (
               <RecruitersSection recruiters={recruiters} />
             )}
 
-            {/* 同じフェーズの企業 */}
-            <SimilarCompanies currentId={params.id} phase={company.phase ?? null} />
+            {/* フェーズタイムライン */}
+            <CompanyPhaseTimeline company={company} detail={detail} />
+
+            {/* 8. 類似企業 */}
+            <SimilarCompaniesSection companies={similarCompanies} currentIndustry={company.industry} />
+
           </main>
 
           <Sidebar company={company} detail={detail} />
@@ -3391,6 +3700,12 @@ export default async function CompanyDetailPage({
           background: #fff !important;
           transform: translateY(-2px);
           box-shadow: 0 4px 16px rgba(0,35,102,0.08) !important;
+        }
+
+        /* ── Voice cards ── */
+        .voice-card:hover {
+          border-color: var(--purple,#7C3AED) !important;
+          box-shadow: 0 4px 16px rgba(124,58,237,0.08) !important;
         }
 
         /* ── Post / article cards ── */

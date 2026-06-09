@@ -465,6 +465,21 @@ export function CompanyCardCompact({ company, compact, members: _members }: Prop
           </div>
         )}
 
+        {/* company_features タグ */}
+        {Array.isArray(company.company_features) && company.company_features.length > 0 && (
+          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 6 }}>
+            {(company.company_features as string[]).slice(0, 2).map((f, fi) => (
+              <span key={fi} style={{
+                fontSize: 9.5, padding: '1px 5px', borderRadius: 3,
+                background: 'var(--royal-50)', color: 'var(--royal)',
+                border: '1px solid var(--royal-100)', fontWeight: 500,
+              }}>
+                #{f}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* ─── 下部メタ行 ──────────────────────────────────── */}
         <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--line-soft)', display: 'flex', flexDirection: 'column', gap: 6 }}>
 
