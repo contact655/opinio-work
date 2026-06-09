@@ -1469,23 +1469,6 @@ export default function JobsClient({
           className="px-5 py-6 md:px-12 md:py-8"
         >
           <div className="jobs-layout">
-            {/* ─ Desktop Sidebar ─ */}
-            <div className="jobs-sidebar-col">
-              <SidebarFilter
-                parentRoles={parentRoles}
-                category={category}
-                work_style={work_style}
-                salary={salary}
-                prefecture={prefecture}
-                availablePrefectures={availablePrefectures}
-                q={q}
-                setQ={setQ}
-                setParam={setParam}
-                hasFilter={hasFilter}
-                onReset={() => { setQ(""); router.replace("/jobs"); }}
-              />
-            </div>
-
             {/* ─ Results column ─ */}
             <main style={{ minWidth: 0 }}>
               {/* 件数・並び順 */}
@@ -1594,44 +1577,21 @@ export default function JobsClient({
           box-shadow: 0 0 0 3px rgba(0,35,102,0.12) !important;
         }
 
-        /* ── 2-column layout: sidebar + results ── */
+        /* ── Single-column layout ── */
         .jobs-layout {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 20px;
+          display: flex;
+          flex-direction: column;
         }
-        /* sidebar col hidden on mobile */
-        .jobs-sidebar-col { display: none; }
-        /* list hidden on mobile, grid shown */
-        .jobs-list-desktop { display: none; }
-        .jobs-grid-mobile {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 14px;
-        }
-        /* mobile filter bar: shown on mobile */
+        /* filter bar: always visible */
         .jobs-mobile-filterbar { display: block; }
-
-        @media (min-width: 640px) {
-          .jobs-grid-mobile { grid-template-columns: repeat(2, 1fr); }
+        /* list: always visible */
+        .jobs-list-desktop {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
         }
-
-        @media (min-width: 1024px) {
-          .jobs-layout {
-            grid-template-columns: 240px 1fr;
-            gap: 24px;
-          }
-          /* show sidebar, hide mobile filter bar */
-          .jobs-sidebar-col { display: block; }
-          .jobs-mobile-filterbar { display: none !important; }
-          /* show list, hide grid */
-          .jobs-list-desktop {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-          }
-          .jobs-grid-mobile { display: none; }
-        }
+        /* grid: hidden */
+        .jobs-grid-mobile { display: none; }
       `}</style>
     </>
   );
