@@ -9,7 +9,6 @@ import {
   getCompanyRecruiters,
   getArticlesByCompany,
   getCompanyEmployees,
-  getSimilarCompanies,
 } from "@/lib/supabase/queries";
 import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
@@ -709,34 +708,12 @@ function AboutSection({
       </div>
       <div style={{ padding: "var(--space-5) var(--space-6) var(--space-6)" }}>
 
-        {/* MISSION — シンプル横帯 */}
-        {detail.mission && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: "var(--space-3)",
-            padding: "var(--space-3) var(--space-5)",
-            background: "#fafbff",
-            borderRadius: 10,
-            borderLeft: "3px solid var(--royal)",
-            border: "1px solid var(--royal-100)",
-            borderLeftWidth: 3,
-            marginBottom: "var(--space-5)",
-          }}>
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", color: "var(--royal)", textTransform: "uppercase" as const, flexShrink: 0 }}>
-              MISSION
-            </span>
-            <span style={{ color: "var(--line)", fontSize: 14, flexShrink: 0 }}>|</span>
-            <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(14px, 1.6vw, 17px)", fontWeight: 500, color: "var(--ink)", lineHeight: 1.6 }}>
-              {detail.mission}
-            </span>
-          </div>
-        )}
-
         {/* オフィス写真グリッド */}
         <PhotoCarousel photos={photos} />
 
         {/* ① 会社概要 — 全幅 */}
         {detail.about && (
-          <p style={{ margin: "0 0 var(--space-5)", fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9 }}>
+          <p style={{ margin: "0 0 var(--space-6)", fontSize: 15, color: "var(--ink)", lineHeight: 2, fontFamily: "var(--font-noto-sans)" }}>
             {detail.about}
           </p>
         )}
@@ -770,7 +747,7 @@ function AboutSection({
                     marginTop: 2,
                   }}>{i + 1}</span>
                   <p style={{ margin: 0, fontSize: 14, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>
-                    {sentence.trim()}。
+                    {sentence.trim().replace(/。$/, "")}。
                   </p>
                 </div>
               ))}
@@ -1464,6 +1441,11 @@ const EMPLOYEE_GRID_CSS = `
   @media (min-width: 1280px) {
     .employee-grid { grid-template-columns: repeat(3, 1fr); }
   }
+  .alumni-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
 `;
 
 
@@ -1913,7 +1895,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
       <div style={{ padding: "var(--space-6)" }}>
       {alumni.length > 0 ? (
         <>
-          <div className="employee-grid">
+          <div className="alumni-grid">
             {alumni.map((emp) => (
               <AlumniCard key={emp.userId} employee={emp} />
             ))}
@@ -2331,7 +2313,7 @@ function RecruitersSection({
 
 // ─── Company Phase Timeline ──────────────────────────────────────────────────
 
-function CompanyPhaseTimeline({ company, detail }: { company: Company; detail: CompanyDetail }) {
+function _CompanyPhaseTimeline({ company, detail }: { company: Company; detail: CompanyDetail }) {
   const foundedYear = (() => {
     const raw = detail.established;
     if (!raw) return null;
@@ -2419,7 +2401,7 @@ function CompanyPhaseTimeline({ company, detail }: { company: Company; detail: C
 
 // ─── Similar Companies Section ───────────────────────────────────────────────
 
-function SimilarCompaniesSection({ companies, currentIndustry }: { companies: Company[]; currentIndustry: string }) {
+function _SimilarCompaniesSection({ companies, currentIndustry }: { companies: Company[]; currentIndustry: string }) {
   if (companies.length === 0) return null;
 
   return (
@@ -3108,9 +3090,6 @@ export default async function CompanyDetailPage({
     initialBookmarked = !!bmark;
   }
 
-  // 類似企業（同業界・異フェーズ）
-  const similarCompanies = await getSimilarCompanies(params.id, company.industry, company.phase);
-
   return (
     <>
       <ReadingProgress />
@@ -3184,11 +3163,6 @@ export default async function CompanyDetailPage({
               <RecruitersSection recruiters={recruiters} />
             )}
 
-            {/* フェーズタイムライン */}
-            <CompanyPhaseTimeline company={company} detail={detail} />
-
-            {/* 8. 類似企業 */}
-            <SimilarCompaniesSection companies={similarCompanies} currentIndustry={company.industry} />
 
           </main>
 
