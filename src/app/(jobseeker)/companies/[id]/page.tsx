@@ -709,53 +709,47 @@ function AboutSection({
       </div>
       <div style={{ padding: "var(--space-5) var(--space-6) var(--space-6)" }}>
 
-        {/* MISSION — コンパクト横帯 */}
+        {/* MISSION — シンプル横帯 */}
         {detail.mission && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-4)",
-              padding: "var(--space-4) var(--space-5)",
-              background: "linear-gradient(135deg, #0a1f4e 0%, var(--royal) 60%, #1a3a8a 100%)",
-              borderRadius: 12,
-              marginBottom: "var(--space-5)",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <div style={{ position: "absolute", right: -30, top: -30, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
-            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "linear-gradient(180deg, #F59E0B, #3B5FD9)", borderRadius: "12px 0 0 12px" }} />
-            <div style={{ paddingLeft: "var(--space-2)" }}>
-              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" as const, display: "block", marginBottom: 4 }}>
-                MISSION
-              </span>
-              <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(15px, 1.8vw, 19px)", fontWeight: 500, color: "#fff", lineHeight: 1.6 }}>
-                {detail.mission}
-              </span>
-            </div>
+          <div style={{
+            display: "flex", alignItems: "center", gap: "var(--space-3)",
+            padding: "var(--space-3) var(--space-5)",
+            background: "#fafbff",
+            borderRadius: 10,
+            borderLeft: "3px solid var(--royal)",
+            border: "1px solid var(--royal-100)",
+            borderLeftWidth: 3,
+            marginBottom: "var(--space-5)",
+          }}>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", color: "var(--royal)", textTransform: "uppercase" as const, flexShrink: 0 }}>
+              MISSION
+            </span>
+            <span style={{ color: "var(--line)", fontSize: 14, flexShrink: 0 }}>|</span>
+            <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(14px, 1.6vw, 17px)", fontWeight: 500, color: "var(--ink)", lineHeight: 1.6 }}>
+              {detail.mission}
+            </span>
           </div>
         )}
 
         {/* オフィス写真グリッド */}
         <PhotoCarousel photos={photos} />
 
-        {/* 説明文 + 特徴・強み — 2カラム (デスクトップ) */}
-        <div className="about-body-grid">
-          {/* 左: 会社説明 */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
-            {detail.about && (
-              <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9 }}>
-                {detail.about}
-              </p>
-            )}
+        {/* ① 会社概要 — 全幅 */}
+        {detail.about && (
+          <p style={{ margin: "0 0 var(--space-5)", fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9 }}>
+            {detail.about}
+          </p>
+        )}
 
-            {/* なぜ今この会社なのか */}
+        {/* ② WHY JOIN + カルチャー — 横2列 */}
+        {(detail.why_join || detail.culture_description) && (
+          <div className="about-why-grid">
             {detail.why_join && (
               <div style={{
                 padding: "var(--space-4) var(--space-5)",
-                background: "linear-gradient(135deg, var(--royal-50) 0%, #f0f4ff 100%)",
+                background: "#fafbff",
                 borderRadius: 12,
+                border: "1px solid var(--royal-100)",
                 borderLeft: "3px solid var(--royal)",
               }}>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", textTransform: "uppercase" as const, marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
@@ -766,24 +760,28 @@ function AboutSection({
                 </p>
               </div>
             )}
-
-            {/* カルチャー */}
             {detail.culture_description && (
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-2)" }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} strokeLinecap="round">
+              <div style={{
+                padding: "var(--space-4) var(--space-5)",
+                background: "#fffdf5",
+                borderRadius: 12,
+                border: "1px solid #FDE68A",
+                borderLeft: "3px solid var(--warm)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} strokeLinecap="round">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                   </svg>
-                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>カルチャー</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "#92400e", textTransform: "uppercase" as const, fontFamily: "Inter, sans-serif" }}>CULTURE</span>
                 </div>
-                <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.85 }}>
+                <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--ink)", lineHeight: 1.85 }}>
                   {detail.culture_description}
                 </p>
                 {detail.culture_keywords && detail.culture_keywords.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: "var(--space-2)" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: "var(--space-3)" }}>
                     {detail.culture_keywords.map((kw, i) => (
-                      <span key={i} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A", fontWeight: 600 }}>
+                      <span key={i} style={{ fontSize: 11, padding: "3px 9px", borderRadius: 100, background: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A", fontWeight: 600 }}>
                         {kw}
                       </span>
                     ))}
@@ -792,52 +790,45 @@ function AboutSection({
               </div>
             )}
           </div>
+        )}
 
-          {/* 右: 会社の特徴・強み */}
-          {detail.company_features && detail.company_features.length > 0 && (
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
-                <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-noto-sans)" }}>
-                  会社の特徴・強み
-                </span>
-              </div>
-              {/* ピルタグ形式で横並び表示 */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {detail.company_features.map((f, i) => (
-                  <span key={i} style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "6px 14px", borderRadius: 100,
-                    background: "var(--royal-50)",
-                    border: "1px solid var(--royal-100)",
-                    fontSize: 13, fontWeight: 600, color: "var(--royal)",
-                    fontFamily: "var(--font-noto-sans)",
-                    lineHeight: 1.4,
-                    letterSpacing: "0.01em",
-                  }}>
-                    <span style={{ fontSize: 10, opacity: 0.6 }}>#</span>
-                    {f}
-                  </span>
-                ))}
-              </div>
+        {/* ③ 会社の特徴・強み — 全幅ピルタグ */}
+        {detail.company_features && detail.company_features.length > 0 && (
+          <div style={{ marginTop: "var(--space-5)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-noto-sans)" }}>会社の特徴・強み</span>
             </div>
-          )}
-        </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {detail.company_features.map((f, i) => (
+                <span key={i} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "6px 14px", borderRadius: 100,
+                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                  fontSize: 13, fontWeight: 600, color: "var(--royal)",
+                  fontFamily: "var(--font-noto-sans)", lineHeight: 1.4,
+                }}>
+                  <span style={{ fontSize: 10, opacity: 0.6 }}>#</span>{f}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
 
       <style>{`
-        .about-body-grid {
+        .about-why-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 32px;
-          margin-top: var(--space-4);
+          gap: 16px;
+          margin-bottom: 0;
           align-items: start;
         }
         @media (max-width: 767px) {
-          .about-body-grid { grid-template-columns: 1fr; gap: 20px; }
+          .about-why-grid { grid-template-columns: 1fr; gap: 12px; }
         }
       `}</style>
     </section>
@@ -858,8 +849,39 @@ function parseProductName(raw: string): { name: string; sub: string | null } {
 }
 
 /** キーワードベースで製品カードのアイコン＋カラーを決める */
-function productStyle(_name: string): { bg: string; border: string; color: string } {
-  return { bg: "#fff", border: "var(--line)", color: "var(--ink-soft)" };
+function productStyle(name: string): { bg: string; border: string; color: string; icon: React.ReactNode } {
+  const n = name.toLowerCase();
+  // CRM / Sales
+  if (/(crm|sales|営業|セールス)/.test(n))
+    return { bg: "#eff6ff", border: "#bfdbfe", color: "#1d4ed8",
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> };
+  // Marketing
+  if (/(market|マーケ|メール|email)/.test(n))
+    return { bg: "#fdf4ff", border: "#e9d5ff", color: "#7c3aed",
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> };
+  // Analytics / Data
+  if (/(analytic|data|分析|レポ|insight|tableau|bi)/.test(n))
+    return { bg: "#f0fdf4", border: "#bbf7d0", color: "#15803d",
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> };
+  // Service / Support
+  if (/(service|support|サービス|サポート|cs|カスタマ)/.test(n))
+    return { bg: "#fff7ed", border: "#fed7aa", color: "#c2410c",
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> };
+  // Platform / Cloud
+  if (/(platform|cloud|クラウド|プラットフォーム)/.test(n))
+    return { bg: "#f0f9ff", border: "#bae6fd", color: "#0369a1",
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg> };
+  // AI / ML
+  if (/(ai|ml|機械学習|人工知能|llm|gpt)/.test(n))
+    return { bg: "#faf5ff", border: "#ddd6fe", color: "#6d28d9",
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> };
+  // HR / People
+  if (/(hr|human|採用|人事|タレント|talent)/.test(n))
+    return { bg: "#fef9c3", border: "#fef08a", color: "#854d0e",
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg> };
+  // Default
+  return { bg: "#f8fafc", border: "var(--line)", color: "var(--ink-soft)",
+    icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> };
 }
 
 function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
@@ -929,8 +951,17 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                       padding: "10px var(--space-4)",
                       display: "flex",
                       alignItems: "flex-start",
+                      gap: 10,
                     }}
                   >
+                    {/* アイコン */}
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                      background: s.border, color: s.color,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {s.icon}
+                    </div>
                     <div style={{ minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, fontFamily: "var(--font-noto-sans)" }}>
                         {name}
@@ -1864,20 +1895,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
       <div style={{ padding: "var(--space-6)" }}>
       {alumni.length > 0 ? (
         <>
-          <style>{`
-            .alumni-grid {
-              display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: var(--space-3);
-            }
-            @media (max-width: 767px) {
-              .alumni-grid { grid-template-columns: 1fr; }
-            }
-            @media (min-width: 1280px) {
-              .alumni-grid { grid-template-columns: repeat(3, 1fr); }
-            }
-          `}</style>
-          <div className="alumni-grid">
+          <div className="employee-grid">
             {alumni.map((emp) => (
               <AlumniCard key={emp.userId} employee={emp} />
             ))}
