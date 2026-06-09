@@ -40,12 +40,6 @@ const PHASE_OPTIONS: PhaseOption[] = [
   { value: "上場",            label: "上場",            color: "#14532d", bg: "#dcfce7", dot: "#16a34a", desc: "東証グロース・スタンダード・プライム" },
 ];
 
-const WORK_STYLE_OPTIONS = [
-  { value: "on_site",     label: "出社" },
-  { value: "hybrid",      label: "ハイブリッド" },
-  { value: "full_remote", label: "フルリモート" },
-];
-
 // ── コンパクトフィルターチップ ────────────────────────────────────────────────
 function FilterChip({
   label,
@@ -298,12 +292,11 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
 
   const currentPhase     = searchParams.get("phase") ?? "";
   const currentLocation  = searchParams.get("location") ?? "";
-  const currentWorkStyle = searchParams.get("workStyle") ?? "";
   const currentIndustry  = searchParams.get("industry") ?? "";
   const currentHiring    = searchParams.get("hiring") === "1";
 
   const hasAnyFilter = Boolean(
-    searchParams.get("q") || currentPhase || currentWorkStyle || currentHiring || currentLocation || currentIndustry
+    searchParams.get("q") || currentPhase || currentHiring || currentLocation || currentIndustry
   );
 
   const locationOptions = locations.map((l) => ({ value: l, label: l }));
@@ -477,16 +470,6 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
             isOpen={openChip === "phase"}
             onToggle={() => toggleChip("phase")}
             phaseStyle
-          />
-
-          {/* 勤務形態 */}
-          <FilterChip
-            label="勤務形態"
-            value={currentWorkStyle}
-            options={WORK_STYLE_OPTIONS}
-            onSelect={(v) => { updateParam("workStyle", v); setOpenChip(null); }}
-            isOpen={openChip === "workStyle"}
-            onToggle={() => toggleChip("workStyle")}
           />
 
           {/* 業種 */}

@@ -260,19 +260,14 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             {/* 上段: 社名 + 英名 + バッジ + ブックマーク */}
             <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                {/* 社名行: 日本語名 + 英名 + バッジ 横並び */}
+                {/* 社名行: メイン名 + バッジ 横並び */}
                 <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 5, lineHeight: 1.3 }}>
                   <span className="clv-name" style={{
-                    fontSize: 14, fontWeight: 800, color: "var(--ink)",
-                    fontFamily: "var(--font-noto-sans)",
+                    fontSize: 15, fontWeight: 800, color: "var(--ink)",
+                    fontFamily: enDisplay ? "Inter, sans-serif" : "var(--font-noto-sans)",
+                    letterSpacing: enDisplay ? "-0.02em" : "0",
                     transition: "color 0.15s", whiteSpace: "nowrap",
-                  }}>{company.name}</span>
-                  {enDisplay && (
-                    <span style={{
-                      fontSize: 11, color: "var(--ink-mute)",
-                      fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
-                    }}>{enDisplay}</span>
-                  )}
+                  }}>{enDisplay ?? company.name}</span>
                   {company.industry && (
                     <span style={{
                       fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
