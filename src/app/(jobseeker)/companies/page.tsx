@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { fetchGenresWithCompanies } from "@/lib/genres";
 import { fetchDistinctLocations, fetchDistinctIndustries, searchCompanies } from "@/lib/search/companies";
 import { createClient } from "@/lib/supabase/server";
-import { GenreTabs } from "@/components/companies/GenreTabs";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSection";
@@ -111,20 +109,19 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const { q, phase, workStyle, hiring, location, industry, view, sort } = searchParams;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry);
-  const isGridView = !hasFilter && (view === "grid" || !view);
+  const isGridView = !hasFilter && (view === "grid" || !view || view === "genre");
   const isListView = !hasFilter && view === "list";
-  const needsGrid = isGridView || isListView;
+  const isListView2 = !hasFilter && view === "list2";
+  const needsGrid = isGridView || isListView || isListView2;
 
   // ── 並列フェッチ（不要なクエリはスキップ）──────────────────────────────────
   const supabase = createClient();
 
-  const [locations, industries, genresWithCompanies, companyNamesResult, allCompaniesResult] = await Promise.all([
+  const [locations, industries, companyNamesResult, allCompaniesResult] = await Promise.all([
     // フィルターバー用ロケーション（キャッシュ済み）
     fetchDistinctLocations(),
     // フィルターバー用業種リスト
     fetchDistinctIndustries(),
-    // GenreTabs はグリッド/リスト表示中は不要 → スキップ
-    needsGrid ? Promise.resolve([]) : fetchGenresWithCompanies(),
     // 検索サジェスト用企業名リスト
     supabase.from("ow_companies").select("id, name").eq("is_published", true).order("name"),
     // グリッド/リスト表示: DB側でページ分だけ取得（総件数も同時取得）
@@ -202,7 +199,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                 </Suspense>
               </div>
 
-              {isGridView || isListView ? (
+              {isGridView || isListView || isListView2 ? (
                 <>
                   {isGridView && (
                     <style>{`
@@ -260,6 +257,30 @@ export default async function CompaniesPage({ searchParams }: Props) {
                             membersMap={membersByCompany}
                             topMargin={safePage > 1 ? 24 : 0}
                           />
+                        ) : isListView2 ? (
+                          <>
+                            <style>{`
+                              .companies-list2-grid {
+                                display: grid;
+                                grid-template-columns: repeat(2, 1fr);
+                                gap: 8px;
+                                margin-top: ${safePage > 1 ? 24 : 0}px;
+                              }
+                              @media (max-width: 767px) {
+                                .companies-list2-grid { grid-template-columns: 1fr; }
+                              }
+                            `}</style>
+                            <div className="companies-list2-grid">
+                              {paged.map(c => (
+                                <CompanyCardList
+                                  key={c.id}
+                                  company={c}
+                                  members={membersByCompany[c.id] ?? []}
+                                  compact
+                                />
+                              ))}
+                            </div>
+                          </>
                         ) : (
                           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: safePage > 1 ? 24 : 0 }}>
                             {paged.map(c => (
@@ -277,9 +298,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     );
                   })()}
                 </>
-              ) : (
-                <GenreTabs genres={genresWithCompanies} />
-              )}
+              ) : null}
             </div>
 
           </div>

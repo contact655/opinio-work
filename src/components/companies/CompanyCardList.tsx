@@ -55,9 +55,10 @@ function cleanEnName(nameEn: string | null | undefined): string | null {
 type Props = {
   company: CompanyForCarousel;
   members?: MemberPreview[];
+  compact?: boolean; // リスト２列表示：stats非表示・CTAボタン省略
 };
 
-export function CompanyCardList({ company, members }: Props) {
+export function CompanyCardList({ company, members, compact }: Props) {
   const ph = getPlaceholderColor(company.name);
   const initial = company.logo_letter ?? company.name.slice(0, 1);
   const stageCfg = getStageCfg(company.funding_stage);
@@ -175,44 +176,48 @@ export function CompanyCardList({ company, members }: Props) {
         </div>
 
         {/* ── スタット列（OpenWork 参考） ── */}
-        <div className="clc-stats" style={{ display: "flex", alignItems: "center", gap: 0, flexShrink: 0 }}>
-          <StatCol label="現役社員" value={memberCount} unit="名" />
-          <div className="clc-stat-divider" />
-          <StatCol label="OB・OG" value={obogCount} unit="名" />
-          <div className="clc-stat-divider" />
-          <StatCol label="求人" value={company.job_count} unit="件" highlight={company.job_count > 0} />
-        </div>
+        {!compact && (
+          <div className="clc-stats" style={{ display: "flex", alignItems: "center", gap: 0, flexShrink: 0 }}>
+            <StatCol label="現役社員" value={memberCount} unit="名" />
+            <div className="clc-stat-divider" />
+            <StatCol label="OB・OG" value={obogCount} unit="名" />
+            <div className="clc-stat-divider" />
+            <StatCol label="求人" value={company.job_count} unit="件" highlight={company.job_count > 0} />
+          </div>
+        )}
 
         {/* ── CTA ── */}
-        <div style={{ flexShrink: 0 }}>
-          {company.accepting_casual_meetings ? (
-            <a
-              href={`/companies/${company.id}/casual-meeting`}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                padding: "8px 18px", borderRadius: 8, fontSize: 12.5, fontWeight: 700,
-                background: "linear-gradient(135deg, #F59E0B, #D97706)",
-                color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
-              }}
-              onClick={e => e.stopPropagation()}
-            >
-              話を聞く →
-            </a>
-          ) : (
-            <a
-              href={`/companies/${company.id}`}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                padding: "8px 18px", borderRadius: 8, fontSize: 12.5, fontWeight: 700,
-                background: "var(--royal-50)", color: "var(--royal)",
-                border: "1px solid var(--royal-100)", textDecoration: "none", whiteSpace: "nowrap",
-              }}
-              onClick={e => e.stopPropagation()}
-            >
-              詳細を見る →
-            </a>
-          )}
-        </div>
+        {!compact && (
+          <div style={{ flexShrink: 0 }}>
+            {company.accepting_casual_meetings ? (
+              <a
+                href={`/companies/${company.id}/casual-meeting`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "8px 18px", borderRadius: 8, fontSize: 12.5, fontWeight: 700,
+                  background: "linear-gradient(135deg, #F59E0B, #D97706)",
+                  color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
+                }}
+                onClick={e => e.stopPropagation()}
+              >
+                話を聞く →
+              </a>
+            ) : (
+              <a
+                href={`/companies/${company.id}`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "8px 18px", borderRadius: 8, fontSize: 12.5, fontWeight: 700,
+                  background: "var(--royal-50)", color: "var(--royal)",
+                  border: "1px solid var(--royal-100)", textDecoration: "none", whiteSpace: "nowrap",
+                }}
+                onClick={e => e.stopPropagation()}
+              >
+                詳細を見る →
+              </a>
+            )}
+          </div>
+        )}
       </Link>
     </>
   );

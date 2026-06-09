@@ -6,7 +6,7 @@ export function ViewToggle() {
   const searchParams = useSearchParams();
   const currentView = searchParams.get("view") ?? "grid";
 
-  const toggle = (view: "genre" | "grid" | "list") => {
+  const toggle = (view: "grid" | "list2" | "list") => {
     const params = new URLSearchParams(searchParams.toString());
     if (view === "grid") {
       params.delete("view"); // grid = デフォルト（パラメータなし）
@@ -30,30 +30,7 @@ export function ViewToggle() {
     background: "transparent",
   };
 
-  const options: { value: "genre" | "grid" | "list"; label: string; icon: React.ReactNode }[] = [
-    {
-      value: "grid",
-      label: "コンパクト",
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <rect x="3" y="3" width="7" height="7" rx="1"/>
-          <rect x="14" y="3" width="7" height="7" rx="1"/>
-          <rect x="3" y="14" width="7" height="7" rx="1"/>
-          <rect x="14" y="14" width="7" height="7" rx="1"/>
-        </svg>
-      ),
-    },
-    {
-      value: "genre",
-      label: "ジャンル別",
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <rect x="2" y="5" width="4" height="14" rx="1"/>
-          <rect x="10" y="5" width="4" height="14" rx="1"/>
-          <rect x="18" y="5" width="4" height="14" rx="1"/>
-        </svg>
-      ),
-    },
+  const options: { value: "grid" | "list2" | "list"; label: string; icon: React.ReactNode }[] = [
     {
       value: "list",
       label: "リスト",
@@ -65,6 +42,32 @@ export function ViewToggle() {
           <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
           <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
           <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+      ),
+    },
+    {
+      value: "list2",
+      label: "リスト２列",
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <line x1="2" y1="6" x2="10" y2="6"/>
+          <line x1="2" y1="12" x2="10" y2="12"/>
+          <line x1="2" y1="18" x2="10" y2="18"/>
+          <line x1="14" y1="6" x2="22" y2="6"/>
+          <line x1="14" y1="12" x2="22" y2="12"/>
+          <line x1="14" y1="18" x2="22" y2="18"/>
+        </svg>
+      ),
+    },
+    {
+      value: "grid",
+      label: "縦",
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
       ),
     },
