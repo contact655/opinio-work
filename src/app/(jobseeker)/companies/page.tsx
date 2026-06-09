@@ -10,7 +10,6 @@ import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 import { CompanyUserDndGrid } from "@/components/companies/CompanyUserDndGrid";
-import { CompaniesFilterSidebar } from "@/components/companies/CompaniesFilterSidebar";
 import { CompareBar } from "@/components/companies/CompareBar";
 
 type MemberPreview = { id: string; name: string };
@@ -182,10 +181,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
       <div className="max-w-[1440px] mx-auto px-4 pt-6 pb-8">
         <style>{`
-          .companies-page-layout { display: flex; gap: 24px; align-items: flex-start; }
-          .companies-sidebar-wrap { flex-shrink: 0; }
-          @media (max-width: 1023px) { .companies-sidebar-wrap { display: none !important; } }
-          .companies-main-content { flex: 1; min-width: 0; }
           .companies-list2-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -196,17 +191,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
           }
         `}</style>
 
-        <div className="companies-page-layout">
-
-          {/* #4: サイドバーフィルター（デスクトップ専用） */}
-          <div className="companies-sidebar-wrap">
-            <Suspense fallback={null}>
-              <CompaniesFilterSidebar industries={industries} locations={locations} />
-            </Suspense>
-          </div>
-
-          {/* メインコンテンツ */}
-          <div className="companies-main-content">
+        <div>
 
         {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル or コンパクトグリッド */}
         {hasFilter ? (
@@ -325,8 +310,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
         </div>{/* フッターエリア end */}
 
-          </div>{/* companies-main-content end */}
-        </div>{/* companies-page-layout end */}
+        </div>
       </div>{/* max-w container end */}
 
     </div>
