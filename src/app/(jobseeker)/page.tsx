@@ -11,7 +11,7 @@ import { CountUp } from "@/components/jobseeker/CountUp";
 // ─── Site stats type ─────────────────────────────────────────────────────────
 
 type SiteStats = { companies: number; jobs: number };
-const DEFAULT_STATS: SiteStats = { companies: 13, jobs: 0 };
+const DEFAULT_STATS: SiteStats = { companies: 80, jobs: 31 };
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
