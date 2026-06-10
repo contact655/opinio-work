@@ -415,9 +415,23 @@ function CompanyCardCard({
 
 // ─── CompanyCardGrid (2列グリッド) ────────────────────────────────────────────
 
-function CompanyCardGrid({ company }: { company: CompanyListRow }) {
+function CompanyCardGrid({
+  company,
+  bookmarked,
+  onBookmark,
+}: {
+  company: CompanyListRow;
+  bookmarked: boolean;
+  onBookmark: (id: string, add: boolean) => void;
+}) {
   const industryBadge = getIndustryBadge(company.industry);
   const phaseBadge = getPhaseBadge(company.phase);
+
+  function handleBookmark(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    onBookmark(company.id, !bookmarked);
+  }
 
   return (
     <Link href={`/companies/${company.id}`} prefetch={true} style={{ textDecoration: "none", display: "block" }}>
@@ -565,7 +579,7 @@ function CompanyCardGrid({ company }: { company: CompanyListRow }) {
             </p>
           )}
 
-          {/* Location + employees */}
+          {/* Location + employees + bookmark */}
           <div
             style={{
               fontSize: 11,
@@ -583,6 +597,25 @@ function CompanyCardGrid({ company }: { company: CompanyListRow }) {
                 <span>{company.employee_count}</span>
               </>
             )}
+            <div style={{ flex: 1 }} />
+            <button
+              type="button"
+              onClick={handleBookmark}
+              aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク"}
+              aria-pressed={bookmarked}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "2px 4px",
+                fontSize: 15,
+                lineHeight: 1,
+                color: bookmarked ? "#e11d48" : "#cbd5e1",
+                transition: "color 0.15s, transform 0.15s",
+              }}
+            >
+              {bookmarked ? "♥" : "♡"}
+            </button>
           </div>
         </div>
       </article>
@@ -1036,8 +1069,8 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
       .catch(() => {/* ignore */});
   }, []);
 
-  // Secondary filter visibility
-  const hasSecondaryFilter = !!(remote || prefecture || phase);
+  // Secondary filter visibility (都道府県のみ — リモートは常時表示に格上げ)
+  const hasSecondaryFilter = !!prefecture;
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const secondaryVisible = showMoreFilters || hasSecondaryFilter;
 
@@ -1073,6 +1106,30 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
       if (p) prefSet.add(p);
     });
     return PREFECTURES.filter((p) => prefSet.has(p));
+  }, [companies]);
+
+  // フィルター件数計算（全件ベース）
+  const phaseCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const c of companies) {
+      const key = c.phase.toLowerCase().replace(/\s+/g, "-");
+      counts[key] = (counts[key] ?? 0) + 1;
+      // 日本語キーでも対応
+      if (c.phase) counts[c.phase] = (counts[c.phase] ?? 0) + 1;
+    }
+    return counts;
+  }, [companies]);
+
+  const industryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const c of companies) {
+      for (const opt of INDUSTRY_OPTIONS) {
+        if (opt.value && c.industry.toLowerCase().includes(opt.value.toLowerCase())) {
+          counts[opt.value] = (counts[opt.value] ?? 0) + 1;
+        }
+      }
+    }
+    return counts;
   }, [companies]);
 
   // Filter + sort pipeline
@@ -1339,35 +1396,57 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             面談受付中
           </button>
 
-          {/* フェーズ select */}
+          {/* フェーズ select（件数付き） */}
           <select
             value={phase}
             onChange={(e) => setParam("phase", e.target.value)}
             style={filterSelectStyle(!!phase)}
             aria-label="フェーズで絞り込み"
           >
-            {PHASE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
+            {PHASE_OPTIONS.map((o) => {
+              const cnt = o.value
+                ? (phaseCounts[o.value] ?? phaseCounts[o.value.toLowerCase().replace(/\s+/g, "-")] ?? 0)
+                : companies.length;
+              return (
+                <option key={o.value} value={o.value}>
+                  {o.label}{o.value && cnt > 0 ? ` (${cnt})` : ""}
+                </option>
+              );
+            })}
           </select>
 
-          {/* 業種 select */}
+          {/* 業種 select（件数付き） */}
           <select
             value={industry}
             onChange={(e) => setParam("industry", e.target.value)}
             style={filterSelectStyle(!!industry)}
             aria-label="業種で絞り込み"
           >
-            {INDUSTRY_OPTIONS.map((o) => (
+            {INDUSTRY_OPTIONS.map((o) => {
+              const cnt = o.value ? (industryCounts[o.value] ?? 0) : companies.length;
+              return (
+                <option key={o.value} value={o.value}>
+                  {o.label}{o.value && cnt > 0 ? ` (${cnt})` : ""}
+                </option>
+              );
+            })}
+          </select>
+
+          {/* リモート select（常時表示） */}
+          <select
+            value={remote}
+            onChange={(e) => setParam("remote", e.target.value)}
+            style={filterSelectStyle(!!remote)}
+            aria-label="リモートワークで絞り込み"
+          >
+            {REMOTE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
             ))}
           </select>
 
-          {/* 詳細フィルター toggle */}
+          {/* 詳細フィルター toggle（都道府県のみ） */}
           <button
             type="button"
             onClick={() => setShowMoreFilters((v) => !v)}
@@ -1387,7 +1466,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
               gap: 5,
             }}
           >
-            詳細
+            都道府県
             <svg
               width="12"
               height="12"
@@ -1402,34 +1481,19 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           </button>
 
           {secondaryVisible && (
-            <>
-              <select
-                value={prefecture}
-                onChange={(e) => setParam("prefecture", e.target.value)}
-                style={filterSelectStyle(!!prefecture)}
-                aria-label="都道府県で絞り込み"
-              >
-                <option value="">すべての都道府県</option>
-                {availablePrefectures.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={remote}
-                onChange={(e) => setParam("remote", e.target.value)}
-                style={filterSelectStyle(!!remote)}
-                aria-label="リモートワークで絞り込み"
-              >
-                {REMOTE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </>
+            <select
+              value={prefecture}
+              onChange={(e) => setParam("prefecture", e.target.value)}
+              style={filterSelectStyle(!!prefecture)}
+              aria-label="都道府県で絞り込み"
+            >
+              <option value="">すべての都道府県</option>
+              {availablePrefectures.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
           )}
 
           {/* Sort pills + Layout toggle — right side */}
@@ -1504,6 +1568,58 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           </div>
         </div>
       </div>
+
+      {/* ── Active filter chips ───────────────────────────────────────────── */}
+      {hasFilters && (
+        <div
+          style={{
+            background: "#fff",
+            borderBottom: "1px solid var(--line-soft)",
+            padding: "8px 48px",
+          }}
+          className="px-5 md:px-12"
+        >
+          <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, marginRight: 2 }}>絞り込み:</span>
+            {q && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
+                &ldquo;{q}&rdquo;
+                <button type="button" onClick={() => setQ("")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, lineHeight: 1, color: "var(--royal)", padding: 0, fontWeight: 700 }}>×</button>
+              </span>
+            )}
+            {phase && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
+                {PHASE_OPTIONS.find((o) => o.value === phase)?.label ?? phase}
+                <button type="button" onClick={() => setParam("phase", "")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, lineHeight: 1, color: "var(--royal)", padding: 0, fontWeight: 700 }}>×</button>
+              </span>
+            )}
+            {industry && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
+                {INDUSTRY_OPTIONS.find((o) => o.value === industry)?.label ?? industry}
+                <button type="button" onClick={() => setParam("industry", "")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, lineHeight: 1, color: "var(--royal)", padding: 0, fontWeight: 700 }}>×</button>
+              </span>
+            )}
+            {remote && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100, background: "#d1fae5", color: "#065f46", border: "1px solid #a7f3d0" }}>
+                {REMOTE_OPTIONS.find((o) => o.value === remote)?.label ?? remote}
+                <button type="button" onClick={() => setParam("remote", "")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, lineHeight: 1, color: "#065f46", padding: 0, fontWeight: 700 }}>×</button>
+              </span>
+            )}
+            {prefecture && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
+                📍 {prefecture}
+                <button type="button" onClick={() => setParam("prefecture", "")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, lineHeight: 1, color: "var(--royal)", padding: 0, fontWeight: 700 }}>×</button>
+              </span>
+            )}
+            {hiring && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100, background: "#d1fae5", color: "#065f46", border: "1px solid #a7f3d0" }}>
+                面談受付中
+                <button type="button" onClick={() => setParam("hiring", "")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, lineHeight: 1, color: "#065f46", padding: 0, fontWeight: 700 }}>×</button>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Result area ───────────────────────────────────────────────────── */}
       <div
@@ -1675,7 +1791,12 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             }}
           >
             {paged.map((c) => (
-              <CompanyCardGrid key={c.id} company={c} />
+              <CompanyCardGrid
+                key={c.id}
+                company={c}
+                bookmarked={bookmarkedIds.has(c.id)}
+                onBookmark={handleBookmark}
+              />
             ))}
           </div>
         ) : (
