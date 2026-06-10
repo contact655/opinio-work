@@ -353,6 +353,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
   // 現職企業フェーズ
   const currentCompanyPhase = currentCareer?.company_id ? (companyPhaseById.get(currentCareer.company_id) ?? null) : null;
 
+  // サイドバーにコンテンツがあるか（なければ1カラム）
+  const hasSidebarContent = isCurrentCompanyKnown || certifications.length > 0;
+
   // キャリアパスノード用 年表示
   // プラットフォームメタ（アイコン色・表示名）
   const PLATFORM_META: Record<string, { label: string; color: string; bg: string }> = {
@@ -377,19 +380,25 @@ export default async function UserProfilePage({ params }: { params: { id: string
     <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
       <style>{`
         .profile-grid {
+          display: block;
+        }
+        .profile-grid.has-sidebar {
           display: grid;
           grid-template-columns: 1fr 272px;
           gap: 20px;
           align-items: start;
         }
         .profile-sidebar {
+          display: none;
+        }
+        .profile-grid.has-sidebar .profile-sidebar {
           display: block;
         }
         @media (max-width: 960px) {
-          .profile-grid {
+          .profile-grid.has-sidebar {
             display: block;
           }
-          .profile-sidebar {
+          .profile-grid.has-sidebar .profile-sidebar {
             display: none;
           }
           .profile-sidebar-sticky {
@@ -440,6 +449,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
           </div>
 
           <div className="profile-header-body" style={{ padding: "0 32px 32px", marginTop: -60, position: "relative" }}>
+            {/* Share button — absolute top-right */}
+            <div style={{ position: "absolute", top: 16, right: 24, zIndex: 10 }}>
+              <ProfileShareButton userId={owUser.id} name={owUser.name} />
+            </div>
             {/* Avatar: photo or gradient letter */}
             <div className="profile-avatar profile-avatar-wrap" style={{
               width: 120, height: 120, borderRadius: "50%",
@@ -501,7 +514,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       <> <span style={{ fontSize: 14, color: "var(--ink-soft)" }}>@</span>{" "}
                       <Link href={`/companies/${currentCareer.company_id!}`} style={{ fontSize: 14, color: "var(--royal)", textDecoration: "none", fontWeight: 600, borderBottom: "1px solid var(--royal-100)" }}>{shortCompanyName(currentCareer.company_name)}</Link></>
                     )}
-                    {currentCareer.company_name && !isCurrentCompanyKnown && currentCareer.company_name !== "不明な企業" && (
+                    {currentCareer.company_name && !isCurrentCompanyKnown &&
+                      currentCareer.company_name !== "不明な企業" &&
+                      currentCareer.company_name !== "非公開企業" &&
+                      currentCareer.company_name !== "非公開" && (
                       <span style={{ fontSize: 14, color: "var(--ink-soft)" }}> @ {shortCompanyName(currentCareer.company_name)}</span>
                     )}
                   </div>
@@ -602,13 +618,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 )}
               </div>
 
-              {/* Right-side CTA: context-aware */}
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                {/* シェアボタン（オーナー以外のみ表示） */}
-                {!viewerIsOwner && (
-                  <ProfileShareButton userId={owUser.id} name={owUser.name} />
-                )}
-
+              {/* Main action CTA (right-side) */}
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", paddingTop: 4 }}>
                 {/* カジュアル面談ボタン（can_casual_meeting = true かつ非オーナー かつ企業が判明） */}
                 {!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown && (
                   <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
@@ -628,9 +639,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 )}
 
                 {viewerIsOwner ? (
-                <>
-                  <ProfileShareButton userId={owUser.id} name={owUser.name} />
-                  <Link href="/profile/edit" style={{
+                  <Link href="/profile/edit" className="profile-header-cta" style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "8px 18px", borderRadius: 8,
                     border: "1.5px solid var(--line)", background: "#fff",
@@ -643,33 +652,47 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </svg>
                     プロフィールを編集
                   </Link>
-                </>
                 ) : isCurrentCompanyKnown ? (
-                /* 一般社員: 企業ページへの控えめなリンク（会社が判明している場合のみ） */
-                <Link href={`/companies/${currentCareer!.company_id!}`} style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "9px 18px", borderRadius: 8,
-                  border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
-                  color: "var(--royal)", fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
-                  flexShrink: 0,
-                }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                  </svg>
-                  {currentCareer!.company_name} の企業ページを見る
-                </Link>
-              ) : null
-              }
+                  <Link href={`/companies/${currentCareer!.company_id!}`} style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "9px 18px", borderRadius: 8,
+                    border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
+                    color: "var(--royal)", fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    </svg>
+                    {shortCompanyName(currentCareer!.company_name)} の企業ページ
+                  </Link>
+                ) : null}
               </div>
             </div>
           </div>
         </div>
 
         {/* Two-column grid: main content | sidebar */}
-        <div className="profile-grid">
+        <div className={`profile-grid${hasSidebarContent ? " has-sidebar" : ""}`}>
 
           {/* ── Main column ─────────────────────────────────────────── */}
           <div>
+
+            {/* ── Section navigation ── */}
+            {(owUser.about_me || timelineCareers.length > 0 || timelineEdus.length > 0 || skillTags.length > 0) && (
+              <nav style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 10, padding: "8px 16px", marginBottom: 18,
+                overflowX: "auto", whiteSpace: "nowrap", scrollbarWidth: "none",
+              }}>
+                <style>{`.profile-nav-link { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--ink-soft); text-decoration: none; transition: background 0.15s, color 0.15s; } .profile-nav-link:hover { background: var(--royal-50); color: var(--royal); }`}</style>
+                {owUser.about_me && <a href="#about" className="profile-nav-link">自己紹介</a>}
+                {timelineCareers.length > 0 && <a href="#career" className="profile-nav-link">職歴</a>}
+                {timelineEdus.length > 0 && <a href="#education" className="profile-nav-link">学歴</a>}
+                {skillTags.length > 0 && <a href="#skills" className="profile-nav-link">スキル</a>}
+                {(achievements.length > 0 || awards.length > 0) && <a href="#achievements" className="profile-nav-link">実績</a>}
+                {contentLinks.length > 0 && <a href="#content" className="profile-nav-link">発信</a>}
+              </nav>
+            )}
 
             {/* ── ハイライト (LinkedIn-style 2-3 cards) ── */}
             {(() => {
@@ -817,7 +840,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
             {/* About Me */}
             {owUser.about_me ? (
-              <section style={{
+              <section id="about" style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "24px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
@@ -1072,7 +1095,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
             {/* ── 職歴セクション ── */}
             {timelineCareers.length > 0 && (
-              <section style={{
+              <section id="career" style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "24px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
@@ -1096,7 +1119,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
             {/* ── 学歴セクション ── */}
             {timelineEdus.length > 0 && (
-              <section style={{
+              <section id="education" style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "24px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
@@ -1118,7 +1141,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
             {/* ── スキル・専門性 (LinkedIn順: 学歴の直後) ── */}
             {skillTags.length > 0 && (
-              <section style={{
+              <section id="skills" style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
@@ -1500,7 +1523,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
             {/* ── 発信コンテンツ (外部リンク) ── */}
             {(contentLinks.length > 0 || viewerIsOwner) && (
-              <section style={{
+              <section id="content" style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
@@ -1928,12 +1951,45 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
         </div>{/* /profile-grid */}
 
-        {/* Footer note */}
-        <div style={{ textAlign: "center", padding: "40px 0 0", fontSize: 12, color: "var(--ink-mute)", opacity: 0.7 }}>
-          <Link href="/companies" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>
-            OPINIO
-          </Link>
-          {" "}のプロフィールページ
+        {/* Footer CTA */}
+        <div style={{
+          background: "#fff", border: "1px solid var(--line)",
+          borderRadius: 14, padding: "28px 32px", marginTop: 20,
+          textAlign: "center",
+          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+        }}>
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
+            IT/SaaS業界で働く人のリアルなキャリアが集まっています
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link href="/mentors" style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "9px 20px", borderRadius: 8,
+              background: "var(--royal)", color: "#fff",
+              fontSize: 13, fontWeight: 700, textDecoration: "none",
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              先輩に相談する
+            </Link>
+            <Link href="/companies" style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "9px 20px", borderRadius: 8,
+              border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
+              color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+              </svg>
+              企業を見る
+            </Link>
+          </div>
+          <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "16px 0 0" }}>
+            <Link href="/companies" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>OPINIO</Link>
+            {" "}のプロフィールページ
+          </p>
         </div>
 
       </div>

@@ -481,7 +481,19 @@ function CompanyLogoIcon({
     );
   }
 
-  // ステップ 3: どちらもなし → 会社名イニシャル円（Briefcase より視認性が高い）
+  // ステップ 3a: 非公開企業 → 鍵アイコン
+  const isAnonymous = company_name === "非公開企業" || company_name === "非公開" || company_name === "不明な企業";
+  if (isAnonymous) {
+    return (
+      <div style={{ ...wrapStyle, background: "linear-gradient(135deg, #64748B 0%, #94A3B8 100%)" }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+    );
+  }
+
+  // ステップ 3b: それ以外 → 会社名イニシャル円
   const fallbackLetter = company_name ? company_name.charAt(0) : "?";
   const fallbackGrad = isCurrent
     ? "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)"
@@ -601,7 +613,7 @@ function CareerContent({
   const hasDesc = !!data.description;
 
   return (
-    <div style={{ paddingTop: 10, paddingBottom: 36, paddingLeft: 8 }}>
+    <div style={{ paddingTop: 10, paddingBottom: 22, paddingLeft: 8 }}>
       {/* Company + employment type + badges */}
       <div style={{ marginBottom: 4, lineHeight: 1.35 }}>
         {data.company_id ? (
@@ -694,7 +706,7 @@ function EducationContent({ data }: { data: EducationEntry }) {
   const endLabel = data.is_current ? "現在" : data.graduated_at ? formatYM(data.graduated_at) : "";
 
   return (
-    <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
+    <div style={{ paddingTop: 8, paddingBottom: 18, paddingLeft: 14 }}>
       {/* School + badge */}
       <div style={{ marginBottom: 3, lineHeight: 1.3 }}>
         <span
