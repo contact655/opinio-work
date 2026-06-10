@@ -654,7 +654,7 @@ function AboutSection({
     >
       {/* Section header with subtle gradient */}
       <div style={{
-        padding: "var(--space-6) var(--space-6) var(--space-4)",
+        padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
@@ -668,7 +668,7 @@ function AboutSection({
           企業について
         </SecTitle>
       </div>
-      <div style={{ padding: "var(--space-5) var(--space-6) var(--space-6)" }}>
+      <div style={{ padding: "var(--space-6) 32px var(--space-6)" }}>
 
         {/* オフィス写真グリッド */}
         <PhotoCarousel photos={photos} />
@@ -847,7 +847,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
       }}
     >
       {/* Section header */}
-      <div style={{ padding: "var(--space-6) var(--space-6) var(--space-4)", background: "#f5f8ff", borderBottom: "1px solid #dde4f5" }}>
+      <div style={{ padding: "var(--space-6) 32px var(--space-4)", background: "#f5f8ff", borderBottom: "1px solid #dde4f5" }}>
         <SecTitle
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -1011,7 +1011,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-6) var(--space-6) var(--space-4)",
+        padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
@@ -1139,7 +1139,7 @@ function EmployeeVoicesSection({ employees }: { employees: CompanyEmployee[] }) 
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
-      <div style={{ padding: "var(--space-6) var(--space-6) var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
+      <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
         <SecTitle
           iconColor="purple"
           icon={
@@ -1479,7 +1479,7 @@ function CurrentEmployeesSection({
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-6) var(--space-6) var(--space-4)",
+        padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle icon={SECTION_ICON}>
@@ -1804,7 +1804,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-6) var(--space-6) var(--space-4)",
+        padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
@@ -1884,7 +1884,7 @@ function JobsSection({
           boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
         }}
       >
-        <div style={{ padding: "var(--space-6) var(--space-6) var(--space-4)", borderBottom: "1px solid var(--line-soft)", background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)" }}>
+        <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)", background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)" }}>
           <SecTitle
             icon={
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -1932,7 +1932,7 @@ function JobsSection({
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-6) var(--space-6) var(--space-4)",
+        padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
         display: "flex",
         alignItems: "center",
@@ -2126,7 +2126,7 @@ function RecruitersSection({
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-6) var(--space-6) var(--space-4)",
+        padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
@@ -2309,10 +2309,10 @@ function _CompanyPhaseTimeline({ company, detail }: { company: Company; detail: 
 
   return (
     <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 18, overflow: "hidden", marginBottom: "var(--space-6)", boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)" }}>
-      <div style={{ padding: "var(--space-6) var(--space-6) var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
+      <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
         <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>}>成長フェーズ</SecTitle>
       </div>
-      <div style={{ padding: "var(--space-5) var(--space-6) var(--space-6)" }}>
+      <div style={{ padding: "var(--space-6) 32px var(--space-6)" }}>
         <div style={{ overflowX: "auto", paddingBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "flex-start", minWidth: "max-content" }}>
             {milestones.map((m, i) => (
@@ -2353,7 +2353,7 @@ function _SimilarCompaniesSection({ companies, currentIndustry }: { companies: C
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
-      <div style={{ padding: "var(--space-6) var(--space-6) var(--space-4)", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-2)" }}>
+      <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-2)" }}>
         <SecTitle
           iconColor="warm"
           icon={
@@ -2369,7 +2369,7 @@ function _SimilarCompaniesSection({ companies, currentIndustry }: { companies: C
           一覧を見る →
         </Link>
       </div>
-      <div style={{ padding: "var(--space-5) var(--space-6)" }}>
+      <div style={{ padding: "var(--space-6) 32px" }}>
         <style>{`
           .similar-grid {
             display: grid;
@@ -2469,7 +2469,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-6) var(--space-6) var(--space-4)",
+        padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
