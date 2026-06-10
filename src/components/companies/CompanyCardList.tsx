@@ -229,6 +229,12 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
 
   if (compact) {
     return (
+      <>
+        <style>{`
+          .clv-card { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+          .clv-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,35,102,0.14) !important; }
+          .clv-card:hover .clv-name { color: var(--royal) !important; }
+        `}</style>
         <Link
           href={`/companies/${company.id}`}
           className="clv-card"
@@ -342,7 +348,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.45,
                 overflow: "hidden",
                 display: "-webkit-box",
-                WebkitLineClamp: 2,
+                WebkitLineClamp: 1,
                 WebkitBoxOrient: "vertical",
               } as React.CSSProperties}>{company.tagline.replace(/^「|」$/g, "")}</span>
             )}
@@ -381,11 +387,18 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             )}
           </div>
         </Link>
+      </>
     );
   }
 
   // ── 横カード（compact=false, リストビュー）────────────────────────────────────
   return (
+    <>
+      <style>{`
+        .company-list-card { transition: box-shadow 0.2s ease, transform 0.15s ease; }
+        .company-list-card:hover { box-shadow: 0 6px 24px rgba(0,35,102,0.12) !important; transform: translateY(-1px); }
+        .company-list-card:hover .clc-name { color: var(--royal) !important; }
+      `}</style>
       <Link
         href={`/companies/${company.id}`}
         className="company-list-card"
@@ -549,29 +562,12 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           <div className="clc-stat-divider" />
           <StatCol label="OB・OG" value={obogCount} unit="名" />
           <div className="clc-stat-divider" />
-          <StatCol label="求人" value={company.job_count} unit="件" highlight={company.job_count > 0} />
+          <JobCountStat count={company.job_count} />
         </div>
 
         {/* ── CTA + ブックマーク ── */}
         <div className="clc-cta" style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-          {company.accepting_casual_meetings ? (
-            <a
-              href={`/companies/${company.id}/casual-meeting`}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "9px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700,
-                background: "linear-gradient(135deg, #F59E0B, #D97706)",
-                color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
-                boxShadow: "0 2px 8px rgba(245,158,11,0.30)",
-              }}
-              onClick={e => e.stopPropagation()}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              話を聞く
-            </a>
-          ) : company.job_count > 0 ? (
+          {company.job_count > 0 ? (
             <a
               href={`/companies/${company.id}#jobs`}
               style={{
@@ -607,17 +603,23 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           {/* #6: ブックマーク */}
           <button
             type="button"
-            className="clc-bookmark-btn"
             onClick={handleBookmark}
             disabled={bookmarking}
-            title={bookmarked ? "気になりリストから削除" : "気になりリストに追加"}
+            aria-label={bookmarked ? "気になりを解除" : "気になりに追加"}
             style={{
-              background: "none", border: "none", cursor: "pointer", padding: "2px 4px",
-              fontSize: 18,
-              color: bookmarked ? "#ef4444" : "var(--ink-mute)",
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "7px 14px", borderRadius: 999,
+              background: bookmarked ? "#fef2f2" : "var(--line-soft)",
+              border: `1.5px solid ${bookmarked ? "#fecaca" : "var(--line)"}`,
+              color: bookmarked ? "#ef4444" : "var(--ink-soft)",
+              fontSize: 12, fontWeight: 700,
+              cursor: "pointer",
+              transition: "all 0.15s",
+              whiteSpace: "nowrap",
             }}
           >
-            {bookmarked ? "♥" : "♡"}
+            <span style={{ fontSize: 14 }}>{bookmarked ? "♥" : "♡"}</span>
+            <span>{bookmarked ? "気になり済み" : "気になる"}</span>
           </button>
 
           {/* 比較ボタン */}
@@ -641,6 +643,27 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           </button>
         </div>
       </Link>
+    </>
+  );
+}
+
+function JobCountStat({ count }: { count: number }) {
+  if (count === 0) return <StatCol label="求人" value={0} unit="件" />;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 18px", gap: 4 }}>
+      <span style={{
+        display: "inline-flex", alignItems: "center", gap: 3,
+        fontSize: 12, fontWeight: 800, padding: "5px 12px", borderRadius: 100,
+        background: "var(--royal)", color: "#fff", whiteSpace: "nowrap",
+      }}>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/>
+          <path d="M16 3h-8l-2 4h12l-2-4z"/>
+        </svg>
+        求人 {count}件
+      </span>
+      <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>募集中</span>
+    </div>
   );
 }
 

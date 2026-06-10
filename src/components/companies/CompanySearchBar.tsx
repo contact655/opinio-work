@@ -619,13 +619,21 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
 
         {/* ── アクティブフィルター サマリー行 ── */}
         {activeFilters.length > 0 && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 6,
-            paddingBottom: 12, overflowX: "auto",
-            scrollbarWidth: "none",
-          }}>
-            <style>{`.csb-summary::-webkit-scrollbar { display: none; }`}</style>
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 500 }}>
+          <div
+            className="csb-active-filters"
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "7px 12px 9px",
+              overflowX: "auto",
+              scrollbarWidth: "none",
+              background: "var(--royal-50)",
+              borderRadius: 8,
+              borderLeft: "3px solid var(--royal)",
+              marginBottom: 4,
+            }}
+          >
+            <style>{`.csb-active-filters::-webkit-scrollbar { display: none; }`}</style>
+            <span style={{ fontSize: 11, color: "var(--royal)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>
               絞り込み中:
             </span>
             {activeFilters.map((f) => (

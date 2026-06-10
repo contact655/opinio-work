@@ -212,6 +212,24 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     // "jobs" のみアプリ側で補完（job_count は集計値のため DB ソート不可）
                     const paged = [...allCompaniesResult.companies];
                     if (sort === "jobs") paged.sort((a, b) => b.job_count - a.job_count);
+                    if (sort === "startup") {
+                      const STARTUP_ORDER: Record<string, number> = {
+                        "シード": 1, "seed": 1,
+                        "シリーズA": 2, "series-a": 2, "series_a": 2,
+                        "シリーズB": 3, "series-b": 3, "series_b": 3,
+                        "プレシード": 4, "pre-seed": 4,
+                        "ブートストラップ": 5, "bootstrap": 5,
+                        "シリーズC": 6, "series-c": 6, "series_c": 6,
+                        "シリーズD以降": 7, "series-d": 7, "series_d": 7,
+                        "IPO準備中": 8, "ipo": 8,
+                        "上場": 9, "listed": 9,
+                        "ユニコーン": 10, "unicorn": 10,
+                      };
+                      paged.sort((a, b) =>
+                        (STARTUP_ORDER[a.funding_stage ?? ""] ?? 99) -
+                        (STARTUP_ORDER[b.funding_stage ?? ""] ?? 99)
+                      );
+                    }
 
                     // totalCount は DB の COUNT クエリから取得済み
                     const totalPages = Math.max(1, Math.ceil(allCompaniesResult.totalCount / PAGE_SIZE));
