@@ -23,6 +23,7 @@ const PHASE_OPTIONS: PhaseOption[] = [
   { value: "シリーズD以降",   label: "シリーズD以降",   color: "#064e3b", bg: "#ccfbf1", dot: "#14b8a6", desc: "レイトステージ・大規模化" },
   { value: "IPO準備中",       label: "IPO準備中",       color: "#9a3412", bg: "#ffedd5", dot: "#ea580c", desc: "上場直前・承認申請段階" },
   { value: "上場",            label: "上場",            color: "#14532d", bg: "#dcfce7", dot: "#16a34a", desc: "東証グロース・スタンダード・プライム" },
+  { value: "外資系",          label: "🌐 外資系",       color: "#3730a3", bg: "#e0e7ff", dot: "#6366f1", desc: "外資系・グローバル企業" },
 ];
 
 // ── コンパクトフィルターチップ ────────────────────────────────────────────────
@@ -309,10 +310,9 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
   const currentLocation  = searchParams.get("location") ?? "";
   const currentIndustry  = searchParams.get("industry") ?? "";
   const currentHiring    = searchParams.get("hiring") === "1";
-  const currentForeign   = searchParams.get("foreign") === "1";
 
   const hasAnyFilter = Boolean(
-    searchParams.get("q") || currentPhase || currentHiring || currentLocation || currentIndustry || currentForeign
+    searchParams.get("q") || currentPhase || currentHiring || currentLocation || currentIndustry
   );
 
   const locationOptions = locations.map((l) => ({ value: l, label: l }));
@@ -526,25 +526,6 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
               <>面談受付中 <span style={{ fontSize: 10, opacity: 0.85 }}>✕</span></>
             ) : (
               <>面談受付中</>
-            )}
-          </label>
-
-          {/* 外資系 */}
-          <label className={`csb-hiring${currentForeign ? " active" : ""}`} style={{
-            background: currentForeign ? "#ede9fe" : undefined,
-            borderColor: currentForeign ? "#6d28d9" : undefined,
-            color: currentForeign ? "#6d28d9" : undefined,
-          }}>
-            <input
-              type="checkbox"
-              checked={currentForeign}
-              onChange={(e) => updateParam("foreign", e.target.checked ? "1" : null)}
-              style={{ display: "none" }}
-            />
-            {currentForeign ? (
-              <>🌐 外資系 <span style={{ fontSize: 10, opacity: 0.85 }}>✕</span></>
-            ) : (
-              <>🌐 外資系</>
             )}
           </label>
 

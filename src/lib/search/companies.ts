@@ -57,7 +57,7 @@ export async function searchCompanies(
 
   // ── DB側ページネーションを使うか判定
   // hiring / foreign フィルターはアプリ側で処理するため、DB ページネーションと併用不可
-  const useDbPagination = !params.hiring && !params.foreign && params.limit !== undefined;
+  const useDbPagination = !params.hiring && !params.foreign && params.phase !== "外資系" && params.limit !== undefined;
 
   // ── フィルター条件を組み立てるヘルパー
   // #14: スペース区切りで AND 検索（例: "SaaS PM" → name.ilike.%SaaS% AND name.ilike.%PM%）
@@ -70,7 +70,7 @@ export async function searchCompanies(
         q = q.or(`name.ilike.${p},description.ilike.${p},industry.ilike.${p},tagline.ilike.${p}`);
       }
     }
-    if (params.phase)     q = q.eq("phase", params.phase);
+    if (params.phase && params.phase !== "外資系") q = q.eq("phase", params.phase);
     if (params.workStyle) q = q.eq("remote_work_status", params.workStyle);
     if (params.location)  q = q.eq("location", params.location);
     if (params.industry)  q = q.eq("industry", params.industry);
@@ -179,9 +179,9 @@ export async function searchCompanies(
         : [],
     }));
 
-  // client-side: 外資系フィルター
+  // client-side: 外資系フィルター（foreign param または phase="外資系"）
   let filteredCompanies = companies;
-  if (params.foreign) {
+  if (params.foreign || params.phase === "外資系") {
     filteredCompanies = filteredCompanies.filter((c) => {
       const name = (c as { name?: string }).name ?? "";
       const nameEn = (c as { name_en?: string | null }).name_en;
