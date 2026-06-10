@@ -183,7 +183,7 @@ function JobCard({
       {/* ── Gradient header band ── */}
       <div style={{
         height: 60,
-        background: company.gradient,
+        background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
         position: "relative",
         flexShrink: 0,
         borderRadius: "18px 18px 0 0",
@@ -299,7 +299,7 @@ function JobCard({
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
               </svg>
-              {job.location.split("・")[0]}
+              {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
             </span>
           )}
           {job.location && job.work_style && (
@@ -451,24 +451,30 @@ function JobCard({
             )}
             {company.accepting_casual_meetings && (
               <span style={{
-                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                background: "#FFF7ED", color: "#C2410C", border: "1px solid #FDBA74",
+                fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 100,
+                background: "linear-gradient(135deg, #FFF7ED, #FEF3C7)", color: "#C2410C",
+                border: "1.5px solid #FDBA74",
                 display: "inline-flex", alignItems: "center", gap: 3,
+                boxShadow: "0 1px 4px rgba(234,88,12,0.2)",
               }}>
                 <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
                 面談受付中
               </span>
             )}
           </div>
-          <div
-            style={{
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <div style={{
               fontFamily: "Inter, sans-serif",
-              fontSize: 15,
+              fontSize: 17,
               fontWeight: (job.salary_min || job.salary_max) ? 800 : 400,
               color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
-            }}
-          >
-            {formatSalary(job.salary_min, job.salary_max)}
+              lineHeight: 1.2,
+            }}>
+              {formatSalary(job.salary_min, job.salary_max)}
+            </div>
+            {(job.salary_min || job.salary_max) && (
+              <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500 }}>年収</span>
+            )}
           </div>
         </div>
         <span
@@ -489,6 +495,11 @@ function JobCard({
         </span>
       </div>
       </div>{/* Card content end */}
+      {/* hover overlay */}
+      <div className="job-card-cta-overlay">
+        詳細を見る
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
     </Link>
     </div>
   );
@@ -927,7 +938,7 @@ function JobListCard({
                 <span style={{ fontSize: 10, color: "var(--line)" }}>·</span>
                 <span style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 3 }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  {job.location.split("・")[0]}
+                  {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
                 </span>
               </>
             )}
@@ -981,9 +992,11 @@ function JobListCard({
             )}
             {company.accepting_casual_meetings && (
               <span style={{
-                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                background: "#FFF7ED", color: "#C2410C", border: "1px solid #FDBA74",
+                fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 100,
+                background: "linear-gradient(135deg, #FFF7ED, #FEF3C7)", color: "#C2410C",
+                border: "1.5px solid #FDBA74",
                 display: "inline-flex", alignItems: "center", gap: 3,
+                boxShadow: "0 1px 4px rgba(234,88,12,0.2)",
               }}>
                 <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
                 面談受付中
@@ -1345,6 +1358,92 @@ export default function JobsClient({
 
           </div>
 
+          {/* ── アクティブフィルター chip 行 ── */}
+          {hasFilter && (
+            <div style={{
+              display: "flex", gap: 6, flexWrap: "wrap",
+              paddingBottom: 10, alignItems: "center",
+            }}>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>
+                絞り込み中:
+              </span>
+              {category && (() => {
+                const r = parentRoles.find(r => r.id === category);
+                const rc = r ? getRoleColor(r.name) : { color: "var(--royal)", bg: "var(--royal-50)" };
+                return r ? (
+                  <button key="cat" type="button" onClick={() => setParam("category", "")} style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    padding: "3px 10px", borderRadius: 100,
+                    background: rc.bg, border: `1.5px solid ${rc.color}`,
+                    color: rc.color, fontSize: 11, fontWeight: 700,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                    職種: {r.name}
+                    <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                  </button>
+                ) : null;
+              })()}
+              {work_style && (
+                <button key="ws" type="button" onClick={() => setParam("work_style", "")} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "3px 10px", borderRadius: 100,
+                  background: "var(--success-soft)", border: "1.5px solid #6EE7B7",
+                  color: "#065F46", fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>
+                  勤務形態: {work_style}
+                  <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                </button>
+              )}
+              {salary && (() => {
+                const tier = SALARY_PILL_TIERS.find(t => t.value === salary);
+                return tier ? (
+                  <button key="sal" type="button" onClick={() => setParam("salary", "")} style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    padding: "3px 10px", borderRadius: 100,
+                    background: "#FEF3C7", border: "1.5px solid #FDE68A",
+                    color: "#92400E", fontSize: 11, fontWeight: 700,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                    年収: {tier.label}
+                    <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                  </button>
+                ) : null;
+              })()}
+              {empType && (
+                <button key="emp" type="button" onClick={() => setParam("emp_type", "")} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "3px 10px", borderRadius: 100,
+                  background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
+                  color: "var(--royal)", fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>
+                  雇用形態: {empType}
+                  <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                </button>
+              )}
+              {prefecture && (
+                <button key="pref" type="button" onClick={() => setParam("prefecture", "")} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "3px 10px", borderRadius: 100,
+                  background: "#F0FDF4", border: "1.5px solid #BBF7D0",
+                  color: "#16A34A", fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>
+                  地域: {prefecture}
+                  <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                </button>
+              )}
+              <button type="button" onClick={() => { setQ(""); router.replace("/jobs"); }} style={{
+                fontSize: 11, color: "var(--ink-mute)", background: "none",
+                border: "none", cursor: "pointer", padding: "3px 4px",
+                fontFamily: "inherit", textDecoration: "underline",
+              }}>
+                すべてリセット
+              </button>
+            </div>
+          )}
+
           {/* ── クイックフィルター（人気職種タグ） ── */}
           {parentRoles.length > 0 && (
             <div style={{
@@ -1444,24 +1543,34 @@ export default function JobsClient({
                     </button>
                   </div>
 
-                  <select
-                    value={sort}
-                    onChange={(e) => setParam("sort", e.target.value)}
-                    aria-label="並び順"
-                    style={{
-                      padding: "6px 26px 6px 10px",
-                      border: "1.5px solid var(--line)",
-                      borderRadius: 8,
-                      background: "#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\") no-repeat right 8px center",
-                      fontSize: 12.5, color: "var(--ink-soft)", cursor: "pointer",
-                      outline: "none", fontFamily: "inherit",
-                      appearance: "none" as const, WebkitAppearance: "none" as const,
-                    }}
-                  >
-                    <option value="updated">新着順</option>
-                    <option value="salary">年収順</option>
-                    <option value="phase">フェーズ順（初期→上場）</option>
-                  </select>
+                  <div style={{ position: "relative" }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2} strokeLinecap="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+                      <path d="M3 8h18M7 12h10M11 16h2"/>
+                    </svg>
+                    <select
+                      value={sort}
+                      onChange={(e) => setParam("sort", e.target.value)}
+                      aria-label="並び順"
+                      style={{
+                        paddingLeft: 28, paddingRight: 26, paddingTop: 7, paddingBottom: 7,
+                        border: `1.5px solid ${sort !== "updated" ? "var(--royal)" : "var(--line)"}`,
+                        borderRadius: 8,
+                        background: sort !== "updated"
+                          ? `var(--royal-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23002366' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center`
+                          : `#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center`,
+                        fontSize: 12.5,
+                        color: sort !== "updated" ? "var(--royal)" : "var(--ink-soft)",
+                        fontWeight: sort !== "updated" ? 700 : 400,
+                        cursor: "pointer",
+                        outline: "none", fontFamily: "inherit",
+                        appearance: "none" as const, WebkitAppearance: "none" as const,
+                      }}
+                    >
+                      <option value="updated">新着順</option>
+                      <option value="salary">年収順</option>
+                      <option value="phase">フェーズ順（初期→上場）</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -1513,6 +1622,10 @@ export default function JobsClient({
                   <JobCard key={job.id} job={job} companyMap={companyMap} initialBookmarked={bookmarkedIds.has(job.id)} />
                 ))}
               </div>
+              {/* 表示件数インジケーター */}
+              <div style={{ textAlign: "center", marginBottom: 8, fontSize: 12, color: "var(--ink-mute)" }}>
+                {((safePage - 1) * PER_PAGE + 1)}〜{Math.min(safePage * PER_PAGE, filtered.length)}件を表示（全{filtered.length}件）
+              </div>
               <Pagination
                 current={safePage}
                 total={totalPages}
@@ -1531,6 +1644,27 @@ export default function JobsClient({
         .job-card-link:hover {
           box-shadow: 0 12px 36px rgba(0,35,102,0.18), 0 2px 8px rgba(0,35,102,0.08) !important;
           transform: translateY(-5px) !important;
+        }
+        .job-card-link .job-card-cta-overlay {
+          position: absolute;
+          bottom: 0; left: 0; right: 0;
+          padding: 20px 16px 14px;
+          background: linear-gradient(to top, rgba(0,35,102,0.85) 0%, rgba(0,35,102,0) 100%);
+          color: #fff;
+          font-size: 12px;
+          font-weight: 700;
+          text-align: right;
+          opacity: 0;
+          transition: opacity 0.22s ease;
+          border-radius: 0 0 18px 18px;
+          pointer-events: none;
+          display: flex;
+          align-items: flex-end;
+          justify-content: flex-end;
+          gap: 4px;
+        }
+        .job-card-link:hover .job-card-cta-overlay {
+          opacity: 1;
         }
         .job-card-link:active {
           box-shadow: 0 4px 12px rgba(15,23,42,0.10) !important;
