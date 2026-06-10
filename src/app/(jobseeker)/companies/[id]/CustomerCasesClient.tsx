@@ -26,8 +26,11 @@ function CaseCard({ c }: { c: CustomerCase }) {
     >
       {/* ヘッダー行: 企業名 + 業種バッジ + 製品ピル */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
-          🏢 {c.name}
+        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          {c.name}
         </span>
         <span style={{
           fontSize: 10, fontWeight: 600, color: "var(--ink-soft)",

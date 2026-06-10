@@ -130,7 +130,7 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
       }}
     >
       {/* Section header */}
-      <div style={{ padding: "22px 28px 18px", background: "#f5f8ff", borderBottom: "1px solid #dde4f5" }}>
+      <div style={{ padding: "22px 28px 18px", borderBottom: "1px solid var(--line-soft)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <SecTitle
             icon={
@@ -317,6 +317,7 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
           }} />
           <button
             onClick={() => setShowAll(true)}
+            className="org-expand-btn"
             style={{
               width: "100%",
               padding: "13px 20px",

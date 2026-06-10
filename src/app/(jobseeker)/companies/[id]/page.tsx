@@ -370,21 +370,18 @@ function Hero({
                   const icon = wl.includes("リモート") || wl.includes("在宅") || wl.includes("テレワーク") ? "🏠" : "🏢";
                   chips.push({ icon, label: wl });
                 }
-                // Work style (flex, side job) — ネガティブ情報（不可・なし・禁止）は除外
-                // フレックスとフルフレックスの重複を排除
-                let hasFlexChip = false;
+                // Work style (flex, side job) — ネガティブ情報除外 + フルフレックス優先
+                const flexOptions = detail.work_style.filter(ws =>
+                  ws.label.includes("フレックス") &&
+                  !ws.label.includes("不可") && !ws.label.includes("禁止") && !ws.label.includes("なし")
+                );
+                const bestFlex = flexOptions.find(ws => ws.label.includes("フル")) ?? flexOptions[0];
+                if (bestFlex && chips.length < 3) chips.push({ icon: "⏰", label: bestFlex.label });
                 for (const ws of detail.work_style) {
                   if (chips.length >= 3) break;
                   const label = ws.label;
                   if (label.includes("不可") || label.includes("禁止") || label.includes("なし")) continue;
-                  if (label.includes("フレックス")) {
-                    if (hasFlexChip) continue; // 重複除去
-                    hasFlexChip = true;
-                    // フルフレックスを優先して表示
-                    const displayLabel = chips.some(c => c.label.includes("フレックス")) ? label : label;
-                    chips.push({ icon: "⏰", label: displayLabel });
-                    continue;
-                  }
+                  if (label.includes("フレックス")) continue; // 上で処理済み
                   const icon = label.includes("副業") ? "💼"
                     : label.includes("裁量") ? "⚡"
                     : "✨";
@@ -836,36 +833,41 @@ function parseProductName(raw: string): { name: string; sub: string | null } {
   return { name: raw, sub: null };
 }
 
-/** キーワードベースで製品カードのアイコンを決める（色は全て royal blue で統一） */
+/** キーワードベースで製品カードのスタイルを決める（カテゴリ別カラー） */
 function productStyle(name: string): { bg: string; border: string; color: string; icon: React.ReactNode } {
   const n = name.toLowerCase();
-  const C = { bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
-  // CRM / Sales
+  // Sales/CRM → royal blue
+  const ROYAL = { bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
+  // Marketing → warm amber
+  const WARM = { bg: "#FEF3C7", border: "#FDE68A", color: "#92400E" };
+  // Analytics/Data → purple
+  const PURPLE = { bg: "#F3E8FF", border: "#DDD6FE", color: "#7C3AED" };
+  // Service/Support/CS → green
+  const GREEN = { bg: "#D1FAE5", border: "#A7F3D0", color: "#065F46" };
+  // AI/ML → indigo
+  const INDIGO = { bg: "#EEF2FF", border: "#C7D2FE", color: "#4338CA" };
+  // Integration/API/Platform → slate
+  const SLATE = { bg: "#F1F5F9", border: "#CBD5E1", color: "#475569" };
+  // Cloud/Platform → sky
+  const SKY = { bg: "#E0F2FE", border: "#BAE6FD", color: "#0369A1" };
+
   if (/(crm|sales|営業|セールス)/.test(n))
-    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> };
-  // Marketing
+    return { ...ROYAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> };
   if (/(market|マーケ|メール|email)/.test(n))
-    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> };
-  // Analytics / Data
+    return { ...WARM, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> };
   if (/(analytic|data|分析|レポ|insight|tableau|bi)/.test(n))
-    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> };
-  // Service / Support
-  if (/(service|support|サービス|サポート|cs|カスタマ)/.test(n))
-    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> };
-  // Platform / Cloud
+    return { ...PURPLE, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> };
+  if (/(service|support|サービス|サポート|cs|カスタマ|success)/.test(n))
+    return { ...GREEN, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> };
   if (/(platform|cloud|クラウド|プラットフォーム)/.test(n))
-    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg> };
-  // AI / ML
+    return { ...SKY, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg> };
   if (/(ai|ml|機械学習|人工知能|llm|gpt|agentforce|einstein)/.test(n))
-    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> };
-  // Integration / API
+    return { ...INDIGO, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> };
   if (/(integrat|api|連携|インテグレ|mule|slack|コラボ)/.test(n))
-    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> };
-  // HR / People
-  if (/(hr|human|採用|人事|タレント|talent)/.test(n))
-    return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg> };
-  // Default
-  return { ...C, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> };
+    return { ...SLATE, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> };
+  if (/(hr|human|採用|人事|タレント|talent|commerce|ec|financial)/.test(n))
+    return { ...GREEN, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg> };
+  return { ...ROYAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> };
 }
 
 function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
@@ -888,7 +890,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
       }}
     >
       {/* Section header */}
-      <div style={{ padding: "var(--space-6) 32px var(--space-4)", background: "#f5f8ff", borderBottom: "1px solid #dde4f5" }}>
+      <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
         <SecTitle
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -1811,6 +1813,21 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         </div>
       )}
 
+      {/* catchphraseがない時: 在籍ロールバッジで情報を補完 */}
+      {!employee.catchphrase && employee.roleTitle && (
+        <div style={{
+          padding: "6px 10px", borderRadius: 8,
+          background: "var(--bg-tint)", border: "1px solid var(--line-soft)",
+          fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.5,
+          display: "flex", alignItems: "center", gap: 6,
+        }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
+            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          </svg>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{employee.roleTitle}</span>
+        </div>
+      )}
+
       {/* catchphrase: 相談できること */}
       {employee.catchphrase && (
         <div style={{
@@ -2566,59 +2583,108 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
           </div>
         ) : (
           <>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {displayed.map((article) => {
+            {articles.length === 1 ? (
+              /* ── 1件の時: フィーチャー大カード ── */
+              (() => {
+                const article = articles[0];
                 const badge = TYPE_BADGE[article.type];
                 const icon  = TYPE_EYECATCH_ICON[article.type];
                 return (
-                  <Link key={article.slug} href={`/articles/${article.slug}`} style={{ textDecoration: "none" }}>
-                    <div
-                      style={{
-                        border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden",
-                        background: "#fff", transition: "border-color 0.15s, box-shadow 0.15s",
-                        display: "flex", flexDirection: "row", alignItems: "stretch",
-                      }}
-                      className="article-card"
-                    >
-                      {/* サムネイル（左・固定幅） */}
+                  <Link key={article.slug} href={`/articles/${article.slug}`} style={{ textDecoration: "none", display: "block" }}>
+                    <div className="article-card" style={{
+                      border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden",
+                      background: "#fff", transition: "border-color 0.15s, box-shadow 0.15s",
+                    }}>
+                      {/* 上部: グラデーションバナー */}
                       <div style={{
-                        width: 110, flexShrink: 0,
+                        height: 120,
                         background: article.eyecatch_gradient,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         position: "relative",
                       }}>
-                        <span style={{ fontSize: 32, opacity: 0.3 }}>{icon}</span>
-                        <div style={{ position: "absolute", bottom: 7, right: 7, fontSize: 9, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
-                          {article.read_min} min
-                        </div>
-                      </div>
-                      {/* テキスト（右） */}
-                      <div style={{ padding: "12px 16px", flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>
+                        <span style={{ fontSize: 52, opacity: 0.25 }}>{icon}</span>
+                        <div style={{ position: "absolute", top: 12, left: 14 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 10px", borderRadius: 100, background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}>
                             {badge.label}
                           </span>
                         </div>
-                        <p style={{ margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 13, fontWeight: 700, lineHeight: 1.6, color: "var(--ink)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
+                        <div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 10, color: "rgba(255,255,255,0.75)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+                          {article.read_min} min read
+                        </div>
+                      </div>
+                      {/* 下部: テキスト */}
+                      <div style={{ padding: "16px 20px 18px" }}>
+                        <p style={{ margin: "0 0 8px", fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 700, lineHeight: 1.65, color: "var(--ink)" }}>
                           {article.title}
                         </p>
                         {(article.subject?.name ?? (article.subjects && article.subjects[0]?.name)) && (
-                          <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)" }}>
+                          <p style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             {article.subject?.name ?? article.subjects?.[0]?.name}
                           </p>
                         )}
-                      </div>
-                      {/* 矢印 */}
-                      <div style={{ display: "flex", alignItems: "center", paddingRight: 14, color: "var(--ink-mute)", flexShrink: 0 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                          <polyline points="9 18 15 12 9 6"/>
-                        </svg>
+                        <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700, color: "var(--royal)" }}>
+                          記事を読む
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </div>
                       </div>
                     </div>
                   </Link>
                 );
-              })}
-            </div>
+              })()
+            ) : (
+              /* ── 2件以上: リスト表示 ── */
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {displayed.map((article) => {
+                  const badge = TYPE_BADGE[article.type];
+                  const icon  = TYPE_EYECATCH_ICON[article.type];
+                  return (
+                    <Link key={article.slug} href={`/articles/${article.slug}`} style={{ textDecoration: "none" }}>
+                      <div
+                        style={{
+                          border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden",
+                          background: "#fff", transition: "border-color 0.15s, box-shadow 0.15s",
+                          display: "flex", flexDirection: "row", alignItems: "stretch",
+                        }}
+                        className="article-card"
+                      >
+                        <div style={{
+                          width: 110, flexShrink: 0,
+                          background: article.eyecatch_gradient,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          position: "relative",
+                        }}>
+                          <span style={{ fontSize: 32, opacity: 0.3 }}>{icon}</span>
+                          <div style={{ position: "absolute", bottom: 7, right: 7, fontSize: 9, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+                            {article.read_min} min
+                          </div>
+                        </div>
+                        <div style={{ padding: "12px 16px", flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>
+                              {badge.label}
+                            </span>
+                          </div>
+                          <p style={{ margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 13, fontWeight: 700, lineHeight: 1.6, color: "var(--ink)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
+                            {article.title}
+                          </p>
+                          {(article.subject?.name ?? (article.subjects && article.subjects[0]?.name)) && (
+                            <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)" }}>
+                              {article.subject?.name ?? article.subjects?.[0]?.name}
+                            </p>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", paddingRight: 14, color: "var(--ink-mute)", flexShrink: 0 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
             <div style={{ marginTop: "var(--space-4)", textAlign: "right" }}>
               <Link href="/articles" style={{ fontSize: "var(--text-xs)", color: "var(--accent)", textDecoration: "none", fontFamily: "Inter, sans-serif", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
                 記事一覧を見る
@@ -3183,6 +3249,61 @@ export default async function CompanyDetailPage({
             {/* 8. 記事（OPINIO取材記事） */}
             <CompanyArticlesSection articles={companyArticles} />
 
+            {/* ── ページ末尾CTA ── */}
+            {company.accepting_casual_meetings && (
+              <div style={{
+                background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
+                borderRadius: 18,
+                padding: "28px 32px",
+                marginBottom: "var(--space-6)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                boxShadow: "0 4px 20px rgba(0,35,102,0.25)",
+              }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.55)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
+                    NEXT STEP
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#fff", fontFamily: "var(--font-noto-sans)", lineHeight: 1.4 }}>
+                    気になったら、まず話を聞いてみましょう
+                  </h3>
+                  <p style={{ margin: "6px 0 0", fontSize: 13, color: "rgba(255,255,255,0.65)", lineHeight: 1.6 }}>
+                    カジュアル面談は完全無料・選考なし。転職意欲がなくても参加できます。
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <Link
+                    href={`/companies/${company.id}/casual-meeting`}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 8,
+                      padding: "11px 22px", borderRadius: 10, fontSize: 14, fontWeight: 700,
+                      background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff",
+                      textDecoration: "none",
+                      boxShadow: "0 2px 12px rgba(245,158,11,0.4)",
+                    }}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0 }} />
+                    話を聞く（カジュアル面談）
+                  </Link>
+                  {company.job_count > 0 && (
+                    <a
+                      href="#jobs"
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        padding: "11px 22px", borderRadius: 10, fontSize: 14, fontWeight: 600,
+                        background: "rgba(255,255,255,0.12)", color: "#fff",
+                        border: "1px solid rgba(255,255,255,0.25)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      求人を見る ({company.job_count}件)
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
             {recruiters.length > 0 && (
               <RecruitersSection recruiters={recruiters} />
             )}
@@ -3253,6 +3374,9 @@ export default async function CompanyDetailPage({
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.4; transform: scale(0.7); }
         }
+
+        /* ── Org expand button hover ── */
+        .org-expand-btn:hover { background: var(--royal-100) !important; border-color: var(--royal) !important; }
 
         /* ── Nav no-scrollbar ── */
         nav::-webkit-scrollbar { display: none; }
