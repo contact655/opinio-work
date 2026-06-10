@@ -235,18 +235,15 @@ export default async function CompaniesPage({ searchParams }: Props) {
                             <style>{`
                               .companies-grid4 {
                                 display: grid;
-                                grid-template-columns: repeat(4, 1fr);
-                                gap: 10px;
+                                grid-template-columns: repeat(3, 1fr);
+                                gap: 16px;
                                 margin-top: ${safePage > 1 ? 24 : 0}px;
                               }
-                              @media (max-width: 1279px) {
-                                .companies-grid4 { grid-template-columns: repeat(3, 1fr); }
+                              @media (max-width: 1023px) {
+                                .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
                               }
-                              @media (max-width: 767px) {
-                                .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-                              }
-                              @media (max-width: 480px) {
-                                .companies-grid4 { grid-template-columns: 1fr; }
+                              @media (max-width: 600px) {
+                                .companies-grid4 { grid-template-columns: 1fr; gap: 10px; }
                               }
                             `}</style>
                             <div className="companies-grid4">
