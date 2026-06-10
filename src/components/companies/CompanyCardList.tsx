@@ -224,7 +224,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const jobTitles = Array.isArray(company.top_job_titles) ? company.top_job_titles : [];
 
   // ── コンパクトカード（compact=true）— 白背景ロゴ正方形・固定高さ・2行タグライン ──
-  const [cardHovered, setCardHovered] = useState(false);
   const NAVY_GRAD = company.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
   const CARD_LOGO_GRAD = company.logo_url ? "#fff" : getLogoGradient(company.industry, NAVY_GRAD);
 
@@ -233,8 +232,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
         <Link
           href={`/companies/${company.id}`}
           className="clv-card"
-          onMouseEnter={() => setCardHovered(true)}
-          onMouseLeave={() => setCardHovered(false)}
           style={{
             display: "flex",
             alignItems: "center",
