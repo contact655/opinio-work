@@ -289,7 +289,7 @@ function Hero({
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                 {/* バッジ3: 採用中 */}
                 {company.job_count > 0 && (
                   <span
@@ -344,6 +344,20 @@ function Hero({
                     />
                     {freshLabel}
                   </span>
+                )}
+                {/* CTA: 話を聞く（accepting_casual_meetings が true のとき） */}
+                {company.accepting_casual_meetings && (
+                  <Link href={`/companies/${company.id}/casual-meeting`}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700,
+                      background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff",
+                      textDecoration: "none",
+                      boxShadow: "0 2px 8px rgba(245,158,11,0.3)",
+                    }}>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite" }} />
+                    話を聞く（無料）
+                  </Link>
                 )}
               </div>
 
@@ -925,7 +939,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.customer_cases!.length}社</span>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
-            <CustomerCasesClient cases={detail.customer_cases!} />
+            <CustomerCasesClient cases={detail.customer_cases!} defaultCollapsed={detail.customer_cases!.length > 3} />
           </div>
         )}
 
@@ -1309,16 +1323,8 @@ function EmployeeCard({
         </p>
       )}
       {employee.catchphrase && (
-        <p
-          style={{
-            margin: "5px 0 0",
-            fontSize: "var(--text-xs)",
-            color: "var(--ink-soft)",
-            lineHeight: 1.55,
-            borderLeft: "2px solid var(--royal-100)",
-            paddingLeft: 7,
-          }}
-        >
+        <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4,
+          overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>
           {employee.catchphrase}
         </p>
       )}
@@ -1771,6 +1777,18 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         </div>
       )}
 
+      {/* catchphrase: 相談できること */}
+      {employee.catchphrase && (
+        <div style={{
+          padding: "8px 10px", borderRadius: 8,
+          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+          fontSize: 11, color: "var(--royal)", lineHeight: 1.5,
+        }}>
+          <span style={{ fontWeight: 700, marginRight: 4 }}>💬</span>
+          {employee.catchphrase}
+        </div>
+      )}
+
       {/* 下段: CTAボタン */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "center",
@@ -2054,7 +2072,7 @@ function JobsSection({
       )}
 
       {/* CTA: 求人に迷ったらカジュアル面談 */}
-      {company.jobs_public && (
+      {company.accepting_casual_meetings && (
         <div style={{
           marginTop: "var(--space-5)",
           padding: "var(--space-4) var(--space-5)",
@@ -2568,7 +2586,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
 
 // ─── MobileBottomCTA ── γ-7: モバイル固定底部バー (< 768px) ──────────────────
 function MobileBottomCTA({ company }: { company: Company }) {
-  const hasMeeting = company.jobs_public === true;
+  const hasMeeting = company.accepting_casual_meetings === true;
   const hasJobs = company.job_count > 0;
   if (!hasMeeting && !hasJobs) return null;
 
@@ -2665,7 +2683,7 @@ function Sidebar({
     >
       {/* CTA card ── γ-2: 修正① CTA 優先順位逆転 */}
       {(() => {
-        const hasMeeting = company.jobs_public === true;
+        const hasMeeting = company.accepting_casual_meetings === true;
         const hasJobs = company.job_count > 0;
         return (
           <div
@@ -2821,7 +2839,7 @@ function Sidebar({
       })()}
 
       {/* 申し込みの流れ — casual meeting flow steps */}
-      {company.jobs_public === true && (
+      {company.accepting_casual_meetings === true && (
         <div
           style={{
             background: "#fff",
@@ -3074,12 +3092,11 @@ export default async function CompanyDetailPage({
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
           { id: "about",            label: "企業概要" },
-          ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
-          ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: `組織 ${detail.orgTeams.length}チーム` }] : []),
-          ...((detail.benefits?.length || detail.evaluationSystem) ? [{ id: "benefits", label: "福利厚生" }] : []),
           ...(company.job_count > 0 ? [{ id: "jobs", label: `求人 ${company.job_count}件` }] : []),
-          ...(employees.current.some(e => e.catchphrase) ? [{ id: "voices", label: "社員の声" }] : []),
-          ...(employees.current.length > 0 ? [{ id: "current-employees", label: `社員 ${employees.current.length}名` }] : employees.alumni.length > 0 ? [{ id: "current-employees", label: `OB/OG ${employees.alumni.length}名` }] : []),
+          ...((detail.benefits?.length || detail.evaluationSystem) ? [{ id: "benefits", label: "働く環境" }] : []),
+          ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: "組織" }] : []),
+          ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
+          ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: `社員・OB/OG` }] : []),
           ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
         ]} />
         <div
@@ -3094,26 +3111,26 @@ export default async function CompanyDetailPage({
               photos={photos}
             />
 
-            {/* 2. 製品・顧客 */}
-            <ProductsClientsSection detail={detail} />
-
-            {/* 5. 組織体制 */}
-            <OrgTeamsSectionClient detail={detail} />
-
-            {/* 6. 福利厚生・評価制度 */}
-            <BenefitsSection detail={detail} />
-
-            {/* 6. 募集中の求人 */}
+            {/* 2. 募集中の求人 */}
             <JobsSection company={company} detail={detail} />
 
-            {/* 6.5 社員の声 */}
+            {/* 3. 福利厚生・評価制度 */}
+            <BenefitsSection detail={detail} />
+
+            {/* 4. 組織体制 */}
+            <OrgTeamsSectionClient detail={detail} />
+
+            {/* 5. 製品・顧客 */}
+            <ProductsClientsSection detail={detail} />
+
+            {/* 6. 社員の声 */}
             <EmployeeVoicesSection employees={employees.current} />
 
             {/* 7. 現役社員・OBOGプロフィール */}
             <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
             <AlumniSection alumni={employees.alumni} />
 
-            {/* 7. 記事（OPINIO取材記事） */}
+            {/* 8. 記事（OPINIO取材記事） */}
             <CompanyArticlesSection articles={companyArticles} />
 
             {recruiters.length > 0 && (

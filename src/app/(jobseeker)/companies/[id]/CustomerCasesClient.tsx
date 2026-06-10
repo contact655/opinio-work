@@ -83,8 +83,8 @@ function CaseCard({ c }: { c: CustomerCase }) {
   );
 }
 
-export default function CustomerCasesClient({ cases }: { cases: NonNullable<CompanyDetail["customer_cases"]> }) {
-  const [showAll, setShowAll] = useState(false);
+export default function CustomerCasesClient({ cases, defaultCollapsed }: { cases: NonNullable<CompanyDetail["customer_cases"]>; defaultCollapsed?: boolean }) {
+  const [showAll, setShowAll] = useState(!defaultCollapsed);
 
   const visible = showAll ? cases : cases.slice(0, INITIAL_CASES);
   const hiddenCount = cases.length - INITIAL_CASES;
