@@ -188,13 +188,13 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const features = Array.isArray(company.company_features) ? company.company_features : [];
   const jobTitles = Array.isArray(company.top_job_titles) ? company.top_job_titles : [];
 
-  // ── 縦型ビジュアルカード（compact=true, グリッド表示）────────────────────────
+  // ── 横型コンパクトカード（compact=true）— 帯なし・ロゴ左・テキスト右・左揃え ──
   if (compact) {
     return (
       <>
         <style>{`
-          .clv-card { transition: box-shadow 0.18s, transform 0.18s; }
-          .clv-card:hover { box-shadow: 0 8px 28px rgba(0,35,102,0.16) !important; transform: translateY(-3px); }
+          .clv-card { transition: box-shadow 0.18s, border-color 0.18s, transform 0.15s; }
+          .clv-card:hover { box-shadow: 0 6px 20px rgba(0,35,102,0.12) !important; border-color: var(--royal-100) !important; transform: translateY(-2px); }
           .clv-card:hover .clv-name { color: var(--royal) !important; }
           .clv-bm { opacity: 0; transition: opacity 0.15s; }
           .clv-card:hover .clv-bm { opacity: 1; }
@@ -204,66 +204,60 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           className="clv-card"
           style={{
             display: "flex",
-            flexDirection: "column",
+            alignItems: "stretch",
             background: "#fff",
-            borderRadius: 14,
+            borderRadius: 12,
             border: "1px solid var(--line)",
-            boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+            boxShadow: "0 1px 3px rgba(15,23,42,0.05)",
             textDecoration: "none",
             color: "inherit",
             overflow: "hidden",
             padding: 0,
           }}
         >
-          {/* ① 帯を低く（44px）・色を落ち着かせる（暗めオーバーレイ） */}
+          {/* ── 左: ロゴエリア（グラデーション背景・帯として機能） ── */}
           <div style={{
-            height: 44,
-            background: `linear-gradient(rgba(0,0,0,0.18), rgba(0,0,0,0.28)), ${headerGradient}`,
-            position: "relative",
-            flexShrink: 0,
-            overflow: "visible",
+            width: 80, flexShrink: 0,
+            background: headerGradient,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            position: "relative", overflow: "hidden",
           }}>
-            {/* ② ロゴを中央・大きく（56px）帯底部オーバーラップ */}
-            <div style={{
-              position: "absolute",
-              bottom: -28, left: "50%", transform: "translateX(-50%)",
-              width: 56, height: 56, borderRadius: 12,
-              background: company.logo_url ? "#fff" : "rgba(255,255,255,0.18)",
-              border: "3px solid #fff",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              overflow: "hidden", zIndex: 3, flexShrink: 0,
-            }}>
-              {company.logo_url ? (
-                <Image src={company.logo_url} alt={`${company.name}のロゴ`} fill
-                  style={{ objectFit: "contain", padding: "12%" }} sizes="56px" />
-              ) : (
-                <span style={{ fontSize: 22, fontWeight: 900, color: "#fff", fontFamily: "Inter, sans-serif", userSelect: "none" }}>{initial}</span>
-              )}
-            </div>
-
-            {/* ブックマーク（右上・ホバー時） */}
-            <button
-              type="button"
-              className="clv-bm"
-              onClick={handleBookmark}
-              disabled={bookmarking}
-              style={{
-                position: "absolute", top: 6, right: 8, zIndex: 4,
-                width: 26, height: 26, borderRadius: "50%",
-                background: "rgba(255,255,255,0.2)", border: "none",
+            <span style={{
+              position: "absolute", right: -4, bottom: -8,
+              fontSize: 52, fontWeight: 900,
+              color: "rgba(255,255,255,0.1)",
+              fontFamily: "Inter, sans-serif", lineHeight: 1,
+              userSelect: "none", pointerEvents: "none",
+            }}>{initial}</span>
+            {company.logo_url ? (
+              <div style={{
+                width: 48, height: 48, borderRadius: 10,
+                background: "#fff", border: "2px solid rgba(255,255,255,0.9)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer", padding: 0,
-                color: bookmarked ? "#ef4444" : "rgba(255,255,255,0.85)", fontSize: 13,
-              }}
-            >{bookmarked ? "♥" : "♡"}</button>
+                overflow: "hidden", position: "relative", zIndex: 1, flexShrink: 0,
+              }}>
+                <Image src={company.logo_url} alt={`${company.name}のロゴ`} fill
+                  style={{ objectFit: "contain", padding: "12%" }} sizes="48px" />
+              </div>
+            ) : (
+              <span style={{
+                fontSize: 26, fontWeight: 900, color: "#fff",
+                fontFamily: "Inter, sans-serif", lineHeight: 1,
+                userSelect: "none", zIndex: 1, position: "relative",
+                textShadow: "0 2px 6px rgba(0,0,0,0.25)",
+              }}>{initial}</span>
+            )}
           </div>
 
-          {/* カード本文（ロゴ分 36px パディング・中央揃え） */}
-          <div style={{ padding: "36px 14px 14px", display: "flex", flexDirection: "column", flex: 1, gap: 6, textAlign: "center" }}>
-
-            {/* バッジ行（中央） */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, flexWrap: "wrap" }}>
+          {/* ── 右: テキスト情報（左揃え） ── */}
+          <div style={{
+            flex: 1, minWidth: 0,
+            padding: "11px 12px 11px",
+            display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4,
+          }}>
+            {/* 上段: バッジ + ブックマーク */}
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {company.industry && (
                 <span style={{
                   fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
@@ -277,50 +271,41 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   background: stageCfg.bg, color: stageCfg.color, whiteSpace: "nowrap",
                 }}>{stageCfg.label}</span>
               )}
+              <button
+                type="button"
+                className="clv-bm"
+                onClick={handleBookmark}
+                disabled={bookmarking}
+                style={{
+                  marginLeft: "auto", width: 22, height: 22, flexShrink: 0,
+                  background: "none", border: "none", cursor: "pointer", padding: 0,
+                  color: bookmarked ? "#ef4444" : "var(--ink-mute)", fontSize: 13,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >{bookmarked ? "♥" : "♡"}</button>
             </div>
 
-            {/* ③ 社名を大きく（17px）・重複表示を廃止 */}
+            {/* 社名（左揃え・大きく） */}
             <span className="clv-name" style={{
-              fontSize: 17, fontWeight: 800, color: "var(--ink)",
+              fontSize: 15, fontWeight: 800, color: "var(--ink)",
               fontFamily: isEnName ? "Inter, sans-serif" : "var(--font-noto-sans)",
               letterSpacing: isEnName ? "-0.02em" : "0",
               transition: "color 0.15s",
               overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
-              display: "block",
+              display: "block", lineHeight: 1.3,
             }}>{displayName}</span>
 
-            {/* ④ タグライン1行追加 */}
+            {/* タグライン（引用符除去） */}
             {company.tagline && (
               <span style={{
-                fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical" as React.CSSProperties["WebkitBoxOrient"],
-                overflow: "hidden",
-              }}>{company.tagline}</span>
+                fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4,
+                overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+                display: "block",
+              }}>{company.tagline.replace(/^「|」$/g, "")}</span>
             )}
 
-            {/* ⑥ 面談受付中パルスドット */}
-            {company.accepting_casual_meetings && (
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                  background: "#FFF7ED", color: "#C2410C", border: "1px solid #FDBA74",
-                  display: "inline-flex", alignItems: "center", gap: 3,
-                }}>
-                  <span style={{
-                    width: 5, height: 5, borderRadius: "50%",
-                    background: "#EA580C",
-                    animation: "pulseDot 1.8s ease-in-out infinite",
-                    flexShrink: 0,
-                  }} />
-                  面談受付中
-                </span>
-              </div>
-            )}
-
-            {/* 所在地 + 従業員数 + 求人数（下部） */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, marginTop: "auto", flexWrap: "wrap" }}>
+            {/* 下段: 所在地 + 従業員数 + 求人数 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
               {company.location && (
                 <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2 }}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
@@ -330,15 +315,29 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 </span>
               )}
               {company.employee_count && (
-                <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>約{company.employee_count}</span>
+                <>
+                  <span style={{ color: "var(--line)", fontSize: 10 }}>·</span>
+                  <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{company.employee_count}</span>
+                </>
               )}
-              {company.job_count > 0 && (
+              {company.job_count > 0 ? (
                 <span style={{
-                  fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
+                  marginLeft: "auto",
+                  fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
                   background: "var(--royal-50)", color: "var(--royal)",
                   border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
                 }}>求人 {company.job_count}件</span>
-              )}
+              ) : company.accepting_casual_meetings ? (
+                <span style={{
+                  marginLeft: "auto",
+                  fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
+                  background: "#FFF7ED", color: "#C2410C", border: "1px solid #FDBA74",
+                  display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap",
+                }}>
+                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
+                  面談
+                </span>
+              ) : null}
             </div>
           </div>
         </Link>
