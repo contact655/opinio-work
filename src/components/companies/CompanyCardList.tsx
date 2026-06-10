@@ -215,39 +215,30 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             padding: 0,
           }}
         >
-          {/* ── グラデーション帯 ── */}
+          {/* ① 帯を低く（44px）・色を落ち着かせる（暗めオーバーレイ） */}
           <div style={{
-            height: 72,
-            background: headerGradient,
+            height: 44,
+            background: `linear-gradient(rgba(0,0,0,0.18), rgba(0,0,0,0.28)), ${headerGradient}`,
             position: "relative",
             flexShrink: 0,
-            borderRadius: "13px 13px 0 0",
             overflow: "visible",
           }}>
-            {/* 背景装飾イニシャル */}
-            <span style={{
-              position: "absolute", right: -4, bottom: -12,
-              fontSize: 72, fontWeight: 900,
-              color: "rgba(255,255,255,0.08)",
-              fontFamily: "Inter, sans-serif", lineHeight: 1,
-              userSelect: "none", pointerEvents: "none",
-            }}>{initial}</span>
-
-            {/* ロゴ（帯の底部にオーバーラップ） */}
+            {/* ② ロゴを中央・大きく（56px）帯底部オーバーラップ */}
             <div style={{
-              position: "absolute", bottom: -22, left: 14,
-              width: 44, height: 44, borderRadius: 10,
-              background: company.logo_url ? "#fff" : "rgba(255,255,255,0.15)",
-              border: "2.5px solid rgba(255,255,255,0.9)",
-              boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+              position: "absolute",
+              bottom: -28, left: "50%", transform: "translateX(-50%)",
+              width: 56, height: 56, borderRadius: 12,
+              background: company.logo_url ? "#fff" : "rgba(255,255,255,0.18)",
+              border: "3px solid #fff",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
               display: "flex", alignItems: "center", justifyContent: "center",
               overflow: "hidden", zIndex: 3, flexShrink: 0,
             }}>
               {company.logo_url ? (
                 <Image src={company.logo_url} alt={`${company.name}のロゴ`} fill
-                  style={{ objectFit: "contain", padding: "12%" }} sizes="44px" />
+                  style={{ objectFit: "contain", padding: "12%" }} sizes="56px" />
               ) : (
-                <span style={{ fontSize: 20, fontWeight: 900, color: "#fff", fontFamily: "Inter, sans-serif", userSelect: "none" }}>{initial}</span>
+                <span style={{ fontSize: 22, fontWeight: 900, color: "#fff", fontFamily: "Inter, sans-serif", userSelect: "none" }}>{initial}</span>
               )}
             </div>
 
@@ -258,7 +249,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               onClick={handleBookmark}
               disabled={bookmarking}
               style={{
-                position: "absolute", top: 8, right: 8, zIndex: 4,
+                position: "absolute", top: 6, right: 8, zIndex: 4,
                 width: 26, height: 26, borderRadius: "50%",
                 background: "rgba(255,255,255,0.2)", border: "none",
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -268,10 +259,11 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             >{bookmarked ? "♥" : "♡"}</button>
           </div>
 
-          {/* ── カード本文（ロゴ分 30px パディング） ── */}
-          <div style={{ padding: "30px 14px 14px", display: "flex", flexDirection: "column", flex: 1, gap: 7 }}>
-            {/* バッジ行 */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+          {/* カード本文（ロゴ分 36px パディング・中央揃え） */}
+          <div style={{ padding: "36px 14px 14px", display: "flex", flexDirection: "column", flex: 1, gap: 6, textAlign: "center" }}>
+
+            {/* バッジ行（中央） */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, flexWrap: "wrap" }}>
               {company.industry && (
                 <span style={{
                   fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
@@ -287,28 +279,50 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               )}
             </div>
 
-            {/* 社名 */}
-            <div>
-              <span className="clv-name" style={{
-                fontSize: 15, fontWeight: 800, color: "var(--ink)",
-                fontFamily: isEnName ? "Inter, sans-serif" : "var(--font-noto-sans)",
-                letterSpacing: isEnName ? "-0.02em" : "0",
-                transition: "color 0.15s",
-                display: "block",
-                overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
-              }}>{displayName}</span>
-              {isEnName && (
-                <span style={{
-                  fontSize: 11, color: "var(--ink-mute)", display: "block",
-                  overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
-                }}>{company.name}</span>
-              )}
-            </div>
+            {/* ③ 社名を大きく（17px）・重複表示を廃止 */}
+            <span className="clv-name" style={{
+              fontSize: 17, fontWeight: 800, color: "var(--ink)",
+              fontFamily: isEnName ? "Inter, sans-serif" : "var(--font-noto-sans)",
+              letterSpacing: isEnName ? "-0.02em" : "0",
+              transition: "color 0.15s",
+              overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+              display: "block",
+            }}>{displayName}</span>
 
-            {/* 所在地 + 従業員数 + 求人数 */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: "auto", flexWrap: "wrap" }}>
+            {/* ④ タグライン1行追加 */}
+            {company.tagline && (
+              <span style={{
+                fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5,
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical" as React.CSSProperties["WebkitBoxOrient"],
+                overflow: "hidden",
+              }}>{company.tagline}</span>
+            )}
+
+            {/* ⑥ 面談受付中パルスドット */}
+            {company.accepting_casual_meetings && (
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                  background: "#FFF7ED", color: "#C2410C", border: "1px solid #FDBA74",
+                  display: "inline-flex", alignItems: "center", gap: 3,
+                }}>
+                  <span style={{
+                    width: 5, height: 5, borderRadius: "50%",
+                    background: "#EA580C",
+                    animation: "pulseDot 1.8s ease-in-out infinite",
+                    flexShrink: 0,
+                  }} />
+                  面談受付中
+                </span>
+              </div>
+            )}
+
+            {/* 所在地 + 従業員数 + 求人数（下部） */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, marginTop: "auto", flexWrap: "wrap" }}>
               {company.location && (
-                <span style={{ fontSize: 11, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 2 }}>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2 }}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                   </svg>
@@ -316,14 +330,10 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 </span>
               )}
               {company.employee_count && (
-                <>
-                  <span style={{ color: "var(--line)", fontSize: 10 }}>·</span>
-                  <span style={{ fontSize: 11, color: "var(--ink-soft)" }}>{company.employee_count}規模</span>
-                </>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>約{company.employee_count}</span>
               )}
               {company.job_count > 0 && (
                 <span style={{
-                  marginLeft: "auto",
                   fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
                   background: "var(--royal-50)", color: "var(--royal)",
                   border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
