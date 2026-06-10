@@ -298,15 +298,25 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               >{bookmarked ? "♥" : "♡"}</button>
             </div>
 
-            {/* 行2: 社名（1行truncate） */}
-            <span className="clv-name" style={{
-              fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25,
-              fontFamily: isEnName ? "Inter, sans-serif" : "var(--font-noto-sans)",
-              letterSpacing: isEnName ? "-0.02em" : "0",
-              transition: "color 0.15s",
-              overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
-              display: "block",
-            }}>{displayName}</span>
+            {/* 行2: ブランド名（大・濃）＋ 正式名称（小・薄） */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <span className="clv-name" style={{
+                fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25,
+                fontFamily: isEnName ? "Inter, sans-serif" : "var(--font-noto-sans)",
+                letterSpacing: isEnName ? "-0.02em" : "0",
+                transition: "color 0.15s",
+                overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+                display: "block",
+              }}>{displayName}</span>
+              {isEnName && company.name && (
+                <span style={{
+                  fontSize: 10.5, color: "var(--ink-mute)", lineHeight: 1.3,
+                  fontFamily: "var(--font-noto-sans)",
+                  overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+                  display: "block",
+                }}>{company.name}</span>
+              )}
+            </div>
 
             {/* 行3: タグライン（2行まで） */}
             {company.tagline && (
