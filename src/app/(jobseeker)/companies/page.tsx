@@ -236,24 +236,25 @@ export default async function CompaniesPage({ searchParams }: Props) {
                               .companies-grid4 {
                                 display: grid;
                                 grid-template-columns: repeat(3, 1fr);
-                                gap: 10px;
+                                gap: 16px;
                                 margin-top: ${safePage > 1 ? 24 : 0}px;
                               }
-                              @media (max-width: 1023px) {
-                                .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+                              @media (max-width: 1199px) {
+                                .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 14px; }
                               }
                               @media (max-width: 600px) {
-                                .companies-grid4 { grid-template-columns: 1fr; gap: 8px; }
+                                .companies-grid4 { grid-template-columns: 1fr; gap: 10px; }
                               }
                             `}</style>
                             <div className="companies-grid4">
                               {paged.map(c => (
-                                <CompanyCardList
-                                  key={c.id}
-                                  company={c}
-                                  members={membersByCompany[c.id] ?? []}
-                                  compact
-                                />
+                                <div key={c.id} style={{ display: "flex" }}>
+                                  <CompanyCardList
+                                    company={c}
+                                    members={membersByCompany[c.id] ?? []}
+                                    compact
+                                  />
+                                </div>
                               ))}
                             </div>
                           </>
