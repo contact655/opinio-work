@@ -111,10 +111,9 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry);
   // 一覧（4列）= デフォルト（パラメータなし or view=card）
   const isGridView  = !hasFilter && (!view || view === "card");
-  // カード（3列）= view=grid（旧 view=list2 も後方互換）
-  const isListView2 = !hasFilter && (view === "grid" || view === "list2");
+  // 詳細リスト = view=list
   const isListView  = !hasFilter && view === "list";
-  const needsGrid = isGridView || isListView || isListView2;
+  const needsGrid = isGridView || isListView;
 
   // ── 並列フェッチ（不要なクエリはスキップ）──────────────────────────────────
   const supabase = createClient();
@@ -179,20 +178,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
 
       <div className="max-w-[1440px] mx-auto px-4 pt-6 pb-8">
-        <style>{`
-          .companies-list2-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-          }
-          @media (max-width: 1023px) {
-            .companies-list2-grid { grid-template-columns: repeat(2, 1fr); }
-          }
-          @media (max-width: 600px) {
-            .companies-list2-grid { grid-template-columns: 1fr; gap: 8px; }
-          }
-        `}</style>
-
         <div>
 
         {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル or コンパクトグリッド */}
@@ -217,7 +202,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                 </Suspense>
               </div>
 
-              {isListView2 || isListView || isGridView ? (
+              {isListView || isGridView ? (
                 <>
                   {/* #10: sort=jobs の場合はアプリ側で補完ソート（求人数はDB側で計算できないため） */}
                   {(() => {
@@ -275,17 +260,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
                               ))}
                             </div>
                           </>
-                        ) : isListView2 ? (
-                          <div className="companies-list2-grid" style={{ marginTop: safePage > 1 ? 24 : 0 }}>
-                            {paged.map(c => (
-                              <CompanyCardList
-                                key={c.id}
-                                company={c}
-                                members={membersByCompany[c.id] ?? []}
-                                compact
-                              />
-                            ))}
-                          </div>
                         ) : (
                           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: safePage > 1 ? 24 : 0 }}>
                             {paged.map(c => (

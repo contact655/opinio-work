@@ -6,7 +6,7 @@ export function ViewToggle() {
   const searchParams = useSearchParams();
   const currentView = searchParams.get("view") ?? "card"; // デフォルト = 一覧（4列）
 
-  const toggle = (view: "card" | "grid" | "list") => {
+  const toggle = (view: "card" | "list") => {
     const params = new URLSearchParams(searchParams.toString());
     if (view === "card") {
       params.delete("view"); // 一覧 = デフォルト（パラメータなし）
@@ -30,32 +30,17 @@ export function ViewToggle() {
     background: "transparent",
   };
 
-  const options: { value: "card" | "grid" | "list"; label: string; icon: React.ReactNode; tooltip: string }[] = [
+  const options: { value: "card" | "list"; label: string; icon: React.ReactNode; tooltip: string }[] = [
     {
       value: "card",
       label: "一覧",
-      tooltip: "4列コンパクト一覧（デフォルト）",
+      tooltip: "コンパクト一覧",
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <rect x="3" y="3" width="7" height="7" rx="1"/>
           <rect x="14" y="3" width="7" height="7" rx="1"/>
           <rect x="3" y="14" width="7" height="7" rx="1"/>
           <rect x="14" y="14" width="7" height="7" rx="1"/>
-        </svg>
-      ),
-    },
-    {
-      value: "grid",
-      label: "カード",
-      tooltip: "3列カードビュー",
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <line x1="2" y1="6" x2="10" y2="6"/>
-          <line x1="2" y1="12" x2="10" y2="12"/>
-          <line x1="2" y1="18" x2="10" y2="18"/>
-          <line x1="14" y1="6" x2="22" y2="6"/>
-          <line x1="14" y1="12" x2="22" y2="12"/>
-          <line x1="14" y1="18" x2="22" y2="18"/>
         </svg>
       ),
     },
