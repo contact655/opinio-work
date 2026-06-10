@@ -124,9 +124,10 @@ function isForeignCompany(c: CompanyListRow): boolean {
   );
 }
 
-function filterSelectStyle(active: boolean): React.CSSProperties {
+function filterSelectStyle(active: boolean, width = 110): React.CSSProperties {
   return {
     height: 38,
+    width,
     padding: "0 var(--space-2)",
     border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
     borderRadius: 8,
@@ -136,6 +137,9 @@ function filterSelectStyle(active: boolean): React.CSSProperties {
     cursor: "pointer",
     fontWeight: active ? 600 : 400,
     outline: "none",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   };
 }
 
@@ -1272,9 +1276,9 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           }}
         >
         {/* ── 行1: フィルター + ビュー切替 ── */}
-        <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap", overflowX: "auto" }}>
           {/* Search input */}
-          <div role="search" style={{ position: "relative", flex: "1 1 180px", minWidth: 140, maxWidth: 260 }}>
+          <div role="search" style={{ position: "relative", flex: "0 0 200px" }}>
             <input
               type="search"
               aria-label="企業名・キーワードで検索"
@@ -1370,7 +1374,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           <select
             value={phase}
             onChange={(e) => setParam("phase", e.target.value)}
-            style={filterSelectStyle(!!phase)}
+            style={filterSelectStyle(!!phase, 120)}
             aria-label="フェーズで絞り込み"
           >
             {PHASE_OPTIONS.map((o) => {
@@ -1389,7 +1393,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           <select
             value={industry}
             onChange={(e) => setParam("industry", e.target.value)}
-            style={filterSelectStyle(!!industry)}
+            style={filterSelectStyle(!!industry, 100)}
             aria-label="業種で絞り込み"
           >
             {INDUSTRY_OPTIONS.map((o) => {
