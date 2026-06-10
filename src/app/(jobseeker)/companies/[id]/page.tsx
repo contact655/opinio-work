@@ -361,7 +361,7 @@ function Hero({
                 )}
               </div>
 
-              {/* Perk keyword chips — work style highlights (max 4) */}
+              {/* Perk keyword chips — work style highlights (max 3) */}
               {(() => {
                 const chips: { icon: string; label: string }[] = [];
                 // Remote/location
@@ -371,19 +371,28 @@ function Hero({
                   chips.push({ icon, label: wl });
                 }
                 // Work style (flex, side job) — ネガティブ情報（不可・なし・禁止）は除外
+                // フレックスとフルフレックスの重複を排除
+                let hasFlexChip = false;
                 for (const ws of detail.work_style) {
                   if (chips.length >= 3) break;
                   const label = ws.label;
                   if (label.includes("不可") || label.includes("禁止") || label.includes("なし")) continue;
-                  const icon = label.includes("フレックス") ? "⏰"
-                    : label.includes("副業") ? "💼"
+                  if (label.includes("フレックス")) {
+                    if (hasFlexChip) continue; // 重複除去
+                    hasFlexChip = true;
+                    // フルフレックスを優先して表示
+                    const displayLabel = chips.some(c => c.label.includes("フレックス")) ? label : label;
+                    chips.push({ icon: "⏰", label: displayLabel });
+                    continue;
+                  }
+                  const icon = label.includes("副業") ? "💼"
                     : label.includes("裁量") ? "⚡"
                     : "✨";
                   chips.push({ icon, label });
                 }
                 // Top benefits
                 for (const b of (detail.benefits ?? [])) {
-                  if (chips.length >= 4) break;
+                  if (chips.length >= 3) break;
                   const icon = b.includes("ストックオプション") || b.includes("SO") ? "📈"
                     : b.includes("書籍") || b.includes("研修") ? "📚"
                     : b.includes("育休") || b.includes("産休") ? "👶"
@@ -393,7 +402,7 @@ function Hero({
                 if (chips.length === 0) return null;
                 return (
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: "var(--space-3)" }}>
-                    {chips.slice(0, 4).map(({ icon, label }) => (
+                    {chips.slice(0, 3).map(({ icon, label }) => (
                       <span
                         key={label}
                         style={{
@@ -488,38 +497,44 @@ function Hero({
                 label: "社員数",
                 value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s + "名以上"; })() : null,
                 color: "var(--royal)",
+                href: undefined as string | undefined,
               },
               {
                 icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>,
                 label: "事業ステージ",
                 value: company.phase ?? null,
                 color: "#7C3AED",
+                href: undefined as string | undefined,
               },
               {
                 icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
                 label: "設立",
                 value: detail.established || null,
                 color: "var(--success)",
+                href: undefined as string | undefined,
               },
               ...(salaryRangeValue ? [{
                 icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
                 label: "想定年収",
                 value: salaryRangeValue,
                 color: "var(--success)",
+                href: undefined as string | undefined,
               }] : []),
               ...(company.job_count > 0 ? [{
                 icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>,
                 label: "募集中の求人",
                 value: `${company.job_count}件`,
                 color: "#D97706",
+                href: "#jobs" as string | undefined,
               }] : []),
               ...(detail.numbers.fundingTotal ? [{
                 icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
                 label: "累計調達",
                 value: detail.numbers.fundingTotal,
                 color: "#7C3AED",
+                href: undefined as string | undefined,
               }] : []),
-            ] as { icon: React.ReactNode; label: string; value: string | null; color: string }[]
+            ] as { icon: React.ReactNode; label: string; value: string | null; color: string; href?: string }[]
           ).filter(s => s.value);
           if (stats.length === 0) return null;
           return (
@@ -532,8 +547,19 @@ function Hero({
                 borderTop: "1px solid var(--line-soft)",
               }}
             >
-              {stats.map(({ icon, label, value, color }, i) => (
-                <div key={label} style={{
+              {stats.map(({ icon, label, value, color, href }, i) => {
+                const inner = (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ color, flexShrink: 0, display: "flex", alignItems: "center" }}>{icon}</span>
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, letterSpacing: "0.02em" }}>{label}</span>
+                    </div>
+                    <span style={{ fontSize: 20, color: href ? color : "var(--ink)", fontWeight: 800, fontFamily: "var(--font-noto-sans)", letterSpacing: "-0.02em" }}>
+                      {value}{href && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ marginLeft: 2, verticalAlign: "middle" }}><polyline points="9 18 15 12 9 6"/></svg>}
+                    </span>
+                  </>
+                );
+                const cellStyle: React.CSSProperties = {
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -541,14 +567,15 @@ function Hero({
                   gap: 4,
                   padding: "10px 0",
                   borderRight: i < stats.length - 1 ? "1px solid var(--line-soft)" : "none",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ color, flexShrink: 0, display: "flex", alignItems: "center" }}>{icon}</span>
-                    <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, letterSpacing: "0.02em" }}>{label}</span>
-                  </div>
-                  <span style={{ fontSize: 20, color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-noto-sans)", letterSpacing: "-0.02em" }}>{value}</span>
-                </div>
-              ))}
+                  ...(href ? { cursor: "pointer", textDecoration: "none" } : {}),
+                };
+                return href ? (
+                  <a key={label} href={href} style={cellStyle}>{inner}</a>
+                ) : (
+                  <div key={label} style={cellStyle}>{inner}</div>
+                );
+              }
+              )}
             </div>
           );
         })()}
@@ -706,7 +733,7 @@ function AboutSection({
               <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>
                 なぜこの会社に入るのか
               </h3>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const, flexShrink: 0 }}>
+              <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", color: "var(--royal)", fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const, flexShrink: 0, background: "var(--royal-50)", border: "1px solid var(--royal-100)", padding: "2px 8px", borderRadius: 6 }}>
                 WHY JOIN
               </span>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
@@ -1043,37 +1070,43 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
       {/* ── 福利厚生 ── */}
       {/* Benefit keyword → emoji mapping */}
       {(() => {
-        const BENEFIT_ICONS: Record<string, string> = {
-          "フルリモート": "🏠", "リモート": "🏠", "在宅": "🏠", "テレワーク": "🏠",
-          "フレックス": "🕐", "フレックスタイム": "🕐", "時差出勤": "🕐",
-          "副業": "💼", "兼業": "💼",
-          "ストックオプション": "📈", "SO": "📈", "持株": "📈",
-          "書籍": "📚", "学習": "📚", "研修": "📚", "勉強会": "📚", "資格": "📚",
-          "育休": "👶", "産休": "👶", "子育て": "👶", "保育": "👶",
-          "健康保険": "🏥", "医療": "🏥", "保険": "🏥",
-          "交通費": "🚃", "定期代": "🚃",
-          "食事": "🍱", "ランチ": "🍱", "社食": "🍱",
-          "休暇": "🌴", "有給": "🌴", "休日": "🌴",
-          "家賃": "🏢", "住宅": "🏢", "社宅": "🏢",
-          "ペット": "🐾",
-          "英語": "🌐", "語学": "🌐", "海外": "🌐",
-          "マッサージ": "💆", "スポーツ": "🏃", "ジム": "🏃",
-          "社員旅行": "✈️",
-          "慶弔": "🎊",
-          "確定拠出": "💰", "退職金": "💰",
-        };
-        function getBenefitIcon(benefit: string): string {
-          for (const [kw, icon] of Object.entries(BENEFIT_ICONS)) {
-            if (benefit.includes(kw)) return icon;
-          }
-          return "✓";
+        // SVGベースの福利厚生アイコン（キーワード → SVG）
+        type BenefitIconDef = { svg: React.ReactNode; color: string; bg: string; border: string };
+        function getBenefitIconDef(benefit: string): BenefitIconDef {
+          const b = benefit;
+          const royal: BenefitIconDef = {
+            color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)",
+            svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
+          };
+          if (b.includes("リモート") || b.includes("在宅") || b.includes("テレワーク") || b.includes("フルリモート"))
+            return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> };
+          if (b.includes("フレックス") || b.includes("時差出勤"))
+            return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> };
+          if (b.includes("副業") || b.includes("兼業"))
+            return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> };
+          if (b.includes("ストックオプション") || b.includes("SO") || b.includes("持株"))
+            return { color: "#065f46", bg: "#d1fae5", border: "#a7f3d0", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> };
+          if (b.includes("書籍") || b.includes("学習") || b.includes("研修") || b.includes("勉強会") || b.includes("資格"))
+            return { color: "#5b21b6", bg: "#ede9fe", border: "#ddd6fe", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> };
+          if (b.includes("育休") || b.includes("産休") || b.includes("子育て") || b.includes("保育"))
+            return { color: "#9a3412", bg: "#ffedd5", border: "#fed7aa", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> };
+          if (b.includes("食事") || b.includes("ランチ") || b.includes("社食"))
+            return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> };
+          if (b.includes("健康") || b.includes("医療") || b.includes("保険"))
+            return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> };
+          if (b.includes("確定拠出") || b.includes("退職金"))
+            return { color: "#065f46", bg: "#d1fae5", border: "#a7f3d0", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> };
+          // default: checkmark
+          return royal;
         }
         return (
       <div style={{ marginBottom: "var(--space-6)" }}>
         <SubSectionHeading>福利厚生</SubSectionHeading>
         {detail.benefits && detail.benefits.length > 0 ? (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-            {detail.benefits.map((b) => (
+            {detail.benefits.map((b) => {
+              const def = getBenefitIconDef(b);
+              return (
               <span
                 key={b}
                 style={{
@@ -1081,18 +1114,19 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
                   alignItems: "center",
                   gap: 6,
                   padding: "7px 14px",
-                  background: "var(--royal-50)",
-                  border: "1px solid var(--royal-100)",
+                  background: def.bg,
+                  border: `1px solid ${def.border}`,
                   borderRadius: 100,
                   fontSize: "var(--text-sm)",
-                  color: "var(--royal)",
-                  fontWeight: 500,
+                  color: def.color,
+                  fontWeight: 600,
                 }}
               >
-                <span style={{ fontSize: "var(--text-base)", lineHeight: 1 }}>{getBenefitIcon(b)}</span>
+                <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{def.svg}</span>
                 {b}
               </span>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div style={{
@@ -1722,11 +1756,11 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
       {/* 上段: アバター + 名前・役職 */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{
-          width: 52, height: 52, borderRadius: "50%",
+          width: 56, height: 56, borderRadius: "50%",
           background: employee.avatarUrl ? undefined : avatarColor.bg,
           flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 20,
+          fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 22,
           color: avatarColor.text, overflow: "hidden",
           border: "2.5px solid var(--line)",
           boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
@@ -1780,12 +1814,16 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
       {/* catchphrase: 相談できること */}
       {employee.catchphrase && (
         <div style={{
-          padding: "8px 10px", borderRadius: 8,
+          padding: "9px 12px", borderRadius: 8,
           background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-          fontSize: 11, color: "var(--royal)", lineHeight: 1.5,
+          fontSize: 12, color: "var(--royal)", lineHeight: 1.55,
+          display: "flex", alignItems: "flex-start", gap: 7,
         }}>
-          <span style={{ fontWeight: 700, marginRight: 4 }}>💬</span>
-          {employee.catchphrase}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0, marginTop: 2, opacity: 0.7 }}>
+            <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
+            <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
+          </svg>
+          <span style={{ fontWeight: 600 }}>{employee.catchphrase}</span>
         </div>
       )}
 
@@ -1992,7 +2030,7 @@ function JobsSection({
         <>
           {detail.jobs.map((cat) => (
             <div key={cat.cat} style={{ marginBottom: "var(--space-6)" }}>
-              {/* カテゴリヘッダー (既存スタイル維持) */}
+              {/* カテゴリヘッダー */}
               <div
                 style={{
                   display: "flex",
@@ -2002,6 +2040,7 @@ function JobsSection({
                   padding: "var(--space-2) var(--space-4)",
                   background: "var(--royal-50)",
                   borderRadius: 8,
+                  borderLeft: "3px solid var(--royal)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--royal)" }}>
@@ -2014,8 +2053,8 @@ function JobsSection({
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontSize: "var(--text-xs)",
-                      color: "var(--royal)",
-                      background: "#fff",
+                      color: "#fff",
+                      background: "var(--royal)",
                       padding: "2px 10px",
                       borderRadius: 100,
                       fontWeight: 700,
@@ -2488,6 +2527,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
       <div style={{
         padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <SecTitle
           iconColor="default"
@@ -2503,6 +2543,16 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
         >
           OPINIO 取材記事
         </SecTitle>
+        {articles.length > 0 && (
+          <span style={{
+            fontSize: 11, fontWeight: 700, color: "#92400e",
+            background: "#fef3c7", border: "1px solid #fde68a",
+            padding: "2px 10px", borderRadius: 100, fontFamily: "Inter, sans-serif",
+            flexShrink: 0,
+          }}>
+            {articles.length}件
+          </span>
+        )}
       </div>
       <div style={{ padding: "var(--space-6)" }}>
         {articles.length === 0 ? (
