@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { searchCompanies } from "@/lib/search/companies";
 import type { WorkStyleValue } from "@/lib/search/companies";
-import { CompanyCardCompact } from "./CompanyCardCompact";
+import { CompanyCardList } from "./CompanyCardList";
 
 type Props = {
   q?: string;
@@ -33,14 +33,14 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
       <style>{`
         .search-results-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
+          grid-template-columns: 1fr;
+          gap: 10px;
         }
         @media (min-width: 641px) {
-          .search-results-grid { grid-template-columns: repeat(3, 1fr); }
+          .search-results-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
         }
         @media (min-width: 1025px) {
-          .search-results-grid { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+          .search-results-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
         }
 
         /* genre-card が GenreCarousel の <style> に依存しているため、ここでも定義 */
@@ -130,7 +130,7 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
       ) : (
         <div className="search-results-grid">
           {companies.map((company) => (
-            <CompanyCardCompact key={company.id} company={company} />
+            <CompanyCardList key={company.id} company={company} compact />
           ))}
         </div>
       )}
