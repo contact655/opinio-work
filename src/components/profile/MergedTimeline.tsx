@@ -7,6 +7,21 @@ import FutureSectionEditor from "./FutureSectionEditor";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import SchoolLogoImg from "./SchoolLogoImg";
 
+// ─── 会社名を短縮: "株式会社LayerX" → "LayerX" ────────────────────────────────
+function shortCompanyName(name: string): string {
+  return name
+    .replace(/^株式会社\s*/, "")
+    .replace(/\s*株式会社$/, "")
+    .replace(/^有限会社\s*/, "")
+    .replace(/\s*有限会社$/, "")
+    .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, "")
+    .replace(/\s+Co\.,?\s*Ltd\.?$/i, "")
+    .replace(/\s*,\s*Inc\.?$/i, "")
+    .replace(/\s+Inc\.?$/i, "")
+    .replace(/\s+Japan$/i, "")
+    .trim() || name;
+}
+
 // ─── ExpandableDesc: 長い説明文を150字で折りたたみ ───────────────────────────
 const DESC_THRESHOLD = 150;
 function ExpandableDesc({ text }: { text: string }) {
@@ -600,7 +615,7 @@ function CareerContent({
               textDecoration: "none",
             }}
           >
-            {data.company_name}
+            {shortCompanyName(data.company_name)}
           </Link>
         ) : (
           <span
@@ -610,7 +625,7 @@ function CareerContent({
               color: "#111",
             }}
           >
-            {data.company_name}
+            {shortCompanyName(data.company_name)}
           </span>
         )}
         {data.employment_type && (
@@ -766,7 +781,7 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
               textDecoration: "none",
             }}
           >
-            {data.company_name}
+            {shortCompanyName(data.company_name)}
           </Link>
         ) : (
           <span
@@ -776,7 +791,7 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
               color: "#111",
             }}
           >
-            {data.company_name}
+            {shortCompanyName(data.company_name)}
           </span>
         )}
         {data.employment_type && (
@@ -1067,11 +1082,11 @@ export default function MergedTimeline({
                       {head.company_id ? (
                         <Link href={`/companies/${head.company_id}`} className="company-name-link"
                           style={{ fontSize: 18, fontWeight: 700, color: "#111", textDecoration: "none" }}>
-                          {head.company_name}
+                          {shortCompanyName(head.company_name)}
                         </Link>
                       ) : (
                         <span style={{ fontSize: 18, fontWeight: 700, color: "#111" }}>
-                          {head.company_name}
+                          {shortCompanyName(head.company_name)}
                         </span>
                       )}
                       <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", fontWeight: 400 }}>

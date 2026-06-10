@@ -22,6 +22,23 @@ import {
 } from "@/components/SocialIcon";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** 会社名から法人格プレフィックス・サフィックスを除去して短縮名を返す */
+function shortCompanyName(name: string): string {
+  return name
+    .replace(/^株式会社\s*/, "")
+    .replace(/\s*株式会社$/, "")
+    .replace(/^有限会社\s*/, "")
+    .replace(/\s*有限会社$/, "")
+    .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, "")
+    .replace(/\s+Co\.,?\s*Ltd\.?$/i, "")
+    .replace(/\s*,\s*Inc\.?$/i, "")
+    .replace(/\s+Inc\.?$/i, "")
+    .replace(/\s+Japan$/i, "")
+    .trim() || name;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /** JSONB キー名と一致（"x" = X、ν-8 段階6-1 E で twitter → x 移行済み） */
@@ -360,14 +377,20 @@ export default async function UserProfilePage({ params }: { params: { id: string
     <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
       <style>{`
         .profile-grid {
-          display: block;
+          display: grid;
+          grid-template-columns: 1fr 272px;
+          gap: 20px;
+          align-items: start;
         }
         .profile-sidebar {
-          display: none;
+          display: block;
         }
         @media (max-width: 960px) {
           .profile-grid {
             display: block;
+          }
+          .profile-sidebar {
+            display: none;
           }
           .profile-sidebar-sticky {
             position: static !important;
@@ -416,10 +439,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
             }} />
           </div>
 
-          <div className="profile-header-body" style={{ padding: "0 32px 32px", marginTop: -56, position: "relative" }}>
+          <div className="profile-header-body" style={{ padding: "0 32px 32px", marginTop: -60, position: "relative" }}>
             {/* Avatar: photo or gradient letter */}
             <div className="profile-avatar profile-avatar-wrap" style={{
-              width: 112, height: 112, borderRadius: "50%",
+              width: 120, height: 120, borderRadius: "50%",
               background: owUser.avatar_url ? undefined : avatarColor,
               color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 42, fontWeight: 600,
@@ -467,13 +490,19 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 </div>
                 {/* Current role subtitle */}
                 {currentCareer && (
-                  <div style={{ fontSize: 14, color: "var(--ink-soft)", marginBottom: "var(--space-2)", lineHeight: 1.4 }}>
-                    {currentCareer.role_label}
+                  <div style={{ marginBottom: "var(--space-2)", lineHeight: 1.5 }}>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
+                      {currentCareer.role_title || currentCareer.role_label}
+                    </span>
+                    {currentCareer.role_title && currentCareer.role_title !== currentCareer.role_label && (
+                      <span style={{ fontSize: 13, color: "var(--ink-mute)", marginLeft: 6 }}>({currentCareer.role_label})</span>
+                    )}
                     {currentCareer.company_name && isCurrentCompanyKnown && (
-                      <> @ <Link href={`/companies/${currentCareer.company_id!}`} style={{ color: "var(--ink-soft)", textDecoration: "none", borderBottom: "1px solid var(--line)" }}>{currentCareer.company_name}</Link></>
+                      <> <span style={{ fontSize: 14, color: "var(--ink-soft)" }}>@</span>{" "}
+                      <Link href={`/companies/${currentCareer.company_id!}`} style={{ fontSize: 14, color: "var(--royal)", textDecoration: "none", fontWeight: 600, borderBottom: "1px solid var(--royal-100)" }}>{shortCompanyName(currentCareer.company_name)}</Link></>
                     )}
                     {currentCareer.company_name && !isCurrentCompanyKnown && currentCareer.company_name !== "不明な企業" && (
-                      <> @ {currentCareer.company_name}</>
+                      <span style={{ fontSize: 14, color: "var(--ink-soft)" }}> @ {shortCompanyName(currentCareer.company_name)}</span>
                     )}
                   </div>
                 )}
@@ -754,7 +783,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 <section style={{
                   background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
                   border: "1px solid #fde68a", borderRadius: 14,
-                  padding: "18px 22px", marginBottom: 32,
+                  padding: "18px 22px", marginBottom: 20,
                 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: "var(--space-2)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
@@ -790,15 +819,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {owUser.about_me ? (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "24px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
                   <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-                    About Me
-                  </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                    SELF INTRO
+                    自己紹介
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
@@ -822,7 +848,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             ) : viewerIsOwner ? (
               <section style={{
                 background: "var(--bg-tint)", border: "1.5px dashed var(--line)",
-                borderRadius: 14, padding: "28px", marginBottom: 32,
+                borderRadius: 14, padding: "28px", marginBottom: 20,
                 textAlign: "center",
               }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: 10 }}>
@@ -846,7 +872,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {achievements.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -917,7 +943,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {awards.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -991,7 +1017,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {certifications.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1048,7 +1074,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {timelineCareers.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "24px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
@@ -1072,7 +1098,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {timelineEdus.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "24px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
@@ -1094,7 +1120,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {skillTags.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1194,7 +1220,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {(viewerIsOwner || recentPostsTyped.length > 0) && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1251,7 +1277,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {mediaAppearances.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1351,7 +1377,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {featuredArticles.length > 0 && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1421,7 +1447,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {(recommendations.length > 0 || (!viewerIsOwner && !!authUser)) && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1476,7 +1502,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {(contentLinks.length > 0 || viewerIsOwner) && (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 32,
+                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
@@ -1642,7 +1668,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         fontSize: 14, fontWeight: 700, color: "var(--ink)",
                         marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                       }}>
-                        {currentCareer.company_name}
+                        {shortCompanyName(currentCareer.company_name)}
                       </div>
                       <div style={{ fontSize: 12, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {currentCareer.role_label}
@@ -1657,15 +1683,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
                     <div style={{
                       width: 48, height: 48, borderRadius: 10, flexShrink: 0,
-                      background: currentCareer.logo_gradient ?? "linear-gradient(135deg, #64748b, #94a3b8)",
+                      background: "linear-gradient(135deg, #64748b, #94a3b8)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 18, fontWeight: 700,
                       border: "1px solid rgba(0,0,0,0.06)",
                     }}>
-                      {currentCareer.logo_letter ?? "非"}
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      </svg>
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 2 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 2 }}>
                         非公開企業
                       </div>
                       <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
