@@ -497,13 +497,6 @@ function Hero({
                 href: undefined as string | undefined,
               },
               {
-                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>,
-                label: "事業ステージ",
-                value: company.phase ?? null,
-                color: "#7C3AED",
-                href: undefined as string | undefined,
-              },
-              {
                 icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
                 label: "設立",
                 value: detail.established || null,
@@ -910,11 +903,20 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.main_products!.length}製品</span>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-              gap: "var(--space-2)",
-            }}>
+            <style>{`
+              .products-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--space-2);
+              }
+              @media (min-width: 640px) {
+                .products-grid { grid-template-columns: repeat(3, 1fr); }
+              }
+              @media (min-width: 900px) {
+                .products-grid { grid-template-columns: repeat(5, 1fr); }
+              }
+            `}</style>
+            <div className="products-grid">
               {detail.main_products!.map((raw, i) => {
                 const { name, sub } = parseProductName(raw);
                 const s = productStyle(name);
@@ -1810,21 +1812,6 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         </div>
       )}
 
-      {/* catchphraseがない時: 在籍ロールバッジで情報を補完 */}
-      {!employee.catchphrase && employee.roleTitle && (
-        <div style={{
-          padding: "6px 10px", borderRadius: 8,
-          background: "var(--bg-tint)", border: "1px solid var(--line-soft)",
-          fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.5,
-          display: "flex", alignItems: "center", gap: 6,
-        }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
-            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-          </svg>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{employee.roleTitle}</span>
-        </div>
-      )}
-
       {/* catchphrase: 相談できること */}
       {employee.catchphrase && (
         <div style={{
@@ -2599,13 +2586,15 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
                         display: "flex", alignItems: "center", justifyContent: "center",
                         position: "relative",
                       }}>
-                        <span style={{ fontSize: 52, opacity: 0.25 }}>{icon}</span>
-                        <div style={{ position: "absolute", top: 12, left: 14 }}>
+                        {/* Royal overlay to harmonise vivid eyecatch colors */}
+                        <div style={{ position: "absolute", inset: 0, background: "rgba(0,35,102,0.38)", mixBlendMode: "multiply" }} />
+                        <span style={{ fontSize: 52, opacity: 0.25, position: "relative", zIndex: 1 }}>{icon}</span>
+                        <div style={{ position: "absolute", top: 12, left: 14, zIndex: 1 }}>
                           <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 10px", borderRadius: 100, background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}>
                             {badge.label}
                           </span>
                         </div>
-                        <div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 10, color: "rgba(255,255,255,0.75)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+                        <div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 10, color: "rgba(255,255,255,0.75)", fontFamily: "Inter, sans-serif", fontWeight: 500, zIndex: 1 }}>
                           {article.read_min} min read
                         </div>
                       </div>
@@ -2651,8 +2640,10 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
                           display: "flex", alignItems: "center", justifyContent: "center",
                           position: "relative",
                         }}>
-                          <span style={{ fontSize: 32, opacity: 0.3 }}>{icon}</span>
-                          <div style={{ position: "absolute", bottom: 7, right: 7, fontSize: 9, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+                          {/* Royal overlay */}
+                          <div style={{ position: "absolute", inset: 0, background: "rgba(0,35,102,0.38)", mixBlendMode: "multiply" }} />
+                          <span style={{ fontSize: 32, opacity: 0.3, position: "relative", zIndex: 1 }}>{icon}</span>
+                          <div style={{ position: "absolute", bottom: 7, right: 7, fontSize: 9, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500, zIndex: 1 }}>
                             {article.read_min} min
                           </div>
                         </div>
@@ -2951,73 +2942,32 @@ function Sidebar({
         );
       })()}
 
-      {/* 申し込みの流れ — casual meeting flow steps */}
+      {/* 申し込みの流れ — コンパクト1行表示 */}
       {company.accepting_casual_meetings === true && (
         <div
           style={{
-            background: "#fff",
-            border: "1px solid var(--line)",
-            borderRadius: 16,
-            padding: "var(--space-4)",
-            boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+            background: "var(--bg-tint)",
+            border: "1px solid var(--line-soft)",
+            borderRadius: 10,
+            padding: "10px 14px",
           }}
         >
-          <div
-            style={{
-              fontSize: "var(--text-sm)",
-              fontWeight: 700,
-              color: "#334155",
-              letterSpacing: "0.02em",
-              marginBottom: "var(--space-4)",
-              fontFamily: "var(--font-noto-sans)",
-            }}
-          >
-            申し込みの流れ
-          </div>
-          {[
-            { n: "1", label: "フォームで申し込む", sub: "1分で完了" },
-            { n: "2", label: "採用担当者から連絡" },
-            { n: "3", label: "日程を調整" },
-            { n: "4", label: "カジュアル面談（約30分）", sub: "無料・秘密厳守" },
-          ].map(({ n, label, sub }, i, arr) => (
-            <div key={n} style={{ display: "flex", gap: "var(--space-3)", position: "relative" }}>
-              {/* Connector line */}
-              {i < arr.length - 1 && (
-                <div style={{
-                  position: "absolute", left: 10, top: 22, bottom: -8, width: 1,
-                  background: "var(--line-soft)",
-                }} />
-              )}
-              {/* Step number circle */}
-              <div style={{
-                width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-                background: i === 0 ? "var(--warm)" : "var(--bg-tint)",
-                border: i === 0 ? "none" : "1px solid var(--line)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 700,
-                color: i === 0 ? "#fff" : "var(--ink-mute)",
-                fontFamily: "Inter, sans-serif",
-                boxShadow: i === 0 ? "0 2px 8px rgba(245,158,11,0.3)" : "none",
-              }}>
-                {n}
-              </div>
-              {/* Label */}
-              <div style={{ paddingBottom: i < arr.length - 1 ? 18 : 0 }}>
-                <div style={{
-                  fontSize: "var(--text-sm)", fontWeight: i === 0 ? 600 : 500,
-                  color: i === 0 ? "var(--ink)" : "var(--ink-soft)",
-                  lineHeight: 1.35,
-                }}>
-                  {label}
-                </div>
-                {sub && (
-                  <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", marginTop: 2 }}>
-                    {sub}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+          <p style={{
+            margin: 0,
+            fontSize: 12,
+            color: "var(--ink-soft)",
+            lineHeight: 1.6,
+          }}>
+            💬 気軽に話すだけでOK。選考なし・完全無料。
+          </p>
+          <p style={{
+            margin: "4px 0 0",
+            fontSize: 11,
+            color: "var(--ink-mute)",
+            lineHeight: 1.5,
+          }}>
+            フォーム1分 → 担当者から連絡 → 日程調整 → 面談（約30分）
+          </p>
         </div>
       )}
 
