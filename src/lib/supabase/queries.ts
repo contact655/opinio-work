@@ -358,13 +358,15 @@ export type CompanyListRow = {
   job_count: number;
   /** カード上部に表示するオフィス写真 URL（ow_company_office_photos の display_order 最小のもの） */
   cover_photo_url: string | null;
+  /** 会社の特徴・強みタグ（例: ["リモートファースト", "成長期"]） */
+  company_features: string[] | null;
 };
 
 const COMPANY_LISTPAGE_COLS = [
   "id", "name", "name_en", "tagline", "industry", "phase", "employee_count",
   "avg_salary", "logo_gradient", "logo_letter", "logo_url",
   "location", "accepting_casual_meetings", "remote_work_status",
-  "is_published", "jobs_public", "updated_at",
+  "is_published", "jobs_public", "updated_at", "company_features",
 ].join(", ");
 
 /**
@@ -443,6 +445,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     updated_at: (row.updated_at as string) ?? "",
     job_count: jobCountMap.get(row.id as string) ?? 0,
     cover_photo_url: coverPhotoMap.get(row.id as string) ?? null,
+    company_features: Array.isArray(row.company_features) ? (row.company_features as string[]) : null,
   }));
 }
 

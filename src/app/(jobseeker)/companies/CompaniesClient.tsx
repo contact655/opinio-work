@@ -343,23 +343,25 @@ function CompanyCardCard({
           </div>
 
           {/* Tagline */}
-          <p
-            style={
-              {
-                fontSize: "var(--text-sm)",
-                lineHeight: 1.7,
-                color: "var(--ink-soft)",
-                flex: 1,
-                margin: 0,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              } as React.CSSProperties
-            }
-          >
-            {company.tagline || "詳細情報は企業ページをご覧ください"}
-          </p>
+          {company.tagline ? (
+            <p
+              style={
+                {
+                  fontSize: "var(--text-sm)",
+                  lineHeight: 1.7,
+                  color: "var(--ink-soft)",
+                  flex: 1,
+                  margin: 0,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                } as React.CSSProperties
+              }
+            >
+              {company.tagline}
+            </p>
+          ) : <div style={{ flex: 1 }} />}
 
           {/* Salary */}
           {company.avg_salary && (
@@ -396,7 +398,7 @@ function CompanyCardCard({
                 whiteSpace: "nowrap",
               }}
             >
-              {company.location}
+              {extractPrefecture(company.location) || company.location}
             </span>
             {company.employee_count && (
               <>
@@ -544,22 +546,24 @@ function CompanyCardGrid({ company }: { company: CompanyListRow }) {
           )}
 
           {/* Tagline */}
-          <p
-            style={
-              {
-                fontSize: 13,
-                lineHeight: 1.6,
-                color: "var(--ink-soft)",
-                margin: "0 0 6px",
-                display: "-webkit-box",
-                WebkitLineClamp: 1,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              } as React.CSSProperties
-            }
-          >
-            {company.tagline || "詳細情報は企業ページをご覧ください"}
-          </p>
+          {company.tagline && (
+            <p
+              style={
+                {
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  color: "var(--ink-soft)",
+                  margin: "0 0 6px",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 1,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                } as React.CSSProperties
+              }
+            >
+              {company.tagline}
+            </p>
+          )}
 
           {/* Location + employees */}
           <div
@@ -572,7 +576,7 @@ function CompanyCardGrid({ company }: { company: CompanyListRow }) {
             }}
           >
             <span>📍</span>
-            <span>{company.location}</span>
+            <span>{extractPrefecture(company.location) || company.location}</span>
             {company.employee_count && (
               <>
                 <span style={{ color: "var(--line)" }}>·</span>
@@ -723,32 +727,59 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
           </div>
 
           {/* Tagline */}
-          <p
-            style={
-              {
-                fontSize: 13,
-                lineHeight: 1.6,
-                color: "var(--ink-soft)",
-                margin: 0,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              } as React.CSSProperties
-            }
-          >
-            {company.tagline || "詳細情報は企業ページをご覧ください"}
-          </p>
+          {company.tagline && (
+            <p
+              style={
+                {
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  color: "var(--ink-soft)",
+                  margin: 0,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                } as React.CSSProperties
+              }
+            >
+              {company.tagline}
+            </p>
+          )}
 
-          {/* Location + salary */}
+          {/* Company features tags */}
+          {company.company_features && company.company_features.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {company.company_features.slice(0, 5).map((feat) => (
+                <span
+                  key={feat}
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    padding: "2px 8px",
+                    borderRadius: 100,
+                    background: "var(--royal-50)",
+                    color: "var(--royal)",
+                    border: "1px solid var(--royal-100)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  #{feat}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Bottom row: location + salary + job count + CTA */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 12,
+              gap: 10,
               flexWrap: "wrap",
+              marginTop: "auto",
             }}
           >
+            {/* Location + employees */}
             <span
               style={{
                 fontSize: 11,
@@ -756,27 +787,92 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
                 display: "flex",
                 alignItems: "center",
                 gap: 4,
+                flexShrink: 0,
               }}
             >
               <span>📍</span>
-              {company.location}
+              {extractPrefecture(company.location) || company.location}
               {company.employee_count && (
                 <span style={{ marginLeft: 4 }}>· {company.employee_count}</span>
               )}
             </span>
+
+            {/* Salary */}
             {company.avg_salary && (
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: "var(--success)",
                   display: "flex",
                   alignItems: "center",
                   gap: 4,
+                  flexShrink: 0,
                 }}
               >
-                <span style={{ fontSize: 11 }}>💴</span>
+                <span style={{ fontSize: 10 }}>💴</span>
                 {company.avg_salary}
+              </span>
+            )}
+
+            {/* Job count badge */}
+            {company.job_count > 0 && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: "2px 8px",
+                  borderRadius: 100,
+                  background: "var(--success-soft)",
+                  color: "var(--success)",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                求人 {company.job_count}件
+              </span>
+            )}
+
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
+
+            {/* CTA button */}
+            {company.accepting_casual_meetings ? (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "5px 14px",
+                  borderRadius: 8,
+                  background: "linear-gradient(135deg, #f59e0b, #ea580c)",
+                  color: "#fff",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                  boxShadow: "0 2px 6px rgba(234,88,12,0.25)",
+                }}
+              >
+                話を聞く →
+              </span>
+            ) : (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "5px 14px",
+                  borderRadius: 8,
+                  border: "1px solid var(--line)",
+                  color: "var(--ink-mute)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                企業詳細 →
               </span>
             )}
           </div>
@@ -911,7 +1007,10 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
 
   // Local state
   const [q, setQ] = useState("");
-  const [layout, setLayout] = useState<LayoutMode>("card");
+  const viewParam = searchParams.get("view") as LayoutMode | null;
+  const [layout, setLayout] = useState<LayoutMode>(
+    viewParam === "grid" || viewParam === "list" ? viewParam : "card"
+  );
 
   // Bookmark state
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
@@ -947,6 +1046,14 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
     if (value) params.set(key, value);
     else params.delete(key);
     params.delete("page");
+    router.replace(`/companies?${params.toString()}`);
+  }
+
+  function changeLayout(mode: LayoutMode) {
+    setLayout(mode);
+    const params = new URLSearchParams(searchParams.toString());
+    if (mode === "card") params.delete("view");
+    else params.set("view", mode);
     router.replace(`/companies?${params.toString()}`);
   }
 
@@ -1074,9 +1181,9 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
   ] as const;
 
   const LAYOUT_BTNS: { mode: LayoutMode; label: string; Icon: React.FC<{ size?: number }> }[] = [
-    { mode: "list", label: "リスト表示", Icon: IconList },
-    { mode: "grid", label: "グリッド表示", Icon: IconGrid },
-    { mode: "card", label: "カード表示", Icon: IconCard },
+    { mode: "card", label: "一覧", Icon: IconCard },
+    { mode: "grid", label: "カード", Icon: IconGrid },
+    { mode: "list", label: "詳細", Icon: IconList },
   ];
 
   return (
@@ -1371,14 +1478,14 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
                 <button
                   key={mode}
                   type="button"
-                  onClick={() => setLayout(mode)}
+                  onClick={() => changeLayout(mode)}
                   aria-label={label}
                   aria-pressed={layout === mode}
                   style={{
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    width: 34,
+                    gap: 5,
+                    padding: "0 10px",
                     height: 34,
                     border: `1px solid ${layout === mode ? "var(--royal)" : "var(--line)"}`,
                     borderRadius: 8,
@@ -1386,9 +1493,11 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
                     color: layout === mode ? "var(--royal)" : "var(--ink-mute)",
                     cursor: "pointer",
                     transition: "all 0.15s",
+                    fontWeight: layout === mode ? 700 : 500,
                   }}
                 >
-                  <Icon size={15} />
+                  <Icon size={14} />
+                  <span style={{ fontSize: 11 }}>{label}</span>
                 </button>
               ))}
             </div>
