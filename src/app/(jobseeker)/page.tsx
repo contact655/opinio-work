@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import HomeFaq from "@/app/HomeFaq";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import { CountUp } from "@/components/jobseeker/CountUp";
@@ -22,16 +21,6 @@ const PAIN_POINTS = [
     a: "求人票がいつ更新されたのか分からない。OPINIOでは編集部の取材と企業アンケートで情報を更新し続け、更新日も明示します。",
   },
   {
-    icon: <SearchIcon />,
-    q: "「フルリモートで副業OK」の条件が探しにくい",
-    a: "働き方が多様化したのに、複数条件での検索が機能しない。OPINIOは働き方×勤務地×企業タイプの組み合わせで、抜け漏れなく探せる設計です。",
-  },
-  {
-    icon: <ShieldIcon />,
-    q: "どの求人サイトを見れば、抜け漏れないか分からない",
-    a: "サービスによって掲載企業がバラバラ。OPINIOはIT/SaaS業界の求人を網羅的に集め、ここを見れば済む場所を目指します。",
-  },
-  {
     icon: <ChatIcon />,
     q: "求人票には書けない「本当の組織文化」が知りたい",
     a: "公式情報だけでは、入社後のギャップが怖い。OPINIO編集部が現場メンバーへ直接取材した、生の組織文化レポートを各企業ページで公開しています。",
@@ -40,11 +29,6 @@ const PAIN_POINTS = [
     icon: <PhoneOffIcon />,
     q: "エージェントに登録すると、営業電話が止まらない",
     a: "登録したら電話・メールラッシュで、冷静に比較できない。OPINIOは電話一切なし、すべてオンラインで自分のペースで進められる設計です。",
-  },
-  {
-    icon: <PersonIcon />,
-    q: "応募前に、社内の雰囲気や文化を確かめられない",
-    a: "求人票だけでは入社後のギャップが不安。OPINIOでは企業のカジュアル面談に直接申し込めます。現役メンバーから生の声を聞いてから、応募を判断できます。",
   },
 ];
 
@@ -123,7 +107,6 @@ function formatSalary(min: number | null, max: number | null): string | null {
 }
 
 function Hero({ stats }: { stats: SiteStats }) {
-  const router = useRouter();
   const [jobs, setJobs] = useState<PreviewJob[]>([]);
 
   useEffect(() => {
@@ -189,9 +172,9 @@ function Hero({ stats }: { stats: SiteStats }) {
             <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" as const, marginBottom: 14 }}>
               <Link href="/companies" style={{
                 display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
-                padding: "var(--space-4) 28px", background: "#fff", color: "var(--royal)",
+                padding: "var(--space-4) 28px", background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
                 fontWeight: 700, fontSize: 15, borderRadius: 8, textDecoration: "none",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
+                boxShadow: "0 4px 20px rgba(245,158,11,0.4)",
               }}>
                 まず企業を見てみる <ArrowIcon />
               </Link>
@@ -243,70 +226,6 @@ function Hero({ stats }: { stats: SiteStats }) {
             ))}
           </div>
 
-          {/* Quick search bar */}
-          <div style={{ marginTop: "var(--space-8)" }}>
-            <form
-              role="search"
-              aria-label="求人・企業を検索"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const q = (e.currentTarget.querySelector('input') as HTMLInputElement).value.trim();
-                if (q) router.push(`/jobs?q=${encodeURIComponent(q)}`);
-                else router.push('/jobs');
-              }}
-              style={{
-                display: "flex",
-                background: "rgba(255,255,255,0.97)",
-                borderRadius: 12,
-                overflow: "hidden",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-              }}
-            >
-              <input
-                type="search"
-                placeholder="職種・スキル・企業名で検索..."
-                aria-label="職種・スキル・企業名で検索"
-                style={{
-                  flex: 1, padding: "14px var(--space-4)", fontSize: "var(--text-base)",
-                  border: "none", outline: "none", color: "var(--ink)",
-                  background: "transparent",
-                  fontFamily: "'Noto Sans JP', sans-serif",
-                }}
-              />
-              <button
-                type="submit"
-                style={{
-                  padding: "0 20px",
-                  background: "var(--royal)", color: "#fff",
-                  border: "none", cursor: "pointer",
-                  fontSize: "var(--text-sm)", fontWeight: 600,
-                  display: "flex", alignItems: "center", gap: 6,
-                  flexShrink: 0,
-                }}
-              >
-                <SearchIcon />
-                検索
-              </button>
-            </form>
-            <div style={{ marginTop: 10, display: "flex", gap: "var(--space-2)", flexWrap: "wrap" as const }}>
-              {["フルリモート", "カスタマーサクセス", "プロダクトマネージャー", "副業OK"].map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  aria-label={`${tag}で検索`}
-                  onClick={() => router.push(`/jobs?q=${encodeURIComponent(tag)}`)}
-                  style={{
-                    fontSize: "var(--text-xs)", padding: "4px var(--space-3)", borderRadius: 100,
-                    background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.8)",
-                    border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer",
-                    fontWeight: 500,
-                  }}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Right: search mockup */}
@@ -752,7 +671,7 @@ function FeaturedCompaniesSection() {
               fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.12em",
               color: "var(--royal)", textTransform: "uppercase" as const, marginBottom: "var(--space-2)",
             }}>
-              COMPANIES
+              掲載企業
             </div>
             <h2 style={{
               fontSize: "clamp(20px,2.5vw,28px)", fontWeight: 700, color: "var(--ink)",
@@ -916,10 +835,10 @@ function InfraSection() {
   ];
 
   return (
-    <section style={{ padding: "80px 48px" }} className="px-5 md:px-12">
+    <section style={{ padding: "72px 48px", background: "#fff" }} className="px-5 md:px-12">
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <SectionTag>WHAT MAKES OPINIO DIFFERENT</SectionTag>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <SectionTag>他社との違い</SectionTag>
           <h2 style={{ fontSize: "clamp(24px,3vw,34px)", fontWeight: 700, color: "var(--ink)", marginTop: "var(--space-4)", marginBottom: "var(--space-3)" }}>
             他のキャリアサービスと、ここが違う。
           </h2>
@@ -1000,10 +919,10 @@ function HowItWorks() {
   ];
 
   return (
-    <section style={{ background: "var(--bg-tint)", padding: "96px 48px" }} className="px-5 py-16 md:py-24 md:px-12">
+    <section style={{ background: "var(--bg-tint)", padding: "72px 48px" }} className="px-5 py-14 md:py-20 md:px-12">
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <SectionTag>HOW IT WORKS</SectionTag>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <SectionTag>使い方</SectionTag>
           <h2 style={{ fontSize: "clamp(26px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: "var(--space-4)" }}>
             OPINIOの、使い方
           </h2>
@@ -1039,10 +958,17 @@ function HowItWorks() {
                 </Link>
               </div>
               {i < 2 && (
-                <div className="hidden md:flex justify-center" style={{ color: "var(--ink-mute)" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M13 5l7 7-7 7" />
-                  </svg>
+                <div className="hidden md:flex justify-center items-center" style={{ flexShrink: 0 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #F59E0B, #D97706)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: "0 3px 10px rgba(245,158,11,0.35)",
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M13 5l7 7-7 7" />
+                    </svg>
+                  </div>
                 </div>
               )}
             </React.Fragment>
@@ -1057,10 +983,10 @@ function HowItWorks() {
 
 function PainPoints() {
   return (
-    <section style={{ padding: "96px 48px" }} className="px-5 py-16 md:py-24 md:px-12">
+    <section style={{ padding: "72px 48px", background: "var(--bg-tint)" }} className="px-5 py-14 md:py-20 md:px-12">
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <SectionTag>PAIN POINTS</SectionTag>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <SectionTag>よくある悩み</SectionTag>
           <h2 style={{ fontSize: "clamp(26px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: "var(--space-4)" }}>
             転職活動、こんな不便ありませんか？
           </h2>
@@ -1167,10 +1093,10 @@ const USE_CASES = [
 
 function UserTestimonials() {
   return (
-    <section style={{ background: "#fff", padding: "96px 48px", borderTop: "1px solid var(--line)" }} className="px-5 py-16 md:py-24 md:px-12">
+    <section style={{ background: "#fff", padding: "72px 48px", borderTop: "1px solid var(--line)" }} className="px-5 py-14 md:py-20 md:px-12">
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <SectionTag>USE CASES</SectionTag>
+        <div style={{ textAlign: "center", marginBottom: 44 }}>
+          <SectionTag>こんな人が使っています</SectionTag>
           <h2 style={{
             fontSize: "clamp(24px,3vw,34px)", fontWeight: 700,
             color: "var(--ink)", marginBottom: "var(--space-3)",
@@ -1227,16 +1153,9 @@ function UserTestimonials() {
                 fontSize: "var(--text-sm)", lineHeight: 1.8, color: "var(--ink-soft)",
                 marginBottom: 14, fontStyle: "italic",
                 borderLeft: "3px solid var(--line)", paddingLeft: 10,
+                flex: 1,
               }}>
                 {c.scene}
-              </p>
-
-              {/* 使い方 */}
-              <p style={{
-                fontSize: 12, lineHeight: 1.8, color: "var(--ink-soft)",
-                marginBottom: "var(--space-4)", flex: 1,
-              }}>
-                {c.how}
               </p>
 
               {/* アウトカム */}
