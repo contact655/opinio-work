@@ -219,7 +219,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 12,
+            gap: 14,
             background: "#fff",
             borderRadius: 12,
             /* 求人あり → 左ボーダーをロイヤルブルーに（shorthand を避け個別プロパティで指定） */
@@ -230,7 +230,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
             textDecoration: "none",
             color: "inherit",
-            padding: company.job_count > 0 ? "12px 14px 12px 12px" : "12px 14px",
+            padding: company.job_count > 0 ? "14px 16px 14px 12px" : "14px 16px",
             overflow: "hidden",
           }}
         >
@@ -264,20 +264,20 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           {/* ── テキスト情報（4行）── */}
           <div style={{
             flex: 1, minWidth: 0,
-            display: "flex", flexDirection: "column", gap: 3,
+            display: "flex", flexDirection: "column", gap: 4,
           }}>
             {/* 行1: バッジ2つ + ブックマーク */}
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {company.industry && (
                 <span style={{
-                  fontSize: 10, fontWeight: 700, padding: "1px 5px", borderRadius: 4,
+                  fontSize: 11, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
                   background: "var(--royal-50)", color: "var(--royal)",
                   border: "1px solid var(--royal-100)", whiteSpace: "nowrap", flexShrink: 0,
                 }}>{company.industry.replace(/\/SaaS$/i, "")}</span>
               )}
               {stageCfg && (
                 <span style={{
-                  fontSize: 10, fontWeight: stageCfg.fontWeight ?? 700, padding: "1px 6px", borderRadius: 100,
+                  fontSize: 11, fontWeight: stageCfg.fontWeight ?? 700, padding: "2px 7px", borderRadius: 100,
                   background: stageCfg.bg, color: stageCfg.color, border: `1px solid ${stageCfg.border}`,
                   whiteSpace: "nowrap", flexShrink: 0,
                 }}>{stageCfg.label}</span>
@@ -300,7 +300,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
 
             {/* 行2: 社名（1行truncate） */}
             <span className="clv-name" style={{
-              fontSize: 14, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25,
+              fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25,
               fontFamily: isEnName ? "Inter, sans-serif" : "var(--font-noto-sans)",
               letterSpacing: isEnName ? "-0.02em" : "0",
               transition: "color 0.15s",
@@ -311,7 +311,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             {/* 行3: タグライン（2行まで） */}
             {company.tagline && (
               <span style={{
-                fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4,
+                fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.45,
                 overflow: "hidden",
                 display: "-webkit-box",
                 WebkitLineClamp: 2,
@@ -322,31 +322,31 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             {/* 行4: メタ（所在地 + 従業員数 + 求人/面談バッジ） */}
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {company.location && (
-                <span style={{ fontSize: 10, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }}>
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                   </svg>
                   {company.location.replace(/^東京都/, "東京")}
                 </span>
               )}
               {company.employee_count && (
-                <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>· {company.employee_count}</span>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>· {company.employee_count}</span>
               )}
               {company.job_count > 0 ? (
                 <span style={{
                   marginLeft: "auto", flexShrink: 0,
-                  fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                  fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100,
                   background: "var(--royal-50)", color: "var(--royal)",
                   border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
                 }}>求人 {company.job_count}件</span>
               ) : company.accepting_casual_meetings ? (
                 <span style={{
                   marginLeft: "auto", flexShrink: 0,
-                  fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 5,
+                  fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 5,
                   background: "#FFF7ED", color: "#C2410C", border: "1px solid #FDBA74",
                   display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap",
                 }}>
-                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
                   面談受付中
                 </span>
               ) : null}
