@@ -169,7 +169,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
 
       {/* ── Search bar panel (sticky) ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 64, zIndex: 30 }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 60, zIndex: 30 }}>
         <div className="max-w-[1440px] mx-auto px-4">
           <Suspense>
             <CompanySearchBar locations={locations} industries={industries} companySuggestions={companySuggestions} />

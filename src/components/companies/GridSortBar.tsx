@@ -82,7 +82,9 @@ export function GridSortBar({ totalCount }: Props) {
           background: var(--royal);
           border-color: var(--royal);
           color: #fff;
-          box-shadow: 0 2px 8px rgba(0,35,102,0.25);
+          font-weight: 700;
+          box-shadow: 0 3px 12px rgba(0,35,102,0.35);
+          transform: scale(1.03);
         }
         .sort-scroll {
           display: flex;

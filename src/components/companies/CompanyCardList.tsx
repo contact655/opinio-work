@@ -63,6 +63,23 @@ function cleanEnName(nameEn: string | null | undefined): string | null {
   return cleaned || null;
 }
 
+// ⑥ 業種別グラデーション（ロゴなし企業の背景色）
+const INDUSTRY_LOGO_GRADIENTS: Record<string, string> = {
+  "HR Tech":        "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
+  "FinTech/SaaS":   "linear-gradient(135deg, #064e3b 0%, #059669 100%)",
+  "CRM":            "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
+  "CRM/SaaS":       "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
+  "AI Tech":        "linear-gradient(135deg, #3b0764 0%, #7c3aed 100%)",
+  "Sales Tech":     "linear-gradient(135deg, #134e4a 0%, #0f766e 100%)",
+  "Med Tech":       "linear-gradient(135deg, #7c2d12 0%, #c2410c 100%)",
+  "ConTech":        "linear-gradient(135deg, #78350f 0%, #d97706 100%)",
+  "顧客コミュニケーション": "linear-gradient(135deg, #3730a3 0%, #6366f1 100%)",
+};
+function getLogoGradient(industry: string | null | undefined, fallback: string): string {
+  if (!industry) return fallback;
+  return INDUSTRY_LOGO_GRADIENTS[industry] ?? fallback;
+}
+
 /** 更新日を「N日前」に変換 */
 function updatedAgo(updatedAt: string | null | undefined): string | null {
   if (!updatedAt) return null;
@@ -209,6 +226,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   // ── コンパクトカード（compact=true）— 白背景ロゴ正方形・固定高さ・2行タグライン ──
   const [cardHovered, setCardHovered] = useState(false);
   const NAVY_GRAD = company.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
+  const CARD_LOGO_GRAD = company.logo_url ? "#fff" : getLogoGradient(company.industry, NAVY_GRAD);
 
   if (compact) {
     return (
@@ -238,7 +256,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           {/* ── ロゴ正方形（白背景・影付き） ── */}
           <div style={{
             width: 56, height: 56, borderRadius: 10, flexShrink: 0,
-            background: company.logo_url ? "#fff" : NAVY_GRAD,
+            background: CARD_LOGO_GRAD,
             border: "1px solid #eef0f3",
             boxShadow: "0 2px 8px rgba(0,0,0,0.09)",
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -289,12 +307,14 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 disabled={bookmarking}
                 aria-label={bookmarked ? "気になりを解除" : "気になりに追加"}
                 style={{
-                  marginLeft: "auto", width: 20, height: 20, flexShrink: 0,
-                  background: "none", border: "none", cursor: "pointer", padding: 0,
-                  color: bookmarked ? "#ef4444" : "var(--ink-mute)", fontSize: 12,
+                  marginLeft: "auto", width: 24, height: 24, flexShrink: 0,
+                  background: bookmarked ? "#fef2f2" : "var(--line-soft)",
+                  border: `1px solid ${bookmarked ? "#fecaca" : "var(--line)"}`,
+                  borderRadius: "50%",
+                  cursor: "pointer", padding: 0,
+                  color: bookmarked ? "#ef4444" : "var(--ink-mute)", fontSize: 11,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  opacity: cardHovered || bookmarked ? 1 : 0,
-                  transition: "opacity 0.15s",
+                  transition: "all 0.15s",
                 }}
               >{bookmarked ? "♥" : "♡"}</button>
             </div>
@@ -330,7 +350,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               } as React.CSSProperties}>{company.tagline.replace(/^「|」$/g, "")}</span>
             )}
 
-            {/* 行4: メタ（所在地 + 従業員数 + 求人/面談バッジ） */}
+            {/* 行4: メタ（所在地 + 従業員数） */}
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {company.location && (
                 <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }}>
@@ -343,25 +363,45 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               {company.employee_count && (
                 <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>· {company.employee_count}</span>
               )}
-              {company.job_count > 0 ? (
-                <span style={{
-                  marginLeft: "auto", flexShrink: 0,
-                  fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100,
-                  background: "var(--royal-50)", color: "var(--royal)",
-                  border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
-                }}>求人 {company.job_count}件</span>
-              ) : company.accepting_casual_meetings ? (
-                <span style={{
-                  marginLeft: "auto", flexShrink: 0,
-                  fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 5,
-                  background: "#FFF7ED", color: "#C2410C", border: "1px solid #FDBA74",
-                  display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap",
-                }}>
-                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
-                  面談受付中
-                </span>
-              ) : null}
             </div>
+
+            {/* 行5: CTA（話を聞く or 求人 N件） */}
+            {(company.accepting_casual_meetings || company.job_count > 0) && (
+              <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+                {company.accepting_casual_meetings && (
+                  <a
+                    href={`/companies/${company.id}/casual-meeting`}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 100,
+                      background: "linear-gradient(135deg, #F59E0B, #D97706)",
+                      color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
+                      boxShadow: "0 1px 4px rgba(245,158,11,0.30)",
+                    }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    話を聞く
+                  </a>
+                )}
+                {company.job_count > 0 && (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 3,
+                    fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 100,
+                    background: "var(--royal)", color: "#fff",
+                    whiteSpace: "nowrap",
+                  }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                      <rect x="2" y="7" width="20" height="14" rx="2"/>
+                      <path d="M16 3h-8l-2 4h12l-2-4z"/>
+                    </svg>
+                    求人 {company.job_count}件
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </Link>
     );
