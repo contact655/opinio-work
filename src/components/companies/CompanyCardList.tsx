@@ -197,17 +197,19 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
       <>
         <style>{`
           .clv-card {
-            transition: box-shadow 0.18s, border-color 0.18s, transform 0.15s;
+            transition: box-shadow 0.2s, border-color 0.2s, transform 0.18s;
             height: 100%;
+            flex: 1;
+            min-width: 0;
           }
           .clv-card:hover {
-            box-shadow: 0 6px 24px rgba(0,35,102,0.11) !important;
+            box-shadow: 0 8px 28px rgba(0,35,102,0.15) !important;
             border-color: var(--royal-100) !important;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
           }
           .clv-card:hover .clv-name { color: var(--royal) !important; }
           .clv-logo-img { transition: transform 0.2s; }
-          .clv-card:hover .clv-logo-img { transform: scale(1.04); }
+          .clv-card:hover .clv-logo-img { transform: scale(1.05); }
         `}</style>
         <Link
           href={`/companies/${company.id}`}
@@ -220,19 +222,24 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             gap: 12,
             background: "#fff",
             borderRadius: 12,
-            border: "1px solid var(--line)",
+            /* 求人あり → 左ボーダーをロイヤルブルーに（shorthand を避け個別プロパティで指定） */
+            borderTop: "1px solid var(--line)",
+            borderRight: "1px solid var(--line)",
+            borderBottom: "1px solid var(--line)",
+            borderLeft: company.job_count > 0 ? "3px solid #002366" : "1px solid var(--line)",
             boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
             textDecoration: "none",
             color: "inherit",
-            padding: "12px 14px",
+            padding: company.job_count > 0 ? "12px 14px 12px 12px" : "12px 14px",
             overflow: "hidden",
           }}
         >
-          {/* ── ロゴ正方形（白背景・帯なし） ── */}
+          {/* ── ロゴ正方形（白背景・影付き） ── */}
           <div style={{
             width: 56, height: 56, borderRadius: 10, flexShrink: 0,
-            background: company.logo_url ? "#f5f7fa" : NAVY_GRAD,
-            border: "1px solid var(--line)",
+            background: company.logo_url ? "#fff" : NAVY_GRAD,
+            border: "1px solid #eef0f3",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.09)",
             display: "flex", alignItems: "center", justifyContent: "center",
             overflow: "hidden", position: "relative",
           }}>
@@ -301,14 +308,12 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               display: "block",
             }}>{displayName}</span>
 
-            {/* 行3: タグライン（2行 line-clamp） */}
+            {/* 行3: タグライン（1行 truncate → 全カード等高） */}
             {company.tagline && (
               <span style={{
-                fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.45,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical" as const,
-                overflow: "hidden",
+                fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4,
+                overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+                display: "block",
               }}>{company.tagline.replace(/^「|」$/g, "")}</span>
             )}
 
