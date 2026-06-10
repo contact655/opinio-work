@@ -13,8 +13,8 @@ import { CompareBar } from "@/components/companies/CompareBar";
 
 type MemberPreview = { id: string; name: string };
 
-// 5分間ページキャッシュ（ISR）
-export const revalidate = 300;
+// 60秒間ページキャッシュ（ISR）— 開発中は短めに設定
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "IT/SaaS企業を知る — OPINIO",

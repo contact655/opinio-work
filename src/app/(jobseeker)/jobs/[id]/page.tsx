@@ -10,7 +10,7 @@ import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { JobMobileStickyBar } from "@/components/jobs/JobMobileStickyBar";
 
 // 5分間ページキャッシュ（ISR）
-export const revalidate = 300;
+export const revalidate = 60;
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 

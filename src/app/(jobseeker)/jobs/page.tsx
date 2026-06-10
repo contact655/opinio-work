@@ -4,7 +4,7 @@ import { getJobs, getParentRoles } from "@/lib/supabase/queries";
 import JobsClient from "./JobsClient";
 
 // 5分間ページキャッシュ（ISR）
-export const revalidate = 300;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "求人を見つける — OPINIO",
