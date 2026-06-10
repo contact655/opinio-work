@@ -128,7 +128,7 @@ function JobCard({
   if (!company) return null;
 
   const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
-  // const isFresh = job.updated_days_ago <= 7; // removed (NEW badge deleted)
+  const isFresh = job.updated_days_ago <= 7;
   const label = freshLabel(job.updated_days_ago);
   const deptStyle = getDeptStyle(job.dept);
 
@@ -141,11 +141,11 @@ function JobCard({
         aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
         aria-pressed={bookmarked}
         style={{
-          position: "absolute", top: 10, right: 10, zIndex: 10,
+          position: "absolute", top: 10, right: 10, zIndex: 20,
           width: 32, height: 32, borderRadius: "50%",
           border: "none", cursor: "pointer",
-          background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.9)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+          background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.92)",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
           display: "flex", alignItems: "center", justifyContent: "center",
           transition: "all 0.2s",
           transform: bookmarkAnim ? "scale(1.3)" : "scale(1)",
@@ -170,7 +170,7 @@ function JobCard({
         background: "#fff",
         border: "none",
         borderRadius: 18,
-        padding: "20px 20px 16px",
+        padding: 0,
         textDecoration: "none",
         position: "relative",
         overflow: "hidden",
@@ -180,67 +180,74 @@ function JobCard({
       }}
       className="job-card-link"
     >
-      {/* HOT badge */}
-      {job.urgency === "hot" && (
-        <span style={{
+      {/* ── Gradient header band ── */}
+      <div style={{
+        height: 60,
+        background: company.gradient,
+        position: "relative",
+        flexShrink: 0,
+        borderRadius: "18px 18px 0 0",
+      }}>
+        {/* NEW badge */}
+        {isFresh && (
+          <span style={{
+            position: "absolute", top: 8, left: 10, zIndex: 2,
+            display: "inline-flex", alignItems: "center", gap: 3,
+            padding: "2px 8px", borderRadius: 100,
+            background: "var(--success)", color: "#fff",
+            fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
+            fontFamily: "Inter, sans-serif",
+          }}>
+            NEW
+          </span>
+        )}
+        {/* HOT badge */}
+        {job.urgency === "hot" && (
+          <span style={{
+            position: "absolute", top: 8, left: isFresh ? 56 : 10, zIndex: 2,
+            display: "inline-flex", alignItems: "center", gap: 3,
+            padding: "2px 7px", borderRadius: 4,
+            background: "#FEE2E2", color: "#DC2626",
+            fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
+            fontFamily: "Inter, sans-serif",
+            border: "1px solid #FECACA",
+          }}>
+            🔥 HOT
+          </span>
+        )}
+        {/* Logo — overlaps bottom of band */}
+        <div style={{
           position: "absolute",
-          top: 10,
-          left: 10,
-          display: "inline-flex", alignItems: "center", gap: 3,
-          padding: "2px 7px", borderRadius: 4,
-          background: "#FEE2E2", color: "#DC2626",
-          fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
-          fontFamily: "Inter, sans-serif",
-          border: "1px solid #FECACA",
-          zIndex: 2,
+          bottom: -20, left: 16,
+          width: 44, height: 44,
+          borderRadius: 10,
+          background: company.logo_url ? "#fff" : "rgba(255,255,255,0.15)",
+          border: "2.5px solid rgba(255,255,255,0.9)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#fff", fontSize: 17, fontWeight: 700, overflow: "hidden",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+          zIndex: 3,
         }}>
-          🔥 HOT
-        </span>
-      )}
-
-      {/* Head */}
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-3)",
-          alignItems: "flex-start",
-          marginBottom: "var(--space-3)",
-          paddingRight: 0,
-        }}
-      >
-        <div
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 10,
-            flexShrink: 0,
-            background: company.logo_url ? "#f8fafc" : company.gradient,
-            border: company.logo_url ? "1px solid var(--line)" : "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            fontSize: 17,
-            fontWeight: 700,
-            overflow: "hidden",
-          }}
-        >
           {company.logo_url ? (
             <Image
               src={company.logo_url}
               alt={company.name}
-              width={48}
-              height={48}
+              width={44}
+              height={44}
               style={{ objectFit: "contain" }}
             />
-          ) : (
-            logoLetter
-          )}
+          ) : logoLetter}
         </div>
-        <div style={{ minWidth: 0 }}>
+      </div>
+
+      {/* ── Card content ── */}
+      <div style={{ padding: "28px 18px var(--space-3)", display: "flex", flexDirection: "column", flex: 1 }}>
+
+      {/* Head */}
+      <div style={{ marginBottom: "var(--space-3)" }}>
           <div
             style={{
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: 700,
               color: "var(--ink)",
               lineHeight: 1.35,
@@ -276,7 +283,6 @@ function JobCard({
               {label}
             </span>
           </div>
-        </div>
       </div>
 
       {/* 勤務地 + リモート区分（1行目に明示） */}
@@ -445,10 +451,12 @@ function JobCard({
             )}
             {company.accepting_casual_meetings && (
               <span style={{
-                fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 4,
-                background: "var(--warm-soft)", color: "#B45309", border: "1px solid #FDE68A",
+                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                background: "#FFF7ED", color: "#C2410C", border: "1px solid #FDBA74",
+                display: "inline-flex", alignItems: "center", gap: 3,
               }}>
-                💬 面談OK
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
+                面談受付中
               </span>
             )}
           </div>
@@ -475,18 +483,12 @@ function JobCard({
           }}
         >
           話を聞きに行く
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.5}
-          >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
             <path d="M9 18l6-6-6-6" />
           </svg>
         </span>
       </div>
+      </div>{/* Card content end */}
     </Link>
     </div>
   );
@@ -844,7 +846,7 @@ function JobListCard({
   if (!company) return null;
 
   const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
-  // const isFresh = job.updated_days_ago <= 7; // removed (NEW badge deleted)
+  const isFresh = job.updated_days_ago <= 7;
   const deptStyle = getDeptStyle(job.dept);
 
   return (
@@ -895,6 +897,17 @@ function JobListCard({
             <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", lineHeight: 1.35 }}>
               {job.role}
             </span>
+            {isFresh && (
+              <span style={{
+                display: "inline-flex", alignItems: "center",
+                padding: "1px 7px", borderRadius: 100,
+                background: "var(--success)", color: "#fff",
+                fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
+                fontFamily: "Inter, sans-serif", flexShrink: 0,
+              }}>
+                NEW
+              </span>
+            )}
           </div>
 
           {/* 企業名 + ロケーション + 勤務形態 */}
@@ -941,7 +954,7 @@ function JobListCard({
             </p>
           )}
 
-          {/* 下段: 職種バッジ・年収・雇用形態・フェーズ・面談OK */}
+          {/* 下段: 職種バッジ・雇用形態・フェーズ・面談受付中 */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             {job.dept && (
               <span style={{
@@ -951,12 +964,6 @@ function JobListCard({
                 {job.dept}
               </span>
             )}
-            <span style={{
-              fontSize: 15, fontWeight: 800, fontFamily: "Inter, sans-serif",
-              color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
-            }}>
-              {formatSalary(job.salary_min, job.salary_max)}
-            </span>
             {job.employment_type && (
               <span style={{
                 fontSize: 10, padding: "2px 7px", borderRadius: 4,
@@ -974,24 +981,40 @@ function JobListCard({
             )}
             {company.accepting_casual_meetings && (
               <span style={{
-                fontSize: 10, padding: "2px 7px", borderRadius: 4,
-                background: "var(--warm-soft)", color: "#B45309", border: "1px solid #FDE68A", fontWeight: 600,
+                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                background: "#FFF7ED", color: "#C2410C", border: "1px solid #FDBA74",
+                display: "inline-flex", alignItems: "center", gap: 3,
               }}>
-                💬 面談OK
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
+                面談受付中
               </span>
             )}
           </div>
         </div>
 
-        {/* CTA arrow */}
+        {/* Right: 年収（大）+ 矢印 */}
         <div style={{
-          display: "flex", alignItems: "center", flexShrink: 0,
-          alignSelf: "center", marginLeft: "auto",
-          color: "var(--royal)", opacity: 0.5,
+          display: "flex", flexDirection: "column", alignItems: "flex-end",
+          justifyContent: "center", flexShrink: 0, gap: 6,
+          paddingLeft: 16, minWidth: 120, textAlign: "right",
         }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 18l6-6-6-6" />
-          </svg>
+          <div style={{
+            fontFamily: "Inter, sans-serif",
+            fontSize: 17, fontWeight: 800,
+            color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
+            whiteSpace: "nowrap",
+            lineHeight: 1.2,
+          }}>
+            {formatSalary(job.salary_min, job.salary_max)}
+          </div>
+          <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500 }}>
+            年収
+          </div>
+          <div style={{ color: "var(--royal)", opacity: 0.4 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </div>
         </div>
       </Link>
     </div>
@@ -1321,6 +1344,45 @@ export default function JobsClient({
             )}
 
           </div>
+
+          {/* ── クイックフィルター（人気職種タグ） ── */}
+          {parentRoles.length > 0 && (
+            <div style={{
+              display: "flex", gap: 6, overflowX: "auto", paddingBottom: 14,
+              scrollbarWidth: "none", msOverflowStyle: "none",
+            }}>
+              {parentRoles.map((role) => {
+                const isActive = category === role.id;
+                const rc = getRoleColor(role.name);
+                return (
+                  <button
+                    key={role.id}
+                    type="button"
+                    onClick={() => { setParam("category", isActive ? "" : role.id); setOpenChip(null); }}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "5px 12px", borderRadius: 100,
+                      border: `1.5px solid ${isActive ? rc.color : "var(--line)"}`,
+                      background: isActive ? rc.bg : "#fff",
+                      color: isActive ? rc.color : "var(--ink-soft)",
+                      fontSize: 12, fontWeight: isActive ? 700 : 500,
+                      cursor: "pointer", whiteSpace: "nowrap",
+                      fontFamily: "inherit", transition: "all 0.12s",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{
+                      width: 6, height: 6, borderRadius: "50%",
+                      background: rc.color, flexShrink: 0,
+                      opacity: isActive ? 1 : 0.45,
+                    }} />
+                    {role.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
         </div>
       </div>
 
