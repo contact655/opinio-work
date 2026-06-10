@@ -26,14 +26,12 @@ const PER_PAGE = 15;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function freshLabel(days: number): string {
-  if (days === 0) return "今日更新";
-  if (days === 1) return "昨日更新";
-  if (days <= 7) return `${days}日前更新`;
-  if (days <= 14) return "今週更新";
-  if (days <= 21) return "先週更新";
-  if (days <= 31) return "今月更新";
-  return `${Math.floor(days / 7)}週間前更新`;
+// freshLabel is now only used as fallback; badge rendering is inline
+function freshBadge(days: number): { label: string; bg: string; color: string; border: string } | null {
+  if (days === 0) return { label: "🔥 今日", bg: "#FEE2E2", color: "#DC2626", border: "#FECACA" };
+  if (days <= 3) return { label: "NEW", bg: "var(--success)", color: "#fff", border: "transparent" };
+  if (days <= 7) return { label: "今週", bg: "var(--royal-50)", color: "var(--royal)", border: "var(--royal-100)" };
+  return null;
 }
 
 function formatSalary(min: number, max: number): string {
@@ -128,8 +126,7 @@ function JobCard({
   if (!company) return null;
 
   const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
-  const isFresh = job.updated_days_ago <= 7;
-  const label = freshLabel(job.updated_days_ago);
+  const badge = freshBadge(job.updated_days_ago);
   const deptStyle = getDeptStyle(job.dept);
 
   return (
@@ -188,23 +185,10 @@ function JobCard({
         flexShrink: 0,
         borderRadius: "18px 18px 0 0",
       }}>
-        {/* NEW badge */}
-        {isFresh && (
-          <span style={{
-            position: "absolute", top: 8, left: 10, zIndex: 2,
-            display: "inline-flex", alignItems: "center", gap: 3,
-            padding: "2px 8px", borderRadius: 100,
-            background: "var(--success)", color: "#fff",
-            fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
-            fontFamily: "Inter, sans-serif",
-          }}>
-            NEW
-          </span>
-        )}
         {/* HOT badge */}
         {job.urgency === "hot" && (
           <span style={{
-            position: "absolute", top: 8, left: isFresh ? 56 : 10, zIndex: 2,
+            position: "absolute", top: 8, left: badge ? 70 : 10, zIndex: 2,
             display: "inline-flex", alignItems: "center", gap: 3,
             padding: "2px 7px", borderRadius: 4,
             background: "#FEE2E2", color: "#DC2626",
@@ -238,6 +222,20 @@ function JobCard({
             />
           ) : logoLetter}
         </div>
+        {/* ⑨ 鮮度バッジ（NEW → today / NEW / 今週） */}
+        {badge && (
+          <span style={{
+            position: "absolute", top: 8, left: 10, zIndex: 2,
+            display: "inline-flex", alignItems: "center", gap: 3,
+            padding: "2px 8px", borderRadius: 100,
+            background: badge.bg, color: badge.color,
+            fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
+            fontFamily: "Inter, sans-serif",
+            border: `1px solid ${badge.border}`,
+          }}>
+            {badge.label}
+          </span>
+        )}
       </div>
 
       {/* ── Card content ── */}
@@ -277,10 +275,6 @@ function JobCard({
               style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, cursor: "pointer" }}
             >
               {company.name}
-            </span>
-            <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>·</span>
-            <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>
-              {label}
             </span>
           </div>
       </div>
@@ -622,6 +616,7 @@ function FilterChip({
   onToggle,
   listStyle = false,
   colorStyle = false,
+  resultCount,
 }: {
   label: string;
   value: string;
@@ -631,6 +626,7 @@ function FilterChip({
   onToggle: () => void;
   listStyle?: boolean;
   colorStyle?: boolean;
+  resultCount?: number;
 }) {
   const isActive = !!value;
   const activeOption = options.find((o) => o.value === value);
@@ -647,6 +643,10 @@ function FilterChip({
     ? activeRoleColor.color
     : isActive ? "var(--royal)" : "#e2e8f0";
 
+  const displayLabel = isActive
+    ? (resultCount !== undefined ? `${activeLabel} · ${resultCount}件` : activeLabel)
+    : label;
+
   return (
     <div style={{ position: "relative", flexShrink: 0 }}>
       <button
@@ -659,13 +659,16 @@ function FilterChip({
           border: `1.5px solid ${chipBorder}`,
           background: chipBg,
           color: chipColor,
-          fontSize: "var(--text-sm)", fontWeight: isActive ? 600 : 400,
+          fontSize: "var(--text-sm)", fontWeight: isActive ? 700 : 400,
           cursor: "pointer", whiteSpace: "nowrap",
           transition: "all 0.12s",
           fontFamily: "inherit",
         }}
       >
-        {isActive ? activeLabel : label}
+        {isActive && (
+          <span style={{ fontSize: 10, fontWeight: 800, marginRight: 1 }}>✓</span>
+        )}
+        {displayLabel}
         {isActive ? (
           <span
             onClick={(e) => { e.stopPropagation(); onSelect(null); }}
@@ -857,7 +860,7 @@ function JobListCard({
   if (!company) return null;
 
   const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
-  const isFresh = job.updated_days_ago <= 7;
+  const badge = freshBadge(job.updated_days_ago);
   const deptStyle = getDeptStyle(job.dept);
 
   return (
@@ -889,13 +892,13 @@ function JobListCard({
         border: "1px solid var(--line)",
         transition: "box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease",
       }}>
-        {/* Logo */}
+        {/* Logo — ⑧ navy 統一プレースホルダー */}
         <div style={{
           width: 52, height: 52, borderRadius: 10, flexShrink: 0,
-          background: company.logo_url ? "#f8fafc" : company.gradient,
+          background: company.logo_url ? "#f8fafc" : "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
           border: company.logo_url ? "1px solid var(--line)" : "none",
           display: "flex", alignItems: "center", justifyContent: "center",
-          color: "#fff", fontSize: 18, fontWeight: 700, overflow: "hidden",
+          color: company.logo_url ? undefined : "#fff", fontSize: 18, fontWeight: 700, overflow: "hidden",
         }}>
           {company.logo_url ? (
             <img src={company.logo_url} alt={company.name} width={52} height={52} style={{ objectFit: "contain" }} />
@@ -904,24 +907,26 @@ function JobListCard({
 
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
+          {/* ⑨ 鮮度バッジを role の横に */}
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 5, flexWrap: "wrap" }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", lineHeight: 1.35 }}>
               {job.role}
             </span>
-            {isFresh && (
+            {badge && (
               <span style={{
                 display: "inline-flex", alignItems: "center",
                 padding: "1px 7px", borderRadius: 100,
-                background: "var(--success)", color: "#fff",
+                background: badge.bg, color: badge.color,
+                border: `1px solid ${badge.border}`,
                 fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
                 fontFamily: "Inter, sans-serif", flexShrink: 0,
               }}>
-                NEW
+                {badge.label}
               </span>
             )}
           </div>
 
-          {/* 企業名 + ロケーション + 勤務形態 */}
+          {/* 企業名 + ロケーション + 勤務形態 + 雇用形態（④ inline追加） */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-2)", flexWrap: "wrap" }}>
             <span
               role="link"
@@ -953,6 +958,14 @@ function JobListCard({
                 </span>
               </>
             )}
+            {job.employment_type && (
+              <>
+                <span style={{ fontSize: 10, color: "var(--line)" }}>·</span>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
+                  {job.employment_type}
+                </span>
+              </>
+            )}
           </div>
 
           {/* キャッチコピー（2行） */}
@@ -965,7 +978,7 @@ function JobListCard({
             </p>
           )}
 
-          {/* 下段: 職種バッジ・雇用形態・フェーズ・面談受付中 */}
+          {/* 下段: 職種バッジ・面談受付中のみ（④ employment_type・phase・employee_count 削除） */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             {job.dept && (
               <span style={{
@@ -973,21 +986,6 @@ function JobListCard({
                 background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
               }}>
                 {job.dept}
-              </span>
-            )}
-            {job.employment_type && (
-              <span style={{
-                fontSize: 10, padding: "2px 7px", borderRadius: 4,
-                background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0", fontWeight: 600,
-              }}>
-                {job.employment_type}
-              </span>
-            )}
-            {(company.phase || company.employee_count > 0) && (
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 4 }}>
-                {company.phase && <span>{company.phase}</span>}
-                {company.phase && company.employee_count > 0 && <span style={{ color: "var(--line)" }}>·</span>}
-                {company.employee_count > 0 && <span>{company.employee_count.toLocaleString()}名</span>}
               </span>
             )}
             {company.accepting_casual_meetings && (
@@ -1005,23 +1003,24 @@ function JobListCard({
           </div>
         </div>
 
-        {/* Right: 年収（大）+ 矢印 */}
+        {/* ⑤ Right: 年収ラベルと数値を1行に */}
         <div style={{
           display: "flex", flexDirection: "column", alignItems: "flex-end",
           justifyContent: "center", flexShrink: 0, gap: 6,
-          paddingLeft: 16, minWidth: 120, textAlign: "right",
+          paddingLeft: 16, minWidth: 100, textAlign: "right",
         }}>
-          <div style={{
-            fontFamily: "Inter, sans-serif",
-            fontSize: 17, fontWeight: 800,
-            color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
-            whiteSpace: "nowrap",
-            lineHeight: 1.2,
-          }}>
-            {formatSalary(job.salary_min, job.salary_max)}
-          </div>
-          <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500 }}>
-            年収
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4, whiteSpace: "nowrap" }}>
+            {(job.salary_min || job.salary_max) && (
+              <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500 }}>年収</span>
+            )}
+            <span style={{
+              fontFamily: "Inter, sans-serif",
+              fontSize: 20, fontWeight: 800,
+              color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
+              lineHeight: 1.2,
+            }}>
+              {formatSalary(job.salary_min, job.salary_max)}
+            </span>
           </div>
           <div style={{ color: "var(--royal)", opacity: 0.4 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
@@ -1229,9 +1228,10 @@ export default function JobsClient({
         }}
       >
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-          <div style={{ padding: "0 0 14px", display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          {/* ① 2段構成フィルターバー */}
+          <div style={{ padding: "0 0 10px", display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
 
-            {/* 検索インプット — 企業側と同スタイル */}
+            {/* 1段目: 検索バー全幅 */}
             <div
               role="search"
               style={{
@@ -1241,10 +1241,10 @@ export default function JobsClient({
                 borderRadius: 999,
                 padding: "0 14px",
                 transition: "border-color 0.15s, box-shadow 0.15s",
-                flex: "1 1 220px",
+                width: "100%",
+                flex: "1 1 100%",
                 minWidth: 0,
               }}
-              onFocus={() => {}}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2.2} strokeLinecap="round" style={{ flexShrink: 0 }} aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
@@ -1279,17 +1279,7 @@ export default function JobsClient({
               )}
             </div>
 
-            {/* 職種 chip */}
-            <FilterChip
-              label="職種"
-              value={category}
-              options={parentRoles.map((r) => ({ value: r.id, label: r.name }))}
-              onSelect={(v) => { setParam("category", v ?? ""); setOpenChip(null); }}
-              isOpen={openChip === "category"}
-              onToggle={() => setOpenChip(openChip === "category" ? null : "category")}
-              colorStyle
-            />
-
+            {/* 2段目: フィルターチップ群（職種チップは削除 ③、職種ピルで代替） */}
             {/* 勤務形態 chip */}
             <FilterChip
               label="勤務形態"
@@ -1302,6 +1292,7 @@ export default function JobsClient({
               onSelect={(v) => { setParam("work_style", v ?? ""); setOpenChip(null); }}
               isOpen={openChip === "work_style"}
               onToggle={() => setOpenChip(openChip === "work_style" ? null : "work_style")}
+              resultCount={work_style ? filtered.length : undefined}
             />
 
             {/* 年収 chip */}
@@ -1312,6 +1303,7 @@ export default function JobsClient({
               onSelect={(v) => { setParam("salary", v ?? ""); setOpenChip(null); }}
               isOpen={openChip === "salary"}
               onToggle={() => setOpenChip(openChip === "salary" ? null : "salary")}
+              resultCount={salary ? filtered.length : undefined}
             />
 
             {/* 雇用形態 chip */}
@@ -1326,6 +1318,7 @@ export default function JobsClient({
               onSelect={(v) => { setParam("emp_type", v ?? ""); setOpenChip(null); }}
               isOpen={openChip === "emp_type"}
               onToggle={() => setOpenChip(openChip === "emp_type" ? null : "emp_type")}
+              resultCount={empType ? filtered.length : undefined}
             />
 
             {/* 地域 chip */}
@@ -1338,6 +1331,7 @@ export default function JobsClient({
                 isOpen={openChip === "prefecture"}
                 onToggle={() => setOpenChip(openChip === "prefecture" ? null : "prefecture")}
                 listStyle
+                resultCount={prefecture ? filtered.length : undefined}
               />
             )}
 
@@ -1449,6 +1443,8 @@ export default function JobsClient({
             <div style={{
               display: "flex", gap: 6, overflowX: "auto", paddingBottom: 14,
               scrollbarWidth: "none", msOverflowStyle: "none",
+              borderBottom: "1px solid var(--line)",
+              marginBottom: 0,
             }}>
               {parentRoles.map((role) => {
                 const isActive = category === role.id;
@@ -1460,20 +1456,22 @@ export default function JobsClient({
                     onClick={() => { setParam("category", isActive ? "" : role.id); setOpenChip(null); }}
                     style={{
                       display: "inline-flex", alignItems: "center", gap: 5,
-                      padding: "5px 12px", borderRadius: 100,
+                      padding: "5px 13px", borderRadius: 100,
                       border: `1.5px solid ${isActive ? rc.color : "var(--line)"}`,
                       background: isActive ? rc.bg : "#fff",
                       color: isActive ? rc.color : "var(--ink-soft)",
-                      fontSize: 12, fontWeight: isActive ? 700 : 500,
+                      fontSize: 13, fontWeight: isActive ? 700 : 500,
                       cursor: "pointer", whiteSpace: "nowrap",
                       fontFamily: "inherit", transition: "all 0.12s",
                       flexShrink: 0,
                     }}
                   >
                     <span style={{
-                      width: 6, height: 6, borderRadius: "50%",
+                      width: isActive ? 10 : 6, height: isActive ? 10 : 6, borderRadius: "50%",
                       background: rc.color, flexShrink: 0,
                       opacity: isActive ? 1 : 0.45,
+                      animation: isActive ? "pulseDot 1.8s ease-in-out infinite" : "none",
+                      transition: "width 0.12s, height 0.12s",
                     }} />
                     {role.name}
                   </button>
@@ -1543,33 +1541,30 @@ export default function JobsClient({
                     </button>
                   </div>
 
-                  <div style={{ position: "relative" }}>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2} strokeLinecap="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-                      <path d="M3 8h18M7 12h10M11 16h2"/>
-                    </svg>
-                    <select
-                      value={sort}
-                      onChange={(e) => setParam("sort", e.target.value)}
-                      aria-label="並び順"
-                      style={{
-                        paddingLeft: 28, paddingRight: 26, paddingTop: 7, paddingBottom: 7,
-                        border: `1.5px solid ${sort !== "updated" ? "var(--royal)" : "var(--line)"}`,
-                        borderRadius: 8,
-                        background: sort !== "updated"
-                          ? `var(--royal-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23002366' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center`
-                          : `#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center`,
-                        fontSize: 12.5,
-                        color: sort !== "updated" ? "var(--royal)" : "var(--ink-soft)",
-                        fontWeight: sort !== "updated" ? 700 : 400,
-                        cursor: "pointer",
-                        outline: "none", fontFamily: "inherit",
-                        appearance: "none" as const, WebkitAppearance: "none" as const,
-                      }}
-                    >
-                      <option value="updated">新着順</option>
-                      <option value="salary">年収順</option>
-                      <option value="phase">フェーズ順（初期→上場）</option>
-                    </select>
+                  {/* ⑦ ソートタブボタン */}
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {([
+                      { value: "updated", label: "新着順" },
+                      { value: "salary",  label: "年収順" },
+                      { value: "phase",   label: "フェーズ順" },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setParam("sort", opt.value)}
+                        style={{
+                          padding: "5px 12px", borderRadius: 100,
+                          border: `1.5px solid ${sort === opt.value ? "var(--royal)" : "var(--line)"}`,
+                          background: sort === opt.value ? "var(--royal)" : "#f1f5f9",
+                          color: sort === opt.value ? "#fff" : "var(--ink-soft)",
+                          fontSize: 12, fontWeight: 700,
+                          cursor: "pointer", whiteSpace: "nowrap",
+                          fontFamily: "inherit", transition: "all 0.15s",
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
