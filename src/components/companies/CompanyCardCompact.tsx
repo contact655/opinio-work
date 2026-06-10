@@ -264,13 +264,14 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
                   </span>
                 )}
                 {/* 比較 */}
-                <button onClick={handleCompare} style={{
+                <button onClick={handleCompare} className={`ccc-compare-btn${inCompare ? ' active' : ''}`} style={{
                   marginLeft: 'auto',
                   padding: '2px 7px', borderRadius: 4,
                   background: inCompare ? 'var(--royal-50)' : 'transparent',
                   color: inCompare ? 'var(--royal)' : 'var(--ink-mute)',
                   border: `1px solid ${inCompare ? 'var(--royal-100)' : 'var(--line)'}`,
                   fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                  opacity: inCompare ? 1 : 0, transition: 'opacity 0.15s',
                 }}>
                   {inCompare ? '✓ 比較中' : '+ 比較'}
                 </button>

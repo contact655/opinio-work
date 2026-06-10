@@ -657,3 +657,8 @@ body {
   .clc-stat-divider { display: none !important; }
   .clc-cta { display: none !important; }
 }
+
+/* CompanyCardCompact: 比較ボタン hover 表示 */
+.ccc-compare-btn { opacity: 0; transition: opacity 0.15s; }
+.genre-card:hover .ccc-compare-btn { opacity: 1; }
+.ccc-compare-btn.active { opacity: 1; }

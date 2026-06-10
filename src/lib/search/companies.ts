@@ -217,6 +217,12 @@ const PREFECTURE_ORDER = [
   "熊本県","大分県","宮崎県","鹿児島県","沖縄県",
 ];
 
+function normalizePrefecture(loc: string): string {
+  // 東京都品川区 → 東京都 / 大阪府港区 → 大阪府 / 北海道札幌市 → 北海道
+  const m = loc.match(/^(東京都|大阪府|京都府|北海道|.+?[都道府県])/);
+  return m ? m[1] : loc;
+}
+
 /** 公開企業の distinct location リスト（北から南順） — 5分間キャッシュ */
 export const fetchDistinctLocations = unstable_cache(
   async (): Promise<string[]> => {
@@ -229,7 +235,7 @@ export const fetchDistinctLocations = unstable_cache(
 
     const seen = new Set<string>();
     for (const row of data ?? []) {
-      if (row.location) seen.add(row.location);
+      if (row.location) seen.add(normalizePrefecture(row.location));
     }
 
     const ordered = PREFECTURE_ORDER.filter((p) => seen.has(p));

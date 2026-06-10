@@ -3,22 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-// 業種ごとのカラー設定
-const INDUSTRY_COLORS: Record<string, { color: string; bg: string; dot: string }> = {
-  "HR Tech":        { color: "#1e40af", bg: "#dbeafe", dot: "#3b82f6" },
-  "FinTech/SaaS":   { color: "#065f46", bg: "#d1fae5", dot: "#10b981" },
-  "CRM":            { color: "#1e63d8", bg: "#eff3fc", dot: "#3b5fd9" },
-  "CRM/SaaS":       { color: "#1e63d8", bg: "#eff3fc", dot: "#3b5fd9" },
-  "AI Tech":        { color: "#7c3aed", bg: "#ede9fe", dot: "#8b5cf6" },
-  "Sales Tech":     { color: "#0f766e", bg: "#ccfbf1", dot: "#14b8a6" },
-  "Med Tech":       { color: "#9a3412", bg: "#ffedd5", dot: "#ea580c" },
-  "ConTech":        { color: "#b45309", bg: "#fef3c7", dot: "#f59e0b" },
-  "顧客コミュニケーション": { color: "#5b21b6", bg: "#ede9fe", dot: "#8b5cf6" },
-};
 
-function getIndustryCfg(industry: string) {
-  return INDUSTRY_COLORS[industry] ?? { color: "#4a5260", bg: "#f1f5f9", dot: "#94a3b8" };
-}
 
 type Props = {
   locations: string[];
@@ -50,6 +35,7 @@ function FilterChip({
   onToggle,
   listStyle = false,
   phaseStyle = false,
+  searchable = false,
 }: {
   label: string;
   value: string;
@@ -59,7 +45,9 @@ function FilterChip({
   onToggle: () => void;
   listStyle?: boolean;
   phaseStyle?: boolean; // フェーズ専用カラー表示
+  searchable?: boolean;
 }) {
+  const [q, setQ] = useState("");
   const isActive = !!value;
   const activeOpt = options.find((o) => o.value === value);
   const activeLabel = activeOpt?.label;
@@ -85,6 +73,11 @@ function FilterChip({
         {isActive && phaseStyle && activeOpt?.dot && (
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: activeOpt.dot, display: "inline-block", flexShrink: 0 }} />
         )}
+        {isActive && !phaseStyle && (
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        )}
         {isActive ? activeLabel : label}
         {isActive ? (
           <span
@@ -109,8 +102,8 @@ function FilterChip({
           borderRadius: 12,
           padding: phaseStyle ? "8px" : listStyle ? "8px 0" : "12px 16px",
           boxShadow: "0 8px 28px rgba(0,35,102,0.14)",
-          minWidth: phaseStyle ? 268 : listStyle ? 140 : 180,
-          maxHeight: phaseStyle ? 420 : listStyle ? 280 : "none",
+          minWidth: phaseStyle ? 268 : listStyle ? 220 : 180,
+          maxHeight: phaseStyle ? 420 : listStyle ? 320 : "none",
           overflowY: (phaseStyle || listStyle) ? "auto" : "visible",
         }}>
           {phaseStyle ? (
@@ -164,31 +157,53 @@ function FilterChip({
               })}
             </div>
           ) : listStyle ? (
-            // 縦リスト形式（都道府県など）
-            options.map((o) => {
-              const sel = value === o.value;
-              return (
-                <button
-                  key={o.value}
-                  type="button"
-                  onClick={() => { onSelect(sel ? null : o.value); onToggle(); }}
-                  style={{
-                    display: "block", width: "100%", textAlign: "left",
-                    padding: "9px 16px",
-                    background: sel ? "var(--royal-50)" : "none",
-                    color: sel ? "var(--royal)" : "var(--ink)",
-                    fontSize: 13.5, fontWeight: sel ? 700 : 400,
-                    cursor: "pointer", border: "none",
-                    fontFamily: "inherit",
-                    transition: "background 0.08s",
-                  }}
-                  onMouseEnter={(e) => { if (!sel) (e.target as HTMLElement).style.background = "var(--bg-tint)"; }}
-                  onMouseLeave={(e) => { if (!sel) (e.target as HTMLElement).style.background = "none"; }}
-                >
-                  {o.label}
-                </button>
-              );
-            })
+            // 縦リスト形式（都道府県・業種など）
+            <div>
+              {searchable && (
+                <div style={{ padding: "6px 8px 4px", borderBottom: "1px solid var(--line)" }}>
+                  <input
+                    type="text"
+                    value={q}
+                    onChange={e => setQ(e.target.value)}
+                    placeholder="絞り込む..."
+                    autoFocus
+                    style={{
+                      width: "100%", padding: "5px 10px", borderRadius: 6,
+                      border: "1px solid var(--line)", fontSize: 12,
+                      outline: "none", background: "#f8fafc", boxSizing: "border-box" as const,
+                      fontFamily: "inherit", color: "var(--ink)",
+                    }}
+                  />
+                </div>
+              )}
+              {options
+                .filter(o => !q || o.label.toLowerCase().includes(q.toLowerCase()))
+                .map((o) => {
+                  const sel = value === o.value;
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => { onSelect(sel ? null : o.value); onToggle(); setQ(""); }}
+                      style={{
+                        display: "block", width: "100%", textAlign: "left",
+                        padding: "9px 16px",
+                        background: sel ? "var(--royal-50)" : "none",
+                        color: sel ? "var(--royal)" : "var(--ink)",
+                        fontSize: 13.5, fontWeight: sel ? 700 : 400,
+                        cursor: "pointer", border: "none",
+                        fontFamily: "inherit",
+                        transition: "background 0.08s",
+                      }}
+                      onMouseEnter={(e) => { if (!sel) (e.target as HTMLElement).style.background = "var(--bg-tint)"; }}
+                      onMouseLeave={(e) => { if (!sel) (e.target as HTMLElement).style.background = "none"; }}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })
+              }
+            </div>
           ) : (
             // ピル形式（勤務形態など）
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -477,14 +492,12 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
             <FilterChip
               label="業種"
               value={currentIndustry}
-              options={industries.map((ind) => {
-                const cfg = getIndustryCfg(ind);
-                return { value: ind, label: ind, color: cfg.color, bg: cfg.bg, dot: cfg.dot };
-              })}
+              options={industries.map((ind) => ({ value: ind, label: ind }))}
               onSelect={(v) => { updateParam("industry", v); setOpenChip(null); }}
               isOpen={openChip === "industry"}
               onToggle={() => toggleChip("industry")}
-              phaseStyle
+              listStyle
+              searchable
             />
           )}
 

@@ -34,19 +34,13 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
         .search-results-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 14px;
+          gap: 12px;
         }
-        @media (min-width: 641px) and (max-width: 1024px) {
+        @media (min-width: 641px) {
           .search-results-grid { grid-template-columns: repeat(3, 1fr); }
         }
-        @media (min-width: 1025px) and (max-width: 1280px) {
-          .search-results-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        @media (min-width: 1281px) and (max-width: 1499px) {
-          .search-results-grid { grid-template-columns: repeat(4, 1fr); }
-        }
-        @media (min-width: 1500px) {
-          .search-results-grid { grid-template-columns: repeat(5, 1fr); }
+        @media (min-width: 1025px) {
+          .search-results-grid { grid-template-columns: repeat(4, 1fr); gap: 14px; }
         }
 
         /* genre-card が GenreCarousel の <style> に依存しているため、ここでも定義 */
@@ -82,11 +76,6 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
           {totalCount}社
         </span>
         <span style={{ fontSize: 13, color: "var(--ink-mute)" }}>が見つかりました</span>
-        {totalCount > 0 && (
-          <Link href="/companies" style={{ marginLeft: "auto", fontSize: 12, color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>
-            絞り込みをリセット
-          </Link>
-        )}
       </div>
 
       {/* 検索結果グリッド */}
