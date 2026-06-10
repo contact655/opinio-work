@@ -17,30 +17,44 @@ export function ProfileNavClient({ sections }: { sections: NavSection[] }) {
   useEffect(() => {
     if (sections.length === 0) return;
 
-    const cleanup: (() => void)[] = [];
+    const visibleIds = new Set<string>();
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            visibleIds.add(entry.target.id);
+          } else {
+            visibleIds.delete(entry.target.id);
+          }
+        }
+        // 複数セクションが可視の場合、sections の順番で最初のものをアクティブに
+        const first = sections.find((s) => visibleIds.has(s.id));
+        if (first) setActive(first.id);
+      },
+      // 上端から5%〜下端から60%の帯域でアクティブ判定（35%帯域 = 検知しやすい）
+      { rootMargin: "-5% 0px -60% 0px", threshold: 0 }
+    );
 
     sections.forEach(({ id }) => {
       const el = document.getElementById(id);
-      if (!el) return;
-
-      const obs = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            setActive(id);
-          }
-        },
-        // 上端から20%〜下端から75%の帯域でアクティブ判定（スクロール中に自然に切り替わる）
-        { rootMargin: "-20% 0px -75% 0px", threshold: 0 }
-      );
-      obs.observe(el);
-      cleanup.push(() => obs.disconnect());
+      if (el) obs.observe(el);
     });
 
-    return () => cleanup.forEach((fn) => fn());
+    return () => obs.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sections.map((s) => s.id).join(",")]);
 
   if (sections.length === 0) return null;
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      setActive(id);
+    }
+  };
 
   return (
     <nav
@@ -93,6 +107,7 @@ export function ProfileNavClient({ sections }: { sections: NavSection[] }) {
           key={id}
           href={`#${id}`}
           className={`pn-link${active === id ? " pn-active" : ""}`}
+          onClick={(e) => handleClick(e, id)}
         >
           {label}
         </a>

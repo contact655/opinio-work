@@ -22,8 +22,8 @@ function shortCompanyName(name: string): string {
     .trim() || name;
 }
 
-// ─── ExpandableDesc: 長い説明文を150字で折りたたみ ───────────────────────────
-const DESC_THRESHOLD = 150;
+// ─── ExpandableDesc: 長い説明文を80字で折りたたみ ────────────────────────────
+const DESC_THRESHOLD = 80;
 function ExpandableDesc({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
   const needsTruncation = text.length > DESC_THRESHOLD;

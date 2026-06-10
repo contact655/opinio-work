@@ -428,10 +428,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
         .u-sidebar-link:hover { box-shadow: 0 4px 12px rgba(15,23,42,0.10) !important; }
         .u-content-card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.12) !important; transform: translateY(-2px) !important; }
         /* ③ カバー内名前オーバーレイ (YOUTRUST style) — desktop only */
-        .u-cover-overlay { display: none; position: absolute; bottom: 28px; right: 32px; text-align: right; max-width: 55%; }
+        .u-cover-overlay { display: none; position: absolute; bottom: 28px; right: 32px; text-align: right; max-width: 65%; }
         @media (min-width: 700px) { .u-cover-overlay { display: block; } }
         .u-cover-overlay-name { margin: 0; font-size: 20px; font-weight: 700; color: #fff; font-family: var(--font-noto-serif, "Noto Serif JP", serif); text-shadow: 0 1px 6px rgba(0,0,0,0.45); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .u-cover-overlay-role { margin: 3px 0 0; font-size: 12px; color: rgba(255,255,255,0.88); text-shadow: 0 1px 4px rgba(0,0,0,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .u-cover-overlay-role { margin: 3px 0 0; font-size: 12px; color: rgba(255,255,255,0.88); text-shadow: 0 1px 4px rgba(0,0,0,0.4); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         /* ⑧ 役職名モバイル折り返し防止 */
         .u-role-title { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         @media (min-width: 640px) { .u-role-title { -webkit-line-clamp: unset; display: block; } }
@@ -592,7 +592,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                       </svg>
                       <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--success)", lineHeight: 1 }}>{careerSummary.totalYears}</span>
-                      <span style={{ fontSize: 11, color: "var(--success)", marginTop: 3, whiteSpace: "nowrap", opacity: 0.75 }}>年のキャリア</span>
+                      <span style={{ fontSize: 11, color: "var(--success)", marginTop: 3, whiteSpace: "nowrap", opacity: 0.75 }}>年のIT経験</span>
                     </div>
                     {/* スキル数: purple + tag */}
                     {skillTags.length > 0 && (
@@ -713,6 +713,21 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </svg>
                     プロフィールを編集
                   </Link>
+                ) : isCurrentCompanyKnown && currentCompanyJobs.length > 0 ? (
+                  <Link href={`/companies/${currentCareer!.company_id!}`} style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "9px 18px", borderRadius: 8,
+                    background: "var(--royal)", color: "#fff",
+                    fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
+                    flexShrink: 0,
+                    boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
+                    whiteSpace: "nowrap",
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    </svg>
+                    求人を見る / 応募する
+                  </Link>
                 ) : isCurrentCompanyKnown ? (
                   <Link href={`/companies/${currentCareer!.company_id!}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
@@ -727,7 +742,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     {shortCompanyName(currentCareer!.company_name)} の企業ページ
                   </Link>
                 ) : (
-                  <Link href="/mentors" style={{
+                  <Link href="/jobs" style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "9px 18px", borderRadius: 8,
                     border: "1.5px solid var(--line)", background: "#fff",
@@ -735,10 +750,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     flexShrink: 0,
                   }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                      <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                     </svg>
-                    先輩一覧を見る
+                    IT/SaaS 求人を見る
                   </Link>
                 )}
               </div>
@@ -2003,41 +2017,116 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
         </div>{/* /profile-grid */}
 
-        {/* Footer CTA */}
+        {/* Footer CTA — パーソナライズ */}
         <div style={{
           background: "#fff", border: "1px solid var(--line)",
           borderRadius: 14, padding: "28px 32px", marginTop: 20,
           textAlign: "center",
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
-          <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
-            IT/SaaS業界で働く人のリアルなキャリアが集まっています
-          </p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/mentors" style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "9px 20px", borderRadius: 8,
-              background: "var(--royal)", color: "#fff",
-              fontSize: 13, fontWeight: 700, textDecoration: "none",
-            }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              先輩に相談する
-            </Link>
-            <Link href="/companies" style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "9px 20px", borderRadius: 8,
-              border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
-              color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
-            }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-              </svg>
-              企業を見る
-            </Link>
-          </div>
+          {isCurrentCompanyKnown && currentCompanyJobs.length > 0 ? (
+            <>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px", lineHeight: 1.5 }}>
+                {shortCompanyName(currentCareer!.company_name)}への転職に興味はありますか？
+              </p>
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
+                {owUser.name}さんのように活躍できる求人を見てみましょう
+              </p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                <Link href={`/companies/${currentCareer!.company_id!}`} style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "10px 22px", borderRadius: 8,
+                  background: "var(--royal)", color: "#fff",
+                  fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                  </svg>
+                  求人を見る / 応募する
+                </Link>
+                {owUser.can_casual_meeting ? (
+                  <Link href={`/companies/${currentCareer!.company_id!}/casual-meeting`} style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "10px 22px", borderRadius: 8,
+                    border: "1.5px solid #FCD34D", background: "#FFFBEB",
+                    color: "#92400E", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    カジュアル面談する
+                  </Link>
+                ) : (
+                  <Link href="/mentors" style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "10px 22px", borderRadius: 8,
+                    border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
+                    color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  }}>
+                    先輩に相談する
+                  </Link>
+                )}
+              </div>
+            </>
+          ) : isCurrentCompanyKnown ? (
+            <>
+              <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
+                {shortCompanyName(currentCareer!.company_name)}についてもっと詳しく知りたい方はこちら
+              </p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                <Link href={`/companies/${currentCareer!.company_id!}`} style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "9px 20px", borderRadius: 8,
+                  background: "var(--royal)", color: "#fff",
+                  fontSize: 13, fontWeight: 700, textDecoration: "none",
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                  </svg>
+                  企業ページを見る
+                </Link>
+                <Link href="/mentors" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "9px 20px", borderRadius: 8,
+                  border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
+                  color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                }}>
+                  先輩に相談する
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
+                IT/SaaS業界で働く人のリアルなキャリアが集まっています
+              </p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                <Link href="/jobs" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "9px 20px", borderRadius: 8,
+                  background: "var(--royal)", color: "#fff",
+                  fontSize: 13, fontWeight: 700, textDecoration: "none",
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                  </svg>
+                  IT/SaaS 求人を見る
+                </Link>
+                <Link href="/companies" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "9px 20px", borderRadius: 8,
+                  border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
+                  color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                  </svg>
+                  企業を見る
+                </Link>
+              </div>
+            </>
+          )}
           <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "16px 0 0" }}>
             <Link href="/companies" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>OPINIO</Link>
             {" "}のプロフィールページ
