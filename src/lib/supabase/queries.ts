@@ -336,10 +336,15 @@ function buildCompanyNumbers(row: Record<string, any>): CompanyNumbers {
 export type CompanyListRow = {
   id: string;
   name: string;
+  /** 英語表記の会社名（例: "Datadog Japan"） */
+  name_en: string | null;
   tagline: string;
   industry: string;
   phase: string;
-  employee_count: number;
+  /** DB上の文字列そのまま（例: "約200名", "1000名以上", "100〜300名"） */
+  employee_count: string;
+  /** 平均年収文字列（例: "900万円〜"） */
+  avg_salary: string | null;
   location: string;
   logo_gradient: string | null;
   logo_letter: string | null;
@@ -356,8 +361,8 @@ export type CompanyListRow = {
 };
 
 const COMPANY_LISTPAGE_COLS = [
-  "id", "name", "tagline", "industry", "phase", "employee_count",
-  "logo_gradient", "logo_letter", "logo_url",
+  "id", "name", "name_en", "tagline", "industry", "phase", "employee_count",
+  "avg_salary", "logo_gradient", "logo_letter", "logo_url",
   "location", "accepting_casual_meetings", "remote_work_status",
   "is_published", "jobs_public", "updated_at",
 ].join(", ");
@@ -418,10 +423,12 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
   return (companyRows ?? []).map((row: Record<string, any>): CompanyListRow => ({
     id: row.id as string,
     name: (row.name as string) ?? "",
+    name_en: (row.name_en as string) ?? null,
     tagline: (row.tagline as string) ?? "",
     industry: (row.industry as string) ?? "",
     phase: (row.phase as string) ?? "",
-    employee_count: (row.employee_count as number) ?? 0,
+    employee_count: (row.employee_count as string) ?? "",
+    avg_salary: (row.avg_salary as string) ?? null,
     location: (row.location as string) ?? "",
     logo_gradient: (row.logo_gradient as string) ?? null,
     logo_letter: (row.logo_letter as string) ?? null,

@@ -128,7 +128,7 @@ function JobCard({
   if (!company) return null;
 
   const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
-  const isFresh = job.updated_days_ago <= 7;
+  // const isFresh = job.updated_days_ago <= 7; // removed (NEW badge deleted)
   const label = freshLabel(job.updated_days_ago);
   const deptStyle = getDeptStyle(job.dept);
 
@@ -844,7 +844,7 @@ function JobListCard({
   if (!company) return null;
 
   const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
-  const isFresh = job.updated_days_ago <= 7;
+  // const isFresh = job.updated_days_ago <= 7; // removed (NEW badge deleted)
   const deptStyle = getDeptStyle(job.dept);
 
   return (
