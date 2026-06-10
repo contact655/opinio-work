@@ -915,7 +915,7 @@ export default function MergedTimeline({
           bottom: 40px;
           left: 40px; /* center of 80px icon column */
           width: 2px;
-          background: var(--line);
+          background: #CBD5E1;
           z-index: 0;
         }
 
@@ -981,6 +981,12 @@ export default function MergedTimeline({
           animation: pulseDot 1.5s ease-in-out infinite;
           flex-shrink: 0;
         }
+
+        /* ② 現職エントリー背景: 緑のグラデーションティント */
+        .tl-row-current {
+          background: linear-gradient(90deg, rgba(5,150,105,0.06) 0%, transparent 60%);
+          border-radius: 8px;
+        }
       `}</style>
 
       <div className="merged-timeline">
@@ -1013,7 +1019,7 @@ export default function MergedTimeline({
             const c = entry.data;
 
             return (
-              <div key={`career-${c.id}`} className="tl-row">
+              <div key={`career-${c.id}`} className={["tl-row", c.is_current && "tl-row-current"].filter(Boolean).join(" ")}>
                 <div
                   style={{
                     display: "flex",
@@ -1052,7 +1058,7 @@ export default function MergedTimeline({
             const duration = formatDuration(groupStart, groupEnd);
 
             return (
-              <div key={`group-${groupStart.slice(0, 7)}`} className="tl-row">
+              <div key={`group-${groupStart.slice(0, 7)}`} className={`tl-row${anyIsCurrent ? " tl-row-current" : ""}`}>
                 {/* アイコン: グループ内に is_current があれば royal, なければ muted（暫定 A-1 pending） */}
                 <div
                   style={{
@@ -1100,7 +1106,7 @@ export default function MergedTimeline({
             const duration = formatDuration(earliestStart, latestEnd);
 
             return (
-              <div key={`same-company-${entry.companyKey}`} className="tl-row">
+              <div key={`same-company-${entry.companyKey}`} className={`tl-row${anyIsCurrent ? " tl-row-current" : ""}`}>
                 <div
                   style={{
                     display: "flex",

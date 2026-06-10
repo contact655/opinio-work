@@ -427,6 +427,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
         }
         .u-sidebar-link:hover { box-shadow: 0 4px 12px rgba(15,23,42,0.10) !important; }
         .u-content-card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.12) !important; transform: translateY(-2px) !important; }
+        /* ③ カバー内名前オーバーレイ (YOUTRUST style) — desktop only */
+        .u-cover-overlay { display: none; position: absolute; bottom: 28px; right: 32px; text-align: right; max-width: 55%; }
+        @media (min-width: 700px) { .u-cover-overlay { display: block; } }
+        .u-cover-overlay-name { margin: 0; font-size: 20px; font-weight: 700; color: #fff; font-family: var(--font-noto-serif, "Noto Serif JP", serif); text-shadow: 0 1px 6px rgba(0,0,0,0.45); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .u-cover-overlay-role { margin: 3px 0 0; font-size: 12px; color: rgba(255,255,255,0.88); text-shadow: 0 1px 4px rgba(0,0,0,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* ⑧ 役職名モバイル折り返し防止 */
+        .u-role-title { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        @media (min-width: 640px) { .u-role-title { -webkit-line-clamp: unset; display: block; } }
       `}</style>
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 20px 80px" }}>
@@ -456,8 +464,22 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {/* Bottom fade gradient */}
             <div style={{
               position: "absolute", bottom: 0, left: 0, right: 0, height: 80,
-              background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.15))",
+              background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.25))",
             }} />
+            {/* ③ 名前・役職オーバーレイ (desktop only, YOUTRUST style) */}
+            <div className="u-cover-overlay">
+              <p className="u-cover-overlay-name">{owUser.name}</p>
+              {currentCareer && (
+                <p className="u-cover-overlay-role">
+                  {currentCareer.role_title || currentCareer.role_label}
+                  {currentCareer.company_name && (isCurrentCompanyKnown
+                    ? ` @ ${shortCompanyName(currentCareer.company_name)}`
+                    : currentCareer.company_name !== "非公開企業" && currentCareer.company_name !== "非公開" && currentCareer.company_name !== "不明な企業"
+                      ? ` @ ${shortCompanyName(currentCareer.company_name)}`
+                      : "")}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="profile-header-body" style={{ padding: "0 32px 32px", marginTop: -60, position: "relative" }}>
@@ -516,7 +538,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 {/* Current role subtitle */}
                 {currentCareer && (
                   <div style={{ marginBottom: "var(--space-2)", lineHeight: 1.5 }}>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
+                    <span className="u-role-title" style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
                       {currentCareer.role_title || currentCareer.role_label}
                     </span>
                     {currentCareer.role_title && currentCareer.role_title !== currentCareer.role_label && (
@@ -553,21 +575,33 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </span>
                   )}
                 </div>
-                {/* Career stats — big-number cards */}
+                {/* Career stats — big-number cards with icons */}
                 {careerSummary && (
                   <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--bg-tint)", borderRadius: 10, padding: "8px 16px", border: "1px solid var(--line)", minWidth: 64 }}>
+                    {/* 社数: royal blue + briefcase */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--royal-50)", borderRadius: 10, padding: "8px 16px", border: "1px solid var(--royal-100)", minWidth: 64 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 2 }}>
+                        <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                      </svg>
                       <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--royal)", lineHeight: 1 }}>{careerSummary.companyCount}</span>
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, whiteSpace: "nowrap" }}>社の経験</span>
+                      <span style={{ fontSize: 11, color: "var(--royal)", marginTop: 3, whiteSpace: "nowrap", opacity: 0.75 }}>社の経験</span>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--bg-tint)", borderRadius: 10, padding: "8px 16px", border: "1px solid var(--line)", minWidth: 64 }}>
-                      <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--royal)", lineHeight: 1 }}>{careerSummary.totalYears}</span>
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, whiteSpace: "nowrap" }}>年のキャリア</span>
+                    {/* 年数: success green + clock */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--success-soft)", borderRadius: 10, padding: "8px 16px", border: "1px solid #6ee7b7", minWidth: 64 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 2 }}>
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                      </svg>
+                      <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--success)", lineHeight: 1 }}>{careerSummary.totalYears}</span>
+                      <span style={{ fontSize: 11, color: "var(--success)", marginTop: 3, whiteSpace: "nowrap", opacity: 0.75 }}>年のキャリア</span>
                     </div>
+                    {/* スキル数: purple + tag */}
                     {skillTags.length > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--bg-tint)", borderRadius: 10, padding: "8px 16px", border: "1px solid var(--line)", minWidth: 64 }}>
-                        <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--royal)", lineHeight: 1 }}>{skillTags.length}</span>
-                        <span style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, whiteSpace: "nowrap" }}>スキル</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--purple-soft)", borderRadius: 10, padding: "8px 16px", border: "1px solid #c4b5fd", minWidth: 64 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 2 }}>
+                          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
+                        </svg>
+                        <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--purple)", lineHeight: 1 }}>{skillTags.length}</span>
+                        <span style={{ fontSize: 11, color: "var(--purple)", marginTop: 3, whiteSpace: "nowrap", opacity: 0.75 }}>スキル</span>
                       </div>
                     )}
                   </div>
@@ -638,8 +672,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                         <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
                       </svg>
-                      無料登録する
+                      登録してキャリアを詳しく見る
                     </Link>
+                    <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 5, marginBottom: 0 }}>30秒で登録完了・無料</p>
                   </div>
                 )}
               </div>
@@ -691,7 +726,21 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </svg>
                     {shortCompanyName(currentCareer!.company_name)} の企業ページ
                   </Link>
-                ) : null}
+                ) : (
+                  <Link href="/mentors" style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "9px 18px", borderRadius: 8,
+                    border: "1.5px solid var(--line)", background: "#fff",
+                    color: "var(--ink-soft)", fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    先輩一覧を見る
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -865,7 +914,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
-                <div style={{ paddingLeft: 20, borderLeft: "3px solid var(--royal-100)" }}>
+                <div style={{ paddingLeft: 20, borderLeft: "3px solid var(--accent)" }}>
                   <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0 }}>
                     {owUser.about_me}
                   </p>

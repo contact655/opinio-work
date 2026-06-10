@@ -65,24 +65,26 @@ export function ProfileNavClient({ sections }: { sections: NavSection[] }) {
           padding: 8px 14px;
           padding-bottom: 10px;
           border-radius: 0;
-          border-bottom: 2px solid transparent;
+          border-bottom: 3px solid transparent;
           margin-bottom: -1px;
           font-size: 13px;
           font-weight: 600;
           color: var(--ink-soft);
           text-decoration: none;
-          transition: color 0.15s, border-color 0.15s;
+          transition: color 0.15s, border-color 0.15s, background 0.15s;
           white-space: nowrap;
           flex-shrink: 0;
         }
         .pn-link:hover {
           color: var(--royal);
           border-bottom-color: var(--royal-100);
+          background: var(--royal-50);
         }
         .pn-link.pn-active {
           color: var(--royal);
           font-weight: 700;
           border-bottom-color: var(--royal);
+          background: var(--royal-50);
         }
         nav::-webkit-scrollbar { display: none; }
       `}</style>
