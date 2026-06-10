@@ -1267,11 +1267,12 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             maxWidth: 1200,
             margin: "0 auto",
             display: "flex",
-            gap: "var(--space-2)",
-            alignItems: "center",
-            flexWrap: "wrap",
+            flexDirection: "column",
+            gap: 8,
           }}
         >
+        {/* ── 行1: フィルター + ビュー切替 ── */}
+        <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap" }}>
           {/* Search input */}
           <div role="search" style={{ position: "relative", flex: "1 1 180px", minWidth: 140, maxWidth: 260 }}>
             <input
@@ -1453,79 +1454,67 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             </select>
           )}
 
-          {/* Sort pills + Layout toggle — right side */}
-          <div
-            style={{
-              marginLeft: "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              flexWrap: "nowrap",
-            }}
-          >
-            {/* Sort pills */}
-            <div style={{ display: "flex", gap: 4 }}>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500, marginRight: 2, display: "flex", alignItems: "center" }}>
-                並び替え:
-              </span>
-              {SORT_PILLS.map((pill) => (
-                <button
-                  key={pill.value}
-                  type="button"
-                  onClick={() => setParam("sort", pill.value === "newest" ? "" : pill.value)}
-                  aria-pressed={sort === pill.value}
-                  style={{
-                    height: 34,
-                    padding: "0 12px",
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontWeight: sort === pill.value ? 700 : 500,
-                    border: `1px solid ${sort === pill.value ? "var(--royal)" : "var(--line)"}`,
-                    background: sort === pill.value ? "var(--royal)" : "#fff",
-                    color: sort === pill.value ? "#fff" : "var(--ink-mute)",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {pill.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Divider */}
-            <div style={{ width: 1, height: 24, background: "var(--line)", margin: "0 4px" }} />
-
-            {/* Layout toggle */}
-            <div style={{ display: "flex", gap: 3 }}>
-              {LAYOUT_BTNS.map(({ mode, label, Icon }) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => changeLayout(mode)}
-                  aria-label={label}
-                  aria-pressed={layout === mode}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    padding: "0 10px",
-                    height: 34,
-                    border: `1px solid ${layout === mode ? "var(--royal)" : "var(--line)"}`,
-                    borderRadius: 8,
-                    background: layout === mode ? "var(--royal-50)" : "#fff",
-                    color: layout === mode ? "var(--royal)" : "var(--ink-mute)",
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                    fontWeight: layout === mode ? 700 : 500,
-                  }}
-                >
-                  <Icon size={14} />
-                  <span style={{ fontSize: 11 }}>{label}</span>
-                </button>
-              ))}
-            </div>
+          {/* Layout toggle — 行1の右端 */}
+          <div style={{ marginLeft: "auto", display: "flex", gap: 3 }}>
+            {LAYOUT_BTNS.map(({ mode, label, Icon }) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => changeLayout(mode)}
+                aria-label={label}
+                aria-pressed={layout === mode}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "0 10px",
+                  height: 34,
+                  border: `1px solid ${layout === mode ? "var(--royal)" : "var(--line)"}`,
+                  borderRadius: 8,
+                  background: layout === mode ? "var(--royal-50)" : "#fff",
+                  color: layout === mode ? "var(--royal)" : "var(--ink-mute)",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  fontWeight: layout === mode ? 700 : 500,
+                }}
+              >
+                <Icon size={14} />
+                <span style={{ fontSize: 11 }}>{label}</span>
+              </button>
+            ))}
           </div>
+        </div>
+
+        {/* ── 行2: ソート専用行 ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 2 }}>
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500, marginRight: 4 }}>
+            並び替え:
+          </span>
+          {SORT_PILLS.map((pill) => (
+            <button
+              key={pill.value}
+              type="button"
+              onClick={() => setParam("sort", pill.value === "newest" ? "" : pill.value)}
+              aria-pressed={sort === pill.value}
+              style={{
+                height: 32,
+                padding: "0 14px",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: sort === pill.value ? 700 : 500,
+                border: `1px solid ${sort === pill.value ? "var(--royal)" : "var(--line)"}`,
+                background: sort === pill.value ? "var(--royal)" : "#fff",
+                color: sort === pill.value ? "#fff" : "var(--ink-mute)",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "all 0.15s",
+              }}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
+
         </div>
       </div>
 
