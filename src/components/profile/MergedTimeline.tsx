@@ -37,9 +37,10 @@ function ExpandableDesc({ text }: { text: string }) {
         <button
           onClick={() => setExpanded(v => !v)}
           style={{
-            background: "none", border: "none", cursor: "pointer",
+            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+            borderRadius: 100, cursor: "pointer",
             color: "var(--royal)", fontSize: 12, fontWeight: 600,
-            padding: "4px 0 0", fontFamily: "inherit",
+            padding: "3px 10px", marginTop: 6, fontFamily: "inherit",
             display: "inline-flex", alignItems: "center", gap: 3,
           }}
         >
@@ -654,7 +655,7 @@ function CareerContent({
       </div>
 
       {/* Role — merged to single line */}
-      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 5, lineHeight: 1.45 }}>
+      <div style={{ fontSize: 14, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 5, lineHeight: 1.45 }}>
         {data.role_label}{data.role_title && ` · ${data.role_title}`}
       </div>
 
@@ -1144,13 +1145,13 @@ export default function MergedTimeline({
                     </div>
 
                     {/* ポジションリスト — 左ボーダースタイル */}
-                    <div style={{ paddingLeft: 14, borderLeft: "2px solid var(--line)" }}>
+                    <div style={{ paddingLeft: 14, borderLeft: "2px solid var(--royal-100)" }}>
                       {items.map((c, idx) => {
                         const posDuration = formatDuration(c.started_at, c.ended_at);
                         const isLast = idx === items.length - 1;
                         return (
                           <div key={c.id} style={{ paddingBottom: isLast ? 0 : 16 }}>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 3, lineHeight: 1.4 }}>
+                            <div style={{ fontSize: 14, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 3, lineHeight: 1.4 }}>
                               {c.role_label}{c.role_title && ` · ${c.role_title}`}
                             </div>
                             <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginBottom: c.description ? 8 : 0, lineHeight: 1.4 }}>

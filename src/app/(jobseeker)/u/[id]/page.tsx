@@ -427,11 +427,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
         }
         .u-sidebar-link:hover { box-shadow: 0 4px 12px rgba(15,23,42,0.10) !important; }
         .u-content-card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.12) !important; transform: translateY(-2px) !important; }
-        /* ③ カバー内名前オーバーレイ (YOUTRUST style) — desktop only */
-        .u-cover-overlay { display: none; position: absolute; bottom: 28px; right: 32px; text-align: right; max-width: 65%; }
-        @media (min-width: 700px) { .u-cover-overlay { display: block; } }
-        .u-cover-overlay-name { margin: 0; font-size: 20px; font-weight: 700; color: #fff; font-family: var(--font-noto-serif, "Noto Serif JP", serif); text-shadow: 0 1px 6px rgba(0,0,0,0.45); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .u-cover-overlay-role { margin: 3px 0 0; font-size: 12px; color: rgba(255,255,255,0.88); text-shadow: 0 1px 4px rgba(0,0,0,0.4); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         /* ⑧ 役職名モバイル折り返し防止 */
         .u-role-title { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         @media (min-width: 640px) { .u-role-title { -webkit-line-clamp: unset; display: block; } }
@@ -466,20 +461,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
               position: "absolute", bottom: 0, left: 0, right: 0, height: 80,
               background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.25))",
             }} />
-            {/* ③ 名前・役職オーバーレイ (desktop only, YOUTRUST style) */}
-            <div className="u-cover-overlay">
-              <p className="u-cover-overlay-name">{owUser.name}</p>
-              {currentCareer && (
-                <p className="u-cover-overlay-role">
-                  {currentCareer.role_title || currentCareer.role_label}
-                  {currentCareer.company_name && (isCurrentCompanyKnown
-                    ? ` @ ${shortCompanyName(currentCareer.company_name)}`
-                    : currentCareer.company_name !== "非公開企業" && currentCareer.company_name !== "非公開" && currentCareer.company_name !== "不明な企業"
-                      ? ` @ ${shortCompanyName(currentCareer.company_name)}`
-                      : "")}
-                </p>
-              )}
-            </div>
           </div>
 
           <div className="profile-header-body" style={{ padding: "0 32px 32px", marginTop: -60, position: "relative" }}>
@@ -660,21 +641,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 )}
                 {/* 無料登録CTA — 非ログイン・非オーナー時は名前の下に自然配置 */}
                 {!viewerIsOwner && !authUser && (
-                  <div style={{ marginTop: 14 }}>
+                  <div style={{ marginTop: 12 }}>
                     <Link href={`/auth?next=/u/${owUser.id}`} style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      padding: "9px 20px", borderRadius: 8,
-                      background: "var(--royal)", color: "#fff",
-                      fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
-                      boxShadow: "0 4px 14px rgba(0,35,102,0.25)",
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "6px 14px", borderRadius: 6,
+                      border: "1.5px solid var(--royal)", background: "transparent",
+                      color: "var(--royal)", fontSize: 12, fontWeight: 600, textDecoration: "none",
                     }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                        <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
-                      </svg>
-                      登録してキャリアを詳しく見る
+                      無料登録して続きを見る →
                     </Link>
-                    <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 5, marginBottom: 0 }}>30秒で登録完了・無料</p>
                   </div>
                 )}
               </div>

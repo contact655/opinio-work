@@ -17,31 +17,31 @@ export function ProfileNavClient({ sections }: { sections: NavSection[] }) {
   useEffect(() => {
     if (sections.length === 0) return;
 
-    const visibleIds = new Set<string>();
-
-    const obs = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            visibleIds.add(entry.target.id);
-          } else {
-            visibleIds.delete(entry.target.id);
-          }
+    // スクロール位置からアクティブセクションを決定する。
+    // IntersectionObserver は長いセクション（職歴など）で見出しが画面外に出ると
+    // 検知できなくなるため、スクロール座標ベースに切り替え。
+    const onScroll = () => {
+      // ビューポートの上端から30%の位置を「現在地カーソル」とする
+      const cursor = window.scrollY + window.innerHeight * 0.3;
+      let current = sections[0].id;
+      for (const { id } of sections) {
+        const el = document.getElementById(id);
+        if (el) {
+          const top = el.getBoundingClientRect().top + window.scrollY;
+          if (top <= cursor) current = id;
         }
-        // 複数セクションが可視の場合、sections の順番で最初のものをアクティブに
-        const first = sections.find((s) => visibleIds.has(s.id));
-        if (first) setActive(first.id);
-      },
-      // 上端から5%〜下端から60%の帯域でアクティブ判定（35%帯域 = 検知しやすい）
-      { rootMargin: "-5% 0px -60% 0px", threshold: 0 }
-    );
+      }
+      setActive(current);
+    };
 
-    sections.forEach(({ id }) => {
-      const el = document.getElementById(id);
-      if (el) obs.observe(el);
-    });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    // 初期状態も設定（DOM が確定してから）
+    const timer = setTimeout(onScroll, 60);
 
-    return () => obs.disconnect();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(timer);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sections.map((s) => s.id).join(",")]);
 
