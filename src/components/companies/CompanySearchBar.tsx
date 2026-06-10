@@ -246,8 +246,16 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
   const [inputValue, setInputValue] = useState(searchParams.get("q") ?? "");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [openChip, setOpenChip] = useState<string | null>(null);
+  const [bookmarkCount, setBookmarkCount] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch("/api/bookmarks?target_type=company")
+      .then((r) => r.ok ? r.json() : { ids: [] })
+      .then((d) => setBookmarkCount(Array.isArray(d.ids) ? d.ids.length : 0))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -399,7 +407,7 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
         .csb-hiring {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
+          gap: 6px;
           font-size: 13px;
           color: var(--ink);
           cursor: pointer;
@@ -407,20 +415,26 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
           border: 1.5px solid #e2e8f0;
           border-radius: 999px;
           padding: 7px 14px;
-          transition: border-color 0.15s, background 0.15s, color 0.15s;
+          transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
           user-select: none;
           font-family: inherit;
           background: #fff;
           flex-shrink: 0;
           font-weight: 500;
         }
+        .csb-hiring:hover {
+          border-color: #fdba74;
+          background: #fff7ed;
+        }
         .csb-hiring.active {
-          border-color: var(--royal);
-          background: var(--royal);
+          border-color: #ea580c;
+          background: linear-gradient(135deg, #f97316, #ea580c);
           color: #fff;
-          font-weight: 600;
+          font-weight: 700;
+          box-shadow: 0 2px 10px rgba(234,88,12,0.30);
         }
         .csb-hiring input[type="checkbox"] { display: none; }
+        @keyframes pulseHiring { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
         .csb-clear {
           font-size: 12.5px;
           color: var(--ink-mute);
@@ -564,6 +578,12 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
               checked={currentHiring}
               onChange={(e) => updateParam("hiring", e.target.checked ? "1" : null)}
             />
+            <span style={{
+              width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+              background: currentHiring ? "#fff" : "#ea580c",
+              animation: "pulseDot 1.8s ease-in-out infinite",
+              display: "inline-block",
+            }} />
             {currentHiring ? (
               <>面談受付中 <span style={{ fontSize: 10, opacity: 0.85 }}>✕</span></>
             ) : (
@@ -575,6 +595,25 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
             <button type="button" className="csb-clear" onClick={handleClear}>
               ✕ すべてクリア
             </button>
+          )}
+
+          {/* 気になり件数 */}
+          {bookmarkCount > 0 && (
+            <a
+              href="/mypage"
+              style={{
+                marginLeft: "auto", flexShrink: 0,
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "6px 12px", borderRadius: 999,
+                background: "#fef2f2", border: "1.5px solid #fecaca",
+                color: "#dc2626", fontSize: 12, fontWeight: 700,
+                textDecoration: "none", whiteSpace: "nowrap",
+                transition: "background 0.15s",
+              }}
+            >
+              <span style={{ fontSize: 13 }}>♥</span>
+              {bookmarkCount}件気になり中
+            </a>
           )}
         </div>
 

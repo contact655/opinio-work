@@ -221,7 +221,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const obogCount = company.obog_count ?? 0;
   const ago = updatedAgo(company.updated_at);
   const features = Array.isArray(company.company_features) ? company.company_features : [];
-  const jobTitles = Array.isArray(company.top_job_titles) ? company.top_job_titles : [];
+  const _jobTitles = Array.isArray(company.top_job_titles) ? company.top_job_titles : [];
 
   // ── コンパクトカード（compact=true）— 白背景ロゴ正方形・固定高さ・2行タグライン ──
   const NAVY_GRAD = company.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
@@ -362,41 +362,21 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               )}
             </div>
 
-            {/* 行5: CTA（話を聞く or 求人 N件） */}
-            {(company.accepting_casual_meetings || company.job_count > 0) && (
+            {/* 行5: 求人数バッジ */}
+            {company.job_count > 0 && (
               <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
-                {company.accepting_casual_meetings && (
-                  <a
-                    href={`/companies/${company.id}/casual-meeting`}
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 100,
-                      background: "linear-gradient(135deg, #F59E0B, #D97706)",
-                      color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
-                      boxShadow: "0 1px 4px rgba(245,158,11,0.30)",
-                    }}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    話を聞く
-                  </a>
-                )}
-                {company.job_count > 0 && (
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", gap: 3,
-                    fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 100,
-                    background: "var(--royal)", color: "#fff",
-                    whiteSpace: "nowrap",
-                  }}>
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                      <rect x="2" y="7" width="20" height="14" rx="2"/>
-                      <path d="M16 3h-8l-2 4h12l-2-4z"/>
-                    </svg>
-                    求人 {company.job_count}件
-                  </span>
-                )}
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 3,
+                  fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 100,
+                  background: "var(--royal)", color: "#fff",
+                  whiteSpace: "nowrap",
+                }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/>
+                    <path d="M16 3h-8l-2 4h12l-2-4z"/>
+                  </svg>
+                  求人 {company.job_count}件
+                </span>
               </div>
             )}
           </div>
@@ -510,31 +490,20 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             </div>
           )}
 
-          {/* #3: カルチャータグ + #2: 求人タイトル */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-            {features.slice(0, 3).map((f, i) => (
-              <span key={i} style={{
-                fontSize: 11, padding: "2px 8px", borderRadius: 100,
-                background: "#f1f5f9", color: "var(--ink-soft)", border: "1px solid var(--line)",
-              }}>
-                #{f}
-              </span>
-            ))}
-            {jobTitles.slice(0, 2).map((t, i) => (
-              <span key={`jt-${i}`} style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: 11, padding: "2px 8px", borderRadius: 100,
-                background: "var(--royal-50)", color: "var(--royal)",
-                border: "1px solid var(--royal-100)",
-              }}>
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2"/>
-                  <path d="M16 3h-8l-2 4h12l-2-4z"/>
-                </svg>
-                {t}
-              </span>
-            ))}
-          </div>
+          {/* カルチャータグ */}
+          {features.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+              {features.slice(0, 4).map((f, i) => (
+                <span key={i} style={{
+                  fontSize: 11, padding: "2px 8px", borderRadius: 100,
+                  background: "#f1f5f9", color: "var(--ink-soft)", border: "1px solid var(--line)",
+                  whiteSpace: "nowrap",
+                }}>
+                  #{f}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* 所在地 + 従業員数 + #7: メンバーアバター */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
