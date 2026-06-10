@@ -458,6 +458,19 @@ function CompanyLogoIcon({
     justifyContent: "center",
   };
 
+  // ステップ 0: 非公開企業 → 鍵アイコン（logo_letter/gradient より先に判定）
+  // timeline.ts が anon 企業に logo_letter="非" を設定するため、先に isAnonymous をチェックする
+  const isAnonymous = company_name === "非公開企業" || company_name === "非公開" || company_name === "不明な企業";
+  if (isAnonymous) {
+    return (
+      <div style={{ ...wrapStyle, background: "linear-gradient(135deg, #64748B 0%, #94A3B8 100%)" }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+    );
+  }
+
   // ステップ 1: logo_url あり → 画像ロゴ（onError は CompanyLogoImg が担当）
   if (logo_url) {
     return (
@@ -472,7 +485,7 @@ function CompanyLogoIcon({
     );
   }
 
-  // ステップ 2: logo_letter + logo_gradient あり → ブランド円（全社登録済みのため通常はここに到達）
+  // ステップ 2: logo_letter + logo_gradient あり → ブランド円
   if (logo_letter && logo_gradient) {
     return (
       <div style={wrapStyle}>
@@ -481,19 +494,7 @@ function CompanyLogoIcon({
     );
   }
 
-  // ステップ 3a: 非公開企業 → 鍵アイコン
-  const isAnonymous = company_name === "非公開企業" || company_name === "非公開" || company_name === "不明な企業";
-  if (isAnonymous) {
-    return (
-      <div style={{ ...wrapStyle, background: "linear-gradient(135deg, #64748B 0%, #94A3B8 100%)" }}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
-      </div>
-    );
-  }
-
-  // ステップ 3b: それ以外 → 会社名イニシャル円
+  // ステップ 3: それ以外 → 会社名イニシャル円
   const fallbackLetter = company_name ? company_name.charAt(0) : "?";
   const fallbackGrad = isCurrent
     ? "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)"
@@ -711,7 +712,7 @@ function EducationContent({ data }: { data: EducationEntry }) {
       <div style={{ marginBottom: 3, lineHeight: 1.3 }}>
         <span
           style={{
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: 700,
             color: "#111",
           }}
@@ -749,6 +750,21 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
 
   // 小ロゴ 24px（H-iii 方針: 各カード固有の企業アイコン）
   const SmallLogo = () => {
+    // 非公開企業 → 小さなロックアイコン（"非" 文字を抑制）
+    const isAnonEntry = data.company_name === "非公開企業" || data.company_name === "非公開" || data.company_name === "不明な企業";
+    if (isAnonEntry) {
+      return (
+        <div style={{
+          width: 24, height: 24, borderRadius: 5, flexShrink: 0,
+          background: "linear-gradient(135deg, #64748B, #94A3B8)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.5" strokeLinecap="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+      );
+    }
     if (data.logo_url) {
       return (
         <CompanyLogoImg

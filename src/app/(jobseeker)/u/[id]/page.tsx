@@ -21,6 +21,7 @@ import {
   SNS_PLATFORMS,
 } from "@/components/SocialIcon";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
+import { ProfileNavClient } from "@/components/profile/ProfileNavClient";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -116,7 +117,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const owUser = user as OwUser;
 
   const avatarColor = owUser.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)";
-  const coverColor = owUser.cover_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9, #818CF8)";
+  // cover_color が未設定の場合はアバターカラーをカバーに流用（色統一・個性化）
+  const coverColor = owUser.cover_color ?? owUser.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9, #818CF8)";
   const initial = owUser.name.charAt(0);
   const viewerIsOwner = !!authUser && owUser.auth_id === authUser.id;
 
@@ -355,6 +357,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
   // サイドバーにコンテンツがあるか（なければ1カラム）
   const hasSidebarContent = isCurrentCompanyKnown || certifications.length > 0;
+
+  // セクションナビ用リスト（ProfileNavClient に渡す）
+  const navSections = [
+    owUser.about_me ? { id: "about", label: "自己紹介" } : null,
+    timelineCareers.length > 0 ? { id: "career", label: "職歴" } : null,
+    timelineEdus.length > 0 ? { id: "education", label: "学歴" } : null,
+    skillTags.length > 0 ? { id: "skills", label: "スキル" } : null,
+    (achievements.length > 0 || awards.length > 0) ? { id: "achievements", label: "実績" } : null,
+    contentLinks.length > 0 ? { id: "content", label: "発信" } : null,
+  ].filter(Boolean) as { id: string; label: string }[];
 
   // キャリアパスノード用 年表示
   // プラットフォームメタ（アイコン色・表示名）
@@ -665,6 +677,22 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </svg>
                     {shortCompanyName(currentCareer!.company_name)} の企業ページ
                   </Link>
+                ) : !authUser ? (
+                  /* 非ログイン + 企業非公開 → 登録誘導 */
+                  <Link href={`/auth?next=/u/${owUser.id}`} style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "9px 18px", borderRadius: 8,
+                    background: "var(--royal)", color: "#fff",
+                    fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
+                    flexShrink: 0,
+                    boxShadow: "0 4px 14px rgba(0,35,102,0.25)",
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+                    </svg>
+                    無料登録する
+                  </Link>
                 ) : null}
               </div>
             </div>
@@ -677,21 +705,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
           {/* ── Main column ─────────────────────────────────────────── */}
           <div>
 
-            {/* ── Section navigation ── */}
-            {(owUser.about_me || timelineCareers.length > 0 || timelineEdus.length > 0 || skillTags.length > 0) && (
-              <nav style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 10, padding: "8px 16px", marginBottom: 18,
-                overflowX: "auto", whiteSpace: "nowrap", scrollbarWidth: "none",
-              }}>
-                <style>{`.profile-nav-link { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--ink-soft); text-decoration: none; transition: background 0.15s, color 0.15s; } .profile-nav-link:hover { background: var(--royal-50); color: var(--royal); }`}</style>
-                {owUser.about_me && <a href="#about" className="profile-nav-link">自己紹介</a>}
-                {timelineCareers.length > 0 && <a href="#career" className="profile-nav-link">職歴</a>}
-                {timelineEdus.length > 0 && <a href="#education" className="profile-nav-link">学歴</a>}
-                {skillTags.length > 0 && <a href="#skills" className="profile-nav-link">スキル</a>}
-                {(achievements.length > 0 || awards.length > 0) && <a href="#achievements" className="profile-nav-link">実績</a>}
-                {contentLinks.length > 0 && <a href="#content" className="profile-nav-link">発信</a>}
-              </nav>
+            {/* ── Section navigation (スクロールスパイ付き) ── */}
+            {navSections.length > 0 && (
+              <ProfileNavClient sections={navSections} />
             )}
 
             {/* ── ハイライト (LinkedIn-style 2-3 cards) ── */}
