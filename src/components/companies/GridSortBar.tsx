@@ -19,6 +19,7 @@ export function GridSortBar({ totalCount }: Props) {
     { value: "newest",    label: "新着順",       icon: "✦" },
     { value: "jobs",      label: "求人あり優先",  icon: "💼" },
     { value: "employees", label: "社員数多い順",  icon: "👥" },
+    { value: "phase",     label: "フェーズ順",    icon: "📈" },
   ];
 
   return (

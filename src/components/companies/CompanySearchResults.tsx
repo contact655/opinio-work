@@ -14,9 +14,10 @@ type Props = {
   hiring?: string;
   location?: string;
   industry?: string;
+  foreign?: string;
 };
 
-export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry }: Props) {
+export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, foreign }: Props) {
   const params = {
     q: q || undefined,
     phase: phase || undefined,
@@ -24,6 +25,7 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
     hiring: hiring === "1" ? true : undefined,
     location: location || undefined,
     industry: industry || undefined,
+    foreign: foreign === "1" ? true : undefined,
   };
 
   const { companies, totalCount } = await searchCompanies(params);

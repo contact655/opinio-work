@@ -29,7 +29,8 @@ export type CompanySearchParams = {
   hiring?: boolean;
   location?: string;  // 都道府県フィルタ（例: "東京都", "大阪府"）
   industry?: string;  // 業種フィルタ（例: "HR Tech", "FinTech/SaaS"）
-  sort?: string;      // "newest" | "jobs" | "employees"
+  foreign?: boolean;  // 外資系のみ表示
+  sort?: string;      // "newest" | "jobs" | "employees" | "phase"
   // DB側ページネーション（hiring フィルターなしの場合のみ有効）
   limit?: number;
   offset?: number;
@@ -55,8 +56,8 @@ export async function searchCompanies(
   const supabase = createPublicClient();
 
   // ── DB側ページネーションを使うか判定
-  // hiring フィルターはアプリ側で処理するため、DB ページネーションと併用不可
-  const useDbPagination = !params.hiring && params.limit !== undefined;
+  // hiring / foreign フィルターはアプリ側で処理するため、DB ページネーションと併用不可
+  const useDbPagination = !params.hiring && !params.foreign && params.limit !== undefined;
 
   // ── フィルター条件を組み立てるヘルパー
   // #14: スペース区切りで AND 検索（例: "SaaS PM" → name.ilike.%SaaS% AND name.ilike.%PM%）
@@ -91,6 +92,8 @@ export async function searchCompanies(
   // #10: sort パラメータに応じて ORDER BY を切り替え（server-side sort）
   const orderCol = params.sort === "employees" ? "employee_count" : "updated_at";
   const orderAsc = false; // 全ソート DESC
+  // phase sort はクライアント側で処理（後述）
+  const isPhaseSort = params.sort === "phase";
 
   let dataQuery = applyFilters(
     supabase
@@ -176,9 +179,44 @@ export async function searchCompanies(
         : [],
     }));
 
+  // client-side: 外資系フィルター
+  let filteredCompanies = companies;
+  if (params.foreign) {
+    filteredCompanies = filteredCompanies.filter((c) => {
+      const name = (c as { name?: string }).name ?? "";
+      const nameEn = (c as { name_en?: string | null }).name_en;
+      return (
+        name.includes(" Japan") ||
+        name.includes(" Inc") ||
+        (!name.includes("株式会社") &&
+          !name.includes("合同会社") &&
+          !name.includes("有限会社") &&
+          !name.includes("株式") &&
+          !!nameEn)
+      );
+    });
+    totalCount = filteredCompanies.length;
+  }
+
+  // client-side: フェーズ順ソート
+  if (isPhaseSort) {
+    const PHASE_ORDER: Record<string, number> = {
+      "プレシード": 0, "ブートストラップ": 1, "シード": 2,
+      "シリーズA": 3, "シリーズB": 4, "シリーズC": 5,
+      "シリーズD以降": 6, "シリーズD": 6, "IPO準備中": 7, "上場": 8,
+    };
+    filteredCompanies = [...filteredCompanies].sort((a, b) => {
+      const phaseA = (a as { funding_stage?: string }).funding_stage ?? (a as { phase?: string }).phase ?? "";
+      const phaseB = (b as { funding_stage?: string }).funding_stage ?? (b as { phase?: string }).phase ?? "";
+      const ao = PHASE_ORDER[phaseA] ?? 99;
+      const bo = PHASE_ORDER[phaseB] ?? 99;
+      return ao - bo;
+    });
+  }
+
   return {
-    companies,
-    totalCount: useDbPagination ? totalCount : companies.length,
+    companies: filteredCompanies,
+    totalCount: useDbPagination ? totalCount : filteredCompanies.length,
     appliedFilters: params,
   };
 }

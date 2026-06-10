@@ -41,6 +41,7 @@ type SearchParams = {
   hiring?: string;
   location?: string;
   industry?: string;
+  foreign?: string;
   view?: string;
   sort?: string;
   page?: string;
@@ -106,9 +107,9 @@ function Pagination({
 }
 
 export default async function CompaniesPage({ searchParams }: Props) {
-  const { q, phase, workStyle, hiring, location, industry, view, sort } = searchParams;
+  const { q, phase, workStyle, hiring, location, industry, foreign, view, sort } = searchParams;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
-  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry);
+  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry || foreign);
   // 一覧（4列）= デフォルト（パラメータなし or view=card）
   const isGridView  = !hasFilter && (!view || view === "card");
   // 詳細リスト = view=list
@@ -128,7 +129,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
     // グリッド/リスト表示: DB側でページ分だけ取得（総件数も同時取得）
     // #10: sort パラメータをDB側へ渡してサーバーサイドソート
     needsGrid
-      ? searchCompanies({ limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE, sort: sort ?? "newest" })
+      ? searchCompanies({ limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE, sort: sort ?? "newest", foreign: foreign === "1" })
       : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
   ]);
 
@@ -189,6 +190,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
             hiring={hiring}
             location={location}
             industry={industry}
+            foreign={foreign}
           />
         ) : (
           <div style={{ marginTop: 0 }}>
