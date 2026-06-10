@@ -30,17 +30,6 @@ const REMOTE_OPTIONS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function daysSince(iso: string): number {
-  if (!iso) return 999;
-  return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-}
-
-function formatUpdated(days: number): string {
-  if (days === 0) return "今日更新";
-  if (days <= 7) return `${days}日前`;
-  if (days <= 30) return `${Math.floor(days / 7)}週間前`;
-  return `${Math.floor(days / 30)}ヶ月前`;
-}
 
 function deriveRemoteTags(remoteStatus: string | null): string[] {
   if (!remoteStatus) return [];
@@ -53,14 +42,10 @@ function deriveRemoteTags(remoteStatus: string | null): string[] {
 // ─── Company Card ─────────────────────────────────────────────────────────────
 
 function CompanyCard({ company }: { company: CompanyListRow }) {
-  const days = daysSince(company.updated_at);
-  const isFresh = days <= 7;
-  const freshLabel = formatUpdated(days);
 
   const metaParts = [
     company.industry || null,
     company.phase || null,
-    company.employee_count > 0 ? `${company.employee_count.toLocaleString()}名` : null,
   ].filter(Boolean);
 
   const remoteTags = deriveRemoteTags(company.remote_work_status);
@@ -191,29 +176,6 @@ function CompanyCard({ company }: { company: CompanyListRow }) {
             </div>
           )}
 
-          {/* Footer: job count + freshness */}
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            paddingTop: "var(--space-2)", borderTop: "1px solid var(--line-soft)",
-          }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-              <span style={{
-                fontSize: "var(--text-lg)", fontWeight: 700,
-                color: company.job_count > 0 ? "var(--royal)" : "var(--ink-mute)",
-                fontFamily: "Inter, sans-serif",
-              }}>
-                {company.job_count}
-              </span>
-              <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>件の求人</span>
-            </div>
-            <span style={{
-              fontSize: "var(--text-xs)",
-              color: isFresh ? "var(--success)" : "var(--ink-mute)",
-              fontWeight: isFresh ? 600 : 400,
-            }}>
-              {freshLabel}
-            </span>
-          </div>
         </div>
       </article>
     </Link>
