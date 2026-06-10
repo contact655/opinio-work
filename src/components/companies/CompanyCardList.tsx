@@ -189,6 +189,9 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const jobTitles = Array.isArray(company.top_job_titles) ? company.top_job_titles : [];
 
   // ── 横型コンパクトカード（compact=true）— 帯なし・ロゴ左・テキスト右・左揃え ──
+  const [cardHovered, setCardHovered] = useState(false);
+  const NAVY = "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
+
   if (compact) {
     return (
       <>
@@ -196,12 +199,12 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           .clv-card { transition: box-shadow 0.18s, border-color 0.18s, transform 0.15s; }
           .clv-card:hover { box-shadow: 0 6px 20px rgba(0,35,102,0.12) !important; border-color: var(--royal-100) !important; transform: translateY(-2px); }
           .clv-card:hover .clv-name { color: var(--royal) !important; }
-          .clv-bm { opacity: 0; transition: opacity 0.15s; }
-          .clv-card:hover .clv-bm { opacity: 1; }
         `}</style>
         <Link
           href={`/companies/${company.id}`}
           className="clv-card"
+          onMouseEnter={() => setCardHovered(true)}
+          onMouseLeave={() => setCardHovered(false)}
           style={{
             display: "flex",
             alignItems: "stretch",
@@ -215,10 +218,10 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             padding: 0,
           }}
         >
-          {/* ── 左: ロゴエリア（グラデーション背景・帯として機能） ── */}
+          {/* ── 左: ロゴエリア（navy統一グラデーション背景・帯として機能） ── */}
           <div style={{
             width: 80, flexShrink: 0,
-            background: headerGradient,
+            background: NAVY,
             display: "flex", alignItems: "center", justifyContent: "center",
             position: "relative", overflow: "hidden",
           }}>
@@ -273,7 +276,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               )}
               <button
                 type="button"
-                className="clv-bm"
                 onClick={handleBookmark}
                 disabled={bookmarking}
                 style={{
@@ -281,6 +283,8 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   background: "none", border: "none", cursor: "pointer", padding: 0,
                   color: bookmarked ? "#ef4444" : "var(--ink-mute)", fontSize: 13,
                   display: "flex", alignItems: "center", justifyContent: "center",
+                  opacity: cardHovered || bookmarked ? 1 : 0,
+                  transition: "opacity 0.15s",
                 }}
               >{bookmarked ? "♥" : "♡"}</button>
             </div>
