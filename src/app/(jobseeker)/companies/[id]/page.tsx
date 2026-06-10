@@ -1389,30 +1389,12 @@ const EMPLOYEE_GRID_CSS = `
 function CurrentEmployeesSection({
   employees,
   categories,
-  alumniCount = 0,
 }: {
   employees: CompanyEmployee[];
   categories: CompanyEmployeeCategoryItem[];
-  alumniCount?: number;
 }) {
-  // 現役社員0名のときはセクションを描画しない（0という数値を見せない）
-  if (employees.length === 0) {
-    // OB/OGがいる場合は導線を表示
-    if (alumniCount > 0) {
-      return (
-        <section style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "var(--space-6)",
-        }}>
-          <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.7, margin: 0 }}>
-            <span style={{ fontWeight: 700, color: "var(--ink)" }}>OB/OGのプロフィールを準備中。</span>
-            &nbsp;<strong style={{ color: "var(--royal)" }}>{alumniCount}名</strong>のキャリア情報を近日公開予定です。
-          </p>
-        </section>
-      );
-    }
-    return null;
-  }
+  // 現役社員0名のときはセクションを描画しない
+  if (employees.length === 0) return null;
 
   // ── カテゴリ別社員マップ (roleId → employees) ──────────────────────────────
   const empsByCategory = new Map<string, CompanyEmployee[]>();
@@ -1722,30 +1704,33 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 10,
-        padding: "14px 16px",
-        background: "var(--bg-tint)",
+        gap: 12,
+        padding: "16px",
+        background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 14,
         textDecoration: "none",
+        transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
       }}
     >
       {/* 上段: アバター + 名前・役職 */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{
-          width: 48, height: 48, borderRadius: "50%",
+          width: 52, height: 52, borderRadius: "50%",
           background: employee.avatarUrl ? undefined : avatarColor.bg,
           flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 19,
-          color: avatarColor.text, overflow: "hidden", border: "2px solid var(--line)",
+          fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 20,
+          color: avatarColor.text, overflow: "hidden",
+          border: "2.5px solid var(--line)",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         }}>
           {employee.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={employee.avatarUrl} alt={employee.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : employee.avatarInitial}
         </div>
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>
             {employee.name}
           </span>
@@ -1756,7 +1741,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
           )}
           {/* 在籍期間 */}
           {(period || tenure) && (
-            <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)", marginTop: 3, display: "flex", alignItems: "center", gap: 4 }}>
+            <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)", marginTop: 3, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
               {period && <span>{period}</span>}
               {tenure && (
                 <span style={{ background: "var(--royal-50)", color: "var(--royal)", padding: "1px 6px", borderRadius: 100, fontWeight: 600, fontSize: 10 }}>
@@ -1768,12 +1753,12 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         </div>
       </div>
 
-      {/* 下段: 現在のキャリア（会社名がある場合のみ表示） */}
+      {/* 中段: 現在のキャリア */}
       {employee.currentCompanyName && (
         <div style={{
           display: "flex", alignItems: "center", gap: 6,
           padding: "6px 10px", borderRadius: 8,
-          background: "#fff", border: "1px solid var(--line-soft)",
+          background: "var(--bg-tint)", border: "1px solid var(--line-soft)",
           fontSize: 11,
         }}>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
@@ -1785,6 +1770,20 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
           </span>
         </div>
       )}
+
+      {/* 下段: CTAボタン */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "7px 12px", borderRadius: 8,
+        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+        fontSize: 12, fontWeight: 700, color: "var(--royal)",
+        gap: 4,
+      }}>
+        プロフィールを見る
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
     </a>
   );
 }
@@ -2499,7 +2498,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
           </div>
         ) : (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "var(--space-4)" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {displayed.map((article) => {
                 const badge = TYPE_BADGE[article.type];
                 const icon  = TYPE_EYECATCH_ICON[article.type];
@@ -2509,23 +2508,43 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
                       style={{
                         border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden",
                         background: "#fff", transition: "border-color 0.15s, box-shadow 0.15s",
-                        height: "100%", display: "flex", flexDirection: "column",
+                        display: "flex", flexDirection: "row", alignItems: "stretch",
                       }}
                       className="article-card"
                     >
-                      <div style={{ height: 100, background: article.eyecatch_gradient, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", flexShrink: 0 }}>
-                        <span style={{ fontSize: 36, opacity: 0.3 }}>{icon}</span>
-                        <div style={{ position: "absolute", top: 8, left: 10, display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em" }}>
-                          {badge.label}
-                        </div>
-                        <div style={{ position: "absolute", bottom: 7, right: 10, fontSize: 9, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
-                          {article.read_min} min read
+                      {/* サムネイル（左・固定幅） */}
+                      <div style={{
+                        width: 110, flexShrink: 0,
+                        background: article.eyecatch_gradient,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        position: "relative",
+                      }}>
+                        <span style={{ fontSize: 32, opacity: 0.3 }}>{icon}</span>
+                        <div style={{ position: "absolute", bottom: 7, right: 7, fontSize: 9, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+                          {article.read_min} min
                         </div>
                       </div>
-                      <div style={{ padding: "var(--space-3) 14px", flex: 1 }}>
-                        <p style={{ margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 12, fontWeight: 700, lineHeight: 1.6, color: "var(--ink)", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
+                      {/* テキスト（右） */}
+                      <div style={{ padding: "12px 16px", flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>
+                            {badge.label}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 13, fontWeight: 700, lineHeight: 1.6, color: "var(--ink)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
                           {article.title}
                         </p>
+                        {(article.subject?.name ?? (article.subjects && article.subjects[0]?.name)) && (
+                          <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)" }}>
+                            {article.subject?.name ?? article.subjects?.[0]?.name}
+                          </p>
+                        )}
+                      </div>
+                      {/* 矢印 */}
+                      <div style={{ display: "flex", alignItems: "center", paddingRight: 14, color: "var(--ink-mute)", flexShrink: 0 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                          <polyline points="9 18 15 12 9 6"/>
+                        </svg>
                       </div>
                     </div>
                   </Link>
@@ -3091,7 +3110,7 @@ export default async function CompanyDetailPage({
             <EmployeeVoicesSection employees={employees.current} />
 
             {/* 7. 現役社員・OBOGプロフィール */}
-            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} alumniCount={employees.alumni.length} />
+            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
             <AlumniSection alumni={employees.alumni} />
 
             {/* 7. 記事（OPINIO取材記事） */}
