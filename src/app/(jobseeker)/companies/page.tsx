@@ -248,13 +248,12 @@ export default async function CompaniesPage({ searchParams }: Props) {
                             `}</style>
                             <div className="companies-grid4">
                               {paged.map(c => (
-                                <div key={c.id} style={{ display: "flex" }}>
-                                  <CompanyCardList
-                                    company={c}
-                                    members={membersByCompany[c.id] ?? []}
-                                    compact
-                                  />
-                                </div>
+                                <CompanyCardList
+                                  key={c.id}
+                                  company={c}
+                                  members={membersByCompany[c.id] ?? []}
+                                  compact
+                                />
                               ))}
                             </div>
                           </>

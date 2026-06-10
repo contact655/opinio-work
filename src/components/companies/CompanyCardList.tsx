@@ -194,23 +194,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
 
   if (compact) {
     return (
-      <>
-        <style>{`
-          .clv-card {
-            transition: box-shadow 0.2s, border-color 0.2s, transform 0.18s;
-            height: 100%;
-            flex: 1;
-            min-width: 0;
-          }
-          .clv-card:hover {
-            box-shadow: 0 8px 28px rgba(0,35,102,0.15) !important;
-            border-color: var(--royal-100) !important;
-            transform: translateY(-3px);
-          }
-          .clv-card:hover .clv-name { color: var(--royal) !important; }
-          .clv-logo-img { transition: transform 0.2s; }
-          .clv-card:hover .clv-logo-img { transform: scale(1.05); }
-        `}</style>
         <Link
           href={`/companies/${company.id}`}
           className="clv-card"
@@ -350,26 +333,11 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             </div>
           </div>
         </Link>
-      </>
     );
   }
 
   // ── 横カード（compact=false, リストビュー）────────────────────────────────────
   return (
-    <>
-      <style>{`
-        .company-list-card { transition: box-shadow 0.18s, border-color 0.18s; }
-        .company-list-card:hover { box-shadow: 0 4px 24px rgba(0,35,102,0.12) !important; border-color: var(--royal-100) !important; }
-        .company-list-card:hover .clc-name { color: var(--royal) !important; }
-        .clc-stat-divider { width: 1px; height: 36px; background: var(--line); flex-shrink: 0; }
-        .clc-bookmark-btn { transition: color 0.15s, transform 0.15s; }
-        .clc-bookmark-btn:hover { transform: scale(1.15); }
-        @media (max-width: 767px) {
-          .clc-stats { display: none !important; }
-          .clc-stat-divider { display: none !important; }
-          .clc-cta { display: none !important; }
-        }
-      `}</style>
       <Link
         href={`/companies/${company.id}`}
         className="company-list-card"
@@ -636,7 +604,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           </button>
         </div>
       </Link>
-    </>
   );
 }
 
