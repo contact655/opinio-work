@@ -58,6 +58,7 @@ function cleanEnName(nameEn: string | null | undefined): string | null {
     .replace(/\s*,\s*Inc\.?$/i, "")
     .replace(/\s+Inc\.?$/i, "")
     .replace(/\s+Corp\.?$/i, "")
+    .replace(/\s+Japan$/i, "")   // 末尾の "Japan" を除去
     .trim();
   return cleaned || null;
 }
