@@ -291,13 +291,15 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               display: "block",
             }}>{displayName}</span>
 
-            {/* 行3: タグライン（1行 truncate → 全カード等高） */}
+            {/* 行3: タグライン（2行まで） */}
             {company.tagline && (
               <span style={{
                 fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4,
-                overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
-                display: "block",
-              }}>{company.tagline.replace(/^「|」$/g, "")}</span>
+                overflow: "hidden",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+              } as React.CSSProperties}>{company.tagline.replace(/^「|」$/g, "")}</span>
             )}
 
             {/* 行4: メタ（所在地 + 従業員数 + 求人/面談バッジ） */}

@@ -101,9 +101,27 @@ function cleanEnName(nameEn: string | null | undefined): string | null {
   return cleaned || null;
 }
 
+/** 日本語法人名からブランド名（株式会社などを除去）を返す */
+function getJaDisplayName(name: string): string {
+  return name
+    .replace(/^(株式会社|合同会社|有限会社|一般社団法人|一般財団法人)\s*/g, "")
+    .replace(/\s*(株式会社|合同会社|有限会社)$/g, "")
+    .trim() || name;
+}
+
 function extractNum(s: string): number {
   const m = s.match(/\d+/);
   return m ? parseInt(m[0], 10) : 0;
+}
+
+function isForeignCompany(c: CompanyListRow): boolean {
+  return (
+    c.name.includes(" Japan") ||
+    (!!c.name_en &&
+      !c.name.includes("株式会社") &&
+      !c.name.includes("合同会社") &&
+      !c.name.includes("有限会社"))
+  );
 }
 
 function filterSelectStyle(active: boolean): React.CSSProperties {
@@ -311,47 +329,54 @@ function CompanyCardCard({
           </div>
 
           {/* Company name */}
-          <div>
-            <div
-              style={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: "var(--ink)",
-                lineHeight: 1.35,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {enName ?? company.name}
-            </div>
-            {enName && (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--ink-mute)",
-                  lineHeight: 1.4,
-                  marginTop: 2,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {company.name}
+          {(() => {
+            const displayName = enName ?? getJaDisplayName(company.name);
+            const hasSubName = !!enName || displayName !== company.name;
+            return (
+              <div>
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: "var(--ink)",
+                    lineHeight: 1.35,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {displayName}
+                </div>
+                {hasSubName && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "var(--ink-mute)",
+                      lineHeight: 1.4,
+                      marginTop: 2,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {company.name}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* Tagline */}
           {company.tagline ? (
             <p
               style={
                 {
-                  fontSize: "var(--text-sm)",
+                  fontSize: 13,
                   lineHeight: 1.7,
-                  color: "var(--ink-soft)",
+                  color: "var(--ink)",
                   flex: 1,
                   margin: 0,
+                  fontWeight: 500,
                   display: "-webkit-box",
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: "vertical",
@@ -490,7 +515,7 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
                 whiteSpace: "nowrap",
               }}
             >
-              {company.name}
+              {cleanEnName(company.name_en) ?? getJaDisplayName(company.name)}
             </span>
             <span
               style={{
@@ -556,8 +581,9 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
                 {
                   fontSize: 13,
                   lineHeight: 1.6,
-                  color: "var(--ink-soft)",
+                  color: "var(--ink)",
                   margin: 0,
+                  fontWeight: 500,
                   display: "-webkit-box",
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: "vertical",
@@ -644,14 +670,21 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  padding: "2px 8px",
+                  padding: "3px 10px",
                   borderRadius: 100,
                   background: "var(--success-soft)",
                   color: "var(--success)",
+                  border: "1px solid #A7F3D0",
                   whiteSpace: "nowrap",
                   flexShrink: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
                 }}
               >
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8l-2 4h12l-2-4z"/>
+                </svg>
                 求人 {company.job_count}件
               </span>
             )}
@@ -818,6 +851,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
   const phase = searchParams.get("phase") ?? "";
   const hiring = searchParams.get("hiring") === "1";
   const sort = searchParams.get("sort") ?? "newest";
+  const foreign = searchParams.get("foreign") === "1";
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
 
   // Local state
@@ -950,22 +984,36 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
       list = list.filter((c) => c.accepting_casual_meetings);
     }
 
+    if (foreign) {
+      list = list.filter((c) => isForeignCompany(c));
+    }
+
     if (sort === "hiring") {
       list = [...list].sort((a, b) => b.job_count - a.job_count);
     } else if (sort === "employees") {
       list = [...list].sort((a, b) => extractNum(b.employee_count) - extractNum(a.employee_count));
+    } else if (sort === "phase") {
+      const PHASE_ORDER: Record<string, number> = {
+        seed: 0, "series-a": 1, "series-b": 2, "series-c": 3, "series-d": 4,
+        growth: 5, ipo: 6, unicorn: 7, listed: 8, "上場": 8,
+      };
+      list = [...list].sort((a, b) => {
+        const pa = PHASE_ORDER[a.phase.toLowerCase().replace(/\s+/g, "-")] ?? 99;
+        const pb = PHASE_ORDER[b.phase.toLowerCase().replace(/\s+/g, "-")] ?? 99;
+        return pa - pb;
+      });
     }
     // "newest": DB のデフォルト順（updated_at DESC）をそのまま維持
 
     return list;
-  }, [companies, q, industry, phase, remote, prefecture, hiring, sort]);
+  }, [companies, q, industry, phase, remote, prefecture, hiring, foreign, sort]);
 
   const perPage = layout === "card" ? PER_PAGE_CARD : PER_PAGE_OTHER;
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const safePage = Math.min(page, totalPages);
   const paged = filtered.slice((safePage - 1) * perPage, safePage * perPage);
 
-  const hasFilters = !!(industry || phase || remote || prefecture || hiring || q.trim());
+  const hasFilters = !!(industry || phase || remote || prefecture || hiring || foreign || q.trim());
 
   // Bookmark handler
   const handleBookmark = useCallback(
@@ -1017,6 +1065,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
     { value: "newest", label: "新着順" },
     { value: "hiring", label: "求人あり優先" },
     { value: "employees", label: "社員数多い順" },
+    { value: "phase", label: "フェーズ順" },
   ] as const;
 
   const LAYOUT_BTNS: { mode: LayoutMode; label: string; Icon: React.FC<{ size?: number }> }[] = [
@@ -1175,6 +1224,33 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             }}
           >
             面談受付中
+          </button>
+
+          {/* 外資系 pill */}
+          <button
+            type="button"
+            onClick={() => setParam("foreign", foreign ? "" : "1")}
+            aria-pressed={foreign}
+            style={{
+              height: 38,
+              padding: "0 14px",
+              borderRadius: 8,
+              fontSize: "var(--text-sm)",
+              fontWeight: 500,
+              border: `1px solid ${foreign ? "#6d28d9" : "var(--line)"}`,
+              background: foreign ? "#ede9fe" : "#fff",
+              color: foreign ? "#6d28d9" : "var(--ink-soft)",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+            </svg>
+            外資系
           </button>
 
           {/* フェーズ select（件数付き） */}
@@ -1398,6 +1474,12 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
                 <button type="button" onClick={() => setParam("hiring", "")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, lineHeight: 1, color: "#065f46", padding: 0, fontWeight: 700 }}>×</button>
               </span>
             )}
+            {foreign && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100, background: "#ede9fe", color: "#6d28d9", border: "1px solid #c4b5fd" }}>
+                🌐 外資系
+                <button type="button" onClick={() => setParam("foreign", "")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, lineHeight: 1, color: "#6d28d9", padding: 0, fontWeight: 700 }}>×</button>
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -1568,6 +1650,13 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             {paged.map((c) => (
               <CompanyCardList key={c.id} company={c} />
             ))}
+          </div>
+        )}
+
+        {/* 表示件数インジケーター */}
+        {filtered.length > perPage && (
+          <div style={{ textAlign: "center", marginBottom: 10, fontSize: 12, color: "var(--ink-mute)" }}>
+            {((safePage - 1) * perPage + 1)}〜{Math.min(safePage * perPage, filtered.length)}社を表示（全{filtered.length}社）
           </div>
         )}
 
