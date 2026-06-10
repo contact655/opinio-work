@@ -432,6 +432,34 @@ function CompanyCardCard({
               </>
             )}
           </div>
+
+          {/* CTA button */}
+          {company.accepting_casual_meetings && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                padding: "8px 0",
+                borderRadius: 9,
+                background: "linear-gradient(135deg, #f59e0b, #ea580c)",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+                width: "100%",
+                boxShadow: "0 3px 8px rgba(234,88,12,0.3)",
+                letterSpacing: "0.01em",
+                marginTop: 4,
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              話を聞く
+            </span>
+          )}
         </div>
       </article>
     </Link>
@@ -444,6 +472,12 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
   const fallbackGradient = "linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)";
   const industryBadge = getIndustryBadge(company.industry);
   const phaseBadge = getPhaseBadge(company.phase);
+  const daysSinceUpdate = (() => {
+    if (!company.updated_at) return 99;
+    const diff = (Date.now() - new Date(company.updated_at).getTime()) / (1000 * 60 * 60 * 24);
+    return Math.floor(diff);
+  })();
+  const isRecentlyUpdated = daysSinceUpdate <= 7;
 
   return (
     <Link href={`/companies/${company.id}`} prefetch={true} style={{ textDecoration: "none", display: "block" }}>
@@ -543,6 +577,22 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
                 }}
               >
                 {phaseBadge.label}
+              </span>
+            )}
+            {isRecentlyUpdated && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  padding: "2px 7px",
+                  borderRadius: 100,
+                  background: "#f0fdf4",
+                  color: "#15803d",
+                  border: "1px solid #bbf7d0",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {daysSinceUpdate === 0 ? "今日更新" : `${daysSinceUpdate}日前更新`}
               </span>
             )}
             {company.accepting_casual_meetings && (
@@ -698,19 +748,23 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 4,
-                  padding: "5px 14px",
-                  borderRadius: 8,
+                  gap: 6,
+                  padding: "8px 18px",
+                  borderRadius: 9,
                   background: "linear-gradient(135deg, #f59e0b, #ea580c)",
                   color: "#fff",
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: 700,
                   whiteSpace: "nowrap",
                   flexShrink: 0,
-                  boxShadow: "0 2px 6px rgba(234,88,12,0.25)",
+                  boxShadow: "0 3px 8px rgba(234,88,12,0.3)",
+                  letterSpacing: "0.01em",
                 }}
               >
-                話を聞く →
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                話を聞く
               </span>
             ) : (
               <span
@@ -732,6 +786,67 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
               </span>
             )}
           </div>
+        </div>
+
+        {/* Right panel: stats + compare */}
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            padding: "14px 16px",
+            gap: 8,
+            borderLeft: "1px solid var(--line-soft)",
+            minWidth: 120,
+          }}
+          className="list-card-right-panel"
+        >
+          {/* Job count stat */}
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--success)", fontFamily: "Inter, sans-serif", lineHeight: 1.1 }}>
+              {company.job_count > 0 ? company.job_count : "—"}
+            </div>
+            <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 2, fontWeight: 500 }}>
+              求人
+            </div>
+          </div>
+
+          {/* Compare button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // compare toggle (dispatch custom event for CompareBar)
+              const stored = JSON.parse(localStorage.getItem("compare-companies") ?? "[]") as string[];
+              const isIn = stored.includes(company.id);
+              const updated = isIn ? stored.filter((id) => id !== company.id) : [...stored, company.id].slice(0, 3);
+              localStorage.setItem("compare-companies", JSON.stringify(updated));
+              window.dispatchEvent(new CustomEvent("compare-update", { detail: updated }));
+            }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 11,
+              fontWeight: 600,
+              padding: "5px 10px",
+              borderRadius: 7,
+              border: "1px solid var(--line)",
+              background: "#fff",
+              color: "var(--ink-soft)",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              transition: "border-color 0.15s, background 0.15s",
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+              <path d="M18 20V10M12 20V4M6 20v-6"/>
+            </svg>
+            比較
+          </button>
         </div>
       </article>
     </Link>
@@ -1063,8 +1178,8 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
   // Sort pills config
   const SORT_PILLS = [
     { value: "newest", label: "新着順" },
-    { value: "hiring", label: "求人あり優先" },
-    { value: "employees", label: "社員数多い順" },
+    { value: "hiring", label: "求人あり" },
+    { value: "employees", label: "社員数順" },
     { value: "phase", label: "フェーズ順" },
   ] as const;
 
@@ -1350,6 +1465,9 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           >
             {/* Sort pills */}
             <div style={{ display: "flex", gap: 4 }}>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500, marginRight: 2, display: "flex", alignItems: "center" }}>
+                並び替え:
+              </span>
               {SORT_PILLS.map((pill) => (
                 <button
                   key={pill.value}
@@ -1658,6 +1776,9 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
         @keyframes pulseDot {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.5; transform: scale(0.7); }
+        }
+        @media (max-width: 640px) {
+          .list-card-right-panel { display: none !important; }
         }
       `}</style>
     </div>
