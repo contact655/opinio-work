@@ -10,7 +10,7 @@ import { showToast } from "@/lib/toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type LayoutMode = "card" | "grid" | "list";
+type LayoutMode = "card" | "list";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -413,217 +413,7 @@ function CompanyCardCard({
   );
 }
 
-// ─── CompanyCardGrid (2列グリッド) ────────────────────────────────────────────
-
-function CompanyCardGrid({
-  company,
-  bookmarked,
-  onBookmark,
-}: {
-  company: CompanyListRow;
-  bookmarked: boolean;
-  onBookmark: (id: string, add: boolean) => void;
-}) {
-  const industryBadge = getIndustryBadge(company.industry);
-  const phaseBadge = getPhaseBadge(company.phase);
-
-  function handleBookmark(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    onBookmark(company.id, !bookmarked);
-  }
-
-  return (
-    <Link href={`/companies/${company.id}`} prefetch={true} style={{ textDecoration: "none", display: "block" }}>
-      <article
-        className="company-card"
-        style={{
-          background: "#fff",
-          border: `1px solid ${company.accepting_casual_meetings ? "#A7F3D0" : "var(--line)"}`,
-          borderRadius: 12,
-          padding: "14px 16px",
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 14,
-          transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-          cursor: "pointer",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Logo */}
-        <div style={{ flexShrink: 0 }}>
-          <CompanyLogo
-            name={company.name}
-            logoUrl={company.logo_url}
-            logoLetter={company.logo_letter}
-            logoGradient={company.logo_gradient}
-            size={44}
-            borderRadius={10}
-          />
-        </div>
-
-        {/* Content */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Name + badges row */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 6,
-              marginBottom: 4,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: "var(--ink)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {company.name}
-            </span>
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                padding: "2px 7px",
-                borderRadius: 100,
-                color: industryBadge.color,
-                background: industryBadge.bg,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {company.industry}
-            </span>
-            {phaseBadge && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  padding: "2px 7px",
-                  borderRadius: 100,
-                  color: phaseBadge.color,
-                  background: phaseBadge.bg,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {phaseBadge.label}
-              </span>
-            )}
-            {company.accepting_casual_meetings && (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 3,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  padding: "2px 7px",
-                  borderRadius: 100,
-                  background: "var(--success-soft)",
-                  color: "var(--success)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <span
-                  style={{
-                    width: 4,
-                    height: 4,
-                    borderRadius: "50%",
-                    background: "var(--success)",
-                    animation: "pulseDot 1.8s ease-in-out infinite",
-                  }}
-                />
-                面談受付中
-              </span>
-            )}
-          </div>
-
-          {/* English name */}
-          {company.name_en && cleanEnName(company.name_en) && (
-            <div
-              style={{
-                fontSize: 11,
-                color: "var(--ink-mute)",
-                marginBottom: 4,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {cleanEnName(company.name_en)}
-            </div>
-          )}
-
-          {/* Tagline */}
-          {company.tagline && (
-            <p
-              style={
-                {
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  color: "var(--ink-soft)",
-                  margin: "0 0 6px",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 1,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                } as React.CSSProperties
-              }
-            >
-              {company.tagline}
-            </p>
-          )}
-
-          {/* Location + employees + bookmark */}
-          <div
-            style={{
-              fontSize: 11,
-              color: "var(--ink-mute)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <span>📍</span>
-            <span>{extractPrefecture(company.location) || company.location}</span>
-            {company.employee_count && (
-              <>
-                <span style={{ color: "var(--line)" }}>·</span>
-                <span>{company.employee_count}</span>
-              </>
-            )}
-            <div style={{ flex: 1 }} />
-            <button
-              type="button"
-              onClick={handleBookmark}
-              aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク"}
-              aria-pressed={bookmarked}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "2px 4px",
-                fontSize: 15,
-                lineHeight: 1,
-                color: bookmarked ? "#e11d48" : "#cbd5e1",
-                transition: "color 0.15s, transform 0.15s",
-              }}
-            >
-              {bookmarked ? "♥" : "♡"}
-            </button>
-          </div>
-        </div>
-      </article>
-    </Link>
-  );
-}
-
-// ─── CompanyCardList (1列リスト) ──────────────────────────────────────────────
+// ─── CompanyCardList (リストモード・1列) ──────────────────────────────────────
 
 function CompanyCardList({ company }: { company: CompanyListRow }) {
   const fallbackGradient = "linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)";
@@ -998,14 +788,6 @@ function Pagination({
 
 // ─── Layout icon components ───────────────────────────────────────────────────
 
-function IconCard({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-      <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
-    </svg>
-  );
-}
 
 function IconGrid({ size = 16 }: { size?: number }) {
   return (
@@ -1040,9 +822,9 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
 
   // Local state
   const [q, setQ] = useState("");
-  const viewParam = searchParams.get("view") as LayoutMode | null;
+  const viewParam = searchParams.get("view");
   const [layout, setLayout] = useState<LayoutMode>(
-    viewParam === "grid" || viewParam === "list" ? viewParam : "card"
+    viewParam === "list" ? "list" : "card"
   );
 
   // Bookmark state
@@ -1238,9 +1020,8 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
   ] as const;
 
   const LAYOUT_BTNS: { mode: LayoutMode; label: string; Icon: React.FC<{ size?: number }> }[] = [
-    { mode: "card", label: "一覧", Icon: IconCard },
-    { mode: "grid", label: "カード", Icon: IconGrid },
-    { mode: "list", label: "詳細", Icon: IconList },
+    { mode: "card", label: "カード", Icon: IconGrid },
+    { mode: "list", label: "リスト", Icon: IconList },
   ];
 
   return (
@@ -1774,24 +1555,6 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           >
             {paged.map((c) => (
               <CompanyCardCard
-                key={c.id}
-                company={c}
-                bookmarked={bookmarkedIds.has(c.id)}
-                onBookmark={handleBookmark}
-              />
-            ))}
-          </div>
-        ) : layout === "grid" ? (
-          /* Grid mode: 2-column */
-          <div
-            style={{
-              display: "grid",
-              gap: 14,
-              gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-            }}
-          >
-            {paged.map((c) => (
-              <CompanyCardGrid
                 key={c.id}
                 company={c}
                 bookmarked={bookmarkedIds.has(c.id)}
