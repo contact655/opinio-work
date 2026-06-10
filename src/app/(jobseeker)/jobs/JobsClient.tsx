@@ -435,7 +435,7 @@ function JobCard({
                 {job.dept}
               </span>
             )}
-            {job.employment_type && (
+            {job.employment_type && job.employment_type !== "正社員" && (
               <span style={{
                 fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 4,
                 background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0",
@@ -958,10 +958,10 @@ function JobListCard({
                 </span>
               </>
             )}
-            {job.employment_type && (
+            {job.employment_type && job.employment_type !== "正社員" && (
               <>
                 <span style={{ fontSize: 10, color: "var(--line)" }}>·</span>
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
+                <span style={{ fontSize: 11, color: "var(--success)", fontWeight: 700, background: "#F0FDF4", padding: "1px 7px", borderRadius: 4, border: "1px solid #BBF7D0" }}>
                   {job.employment_type}
                 </span>
               </>
