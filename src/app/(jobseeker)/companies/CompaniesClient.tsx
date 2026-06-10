@@ -1226,6 +1226,30 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             面談受付中
           </button>
 
+          {/* 外資系 pill（リモートselectを除去した分のスペースに配置） */}
+          <button
+            type="button"
+            onClick={() => setParam("foreign", foreign ? "" : "1")}
+            aria-pressed={foreign}
+            style={{
+              height: 38,
+              padding: "0 12px",
+              borderRadius: 8,
+              fontSize: "var(--text-sm)",
+              fontWeight: foreign ? 700 : 500,
+              border: `1px solid ${foreign ? "#6d28d9" : "var(--line)"}`,
+              background: foreign ? "#ede9fe" : "#fff",
+              color: foreign ? "#6d28d9" : "var(--ink-soft)",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            🌐 外資系
+          </button>
+
           {/* フェーズ select（件数付き） */}
           <select
             value={phase}
@@ -1350,31 +1374,6 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
                 </button>
               ))}
             </div>
-
-            {/* 外資系 toggle */}
-            <button
-              type="button"
-              onClick={() => setParam("foreign", foreign ? "" : "1")}
-              aria-pressed={foreign}
-              style={{
-                height: 34,
-                padding: "0 10px",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: foreign ? 700 : 500,
-                border: `1px solid ${foreign ? "#6d28d9" : "var(--line)"}`,
-                background: foreign ? "#ede9fe" : "#fff",
-                color: foreign ? "#6d28d9" : "var(--ink-mute)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                transition: "all 0.15s",
-              }}
-            >
-              🌐 外資系
-            </button>
 
             {/* Divider */}
             <div style={{ width: 1, height: 24, background: "var(--line)", margin: "0 4px" }} />
