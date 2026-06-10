@@ -317,6 +317,48 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
 
   const locationOptions = locations.map((l) => ({ value: l, label: l }));
 
+  // アクティブフィルターのリスト（サマリー行用）
+  const activeFilters: { key: string; label: string; color?: string; bg?: string; dot?: string; onRemove: () => void }[] = [];
+  if (searchParams.get("q")) {
+    activeFilters.push({
+      key: "q",
+      label: `"${searchParams.get("q")}"`,
+      onRemove: () => updateParam("q", null),
+    });
+  }
+  if (currentPhase) {
+    const phaseOpt = PHASE_OPTIONS.find((o) => o.value === currentPhase);
+    activeFilters.push({
+      key: "phase",
+      label: phaseOpt?.label ?? currentPhase,
+      color: phaseOpt?.color,
+      bg: phaseOpt?.bg,
+      dot: phaseOpt?.dot,
+      onRemove: () => updateParam("phase", null),
+    });
+  }
+  if (currentIndustry) {
+    activeFilters.push({
+      key: "industry",
+      label: currentIndustry,
+      onRemove: () => updateParam("industry", null),
+    });
+  }
+  if (currentLocation) {
+    activeFilters.push({
+      key: "location",
+      label: `📍 ${currentLocation}`,
+      onRemove: () => updateParam("location", null),
+    });
+  }
+  if (currentHiring) {
+    activeFilters.push({
+      key: "hiring",
+      label: "🟠 面談受付中",
+      onRemove: () => updateParam("hiring", null),
+    });
+  }
+
   return (
     <>
       <style>{`
@@ -535,6 +577,46 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
             </button>
           )}
         </div>
+
+        {/* ── アクティブフィルター サマリー行 ── */}
+        {activeFilters.length > 0 && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            paddingBottom: 12, overflowX: "auto",
+            scrollbarWidth: "none",
+          }}>
+            <style>{`.csb-summary::-webkit-scrollbar { display: none; }`}</style>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 500 }}>
+              絞り込み中:
+            </span>
+            {activeFilters.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={f.onRemove}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "3px 10px 3px 8px",
+                  borderRadius: 999,
+                  background: f.bg ?? "var(--royal-50)",
+                  color: f.color ?? "var(--royal)",
+                  border: `1px solid ${f.color ? f.color + "40" : "var(--royal-100)"}`,
+                  fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", whiteSpace: "nowrap",
+                  fontFamily: "inherit",
+                  transition: "opacity 0.1s",
+                  flexShrink: 0,
+                }}
+              >
+                {f.dot && (
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.dot, flexShrink: 0 }} />
+                )}
+                {f.label}
+                <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 1 }}>✕</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );
