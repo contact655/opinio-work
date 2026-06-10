@@ -1226,33 +1226,6 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             面談受付中
           </button>
 
-          {/* 外資系 pill */}
-          <button
-            type="button"
-            onClick={() => setParam("foreign", foreign ? "" : "1")}
-            aria-pressed={foreign}
-            style={{
-              height: 38,
-              padding: "0 14px",
-              borderRadius: 8,
-              fontSize: "var(--text-sm)",
-              fontWeight: 500,
-              border: `1px solid ${foreign ? "#6d28d9" : "var(--line)"}`,
-              background: foreign ? "#ede9fe" : "#fff",
-              color: foreign ? "#6d28d9" : "var(--ink-soft)",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
-              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
-            </svg>
-            外資系
-          </button>
-
           {/* フェーズ select（件数付き） */}
           <select
             value={phase}
@@ -1289,19 +1262,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             })}
           </select>
 
-          {/* リモート select（常時表示） */}
-          <select
-            value={remote}
-            onChange={(e) => setParam("remote", e.target.value)}
-            style={filterSelectStyle(!!remote)}
-            aria-label="リモートワークで絞り込み"
-          >
-            {REMOTE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          {/* リモート select は jobs ページで表示 — companies ではスペース確保のため非表示 */}
 
           {/* 詳細フィルター toggle（都道府県のみ） */}
           <button
@@ -1389,6 +1350,31 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
                 </button>
               ))}
             </div>
+
+            {/* 外資系 toggle */}
+            <button
+              type="button"
+              onClick={() => setParam("foreign", foreign ? "" : "1")}
+              aria-pressed={foreign}
+              style={{
+                height: 34,
+                padding: "0 10px",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: foreign ? 700 : 500,
+                border: `1px solid ${foreign ? "#6d28d9" : "var(--line)"}`,
+                background: foreign ? "#ede9fe" : "#fff",
+                color: foreign ? "#6d28d9" : "var(--ink-mute)",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                transition: "all 0.15s",
+              }}
+            >
+              🌐 外資系
+            </button>
 
             {/* Divider */}
             <div style={{ width: 1, height: 24, background: "var(--line)", margin: "0 4px" }} />
