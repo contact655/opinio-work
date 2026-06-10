@@ -728,11 +728,8 @@ function AboutSection({
             {/* サブセクション見出し */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
               <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>
-                なぜこの会社に入るのか
+                この会社の魅力
               </h3>
-              <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", color: "var(--royal)", fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const, flexShrink: 0, background: "var(--royal-50)", border: "1px solid var(--royal-100)", padding: "2px 8px", borderRadius: 6 }}>
-                WHY JOIN
-              </span>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
             {/* 本文: 「。」区切りでポイント表示 */}
