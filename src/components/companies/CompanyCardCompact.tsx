@@ -10,25 +10,42 @@ import { addToCompare, removeFromCompare, isInCompareList } from './CompareBar';
 const COMPARE_EVENT = 'opinio-compare-update';
 
 // フェーズバッジ設定
-const STAGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  "pre-seed":   { label: "プレシード", color: "#78350f", bg: "#fff7ed" },
-  seed:         { label: "シード",     color: "#78350f", bg: "#fff7ed" },
-  "series-a":   { label: "Series A",  color: "#1e40af", bg: "#dbeafe" },
-  "series-b":   { label: "Series B",  color: "#5b21b6", bg: "#ede9fe" },
-  "series-c":   { label: "Series C",  color: "#065f46", bg: "#d1fae5" },
-  "series_c":   { label: "Series C",  color: "#065f46", bg: "#d1fae5" },
-  "series-d":   { label: "Series D+", color: "#064e3b", bg: "#ccfbf1" },
-  growth:       { label: "成長期",    color: "#065f46", bg: "#d1fae5" },
-  listed:       { label: "上場",      color: "#14532d", bg: "#dcfce7" },
-  "上場":       { label: "上場",      color: "#14532d", bg: "#dcfce7" },
-  unicorn:      { label: "ユニコーン", color: "#6d28d9", bg: "#ede9fe" },
-  ipo:          { label: "IPO準備",   color: "#9a3412", bg: "#ffedd5" },
+type StageCfgEntry = { label: string; color: string; bg: string; border: string; fontWeight?: number };
+const STAGE_CONFIG: Record<string, StageCfgEntry> = {
+  "pre-seed":       { label: "プレシード",   color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "プレシード":     { label: "プレシード",   color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "bootstrap":      { label: "ブートストラップ", color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "ブートストラップ": { label: "ブートストラップ", color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  seed:             { label: "シード",       color: "#92400E", bg: "#FEF3C7", border: "#FDE68A" },
+  "シード":         { label: "シード",       color: "#92400E", bg: "#FEF3C7", border: "#FDE68A" },
+  "series-a":       { label: "シリーズA",    color: "#065F46", bg: "#D1FAE5", border: "#A7F3D0" },
+  "series_a":       { label: "シリーズA",    color: "#065F46", bg: "#D1FAE5", border: "#A7F3D0" },
+  "シリーズA":      { label: "シリーズA",    color: "#065F46", bg: "#D1FAE5", border: "#A7F3D0" },
+  "series-b":       { label: "シリーズB",    color: "#1E40AF", bg: "#DBEAFE", border: "#BFDBFE" },
+  "series_b":       { label: "シリーズB",    color: "#1E40AF", bg: "#DBEAFE", border: "#BFDBFE" },
+  "シリーズB":      { label: "シリーズB",    color: "#1E40AF", bg: "#DBEAFE", border: "#BFDBFE" },
+  "series-c":       { label: "シリーズC",    color: "#5B21B6", bg: "#EDE9FE", border: "#DDD6FE" },
+  "series_c":       { label: "シリーズC",    color: "#5B21B6", bg: "#EDE9FE", border: "#DDD6FE" },
+  "シリーズC":      { label: "シリーズC",    color: "#5B21B6", bg: "#EDE9FE", border: "#DDD6FE" },
+  "series-d":       { label: "シリーズD+",   color: "#991B1B", bg: "#FEE2E2", border: "#FECACA" },
+  "series_d":       { label: "シリーズD+",   color: "#991B1B", bg: "#FEE2E2", border: "#FECACA" },
+  "シリーズD以降":  { label: "シリーズD+",   color: "#991B1B", bg: "#FEE2E2", border: "#FECACA" },
+  ipo:              { label: "IPO準備中",    color: "#991B1B", bg: "#FEE2E2", border: "#FECACA" },
+  "ipo準備中":      { label: "IPO準備中",    color: "#991B1B", bg: "#FEE2E2", border: "#FECACA" },
+  "IPO準備中":      { label: "IPO準備中",    color: "#991B1B", bg: "#FEE2E2", border: "#FECACA" },
+  listed:           { label: "上場",         color: "#065F46", bg: "#ECFDF5", border: "#6EE7B7", fontWeight: 800 },
+  "上場":           { label: "上場",         color: "#065F46", bg: "#ECFDF5", border: "#6EE7B7", fontWeight: 800 },
+  unicorn:          { label: "ユニコーン",   color: "#6D28D9", bg: "#F3E8FF", border: "#C4B5FD" },
+  "ユニコーン":     { label: "ユニコーン",   color: "#6D28D9", bg: "#F3E8FF", border: "#C4B5FD" },
+  growth:           { label: "成長期",       color: "#065F46", bg: "#D1FAE5", border: "#A7F3D0" },
+  "外資系":         { label: "🌐 外資系",    color: "#3730A3", bg: "#E0E7FF", border: "#C7D2FE" },
+  "foreign":        { label: "🌐 外資系",    color: "#3730A3", bg: "#E0E7FF", border: "#C7D2FE" },
 };
 
 function getStageCfg(stage: string | null) {
   if (!stage) return null;
   const key = stage.toLowerCase().replace(/\s+/g, "-");
-  return STAGE_CONFIG[key] ?? STAGE_CONFIG[stage] ?? { label: stage, color: "#4a5260", bg: "#f1f5f9" };
+  return STAGE_CONFIG[key] ?? STAGE_CONFIG[stage] ?? { label: stage, color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" };
 }
 
 // 業種カラー
@@ -222,7 +239,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
         </div>
 
         {/* 右: 情報エリア */}
-        <div style={{ flex: 1, minWidth: 0, padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
+        <div style={{ flex: 1, minWidth: 0, padding: '10px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4 }}>
 
           {/* 上段: 社名 + バッジ + ブックマーク */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
@@ -240,8 +257,8 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4, alignItems: 'center' }}>
                 {stageCfg && (
                   <span style={{
-                    fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 100,
-                    background: stageCfg.bg, color: stageCfg.color,
+                    fontSize: 10, fontWeight: stageCfg.fontWeight ?? 700, padding: '2px 6px', borderRadius: 100,
+                    background: stageCfg.bg, color: stageCfg.color, border: `1px solid ${stageCfg.border}`,
                   }}>
                     {stageCfg.label}
                   </span>
@@ -300,11 +317,41 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
           {/* 中段: タグライン */}
           {company.tagline && (
             <div style={{
-              fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.4,
+              fontSize: 11, color: 'var(--ink-soft)', lineHeight: 1.4,
               overflow: 'hidden', display: '-webkit-box',
               WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' as const,
             }}>
               {company.tagline}
+            </div>
+          )}
+
+          {/* 下段: 面談受付中バッジ + 求人数 */}
+          {(company.accepting_casual_meetings || (company.job_count != null && company.job_count > 0)) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+              {company.accepting_casual_meetings && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
+                  background: 'linear-gradient(135deg, #FFF7ED, #FEF3C7)',
+                  color: '#C2410C', border: '1.5px solid #FDBA74',
+                  boxShadow: '0 1px 3px rgba(234,88,12,0.15)',
+                }}>
+                  <span style={{
+                    width: 5, height: 5, borderRadius: '50%', background: '#EA580C',
+                    animation: 'pulseDot 1.8s ease-in-out infinite', flexShrink: 0,
+                  }} />
+                  面談受付中
+                </span>
+              )}
+              {company.job_count != null && company.job_count > 0 && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
+                  background: 'var(--royal-50)', color: 'var(--royal)',
+                  border: '1px solid var(--royal-100)',
+                }}>
+                  求人 {company.job_count}件
+                </span>
+              )}
             </div>
           )}
 

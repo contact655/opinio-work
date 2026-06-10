@@ -531,7 +531,7 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
 
           {hasAnyFilter && (
             <button type="button" className="csb-clear" onClick={handleClear}>
-              ✕ クリア
+              ✕ すべてクリア
             </button>
           )}
         </div>
