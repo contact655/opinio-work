@@ -47,13 +47,15 @@ export default function SchoolLogoImg({ schoolMaster, size = 40 }: Props) {
         style={{
           width: size,
           height: size,
+          borderRadius: Math.round(size * 0.17),
+          background: "linear-gradient(135deg, #7C3AED 0%, #a855f7 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "var(--ink-mute)",
+          flexShrink: 0,
         }}
       >
-        <GraduationCap size={size * 0.5} />
+        <GraduationCap size={size * 0.44} color="#fff" strokeWidth={1.75} />
       </div>
     );
   }
@@ -89,19 +91,21 @@ export default function SchoolLogoImg({ schoolMaster, size = 40 }: Props) {
     );
   }
 
-  // ── ステップ 3: letter もない → GraduationCap ──
+  // ── ステップ 3: letter もない → 色付き背景 + GraduationCap ──
   return (
     <div
       style={{
         width: size,
         height: size,
+        borderRadius: Math.round(size * 0.17),
+        background: "linear-gradient(135deg, #7C3AED 0%, #a855f7 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: "var(--ink-mute)",
+        flexShrink: 0,
       }}
     >
-      <GraduationCap size={size * 0.5} />
+      <GraduationCap size={size * 0.44} color="#fff" strokeWidth={1.75} />
     </div>
   );
 }

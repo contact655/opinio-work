@@ -553,26 +553,22 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </span>
                   )}
                 </div>
-                {/* Career stats strip */}
+                {/* Career stats — big-number cards */}
                 {careerSummary && (
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 0, marginTop: 14, flexWrap: "wrap", background: "var(--bg-tint)", borderRadius: 100, padding: "4px 8px", border: "1px solid var(--line)" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "var(--text-sm)", color: "var(--ink-soft)", padding: "4px 12px 4px 0" }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
-                      <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{careerSummary.companyCount}</strong>社の経験
-                    </span>
-                    <span style={{ width: 1, height: 14, background: "var(--line)", margin: "0 4px", flexShrink: 0 }} />
-                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "var(--text-sm)", color: "var(--ink-soft)", padding: "4px 12px" }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                      <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{careerSummary.totalYears}</strong>年のキャリア
-                    </span>
+                  <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--bg-tint)", borderRadius: 10, padding: "8px 16px", border: "1px solid var(--line)", minWidth: 64 }}>
+                      <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--royal)", lineHeight: 1 }}>{careerSummary.companyCount}</span>
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, whiteSpace: "nowrap" }}>社の経験</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--bg-tint)", borderRadius: 10, padding: "8px 16px", border: "1px solid var(--line)", minWidth: 64 }}>
+                      <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--royal)", lineHeight: 1 }}>{careerSummary.totalYears}</span>
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, whiteSpace: "nowrap" }}>年のキャリア</span>
+                    </div>
                     {skillTags.length > 0 && (
-                      <>
-                        <span style={{ width: 1, height: 14, background: "var(--line)", margin: "0 4px", flexShrink: 0 }} />
-                        <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "var(--text-sm)", color: "var(--ink-soft)", padding: "4px 0 4px 12px" }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                          <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{skillTags.length}</strong>スキル
-                        </span>
-                      </>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--bg-tint)", borderRadius: 10, padding: "8px 16px", border: "1px solid var(--line)", minWidth: 64 }}>
+                        <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--royal)", lineHeight: 1 }}>{skillTags.length}</span>
+                        <span style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, whiteSpace: "nowrap" }}>スキル</span>
+                      </div>
                     )}
                   </div>
                 )}
@@ -628,6 +624,24 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     })}
                   </div>
                 )}
+                {/* 無料登録CTA — 非ログイン・非オーナー時は名前の下に自然配置 */}
+                {!viewerIsOwner && !authUser && (
+                  <div style={{ marginTop: 14 }}>
+                    <Link href={`/auth?next=/u/${owUser.id}`} style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "9px 20px", borderRadius: 8,
+                      background: "var(--royal)", color: "#fff",
+                      fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
+                      boxShadow: "0 4px 14px rgba(0,35,102,0.25)",
+                    }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+                      </svg>
+                      無料登録する
+                    </Link>
+                  </div>
+                )}
               </div>
 
               {/* Main action CTA (right-side) */}
@@ -676,22 +690,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                     </svg>
                     {shortCompanyName(currentCareer!.company_name)} の企業ページ
-                  </Link>
-                ) : !authUser ? (
-                  /* 非ログイン + 企業非公開 → 登録誘導 */
-                  <Link href={`/auth?next=/u/${owUser.id}`} style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "9px 18px", borderRadius: 8,
-                    background: "var(--royal)", color: "#fff",
-                    fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
-                    flexShrink: 0,
-                    boxShadow: "0 4px 14px rgba(0,35,102,0.25)",
-                  }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                      <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
-                    </svg>
-                    無料登録する
                   </Link>
                 ) : null}
               </div>
@@ -867,18 +865,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 </div>
-                <div style={{ position: "relative", paddingLeft: 28 }}>
-                  {/* Decorative open-quote: Unicode U+201C at large scale — universally rendered */}
-                  <span aria-hidden="true" style={{
-                    position: "absolute", left: -4, top: -10,
-                    fontSize: 56, lineHeight: 1,
-                    fontFamily: "Georgia, 'Noto Serif JP', serif",
-                    color: "var(--royal-100)",
-                    userSelect: "none",
-                    fontWeight: 700,
-                  }}>
-                    {"“"}
-                  </span>
+                <div style={{ paddingLeft: 20, borderLeft: "3px solid var(--royal-100)" }}>
                   <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0 }}>
                     {owUser.about_me}
                   </p>

@@ -354,13 +354,15 @@ function CurrentBadge() {
   return (
     <span
       style={{
-        display: "inline-block",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
         fontSize: 10,
         fontWeight: 700,
         letterSpacing: "0.04em",
-        color: "var(--royal)",
-        background: "var(--royal-50)",
-        border: "1px solid var(--royal-100)",
+        color: "var(--success)",
+        background: "var(--success-soft)",
+        border: "1px solid #6ee7b7",
         borderRadius: 4,
         padding: "1px 6px",
         verticalAlign: "middle",
@@ -368,6 +370,7 @@ function CurrentBadge() {
         lineHeight: 1.6,
       }}
     >
+      <span className="tl-pulse-dot" />
       在籍中
     </span>
   );
@@ -910,8 +913,8 @@ export default function MergedTimeline({
           position: absolute;
           top: 40px;
           bottom: 40px;
-          left: 31px; /* center of 64px icon col */
-          width: 1px;
+          left: 40px; /* center of 80px icon column */
+          width: 2px;
           background: var(--line);
           z-index: 0;
         }
@@ -966,6 +969,17 @@ export default function MergedTimeline({
           color: var(--royal) !important;
           text-decoration: underline;
           text-underline-offset: 3px;
+        }
+
+        /* 在籍中バッジのパルスドット */
+        .tl-pulse-dot {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--success);
+          animation: pulseDot 1.5s ease-in-out infinite;
+          flex-shrink: 0;
         }
       `}</style>
 

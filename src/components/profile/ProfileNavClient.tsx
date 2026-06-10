@@ -46,16 +46,15 @@ export function ProfileNavClient({ sections }: { sections: NavSection[] }) {
     <nav
       style={{
         background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 10,
-        padding: "6px 12px",
+        borderBottom: "1px solid var(--line)",
+        padding: "0 2px",
         marginBottom: 18,
         overflowX: "auto",
         whiteSpace: "nowrap",
         scrollbarWidth: "none",
         display: "flex",
         alignItems: "center",
-        gap: 2,
+        gap: 0,
       }}
     >
       <style>{`
@@ -63,32 +62,27 @@ export function ProfileNavClient({ sections }: { sections: NavSection[] }) {
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          padding: 5px 12px;
-          border-radius: 6px;
+          padding: 8px 14px;
+          padding-bottom: 10px;
+          border-radius: 0;
+          border-bottom: 2px solid transparent;
+          margin-bottom: -1px;
           font-size: 13px;
           font-weight: 600;
           color: var(--ink-soft);
           text-decoration: none;
-          transition: background 0.15s, color 0.15s;
+          transition: color 0.15s, border-color 0.15s;
           white-space: nowrap;
           flex-shrink: 0;
         }
         .pn-link:hover {
-          background: var(--royal-50);
           color: var(--royal);
+          border-bottom-color: var(--royal-100);
         }
         .pn-link.pn-active {
-          background: var(--royal-50);
           color: var(--royal);
-        }
-        .pn-link.pn-active::before {
-          content: "";
-          display: inline-block;
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: var(--royal);
-          margin-right: 4px;
+          font-weight: 700;
+          border-bottom-color: var(--royal);
         }
         nav::-webkit-scrollbar { display: none; }
       `}</style>
