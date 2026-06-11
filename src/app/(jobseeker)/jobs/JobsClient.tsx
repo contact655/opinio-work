@@ -41,6 +41,40 @@ function formatSalary(min: number, max: number): string {
   return `${min}万円〜`;
 }
 
+// ⑧ 相対時間表示
+function timeAgo(days: number): string {
+  if (days === 0) return "今日";
+  if (days < 7) return `${days}日前`;
+  if (days < 30) return `${Math.floor(days / 7)}週間前`;
+  return `${Math.floor(days / 30)}ヶ月前`;
+}
+
+// ③ フェーズバッジ
+const PHASE_BADGE_MAP: Record<string, { bg: string; color: string; label: string }> = {
+  "Pre-seed":      { bg: "#F1F5F9", color: "#475569", label: "プレシード" },
+  "Seed":          { bg: "#FEF3C7", color: "#92400E", label: "シード" },
+  "Series A":      { bg: "#D1FAE5", color: "#065F46", label: "シリーズA" },
+  "Series B":      { bg: "#DBEAFE", color: "#1E40AF", label: "シリーズB" },
+  "Series C":      { bg: "#EDE9FE", color: "#5B21B6", label: "シリーズC" },
+  "Series D":      { bg: "#FEE2E2", color: "#991B1B", label: "シリーズD+" },
+  "Series E":      { bg: "#FEE2E2", color: "#991B1B", label: "シリーズD+" },
+  "東証グロース":  { bg: "#D1FAE5", color: "#065F46", label: "グロース上場" },
+  "東証プライム":  { bg: "#ECFDF5", color: "#065F46", label: "プライム上場" },
+  "上場 (NASDAQ)": { bg: "#ECFDF5", color: "#065F46", label: "NASDAQ上場" },
+  "上場 (NYSE)":   { bg: "#ECFDF5", color: "#065F46", label: "NYSE上場" },
+  "上場":          { bg: "#ECFDF5", color: "#065F46", label: "上場" },
+  "シード":        { bg: "#FEF3C7", color: "#92400E", label: "シード" },
+  "シリーズA":     { bg: "#D1FAE5", color: "#065F46", label: "シリーズA" },
+  "シリーズB":     { bg: "#DBEAFE", color: "#1E40AF", label: "シリーズB" },
+  "シリーズC":     { bg: "#EDE9FE", color: "#5B21B6", label: "シリーズC" },
+  "シリーズD以降": { bg: "#FEE2E2", color: "#991B1B", label: "シリーズD+" },
+  "IPO準備中":     { bg: "#FFEDD5", color: "#9A3412", label: "IPO準備中" },
+};
+function getPhaseBadge(phase: string | null | undefined) {
+  if (!phase) return null;
+  return PHASE_BADGE_MAP[phase] ?? { bg: "#F1F5F9", color: "#475569", label: phase };
+}
+
 // ─── Dept color map ───────────────────────────────────────────────────────────
 
 const DEPT_COLORS: Record<string, { bg: string; color: string; border: string }> = {
@@ -64,6 +98,7 @@ function getDeptStyle(dept: string) {
 
 // ─── Job Card ─────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function JobCard({
   job,
   companyMap,
@@ -806,7 +841,7 @@ function FilterChip({
   );
 }
 
-// ─── Horizontal list card (desktop Green style) ───────────────────────────────
+// ─── Horizontal list card ─────────────────────────────────────────────────────
 
 function JobListCard({
   job, companyMap, initialBookmarked = false,
@@ -862,6 +897,9 @@ function JobListCard({
   const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
   const badge = freshBadge(job.updated_days_ago);
   const deptStyle = getDeptStyle(job.dept);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
+  const showAge = job.updated_days_ago > 7;
 
   return (
     <div style={{ position: "relative" }}>
@@ -871,7 +909,7 @@ function JobListCard({
         onClick={handleBookmark}
         aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
         style={{
-          position: "absolute", top: 16, right: 16, zIndex: 10,
+          position: "absolute", top: 14, right: 14, zIndex: 10,
           width: 34, height: 34, borderRadius: "50%",
           border: "none", cursor: "pointer",
           background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.95)",
@@ -885,14 +923,17 @@ function JobListCard({
       </button>
 
       <Link href={`/jobs/${job.id}`} prefetch className="job-list-card-link" style={{
-        display: "flex", gap: "var(--space-4)", alignItems: "flex-start",
+        display: "flex", gap: 16, alignItems: "flex-start",
         background: "#fff", borderRadius: 14,
-        padding: "20px 56px 18px 20px",
+        padding: "18px 56px 18px 18px",
         textDecoration: "none",
-        border: "1px solid var(--line)",
-        transition: "box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease",
+        borderTop: "1px solid var(--line)",
+        borderRight: "1px solid var(--line)",
+        borderBottom: "1px solid var(--line)",
+        borderLeft: company.accepting_casual_meetings ? "3px solid #ea580c" : "1px solid var(--line)",
+        transition: "box-shadow 0.22s ease, transform 0.22s ease",
       }}>
-        {/* Logo — ⑧ navy 統一プレースホルダー */}
+        {/* ① Logo */}
         <div style={{
           width: 52, height: 52, borderRadius: 10, flexShrink: 0,
           background: company.logo_url ? "#f8fafc" : "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
@@ -901,15 +942,17 @@ function JobListCard({
           color: company.logo_url ? undefined : "#fff", fontSize: 18, fontWeight: 700, overflow: "hidden",
         }}>
           {company.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={company.logo_url} alt={company.name} width={52} height={52} style={{ objectFit: "contain" }} />
           ) : logoLetter}
         </div>
 
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* ⑨ 鮮度バッジを role の横に */}
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 5, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", lineHeight: 1.35 }}>
+
+          {/* Row 1: タイトル + NEW バッジ + ⑧ 投稿時期（右端） */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", lineHeight: 1.35 }}>
               {job.role}
             </span>
             {badge && (
@@ -924,10 +967,15 @@ function JobListCard({
                 {badge.label}
               </span>
             )}
+            {showAge && (
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: "auto", flexShrink: 0, whiteSpace: "nowrap" }}>
+                {timeAgo(job.updated_days_ago)}投稿
+              </span>
+            )}
           </div>
 
-          {/* 企業名 + ロケーション + 勤務形態 + 雇用形態（④ inline追加） */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-2)", flexWrap: "wrap" }}>
+          {/* Row 2: ③ 企業名 + フェーズバッジ + 勤務地 + 勤務形態 + 雇用形態 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
             <span
               role="link"
               tabIndex={0}
@@ -938,6 +986,14 @@ function JobListCard({
             >
               {company.name}
             </span>
+            {phaseBadge && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
+                background: phaseBadge.bg, color: phaseBadge.color, flexShrink: 0,
+              }}>
+                {phaseBadge.label}
+              </span>
+            )}
             {job.location && (
               <>
                 <span style={{ fontSize: 10, color: "var(--line)" }}>·</span>
@@ -951,7 +1007,7 @@ function JobListCard({
               <>
                 <span style={{ fontSize: 10, color: "var(--line)" }}>·</span>
                 <span style={{
-                  fontSize: "var(--text-xs)", fontWeight: 600,
+                  fontSize: 12, fontWeight: 600,
                   color: job.work_style.includes("リモート") ? "var(--success)" : "var(--ink-soft)",
                 }}>
                   {job.work_style}
@@ -968,7 +1024,25 @@ function JobListCard({
             )}
           </div>
 
-          {/* キャッチコピー（2行） */}
+          {/* Row 3: ① 年収（目立つ位置・大きなフォント） */}
+          <div style={{ marginBottom: 8 }}>
+            {(job.salary_min || job.salary_max) ? (
+              <>
+                <span style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: 22, fontWeight: 800,
+                  color: "var(--success)", lineHeight: 1.1,
+                }}>
+                  {formatSalary(job.salary_min, job.salary_max)}
+                </span>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500, marginLeft: 6 }}>年収</span>
+              </>
+            ) : (
+              <span style={{ fontSize: 13, color: "var(--ink-mute)" }}>年収応相談</span>
+            )}
+          </div>
+
+          {/* Row 4: キャッチコピー */}
           {job.highlight && (
             <p style={{
               fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.65, margin: "0 0 10px",
@@ -978,8 +1052,8 @@ function JobListCard({
             </p>
           )}
 
-          {/* 下段: 職種バッジ・面談受付中のみ（④ employment_type・phase・employee_count 削除） */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          {/* Row 5: 職種バッジ + ② ⑥ CTA */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             {job.dept && (
               <span style={{
                 fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
@@ -988,44 +1062,35 @@ function JobListCard({
                 {job.dept}
               </span>
             )}
-            {company.accepting_casual_meetings && (
+            {company.accepting_casual_meetings ? (
+              <a
+                href={`/companies/${company.id}/casual-meeting?job_id=${job.id}`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "7px 14px", borderRadius: 9,
+                  background: "linear-gradient(135deg, #f97316, #ea580c)",
+                  color: "#fff", fontSize: 12, fontWeight: 700,
+                  textDecoration: "none", whiteSpace: "nowrap",
+                  boxShadow: "0 2px 8px rgba(234,88,12,0.28)",
+                  flexShrink: 0,
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fff", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
+                カジュアル面談を申込む
+              </a>
+            ) : (
               <span style={{
-                fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 100,
-                background: "linear-gradient(135deg, #FFF7ED, #FEF3C7)", color: "#C2410C",
-                border: "1.5px solid #FDBA74",
-                display: "inline-flex", alignItems: "center", gap: 3,
-                boxShadow: "0 1px 4px rgba(234,88,12,0.2)",
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 12, color: "var(--royal)", fontWeight: 600,
+                marginLeft: "auto", flexShrink: 0,
               }}>
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
-                面談受付中
+                詳細を見る
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
               </span>
             )}
-          </div>
-        </div>
-
-        {/* ⑤ Right: 年収ラベルと数値を1行に */}
-        <div style={{
-          display: "flex", flexDirection: "column", alignItems: "flex-end",
-          justifyContent: "center", flexShrink: 0, gap: 6,
-          paddingLeft: 16, minWidth: 100, textAlign: "right",
-        }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4, whiteSpace: "nowrap" }}>
-            {(job.salary_min || job.salary_max) && (
-              <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500 }}>年収</span>
-            )}
-            <span style={{
-              fontFamily: "Inter, sans-serif",
-              fontSize: 20, fontWeight: 800,
-              color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
-              lineHeight: 1.2,
-            }}>
-              {formatSalary(job.salary_min, job.salary_max)}
-            </span>
-          </div>
-          <div style={{ color: "var(--royal)", opacity: 0.4 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
           </div>
         </div>
       </Link>
@@ -1059,9 +1124,6 @@ export default function JobsClient({
 
   // Local-only keyword search
   const [q, setQ] = useState("");
-
-  // View mode: list (横長) / grid (カード)
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   // Which filter chip dropdown is open
   const [openChip, setOpenChip] = useState<string | null>(null);
@@ -1228,10 +1290,10 @@ export default function JobsClient({
         }}
       >
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-          {/* ① 2段構成フィルターバー */}
-          <div style={{ padding: "0 0 10px", display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+          {/* フィルターバー */}
+          <div style={{ padding: "0 0 0" }}>
 
-            {/* 1段目: 検索バー全幅 */}
+            {/* 1段目: 検索バー */}
             <div
               role="search"
               style={{
@@ -1241,9 +1303,7 @@ export default function JobsClient({
                 borderRadius: 999,
                 padding: "0 14px",
                 transition: "border-color 0.15s, box-shadow 0.15s",
-                width: "100%",
-                flex: "1 1 100%",
-                minWidth: 0,
+                marginBottom: 8,
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2.2} strokeLinecap="round" style={{ flexShrink: 0 }} aria-hidden="true">
@@ -1256,14 +1316,9 @@ export default function JobsClient({
                 onChange={(e) => { setQ(e.target.value); setOpenChip(null); }}
                 placeholder="職種・企業名で検索"
                 style={{
-                  flex: 1,
-                  border: "none",
-                  outline: "none",
-                  fontSize: 13.5,
-                  color: "var(--ink)",
-                  background: "transparent",
-                  padding: "9px 0",
-                  minWidth: 0,
+                  flex: 1, border: "none", outline: "none",
+                  fontSize: 13.5, color: "var(--ink)", background: "transparent",
+                  padding: "9px 0", minWidth: 0,
                 }}
                 onFocus={(e) => {
                   const wrap = e.currentTarget.parentElement as HTMLElement;
@@ -1279,206 +1334,213 @@ export default function JobsClient({
               )}
             </div>
 
-            {/* 2段目: フィルターチップ群（職種チップは削除 ③、職種ピルで代替） */}
-            {/* 勤務形態 chip */}
-            <FilterChip
-              label="勤務形態"
-              value={work_style}
-              options={[
-                { value: "フルリモート", label: "🏠 フルリモート" },
-                { value: "ハイブリッド", label: "🔀 ハイブリッド" },
-                { value: "出社",         label: "🏢 出社" },
-              ]}
-              onSelect={(v) => { setParam("work_style", v ?? ""); setOpenChip(null); }}
-              isOpen={openChip === "work_style"}
-              onToggle={() => setOpenChip(openChip === "work_style" ? null : "work_style")}
-              resultCount={work_style ? filtered.length : undefined}
-            />
-
-            {/* 年収 chip */}
-            <FilterChip
-              label="年収"
-              value={salary}
-              options={SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label }))}
-              onSelect={(v) => { setParam("salary", v ?? ""); setOpenChip(null); }}
-              isOpen={openChip === "salary"}
-              onToggle={() => setOpenChip(openChip === "salary" ? null : "salary")}
-              resultCount={salary ? filtered.length : undefined}
-            />
-
-            {/* 雇用形態 chip */}
-            <FilterChip
-              label="雇用形態"
-              value={empType}
-              options={[
-                { value: "正社員",       label: "正社員" },
-                { value: "業務委託",     label: "業務委託" },
-                { value: "副業",         label: "副業・複業" },
-              ]}
-              onSelect={(v) => { setParam("emp_type", v ?? ""); setOpenChip(null); }}
-              isOpen={openChip === "emp_type"}
-              onToggle={() => setOpenChip(openChip === "emp_type" ? null : "emp_type")}
-              resultCount={empType ? filtered.length : undefined}
-            />
-
-            {/* 地域 chip */}
-            {availablePrefectures.length > 0 && (
-              <FilterChip
-                label="地域"
-                value={prefecture}
-                options={availablePrefectures.map((p) => ({ value: p, label: p }))}
-                onSelect={(v) => { setParam("prefecture", v ?? ""); setOpenChip(null); }}
-                isOpen={openChip === "prefecture"}
-                onToggle={() => setOpenChip(openChip === "prefecture" ? null : "prefecture")}
-                listStyle
-                resultCount={prefecture ? filtered.length : undefined}
-              />
+            {/* ⑦ 人気キーワードサジェスト（検索空のとき） */}
+            {!q && (
+              <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap", paddingBottom: 8 }}>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", flexShrink: 0, whiteSpace: "nowrap" }}>よく検索:</span>
+                {["エンジニア", "PdM・PM", "マーケティング", "カスタマーサクセス", "フルリモート"].map((kw) => (
+                  <button key={kw} type="button" onClick={() => setQ(kw)} style={{
+                    padding: "2px 9px", borderRadius: 100, fontSize: 11,
+                    border: "1.5px solid var(--line)", background: "#fff",
+                    color: "var(--ink-soft)", fontWeight: 500, cursor: "pointer",
+                    whiteSpace: "nowrap", fontFamily: "inherit", transition: "all 0.12s",
+                  }}>
+                    {kw}
+                  </button>
+                ))}
+              </div>
             )}
 
-            {(hasFilter || q) && (
-              <button
-                type="button"
-                onClick={() => { setQ(""); router.replace("/jobs"); }}
-                style={{
-                  fontSize: 12.5, color: "var(--ink-mute)",
-                  background: "none", border: "none", cursor: "pointer",
-                  padding: "5px 4px", whiteSpace: "nowrap",
-                  fontFamily: "inherit", transition: "color 0.15s",
-                }}
-              >
-                ✕ リセット
-              </button>
+            {/* ④ 2段目: 職種カテゴリーピル（フィルターより上位に配置） */}
+            {parentRoles.length > 0 && (
+              <div style={{
+                display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8,
+                scrollbarWidth: "none",
+              } as React.CSSProperties}>
+                {parentRoles.map((role) => {
+                  const isActive = category === role.id;
+                  const rc = getRoleColor(role.name);
+                  return (
+                    <button
+                      key={role.id}
+                      type="button"
+                      onClick={() => { setParam("category", isActive ? "" : role.id); setOpenChip(null); }}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 5,
+                        padding: "5px 13px", borderRadius: 100,
+                        border: `1.5px solid ${isActive ? rc.color : "var(--line)"}`,
+                        background: isActive ? rc.bg : "#fff",
+                        color: isActive ? rc.color : "var(--ink-soft)",
+                        fontSize: 13, fontWeight: isActive ? 700 : 500,
+                        cursor: "pointer", whiteSpace: "nowrap",
+                        fontFamily: "inherit", transition: "all 0.12s",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span style={{
+                        width: isActive ? 10 : 6, height: isActive ? 10 : 6, borderRadius: "50%",
+                        background: rc.color, flexShrink: 0,
+                        opacity: isActive ? 1 : 0.45,
+                        animation: isActive ? "pulseDot 1.8s ease-in-out infinite" : "none",
+                        transition: "width 0.12s, height 0.12s",
+                      }} />
+                      {role.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ④ 3段目: 絞り込みチップ */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", paddingBottom: 10, borderBottom: "1px solid var(--line)" }}>
+              {/* 勤務形態 chip */}
+              <FilterChip
+                label="勤務形態"
+                value={work_style}
+                options={[
+                  { value: "フルリモート", label: "🏠 フルリモート" },
+                  { value: "ハイブリッド", label: "🔀 ハイブリッド" },
+                  { value: "出社",         label: "🏢 出社" },
+                ]}
+                onSelect={(v) => { setParam("work_style", v ?? ""); setOpenChip(null); }}
+                isOpen={openChip === "work_style"}
+                onToggle={() => setOpenChip(openChip === "work_style" ? null : "work_style")}
+                resultCount={work_style ? filtered.length : undefined}
+              />
+
+              {/* 年収 chip */}
+              <FilterChip
+                label="年収"
+                value={salary}
+                options={SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label }))}
+                onSelect={(v) => { setParam("salary", v ?? ""); setOpenChip(null); }}
+                isOpen={openChip === "salary"}
+                onToggle={() => setOpenChip(openChip === "salary" ? null : "salary")}
+                resultCount={salary ? filtered.length : undefined}
+              />
+
+              {/* 雇用形態 chip */}
+              <FilterChip
+                label="雇用形態"
+                value={empType}
+                options={[
+                  { value: "正社員",   label: "正社員" },
+                  { value: "業務委託", label: "業務委託" },
+                  { value: "副業",     label: "副業・複業" },
+                ]}
+                onSelect={(v) => { setParam("emp_type", v ?? ""); setOpenChip(null); }}
+                isOpen={openChip === "emp_type"}
+                onToggle={() => setOpenChip(openChip === "emp_type" ? null : "emp_type")}
+                resultCount={empType ? filtered.length : undefined}
+              />
+
+              {/* ⑨ 地域 chip: 2件以上あるときのみ表示 */}
+              {availablePrefectures.length > 1 && (
+                <FilterChip
+                  label="地域"
+                  value={prefecture}
+                  options={availablePrefectures.map((p) => ({ value: p, label: p }))}
+                  onSelect={(v) => { setParam("prefecture", v ?? ""); setOpenChip(null); }}
+                  isOpen={openChip === "prefecture"}
+                  onToggle={() => setOpenChip(openChip === "prefecture" ? null : "prefecture")}
+                  listStyle
+                  resultCount={prefecture ? filtered.length : undefined}
+                />
+              )}
+
+              {(hasFilter || q) && (
+                <button
+                  type="button"
+                  onClick={() => { setQ(""); router.replace("/jobs"); }}
+                  style={{
+                    fontSize: 12.5, color: "var(--ink-mute)",
+                    background: "none", border: "none", cursor: "pointer",
+                    padding: "5px 4px", whiteSpace: "nowrap",
+                    fontFamily: "inherit", transition: "color 0.15s",
+                  }}
+                >
+                  ✕ リセット
+                </button>
+              )}
+            </div>
+
+            {/* アクティブフィルター chip 行 */}
+            {hasFilter && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 8, paddingBottom: 4, alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>絞り込み中:</span>
+                {category && (() => {
+                  const r = parentRoles.find(r => r.id === category);
+                  const rc = r ? getRoleColor(r.name) : { color: "var(--royal)", bg: "var(--royal-50)" };
+                  return r ? (
+                    <button key="cat" type="button" onClick={() => setParam("category", "")} style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      padding: "3px 10px", borderRadius: 100,
+                      background: rc.bg, border: `1.5px solid ${rc.color}`,
+                      color: rc.color, fontSize: 11, fontWeight: 700,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}>
+                      職種: {r.name} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                    </button>
+                  ) : null;
+                })()}
+                {work_style && (
+                  <button key="ws" type="button" onClick={() => setParam("work_style", "")} style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    padding: "3px 10px", borderRadius: 100,
+                    background: "var(--success-soft)", border: "1.5px solid #6EE7B7",
+                    color: "#065F46", fontSize: 11, fontWeight: 700,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                    勤務形態: {work_style} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                  </button>
+                )}
+                {salary && (() => {
+                  const tier = SALARY_PILL_TIERS.find(t => t.value === salary);
+                  return tier ? (
+                    <button key="sal" type="button" onClick={() => setParam("salary", "")} style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      padding: "3px 10px", borderRadius: 100,
+                      background: "#FEF3C7", border: "1.5px solid #FDE68A",
+                      color: "#92400E", fontSize: 11, fontWeight: 700,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}>
+                      年収: {tier.label} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                    </button>
+                  ) : null;
+                })()}
+                {empType && (
+                  <button key="emp" type="button" onClick={() => setParam("emp_type", "")} style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    padding: "3px 10px", borderRadius: 100,
+                    background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
+                    color: "var(--royal)", fontSize: 11, fontWeight: 700,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                    雇用形態: {empType} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                  </button>
+                )}
+                {prefecture && (
+                  <button key="pref" type="button" onClick={() => setParam("prefecture", "")} style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    padding: "3px 10px", borderRadius: 100,
+                    background: "#F0FDF4", border: "1.5px solid #BBF7D0",
+                    color: "#16A34A", fontSize: 11, fontWeight: 700,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                    地域: {prefecture} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                  </button>
+                )}
+                <button type="button" onClick={() => { setQ(""); router.replace("/jobs"); }} style={{
+                  fontSize: 11, color: "var(--ink-mute)", background: "none",
+                  border: "none", cursor: "pointer", padding: "3px 4px",
+                  fontFamily: "inherit", textDecoration: "underline",
+                }}>
+                  すべてリセット
+                </button>
+              </div>
             )}
 
           </div>
-
-          {/* ── アクティブフィルター chip 行 ── */}
-          {hasFilter && (
-            <div style={{
-              display: "flex", gap: 6, flexWrap: "wrap",
-              paddingBottom: 10, alignItems: "center",
-            }}>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>
-                絞り込み中:
-              </span>
-              {category && (() => {
-                const r = parentRoles.find(r => r.id === category);
-                const rc = r ? getRoleColor(r.name) : { color: "var(--royal)", bg: "var(--royal-50)" };
-                return r ? (
-                  <button key="cat" type="button" onClick={() => setParam("category", "")} style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "3px 10px", borderRadius: 100,
-                    background: rc.bg, border: `1.5px solid ${rc.color}`,
-                    color: rc.color, fontSize: 11, fontWeight: 700,
-                    cursor: "pointer", fontFamily: "inherit",
-                  }}>
-                    職種: {r.name}
-                    <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
-                  </button>
-                ) : null;
-              })()}
-              {work_style && (
-                <button key="ws" type="button" onClick={() => setParam("work_style", "")} style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "3px 10px", borderRadius: 100,
-                  background: "var(--success-soft)", border: "1.5px solid #6EE7B7",
-                  color: "#065F46", fontSize: 11, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit",
-                }}>
-                  勤務形態: {work_style}
-                  <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
-                </button>
-              )}
-              {salary && (() => {
-                const tier = SALARY_PILL_TIERS.find(t => t.value === salary);
-                return tier ? (
-                  <button key="sal" type="button" onClick={() => setParam("salary", "")} style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "3px 10px", borderRadius: 100,
-                    background: "#FEF3C7", border: "1.5px solid #FDE68A",
-                    color: "#92400E", fontSize: 11, fontWeight: 700,
-                    cursor: "pointer", fontFamily: "inherit",
-                  }}>
-                    年収: {tier.label}
-                    <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
-                  </button>
-                ) : null;
-              })()}
-              {empType && (
-                <button key="emp" type="button" onClick={() => setParam("emp_type", "")} style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "3px 10px", borderRadius: 100,
-                  background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
-                  color: "var(--royal)", fontSize: 11, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit",
-                }}>
-                  雇用形態: {empType}
-                  <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
-                </button>
-              )}
-              {prefecture && (
-                <button key="pref" type="button" onClick={() => setParam("prefecture", "")} style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "3px 10px", borderRadius: 100,
-                  background: "#F0FDF4", border: "1.5px solid #BBF7D0",
-                  color: "#16A34A", fontSize: 11, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit",
-                }}>
-                  地域: {prefecture}
-                  <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
-                </button>
-              )}
-              <button type="button" onClick={() => { setQ(""); router.replace("/jobs"); }} style={{
-                fontSize: 11, color: "var(--ink-mute)", background: "none",
-                border: "none", cursor: "pointer", padding: "3px 4px",
-                fontFamily: "inherit", textDecoration: "underline",
-              }}>
-                すべてリセット
-              </button>
-            </div>
-          )}
-
-          {/* ── クイックフィルター（人気職種タグ） ── */}
-          {parentRoles.length > 0 && (
-            <div style={{
-              display: "flex", gap: 6, overflowX: "auto", paddingBottom: 14,
-              scrollbarWidth: "none", msOverflowStyle: "none",
-              borderBottom: "1px solid var(--line)",
-              marginBottom: 0,
-            }}>
-              {parentRoles.map((role) => {
-                const isActive = category === role.id;
-                const rc = getRoleColor(role.name);
-                return (
-                  <button
-                    key={role.id}
-                    type="button"
-                    onClick={() => { setParam("category", isActive ? "" : role.id); setOpenChip(null); }}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 5,
-                      padding: "5px 13px", borderRadius: 100,
-                      border: `1.5px solid ${isActive ? rc.color : "var(--line)"}`,
-                      background: isActive ? rc.bg : "#fff",
-                      color: isActive ? rc.color : "var(--ink-soft)",
-                      fontSize: 13, fontWeight: isActive ? 700 : 500,
-                      cursor: "pointer", whiteSpace: "nowrap",
-                      fontFamily: "inherit", transition: "all 0.12s",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span style={{
-                      width: isActive ? 10 : 6, height: isActive ? 10 : 6, borderRadius: "50%",
-                      background: rc.color, flexShrink: 0,
-                      opacity: isActive ? 1 : 0.45,
-                      animation: isActive ? "pulseDot 1.8s ease-in-out infinite" : "none",
-                      transition: "width 0.12s, height 0.12s",
-                    }} />
-                    {role.name}
-                  </button>
-                );
-              })}
-            </div>
-          )}
 
         </div>
       </div>
@@ -1492,80 +1554,63 @@ export default function JobsClient({
           <div className="jobs-layout">
             {/* ─ Results column ─ */}
             <main style={{ minWidth: 0 }}>
-              {/* 件数・ビュー切替・並び順 */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)", gap: 8, flexWrap: "wrap" }}>
-                <span aria-live="polite" aria-atomic="true" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  <strong style={{ color: "var(--royal)", fontSize: 18, fontFamily: "Inter, sans-serif", fontWeight: 800 }}>{filtered.length}</strong>
-                  <span style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)" }}>件の求人</span>
-                  {(hasFilter || q) && (
-                    <span style={{ fontSize: 12, color: "var(--ink-mute)", marginLeft: 4 }}>（絞り込み中）</span>
-                  )}
-                </span>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {/* ビュー切替ボタン（デスクトップのみ） */}
-                  <div className="jobs-view-toggle" style={{ display: "flex", border: "1.5px solid var(--line)", borderRadius: 8, overflow: "hidden" }}>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("list")}
-                      title="リスト表示"
-                      style={{
-                        padding: "6px 10px", border: "none", cursor: "pointer",
-                        background: viewMode === "list" ? "var(--royal)" : "#fff",
-                        color: viewMode === "list" ? "#fff" : "var(--ink-mute)",
-                        transition: "all 0.15s", display: "flex", alignItems: "center",
-                      }}
-                    >
-                      {/* list icon */}
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-                        <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("grid")}
-                      title="グリッド表示"
-                      style={{
-                        padding: "6px 10px", border: "none", borderLeft: "1.5px solid var(--line)", cursor: "pointer",
-                        background: viewMode === "grid" ? "var(--royal)" : "#fff",
-                        color: viewMode === "grid" ? "#fff" : "var(--ink-mute)",
-                        transition: "all 0.15s", display: "flex", alignItems: "center",
-                      }}
-                    >
-                      {/* grid icon */}
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-                      </svg>
-                    </button>
+              {/* ⑤ 件数・並び順 統合バー */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                gap: 12, marginBottom: 16,
+                background: "#fff", borderRadius: 12,
+                border: "1px solid var(--line)", padding: "10px 16px",
+                boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+              }}>
+                {/* 左: 並び替えボタン */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--ink-mute)", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18M7 12h10M11 18h2"/>
+                    </svg>
+                    並び替え
                   </div>
-
-                  {/* ⑦ ソートタブボタン */}
-                  <div style={{ display: "flex", gap: 4 }}>
+                  <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
+                  <div style={{ display: "flex", gap: 5, overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
                     {([
                       { value: "updated", label: "新着順" },
                       { value: "salary",  label: "年収順" },
                       { value: "phase",   label: "フェーズ順" },
-                    ] as const).map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setParam("sort", opt.value)}
-                        style={{
-                          padding: "5px 12px", borderRadius: 100,
-                          border: `1.5px solid ${sort === opt.value ? "var(--royal)" : "var(--line)"}`,
-                          background: sort === opt.value ? "var(--royal)" : "#f1f5f9",
-                          color: sort === opt.value ? "#fff" : "var(--ink-soft)",
-                          fontSize: 12, fontWeight: 700,
-                          cursor: "pointer", whiteSpace: "nowrap",
-                          fontFamily: "inherit", transition: "all 0.15s",
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+                    ] as const).map((opt) => {
+                      const active = sort === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setParam("sort", opt.value)}
+                          style={{
+                            padding: "5px 13px", borderRadius: 100,
+                            border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
+                            background: active ? "var(--royal)" : "#fff",
+                            color: active ? "#fff" : "var(--ink-soft)",
+                            fontSize: 12, fontWeight: active ? 700 : 500,
+                            cursor: "pointer", whiteSpace: "nowrap",
+                            fontFamily: "inherit", transition: "all 0.15s",
+                            boxShadow: active ? "0 2px 8px rgba(0,35,102,0.22)" : "none",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
+                </div>
+                {/* 右: 件数 */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <div style={{ width: 1, height: 20, background: "var(--line)" }} />
+                  <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500, whiteSpace: "nowrap" }}>
+                    <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "Inter, sans-serif", fontSize: 16 }}>{filtered.length}</strong>
+                    <span style={{ marginLeft: 2 }}>件</span>
+                    {(hasFilter || q) && (
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 4 }}>（絞り込み中）</span>
+                    )}
+                  </span>
                 </div>
               </div>
 
@@ -1603,18 +1648,10 @@ export default function JobsClient({
             </div>
           ) : (
             <>
-              {/* デスクトップ: リスト or グリッド / モバイル: グリッド固定 */}
-              <div className={viewMode === "grid" ? "jobs-grid-desktop" : "jobs-list-desktop"}>
-                {paged.map((job) =>
-                  viewMode === "grid"
-                    ? <JobCard key={job.id} job={job} companyMap={companyMap} initialBookmarked={bookmarkedIds.has(job.id)} />
-                    : <JobListCard key={job.id} job={job} companyMap={companyMap} initialBookmarked={bookmarkedIds.has(job.id)} />
-                )}
-              </div>
-              {/* モバイルは常にグリッド */}
-              <div className="jobs-grid-mobile">
+              {/* ⑩ リスト表示のみ（デスクトップ・モバイル共通） */}
+              <div className="jobs-list-desktop">
                 {paged.map((job) => (
-                  <JobCard key={job.id} job={job} companyMap={companyMap} initialBookmarked={bookmarkedIds.has(job.id)} />
+                  <JobListCard key={job.id} job={job} companyMap={companyMap} initialBookmarked={bookmarkedIds.has(job.id)} />
                 ))}
               </div>
               {/* 表示件数インジケーター */}
@@ -1697,17 +1734,10 @@ export default function JobsClient({
         @media (max-width: 1023px) {
           .jobs-grid-desktop { grid-template-columns: repeat(2, 1fr); }
         }
-        /* mobile grid: hidden (モバイルは jobs-grid-mobile で表示) */
-        .jobs-grid-mobile { display: none; }
-        /* mobile: list/grid-desktop hidden, mobile-grid shown */
+        /* ⑩ モバイルでもリストビューを表示（グリッドなし） */
         @media (max-width: 767px) {
-          .jobs-list-desktop { display: none; }
           .jobs-grid-desktop { display: none; }
-          .jobs-grid-mobile { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
           .jobs-view-toggle { display: none !important; }
-        }
-        @media (max-width: 480px) {
-          .jobs-grid-mobile { grid-template-columns: 1fr; }
         }
         /* company name hover */
         .company-name-link:hover {
