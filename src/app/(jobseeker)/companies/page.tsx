@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSection";
-import { ViewToggle } from "@/components/companies/ViewToggle";
 import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
@@ -195,15 +194,13 @@ export default async function CompaniesPage({ searchParams }: Props) {
         ) : (
           <div style={{ marginTop: 0 }}>
 
+            {/* ── 最近見た企業（フィルターなし時のみ）── */}
+            <Suspense fallback={null}>
+              <RecentlyViewedSection />
+            </Suspense>
+
             {/* ── メインコンテンツ ── */}
             <div>
-              {/* ── View toggle row ── */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 12 }}>
-                <Suspense fallback={null}>
-                  <ViewToggle />
-                </Suspense>
-              </div>
-
               {isListView || isGridView ? (
                 <>
                   {/* #10: sort=jobs の場合はアプリ側で補完ソート（求人数はDB側で計算できないため） */}
@@ -263,7 +260,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                 .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 14px; }
                               }
                               @media (max-width: 600px) {
-                                .companies-grid4 { grid-template-columns: 1fr; gap: 10px; }
+                                .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 8px; }
                               }
                             `}</style>
                             <div className="companies-grid4">
@@ -300,17 +297,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
           </div>
         )}
 
-        {/* ── フッターエリア: 最近見た企業 + CTA ── */}
-        <div style={{ marginTop: 48, display: "flex", flexDirection: "column", gap: 16, marginBottom: 16 }}>
-
-          {/* 最近見た企業 */}
-          {!hasFilter && (
-            <Suspense fallback={null}>
-              <RecentlyViewedSection />
-            </Suspense>
-          )}
-
-        </div>{/* フッターエリア end */}
+        <div style={{ marginBottom: 16 }} />
 
         </div>
       </div>{/* max-w container end */}

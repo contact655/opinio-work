@@ -234,6 +234,10 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           .clv-card { transition: transform 0.18s ease, box-shadow 0.18s ease; }
           .clv-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,35,102,0.14) !important; }
           .clv-card:hover .clv-name { color: var(--royal) !important; }
+          @media (max-width: 600px) {
+            .clv-card { gap: 10px !important; min-height: 110px !important; }
+            .clv-logo { width: 44px !important; height: 44px !important; min-width: 44px !important; }
+          }
         `}</style>
         <Link
           href={`/companies/${company.id}`}
@@ -244,20 +248,24 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             gap: 14,
             background: "#fff",
             borderRadius: 12,
-            /* 求人あり → 左ボーダーをロイヤルブルーに（shorthand を避け個別プロパティで指定） */
+            minHeight: 142,
             borderTop: "1px solid var(--line)",
             borderRight: "1px solid var(--line)",
             borderBottom: "1px solid var(--line)",
-            borderLeft: company.job_count > 0 ? "3px solid #002366" : "1px solid var(--line)",
+            borderLeft: company.accepting_casual_meetings
+              ? "3px solid #ea580c"
+              : company.job_count > 0
+              ? "3px solid #002366"
+              : "1px solid var(--line)",
             boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
             textDecoration: "none",
             color: "inherit",
-            padding: company.job_count > 0 ? "14px 16px 14px 12px" : "14px 16px",
+            padding: (company.accepting_casual_meetings || company.job_count > 0) ? "14px 16px 14px 12px" : "14px 16px",
             overflow: "hidden",
           }}
         >
           {/* ── ロゴ正方形（白背景・影付き） ── */}
-          <div style={{
+          <div className="clv-logo" style={{
             width: 56, height: 56, borderRadius: 10, flexShrink: 0,
             background: CARD_LOGO_GRAD,
             border: "1px solid #eef0f3",
@@ -303,6 +311,17 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   background: stageCfg.bg, color: stageCfg.color, border: `1px solid ${stageCfg.border}`,
                   whiteSpace: "nowrap", flexShrink: 0,
                 }}>{stageCfg.label}</span>
+              )}
+              {company.accepting_casual_meetings && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+                  background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA",
+                  display: "inline-flex", alignItems: "center", gap: 3,
+                  whiteSpace: "nowrap", flexShrink: 0,
+                }}>
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", display: "inline-block" }} />
+                  面談
+                </span>
               )}
               <button
                 type="button"
@@ -365,6 +384,12 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               )}
               {company.employee_count && (
                 <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>· {company.employee_count}</span>
+              )}
+              {memberCount > 0 && (
+                <span style={{
+                  fontSize: 10, color: "var(--success)", fontWeight: 700,
+                  whiteSpace: "nowrap", flexShrink: 0,
+                }}>· {memberCount}名</span>
               )}
             </div>
 

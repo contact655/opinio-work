@@ -33,7 +33,7 @@ const SORT_OPTIONS = [
   },
   {
     value: "phase",
-    label: "フェーズ順",
+    label: "早期フェーズ優先",
     icon: (
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
         <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
@@ -46,11 +46,19 @@ export function GridSortBar({ totalCount }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const current = searchParams.get("sort") ?? "newest";
+  const currentView = searchParams.get("view") ?? "card";
 
   const setSort = (s: string) => {
     const p = new URLSearchParams(searchParams.toString());
     if (s === "newest") p.delete("sort");
     else p.set("sort", s);
+    router.push(`/companies?${p.toString()}`);
+  };
+
+  const setView = (v: string) => {
+    const p = new URLSearchParams(searchParams.toString());
+    if (v === "card") p.delete("view");
+    else p.set("view", v);
     router.push(`/companies?${p.toString()}`);
   };
 
@@ -95,6 +103,21 @@ export function GridSortBar({ totalCount }: Props) {
           -webkit-overflow-scrolling: touch;
         }
         .sort-scroll::-webkit-scrollbar { display: none; }
+        .view-btn {
+          padding: 5px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 12px;
+          font-weight: 600;
+          transition: all 0.15s;
+          font-family: "Noto Sans JP", sans-serif;
+          white-space: nowrap;
+          border: none;
+        }
+        .view-btn:hover { opacity: 0.85; }
       `}</style>
 
       <div style={{
@@ -112,7 +135,6 @@ export function GridSortBar({ totalCount }: Props) {
 
         {/* 左: ソートボタン群 */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
-          {/* ソートアイコン + ラベル */}
           <div style={{
             display: "flex", alignItems: "center", gap: 5,
             color: "var(--ink-soft)", fontSize: 12, fontWeight: 600,
@@ -124,10 +146,8 @@ export function GridSortBar({ totalCount }: Props) {
             <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>並び替え</span>
           </div>
 
-          {/* セパレーター */}
           <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
 
-          {/* スクロール可能なボタン群 */}
           <div className="sort-scroll">
             {SORT_OPTIONS.map((o) => {
               const active = current === o.value;
@@ -150,13 +170,57 @@ export function GridSortBar({ totalCount }: Props) {
           </div>
         </div>
 
-        {/* 右: 件数 */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 4,
-          flexShrink: 0,
-          paddingLeft: 12,
-          borderLeft: "1px solid var(--line)",
-        }}>
+        {/* 右: ビュートグル + 件数 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+
+          {/* ビュートグル（一覧/詳細） */}
+          <div style={{
+            display: "flex", gap: 2,
+            background: "var(--line-soft)", borderRadius: 8, padding: 2,
+          }}>
+            <button
+              type="button"
+              onClick={() => setView("card")}
+              className="view-btn"
+              style={{
+                background: currentView === "card" ? "var(--royal)" : "transparent",
+                color: currentView === "card" ? "#fff" : "var(--ink-mute)",
+              }}
+              title="コンパクト一覧"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+              一覧
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className="view-btn"
+              style={{
+                background: currentView === "list" ? "var(--royal)" : "transparent",
+                color: currentView === "list" ? "#fff" : "var(--ink-mute)",
+              }}
+              title="詳細リストビュー"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                <line x1="8" y1="6" x2="21" y2="6"/>
+                <line x1="8" y1="12" x2="21" y2="12"/>
+                <line x1="8" y1="18" x2="21" y2="18"/>
+                <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
+                <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+                <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
+              </svg>
+              詳細
+            </button>
+          </div>
+
+          <div style={{ width: 1, height: 20, background: "var(--line)" }} />
+
+          {/* 件数 */}
           <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
             <strong style={{
               color: "var(--ink)", fontWeight: 800,
