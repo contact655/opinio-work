@@ -13,6 +13,59 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🎯 次のセッションでやること（2026-06-12 セッション16 更新）
+
+### ✅ 完了 2026-06-12 セッション16: 求人ページ ロールベース先輩マッチング
+
+  **`/jobs` 求人一覧: 職種マッチング先輩表示（`queries.ts`, `jobs/page.tsx`, `JobsClient.tsx`）:**
+  - `getCompanyAlumniMap`（会社単位）→ `getJobAlumniMap`（求人単位）に完全刷新
+  - `JOB_TO_ROLE_NAMES` マッピング追加: `ow_jobs.job_category`（フリーテキスト）→ `ow_roles.name`（営業/マーケ/CS等）
+  - `ow_experiences.role_category_id` FK → `ow_roles` 階層で親ロールまで遡って照合
+  - ロール一致する先輩を優先表示、一致者ゼロの場合は全先輩にフォールバック
+  - 結果: Salesforce 求人「Account Executive」→ 生藤弘樹 + 小松耕野（営業系）が「先輩2名がいます」に表示
+  - alumni lookup key を `job.company_id` → `job.id` に変更（`JobsClient.tsx`）
+
+  **デバッグ:**
+  - `.next` キャッシュ起因の prod/dev React バージョンミスマッチ（RSC payload error）→ `rm -rf .next` で解消
+  - Vercel ビルドエラー（ESLint: 未使用 `Pagination` 関数、`orderedKeys`, `categoryLabel`）→ 削除・`_` prefix で修正
+
+### 🟢 次の優先候補（2026-06-12 セッション16後）
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- **`ow_articles` の残り8件 company_id 設定** — LayerX等を ow_companies に追加すれば自動表示
+
+---
+
+## 🎯 次のセッションでやること（2026-06-12 セッション15 更新）
+
+### ✅ 完了 2026-06-12 セッション15: 企業詳細ページ 15 UX改善（Salesforceページ参照）
+
+  **企業詳細ページ（`/companies/[id]/page.tsx` 他4ファイル）15項目:**
+  - Hero: 設立年 stat 削除（3項目に絞り込み）、ShareButton前に縦セパレーター追加
+  - 福利厚生: ピルリスト → カードグリッド（auto-fill 160px、アイコン付き）
+  - EvaluationText: 長文テキストを最初の2文箇条書きプレビュー＋「続きを読む」に変更
+  - OB/OG キャッチフレーズ: グラデーション背景 + "コメント" ラベル + 大きな引用アイコン
+  - 記事セクション（1件）: 60%記事カード + 40%「もっと知る」CTAパネルの2カラムに変更
+  - 記事セクション（2件以上）: オーバーレイ不透明度を rgba(.38) → rgba(.18) に軽量化
+  - NEXT STEP: ボタン順序入れ替え（求人=オレンジ主、面談=ロイヤル副）
+  - JobEmbedCard: catchCopy 未設定時 description 先頭100字をフォールバック表示
+  - OrgTeams: 展開ボタンにチーム名プレビュー「残りNチーム：チーム名1 / チーム名2...」追加
+  - OrgTeams: 「すべてを見る」ボタン → ロイヤル塗りつぶし＋シャドウ
+  - CustomerCasesClient: BoldNumbers コンポーネント（数値・単位を緑太字に）
+  - CustomerCasesClient: 製品ピル色をカテゴリ別（sales=royal / marketing=amber / service=green / analytics=purple）
+  - ProductsClients: セクション末尾に求人CTAリンク（warm amber スタイル）
+  - 中間CTA: 福利厚生後 + 組織体制後の2箇所にインラインCTAバナー追加
+  - Migration 166: Salesforce Japan 106件求人を ow_jobs に追加
+
+  **デバッグ:**
+  - `.next` キャッシュ起因のランタイムクラッシュ（`TypeError: Cannot read properties of undefined`）を解決
+  - 原因: dev サーバー長期稼働による古いコンパイルキャッシュ / `rm -rf .next` + 再起動で解消
+
+### 🟢 次の優先候補（2026-06-12 セッション15後）
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- **`ow_articles` の残り8件 company_id 設定** — LayerX等を ow_companies に追加すれば自動表示
+
+---
+
 ## 🎯 次のセッションでやること（2026-06-08 セッション14 更新）
 
 ### ✅ 完了 2026-06-08 セッション14: 企業詳細ページ可読性改善 + `/u/[id]` バグ修正
