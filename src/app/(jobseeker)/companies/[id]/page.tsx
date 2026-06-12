@@ -134,10 +134,19 @@ function Hero({
         position: "relative", overflow: "hidden",
       }}>
         <div style={{ position: "absolute", inset: 0, background: coverPhotoUrl ? "linear-gradient(160deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.5) 100%)" : "linear-gradient(160deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.32) 100%)" }} />
-        {/* Decorative circles (gradient only) */}
+        {/* Decorative circles + large initial watermark (gradient only) */}
         {!coverPhotoUrl && <>
           <div style={{ position: "absolute", right: -60, top: -60, width: 280, height: 280, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", left: -30, bottom: -80, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+          {/* ⑩ Large initial watermark */}
+          <div style={{
+            position: "absolute", right: 24, top: "50%", transform: "translateY(-50%)",
+            fontSize: 120, fontWeight: 900, color: "rgba(255,255,255,0.10)",
+            fontFamily: "Inter, sans-serif", lineHeight: 1, userSelect: "none", pointerEvents: "none",
+            letterSpacing: "-0.05em",
+          }}>
+            {initial}
+          </div>
         </>}
       </div>
       <div
@@ -377,44 +386,43 @@ function Hero({
 
               {/* ⑨ Perk chips removed — work style info is shown in stats strip below */}
 
-              {/* SNS リンク */}
+              {/* ③ SNS リンク + 共有ボタン（1行に統合） */}
               {(company.x_url || company.linkedin_url || detail.url || company.careers_url) && (
-                <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-3)", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 6, marginTop: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
+                  {/* X: icon-only circle */}
                   {company.x_url && (
-                    <a href={company.x_url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: 8, background: "#000", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+                    <a href={company.x_url} target="_blank" rel="noopener noreferrer" title="X (Twitter)"
+                      style={{ width: 30, height: 30, borderRadius: "50%", background: "#000", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0 }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.263 5.632 5.9-5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                      X (Twitter)
                     </a>
                   )}
+                  {/* LinkedIn: icon-only circle */}
                   {company.linkedin_url && (
-                    <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: 8, background: "#0A66C2", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+                    <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer" title="LinkedIn"
+                      style={{ width: 30, height: 30, borderRadius: "50%", background: "#0A66C2", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0 }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
-                      LinkedIn
                     </a>
                   )}
                   {detail.url && (
                     <a href={detail.url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: 8, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 8, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", textDecoration: "none", fontSize: 11, fontWeight: 600 }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                       公式サイト
                     </a>
                   )}
                   {company.careers_url && (
                     <a href={company.careers_url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: 8, background: "var(--warm-soft)", color: "#92400E", border: "1px solid #FDE68A", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-                      採用情報ページ
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 8, background: "var(--warm-soft)", color: "#92400E", border: "1px solid #FDE68A", textDecoration: "none", fontSize: 11, fontWeight: 700 }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                      採用情報
                     </a>
                   )}
+                  {/* 共有: ShareButtonをここに統合 */}
+                  <div style={{ marginLeft: 2 }}>
+                    <ShareButton companyName={company.name} companyId={company.id} />
+                  </div>
                 </div>
               )}
-              {/* ⑩ ページ共有 */}
-              <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", flexShrink: 0 }}>共有：</span>
-                <ShareButton companyName={company.name} companyId={company.id} />
-              </div>
             </div>
           </div>
 
@@ -815,7 +823,7 @@ function productStyle(name: string): { bg: string; border: string; color: string
   return { ...ROYAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> };
 }
 
-function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
+function ProductsClientsSection({ detail, company }: { detail: CompanyDetail; company: Company }) {
   const hasProducts = detail.main_products && detail.main_products.length > 0;
   const hasCases = detail.customer_cases && detail.customer_cases.length > 0;
   const hasCustomers = detail.main_customers && detail.main_customers.length > 0;
@@ -960,6 +968,22 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ⑥ 求人 CTA */}
+        {company.job_count > 0 && (
+          <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: "var(--space-4)", marginTop: "var(--space-2)" }}>
+            <Link href={`/companies/${company.id}/jobs`} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "9px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700,
+              background: "#FEF3C7", color: "#92400E",
+              border: "1px solid #FDE68A",
+              textDecoration: "none",
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
+              この企業の求人を見る（{company.job_count}件）→
+            </Link>
           </div>
         )}
 
@@ -1237,14 +1261,13 @@ function EmployeeVoicesSection({ employees }: { employees: CompanyEmployee[] }) 
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", borderTop: "1px solid var(--line-soft)", paddingTop: "var(--space-2)" }}>
                     <div style={{
                       width: 32, height: 32, borderRadius: "50%",
-                      background: emp.avatarUrl ? undefined : avatarColor.bg,
+                      background: avatarColor.bg,
                       flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                       fontWeight: 700, fontSize: 13, color: avatarColor.text,
                       overflow: "hidden", border: "1.5px solid var(--line)",
                     }}>
                       {emp.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={emp.avatarUrl} alt={emp.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <EmployeeAvatarImg src={emp.avatarUrl} alt={emp.name} fallbackBg={avatarColor.bg} fallbackText={emp.avatarInitial ?? emp.name.charAt(0)} fallbackColor={avatarColor.text} fontSize={13} />
                       ) : emp.avatarInitial}
                     </div>
                     <div style={{ minWidth: 0 }}>
@@ -1286,7 +1309,7 @@ function EmployeeCard({
         width: 60,
         height: 60,
         borderRadius: "50%",
-        background: employee.avatarUrl ? undefined : avatarColor.bg,
+        background: avatarColor.bg,
         flexShrink: 0,
         display: "flex",
         alignItems: "center",
@@ -1300,12 +1323,7 @@ function EmployeeCard({
       }}
     >
       {employee.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={employee.avatarUrl}
-          alt={employee.name}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
+        <EmployeeAvatarImg src={employee.avatarUrl} alt={employee.name} fallbackBg={avatarColor.bg} fallbackText={employee.avatarInitial ?? employee.name.charAt(0)} fallbackColor={avatarColor.text} fontSize={22} />
       ) : (
         employee.avatarInitial
       )}
@@ -1411,8 +1429,7 @@ function CurrentEmployeesSection({
   employees: CompanyEmployee[];
   categories: CompanyEmployeeCategoryItem[];
 }) {
-  // 現役社員0名のときはセクションを描画しない
-  if (employees.length === 0) return null;
+  // ⑨ 0名でも empty state を表示するため早期 return を削除
 
   // ── カテゴリ別社員マップ (roleId → employees) ──────────────────────────────
   const empsByCategory = new Map<string, CompanyEmployee[]>();
@@ -1735,7 +1752,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{
           width: 64, height: 64, borderRadius: "50%",
-          background: employee.avatarUrl ? undefined : avatarColor.bg,
+          background: avatarColor.bg,
           flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
           fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 24,
@@ -2008,6 +2025,17 @@ function JobEmbedCard({
               }}>
                 {isRemote ? "🏠" : "📍"} {jobLoc}
               </span>
+            )}
+            {/* ④ 勤務形態 + 雇用形態 */}
+            {job.workStyle && (() => {
+              const WS: Record<string, string> = { full_remote: "フルリモート", hybrid: "ハイブリッド", on_site: "出社" };
+              const label = WS[job.workStyle] ?? job.workStyle;
+              return (
+                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "var(--success-soft,#ECFDF5)", color: "var(--success)", border: "1px solid #A7F3D0", fontWeight: 600 }}>{label}</span>
+              );
+            })()}
+            {job.employmentType && (
+              <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)", fontWeight: 500 }}>{job.employmentType}</span>
             )}
             {job.urgency === "hot" && (
               <span style={{
@@ -3108,7 +3136,7 @@ function Sidebar({
                   return (
                     <div key={emp.userId} style={{
                       width: 32, height: 32, borderRadius: "50%",
-                      background: emp.avatarUrl ? undefined : ac.bg,
+                      background: ac.bg,
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 12, fontWeight: 700, color: ac.text,
                       border: "2px solid #fff",
@@ -3119,8 +3147,7 @@ function Sidebar({
                       position: "relative",
                     }}>
                       {emp.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={emp.avatarUrl} alt={emp.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <EmployeeAvatarImg src={emp.avatarUrl} alt={emp.name} fallbackBg={ac.bg} fallbackText={emp.avatarInitial ?? emp.name.charAt(0)} fallbackColor={ac.text} fontSize={12} />
                       ) : emp.avatarInitial}
                     </div>
                   );
@@ -3283,11 +3310,61 @@ export default async function CompanyDetailPage({
             {/* 3. 福利厚生・評価制度 */}
             <BenefitsSection detail={detail} />
 
+            {/* ⑧ Mid-page CTA after Benefits */}
+            {company.accepting_casual_meetings && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                padding: "14px 20px", borderRadius: 12, marginBottom: "var(--space-6)",
+                background: "linear-gradient(135deg,#FEF3C7 0%,#FDE68A 100%)",
+                border: "1px solid #FCD34D",
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E", lineHeight: 1.5 }}>
+                    働く環境を読んだら、次は実際の声を聞いてみませんか？
+                  </div>
+                  <div style={{ fontSize: 11, color: "#B45309", marginTop: 2 }}>選考なし・完全無料のカジュアル面談</div>
+                </div>
+                <Link href={`/companies/${company.id}/casual-meeting`} style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
+                  padding: "8px 18px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+                  background: "linear-gradient(135deg,#F59E0B,#D97706)", color: "#fff",
+                  textDecoration: "none", whiteSpace: "nowrap",
+                  boxShadow: "0 2px 8px rgba(245,158,11,0.3)",
+                }}>
+                  話を聞く →
+                </Link>
+              </div>
+            )}
+
             {/* 4. 組織体制 */}
-            <OrgTeamsSectionClient detail={detail} />
+            <OrgTeamsSectionClient detail={detail} companyId={company.id} jobCount={company.job_count} />
+
+            {/* ⑧ Mid-page CTA after OrgTeams */}
+            {company.job_count > 0 && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                padding: "14px 20px", borderRadius: 12, marginBottom: "var(--space-6)",
+                background: "var(--royal-50)",
+                border: "1px solid var(--royal-100)",
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", lineHeight: 1.5 }}>
+                    組織体制を理解したら、求人で具体的なポジションを確認しましょう
+                  </div>
+                </div>
+                <a href="#jobs" style={{
+                  display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0,
+                  padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+                  background: "var(--royal)", color: "#fff",
+                  textDecoration: "none", whiteSpace: "nowrap",
+                }}>
+                  求人を見る（{company.job_count}件）
+                </a>
+              </div>
+            )}
 
             {/* 5. 製品・顧客 */}
-            <ProductsClientsSection detail={detail} />
+            <ProductsClientsSection detail={detail} company={company} />
 
             {/* 6. 社員の声 */}
             <EmployeeVoicesSection employees={employees.current} />

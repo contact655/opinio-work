@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 
 // ─── Division Config ───────────────────────────────────────────────────────────
@@ -90,7 +91,7 @@ const INITIAL_DIVISIONS = 3;
 const INITIAL_TEAMS_PER_DIVISION = 4; // 部門内の初期表示チーム数
 
 // ─── OrgTeamsSectionClient ────────────────────────────────────────────────────
-export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetail }) {
+export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 }: { detail: CompanyDetail; companyId?: string; jobCount?: number }) {
   const [openTeams, setOpenTeams] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
   const [expandedDivTeams, setExpandedDivTeams] = useState<Set<string>>(new Set());
@@ -291,6 +292,19 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
                                 </span>
                               ))}
                             </div>
+                          )}
+                          {/* ⑤ Jobs link */}
+                          {companyId && jobCount > 0 && (
+                            <Link href={`/companies/${companyId}/jobs`} style={{
+                              display: "inline-flex", alignItems: "center", gap: 5,
+                              padding: "6px 13px", borderRadius: 7,
+                              background: "#FEF3C7", color: "#92400E",
+                              border: "1px solid #FDE68A",
+                              fontSize: 11, fontWeight: 700, textDecoration: "none",
+                            }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
+                              この企業の求人を見る（{jobCount}件）→
+                            </Link>
                           )}
                         </div>
                       )}
