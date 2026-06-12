@@ -43,13 +43,6 @@ function formatSalary(min: number, max: number): string {
 }
 
 // ⑧ 相対時間表示
-function timeAgo(days: number): string {
-  if (days === 0) return "今日";
-  if (days < 7) return `${days}日前`;
-  if (days < 30) return `${Math.floor(days / 7)}週間前`;
-  return `${Math.floor(days / 30)}ヶ月前`;
-}
-
 // ③ フェーズバッジ
 const PHASE_BADGE_MAP: Record<string, { bg: string; color: string; label: string }> = {
   "Pre-seed":      { bg: "#F1F5F9", color: "#475569", label: "プレシード" },
@@ -946,17 +939,9 @@ function JobListCard({
   if (!company) return null;
 
   const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
-  const badge = freshBadge(job.updated_days_ago);
   const deptStyle = getDeptStyle(job.dept);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
-  // ⑨ 常に投稿日を表示
-  const postingLabel = (() => {
-    if (job.updated_days_ago === 0) return null; // badge already says "今日"
-    if (job.updated_days_ago <= 3) return null;  // badge already says "NEW"
-    if (job.updated_days_ago <= 7) return null;  // badge already says "今週"
-    return timeAgo(job.updated_days_ago) + "投稿";
-  })();
 
   return (
     <div style={{ position: "relative" }}>
