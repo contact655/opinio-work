@@ -17,6 +17,7 @@ export type JobItem = {
   salaryMax?: number | null;
   is_new?: boolean;
   urgency?: "open" | "hot";
+  publishedAt?: string | null;
   // Accordion detail fields
   description?: string | null;
   requirements?: string | null;

@@ -19,7 +19,6 @@ import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
 import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, EmployeeAvatarImg } from "./CompanyDetailClient";
 import { HeroCompareButton } from "./HeroCompareButton";
-import { JobAccordionItem } from "./JobAccordionItem";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
 // import { GenreCarousel } from "@/components/companies/GenreCarousel";
@@ -28,7 +27,6 @@ import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatarColor } from "@/lib/jobCategoryColors";
-import { JOB_GROUPING_THRESHOLD } from "@/lib/constants";
 
 // Deduplicate getCompanyById calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -1908,6 +1906,134 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
   );
 }
 
+// ── Embedded job card (clickable link, no accordion) ──────────────────────────
+function JobEmbedCard({
+  job,
+  catName,
+  companyHQ,
+}: {
+  job: import("@/app/companies/[id]/mockDetailData").JobItem;
+  catName: string;
+  companyHQ: string;
+}) {
+  const hasSalary = (job.salaryMin && job.salaryMin > 0) || (job.salaryMax && job.salaryMax > 0);
+  const salaryDisplay = hasSalary
+    ? (job.salaryMin && job.salaryMax
+      ? `${job.salaryMin}〜${job.salaryMax}万円`
+      : job.salaryMin ? `${job.salaryMin}万円〜` : `〜${job.salaryMax}万円`)
+    : "応相談";
+
+  // Location: hide if same city as company HQ
+  const jobLoc = job.location?.trim() || "";
+  const showLoc = jobLoc && jobLoc !== companyHQ && !companyHQ.includes(jobLoc) && !jobLoc.includes(companyHQ);
+  const isRemote = jobLoc.includes("リモート") || jobLoc.includes("在宅") || jobLoc.includes("フルリモート");
+
+  // Days-ago badge
+  function daysAgoBadge(): string | null {
+    if (job.publishedAt) {
+      const d = Math.floor((Date.now() - new Date(job.publishedAt).getTime()) / (1000 * 60 * 60 * 24));
+      if (d === 0) return "今日";
+      if (d <= 7) return `${d}日前`;
+      if (d <= 31) return "今月";
+      return null;
+    }
+    if (job.is_new) return "新着";
+    return null;
+  }
+  const badge = daysAgoBadge();
+
+  const href = job.id ? `/jobs/${job.id}` : "#jobs";
+
+  return (
+    <Link
+      href={href}
+      style={{ textDecoration: "none", display: "block" }}
+      className="job-embed-card"
+    >
+      <div style={{
+        border: "1px solid var(--line)",
+        borderRadius: 12,
+        background: "#fff",
+        padding: "14px 16px",
+        transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+        display: "flex",
+        gap: 12,
+        alignItems: "flex-start",
+      }}>
+        {/* Left accent bar by category */}
+        <div style={{ width: 3, borderRadius: 2, background: "var(--royal)", flexShrink: 0, alignSelf: "stretch", opacity: 0.5 }} />
+        {/* Content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Title row */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 5 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, flex: 1, minWidth: 0 }}>
+              {job.title}
+            </div>
+            {/* Salary */}
+            <div style={{ flexShrink: 0, textAlign: "right" }}>
+              {hasSalary ? (
+                <span style={{ fontSize: 13, fontWeight: 800, color: "var(--success)", fontFamily: "Inter, sans-serif" }}>
+                  {salaryDisplay}
+                </span>
+              ) : (
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>応相談</span>
+              )}
+            </div>
+          </div>
+          {/* Catch copy */}
+          {job.catchCopy && (
+            <p style={{
+              margin: "0 0 7px", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.55,
+              overflow: "hidden", display: "-webkit-box",
+              WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const,
+            }}>
+              {job.catchCopy}
+            </p>
+          )}
+          {/* Meta pills */}
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{
+              fontSize: 10, padding: "2px 8px", borderRadius: 4,
+              background: "var(--royal-50)", color: "var(--royal)",
+              border: "1px solid var(--royal-100)", fontWeight: 600,
+            }}>{catName}</span>
+            {showLoc && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 3,
+                fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                background: isRemote ? "#f0fdf4" : "var(--bg-tint)",
+                color: isRemote ? "var(--success)" : "var(--ink-mute)",
+                border: `1px solid ${isRemote ? "#A7F3D0" : "var(--line)"}`,
+                fontWeight: 500,
+              }}>
+                {isRemote ? "🏠" : "📍"} {jobLoc}
+              </span>
+            )}
+            {job.urgency === "hot" && (
+              <span style={{
+                fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                background: "#FEE2E2", color: "#DC2626",
+                border: "1px solid #FECACA", fontWeight: 700,
+              }}>🔥 HOT</span>
+            )}
+            {badge && (
+              <span style={{
+                fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                background: "var(--success-soft,#ECFDF5)", color: "var(--success)",
+                border: "1px solid #A7F3D0", fontWeight: 700,
+              }}>{badge}</span>
+            )}
+          </div>
+        </div>
+        {/* Arrow */}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0, marginTop: 3 }}>
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
+    </Link>
+  );
+}
+
 function JobsSection({
   company,
   detail,
@@ -1915,8 +2041,20 @@ function JobsSection({
   company: Company;
   detail: CompanyDetail;
 }) {
+  const totalJobs = detail.jobs.reduce((sum, cat) => sum + cat.total, 0);
+  const companyHQ = detail.hq || "";
+
+  // Sort items: salary-disclosed first
+  function sortItems(items: typeof detail.jobs[0]["items"]) {
+    return [...items].sort((a, b) => {
+      const aHas = (a.salaryMin && a.salaryMin > 0) || (a.salaryMax && a.salaryMax > 0) ? 1 : 0;
+      const bHas = (b.salaryMin && b.salaryMin > 0) || (b.salaryMax && b.salaryMax > 0) ? 1 : 0;
+      return bHas - aHas;
+    });
+  }
+
   // ── 0 件 ────────────────────────────────────────────────────────────────────
-  if (detail.jobs.length === 0) {
+  if (totalJobs === 0) {
     return (
       <section
         id="jobs"
@@ -1929,41 +2067,45 @@ function JobsSection({
           boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
         }}
       >
-        <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)", background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)" }}>
-          <SecTitle
-            icon={
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <rect x="3" y="4" width="18" height="16" rx="2" />
-                <path d="M3 10h18" />
-              </svg>
-            }
-          >
+        <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
+          <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>}>
             募集中の求人
           </SecTitle>
         </div>
-        <div style={{ padding: "var(--space-6)" }}>
-          <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", textAlign: "center", padding: "24px 0", margin: 0 }}>
+        <div style={{ padding: "var(--space-6)", textAlign: "center" }}>
+          <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", padding: "24px 0", margin: 0 }}>
             現在、公開中の求人はありません。
           </p>
+          {company.accepting_casual_meetings && (
+            <Link href={`/companies/${company.id}/casual-meeting`} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "10px 22px", borderRadius: 8, fontSize: 13, fontWeight: 700,
+              background: "linear-gradient(135deg,#F59E0B,#D97706)", color: "#fff",
+              textDecoration: "none", boxShadow: "0 2px 8px rgba(245,158,11,0.3)",
+            }}>
+              カジュアル面談でまず話してみる
+            </Link>
+          )}
         </div>
       </section>
     );
   }
 
-  // γ-4 修正③: 求人合計件数で表示モードを切り替え
-  const totalJobs = detail.jobs.reduce((sum, cat) => sum + cat.total, 0);
-
-  // 求人アコーディオンラッパー
-  const defaultWorkLocation = detail.work_location.length > 0 ? detail.work_location[0].label : "";
-
-  const sectionIcon = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path d="M3 10h18" />
-    </svg>
-  );
+  // Limit: top 3 categories × 3 items each
+  const displayCats = detail.jobs.slice(0, 3).map(cat => ({
+    ...cat,
+    displayItems: sortItems(cat.items).slice(0, 3),
+  }));
 
   return (
+    <>
+    <style>{`
+      .job-embed-card:hover > div {
+        border-color: var(--royal) !important;
+        box-shadow: 0 4px 14px rgba(0,35,102,0.10) !important;
+        transform: translateY(-1px);
+      }
+    `}</style>
     <section
       id="jobs"
       style={{
@@ -1977,7 +2119,7 @@ function JobsSection({
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
+        padding: "var(--space-5) 28px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
         display: "flex",
         alignItems: "center",
@@ -1985,126 +2127,82 @@ function JobsSection({
         flexWrap: "wrap",
         gap: "var(--space-2)",
       }}>
-        <SecTitle icon={sectionIcon}>
+        <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>} iconColor="warm">
           募集中の求人
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--royal)", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>
-            · {company.job_count}件
+          <span style={{ fontSize: "var(--text-xs)", color: "#D97706", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>
+            {company.job_count}件
           </span>
         </SecTitle>
         <Link
           href={`/companies/${company.id}/jobs`}
-          style={{ color: "var(--royal)", fontSize: "var(--text-sm)", fontWeight: 500, textDecoration: "none" }}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            padding: "6px 14px", borderRadius: 8,
+            background: "#FEF3C7", color: "#92400E",
+            border: "1px solid #FDE68A",
+            fontSize: 12, fontWeight: 700, textDecoration: "none",
+          }}
         >
-          すべての求人を見る →
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          すべての求人を検索（{company.job_count}件）
         </Link>
       </div>
-      <div style={{ padding: "var(--space-6)" }}>
-      {totalJobs < JOB_GROUPING_THRESHOLD ? (
-        // ── 1〜3 件: カテゴリヘッダーなし、直接リスト (γ-4 修正③) ──────────
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-          {detail.jobs.flatMap((cat, ci) =>
-            cat.items.map((job, ji) => (
-              <JobAccordionItem
-                key={job.id ?? `${ci}-${ji}`}
-                job={job}
-                catName={cat.cat}
-                catId={cat.catId}
-                companyId={company.id}
-                defaultWorkLocation={defaultWorkLocation}
-              />
-            ))
-          )}
-        </div>
-      ) : (
-        // ── 4 件以上: カテゴリグルーピング表示 (既存構造を維持) ────────────
-        <>
-          {detail.jobs.map((cat) => (
-            <div key={cat.cat} style={{ marginBottom: "var(--space-6)" }}>
-              {/* カテゴリヘッダー */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "var(--space-3)",
-                  padding: "var(--space-2) var(--space-4)",
-                  background: "var(--royal-50)",
-                  borderRadius: 8,
-                  borderLeft: "3px solid var(--royal)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--royal)" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2"/>
-                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                  </svg>
+
+      <div style={{ padding: "20px 28px 24px" }}>
+        {/* Categories */}
+        {displayCats.map((cat, ci) => (
+          <div key={cat.cat} style={{ marginBottom: ci < displayCats.length - 1 ? 20 : 0 }}>
+            {/* Flat category header */}
+            {detail.jobs.length > 1 && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8,
+                marginBottom: 10,
+              }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
                   {cat.cat}
-                  <span
-                    style={{
-                      fontFamily: "Inter, sans-serif",
-                      fontSize: "var(--text-xs)",
-                      color: "#fff",
-                      background: "var(--royal)",
-                      padding: "2px 10px",
-                      borderRadius: 100,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {cat.total}件
-                  </span>
-                </div>
-                {cat.total > 4 && (
-                  <Link
-                    href={cat.catId ? `/jobs?company=${company.id}&category=${cat.catId}` : `/jobs?company=${company.id}`}
-                    style={{ fontSize: "var(--text-xs)", color: "var(--royal)", fontWeight: 500, textDecoration: "none" }}
-                  >
-                    すべて見る →
-                  </Link>
-                )}
+                </span>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, fontFamily: "Inter, sans-serif",
+                  color: "var(--ink-mute)", background: "var(--bg-tint)",
+                  border: "1px solid var(--line)", padding: "1px 7px", borderRadius: 100,
+                }}>
+                  {cat.total}件
+                </span>
+                <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                {cat.items.slice(0, 4).map((job, i) => (
-                  <JobAccordionItem
-                    key={job.id ?? i}
-                    job={job}
-                    catName={cat.cat}
-                    catId={cat.catId}
-                    companyId={company.id}
-                    defaultWorkLocation={defaultWorkLocation}
-                  />
-                ))}
-              </div>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {cat.displayItems.map((job, ji) => (
+                <JobEmbedCard
+                  key={job.id ?? `${ci}-${ji}`}
+                  job={job}
+                  catName={cat.cat}
+                  companyHQ={companyHQ}
+                />
+              ))}
             </div>
-          ))}
-
-          <div style={{ textAlign: "center", marginTop: "var(--space-4)" }}>
-            <Link
-              href={`/companies/${company.id}/jobs`}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                padding: "var(--space-2) var(--space-6)",
-                background: "var(--royal)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                fontSize: "var(--text-base)",
-                fontWeight: 700,
-                textDecoration: "none",
-                boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
-              }}
-            >
-              {company.job_count}件すべての求人を見る →
-            </Link>
           </div>
-        </>
-      )}
+        ))}
 
-      {/* ⑤ inline CTA removed — consolidated to NEXT STEP banner at page bottom */}
+        {/* Consolidated CTA */}
+        <div style={{ marginTop: 20, textAlign: "center" }}>
+          <Link
+            href={`/companies/${company.id}/jobs`}
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+              padding: "11px 28px", background: "var(--royal)", color: "#fff",
+              borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none",
+              boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
+            }}
+          >
+            {company.job_count}件すべての求人を見る →
+          </Link>
+        </div>
       </div>
     </section>
+    </>
   );
 }
 

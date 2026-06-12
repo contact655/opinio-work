@@ -220,6 +220,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
               employmentType: (j.employment_type as string) || null,
             };
             const pub = j.published_at as string | null;
+            if (pub) item.publishedAt = pub;
             if (pub && daysSince(pub) <= 7) item.is_new = true;
             if (j.urgency === "hot") item.urgency = "hot";
             return item;

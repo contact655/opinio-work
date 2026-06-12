@@ -172,6 +172,9 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
       >
         {items.map(({ id, label }) => {
           const active = activeId === id;
+          const isJobs = id === "jobs";
+          const activeColor = isJobs ? "#D97706" : "var(--royal)";
+          const inactiveBg = isJobs ? "#FEF3C7" : "none";
           return (
             <button
               type="button"
@@ -179,20 +182,20 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
               ref={(el) => { if (el) btnRefs.current.set(id, el); }}
               onClick={() => scrollTo(id)}
               style={{
-                padding: "6px 13px",
+                padding: isJobs ? "5px 13px" : "6px 13px",
                 fontSize: "var(--text-sm)",
-                fontWeight: active ? 700 : 500,
-                color: active ? "var(--royal)" : "var(--ink-mute)",
-                background: "none",
-                border: "none",
-                borderBottom: active ? "2px solid var(--royal)" : "2px solid transparent",
-                borderRadius: 0,
+                fontWeight: isJobs ? 700 : (active ? 700 : 500),
+                color: active ? activeColor : (isJobs ? "#92400E" : "var(--ink-mute)"),
+                background: active && isJobs ? "#FDE68A" : (isJobs ? inactiveBg : "none"),
+                border: isJobs ? `1px solid ${active ? "#FCD34D" : "#FDE68A"}` : "none",
+                borderBottom: !isJobs ? (active ? `2px solid ${activeColor}` : "2px solid transparent") : "none",
+                borderRadius: isJobs ? 6 : 0,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
-                transition: "color 0.18s, border-color 0.18s",
+                transition: "color 0.18s, border-color 0.18s, background 0.18s",
                 letterSpacing: active ? "0.01em" : 0,
                 flexShrink: 0,
-                marginBottom: -1,
+                marginBottom: isJobs ? 0 : -1,
               }}
             >
               {label}
