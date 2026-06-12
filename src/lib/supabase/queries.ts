@@ -1338,7 +1338,7 @@ export async function getArticlesBySlugs(slugs: string[]): Promise<Article[]> {
     .filter((a): a is Article => a !== undefined);
 }
 
-// ── Company alumni (users with past/current experience at these companies) ────
+// ── Job alumni map (role-aware: matches ow_experiences by role category) ────────
 
 export type CompanyAlumniPreview = {
   userId: string;
@@ -1346,21 +1346,69 @@ export type CompanyAlumniPreview = {
   gradient: string;
 };
 
-export async function getCompanyAlumniMap(
-  companyIds: string[]
+export type JobAlumniInput = {
+  jobId: string;
+  companyId: string;
+  jobCategory: string | null;
+};
+
+// Maps ow_jobs.job_category → ow_roles.name(s) to match (self or parent)
+const JOB_TO_ROLE_NAMES: Record<string, string[]> = {
+  "セールス":                     ["営業"],
+  "エンタープライズ営業":         ["営業"],
+  "SMB営業":                      ["営業"],
+  "セールスエンジニア":           ["営業"],
+  "ソリューションエンジニア":     ["営業"],
+  "ソリューションズアーキテクト": ["営業"],
+  "アライアンス・パートナー":     ["営業", "事業開発"],
+  "セールス戦略・オペレーション": ["営業"],
+  "コンサルタント":               ["営業", "カスタマーサクセス"],
+  "プロフェッショナルサービス":   ["カスタマーサクセス"],
+  "カスタマーサクセス":           ["カスタマーサクセス"],
+  "テクニカルサポート":           ["カスタマーサクセス"],
+  "マーケティング":               ["マーケティング"],
+  "プロダクトマネージャー":       ["プロダクト"],
+  "バックエンドエンジニア":       ["エンジニア"],
+  "ソフトウェアエンジニア":       ["エンジニア"],
+  "MLエンジニア":                 ["エンジニア"],
+  "リサーチエンジニア":           ["エンジニア"],
+  "AI・Agentforce":               ["エンジニア"],
+  "データ・アナリスト":           ["エンジニア"],
+  "人事・HR":                     ["コーポレート"],
+  "ビジネスオペレーション":       ["コーポレート"],
+  "事業戦略・開発":               ["事業開発"],
+  "プロダクトデザイナー":         ["デザイナー"],
+};
+
+export async function getJobAlumniMap(
+  jobs: JobAlumniInput[]
 ): Promise<Record<string, CompanyAlumniPreview[]>> {
-  if (!companyIds.length) return {};
+  if (!jobs.length) return {};
   const supabase = await createClient();
 
+  const companyIds = Array.from(new Set(jobs.map((j) => j.companyId).filter(Boolean)));
+  if (!companyIds.length) return {};
+
+  // 1. Fetch experiences with role_category_id
   const { data: expRows } = await supabase
     .from("ow_experiences")
-    .select("company_id, user_id")
+    .select("company_id, user_id, role_category_id")
     .in("company_id", companyIds);
 
   if (!expRows?.length) return {};
 
-  const userIds = Array.from(new Set((expRows as { user_id: string }[]).map((e) => e.user_id)));
+  // 2. Fetch all roles (small table, ~11 rows)
+  const { data: allRoles } = await supabase
+    .from("ow_roles")
+    .select("id, name, parent_id");
 
+  const rolesById = new Map<string, { name: string; parentId: string | null }>();
+  for (const r of (allRoles ?? []) as { id: string; name: string; parent_id: string | null }[]) {
+    rolesById.set(r.id, { name: r.name, parentId: r.parent_id });
+  }
+
+  // 3. Fetch user info
+  const userIds = Array.from(new Set((expRows as { user_id: string }[]).map((e) => e.user_id)));
   const { data: users } = await supabase
     .from("ow_users")
     .select("id, name, avatar_color")
@@ -1374,18 +1422,65 @@ export async function getCompanyAlumniMap(
     (users as { id: string; name: string; avatar_color: string | null }[]).map((u) => [u.id, u])
   );
 
+  // 4. Build per-company experience list with role name chain (self + parent)
+  type ExpInfo = { userId: string; roleChain: string[] };
+  const companyExpMap = new Map<string, ExpInfo[]>();
+
+  for (const exp of expRows as {
+    company_id: string;
+    user_id: string;
+    role_category_id: string | null;
+  }[]) {
+    if (!userMap.has(exp.user_id)) continue;
+
+    const roleChain: string[] = [];
+    if (exp.role_category_id) {
+      const role = rolesById.get(exp.role_category_id);
+      if (role) {
+        roleChain.push(role.name);
+        if (role.parentId) {
+          const parent = rolesById.get(role.parentId);
+          if (parent) roleChain.push(parent.name);
+        }
+      }
+    }
+
+    const list = companyExpMap.get(exp.company_id) ?? [];
+    list.push({ userId: exp.user_id, roleChain });
+    companyExpMap.set(exp.company_id, list);
+  }
+
+  // 5. Build per-job alumni (role-filtered, fallback to all company alumni)
   const result: Record<string, CompanyAlumniPreview[]> = {};
 
-  for (const exp of expRows as { company_id: string; user_id: string }[]) {
-    const user = userMap.get(exp.user_id);
-    if (!user) continue;
-    if (!result[exp.company_id]) result[exp.company_id] = [];
-    if (result[exp.company_id].some((a) => a.userId === exp.user_id)) continue;
-    result[exp.company_id].push({
-      userId: exp.user_id,
-      name: user.name,
-      gradient: user.avatar_color ?? FALLBACK_GRADIENT,
-    });
+  for (const job of jobs) {
+    const exps = companyExpMap.get(job.companyId) ?? [];
+    if (!exps.length) continue;
+
+    const targetRoles = job.jobCategory ? (JOB_TO_ROLE_NAMES[job.jobCategory] ?? null) : null;
+
+    let matchedIds: string[];
+    if (targetRoles?.length) {
+      const matched = exps.filter((e) =>
+        e.roleChain.some((rn) => targetRoles.includes(rn))
+      );
+      // Role-matched alumni first; fall back to all company alumni if no match
+      matchedIds = matched.length > 0
+        ? Array.from(new Set(matched.map((e) => e.userId)))
+        : Array.from(new Set(exps.map((e) => e.userId)));
+    } else {
+      matchedIds = Array.from(new Set(exps.map((e) => e.userId)));
+    }
+
+    const alumni = matchedIds
+      .map((uid) => {
+        const u = userMap.get(uid);
+        if (!u) return null;
+        return { userId: uid, name: u.name, gradient: u.avatar_color ?? FALLBACK_GRADIENT } as CompanyAlumniPreview;
+      })
+      .filter((a): a is CompanyAlumniPreview => a !== null);
+
+    if (alumni.length > 0) result[job.jobId] = alumni;
   }
 
   return result;

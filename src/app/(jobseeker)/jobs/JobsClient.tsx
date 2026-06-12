@@ -1814,7 +1814,7 @@ export default function JobsClient({
                     job={job}
                     companyMap={companyMap}
                     initialBookmarked={bookmarkedIds.has(job.id)}
-                    alumni={alumniMap[job.company_id] ?? []}
+                    alumni={alumniMap[job.id] ?? []}
                     isApplied={appliedJobIds.has(job.id)}
                     onHover={handleHover}
                   />

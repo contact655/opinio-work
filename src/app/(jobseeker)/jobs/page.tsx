@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getJobs, getParentRoles, getCompanyAlumniMap } from "@/lib/supabase/queries";
+import { getJobs, getParentRoles, getJobAlumniMap } from "@/lib/supabase/queries";
 import JobsClient from "./JobsClient";
 
 // 5分間ページキャッシュ（ISR）
@@ -28,8 +28,9 @@ export default async function JobsPage() {
     getParentRoles(),
   ]);
 
-  const companyIds = Array.from(new Set(jobs.map((j) => j.company_id)));
-  const alumniMap = await getCompanyAlumniMap(companyIds);
+  const alumniMap = await getJobAlumniMap(
+    jobs.map((j) => ({ jobId: j.id, companyId: j.company_id, jobCategory: j.dept ?? null }))
+  );
 
   return (
     <Suspense
