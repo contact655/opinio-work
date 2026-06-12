@@ -13,6 +13,34 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🎯 次のセッションでやること（2026-06-12 セッション17 更新）
+
+### ✅ 完了 2026-06-12 セッション17: 求人一覧ページ 8 UX改善
+
+  **`/jobs` 求人一覧（`JobsClient.tsx`）8項目:**
+  - カード情報階層: タイトルを 17px / weight 800 に大型化（明確な視覚的優先度）
+  - alumni strip 高さ統一: 先輩なしカードにもフォールバックストリップ（「社員・OBの経歴を見る」）追加
+  - 職種タグ省略修正: `DEPT_SHORT` マッピング追加（「プロフェッショナルサービス」→「プロサービス」等 10種）、maxWidth truncation 削除
+  - デスクトップサイドバーフィルター: 220px sticky左サイドバー（≥1024px）、`SidebarFilters` コンポーネント新規作成
+  - アクティブフィルター状態可視化: 各フィルターのアクティブ時スタイル（royal bg + bold）
+  - グルーピング通知を先頭に移動: オレンジ（warm）スタイルでリスト最上部に表示
+  - 面談受付中のみトグル: `meetingOnly` state + `meetingCount` 表示付きトグルスイッチ
+  - モバイルカード圧縮: highlight テキスト・padding 削減（`job-list-mobile-hide` クラス）
+
+  **CSS 追加（`globals.css` 内 style タグ）:**
+  - `@media (min-width: 1024px)`: `.jobs-layout` → 2カラム grid、`.jobs-filter-chips-row` 非表示
+  - `@media (max-width: 767px)`: `.job-list-mobile-hide` 非表示
+  - hover preview panel を 1440px+ に引き上げ（サイドバーとのオーバーラップ防止）
+
+  **デバッグ:**
+  - `.next` キャッシュ起因の React hydration error（`<button> in <div>`）→ `rm -rf .next` + dev server 再起動で解消
+
+### 🟢 次の優先候補（2026-06-12 セッション17後）
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- **`ow_articles` の残り8件 company_id 設定** — LayerX等を ow_companies に追加すれば自動表示
+
+---
+
 ## 🎯 次のセッションでやること（2026-06-12 セッション16 更新）
 
 ### ✅ 完了 2026-06-12 セッション16: 求人ページ ロールベース先輩マッチング

@@ -79,19 +79,25 @@ function getPhaseBadge(phase: string | null | undefined) {
 // ─── Dept short labels (⑤) ───────────────────────────────────────────────────
 
 const DEPT_SHORT: Record<string, string> = {
-  "プロフェッショナルサービス": "プロサービス",
-  "カスタマーサクセス":         "CS",
-  "テクニカルサポート":         "テクサポ",
-  "セールスエンジニア":         "SE",
-  "ソリューションエンジニア":   "SE",
-  "マーケティング":             "マーケ",
-  "プロダクトマネージャー":     "PdM",
-  "プロダクト":                 "プロダクト",
-  "エンジニア":                 "エンジニア",
-  "デザイン":                   "デザイン",
-  "コーポレート":               "コーポレート",
-  "経営":                       "経営",
-  "営業":                       "営業",
+  "プロフェッショナルサービス":   "プロサービス",
+  "ソリューションズアーキテクト": "SA",
+  "ソリューションアーキテクト":   "SA",
+  "カスタマーサクセス":           "CS",
+  "テクニカルサポート":           "テクサポ",
+  "セールスエンジニア":           "SE",
+  "ソリューションエンジニア":     "SE",
+  "インサイドセールス":           "IS",
+  "フィールドセールス":           "FS",
+  "アカウントエグゼクティブ":     "AE",
+  "マーケティング":               "マーケ",
+  "プロダクトマネージャー":       "PdM",
+  "プロダクト":                   "プロダクト",
+  "エンジニア":                   "エンジニア",
+  "デザイン":                     "デザイン",
+  "コーポレート":                 "コーポレート",
+  "経営":                         "経営",
+  "営業":                         "営業",
+  "AI":                           "AI",
 };
 
 function shortDept(dept: string): string {
@@ -1002,7 +1008,7 @@ function JobListCard({
 
           {/* Row 1: タイトル + NEW バッジ + ⑧ 投稿時期（右端） */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", lineHeight: 1.35 }}>
+            <span style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em" }}>
               {job.role}
             </span>
             {badge && (
@@ -1094,7 +1100,7 @@ function JobListCard({
 
           {/* Row 4: キャッチコピー ④ 1行に固定してカード高さ揃え */}
           {job.highlight && (
-            <p style={{
+            <p className="job-list-mobile-hide" style={{
               fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.65, margin: "0 0 10px",
               display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden",
             }}>
@@ -1102,8 +1108,8 @@ function JobListCard({
             </p>
           )}
 
-          {/* ② 先輩がいます strip — <a> 内は <span> のみ使用 */}
-          {alumni.length > 0 && (
+          {/* ② 先輩がいます strip — 常に表示でカード高さを統一 */}
+          {alumni.length > 0 ? (
             <span
               role="presentation"
               style={{
@@ -1111,6 +1117,7 @@ function JobListCard({
                 marginBottom: 10,
                 padding: "6px 10px", borderRadius: 8,
                 background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                cursor: "pointer",
               }}
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${job.company_id}#members`); }}
             >
@@ -1129,8 +1136,21 @@ function JobListCard({
                   </span>
                 ))}
               </span>
-              <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, cursor: "pointer" }}>
+              <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>
                 先輩{alumni.length}名がいます →
+              </span>
+            </span>
+          ) : (
+            <span style={{
+              display: "flex", alignItems: "center", gap: 6,
+              marginBottom: 10, padding: "6px 10px", borderRadius: 8,
+              background: "#F8FAFC", border: "1px solid var(--line)",
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
+                社員・OBの経歴を見る
               </span>
             </span>
           )}
@@ -1141,7 +1161,7 @@ function JobListCard({
               <span style={{
                 fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
                 background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
-                maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                flexShrink: 0,
               }}>
                 {shortDept(job.dept)}
               </span>
@@ -1186,6 +1206,147 @@ function JobListCard({
   );
 }
 
+// ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
+
+function SidebarFilters({
+  parentRoles, category, workStyle, salary, empType, prefecture, meetingOnly,
+  availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
+}: {
+  parentRoles: { id: string; name: string }[];
+  category: string; workStyle: string; salary: string; empType: string; prefecture: string;
+  meetingOnly: boolean; availablePrefectures: string[];
+  setParam: (key: string, value: string) => void;
+  onMeetingOnlyChange: (v: boolean) => void;
+  hasFilter: boolean; q: string; onReset: () => void; meetingCount: number;
+}) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 14, border: "1px solid var(--line)", overflow: "hidden", boxShadow: "0 1px 4px rgba(15,23,42,0.05)" }}>
+      {/* Header */}
+      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase" }}>絞り込み</span>
+        {(hasFilter || q || meetingOnly) && (
+          <button type="button" onClick={onReset} style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>
+            リセット
+          </button>
+        )}
+      </div>
+
+      {/* 面談受付中トグル */}
+      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line-soft)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => onMeetingOnlyChange(!meetingOnly)}>
+          <div style={{ width: 36, height: 20, borderRadius: 10, background: meetingOnly ? "#EA580C" : "#e2e8f0", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+            <div style={{ position: "absolute", top: 2, left: meetingOnly ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 600, color: meetingOnly ? "#C2410C" : "var(--ink)", flex: 1 }}>面談受付中のみ</span>
+          {meetingCount > 0 && (
+            <span style={{ fontSize: 10, color: "#C2410C", background: "#FFF7ED", padding: "1px 6px", borderRadius: 100, border: "1px solid #FDBA74", flexShrink: 0 }}>
+              {meetingCount}件
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* 職種 */}
+      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line-soft)" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6, letterSpacing: "0.04em" }}>職種</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          {parentRoles.map((role) => {
+            const isActive = category === role.id;
+            const rc = getRoleColor(role.name);
+            return (
+              <button key={role.id} type="button" onClick={() => setParam("category", isActive ? "" : role.id)}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? rc.color : "transparent"}`, background: isActive ? rc.bg : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s", width: "100%" }}
+                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+              >
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.5 }} />
+                <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
+                {isActive && <svg style={{ flexShrink: 0 }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 勤務形態 */}
+      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line-soft)" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6, letterSpacing: "0.04em" }}>勤務形態</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          {[{ value: "フルリモート", label: "🏠 フルリモート" }, { value: "ハイブリッド", label: "🔀 ハイブリッド" }, { value: "出社", label: "🏢 出社" }].map((opt) => {
+            const isActive = workStyle === opt.value;
+            return (
+              <button key={opt.value} type="button" onClick={() => setParam("work_style", isActive ? "" : opt.value)}
+                style={{ padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--success)" : "transparent"}`, background: isActive ? "var(--success-soft)" : "transparent", color: isActive ? "var(--success)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
+                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+              >
+                {isActive ? "✓ " : ""}{opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 年収（下限） */}
+      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line-soft)" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 8, letterSpacing: "0.04em" }}>年収（下限）</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          {SALARY_PILL_TIERS.map((t) => {
+            const isActive = salary === t.value;
+            return (
+              <button key={t.value} type="button" onClick={() => setParam("salary", isActive ? "" : t.value)}
+                style={{ padding: "4px 10px", borderRadius: 100, border: `1.5px solid ${isActive ? "#F59E0B" : "var(--line)"}`, background: isActive ? "#FEF3C7" : "#fff", color: isActive ? "#92400E" : "var(--ink-soft)", fontSize: 11, fontWeight: isActive ? 700 : 500, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", transition: "all 0.1s" }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 雇用形態 */}
+      <div style={{ padding: "12px 14px", borderBottom: availablePrefectures.length > 1 ? "1px solid var(--line-soft)" : "none" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6, letterSpacing: "0.04em" }}>雇用形態</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          {[{ value: "正社員", label: "正社員" }, { value: "業務委託", label: "業務委託" }, { value: "副業", label: "副業・複業" }].map((opt) => {
+            const isActive = empType === opt.value;
+            return (
+              <button key={opt.value} type="button" onClick={() => setParam("emp_type", isActive ? "" : opt.value)}
+                style={{ padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
+                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+              >
+                {isActive ? "✓ " : ""}{opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 地域 */}
+      {availablePrefectures.length > 1 && (
+        <div style={{ padding: "12px 14px" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6, letterSpacing: "0.04em" }}>地域</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 150, overflowY: "auto" }}>
+            {availablePrefectures.map((p) => {
+              const isActive = prefecture === p;
+              return (
+                <button key={p} type="button" onClick={() => setParam("prefecture", isActive ? "" : p)}
+                  style={{ padding: "6px 10px", borderRadius: 6, border: "none", background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "background 0.1s" }}
+                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                >
+                  {isActive ? "✓ " : ""}{p}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main client component ─────────────────────────────────────────────────────
 
 export default function JobsClient({
@@ -1216,6 +1377,9 @@ export default function JobsClient({
 
   // ⑧ 企業グルーピング toggle（デフォルトON）
   const [groupByCompany, setGroupByCompany] = useState(true);
+
+  // 面談受付中のみフィルター
+  const [meetingOnly, setMeetingOnly] = useState(false);
 
   // Which filter chip dropdown is open
   const [openChip, setOpenChip] = useState<string | null>(null);
@@ -1345,6 +1509,11 @@ export default function JobsClient({
       list = list.filter((j) => j.employment_type === empType);
     }
 
+    // 面談受付中フィルタ
+    if (meetingOnly) {
+      list = list.filter((j) => companyMap.get(j.company_id)?.accepting_casual_meetings);
+    }
+
     // ソート
     const PHASE_ORDER: Record<string, number> = {
       "Pre-seed": 0, "Seed": 1,
@@ -1365,7 +1534,7 @@ export default function JobsClient({
     }
 
     return list;
-  }, [allJobs, q, category, dept, work_style, salary, industry, prefecture, empType, sort, companies, companyMap]);
+  }, [allJobs, q, category, dept, work_style, salary, industry, prefecture, empType, meetingOnly, sort, companies, companyMap]);
 
   // ⑧ グルーピング適用（1社あたり最大3件）
   const filteredForDisplay = useMemo(() => {
@@ -1397,7 +1566,13 @@ export default function JobsClient({
   const hasMore = displayCount < filteredForDisplay.length;
   const remainingCount = filteredForDisplay.length - displayCount;
 
-  const hasFilter = !!(category || dept || work_style || salary || industry || prefecture || empType);
+  const hasFilter = !!(category || dept || work_style || salary || industry || prefecture || empType || meetingOnly);
+
+  // 面談受付中の求人数（全件から）
+  const meetingCount = useMemo(
+    () => allJobs.filter((j) => companyMap.get(j.company_id)?.accepting_casual_meetings).length,
+    [allJobs, companyMap]
+  );
 
   return (
     <>
@@ -1529,7 +1704,7 @@ export default function JobsClient({
             )}
 
             {/* 3段目: 絞り込みチップ */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", paddingBottom: 10, borderBottom: "1px solid var(--line)" }}>
+            <div className="jobs-filter-chips-row" style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", paddingBottom: 10, borderBottom: "1px solid var(--line)" }}>
               {/* 勤務形態 chip */}
               <FilterChip
                 label="勤務形態"
@@ -1585,10 +1760,32 @@ export default function JobsClient({
                 />
               )}
 
-              {(hasFilter || q) && (
+              {/* 面談受付中トグル（モバイル用） */}
+              <button
+                type="button"
+                onClick={() => setMeetingOnly((v) => !v)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "7px 14px", borderRadius: 999,
+                  border: `1.5px solid ${meetingOnly ? "#EA580C" : "#e2e8f0"}`,
+                  background: meetingOnly ? "#FFF7ED" : "#fff",
+                  color: meetingOnly ? "#C2410C" : "var(--ink-soft)",
+                  fontSize: "var(--text-sm)", fontWeight: meetingOnly ? 700 : 400,
+                  cursor: "pointer", whiteSpace: "nowrap",
+                  fontFamily: "inherit", transition: "all 0.12s",
+                }}
+              >
+                {meetingOnly && <span style={{ fontSize: 10, fontWeight: 800, marginRight: 1 }}>✓</span>}
+                面談受付中
+                {meetingOnly && (
+                  <span onClick={(e) => { e.stopPropagation(); setMeetingOnly(false); }} style={{ fontSize: 10, marginLeft: 1, opacity: 0.85, lineHeight: 1 }} aria-label="クリア">✕</span>
+                )}
+              </button>
+
+              {(hasFilter || q || meetingOnly) && (
                 <button
                   type="button"
-                  onClick={() => { setQ(""); router.replace("/jobs"); }}
+                  onClick={() => { setQ(""); setMeetingOnly(false); router.replace("/jobs"); }}
                   style={{
                     fontSize: 12.5, color: "var(--ink-mute)",
                     background: "none", border: "none", cursor: "pointer",
@@ -1603,7 +1800,7 @@ export default function JobsClient({
 
             {/* アクティブフィルター chip 行 */}
             {hasFilter && (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 8, paddingBottom: 4, alignItems: "center" }}>
+              <div className="jobs-filter-chips-row" style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 8, paddingBottom: 4, alignItems: "center" }}>
                 <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>絞り込み中:</span>
                 {category && (() => {
                   const r = parentRoles.find(r => r.id === category);
@@ -1689,6 +1886,26 @@ export default function JobsClient({
           className="px-5 py-6 md:px-12 md:py-8"
         >
           <div className="jobs-layout">
+            {/* ─ Desktop sidebar ─ */}
+            <aside className="jobs-sidebar">
+              <SidebarFilters
+                parentRoles={parentRoles}
+                category={category}
+                workStyle={work_style}
+                salary={salary}
+                empType={empType}
+                prefecture={prefecture}
+                meetingOnly={meetingOnly}
+                availablePrefectures={availablePrefectures}
+                setParam={setParam}
+                onMeetingOnlyChange={setMeetingOnly}
+                hasFilter={hasFilter}
+                q={q}
+                onReset={() => { setQ(""); setMeetingOnly(false); router.replace("/jobs"); }}
+                meetingCount={meetingCount}
+              />
+            </aside>
+
             {/* ─ Results column ─ */}
             <main style={{ minWidth: 0 }}>
               {/* ⑤ 件数・並び順 統合バー */}
@@ -1772,6 +1989,26 @@ export default function JobsClient({
                 </div>
               </div>
 
+          {/* ⑧ グルーピング案内 — リスト上部に移動して見落とし防止 */}
+          {groupByCompany && hiddenByGrouping > 0 && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+              marginBottom: 10, padding: "9px 14px",
+              background: "#FFF7ED", borderRadius: 10,
+              border: "1px solid #FDBA74",
+              fontSize: 12, color: "#C2410C", fontWeight: 600,
+            }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                1社あたり最大3件表示中。同じ企業の求人が{hiddenByGrouping}件非表示になっています。
+              </span>
+              <button type="button" onClick={() => setGroupByCompany(false)} style={{
+                background: "none", border: "none", color: "#C2410C", fontWeight: 700, fontSize: 12,
+                cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "inherit", flexShrink: 0,
+              }}>すべて表示</button>
+            </div>
+          )}
+
           {paged.length === 0 ? (
             <div style={{
               textAlign: "center", padding: "48px 24px", background: "#fff",
@@ -1820,23 +2057,6 @@ export default function JobsClient({
                   />
                 ))}
               </div>
-              {/* ⑧ グルーピングで省略された件数の案内 */}
-              {groupByCompany && hiddenByGrouping > 0 && (
-                <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  marginBottom: 12, padding: "9px 16px",
-                  background: "var(--royal-50)", borderRadius: 10,
-                  border: "1px solid var(--royal-100)",
-                  fontSize: 12, color: "var(--royal)", fontWeight: 600,
-                }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  1社あたり最大3件表示中。同じ企業の求人が{hiddenByGrouping}件非表示になっています。
-                  <button type="button" onClick={() => setGroupByCompany(false)} style={{
-                    background: "none", border: "none", color: "var(--royal)", fontWeight: 700, fontSize: 12,
-                    cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "inherit",
-                  }}>すべて表示</button>
-                </div>
-              )}
               {/* ⑤ 表示件数 + もっと見るボタン */}
               <div style={{ textAlign: "center", marginTop: 8, marginBottom: 4, fontSize: 12, color: "var(--ink-mute)" }}>
                 {paged.length}件を表示（全{filteredForDisplay.length}件）
@@ -1928,14 +2148,15 @@ export default function JobsClient({
           box-shadow: 0 0 0 3px rgba(0,35,102,0.12) !important;
         }
 
-        /* ── Single-column layout ── */
+        /* ── Default layout (single column) ── */
         .jobs-layout {
           display: flex;
           flex-direction: column;
         }
+        .jobs-sidebar { display: none; }
         /* filter bar: always visible */
         .jobs-mobile-filterbar { display: block; }
-        /* list: always visible on desktop */
+        /* list: always visible */
         .jobs-list-desktop {
           display: flex;
           flex-direction: column;
@@ -1950,18 +2171,45 @@ export default function JobsClient({
         @media (max-width: 1023px) {
           .jobs-grid-desktop { grid-template-columns: repeat(2, 1fr); }
         }
-        /* ⑩ モバイルでもリストビューを表示（グリッドなし） */
         @media (max-width: 767px) {
           .jobs-grid-desktop { display: none; }
           .jobs-view-toggle { display: none !important; }
         }
+
+        /* ── Desktop sidebar layout (≥1024px) ── */
+        @media (min-width: 1024px) {
+          .jobs-mobile-filterbar {
+            position: relative !important;
+            box-shadow: none !important;
+            border-bottom: none !important;
+          }
+          .jobs-filter-chips-row { display: none !important; }
+          .jobs-layout {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 20px;
+            align-items: start;
+          }
+          .jobs-sidebar {
+            display: block;
+            position: sticky;
+            top: 72px;
+          }
+        }
+
+        /* ── Mobile card compression ── */
+        @media (max-width: 767px) {
+          .job-list-mobile-hide { display: none !important; }
+          .job-list-card-link { padding: 12px 44px 12px 12px !important; }
+        }
+
         /* company name hover */
         .company-name-link:hover {
           text-decoration: underline;
         }
-        /* ⑥ Preview panel — desktop only */
+        /* ⑥ Preview panel — wide desktop only (avoid overlap with sidebar) */
         .job-preview-panel { display: none; }
-        @media (min-width: 1280px) {
+        @media (min-width: 1440px) {
           .job-preview-panel { display: block; animation: fadeInUp 0.18s ease; }
         }
       `}</style>
