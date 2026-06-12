@@ -663,3 +663,26 @@ body {
 .ccc-compare-btn { opacity: 0; transition: opacity 0.15s; }
 .genre-card:hover .ccc-compare-btn { opacity: 1; }
 .ccc-compare-btn.active { opacity: 1; }
+
+/* ── Company jobs list ────────────────────────────────────────────── */
+.company-job-card { transition: box-shadow 0.15s, transform 0.15s; }
+.company-job-card:hover {
+  box-shadow: 0 4px 20px rgba(0,35,102,0.10) !important;
+  transform: translateY(-1px);
+}
+/* Mobile filter toggle — hidden on desktop, shown on mobile */
+@media (min-width: 768px) {
+  .job-mobile-filter-btn { display: none !important; }
+  .job-filter-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+}
+@media (max-width: 767px) {
+  .job-mobile-filter-btn { display: inline-flex !important; }
+  .job-filter-pills { display: none; }
+  .job-filter-pills.open { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 4px; }
+}
