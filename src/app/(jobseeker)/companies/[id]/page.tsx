@@ -17,7 +17,7 @@ import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
-import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker } from "./CompanyDetailClient";
+import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, EmployeeAvatarImg } from "./CompanyDetailClient";
 import { HeroCompareButton } from "./HeroCompareButton";
 import { JobAccordionItem } from "./JobAccordionItem";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
@@ -363,7 +363,7 @@ function Hero({
                       textDecoration: "none",
                       boxShadow: "0 2px 8px rgba(245,158,11,0.3)",
                     }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite" }} />
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", display: "inline-block", flexShrink: 0 }} />
                     話を聞く（無料）
                   </Link>
                 )}
@@ -405,13 +405,18 @@ function Hero({
                   )}
                   {company.careers_url && (
                     <a href={company.careers_url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: 8, background: "linear-gradient(135deg, var(--success-soft,#ECFDF5), #d1fae5)", color: "var(--success)", border: "1px solid #A7F3D0", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+                      style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: 8, background: "var(--warm-soft)", color: "#92400E", border: "1px solid #FDE68A", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
                       採用情報ページ
                     </a>
                   )}
                 </div>
               )}
+              {/* ⑩ ページ共有 */}
+              <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", flexShrink: 0 }}>共有：</span>
+                <ShareButton companyName={company.name} companyId={company.id} />
+              </div>
             </div>
           </div>
 
@@ -876,8 +881,8 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                   <div
                     key={i}
                     style={{
-                      background: s.bg,
-                      border: `1px solid ${s.border}`,
+                      background: "#fff",
+                      border: `1px solid var(--line)`,
                       borderRadius: 10,
                       padding: "10px var(--space-3)",
                       display: "flex",
@@ -889,12 +894,12 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                     {/* アイコン */}
                     <div style={{
                       width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-                      background: s.border, color: s.color,
+                      background: s.bg, color: s.color, border: `1px solid ${s.border}`,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
                       {s.icon}
                     </div>
-                    <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.35, fontFamily: "var(--font-noto-sans)" }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.35, fontFamily: "var(--font-noto-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {name}
                     </p>
                   </div>
@@ -1046,34 +1051,62 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
           // default: checkmark
           return royal;
         }
+        const BENEFIT_CATEGORIES = [
+          { key: "work_style", label: "働き方", keywords: ["リモート", "在宅", "テレワーク", "フルリモート", "フレックス", "時差", "副業", "兼業"] },
+          { key: "rewards",    label: "報酬・株式", keywords: ["ストックオプション", "SO", "持株", "確定拠出", "退職金", "給与", "賞与", "インセンティブ"] },
+          { key: "growth",     label: "学習・成長", keywords: ["書籍", "学習", "研修", "勉強会", "資格", "セミナー"] },
+          { key: "family",     label: "育児・家族", keywords: ["育休", "産休", "子育て", "保育"] },
+          { key: "health",     label: "食事・健康", keywords: ["食事", "ランチ", "社食", "健康", "医療", "保険"] },
+        ];
+        function categorize(b: string) {
+          for (const cat of BENEFIT_CATEGORIES) {
+            if (cat.keywords.some(kw => b.includes(kw))) return cat.key;
+          }
+          return "other";
+        }
+        const grouped = new Map<string, string[]>();
+        if (detail.benefits) {
+          for (const b of detail.benefits) {
+            const key = categorize(b);
+            if (!grouped.has(key)) grouped.set(key, []);
+            grouped.get(key)!.push(b);
+          }
+        }
+        const orderedKeys = [...BENEFIT_CATEGORIES.map(c => c.key), "other"].filter(k => grouped.has(k));
+        const categoryLabel = (k: string) => BENEFIT_CATEGORIES.find(c => c.key === k)?.label ?? "その他";
+
         return (
       <div style={{ marginBottom: "var(--space-6)" }}>
         <SubSectionHeading>福利厚生</SubSectionHeading>
         {detail.benefits && detail.benefits.length > 0 ? (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-            {detail.benefits.map((b) => {
-              const def = getBenefitIconDef(b);
-              return (
-              <span
-                key={b}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "7px 14px",
-                  background: def.bg,
-                  border: `1px solid ${def.border}`,
-                  borderRadius: 100,
-                  fontSize: "var(--text-sm)",
-                  color: def.color,
-                  fontWeight: 600,
-                }}
-              >
-                <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{def.svg}</span>
-                {b}
-              </span>
-              );
-            })}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {orderedKeys.map(catKey => (
+              <div key={catKey}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
+                  {categoryLabel(catKey)}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+                  {grouped.get(catKey)!.map((b) => {
+                    const def = getBenefitIconDef(b);
+                    return (
+                      <span
+                        key={b}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "7px 14px",
+                          background: def.bg, border: `1px solid ${def.border}`,
+                          borderRadius: 100, fontSize: "var(--text-sm)",
+                          color: def.color, fontWeight: 600,
+                        }}
+                      >
+                        <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{def.svg}</span>
+                        {b}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div style={{
@@ -1713,8 +1746,14 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
           boxShadow: "0 2px 12px rgba(0,0,0,0.14)",
         }}>
           {employee.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={employee.avatarUrl} alt={employee.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <EmployeeAvatarImg
+              src={employee.avatarUrl}
+              alt={employee.name}
+              fallbackBg={avatarColor.bg}
+              fallbackText={employee.avatarInitial ?? employee.name.charAt(0)}
+              fallbackColor={avatarColor.text}
+              fontSize={22}
+            />
           ) : employee.avatarInitial}
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -1836,11 +1875,10 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
           </span>
         </SecTitle>
       </div>
-      <style>{`.alumni-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}`}</style>
       <div style={{ padding: "var(--space-6)" }}>
       {alumni.length > 0 ? (
         <>
-          <div className="alumni-grid">
+          <div style={{ display: "grid", gridTemplateColumns: alumni.length <= 2 ? "1fr" : "repeat(2, 1fr)", gap: 8 }}>
             {alumni.map((emp) => (
               <AlumniCard key={emp.userId} employee={emp} />
             ))}
@@ -2046,14 +2084,16 @@ function JobsSection({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
+                gap: 6,
                 padding: "var(--space-2) var(--space-6)",
-                background: "#fff",
-                color: "var(--royal)",
-                border: "1.5px solid var(--royal)",
+                background: "var(--royal)",
+                color: "#fff",
+                border: "none",
                 borderRadius: 8,
                 fontSize: "var(--text-base)",
-                fontWeight: 600,
+                fontWeight: 700,
                 textDecoration: "none",
+                boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
               }}
             >
               {company.job_count}件すべての求人を見る →
@@ -2459,8 +2499,8 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
         </SecTitle>
         {articles.length > 0 && (
           <span style={{
-            fontSize: 11, fontWeight: 700, color: "#92400e",
-            background: "#fef3c7", border: "1px solid #fde68a",
+            fontSize: 11, fontWeight: 700, color: "var(--royal)",
+            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
             padding: "2px 10px", borderRadius: 100, fontFamily: "Inter, sans-serif",
             flexShrink: 0,
           }}>
@@ -2520,7 +2560,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
                       <div style={{ padding: "14px 18px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                         {authorName ? (
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, var(--royal), #3B5FD9)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#fff", border: "2px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                               {authorName.slice(0, 1)}
                             </div>
                             <div>
@@ -3196,7 +3236,7 @@ export default async function CompanyDetailPage({
                       boxShadow: "0 3px 12px rgba(245,158,11,0.35)",
                     }}
                   >
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0 }} />
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />
                     話を聞く（カジュアル面談）
                   </Link>
                   {company.job_count > 0 && (
@@ -3204,9 +3244,9 @@ export default async function CompanyDetailPage({
                       href="#jobs"
                       style={{
                         display: "inline-flex", alignItems: "center", gap: 6,
-                        padding: "12px 22px", borderRadius: 10, fontSize: 14, fontWeight: 600,
-                        background: "var(--royal-50)", color: "var(--royal)",
-                        border: "1.5px solid var(--royal-100)",
+                        padding: "12px 22px", borderRadius: 10, fontSize: 14, fontWeight: 700,
+                        background: "transparent", color: "var(--royal)",
+                        border: "1.5px solid var(--royal)",
                         textDecoration: "none",
                       }}
                     >

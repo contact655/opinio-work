@@ -4,6 +4,91 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
 
+// ─── ShareButton ───────────────────────────────────────────────────────────────
+
+export function ShareButton({ companyName, companyId }: { companyName: string; companyId: string }) {
+  const [copied, setCopied] = useState(false);
+  const [origin, setOrigin] = useState("https://opinio.jp");
+  // set origin on client to avoid hydration mismatch
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const shareUrl = `${origin}/companies/${companyId}`;
+  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${companyName} — OPINIOで企業情報をチェック`)}&url=${encodeURIComponent(`https://opinio.jp/companies/${companyId}`)}`;
+
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <div style={{ display: "inline-flex", gap: 5, alignItems: "center" }}>
+      <button
+        type="button"
+        onClick={handleCopy}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 4,
+          padding: "5px 11px", borderRadius: 100, fontSize: 11, fontWeight: 600,
+          background: copied ? "var(--success-soft)" : "var(--bg-tint)",
+          color: copied ? "var(--success)" : "var(--ink-mute)",
+          border: `1px solid ${copied ? "#A7F3D0" : "var(--line)"}`,
+          cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
+        }}
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+          <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        {copied ? "コピー済み ✓" : "URLをコピー"}
+      </button>
+      <a
+        href={twitterUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 4,
+          padding: "5px 11px", borderRadius: 100, fontSize: 11, fontWeight: 700,
+          background: "#000", color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
+        }}
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.263 5.632 5.9-5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+        X でシェア
+      </a>
+    </div>
+  );
+}
+
+// ─── EmployeeAvatarImg ─────────────────────────────────────────────────────────
+// Server Componentから画像エラーハンドラーを使うためのClientラッパー
+
+export function EmployeeAvatarImg({
+  src, alt, fallbackBg, fallbackText, fallbackColor, fontSize = 22,
+}: {
+  src: string; alt: string; fallbackBg: string; fallbackText: string; fallbackColor: string; fontSize?: number;
+}) {
+  const [errored, setErrored] = useState(false);
+  if (errored) {
+    return (
+      <div style={{
+        width: "100%", height: "100%",
+        background: fallbackBg,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        color: fallbackColor, fontWeight: 700, fontSize,
+      }}>
+        {fallbackText}
+      </div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} onError={() => setErrored(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+  );
+}
+
 // ─── RecentlyViewedTracker ─────────────────────────────────────────────────────
 
 export function RecentlyViewedTracker({ id, name, logoUrl, logoLetter }: {

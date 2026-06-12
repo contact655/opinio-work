@@ -105,7 +105,7 @@ export default function CustomerCasesClient({ cases, defaultCollapsed }: { cases
         <div style={{ position: "relative", marginTop: -32 }}>
           {/* グラデーションフェード */}
           <div style={{
-            height: 80,
+            height: 40,
             background: "linear-gradient(to bottom, transparent, #fff)",
             pointerEvents: "none",
           }} />

@@ -86,12 +86,14 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
-const INITIAL_DIVISIONS = 3; // デフォルトで表示する部門数（⑦ スクロール疲れ軽減）
+const INITIAL_DIVISIONS = 3;
+const INITIAL_TEAMS_PER_DIVISION = 4; // 部門内の初期表示チーム数
 
 // ─── OrgTeamsSectionClient ────────────────────────────────────────────────────
 export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetail }) {
   const [openTeams, setOpenTeams] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
+  const [expandedDivTeams, setExpandedDivTeams] = useState<Set<string>>(new Set());
 
   if (!detail.orgTeams || detail.orgTeams.length === 0) return null;
 
@@ -187,7 +189,7 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
 
               {/* Team rows — accordion */}
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {teams.map((team) => {
+                {(expandedDivTeams.has(div) ? teams : teams.slice(0, INITIAL_TEAMS_PER_DIVISION)).map((team) => {
                   const key = `${div}::${team.name}`;
                   const isOpen = openTeams.has(key);
 
@@ -296,6 +298,44 @@ export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetai
                   );
                 })}
               </div>
+
+              {/* per-division チーム展開ボタン */}
+              {!expandedDivTeams.has(div) && teams.length > INITIAL_TEAMS_PER_DIVISION && (
+                <button
+                  onClick={() => setExpandedDivTeams(prev => { const n = new Set(prev); n.add(div); return n; })}
+                  style={{
+                    marginTop: 8, width: "100%", padding: "9px 14px",
+                    background: "transparent", border: `1px dashed ${config.border}`,
+                    borderRadius: 8, color: config.color,
+                    fontSize: 12, fontWeight: 700, cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                    fontFamily: "var(--font-noto-sans)",
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                  残り {teams.length - INITIAL_TEAMS_PER_DIVISION} チームを見る
+                </button>
+              )}
+              {expandedDivTeams.has(div) && teams.length > INITIAL_TEAMS_PER_DIVISION && (
+                <button
+                  onClick={() => setExpandedDivTeams(prev => { const n = new Set(prev); n.delete(div); return n; })}
+                  style={{
+                    marginTop: 8, width: "100%", padding: "7px 14px",
+                    background: "transparent", border: "1px solid var(--line)",
+                    borderRadius: 8, color: "var(--ink-mute)",
+                    fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                    fontFamily: "var(--font-noto-sans)",
+                  }}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <polyline points="18 15 12 9 6 15"/>
+                  </svg>
+                  折りたたむ
+                </button>
+              )}
             </div>
           );
         })}
