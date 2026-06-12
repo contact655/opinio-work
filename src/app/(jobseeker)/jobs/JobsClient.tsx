@@ -958,7 +958,7 @@ function JobListCard({
 
   return (
     <div style={{ position: "relative" }}>
-      {/* ④ ブックマークボタン — 「気になる」テキスト付きピル */}
+      {/* ⑤ ブックマークボタン — 常にピンク系で目立つデザイン */}
       <button
         type="button"
         onClick={handleBookmark}
@@ -966,19 +966,19 @@ function JobListCard({
         style={{
           position: "absolute", top: 14, right: 14, zIndex: 10,
           height: 28, padding: "0 10px", borderRadius: 100,
-          border: bookmarked ? "1.5px solid #FECACA" : "1.5px solid var(--line)",
+          border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid #FECACA",
           cursor: "pointer",
-          background: bookmarked ? "#FEF2F2" : "#fff",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+          background: bookmarked ? "#FEF2F2" : "#FFF5F5",
+          boxShadow: "0 1px 4px rgba(220,38,38,0.12)",
           display: "flex", alignItems: "center", gap: 4,
-          transform: bookmarkAnim ? "scale(1.08)" : "scale(1)",
+          transform: bookmarkAnim ? "scale(1.1)" : "scale(1)",
           transition: "all 0.2s",
           fontSize: 11, fontWeight: 600,
-          color: bookmarked ? "#e24b4a" : "var(--ink-mute)",
+          color: bookmarked ? "#e24b4a" : "#F87171",
           whiteSpace: "nowrap",
         }}
       >
-        <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
+        <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
         {bookmarked ? "気になり中" : "気になる"}
       </button>
 
@@ -1015,9 +1015,13 @@ function JobListCard({
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
 
-          {/* Row 1: タイトル + NEW バッジ + ⑧ 投稿時期（右端） */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em" }}>
+          {/* Row 1: タイトル（⑧ 1行制限）+ NEW バッジ + 投稿時期 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+            <span style={{
+              fontSize: 17, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              flex: 1, minWidth: 0,
+            }}>
               {job.role}
             </span>
             {badge && (
@@ -1033,7 +1037,7 @@ function JobListCard({
               </span>
             )}
             {postingLabel && (
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: "auto", flexShrink: 0, whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", flexShrink: 0, whiteSpace: "nowrap" }}>
                 {postingLabel}
               </span>
             )}
@@ -1117,15 +1121,16 @@ function JobListCard({
             </p>
           )}
 
-          {/* ② 先輩がいます strip — 常に表示でカード高さを統一 */}
-          {alumni.length > 0 ? (
+          {/* ② 先輩がいます strip — 先輩がいる場合のみ表示（⑩ 大きく・目立つデザイン） */}
+          {alumni.length > 0 && (
             <span
               role="presentation"
               style={{
-                display: "flex", alignItems: "center", gap: 6,
+                display: "flex", alignItems: "center", gap: 8,
                 marginBottom: 10,
-                padding: "6px 10px", borderRadius: 8,
-                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                padding: "8px 12px", borderRadius: 10,
+                background: "linear-gradient(135deg, #EFF3FC 0%, #DCE5F7 100%)",
+                border: "1.5px solid var(--royal-100)",
                 cursor: "pointer",
               }}
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${job.company_id}#members`); }}
@@ -1133,37 +1138,26 @@ function JobListCard({
               <span style={{ display: "inline-flex", alignItems: "center" }}>
                 {alumni.slice(0, 3).map((a, i) => (
                   <span key={a.userId} style={{
-                    width: 22, height: 22, borderRadius: "50%",
+                    width: 26, height: 26, borderRadius: "50%",
                     background: a.gradient,
-                    border: "2px solid #fff",
-                    marginLeft: i === 0 ? 0 : -6,
+                    border: "2.5px solid #fff",
+                    marginLeft: i === 0 ? 0 : -8,
                     display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 9, fontWeight: 700, color: "#fff",
+                    fontSize: 10, fontWeight: 800, color: "#fff",
                     flexShrink: 0, position: "relative",
+                    boxShadow: "0 1px 4px rgba(0,35,102,0.2)",
                   }}>
                     {a.name.replace(/\s/g, "").charAt(0)}
                   </span>
                 ))}
               </span>
-              <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>
+              <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, lineHeight: 1.3 }}>
                 {alumni.length === 1
-                  ? `${alumni[0].name.slice(0, 2)}さんが先輩にいます →`
+                  ? `${alumni[0].name.slice(0, 2)}さんが先輩にいます`
                   : alumni.length === 2
-                  ? `${alumni[0].name.slice(0, 2)}さん・${alumni[1].name.slice(0, 2)}さんが先輩にいます →`
-                  : `${alumni[0].name.slice(0, 2)}さんなど先輩${alumni.length}名がいます →`}
-              </span>
-            </span>
-          ) : (
-            <span style={{
-              display: "flex", alignItems: "center", gap: 6,
-              marginBottom: 10, padding: "6px 10px", borderRadius: 8,
-              background: "#F8FAFC", border: "1px solid var(--line)",
-            }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
-                社員・OBの経歴を見る
+                  ? `${alumni[0].name.slice(0, 2)}さん・${alumni[1].name.slice(0, 2)}さんが先輩にいます`
+                  : `${alumni[0].name.slice(0, 2)}さんなど先輩${alumni.length}名がいます`}
+                <span style={{ fontSize: 11, color: "#3B5FD9", marginLeft: 4, fontWeight: 600 }}>話を聞く →</span>
               </span>
             </span>
           )}
@@ -1232,6 +1226,34 @@ function SidebarFilters({
   onMeetingOnlyChange: (v: boolean) => void;
   hasFilter: boolean; q: string; onReset: () => void; meetingCount: number;
 }) {
+  // ③ アコーディオン: デフォルトで年収・雇用形態・地域は折りたたむ
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["salary", "empType", "prefecture"]));
+  function toggleSection(key: string) {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+
+  // ③ アコーディオンセクションヘッダー共通
+  function SectionHeader({ label, sectionKey, hasActive }: { label: string; sectionKey: string; hasActive?: boolean }) {
+    const isOpen = !collapsed.has(sectionKey);
+    return (
+      <button type="button" onClick={() => toggleSection(sectionKey)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+      >
+        <span style={{ fontSize: 11, fontWeight: 700, color: hasActive ? "var(--royal)" : "var(--ink-mute)", letterSpacing: "0.04em", display: "flex", alignItems: "center", gap: 5 }}>
+          {hasActive && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />}
+          {label}
+        </span>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ transition: "transform 0.2s", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)", flexShrink: 0 }}>
+          <path d="M1 1l4 4 4-4" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      </button>
+    );
+  }
+
   return (
     <div style={{ background: "#fff", borderRadius: 14, border: "1px solid var(--line)", overflow: "hidden", boxShadow: "0 1px 4px rgba(15,23,42,0.05)" }}>
       {/* Header */}
@@ -1257,103 +1279,122 @@ function SidebarFilters({
             </span>
           )}
         </div>
-      </div>
-
-      {/* 職種 */}
-      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line-soft)" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6, letterSpacing: "0.04em" }}>職種</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          {parentRoles.map((role) => {
-            const isActive = category === role.id;
-            const rc = getRoleColor(role.name);
-            return (
-              <button key={role.id} type="button" onClick={() => setParam("category", isActive ? "" : role.id)}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? rc.color : "transparent"}`, background: isActive ? rc.bg : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s", width: "100%" }}
-                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-              >
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.5 }} />
-                <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
-                {isActive && <svg style={{ flexShrink: 0 }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
-              </button>
-            );
-          })}
+        {/* ④ 面談受付中 凡例 */}
+        <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 12, height: 12, borderRadius: 2, borderLeft: "3px solid #EA580C", background: "#FFF7ED", flexShrink: 0 }} />
+          <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>カード左のオレンジ枠が対象企業</span>
         </div>
       </div>
 
-      {/* 勤務形態 */}
-      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line-soft)" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6, letterSpacing: "0.04em" }}>勤務形態</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          {[{ value: "フルリモート", label: "🏠 フルリモート" }, { value: "ハイブリッド", label: "🔀 ハイブリッド" }, { value: "出社", label: "🏢 出社" }].map((opt) => {
-            const isActive = workStyle === opt.value;
-            return (
-              <button key={opt.value} type="button" onClick={() => setParam("work_style", isActive ? "" : opt.value)}
-                style={{ padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--success)" : "transparent"}`, background: isActive ? "var(--success-soft)" : "transparent", color: isActive ? "var(--success)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
-                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-              >
-                {isActive ? "✓ " : ""}{opt.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 年収（下限） */}
-      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line-soft)" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 8, letterSpacing: "0.04em" }}>年収（下限）</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {SALARY_PILL_TIERS.map((t) => {
-            const isActive = salary === t.value;
-            return (
-              <button key={t.value} type="button" onClick={() => setParam("salary", isActive ? "" : t.value)}
-                style={{ padding: "4px 10px", borderRadius: 100, border: `1.5px solid ${isActive ? "#F59E0B" : "var(--line)"}`, background: isActive ? "#FEF3C7" : "#fff", color: isActive ? "#92400E" : "var(--ink-soft)", fontSize: 11, fontWeight: isActive ? 700 : 500, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", transition: "all 0.1s" }}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 雇用形態 */}
-      <div style={{ padding: "12px 14px", borderBottom: availablePrefectures.length > 1 ? "1px solid var(--line-soft)" : "none" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6, letterSpacing: "0.04em" }}>雇用形態</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          {[{ value: "正社員", label: "正社員" }, { value: "業務委託", label: "業務委託" }, { value: "副業", label: "副業・複業" }].map((opt) => {
-            const isActive = empType === opt.value;
-            return (
-              <button key={opt.value} type="button" onClick={() => setParam("emp_type", isActive ? "" : opt.value)}
-                style={{ padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
-                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-              >
-                {isActive ? "✓ " : ""}{opt.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 地域 */}
-      {availablePrefectures.length > 1 && (
-        <div style={{ padding: "12px 14px" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6, letterSpacing: "0.04em" }}>地域</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 150, overflowY: "auto" }}>
-            {availablePrefectures.map((p) => {
-              const isActive = prefecture === p;
+      {/* 職種 — アコーディオン（デフォルト展開）*/}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="職種" sectionKey="roles" hasActive={!!category} />
+        {!collapsed.has("roles") && (
+          <div style={{ padding: "0 14px 10px", display: "flex", flexDirection: "column", gap: 1 }}>
+            {parentRoles.map((role) => {
+              const isActive = category === role.id;
+              const rc = getRoleColor(role.name);
               return (
-                <button key={p} type="button" onClick={() => setParam("prefecture", isActive ? "" : p)}
-                  style={{ padding: "6px 10px", borderRadius: 6, border: "none", background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "background 0.1s" }}
+                <button key={role.id} type="button" onClick={() => setParam("category", isActive ? "" : role.id)}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? rc.color : "transparent"}`, background: isActive ? rc.bg : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s", width: "100%" }}
                   onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
                   onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                 >
-                  {isActive ? "✓ " : ""}{p}
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.5 }} />
+                  <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
+                  {isActive && <svg style={{ flexShrink: 0 }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                 </button>
               );
             })}
           </div>
+        )}
+      </div>
+
+      {/* 勤務形態 — アコーディオン（デフォルト展開）*/}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="勤務形態" sectionKey="workStyle" hasActive={!!workStyle} />
+        {!collapsed.has("workStyle") && (
+          <div style={{ padding: "0 14px 10px", display: "flex", flexDirection: "column", gap: 1 }}>
+            {[{ value: "フルリモート", label: "🏠 フルリモート" }, { value: "ハイブリッド", label: "🔀 ハイブリッド" }, { value: "出社", label: "🏢 出社" }].map((opt) => {
+              const isActive = workStyle === opt.value;
+              return (
+                <button key={opt.value} type="button" onClick={() => setParam("work_style", isActive ? "" : opt.value)}
+                  style={{ padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--success)" : "transparent"}`, background: isActive ? "var(--success-soft)" : "transparent", color: isActive ? "var(--success)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
+                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                >
+                  {isActive ? "✓ " : ""}{opt.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 年収（下限）— アコーディオン（デフォルト折りたたみ）*/}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="年収（下限）" sectionKey="salary" hasActive={!!salary} />
+        {!collapsed.has("salary") && (
+          <div style={{ padding: "0 14px 10px" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {SALARY_PILL_TIERS.map((t) => {
+                const isActive = salary === t.value;
+                return (
+                  <button key={t.value} type="button" onClick={() => setParam("salary", isActive ? "" : t.value)}
+                    style={{ padding: "4px 10px", borderRadius: 100, border: `1.5px solid ${isActive ? "#F59E0B" : "var(--line)"}`, background: isActive ? "#FEF3C7" : "#fff", color: isActive ? "#92400E" : "var(--ink-soft)", fontSize: 11, fontWeight: isActive ? 700 : 500, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", transition: "all 0.1s" }}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 雇用形態 — アコーディオン（デフォルト折りたたみ）*/}
+      <div style={{ borderBottom: availablePrefectures.length > 1 ? "1px solid var(--line-soft)" : "none" }}>
+        <SectionHeader label="雇用形態" sectionKey="empType" hasActive={!!empType} />
+        {!collapsed.has("empType") && (
+          <div style={{ padding: "0 14px 10px", display: "flex", flexDirection: "column", gap: 1 }}>
+            {[{ value: "正社員", label: "正社員" }, { value: "業務委託", label: "業務委託" }, { value: "副業", label: "副業・複業" }].map((opt) => {
+              const isActive = empType === opt.value;
+              return (
+                <button key={opt.value} type="button" onClick={() => setParam("emp_type", isActive ? "" : opt.value)}
+                  style={{ padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
+                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                >
+                  {isActive ? "✓ " : ""}{opt.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 地域 — アコーディオン（デフォルト折りたたみ）*/}
+      {availablePrefectures.length > 1 && (
+        <div>
+          <SectionHeader label="地域" sectionKey="prefecture" hasActive={!!prefecture} />
+          {!collapsed.has("prefecture") && (
+            <div style={{ padding: "0 14px 10px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 150, overflowY: "auto" }}>
+                {availablePrefectures.map((p) => {
+                  const isActive = prefecture === p;
+                  return (
+                    <button key={p} type="button" onClick={() => setParam("prefecture", isActive ? "" : p)}
+                      style={{ padding: "6px 10px", borderRadius: 6, border: "none", background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "background 0.1s" }}
+                      onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                      onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                    >
+                      {isActive ? "✓ " : ""}{p}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1596,8 +1637,35 @@ export default function JobsClient({
 
   return (
     <>
-      <h1 className="sr-only">求人を探す</h1>
-
+      {/* ① ページヘッダー: IT/SaaS求人タイトル + 統計 */}
+      <div style={{ background: "linear-gradient(135deg, #001233 0%, #002366 70%, #1a3569 100%)", padding: "16px 0 18px" }}>
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div>
+              <h1 style={{ fontSize: 19, fontWeight: 800, color: "#fff", marginBottom: 6, fontFamily: "'Noto Serif JP', serif", lineHeight: 1.3 }}>
+                IT / SaaS 求人を探す
+              </h1>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.75)" }}>
+                  <strong style={{ color: "#fff", fontSize: 17, fontFamily: "Inter, sans-serif", fontWeight: 800 }}>{allJobs.length}</strong> 件の求人
+                </span>
+                <span style={{ width: 1, height: 12, background: "rgba(255,255,255,0.25)", flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.75)" }}>
+                  <strong style={{ color: "#fff", fontFamily: "Inter, sans-serif", fontWeight: 700 }}>{companies.length}</strong> 社掲載中
+                </span>
+                <span style={{ width: 1, height: 12, background: "rgba(255,255,255,0.25)", flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth={2}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  先輩OBに話を聞ける
+                </span>
+              </div>
+            </div>
+            <Link href="/mentors" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 100, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}>
+              先輩に相談する →
+            </Link>
+          </div>
+        </div>
+      </div>
 
       {/* ── コンパクトフィルターバー（モバイル用、デスクトップは非表示） ── */}
       <div
@@ -1976,9 +2044,8 @@ export default function JobsClient({
                     })}
                   </div>
                 </div>
-                {/* 右: ⑧グルーピングトグル + ⑦件数 */}
+                {/* 右: グルーピングトグル + 件数 + ⑨グルーピング案内チップ */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                  {/* ⑧ 1社複数件まとめトグル（最大件数 > 3 の場合のみ表示） */}
                   {maxPerCompany > 3 && (
                     <button
                       type="button"
@@ -2006,28 +2073,19 @@ export default function JobsClient({
                       <span style={{ fontSize: 11, color: "var(--success)", marginLeft: 4, fontWeight: 600 }}>● 絞り込み中</span>
                     )}
                   </span>
+                  {/* ⑨ グルーピング案内: コンパクトインラインチップ */}
+                  {groupByCompany && hiddenByGrouping > 0 && (
+                    <>
+                      <div style={{ width: 1, height: 20, background: "var(--line)" }} />
+                      <span style={{ fontSize: 10, color: "#C2410C", display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        1社3件まで（{hiddenByGrouping}件非表示）
+                        <button type="button" onClick={() => setGroupByCompany(false)} style={{ background: "none", border: "none", color: "#C2410C", fontWeight: 700, fontSize: 10, cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>全表示</button>
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
-
-          {/* ⑧ グルーピング案内 — リスト上部に移動して見落とし防止 */}
-          {groupByCompany && hiddenByGrouping > 0 && (
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-              marginBottom: 10, padding: "9px 14px",
-              background: "#FFF7ED", borderRadius: 10,
-              border: "1px solid #FDBA74",
-              fontSize: 12, color: "#C2410C", fontWeight: 600,
-            }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                1社あたり最大3件表示中。同じ企業の求人が{hiddenByGrouping}件非表示になっています。
-              </span>
-              <button type="button" onClick={() => setGroupByCompany(false)} style={{
-                background: "none", border: "none", color: "#C2410C", fontWeight: 700, fontSize: 12,
-                cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "inherit", flexShrink: 0,
-              }}>すべて表示</button>
-            </div>
-          )}
 
           {paged.length === 0 ? (
             <div style={{
@@ -2077,9 +2135,28 @@ export default function JobsClient({
                   />
                 ))}
               </div>
-              {/* ⑤ 表示件数 + もっと見るボタン */}
-              <div style={{ textAlign: "center", marginTop: 8, marginBottom: 4, fontSize: 12, color: "var(--ink-mute)" }}>
-                {paged.length}件を表示（全{filteredForDisplay.length}件）
+              {/* ⑦ プログレスバー + もっと見るボタン */}
+              <div style={{ marginTop: 16, marginBottom: 4 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                    <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{paged.length}</strong>
+                    {" / "}
+                    <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{filteredForDisplay.length}</strong>
+                    {" 件表示中"}
+                  </span>
+                  {hasMore && (
+                    <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>残り{remainingCount}件</span>
+                  )}
+                </div>
+                <div style={{ height: 4, background: "var(--line)", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%",
+                    width: `${Math.round(paged.length / Math.max(filteredForDisplay.length, 1) * 100)}%`,
+                    background: "linear-gradient(to right, var(--royal), #3B5FD9)",
+                    borderRadius: 99,
+                    transition: "width 0.4s ease",
+                  }} />
+                </div>
               </div>
               {hasMore && (
                 <button
@@ -2093,7 +2170,7 @@ export default function JobsClient({
                   }}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    margin: "16px auto 0",
+                    margin: "12px auto 0",
                     padding: "12px 32px", borderRadius: 999,
                     border: "1.5px solid var(--royal)",
                     background: "#fff", color: "var(--royal)",
@@ -2106,7 +2183,6 @@ export default function JobsClient({
                   onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)"; }}
                 >
                   もっと見る
-                  <span style={{ fontSize: 12, opacity: 0.7, fontWeight: 500 }}>（残り{remainingCount}件）</span>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                     <path d="M6 9l6 6 6-6"/>
                   </svg>
