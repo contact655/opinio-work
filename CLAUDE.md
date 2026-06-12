@@ -13,6 +13,37 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🎯 次のセッションでやること（2026-06-13 セッション19 更新）
+
+### ✅ 完了 2026-06-13 セッション19: Archi Village 企業情報・求人データ充実 + Jobs UX 6改善のESLint修正
+
+  **Jobs UX fix（セッション18後継続）:**
+  - Vercel ビルドエラー修正: `timeAgo`・`badge`・`postingLabel` の未使用変数を削除（commit `c41561f`）
+  - `brand_name` フィールド追加: `ow_companies` + `queries.ts` + `JobsClient.tsx`（commit `9d59f6f`）
+  - Migration 167: `brand_name TEXT` カラム追加、Salesforce/HubSpot/Datadog/Timee の brand_name 設定（手動適用済み）
+
+  **Migration 168: Archi Village データ充実（`supabase/migrations/168_archi_village_enrichment.sql`）:**
+  - ow_companies UPDATE:
+    - phase: null → `IPO準備中`
+    - remote_work_status: on_site → `hybrid`
+    - avg_salary: 600万円, avg_age: 30歳
+    - fit_positives: 4項目（IPO経験・SO・ConTech市場・未経験OK）
+    - fit_negatives: 3項目（顧客教育コスト・スタートアップ変化・フィールド営業中心）
+    - why_join・description を刷新（累計調達17億円、時価総額1500億円目標、アーキLink年商10億円超）
+  - ow_jobs INSERT: 18件（HERPから全ポジション）
+    - 営業4件（27卒・東京・大阪・マネージャー候補）
+    - エグゼクティブ2件（CFO ¥1500万〜SO1.0%、CPO ¥1800万〜SO1.5%）
+    - カスタマーサクセス2件、コーポレート4件（部長・採用・総務・広報）、経理2件、事務・マーケ2件、オープン1件
+  - Source: https://archi-village.com/recruit + https://herp.careers/v1/archirecruit
+  - ⚠️ **手動適用が必要**: Supabase SQL Editor で `supabase/migrations/168_archi_village_enrichment.sql` を実行
+
+### 🟢 次の優先候補（2026-06-13 セッション19後）
+- **Migration 168 の手動適用** — Supabase ダッシュボードで実行後、Archi Village に18求人が表示される
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- **`ow_articles` の残り8件 company_id 設定** — LayerX等を ow_companies に追加すれば自動表示
+
+---
+
 ## 🎯 次のセッションでやること（2026-06-13 セッション18 更新）
 
 ### ✅ 完了 2026-06-13 セッション18: 求人一覧ページ 10 UX改善（競合比較）
