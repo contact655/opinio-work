@@ -98,14 +98,16 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
                 fontSize: "var(--text-sm)",
                 fontWeight: active ? 700 : 500,
                 color: active ? "var(--royal)" : "var(--ink-mute)",
-                background: active ? "var(--royal-50)" : "none",
+                background: "none",
                 border: "none",
-                borderRadius: 100,
+                borderBottom: active ? "2px solid var(--royal)" : "2px solid transparent",
+                borderRadius: 0,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
-                transition: "color 0.18s, background 0.18s",
+                transition: "color 0.18s, border-color 0.18s",
                 letterSpacing: active ? "0.01em" : 0,
                 flexShrink: 0,
+                marginBottom: -1,
               }}
             >
               {label}
@@ -122,11 +124,13 @@ export default function BookmarkButton({
   companyId,
   initialBookmarked,
   isAuthenticated,
+  variant = "icon",
 }: {
   companyName: string;
   companyId: string;
   initialBookmarked: boolean;
   isAuthenticated: boolean;
+  variant?: "icon" | "pill";
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [loading, setLoading] = useState(false);
@@ -155,6 +159,32 @@ export default function BookmarkButton({
       setLoading(false);
     }
   };
+
+  if (variant === "pill") {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={loading}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700,
+          border: `1px solid ${bookmarked ? "var(--warm)" : "var(--line)"}`,
+          background: bookmarked ? "var(--warm-soft)" : "rgba(255,255,255,0.9)",
+          color: bookmarked ? "#92400E" : "var(--ink-soft)",
+          cursor: loading ? "default" : "pointer",
+          transition: "all 0.2s",
+          opacity: loading ? 0.7 : 1,
+        }}
+        aria-pressed={bookmarked}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill={bookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        {bookmarked ? "気になり済み" : "気になる"}
+      </button>
+    );
+  }
 
   return (
     <button

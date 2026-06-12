@@ -114,12 +114,14 @@ function Hero({
   initialBookmarked,
   isAuthenticated,
   recruiters,
+  coverPhotoUrl,
 }: {
   company: Company;
   detail: CompanyDetail;
   initialBookmarked: boolean;
   isAuthenticated: boolean;
   recruiters: CompanyRecruiter[];
+  coverPhotoUrl?: string | null;
 }) {
   const initial = company.name.charAt(0).toUpperCase();
   const freshLabel = formatUpdated(company.updated_days_ago);
@@ -128,11 +130,17 @@ function Hero({
   return (
     <section style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
       {/* Gradient cover band */}
-      <div style={{ height: 200, background: company.gradient, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.32) 100%)" }} />
-        {/* Decorative circles */}
-        <div style={{ position: "absolute", right: -60, top: -60, width: 280, height: 280, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", left: -30, bottom: -80, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+      <div style={{
+        height: 200,
+        background: coverPhotoUrl ? `url(${coverPhotoUrl}) center/cover no-repeat` : company.gradient,
+        position: "relative", overflow: "hidden",
+      }}>
+        <div style={{ position: "absolute", inset: 0, background: coverPhotoUrl ? "linear-gradient(160deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.5) 100%)" : "linear-gradient(160deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.32) 100%)" }} />
+        {/* Decorative circles (gradient only) */}
+        {!coverPhotoUrl && <>
+          <div style={{ position: "absolute", right: -60, top: -60, width: 280, height: 280, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", left: -30, bottom: -80, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+        </>}
       </div>
       <div
         style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
@@ -359,6 +367,14 @@ function Hero({
                     話を聞く（無料）
                   </Link>
                 )}
+                {/* ⑨ 気になる bookmark ghost button */}
+                <BookmarkButton
+                  companyName={company.name}
+                  companyId={company.id}
+                  initialBookmarked={initialBookmarked}
+                  isAuthenticated={isAuthenticated}
+                  variant="pill"
+                />
               </div>
 
               {/* ⑨ Perk chips removed — work style info is shown in stats strip below */}
@@ -399,14 +415,8 @@ function Hero({
             </div>
           </div>
 
-          {/* Right: bookmark + compare */}
+          {/* Right: compare */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0, alignSelf: "flex-start", paddingTop: "var(--space-3)" }}>
-            <BookmarkButton
-              companyName={company.name}
-              companyId={company.id}
-              initialBookmarked={initialBookmarked}
-              isAuthenticated={isAuthenticated}
-            />
             <HeroCompareButton
               companyId={company.id}
               companyName={company.name}
@@ -860,7 +870,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
             `}</style>
             <div className="products-grid">
               {detail.main_products!.map((raw, i) => {
-                const { name, sub } = parseProductName(raw);
+                const { name } = parseProductName(raw);
                 const s = productStyle(name);
                 return (
                   <div
@@ -869,30 +879,24 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                       background: s.bg,
                       border: `1px solid ${s.border}`,
                       borderRadius: 10,
-                      padding: "10px var(--space-4)",
+                      padding: "10px var(--space-3)",
                       display: "flex",
-                      alignItems: "flex-start",
+                      alignItems: "center",
                       gap: 10,
+                      minHeight: 56,
                     }}
                   >
                     {/* アイコン */}
                     <div style={{
-                      width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                      width: 30, height: 30, borderRadius: 8, flexShrink: 0,
                       background: s.border, color: s.color,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
                       {s.icon}
                     </div>
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, fontFamily: "var(--font-noto-sans)" }}>
-                        {name}
-                      </p>
-                      {sub && (
-                        <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs)", color: "var(--ink-soft)", fontWeight: 500, lineHeight: 1.4 }}>
-                          {sub}
-                        </p>
-                      )}
-                    </div>
+                    <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.35, fontFamily: "var(--font-noto-sans)" }}>
+                      {name}
+                    </p>
                   </div>
                 );
               })}
@@ -1771,20 +1775,22 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
       )}
 
       {/* 下段: CTAボタン */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "9px 12px", borderRadius: 9,
-        background: "var(--royal)", color: "#fff",
-        fontSize: 12, fontWeight: 700,
-        gap: 5,
-      }}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-        </svg>
-        キャリアを見る
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-          <polyline points="9 18 15 12 9 6"/>
-        </svg>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{
+          display: "inline-flex", alignItems: "center",
+          padding: "6px 14px", borderRadius: 8,
+          background: "var(--royal)", color: "#fff",
+          fontSize: 12, fontWeight: 700,
+          gap: 5,
+        }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          キャリアを見る
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
       </div>
     </a>
   );
@@ -2587,14 +2593,22 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
                 })}
               </div>
             )}
-            <div style={{ marginTop: "var(--space-4)", textAlign: "right" }}>
-              <Link href="/articles" style={{ fontSize: "var(--text-xs)", color: "var(--accent)", textDecoration: "none", fontFamily: "Inter, sans-serif", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                記事一覧を見る
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                  <polyline points="9 18 15 12 9 6"/>
-                </svg>
-              </Link>
-            </div>
+            {articles.length > 1 && (
+              <div style={{ marginTop: "var(--space-4)", textAlign: "right" }}>
+                <Link href="/articles" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+                  background: "var(--royal-50)", color: "var(--royal)",
+                  border: "1px solid var(--royal-100)",
+                  textDecoration: "none", fontFamily: "Inter, sans-serif",
+                }}>
+                  記事一覧を見る ({articles.length}件)
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </Link>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -3101,7 +3115,7 @@ export default async function CompanyDetailPage({
       />
       <RecentlyViewedTracker id={params.id} name={company.name} logoUrl={company.logo_url ?? null} logoLetter={company.logo_letter ?? undefined} />
       <Breadcrumb company={company} />
-      <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} isAuthenticated={isAuthenticated} recruiters={recruiters} />
+      <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} isAuthenticated={isAuthenticated} recruiters={recruiters} coverPhotoUrl={photos[0]?.image_url ?? null} />
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
@@ -3160,24 +3174,16 @@ export default async function CompanyDetailPage({
                 border: "2px solid #FDE68A",
                 boxShadow: "0 4px 24px rgba(245,158,11,0.12)",
               }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
-                  {/* アイコン */}
-                  <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #F59E0B, #D97706)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#B45309", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
+                    NEXT STEP
                   </div>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#B45309", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
-                      NEXT STEP
-                    </div>
-                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", lineHeight: 1.4 }}>
-                      気になったら、気軽に話してみませんか？
-                    </h3>
-                    <p style={{ margin: "5px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                      選考なし・完全無料。転職意欲がなくても大丈夫です。
-                    </p>
-                  </div>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", lineHeight: 1.4 }}>
+                    気になったら、気軽に話してみませんか？
+                  </h3>
+                  <p style={{ margin: "5px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                    選考なし・完全無料。転職意欲がなくても大丈夫です。
+                  </p>
                 </div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <Link

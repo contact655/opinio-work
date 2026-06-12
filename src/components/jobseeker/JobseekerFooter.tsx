@@ -55,7 +55,7 @@ export function JobseekerFooter() {
                   {TYPE_LABEL[article.type] ?? article.type}
                 </span>
                 <span style={{
-                  fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.6,
+                  fontSize: 14, color: "rgba(255,255,255,0.8)", lineHeight: 1.6,
                   display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
                 } as React.CSSProperties}>
                   {article.title}

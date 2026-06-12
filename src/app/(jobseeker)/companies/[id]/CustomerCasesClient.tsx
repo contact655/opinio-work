@@ -18,10 +18,10 @@ function CaseCard({ c }: { c: CustomerCase }) {
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 14,
-        padding: "18px 20px",
+        padding: "20px 22px",
         display: "flex",
         flexDirection: "column",
-        gap: 10,
+        gap: 12,
       }}
     >
       {/* ヘッダー行: 企業名 + 業種バッジ + 製品ピル */}
@@ -94,7 +94,7 @@ export default function CustomerCasesClient({ cases, defaultCollapsed }: { cases
 
   return (
     <div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {visible.map((c, i) => (
           <CaseCard key={i} c={c} />
         ))}
