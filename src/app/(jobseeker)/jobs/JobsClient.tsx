@@ -1637,35 +1637,7 @@ export default function JobsClient({
 
   return (
     <>
-      {/* ① ページヘッダー: IT/SaaS求人タイトル + 統計 */}
-      <div style={{ background: "linear-gradient(135deg, #001233 0%, #002366 70%, #1a3569 100%)", padding: "16px 0 18px" }}>
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <h1 style={{ fontSize: 19, fontWeight: 800, color: "#fff", marginBottom: 6, fontFamily: "'Noto Serif JP', serif", lineHeight: 1.3 }}>
-                IT / SaaS 求人を探す
-              </h1>
-              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.75)" }}>
-                  <strong style={{ color: "#fff", fontSize: 17, fontFamily: "Inter, sans-serif", fontWeight: 800 }}>{allJobs.length}</strong> 件の求人
-                </span>
-                <span style={{ width: 1, height: 12, background: "rgba(255,255,255,0.25)", flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.75)" }}>
-                  <strong style={{ color: "#fff", fontFamily: "Inter, sans-serif", fontWeight: 700 }}>{companies.length}</strong> 社掲載中
-                </span>
-                <span style={{ width: 1, height: 12, background: "rgba(255,255,255,0.25)", flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth={2}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  先輩OBに話を聞ける
-                </span>
-              </div>
-            </div>
-            <Link href="/mentors" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 100, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}>
-              先輩に相談する →
-            </Link>
-          </div>
-        </div>
-      </div>
+      <h1 className="sr-only">IT / SaaS 求人を探す</h1>
 
       {/* ── コンパクトフィルターバー（モバイル用、デスクトップは非表示） ── */}
       <div
