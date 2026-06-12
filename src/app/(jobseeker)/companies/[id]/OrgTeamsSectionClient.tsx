@@ -86,7 +86,7 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
-const INITIAL_DIVISIONS = 5; // デフォルトで表示する部門数
+const INITIAL_DIVISIONS = 3; // デフォルトで表示する部門数（⑦ スクロール疲れ軽減）
 
 // ─── OrgTeamsSectionClient ────────────────────────────────────────────────────
 export default function OrgTeamsSectionClient({ detail }: { detail: CompanyDetail }) {
