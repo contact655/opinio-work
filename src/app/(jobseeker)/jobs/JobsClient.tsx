@@ -1649,8 +1649,6 @@ export default function JobsClient({
         ref={filterBarRef}
         className="jobs-mobile-filterbar"
         style={{
-          position: "sticky",
-          top: 64,
           zIndex: 50,
           background: "#F5F7FA",
           borderBottom: "1px solid var(--line)",
@@ -2231,7 +2229,7 @@ export default function JobsClient({
         }
         .jobs-sidebar { display: none; }
         /* filter bar: always visible */
-        .jobs-mobile-filterbar { display: block; }
+        .jobs-mobile-filterbar { display: block; position: sticky; top: 64px; }
         /* list: always visible */
         .jobs-list-desktop {
           display: flex;
@@ -2256,8 +2254,10 @@ export default function JobsClient({
         @media (min-width: 1024px) {
           .jobs-mobile-filterbar {
             position: relative !important;
+            top: 0 !important;
             box-shadow: none !important;
             border-bottom: none !important;
+            z-index: auto !important;
           }
           .jobs-filter-chips-row { display: none !important; }
           .jobs-layout {
