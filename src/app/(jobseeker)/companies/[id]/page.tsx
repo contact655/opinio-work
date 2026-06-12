@@ -418,9 +418,8 @@ function Hero({
                     </a>
                   )}
                   {/* 共有: ShareButtonをここに統合 */}
-                  <div style={{ marginLeft: 2 }}>
-                    <ShareButton companyName={company.name} companyId={company.id} />
-                  </div>
+                  <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0, marginLeft: 4 }} />
+                  <ShareButton companyName={company.name} companyId={company.id} />
                 </div>
               )}
             </div>
@@ -457,13 +456,6 @@ function Hero({
                 label: "社員数",
                 value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s + "名以上"; })() : null,
                 color: "var(--royal)",
-                href: undefined as string | undefined,
-              },
-              {
-                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
-                label: "設立",
-                value: detail.established || null,
-                color: "var(--success)",
                 href: undefined as string | undefined,
               },
               ...(salaryRangeValue ? [{
@@ -1101,34 +1093,33 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
       <div style={{ marginBottom: "var(--space-6)" }}>
         <SubSectionHeading>福利厚生</SubSectionHeading>
         {detail.benefits && detail.benefits.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {orderedKeys.map(catKey => (
-              <div key={catKey}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
-                  {categoryLabel(catKey)}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
+            {detail.benefits.map((b) => {
+              const def = getBenefitIconDef(b);
+              return (
+                <div
+                  key={b}
+                  style={{
+                    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8,
+                    padding: "14px 14px",
+                    background: def.bg, border: `1px solid ${def.border}`,
+                    borderRadius: 12,
+                  }}
+                >
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 8,
+                    background: "#fff", border: `1px solid ${def.border}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: def.color, flexShrink: 0,
+                  }}>
+                    <span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>
+                  </div>
+                  <span style={{ fontSize: 12, color: def.color, fontWeight: 700, lineHeight: 1.4 }}>
+                    {b}
+                  </span>
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                  {grouped.get(catKey)!.map((b) => {
-                    const def = getBenefitIconDef(b);
-                    return (
-                      <span
-                        key={b}
-                        style={{
-                          display: "inline-flex", alignItems: "center", gap: 6,
-                          padding: "7px 14px",
-                          background: def.bg, border: `1px solid ${def.border}`,
-                          borderRadius: 100, fontSize: "var(--text-sm)",
-                          color: def.color, fontWeight: 600,
-                        }}
-                      >
-                        <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{def.svg}</span>
-                        {b}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div style={{
@@ -1815,16 +1806,21 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
       {/* catchphrase: 相談できること */}
       {employee.catchphrase && (
         <div style={{
-          padding: "9px 12px", borderRadius: 8,
-          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-          fontSize: 12, color: "var(--royal)", lineHeight: 1.55,
-          display: "flex", alignItems: "flex-start", gap: 7,
+          padding: "10px 14px", borderRadius: 10,
+          background: "linear-gradient(135deg, var(--royal-50) 0%, #f0f4ff 100%)",
+          border: "1px solid var(--royal-100)",
+          position: "relative",
         }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0, marginTop: 2, opacity: 0.7 }}>
-            <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
-            <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
-          </svg>
-          <span style={{ fontWeight: 600 }}>{employee.catchphrase}</span>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--royal)", opacity: 0.65, letterSpacing: "0.06em", marginBottom: 5, fontFamily: "Inter, sans-serif", textTransform: "uppercase" }}>
+            コメント
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--royal)" style={{ flexShrink: 0, marginTop: 1, opacity: 0.35 }}>
+              <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
+              <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
+            </svg>
+            <span style={{ fontSize: 13, color: "var(--royal)", lineHeight: 1.6, fontWeight: 600 }}>{employee.catchphrase}</span>
+          </div>
         </div>
       )}
 
@@ -1997,14 +1993,14 @@ function JobEmbedCard({
               )}
             </div>
           </div>
-          {/* Catch copy */}
-          {job.catchCopy && (
+          {/* Catch copy / description fallback */}
+          {(job.catchCopy || job.description) && (
             <p style={{
               margin: "0 0 7px", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.55,
               overflow: "hidden", display: "-webkit-box",
               WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const,
             }}>
-              {job.catchCopy}
+              {job.catchCopy || (job.description ? job.description.slice(0, 100) : "")}
             </p>
           )}
           {/* Meta pills */}
@@ -2588,7 +2584,7 @@ function _SimilarCompaniesSection({ companies, currentIndustry }: { companies: C
 
 // ─── Company Articles Section ─────────────────────────────────────────────────
 
-function CompanyArticlesSection({ articles }: { articles: Article[] }) {
+function CompanyArticlesSection({ articles, company }: { articles: Article[]; company: Company }) {
   const displayed = articles.slice(0, 3);
 
   return (
@@ -2647,61 +2643,78 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
         ) : (
           <>
             {articles.length === 1 ? (
-              /* ── 1件の時: フィーチャー大カード（改善版） ── */
+              /* ── 1件の時: 左60%記事 + 右40% CTAパネル ── */
               (() => {
                 const article = articles[0];
                 const badge = TYPE_BADGE[article.type];
                 const authorName = article.subject?.name ?? article.subjects?.[0]?.name;
                 return (
-                  <Link key={article.slug} href={`/articles/${article.slug}`} style={{ textDecoration: "none", display: "block" }}>
-                    <div className="article-card" style={{
-                      border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden",
-                      background: "#fff", transition: "border-color 0.15s, box-shadow 0.15s",
-                    }}>
-                      {/* 上部: グラデーションバナー — 高さ増・著者名オーバーレイ */}
-                      <div style={{
-                        height: 160,
-                        background: article.eyecatch_gradient,
-                        display: "flex", flexDirection: "column", justifyContent: "flex-end",
-                        padding: "14px 18px",
-                        position: "relative",
+                  <div style={{ display: "flex", gap: 14, alignItems: "stretch" }}>
+                    {/* 左: 記事カード (60%) */}
+                    <Link key={article.slug} href={`/articles/${article.slug}`} style={{ textDecoration: "none", display: "block", flex: "0 0 60%", minWidth: 0 }}>
+                      <div className="article-card" style={{
+                        border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden",
+                        background: "#fff", transition: "border-color 0.15s, box-shadow 0.15s", height: "100%",
                       }}>
-                        <div style={{ position: "absolute", inset: 0, background: "rgba(0,15,60,0.55)" }} />
-                        {/* タイプバッジ */}
-                        <div style={{ position: "absolute", top: 14, left: 16, zIndex: 1 }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 12px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.04em" }}>
-                            {badge.label}
-                          </span>
-                        </div>
-                        {/* 読了時間 */}
-                        <div style={{ position: "absolute", top: 14, right: 16, fontSize: 11, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 600, zIndex: 1 }}>
-                          {article.read_min} min read
-                        </div>
-                        {/* タイトル（バナー内に大きく） */}
-                        <p style={{ position: "relative", zIndex: 1, margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 800, lineHeight: 1.55, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>
-                          {article.title}
-                        </p>
-                      </div>
-                      {/* 下部: 著者 + CTA */}
-                      <div style={{ padding: "14px 18px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                        {authorName ? (
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#fff", border: "2px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                              {authorName.slice(0, 1)}
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 1 }}>著者</div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{authorName}</div>
-                            </div>
+                        <div style={{
+                          height: 140,
+                          background: article.eyecatch_gradient,
+                          display: "flex", flexDirection: "column", justifyContent: "flex-end",
+                          padding: "12px 16px",
+                          position: "relative",
+                        }}>
+                          <div style={{ position: "absolute", inset: 0, background: "rgba(0,15,60,0.50)" }} />
+                          <div style={{ position: "absolute", top: 12, left: 14, zIndex: 1 }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 10px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700 }}>
+                              {badge.label}
+                            </span>
                           </div>
-                        ) : <div />}
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 16px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                          記事を読む
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                          <div style={{ position: "absolute", top: 12, right: 14, fontSize: 10, color: "rgba(255,255,255,0.75)", fontFamily: "Inter, sans-serif", fontWeight: 600, zIndex: 1 }}>
+                            {article.read_min} min
+                          </div>
+                          <p style={{ position: "relative", zIndex: 1, margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 14, fontWeight: 800, lineHeight: 1.55, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.35)" }}>
+                            {article.title}
+                          </p>
+                        </div>
+                        <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          {authorName ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--royal-50)", border: "2px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                                {authorName.slice(0, 1)}
+                              </div>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{authorName}</span>
+                            </div>
+                          ) : <div />}
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 7, background: "var(--royal)", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                            記事を読む
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                          </div>
                         </div>
                       </div>
+                    </Link>
+                    {/* 右: もっと知るパネル (40%) */}
+                    <div style={{ flex: "0 0 40%", minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "Inter, sans-serif", marginBottom: 2 }}>
+                        もっと知る
+                      </div>
+                      {[
+                        { href: "#jobs", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>, label: "求人を見る", sub: `${company.job_count > 0 ? company.job_count + "件掲載中" : ""}` },
+                        { href: `/companies/${company.id}/casual-meeting`, icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label: "カジュアル面談", sub: "選考なし・無料" },
+                        { href: "/articles", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, label: "他の取材記事", sub: "OPINIO記事一覧" },
+                      ].map(({ href, icon, label, sub }) => (
+                        <a key={label} href={href} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", borderRadius: 10, background: "#fff", border: "1px solid var(--line)", transition: "border-color 0.15s, background 0.15s" }} className="article-side-cta">
+                          <div style={{ width: 28, height: 28, borderRadius: 7, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", flexShrink: 0 }}>
+                            {icon}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{label}</div>
+                            {sub && <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 1 }}>{sub}</div>}
+                          </div>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>
+                        </a>
+                      ))}
                     </div>
-                  </Link>
+                  </div>
                 );
               })()
             ) : (
@@ -2727,7 +2740,7 @@ function CompanyArticlesSection({ articles }: { articles: Article[] }) {
                           position: "relative",
                         }}>
                           {/* Royal overlay */}
-                          <div style={{ position: "absolute", inset: 0, background: "rgba(0,35,102,0.38)", mixBlendMode: "multiply" }} />
+                          <div style={{ position: "absolute", inset: 0, background: "rgba(0,35,102,0.18)", mixBlendMode: "multiply" }} />
                           <span style={{ fontSize: 32, opacity: 0.3, position: "relative", zIndex: 1 }}>{icon}</span>
                           <div style={{ position: "absolute", bottom: 7, right: 7, fontSize: 9, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500, zIndex: 1 }}>
                             {article.read_min} min
@@ -2843,9 +2856,9 @@ function MobileBottomCTA({ company }: { company: Company }) {
           style={{
             display: "block",
             padding: "10px 0",
-            background: hasMeeting ? "var(--royal-50)" : "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
+            background: hasMeeting ? "transparent" : "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
             color: hasMeeting ? "var(--royal)" : "#fff",
-            border: hasMeeting ? "1px solid var(--royal-100)" : "none",
+            border: hasMeeting ? "1.5px solid var(--royal)" : "none",
             borderRadius: 8,
             fontSize: "var(--text-sm)",
             fontWeight: 600,
@@ -3374,7 +3387,7 @@ export default async function CompanyDetailPage({
             <AlumniSection alumni={employees.alumni} />
 
             {/* 8. 記事（OPINIO取材記事） */}
-            <CompanyArticlesSection articles={companyArticles} />
+            <CompanyArticlesSection articles={companyArticles} company={company} />
 
             {/* ── ページ末尾CTA ── */}
             {company.accepting_casual_meetings && (
@@ -3401,33 +3414,34 @@ export default async function CompanyDetailPage({
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <Link
-                    href={`/companies/${company.id}/casual-meeting`}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 8,
-                      padding: "12px 24px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                      background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff",
-                      textDecoration: "none",
-                      boxShadow: "0 3px 12px rgba(245,158,11,0.35)",
-                    }}
-                  >
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />
-                    話を聞く（カジュアル面談）
-                  </Link>
                   {company.job_count > 0 && (
                     <a
                       href="#jobs"
                       style={{
-                        display: "inline-flex", alignItems: "center", gap: 6,
-                        padding: "12px 22px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                        background: "transparent", color: "var(--royal)",
-                        border: "1.5px solid var(--royal)",
+                        display: "inline-flex", alignItems: "center", gap: 8,
+                        padding: "12px 24px", borderRadius: 10, fontSize: 14, fontWeight: 700,
+                        background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff",
                         textDecoration: "none",
+                        boxShadow: "0 3px 12px rgba(245,158,11,0.35)",
                       }}
                     >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
                       求人を見る ({company.job_count}件)
                     </a>
                   )}
+                  <Link
+                    href={`/companies/${company.id}/casual-meeting`}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "12px 22px", borderRadius: 10, fontSize: 14, fontWeight: 700,
+                      background: "transparent", color: "var(--royal)",
+                      border: "1.5px solid var(--royal)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--royal)", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />
+                    話を聞く（カジュアル面談）
+                  </Link>
                 </div>
               </div>
             )}
@@ -3496,6 +3510,10 @@ export default async function CompanyDetailPage({
           border-color: var(--royal-100) !important;
           box-shadow: 0 4px 16px rgba(0,35,102,0.08) !important;
         }
+        .article-side-cta:hover {
+          border-color: var(--royal-100) !important;
+          background: var(--royal-50) !important;
+        }
 
         /* ── Pulse for CTA dot ── */
         @keyframes cta-pulse {
@@ -3504,7 +3522,7 @@ export default async function CompanyDetailPage({
         }
 
         /* ── Org expand button hover ── */
-        .org-expand-btn:hover { background: var(--royal-100) !important; border-color: var(--royal) !important; }
+        .org-expand-btn:hover { background: #001a52 !important; opacity: 0.92; }
 
         /* ── Nav no-scrollbar ── */
         nav::-webkit-scrollbar { display: none; }

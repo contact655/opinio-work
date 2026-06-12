@@ -329,7 +329,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                     <polyline points="6 9 12 15 18 9"/>
                   </svg>
-                  残り {teams.length - INITIAL_TEAMS_PER_DIVISION} チームを見る
+                  残り {teams.length - INITIAL_TEAMS_PER_DIVISION} チーム：{teams.slice(INITIAL_TEAMS_PER_DIVISION).map(t => t.name).join(" / ")}
                 </button>
               )}
               {expandedDivTeams.has(div) && teams.length > INITIAL_TEAMS_PER_DIVISION && (
@@ -376,9 +376,9 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
               width: "100%",
               padding: "13px 20px",
               borderRadius: 12,
-              border: "1.5px solid var(--royal-100)",
-              background: "var(--royal-50)",
-              color: "var(--royal)",
+              border: "none",
+              background: "var(--royal)",
+              color: "#fff",
               fontSize: "var(--text-base)",
               fontWeight: 700,
               fontFamily: "var(--font-noto-sans)",
@@ -387,7 +387,8 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
               alignItems: "center",
               justifyContent: "center",
               gap: "var(--space-2)",
-              transition: "background 0.15s, border-color 0.15s",
+              transition: "background 0.15s, opacity 0.15s",
+              boxShadow: "0 3px 12px rgba(0,35,102,0.25)",
             }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">

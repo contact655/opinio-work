@@ -5,8 +5,31 @@ import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 
 const INITIAL_CASES = 3;
 
-function productStyle(_name: string): { bg: string; border: string; color: string } {
+function productStyle(name: string): { bg: string; border: string; color: string } {
+  const n = name.toLowerCase();
+  if (n.includes("sales") || n.includes("crm") || n.includes("営業"))
+    return { bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
+  if (n.includes("market") || n.includes("マーケ"))
+    return { bg: "#FEF3C7", border: "#FDE68A", color: "#92400E" };
+  if (n.includes("service") || n.includes("support") || n.includes("success") || n.includes("サポート"))
+    return { bg: "#D1FAE5", border: "#A7F3D0", color: "#065F46" };
+  if (n.includes("data") || n.includes("analytics") || n.includes("分析") || n.includes("ai"))
+    return { bg: "#F3E8FF", border: "#DDD6FE", color: "#7C3AED" };
   return { bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
+}
+
+/** 数値・パーセント・倍数を太字にする */
+function BoldNumbers({ text }: { text: string }) {
+  const parts = text.split(/([\d,]+(?:\.\d+)?(?:倍|%|件|名|社|万|億|円|ヶ月|ヵ月|か月|時間|分|日|年|割|本|個|台|回|人)?)/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        /[\d,]+(?:\.\d+)?/.test(part) ? (
+          <strong key={i} style={{ fontSize: 14, fontWeight: 800, color: "#047857", fontFamily: "Inter, sans-serif" }}>{part}</strong>
+        ) : part
+      )}
+    </>
+  );
 }
 
 type CustomerCase = NonNullable<CompanyDetail["customer_cases"]>[number];
@@ -79,7 +102,7 @@ function CaseCard({ c }: { c: CustomerCase }) {
           成果
         </span>
         <p style={{ margin: 0, fontSize: 12, color: "#065F46", lineHeight: 1.7, fontWeight: 600, fontFamily: "var(--font-noto-sans)" }}>
-          {c.result}
+          <BoldNumbers text={c.result} />
         </p>
       </div>
     </div>
