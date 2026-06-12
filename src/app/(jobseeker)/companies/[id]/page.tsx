@@ -1086,8 +1086,8 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
             grouped.get(key)!.push(b);
           }
         }
-        const orderedKeys = [...BENEFIT_CATEGORIES.map(c => c.key), "other"].filter(k => grouped.has(k));
-        const categoryLabel = (k: string) => BENEFIT_CATEGORIES.find(c => c.key === k)?.label ?? "その他";
+        const _orderedKeys = [...BENEFIT_CATEGORIES.map(c => c.key), "other"].filter(k => grouped.has(k));
+        const _categoryLabel = (k: string) => BENEFIT_CATEGORIES.find(c => c.key === k)?.label ?? "その他";
 
         return (
       <div style={{ marginBottom: "var(--space-6)" }}>
