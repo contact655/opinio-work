@@ -37,78 +37,77 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
       <div ref={sentinelRef} style={{ height: 1, pointerEvents: "none" }} aria-hidden="true" />
 
       {/* スティッキーバー本体（lg 以上は常に非表示） */}
+      {/* ⑨ Vertical stacked layout: カジュアル面談 full-width top, 応募する below */}
       <div
         className="lg:hidden"
         style={{
           position: "fixed",
-          bottom: 64, // モバイルボトムナビ（64px）の上に配置
+          bottom: 64,
           left: 0,
           right: 0,
           zIndex: 50,
-          padding: "12px 16px",
+          padding: "10px 16px",
           background: "rgba(255,255,255,0.96)",
           backdropFilter: "blur(10px)",
           borderTop: "1px solid var(--line)",
           display: "flex",
-          gap: 8,
+          flexDirection: "column",
+          gap: 6,
           transform: visible ? "translateY(0)" : "translateY(100%)",
           transition: "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)",
           willChange: "transform",
         }}
         aria-hidden={!visible}
       >
-        {/* 主CTA: カジュアル面談 (65%) */}
-        {casualHref && (
+        {/* 主CTA: カジュアル面談 — full width */}
+        {casualHref ? (
         <Link
           href={casualHref}
           tabIndex={visible ? 0 : -1}
           style={{
-            flex: "0 0 65%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            height: 56,
-            padding: "0 8px",
+            gap: 6,
+            height: 48,
             background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
             color: "#fff",
             borderRadius: 10,
             fontSize: 14,
             fontWeight: 700,
             textDecoration: "none",
-            textAlign: "center",
             boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
           }}
         >
-          カジュアル面談を申し込む
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          まず社員に話を聞く（無料）
         </Link>
-        )}
+        ) : null}
         {/* 副CTA（面談あり）または 主CTA（面談なし）: 応募する */}
         <Link
           href={applyHref}
           tabIndex={visible ? 0 : -1}
           style={{
-            flex: casualHref ? "0 0 calc(35% - 8px)" : 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             gap: 4,
-            height: 56,
-            padding: "0 8px",
-            // 面談なしの場合は solid primary、あれば outline
+            height: casualHref ? 38 : 48,
             background: casualHref
               ? "transparent"
               : "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
             color: casualHref ? "var(--royal)" : "#fff",
-            border: casualHref ? "1.5px solid var(--royal)" : "none",
+            border: casualHref ? "1.5px solid var(--royal-100)" : "none",
             borderRadius: 10,
-            fontSize: 13,
+            fontSize: casualHref ? 12 : 14,
             fontWeight: 700,
             textDecoration: "none",
-            textAlign: "center",
             boxShadow: casualHref ? "none" : "0 4px 14px rgba(0,35,102,0.3)",
           }}
         >
-          応募する
+          この求人に応募する
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>

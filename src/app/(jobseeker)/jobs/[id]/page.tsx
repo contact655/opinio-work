@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { JobMobileStickyBar } from "@/components/jobs/JobMobileStickyBar";
+import { JobInlineShare } from "@/components/jobs/JobShareButton";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -147,7 +148,7 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
         {jobs.map((rj) => (
           <Link key={rj.id} href={`/jobs/${rj.id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: "var(--space-3) 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
             <div style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: rj.logoGradient || "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "var(--text-base)", fontWeight: 700, overflow: "hidden" }}>
-              {rj.logoUrl ? <Image src={rj.logoUrl} alt={rj.companyName} width={40} height={40} style={{ objectFit: "contain" }} /> : rj.logoLetter}
+              {rj.logoUrl ? <Image src={rj.logoUrl} alt={rj.companyName} width={40} height={40} style={{ objectFit: "contain" }} /> : (rj.logoLetter && !/^[株合有（]/.test(rj.logoLetter) ? rj.logoLetter : rj.companyName.replace(/^株式会社\s*|^（株）\s*|^合同会社\s*|^有限会社\s*/, "").trim().charAt(0).toUpperCase())}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rj.title}</div>
@@ -350,14 +351,35 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               <h1 style={{
                 fontFamily: 'var(--font-noto-serif)',
                 fontSize: "clamp(18px,2vw,24px)", fontWeight: 700,
-                color: "var(--ink)", lineHeight: 1.4, marginBottom: "var(--space-3)",
+                color: "var(--ink)", lineHeight: 1.4, marginBottom: "var(--space-2)",
                 letterSpacing: "0.01em",
               }}>
                 {job.role}
               </h1>
 
+              {/* ② Salary — success green, prominent below title */}
+              {(job.salary_min || job.salary_max) && (
+              <div style={{ marginBottom: "var(--space-2)" }}>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "7px 18px", borderRadius: 100,
+                  background: "var(--success-soft)", border: "1px solid #A7F3D0",
+                  color: "var(--success)", fontSize: 20, fontWeight: 700,
+                  fontFamily: "Inter, sans-serif",
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                  想定年収&nbsp;{job.salary_min && job.salary_max
+                    ? `${job.salary_min}〜${job.salary_max}万円`
+                    : job.salary_min ? `${job.salary_min}万円〜`
+                    : `〜${job.salary_max}万円`}
+                </span>
+              </div>
+              )}
+
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                {[job.employment_type, job.work_style, job.location, job.experience].map((b) => (
+                {[job.employment_type, job.work_style, job.location, job.experience].filter(Boolean).map((b) => (
                   <span key={b} style={{
                     display: "inline-flex", alignItems: "center",
                     fontSize: 11.5, fontWeight: 600, padding: "5px 11px",
@@ -367,21 +389,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     {b}
                   </span>
                 ))}
-                {/* Salary — prominent display */}
-                {(job.salary_min || job.salary_max) && (
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  fontSize: 18, fontWeight: 700, padding: "4px 14px", borderRadius: 100,
-                  background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
-                  fontFamily: "Inter, sans-serif",
-                }}>
-                  想定年収&nbsp;{job.salary_min && job.salary_max
-                    ? `${job.salary_min}〜${job.salary_max}万円`
-                    : job.salary_min ? `${job.salary_min}万円〜`
-                    : `〜${job.salary_max}万円`}
-                </span>
-                )}
               </div>
+
+              {/* ⑦ Inline share — small icons below tags */}
+              <JobInlineShare jobId={job.id} jobTitle={job.role} companyName={company.name} />
             </div>
           </div>
         </div>
@@ -400,6 +411,37 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
             {/* ── Main column ── */}
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+
+              {/* ⑩ この求人のポイント — catch_copy を冒頭に強調 */}
+              {job.highlight && (
+              <section style={{
+                background: "linear-gradient(135deg, #f0f4ff 0%, var(--royal-50) 100%)",
+                border: "1.5px solid var(--royal-100)",
+                borderRadius: 14, padding: "var(--space-6)",
+              }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8, marginBottom: 14,
+                  fontSize: 11, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.08em",
+                }}>
+                  <span style={{
+                    width: 22, height: 22, borderRadius: 6, background: "var(--royal)",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                  </span>
+                  この求人のポイント
+                </div>
+                <p style={{
+                  fontFamily: 'var(--font-noto-serif)',
+                  fontSize: "var(--text-base)", fontWeight: 600,
+                  color: "var(--ink)", lineHeight: 1.85, margin: 0,
+                }}>
+                  {job.highlight}
+                </p>
+              </section>
+              )}
 
               {/* Overview → 仕事内容 */}
               {job.overview && (
@@ -828,7 +870,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Company summary */}
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--ink-mute)" icon={
+                <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <rect x="2" y="7" width="20" height="14" rx="2"/>
                     <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
@@ -836,6 +878,24 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 }>
                   企業について
                 </SecTitle>
+
+                {/* ⑥ Mission statement — Wantedly style */}
+                {company.mission && (
+                <div style={{
+                  padding: "16px 20px", borderRadius: 12, marginBottom: "var(--space-3)",
+                  background: "linear-gradient(135deg, var(--royal-50) 0%, #EEF4FF 100%)",
+                  borderLeft: "4px solid var(--royal)",
+                }}>
+                  <p style={{
+                    fontFamily: 'var(--font-noto-serif)', fontSize: 14, fontWeight: 600,
+                    color: "var(--royal)", lineHeight: 1.75, margin: 0,
+                  }}>
+                    {company.mission}
+                  </p>
+                </div>
+                )}
+
+                {/* Logo + info card */}
                 <div style={{
                   display: "flex", gap: "var(--space-4)", alignItems: "flex-start",
                   padding: "var(--space-4)", background: "var(--bg-tint)", borderRadius: 12,
@@ -867,29 +927,56 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         {company.phase}
                       </span>
                     </div>
-                    <div style={{
-                      fontFamily: 'var(--font-noto-serif)',
-                      fontSize: 12.5, color: "var(--royal)", lineHeight: 1.5, marginBottom: "var(--space-2)",
-                    }}>
-                      {company.tagline}
-                    </div>
                     <div style={{ display: "flex", gap: "var(--space-4)", fontSize: 11, color: "var(--ink-mute)", flexWrap: "wrap" }}>
                       <span>業種 <strong style={{ color: "var(--ink)" }}>{company.industry}</strong></span>
                       <span>従業員 <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{company.employee_count.toLocaleString()}</strong>名</span>
                     </div>
                   </div>
-                  <Link
-                    href={`/companies/${company.id}`}
-                    style={{
-                      alignSelf: "center", flexShrink: 0,
-                      padding: "var(--space-2) 14px", borderRadius: 8,
-                      border: "1.5px solid var(--royal)", color: "var(--royal)",
-                      fontSize: 12, fontWeight: 600, background: "#fff",
-                    }}
-                  >
-                    企業ページへ
-                  </Link>
                 </div>
+
+                {/* ⑥ Fit positives — こんな人に向いている */}
+                {company.fit_positives && company.fit_positives.length > 0 && (
+                <div style={{ marginTop: "var(--space-3)" }}>
+                  <div style={{
+                    fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em",
+                    marginBottom: "var(--space-2)", display: "flex", alignItems: "center", gap: 6,
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    こんな人に向いている
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {company.fit_positives.slice(0, 4).map((fp, i) => (
+                      <span key={i} style={{
+                        display: "inline-flex", alignItems: "center",
+                        padding: "5px 12px", borderRadius: 100, fontSize: 12, fontWeight: 600,
+                        background: "var(--success-soft)", color: "var(--success)", border: "1px solid #A7F3D0",
+                      }}>
+                        {fp}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                )}
+
+                {/* ⑥ Prominent CTA to company page */}
+                <Link
+                  href={`/companies/${company.id}`}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
+                    marginTop: "var(--space-4)", padding: "13px var(--space-6)",
+                    background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
+                    color: "var(--royal)", borderRadius: 10,
+                    fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/>
+                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                  </svg>
+                  {company.name} の企業ページで詳細を見る →
+                </Link>
               </section>
 
               {/* Related jobs */}
@@ -963,38 +1050,42 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </div>
 
                 <div style={{ padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                  {/* Primary: 応募する */}
-                  <Link href={`/jobs/${job.id}/apply`} style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
-                    width: "100%", padding: "15px var(--space-6)",
-                    background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
-                    color: "#fff", borderRadius: 10,
-                    fontSize: "var(--text-base)", fontWeight: 700, textDecoration: "none", textAlign: "center",
-                    boxShadow: "0 4px 16px rgba(0,35,102,0.28)",
-                    transition: "opacity 0.15s",
-                  }}>
-                    この求人に応募する
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                      <path d="M5 12h14M12 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-
-                  {/* Secondary: カジュアル面談 */}
+                  {/* ③ Primary: カジュアル面談 — warm orange, OPINIO思想に合わせてトップに */}
                   {company.jobs_public && (
                     <Link href={`/companies/${job.company_id}/casual-meeting?job_id=${job.id}`} style={{
                       display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
-                      width: "100%", padding: "13px var(--space-6)",
+                      width: "100%", padding: "15px var(--space-6)",
                       background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
                       color: "#fff", borderRadius: 10,
-                      fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none", textAlign: "center",
-                      boxShadow: "0 4px 12px rgba(245,158,11,0.3)",
+                      fontSize: "var(--text-base)", fontWeight: 700, textDecoration: "none", textAlign: "center",
+                      boxShadow: "0 4px 16px rgba(245,158,11,0.38)",
                     }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                       </svg>
                       まず社員に話を聞く（無料）
                     </Link>
                   )}
+
+                  {/* ③ Secondary: 応募する */}
+                  <Link href={`/jobs/${job.id}/apply`} style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
+                    width: "100%", padding: company.jobs_public ? "12px var(--space-6)" : "15px var(--space-6)",
+                    background: company.jobs_public
+                      ? "rgba(0,35,102,0.06)"
+                      : "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
+                    color: company.jobs_public ? "var(--royal)" : "#fff",
+                    border: company.jobs_public ? "1.5px solid var(--royal-100)" : "none",
+                    borderRadius: 10,
+                    fontSize: company.jobs_public ? "var(--text-sm)" : "var(--text-base)",
+                    fontWeight: 700, textDecoration: "none", textAlign: "center",
+                    boxShadow: company.jobs_public ? "none" : "0 4px 16px rgba(0,35,102,0.28)",
+                  }}>
+                    この求人に応募する
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </Link>
 
                   <BookmarkButton
                     targetType="job"
@@ -1048,22 +1139,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 ))}
               </div>
 
-              {/* Share buttons */}
-              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-4) var(--space-6)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: "var(--space-3)", letterSpacing: "0.08em" }}>SHARE</div>
-                <div style={{ display: "flex", gap: "var(--space-2)" }}>
-                  <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(job.role + ' — ' + company.name)}&url=${encodeURIComponent('https://opinio.jp/jobs/' + job.id)}`}
-                     target="_blank" rel="noopener noreferrer"
-                     style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 8, background: "#000", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>
-                    X
-                  </a>
-                  <a href={`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent('https://opinio.jp/jobs/' + job.id)}`}
-                     target="_blank" rel="noopener noreferrer"
-                     style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 8, background: "#00B900", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>
-                    LINE
-                  </a>
-                </div>
-              </div>
 
             </aside>
           </div>
