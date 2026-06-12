@@ -15,7 +15,7 @@ export default async function CompanyJobsPage({
   const { data: company } = await supabase
     .from("ow_companies")
     .select(
-      `id, name, logo_url, logo_gradient, logo_letter, industry, location, employee_count,
+      `id, name, tagline, logo_url, logo_gradient, logo_letter, industry, location, employee_count, accepting_casual_meetings,
       ow_jobs(id, title, job_category, employment_type, salary_min, salary_max, location, work_style, status, published_at, catch_copy, urgency, why_hire)`
     )
     .eq("id", params.id)
@@ -34,12 +34,14 @@ export default async function CompanyJobsPage({
         company={{
           id: company.id,
           name: company.name,
+          tagline: company.tagline ?? null,
           logo_url: company.logo_url ?? null,
           logo_gradient: company.logo_gradient ?? null,
           logo_letter: company.logo_letter ?? null,
           industry: company.industry ?? null,
           location: company.location ?? null,
           employee_count: company.employee_count ?? null,
+          accepting_casual_meetings: company.accepting_casual_meetings ?? null,
         }}
         allJobs={allJobs}
       />

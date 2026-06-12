@@ -670,19 +670,44 @@ body {
   box-shadow: 0 4px 20px rgba(0,35,102,0.10) !important;
   transform: translateY(-1px);
 }
-/* Mobile filter toggle — hidden on desktop, shown on mobile */
+.company-job-card:focus-visible {
+  outline: 2px solid var(--royal);
+  outline-offset: 2px;
+}
+/* ③ Mobile filter toggle — hidden on desktop, shown on mobile */
 @media (min-width: 768px) {
   .job-mobile-filter-btn { display: none !important; }
+  /* ③ Wrap pills on desktop so all categories are visible */
   .job-filter-pills {
     display: flex;
     gap: 6px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 2px;
+    flex-wrap: wrap;
+    padding-bottom: 4px;
   }
 }
 @media (max-width: 767px) {
   .job-mobile-filter-btn { display: inline-flex !important; }
   .job-filter-pills { display: none; }
   .job-filter-pills.open { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 4px; }
+}
+/* ⑤ Sticky CTA — slides up from bottom after scroll */
+.job-sticky-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 150;
+  background: linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%);
+  border-top: 1px solid rgba(255,255,255,0.12);
+  padding: 12px 0;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.22);
+  animation: jobCtaSlideUp 0.25s ease forwards;
+}
+@media (max-width: 767px) {
+  /* Above the 64px mobile bottom nav */
+  .job-sticky-cta { bottom: 64px; }
+}
+@keyframes jobCtaSlideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }

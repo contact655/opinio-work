@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Search, ChevronDown, SlidersHorizontal, X } from "lucide-react";
 import { BookmarkButton } from "./BookmarkButton";
@@ -25,15 +26,17 @@ export type JobRow = {
 export type CompanyBasic = {
   id: string;
   name: string;
+  tagline: string | null;
   logo_url: string | null;
   logo_gradient: string | null;
   logo_letter: string | null;
   industry: string | null;
   location: string | null;
   employee_count: number | string | null;
+  accepting_casual_meetings: boolean | null;
 };
 
-// ─── ① Salary — always shows text, "応相談" for NULL ─────────────────────────
+// ─── Salary helper ───────────────────────────────────────────────────────────
 function formatSalary(min: number | null, max: number | null): { text: string; known: boolean } {
   if (!min && !max) return { text: "応相談", known: false };
   if (min && max) return { text: `${min}〜${max}万円`, known: true };
@@ -41,7 +44,17 @@ function formatSalary(min: number | null, max: number | null): { text: string; k
   return { text: `〜${max}万円`, known: true };
 }
 
-// ─── ⑦ Work style ────────────────────────────────────────────────────────────
+// ─── ⑧ Days-ago helper ──────────────────────────────────────────────────────
+function daysAgo(publishedAt: string | null): string | null {
+  if (!publishedAt) return null;
+  const d = Math.floor((Date.now() - new Date(publishedAt).getTime()) / 86400000);
+  if (d === 0) return "今日";
+  if (d < 7) return `${d}日前`;
+  if (d < 30) return `${Math.floor(d / 7)}週間前`;
+  return `${Math.floor(d / 30)}ヶ月前`;
+}
+
+// ─── Work style labels ───────────────────────────────────────────────────────
 const WORK_STYLE_LABELS: Record<string, string> = {
   full_remote: "フルリモート",
   remote: "リモート可",
@@ -69,6 +82,26 @@ function WorkStyleBadge({ style }: { style: string | null }) {
   );
 }
 
+// ─── Chat bubble icon ────────────────────────────────────────────────────────
+function ChatIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+// ─── Chevron icon ────────────────────────────────────────────────────────────
+function ChevronRightIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 18l6-6-6-6" />
+    </svg>
+  );
+}
+
 const PAGE_SIZE = 20;
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -79,11 +112,44 @@ export function CompanyJobsClient({
   company: CompanyBasic;
   allJobs: JobRow[];
 }) {
+  const router = useRouter();
+
   const [query, setQuery] = useState("");
   const [selectedCat, setSelectedCat] = useState("");
   const [sort, setSort] = useState<"default" | "salary_high" | "newest">("default");
   const [showCount, setShowCount] = useState(PAGE_SIZE);
   const [mobileOpen, setMobileOpen] = useState(false);
+  // ⑤ Sticky CTA visibility
+  const [showStickyCta, setShowStickyCta] = useState(false);
+  // ⑩ Viewed jobs
+  const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
+
+  // ⑩ Load viewed jobs from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("opinio-viewed-jobs");
+      if (stored) setViewedIds(new Set(JSON.parse(stored)));
+    } catch { /* ignore */ }
+  }, []);
+
+  // ⑤ Scroll listener for sticky CTA
+  useEffect(() => {
+    const onScroll = () => setShowStickyCta(window.scrollY > 280);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // ⑩ Mark a job as viewed and persist to localStorage
+  const markViewed = useCallback((id: string) => {
+    setViewedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      try {
+        localStorage.setItem("opinio-viewed-jobs", JSON.stringify(Array.from(next)));
+      } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
 
   // Categories sorted by count descending
   const categories = useMemo(() => {
@@ -94,7 +160,7 @@ export function CompanyJobsClient({
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).map(([cat]) => cat);
   }, [allJobs]);
 
-  // ④ Keyword search + category filter + ⑧ sort
+  // Keyword search + category filter + sort
   const filtered = useMemo(() => {
     let jobs = [...allJobs];
     if (query.trim()) {
@@ -119,7 +185,6 @@ export function CompanyJobsClient({
           new Date(a.published_at ?? 0).getTime()
       );
     } else {
-      // default: hot first → salary known first → newest
       jobs.sort((a, b) => {
         if (a.urgency === "hot" && b.urgency !== "hot") return -1;
         if (b.urgency === "hot" && a.urgency !== "hot") return 1;
@@ -157,17 +222,22 @@ export function CompanyJobsClient({
   const visible = filtered.slice(0, showCount);
   const hasMore = filtered.length > showCount;
   const activeFilters = (query ? 1 : 0) + (selectedCat ? 1 : 0);
+  // ⑦ Count jobs with salary disclosed
+  const salaryKnownCount = allJobs.filter((j) => j.salary_min || j.salary_max).length;
+  const canMeet = company.accepting_casual_meetings !== false;
 
   const gradient =
     company.logo_gradient || "linear-gradient(135deg,var(--royal),#3B5FD9)";
   const letter = company.logo_letter || company.name?.[0] || "?";
+  // Short company name for CTA buttons (strip 株式会社 prefix)
+  const shortName = company.name.replace(/^株式会社/, "").replace(/株式会社$/, "").trim();
 
   return (
     <main style={{ minHeight: "100vh", background: "var(--bg-tint)", paddingTop: 64 }}>
 
       {/* ── Company banner ─────────────────────────────────────────────────── */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 24px 18px" }}>
+        <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 24px 16px" }}>
           <Link
             href={`/companies/${company.id}`}
             style={{
@@ -181,6 +251,8 @@ export function CompanyJobsClient({
             </svg>
             企業詳細に戻る
           </Link>
+
+          {/* Logo + name + right actions */}
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             {company.logo_url ? (
               <img
@@ -199,6 +271,7 @@ export function CompanyJobsClient({
                 {letter}
               </div>
             )}
+
             <div style={{ flex: 1, minWidth: 0 }}>
               <h1 style={{
                 fontFamily: "var(--font-noto-serif)",
@@ -218,21 +291,80 @@ export function CompanyJobsClient({
                 )}
               </div>
             </div>
-            <div style={{
-              fontFamily: "Inter, sans-serif",
-              fontSize: 13, fontWeight: 700,
-              color: "var(--royal)",
-              background: "var(--royal-50)",
-              border: "1px solid var(--royal-100)",
-              borderRadius: 8, padding: "6px 14px", flexShrink: 0,
-            }}>
-              {allJobs.length}件募集中
+
+            {/* ④ Right: job count badge + talk CTA */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+              <div style={{
+                fontFamily: "Inter, sans-serif",
+                fontSize: 13, fontWeight: 700,
+                color: "var(--royal)",
+                background: "var(--royal-50)",
+                border: "1px solid var(--royal-100)",
+                borderRadius: 8, padding: "6px 14px",
+              }}>
+                {allJobs.length}件募集中
+              </div>
+              {canMeet && (
+                <Link
+                  href={`/companies/${company.id}/casual-meeting`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "7px 14px", borderRadius: 8,
+                    background: "linear-gradient(135deg,#F59E0B,#FB923C)",
+                    color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none",
+                    boxShadow: "0 2px 8px rgba(245,158,11,0.25)", whiteSpace: "nowrap",
+                  }}
+                >
+                  <ChatIcon />
+                  話を聞く（無料）
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* ⑦ Company strengths strip */}
+          <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
+            {company.tagline && (
+              <span style={{
+                fontSize: 13, color: "var(--ink-soft)", fontStyle: "italic",
+                flex: "1 1 auto", minWidth: 0,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                「{company.tagline}」
+              </span>
+            )}
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", flexShrink: 0 }}>
+              {canMeet && (
+                <span style={{
+                  fontSize: 11, padding: "3px 10px", borderRadius: 100,
+                  background: "linear-gradient(135deg,#FEF3C7,#FDE68A)",
+                  color: "#92400E", border: "1px solid #FDE68A", fontWeight: 700,
+                }}>
+                  💬 面談受付中
+                </span>
+              )}
+              {salaryKnownCount > 0 && (
+                <span style={{
+                  fontSize: 11, padding: "3px 10px", borderRadius: 100,
+                  background: "#F0FDF4", color: "var(--success)",
+                  border: "1px solid #A7F3D0", fontWeight: 700,
+                }}>
+                  💴 年収公開 {salaryKnownCount}件
+                </span>
+              )}
+              <span style={{
+                fontSize: 11, padding: "3px 10px", borderRadius: 100,
+                background: "var(--royal-50)", color: "var(--royal)",
+                border: "1px solid var(--royal-100)", fontWeight: 700,
+              }}>
+                ✍ OPINIO掲載企業
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── ③ Sticky filter bar ────────────────────────────────────────────── */}
+      {/* ── ③ Sticky filter bar (pills wrap on desktop) ────────────────────── */}
       <div style={{
         position: "sticky", top: 64, zIndex: 100,
         background: "#fff", borderBottom: "1px solid var(--line)",
@@ -240,9 +372,8 @@ export function CompanyJobsClient({
       }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "10px 24px 8px" }}>
 
-          {/* Row 1: search input + sort dropdown + mobile toggle */}
+          {/* Row 1: search + sort + mobile toggle */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-            {/* ④ Keyword search */}
             <div style={{ flex: 1, position: "relative" }}>
               <Search
                 size={14} color="#9CA3AF"
@@ -273,7 +404,6 @@ export function CompanyJobsClient({
               )}
             </div>
 
-            {/* ⑧ Sort dropdown */}
             <div style={{ position: "relative", flexShrink: 0 }}>
               <select
                 value={sort}
@@ -296,7 +426,6 @@ export function CompanyJobsClient({
               />
             </div>
 
-            {/* ⑩ Mobile filter toggle */}
             <button
               onClick={() => setMobileOpen((o) => !o)}
               className="job-mobile-filter-btn"
@@ -313,7 +442,7 @@ export function CompanyJobsClient({
             </button>
           </div>
 
-          {/* ③ Category filter pills — desktop always visible, mobile toggled */}
+          {/* ③ Category pills — wrap on desktop (CSS updated), toggle on mobile */}
           {categories.length > 1 && (
             <div className={`job-filter-pills${mobileOpen ? " open" : ""}`}>
               {[
@@ -366,24 +495,49 @@ export function CompanyJobsClient({
         </div>
       </div>
 
-      {/* ── ② Job list with pagination ─────────────────────────────────────── */}
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 24px 60px" }}>
+      {/* ── Job list with pagination ─────────────────────────────────────────── */}
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 24px 100px" }}>
         {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "80px 24px" }}>
+          /* ⑨ Enhanced empty state with casual meeting CTA */
+          <div style={{
+            textAlign: "center", padding: "56px 24px 64px",
+            background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
+          }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
             <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink-soft)", margin: 0 }}>
-              「{query}」に一致する求人が見つかりませんでした
+              {query
+                ? `「${query}」に一致する求人が見つかりませんでした`
+                : `${selectedCat} の求人は現在掲載されていません`}
             </p>
-            <button
-              onClick={resetAll}
-              style={{
-                marginTop: 16, padding: "8px 20px", borderRadius: 8,
-                border: "1px solid var(--line)", background: "#fff",
-                cursor: "pointer", fontSize: 13, fontWeight: 600,
-              }}
-            >
-              すべての求人を表示
-            </button>
+            <p style={{ fontSize: 13, color: "var(--ink-mute)", marginTop: 8, marginBottom: 0 }}>
+              求人票にない情報は、社員に直接話を聞くのが一番早いです
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 20 }}>
+              <button
+                onClick={resetAll}
+                style={{
+                  padding: "9px 20px", borderRadius: 8,
+                  border: "1px solid var(--line)", background: "#fff",
+                  cursor: "pointer", fontSize: 13, fontWeight: 600,
+                }}
+              >
+                すべての求人を表示
+              </button>
+              {canMeet && (
+                <Link
+                  href={`/companies/${company.id}/casual-meeting`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "9px 20px", borderRadius: 8,
+                    background: "linear-gradient(135deg,#F59E0B,#FB923C)",
+                    color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  }}
+                >
+                  <ChatIcon />
+                  {shortName}に話を聞く（無料）
+                </Link>
+              )}
+            </div>
           </div>
         ) : (
           <>
@@ -394,20 +548,40 @@ export function CompanyJobsClient({
                 const isNewJob =
                   !!job.published_at &&
                   Date.now() - new Date(job.published_at).getTime() < 7 * 86400000;
+                // ⑩ Viewed state
+                const isViewed = viewedIds.has(job.id);
+                // ⑧ Days ago
+                const ago = daysAgo(job.published_at);
 
                 return (
+                  /* ⑥ Entire card is clickable */
                   <div
                     key={job.id}
                     className="company-job-card"
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${job.title}の詳細を見る`}
+                    onClick={() => { markViewed(job.id); router.push(`/jobs/${job.id}`); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        markViewed(job.id);
+                        router.push(`/jobs/${job.id}`);
+                      }
+                    }}
                     style={{
                       display: "flex", gap: 0,
                       border: `1px solid ${isHot ? "#FED7AA" : "var(--line)"}`,
                       borderRadius: 14,
                       background: isHot ? "linear-gradient(to right,#FFFBF0,#fff)" : "#fff",
                       overflow: "hidden",
+                      cursor: "pointer",
+                      // ⑩ Dim viewed cards slightly
+                      opacity: isViewed ? 0.75 : 1,
+                      outline: "none",
                     }}
                   >
-                    {/* ⑨ Left accent bar — amber for hot, muted royal otherwise */}
+                    {/* Left accent bar */}
                     <div style={{
                       width: 4, flexShrink: 0,
                       background: isHot
@@ -419,38 +593,60 @@ export function CompanyJobsClient({
                     }} />
 
                     <div style={{ flex: 1, padding: "16px 20px 14px", minWidth: 0 }}>
-                      {/* Top badges */}
-                      <div style={{ display: "flex", gap: 5, marginBottom: 6, flexWrap: "wrap", alignItems: "center" }}>
-                        {isHot && (
-                          <span style={{
-                            fontSize: 10, padding: "2px 8px", borderRadius: 4,
-                            background: "#FFF7ED", color: "#C2410C",
-                            border: "1px solid #FED7AA", fontWeight: 700,
-                          }}>
-                            🔥 急募
-                          </span>
-                        )}
-                        {isNewJob && !isHot && (
-                          <span style={{
-                            fontSize: 10, padding: "2px 8px", borderRadius: 4,
-                            background: "#ECFDF5", color: "var(--success)",
-                            border: "1px solid #A7F3D0", fontWeight: 700,
-                          }}>
-                            新着
-                          </span>
-                        )}
-                        {sal.known && (
-                          <span style={{
-                            fontSize: 10, padding: "2px 7px", borderRadius: 4,
-                            background: "#F0FDF4", color: "var(--success)",
-                            border: "1px solid #A7F3D0", fontWeight: 700,
-                          }}>
-                            年収公開
+                      {/* ⑧ Badges row + days-ago timestamp */}
+                      <div style={{
+                        display: "flex", gap: 5, marginBottom: 6,
+                        flexWrap: "wrap", alignItems: "center",
+                        justifyContent: "space-between",
+                      }}>
+                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+                          {isHot && (
+                            <span style={{
+                              fontSize: 10, padding: "2px 8px", borderRadius: 4,
+                              background: "#FFF7ED", color: "#C2410C",
+                              border: "1px solid #FED7AA", fontWeight: 700,
+                            }}>
+                              🔥 急募
+                            </span>
+                          )}
+                          {isNewJob && !isHot && (
+                            <span style={{
+                              fontSize: 10, padding: "2px 8px", borderRadius: 4,
+                              background: "#ECFDF5", color: "var(--success)",
+                              border: "1px solid #A7F3D0", fontWeight: 700,
+                            }}>
+                              新着
+                            </span>
+                          )}
+                          {sal.known && (
+                            <span style={{
+                              fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                              background: "#F0FDF4", color: "var(--success)",
+                              border: "1px solid #A7F3D0", fontWeight: 700,
+                            }}>
+                              年収公開
+                            </span>
+                          )}
+                          {/* ⑩ Viewed badge */}
+                          {isViewed && (
+                            <span style={{
+                              fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                              background: "var(--bg-tint)", color: "var(--ink-mute)",
+                              border: "1px solid var(--line)", fontWeight: 500,
+                            }}>
+                              閲覧済
+                            </span>
+                          )}
+                        </div>
+                        {/* ⑧ Days ago timestamp */}
+                        {ago && (
+                          <span style={{ fontSize: 11, color: "var(--ink-mute)", flexShrink: 0 }}>
+                            {ago}更新
                           </span>
                         )}
                       </div>
 
-                      {/* Title + bookmark */}
+                      {/* Title + ⑥ Bookmark (stops propagation) */}
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
                         <h2 style={{
                           flex: 1, fontSize: 15, fontWeight: 700,
@@ -458,10 +654,12 @@ export function CompanyJobsClient({
                         }}>
                           {job.title}
                         </h2>
-                        <BookmarkButton jobId={job.id} />
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <BookmarkButton jobId={job.id} />
+                        </div>
                       </div>
 
-                      {/* ⑤⑥ catch_copy as prominent Japanese subtitle */}
+                      {/* catch_copy subtitle */}
                       {job.catch_copy && (
                         <p style={{
                           fontSize: 13, color: "var(--ink-soft)",
@@ -514,7 +712,7 @@ export function CompanyJobsClient({
                         )}
                       </div>
 
-                      {/* ① Salary always shown + CTAs */}
+                      {/* ① Salary + ④ single CTA (カード内は「詳細を見る」のみ) */}
                       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                         <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
                           <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600 }}>年収</span>
@@ -528,37 +726,16 @@ export function CompanyJobsClient({
                           </span>
                         </div>
                         <div style={{ flex: 1 }} />
-                        <Link
-                          href={`/companies/${company.id}/casual-meeting`}
-                          style={{
-                            display: "inline-flex", alignItems: "center", gap: 4,
-                            padding: "7px 13px", borderRadius: 8,
-                            background: "linear-gradient(135deg,#F59E0B,#FB923C)",
-                            color: "#fff", fontSize: 12, fontWeight: 700,
-                            textDecoration: "none", whiteSpace: "nowrap",
-                            boxShadow: "0 2px 8px rgba(245,158,11,0.25)",
-                          }}
-                        >
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                          </svg>
-                          話を聞く（無料）
-                        </Link>
-                        <Link
-                          href={`/jobs/${job.id}`}
-                          style={{
-                            display: "inline-flex", alignItems: "center", gap: 4,
-                            padding: "7px 16px", borderRadius: 8,
-                            background: "var(--royal)", color: "#fff",
-                            fontSize: 12, fontWeight: 700,
-                            textDecoration: "none", whiteSpace: "nowrap",
-                          }}
-                        >
-                          詳細を見る
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                            <path d="M9 18l6-6-6-6" />
-                          </svg>
-                        </Link>
+                        {/* ⑥ Filled royal blue CTA (visual only — card onClick handles navigation) */}
+                        <div style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "7px 16px", borderRadius: 8,
+                          background: "var(--royal)", color: "#fff",
+                          fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+                          pointerEvents: "none",
+                        }}>
+                          詳細を見る <ChevronRightIcon />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -566,7 +743,7 @@ export function CompanyJobsClient({
               })}
             </div>
 
-            {/* ② もっと見る */}
+            {/* もっと見る */}
             {hasMore && (
               <div style={{ textAlign: "center", marginTop: 28 }}>
                 <button
@@ -589,6 +766,36 @@ export function CompanyJobsClient({
           </>
         )}
       </div>
+
+      {/* ⑤ Sticky CTA — appears after scrolling past banner */}
+      {showStickyCta && canMeet && (
+        <div className="job-sticky-cta">
+          <div style={{
+            maxWidth: 960, margin: "0 auto", padding: "0 24px",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", lineHeight: 1.35 }}>
+              <span style={{ opacity: 0.8, fontWeight: 400 }}>気になる求人があれば —</span>
+              <br />
+              {shortName}に直接話を聞けます（無料）
+            </div>
+            <Link
+              href={`/companies/${company.id}/casual-meeting`}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
+                padding: "10px 20px", borderRadius: 8,
+                background: "linear-gradient(135deg,#F59E0B,#FB923C)",
+                color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                boxShadow: "0 2px 10px rgba(245,158,11,0.4)",
+              }}
+            >
+              <ChatIcon />
+              話を聞く
+            </Link>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
