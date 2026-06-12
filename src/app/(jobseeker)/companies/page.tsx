@@ -194,11 +194,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
         ) : (
           <div style={{ marginTop: 0 }}>
 
-            {/* ── 最近見た企業（フィルターなし時のみ）── */}
-            <Suspense fallback={null}>
-              <RecentlyViewedSection />
-            </Suspense>
-
             {/* ── メインコンテンツ ── */}
             <div>
               {isListView || isGridView ? (
@@ -293,6 +288,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
                 </>
               ) : null}
             </div>
+
+            {/* ── 最近見た企業（グリッド下に移動）── */}
+            <Suspense fallback={null}>
+              <RecentlyViewedSection />
+            </Suspense>
 
           </div>
         )}
