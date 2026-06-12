@@ -75,6 +75,32 @@ function getPhaseBadge(phase: string | null | undefined) {
   return PHASE_BADGE_MAP[phase] ?? { bg: "#F1F5F9", color: "#475569", label: phase };
 }
 
+// ─── Dept short labels (⑤) ───────────────────────────────────────────────────
+
+const DEPT_SHORT: Record<string, string> = {
+  "プロフェッショナルサービス": "プロサービス",
+  "カスタマーサクセス":         "CS",
+  "テクニカルサポート":         "テクサポ",
+  "セールスエンジニア":         "SE",
+  "ソリューションエンジニア":   "SE",
+  "マーケティング":             "マーケ",
+  "プロダクトマネージャー":     "PdM",
+  "プロダクト":                 "プロダクト",
+  "エンジニア":                 "エンジニア",
+  "デザイン":                   "デザイン",
+  "コーポレート":               "コーポレート",
+  "経営":                       "経営",
+  "営業":                       "営業",
+};
+
+function shortDept(dept: string): string {
+  for (const [key, label] of Object.entries(DEPT_SHORT)) {
+    if (dept.includes(key)) return label;
+  }
+  // 10文字超の場合は先頭8文字 + …
+  return dept.length > 10 ? dept.slice(0, 8) + "…" : dept;
+}
+
 // ─── Dept color map ───────────────────────────────────────────────────────────
 
 const DEPT_COLORS: Record<string, { bg: string; color: string; border: string }> = {
@@ -899,7 +925,13 @@ function JobListCard({
   const deptStyle = getDeptStyle(job.dept);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
-  const showAge = job.updated_days_ago > 7;
+  // ⑨ 常に投稿日を表示
+  const postingLabel = (() => {
+    if (job.updated_days_ago === 0) return null; // badge already says "今日"
+    if (job.updated_days_ago <= 3) return null;  // badge already says "NEW"
+    if (job.updated_days_ago <= 7) return null;  // badge already says "今週"
+    return timeAgo(job.updated_days_ago) + "投稿";
+  })();
 
   return (
     <div style={{ position: "relative" }}>
@@ -933,17 +965,18 @@ function JobListCard({
         borderLeft: company.accepting_casual_meetings ? "3px solid #ea580c" : "1px solid var(--line)",
         transition: "box-shadow 0.22s ease, transform 0.22s ease",
       }}>
-        {/* ① Logo */}
+        {/* ④ Logo — 64px で存在感を強調 */}
         <div style={{
-          width: 52, height: 52, borderRadius: 10, flexShrink: 0,
+          width: 64, height: 64, borderRadius: 14, flexShrink: 0,
           background: company.logo_url ? "#f8fafc" : "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
-          border: company.logo_url ? "1px solid var(--line)" : "none",
+          border: company.logo_url ? "1.5px solid var(--line)" : "none",
           display: "flex", alignItems: "center", justifyContent: "center",
-          color: company.logo_url ? undefined : "#fff", fontSize: 18, fontWeight: 700, overflow: "hidden",
+          color: company.logo_url ? undefined : "#fff", fontSize: 22, fontWeight: 700, overflow: "hidden",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         }}>
           {company.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={company.logo_url} alt={company.name} width={52} height={52} style={{ objectFit: "contain" }} />
+            <img src={company.logo_url} alt={company.name} width={64} height={64} style={{ objectFit: "contain" }} />
           ) : logoLetter}
         </div>
 
@@ -967,9 +1000,9 @@ function JobListCard({
                 {badge.label}
               </span>
             )}
-            {showAge && (
+            {postingLabel && (
               <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: "auto", flexShrink: 0, whiteSpace: "nowrap" }}>
-                {timeAgo(job.updated_days_ago)}投稿
+                {postingLabel}
               </span>
             )}
           </div>
@@ -1052,45 +1085,40 @@ function JobListCard({
             </p>
           )}
 
-          {/* Row 5: 職種バッジ + ② ⑥ CTA */}
+          {/* Row 5: 職種バッジ ⑤短縮 + ③面談バッジ（ボタン削除）+ ⑩詳細→ */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             {job.dept && (
               <span style={{
                 fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
                 background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
+                maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
-                {job.dept}
+                {shortDept(job.dept)}
               </span>
             )}
-            {company.accepting_casual_meetings ? (
-              <a
-                href={`/companies/${company.id}/casual-meeting?job_id=${job.id}`}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "7px 14px", borderRadius: 9,
-                  background: "linear-gradient(135deg, #f97316, #ea580c)",
-                  color: "#fff", fontSize: 12, fontWeight: 700,
-                  textDecoration: "none", whiteSpace: "nowrap",
-                  boxShadow: "0 2px 8px rgba(234,88,12,0.28)",
-                  flexShrink: 0,
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fff", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
-                カジュアル面談を申込む
-              </a>
-            ) : (
+            {/* ③ 面談受付中はソフトバッジのみ（CTA削除） */}
+            {company.accepting_casual_meetings && (
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: 12, color: "var(--royal)", fontWeight: 600,
-                marginLeft: "auto", flexShrink: 0,
+                fontSize: 10, fontWeight: 700, padding: "2px 9px", borderRadius: 100,
+                background: "#FFF7ED", color: "#C2410C",
+                border: "1.5px solid #FDBA74",
               }}>
-                詳細を見る
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                  <path d="M9 18l6-6-6-6"/>
-                </svg>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
+                面談受付中
               </span>
             )}
+            {/* ⑩ 常に「詳細を見る→」を右端に表示 */}
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 12, color: "var(--royal)", fontWeight: 600,
+              marginLeft: "auto", flexShrink: 0,
+            }} className="job-list-card-cta">
+              詳細を見る
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </span>
           </div>
         </div>
       </Link>
@@ -1124,6 +1152,9 @@ export default function JobsClient({
 
   // Local-only keyword search
   const [q, setQ] = useState("");
+
+  // ⑧ 企業グルーピング toggle（デフォルトON）
+  const [groupByCompany, setGroupByCompany] = useState(true);
 
   // Which filter chip dropdown is open
   const [openChip, setOpenChip] = useState<string | null>(null);
@@ -1264,9 +1295,30 @@ export default function JobsClient({
     return list;
   }, [allJobs, q, category, dept, work_style, salary, industry, prefecture, empType, sort, companies, companyMap]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  // ⑧ グルーピング適用（1社あたり最大3件）
+  const filteredForDisplay = useMemo(() => {
+    if (!groupByCompany) return filtered;
+    const countMap = new Map<string, number>();
+    return filtered.filter((j) => {
+      const c = countMap.get(j.company_id) ?? 0;
+      if (c >= 3) return false;
+      countMap.set(j.company_id, c + 1);
+      return true;
+    });
+  }, [filtered, groupByCompany]);
+
+  // ⑧ グルーピング時に「まとめられた社数」を計算
+  const hiddenByGrouping = filtered.length - filteredForDisplay.length;
+  // ⑧ 最も多い企業の件数を計算
+  const maxPerCompany = useMemo(() => {
+    const countMap = new Map<string, number>();
+    filtered.forEach((j) => countMap.set(j.company_id, (countMap.get(j.company_id) ?? 0) + 1));
+    return Math.max(0, ...Array.from(countMap.values()));
+  }, [filtered]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredForDisplay.length / PER_PAGE));
   const safePage = Math.min(page, totalPages);
-  const paged = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+  const paged = filteredForDisplay.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
   const hasFilter = !!(category || dept || work_style || salary || industry || prefecture || empType);
 
@@ -1575,7 +1627,7 @@ export default function JobsClient({
                     {([
                       { value: "updated", label: "新着順" },
                       { value: "salary",  label: "年収順" },
-                      { value: "phase",   label: "フェーズ順" },
+                      { value: "phase",   label: "ステージ順", title: "アーリー（シード）→ 成熟（上場）の順" },
                     ] as const).map((opt) => {
                       const active = sort === opt.value;
                       return (
@@ -1583,6 +1635,7 @@ export default function JobsClient({
                           key={opt.value}
                           type="button"
                           onClick={() => setParam("sort", opt.value)}
+                          title={"title" in opt ? opt.title : undefined}
                           style={{
                             padding: "5px 13px", borderRadius: 100,
                             border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
@@ -1601,14 +1654,34 @@ export default function JobsClient({
                     })}
                   </div>
                 </div>
-                {/* 右: 件数 */}
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                {/* 右: ⑧グルーピングトグル + ⑦件数 */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  {/* ⑧ 1社複数件まとめトグル（最大件数 > 3 の場合のみ表示） */}
+                  {maxPerCompany > 3 && (
+                    <button
+                      type="button"
+                      onClick={() => { setGroupByCompany(v => !v); goPage(1); }}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 5,
+                        padding: "5px 11px", borderRadius: 100,
+                        border: `1.5px solid ${groupByCompany ? "var(--royal)" : "var(--line)"}`,
+                        background: groupByCompany ? "var(--royal-50)" : "#fff",
+                        color: groupByCompany ? "var(--royal)" : "var(--ink-mute)",
+                        fontSize: 11, fontWeight: groupByCompany ? 700 : 500,
+                        cursor: "pointer", whiteSpace: "nowrap",
+                        fontFamily: "inherit", transition: "all 0.15s",
+                      }}
+                      title="同一企業の求人を1社あたり3件に絞る"
+                    >
+                      {groupByCompany ? "✓ " : ""}1社3件まで
+                    </button>
+                  )}
                   <div style={{ width: 1, height: 20, background: "var(--line)" }} />
                   <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500, whiteSpace: "nowrap" }}>
-                    <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "Inter, sans-serif", fontSize: 16 }}>{filtered.length}</strong>
+                    <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "Inter, sans-serif", fontSize: 16 }}>{filteredForDisplay.length}</strong>
                     <span style={{ marginLeft: 2 }}>件</span>
                     {(hasFilter || q) && (
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 4 }}>（絞り込み中）</span>
+                      <span style={{ fontSize: 11, color: "var(--success)", marginLeft: 4, fontWeight: 600 }}>● 絞り込み中</span>
                     )}
                   </span>
                 </div>
@@ -1654,9 +1727,26 @@ export default function JobsClient({
                   <JobListCard key={job.id} job={job} companyMap={companyMap} initialBookmarked={bookmarkedIds.has(job.id)} />
                 ))}
               </div>
+              {/* ⑧ グルーピングで省略された件数の案内 */}
+              {groupByCompany && hiddenByGrouping > 0 && (
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  marginBottom: 12, padding: "9px 16px",
+                  background: "var(--royal-50)", borderRadius: 10,
+                  border: "1px solid var(--royal-100)",
+                  fontSize: 12, color: "var(--royal)", fontWeight: 600,
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  1社あたり最大3件表示中。同じ企業の求人が{hiddenByGrouping}件非表示になっています。
+                  <button type="button" onClick={() => setGroupByCompany(false)} style={{
+                    background: "none", border: "none", color: "var(--royal)", fontWeight: 700, fontSize: 12,
+                    cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "inherit",
+                  }}>すべて表示</button>
+                </div>
+              )}
               {/* 表示件数インジケーター */}
               <div style={{ textAlign: "center", marginBottom: 8, fontSize: 12, color: "var(--ink-mute)" }}>
-                {((safePage - 1) * PER_PAGE + 1)}〜{Math.min(safePage * PER_PAGE, filtered.length)}件を表示（全{filtered.length}件）
+                {((safePage - 1) * PER_PAGE + 1)}〜{Math.min(safePage * PER_PAGE, filteredForDisplay.length)}件を表示（全{filteredForDisplay.length}件）
               </div>
               <Pagination
                 current={safePage}
@@ -1703,10 +1793,20 @@ export default function JobsClient({
           transform: translateY(-2px) !important;
           transition-duration: 0.06s !important;
         }
+        /* ⑩ リストカードのhover: 全体がクリック可能と分かるよう強調 */
         .job-list-card-link:hover {
-          box-shadow: 0 4px 20px rgba(0,35,102,0.12) !important;
+          box-shadow: 0 6px 24px rgba(0,35,102,0.15) !important;
           transform: translateY(-2px) !important;
           border-color: var(--royal-100) !important;
+          border-left-color: var(--royal) !important;
+        }
+        .job-list-card-link:hover .job-list-card-cta {
+          color: #f97316 !important;
+          text-decoration: underline;
+        }
+        .job-list-card-link:active {
+          transform: translateY(0) !important;
+          transition-duration: 0.08s !important;
         }
         .job-search-input:focus {
           box-shadow: 0 0 0 3px rgba(0,35,102,0.12) !important;
