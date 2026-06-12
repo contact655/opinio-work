@@ -645,6 +645,135 @@ export const getJobs = unstable_cache(
   { revalidate: 300 }
 );
 
+// ─── Position Members ─────────────────────────────────────────────────────────
+
+export type JobPositionMember = {
+  userId: string;
+  name: string;
+  roleTitle: string;
+  isCurrent: boolean;
+  isMentor: boolean;
+  mentorId: string | null;
+  photoUrl: string | null;
+  gradient: string;
+  initial: string;
+};
+
+// ow_jobs.job_category (text) → ow_roles.id[]
+// 一般的な職種名と role_category_id の対応マップ
+const JOB_CATEGORY_ROLE_MAP: Record<string, string[]> = {
+  "エンタープライズ営業": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "6938712f-0b29-4682-ac6e-ad112734a3f1"],
+  "セールス": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "6938712f-0b29-4682-ac6e-ad112734a3f1", "d1724303-7ca2-4cbe-a16b-f15d5a2476b8"],
+  "SMB営業": ["d1724303-7ca2-4cbe-a16b-f15d5a2476b8", "6938712f-0b29-4682-ac6e-ad112734a3f1"],
+  "フィールドセールス": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "6938712f-0b29-4682-ac6e-ad112734a3f1"],
+  "インサイドセールス": ["d1724303-7ca2-4cbe-a16b-f15d5a2476b8", "6938712f-0b29-4682-ac6e-ad112734a3f1"],
+  "カスタマーサクセス": ["ad47e554-e328-4aec-abd1-dab9953ddf9d"],
+  "セールスエンジニア": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "c8140123-e29a-43b3-9dbf-1a3d21a68966"],
+  "ソリューションエンジニア": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "c8140123-e29a-43b3-9dbf-1a3d21a68966"],
+  "ソリューションズアーキテクト": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "c8140123-e29a-43b3-9dbf-1a3d21a68966"],
+  "プロダクトマネージャー": ["669c6a08-997a-4a3f-b588-762acffacbc4", "168cd1ab-d096-46cc-ad7e-5baf7f10a0b1"],
+  "バックエンドエンジニア": ["2e9ea870-9e0a-4ae5-b75f-b50edae9a6e4", "c8140123-e29a-43b3-9dbf-1a3d21a68966"],
+  "ソフトウェアエンジニア": ["c8140123-e29a-43b3-9dbf-1a3d21a68966"],
+  "フロントエンドエンジニア": ["dfadc9b0-2739-4e4b-881f-8a44065b5d1b", "c8140123-e29a-43b3-9dbf-1a3d21a68966"],
+  "MLエンジニア": ["c8140123-e29a-43b3-9dbf-1a3d21a68966"],
+  "リサーチエンジニア": ["c8140123-e29a-43b3-9dbf-1a3d21a68966"],
+  "プロダクトデザイナー": ["9f8deb80-3c93-450b-ad30-dfab90430ea4"],
+  "ビジネスオペレーション": ["b49b9bc8-488b-47a5-80b0-9eba4869e910", "23e79605-332b-485d-98c2-d162a491a409"],
+};
+
+export async function getJobPositionMembers(jobCategory: string): Promise<JobPositionMember[]> {
+  const roleIds = JOB_CATEGORY_ROLE_MAP[jobCategory];
+  if (!roleIds || roleIds.length === 0) return [];
+
+  const supabase = createClient();
+
+  const { data: expRows } = await supabase
+    .from("ow_experiences")
+    .select("user_id, role_title, is_current, role_category_id")
+    .in("role_category_id", roleIds);
+
+  if (!expRows || expRows.length === 0) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const expData = expRows as Record<string, any>[];
+  const userIds = Array.from(new Set(expData.map((e) => e.user_id as string)));
+
+  const { data: users } = await supabase
+    .from("ow_users")
+    .select("id, name, visibility")
+    .in("id", userIds)
+    .eq("visibility", "public");
+
+  if (!users || users.length === 0) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const publicUserIds = new Set(users.map((u: any) => u.id as string));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userMap = new Map(users.map((u: any) => [u.id as string, u]));
+
+  // Try user_id match first; fall back to name match (ow_mentors.user_id is null for legacy mentors)
+  const userNames = Array.from(publicUserIds)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((uid) => (userMap.get(uid) as Record<string, any>)?.name as string)
+    .filter(Boolean);
+
+  const [{ data: mentorsByUid }, { data: mentorsByName }] = await Promise.all([
+    supabase
+      .from("ow_mentors")
+      .select("id, user_id, name, photo_url, avatar_color, avatar_initial")
+      .in("user_id", Array.from(publicUserIds)),
+    supabase
+      .from("ow_mentors")
+      .select("id, user_id, name, photo_url, avatar_color, avatar_initial")
+      .in("name", userNames),
+  ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allMentors = [...(mentorsByUid ?? []), ...(mentorsByName ?? [])] as Record<string, any>[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mentorByUserId = new Map<string, Record<string, any>>();
+  for (const m of allMentors) {
+    if (m.user_id) mentorByUserId.set(m.user_id as string, m);
+  }
+  // name-based fallback: build mentor lookup by name
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mentorByName = new Map<string, Record<string, any>>();
+  for (const m of allMentors) {
+    if (m.name) mentorByName.set(m.name as string, m);
+  }
+
+  const seen = new Set<string>();
+  const result: JobPositionMember[] = [];
+
+  for (const exp of expData) {
+    const uid = exp.user_id as string;
+    if (!publicUserIds.has(uid) || seen.has(uid)) continue;
+    seen.add(uid);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = userMap.get(uid) as Record<string, any>;
+    const name = (user.name as string) ?? "—";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mentor = (mentorByUserId.get(uid) ?? mentorByName.get(name)) as Record<string, any> | undefined;
+
+    result.push({
+      userId: uid,
+      name,
+      roleTitle: (exp.role_title as string) ?? "",
+      isCurrent: (exp.is_current as boolean) ?? false,
+      isMentor: !!mentor,
+      mentorId: mentor ? (mentor.id as string) : null,
+      photoUrl: mentor?.photo_url ? (mentor.photo_url as string) : null,
+      gradient: mentor?.avatar_color ? (mentor.avatar_color as string) : FALLBACK_GRADIENT,
+      initial: mentor?.avatar_initial ? (mentor.avatar_initial as string) : name.charAt(0),
+    });
+
+    if (result.length >= 6) break;
+  }
+
+  return result;
+}
+
 export async function getJobById(
   id: string
 ): Promise<{ job: Job; company: Company; relatedJobs: Job[] } | null> {

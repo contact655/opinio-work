@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { type PositionMember } from "@/app/jobs/mockJobData";
-import { getJobById as fetchJobById } from "@/lib/supabase/queries";
+import { getJobById as fetchJobById, getJobPositionMembers, type JobPositionMember } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
@@ -185,6 +185,143 @@ function StatusBadge({ status, label }: { status: PositionMember["status"]; labe
   );
 }
 
+function PositionMembersSection({ members, jobCategory }: { members: JobPositionMember[]; jobCategory: string }) {
+  if (members.length === 0) return null;
+  return (
+    <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
+        <span style={{
+          width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+          background: "var(--purple-soft,#F3E8FF)", color: "var(--purple)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </span>
+        <div>
+          <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
+            このポジションを経験した先輩
+          </h2>
+          <p style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>
+            {jobCategory} の経験者に話を聞けます
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+        {members.map((m) => (
+          <div key={m.userId} style={{
+            display: "flex", alignItems: "center", gap: "var(--space-3)",
+            padding: "12px 14px", borderRadius: 10,
+            background: "var(--bg-tint)", border: "1px solid var(--line)",
+          }}>
+            {/* Avatar */}
+            <div style={{
+              width: 44, height: 44, borderRadius: "50%", flexShrink: 0, overflow: "hidden",
+              background: m.photoUrl ? "#f8fafc" : m.gradient,
+              border: "2px solid #fff",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontSize: 16, fontWeight: 700,
+            }}>
+              {m.photoUrl
+                ? <img src={m.photoUrl} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : m.initial}
+            </div>
+
+            {/* Info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
+                <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>{m.name}</span>
+                {m.isCurrent && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 100,
+                    background: "var(--success-soft)", color: "var(--success)", border: "1px solid #A7F3D0",
+                    letterSpacing: "0.04em",
+                  }}>
+                    現職
+                  </span>
+                )}
+                {m.isMentor && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 100,
+                    background: "var(--purple-soft,#F3E8FF)", color: "var(--purple)", border: "1px solid #E9D5FF",
+                    letterSpacing: "0.04em",
+                  }}>
+                    相談可
+                  </span>
+                )}
+              </div>
+              <div style={{
+                fontSize: 11.5, color: "var(--ink-mute)", overflow: "hidden",
+                textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                {m.roleTitle}
+              </div>
+            </div>
+
+            {/* CTA */}
+            {m.isMentor && m.mentorId ? (
+              <Link
+                href={`/mentors/${m.mentorId}`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0,
+                  padding: "6px 12px", borderRadius: 8,
+                  background: "var(--purple-soft,#F3E8FF)", color: "var(--purple)",
+                  border: "1px solid #E9D5FF",
+                  fontSize: 11.5, fontWeight: 700, textDecoration: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                相談する
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </Link>
+            ) : (
+              <Link
+                href={`/u/${m.userId}`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0,
+                  padding: "6px 12px", borderRadius: 8,
+                  background: "var(--royal-50)", color: "var(--royal)",
+                  border: "1px solid var(--royal-100)",
+                  fontSize: 11.5, fontWeight: 700, textDecoration: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                プロフィール
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </Link>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {members.some((m) => m.isMentor) && (
+        <Link
+          href="/mentors"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            marginTop: "var(--space-4)", padding: "10px var(--space-6)",
+            background: "transparent", border: "1.5px solid #E9D5FF",
+            color: "var(--purple)", borderRadius: 10,
+            fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
+          }}
+        >
+          他の先輩に相談する →
+        </Link>
+      )}
+    </section>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default async function JobDetailPage({ params }: { params: { id: string } }) {
@@ -194,6 +331,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
   const { job, company, relatedJobs } = result;
 
   const initial = company.name.charAt(0).toUpperCase();
+
+  // Position members — people with matching role experience
+  const positionMembers = await getJobPositionMembers(job.dept ?? "");
 
   // Auth + bookmark state
   const supabase = createClient();
@@ -978,6 +1118,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   {company.name} の企業ページで詳細を見る →
                 </Link>
               </section>
+
+              {/* Position members — role-matched alumni/current employees */}
+              <PositionMembersSection members={positionMembers} jobCategory={job.dept ?? ""} />
 
               {/* Related jobs */}
               {relatedJobs.length > 0 && (
