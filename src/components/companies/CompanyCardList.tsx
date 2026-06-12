@@ -249,18 +249,11 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             background: "#fff",
             borderRadius: 12,
             minHeight: 142,
-            borderTop: "1px solid var(--line)",
-            borderRight: "1px solid var(--line)",
-            borderBottom: "1px solid var(--line)",
-            borderLeft: company.accepting_casual_meetings
-              ? "3px solid #ea580c"
-              : company.job_count > 0
-              ? "3px solid #002366"
-              : "1px solid var(--line)",
+            border: "1px solid var(--line)",
             boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
             textDecoration: "none",
             color: "inherit",
-            padding: (company.accepting_casual_meetings || company.job_count > 0) ? "14px 16px 14px 12px" : "14px 16px",
+            padding: "14px 16px",
             overflow: "hidden",
           }}
         >
