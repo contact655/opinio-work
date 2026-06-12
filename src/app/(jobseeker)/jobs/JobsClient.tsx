@@ -611,15 +611,19 @@ function JobPreviewPanel({
         </div>
       </div>
 
-      {/* Salary */}
-      {(job.salary_min || job.salary_max) && (
-        <div style={{ marginBottom: 12 }}>
-          <span style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 800, color: "var(--success)" }}>
-            {formatSalary(job.salary_min, job.salary_max)}
-          </span>
-          <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 4 }}>年収</span>
-        </div>
-      )}
+      {/* Salary — always show, 年収応相談 when null/0 */}
+      <div style={{ marginBottom: 12 }}>
+        {((job.salary_min ?? 0) > 0 || (job.salary_max ?? 0) > 0) ? (
+          <>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 800, color: "var(--success)" }}>
+              {formatSalary(job.salary_min, job.salary_max)}
+            </span>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 4 }}>年収</span>
+          </>
+        ) : (
+          <span style={{ fontSize: 14, color: "var(--ink-mute)", fontWeight: 500 }}>年収応相談</span>
+        )}
+      </div>
 
       {/* Location + work style */}
       {(job.location || job.work_style) && (
@@ -954,30 +958,35 @@ function JobListCard({
 
   return (
     <div style={{ position: "relative" }}>
-      {/* ブックマークボタン */}
+      {/* ④ ブックマークボタン — 「気になる」テキスト付きピル */}
       <button
         type="button"
         onClick={handleBookmark}
         aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
         style={{
           position: "absolute", top: 14, right: 14, zIndex: 10,
-          width: 34, height: 34, borderRadius: "50%",
-          border: "none", cursor: "pointer",
-          background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.95)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          transform: bookmarkAnim ? "scale(1.3)" : "scale(1)",
+          height: 28, padding: "0 10px", borderRadius: 100,
+          border: bookmarked ? "1.5px solid #FECACA" : "1.5px solid var(--line)",
+          cursor: "pointer",
+          background: bookmarked ? "#FEF2F2" : "#fff",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+          display: "flex", alignItems: "center", gap: 4,
+          transform: bookmarkAnim ? "scale(1.08)" : "scale(1)",
           transition: "all 0.2s",
+          fontSize: 11, fontWeight: 600,
+          color: bookmarked ? "#e24b4a" : "var(--ink-mute)",
+          whiteSpace: "nowrap",
         }}
       >
-        <Heart size={15} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
+        <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
+        {bookmarked ? "気になり中" : "気になる"}
       </button>
 
       <Link href={`/jobs/${job.id}`} prefetch className="job-list-card-link" style={{
         display: "flex", gap: 16, alignItems: "flex-start",
         background: bookmarked ? "#FFF8F2" : "#fff", /* ⑦ bookmarked tint */
         borderRadius: 14,
-        padding: "18px 56px 18px 18px",
+        padding: "18px 108px 18px 18px",
         textDecoration: "none",
         borderTop: "1px solid var(--line)",
         borderRight: "1px solid var(--line)",
@@ -1137,7 +1146,11 @@ function JobListCard({
                 ))}
               </span>
               <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>
-                先輩{alumni.length}名がいます →
+                {alumni.length === 1
+                  ? `${alumni[0].name.slice(0, 2)}さんが先輩にいます →`
+                  : alumni.length === 2
+                  ? `${alumni[0].name.slice(0, 2)}さん・${alumni[1].name.slice(0, 2)}さんが先輩にいます →`
+                  : `${alumni[0].name.slice(0, 2)}さんなど先輩${alumni.length}名がいます →`}
               </span>
             </span>
           ) : (
@@ -1422,8 +1435,9 @@ export default function JobsClient({
   const [hoveredJob, setHoveredJob] = useState<Job | null>(null);
   const handleHover = useCallback((j: Job | null) => setHoveredJob(j), []);
 
-  // ⑤ "もっと見る" — display count resets when filters change
-  const [displayCount, setDisplayCount] = useState(PER_PAGE);
+  // ⑤ "もっと見る" — init from URL param ?show=N, resets when filters change
+  const initShow = Math.max(PER_PAGE, parseInt(searchParams.get("show") ?? "0") || PER_PAGE);
+  const [displayCount, setDisplayCount] = useState(initShow);
 
   // Build Map for fast company lookup
   const companyMap = useMemo(
@@ -1560,7 +1574,13 @@ export default function JobsClient({
   // ⑤ reset when filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const filterKey = [category, dept, work_style, salary, industry, prefecture, empType, sort, q].join("|");
-  useEffect(() => { setDisplayCount(PER_PAGE); }, [filterKey]);
+  useEffect(() => {
+    setDisplayCount(PER_PAGE);
+    // Clear ?show from URL when filters change
+    const p = new URLSearchParams(window.location.search);
+    if (p.has("show")) { p.delete("show"); router.replace(`/jobs?${p.toString()}`, { scroll: false }); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey]);
 
   const paged = filteredForDisplay.slice(0, displayCount);
   const hasMore = displayCount < filteredForDisplay.length;
@@ -2064,7 +2084,13 @@ export default function JobsClient({
               {hasMore && (
                 <button
                   type="button"
-                  onClick={() => setDisplayCount((d) => d + PER_PAGE)}
+                  onClick={() => {
+                    const next = displayCount + PER_PAGE;
+                    setDisplayCount(next);
+                    const p = new URLSearchParams(window.location.search);
+                    p.set("show", next.toString());
+                    router.replace(`/jobs?${p.toString()}`, { scroll: false });
+                  }}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                     margin: "16px auto 0",
