@@ -966,34 +966,28 @@ function JobListCard({
         onClick={handleBookmark}
         aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
         style={{
-          position: "absolute", top: 14, right: 14, zIndex: 10,
-          height: 28, padding: "0 10px", borderRadius: 100,
+          position: "absolute", top: 12, right: 12, zIndex: 10,
+          width: 32, height: 32, borderRadius: "50%",
           border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid #FECACA",
           cursor: "pointer",
           background: bookmarked ? "#FEF2F2" : "#FFF5F5",
           boxShadow: "0 1px 4px rgba(220,38,38,0.12)",
-          display: "flex", alignItems: "center", gap: 4,
-          transform: bookmarkAnim ? "scale(1.1)" : "scale(1)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transform: bookmarkAnim ? "scale(1.2)" : "scale(1)",
           transition: "all 0.2s",
-          fontSize: 11, fontWeight: 600,
-          color: bookmarked ? "#e24b4a" : "#F87171",
-          whiteSpace: "nowrap",
+          padding: 0,
         }}
       >
-        <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
-        {bookmarked ? "気になり中" : "気になる"}
+        <Heart size={13} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
       </button>
 
       <Link href={`/jobs/${job.id}`} prefetch className="job-list-card-link" style={{
         display: "flex", gap: 16, alignItems: "flex-start",
         background: bookmarked ? "#FFF8F2" : "#fff",
         borderRadius: 16,
-        padding: "18px 108px 18px 18px",
+        padding: "18px 52px 18px 18px",
         textDecoration: "none",
-        borderTop: "1px solid var(--line)",
-        borderRight: "1px solid var(--line)",
-        borderBottom: "1px solid var(--line)",
-        borderLeft: company.accepting_casual_meetings ? "3px solid #ea580c" : "1px solid var(--line)",
+        border: "1px solid var(--line)",
         boxShadow: "0 1px 4px rgba(15,23,42,0.07)",
         transition: "box-shadow 0.22s ease, transform 0.22s ease, background 0.2s",
         cursor: "pointer",
@@ -1019,7 +1013,7 @@ function JobListCard({
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
 
-          {/* Row 1: タイトル（⑧ 1行制限）+ NEW バッジ + 投稿時期 */}
+          {/* Row 1: タイトル（1行制限） */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
             <span style={{
               fontSize: 17, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
@@ -1028,26 +1022,9 @@ function JobListCard({
             }}>
               {job.role}
             </span>
-            {badge && (
-              <span style={{
-                display: "inline-flex", alignItems: "center",
-                padding: "1px 7px", borderRadius: 100,
-                background: badge.bg, color: badge.color,
-                border: `1px solid ${badge.border}`,
-                fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
-                fontFamily: "Inter, sans-serif", flexShrink: 0,
-              }}>
-                {badge.label}
-              </span>
-            )}
-            {postingLabel && (
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", flexShrink: 0, whiteSpace: "nowrap" }}>
-                {postingLabel}
-              </span>
-            )}
           </div>
 
-          {/* Row 2: ③ 企業名 + フェーズバッジ + 勤務地 + 勤務形態 + 雇用形態 */}
+          {/* Row 2: 企業名 + ブランド名 + フェーズバッジ + 勤務地 + 勤務形態 + 雇用形態 */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
             <span
               role="link"
@@ -1059,6 +1036,11 @@ function JobListCard({
             >
               {company.name}
             </span>
+            {(company as any).brand_name && (company as any).brand_name !== company.name && (
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500, background: "#F8FAFC", padding: "1px 7px", borderRadius: 6, border: "1px solid var(--line)", flexShrink: 0 }}>
+                {(company as any).brand_name}
+              </span>
+            )}
             {phaseBadge && (
               <span style={{
                 fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
@@ -1104,12 +1086,12 @@ function JobListCard({
               <>
                 <span style={{
                   fontFamily: "Inter, sans-serif",
-                  fontSize: 22, fontWeight: 800,
+                  fontSize: 15, fontWeight: 700,
                   color: "var(--success)", lineHeight: 1.1,
                 }}>
                   {formatSalary(job.salary_min, job.salary_max)}
                 </span>
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500, marginLeft: 6 }}>年収</span>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500, marginLeft: 4 }}>年収</span>
               </>
             ) : (
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontStyle: "italic", background: "#F8FAFC", padding: "2px 8px", borderRadius: 6, border: "1px solid var(--line)" }}>年収応相談</span>
@@ -2250,7 +2232,7 @@ export default function JobsClient({
           .jobs-view-toggle { display: none !important; }
         }
 
-        /* ── Desktop sidebar layout (≥1024px) ── */
+        /* ── Desktop layout (≥1024px) — サイドバーなし、フルワイド ── */
         @media (min-width: 1024px) {
           .jobs-mobile-filterbar {
             position: relative !important;
@@ -2259,18 +2241,10 @@ export default function JobsClient({
             border-bottom: none !important;
             z-index: auto !important;
           }
-          .jobs-filter-chips-row { display: none !important; }
           .jobs-layout {
-            display: grid;
-            grid-template-columns: 220px 1fr;
-            gap: 20px;
-            align-items: start;
-          }
-          .jobs-sidebar {
             display: block;
-            position: sticky;
-            top: 72px;
           }
+          .jobs-sidebar { display: none !important; }
         }
 
         /* ── Mobile card compression ── */

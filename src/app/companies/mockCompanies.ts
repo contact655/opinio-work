@@ -33,6 +33,7 @@ export type Company = {
   is_dimmed?: boolean; // 非公開・休止中
   mission?: string | null;
   fit_positives?: string[] | null;
+  brand_name?: string | null;
 };
 
 export const MOCK_COMPANIES: Company[] = [
