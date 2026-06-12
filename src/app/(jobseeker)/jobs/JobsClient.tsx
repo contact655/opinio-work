@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { Job } from "@/app/jobs/mockJobData";
 import { showToast } from "@/lib/toast";
+import type { CompanyAlumniPreview } from "@/lib/supabase/queries";
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
   { value: "500",  label: "500万〜" },
@@ -560,6 +561,100 @@ function JobCard({
   );
 }
 
+// ─── ⑥ Hover preview panel (desktop only) ────────────────────────────────────
+
+function JobPreviewPanel({
+  job,
+  companyMap,
+}: {
+  job: Job | null;
+  companyMap: Map<string, Company>;
+}) {
+  if (!job) return null;
+  const company = companyMap.get(job.company_id);
+  if (!company) return null;
+  const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
+
+  return (
+    <div className="job-preview-panel" style={{
+      position: "fixed", right: 24, top: "50%", transform: "translateY(-50%)",
+      width: 300, maxHeight: "70vh", overflowY: "auto",
+      background: "#fff", borderRadius: 16,
+      boxShadow: "0 20px 60px rgba(0,35,102,0.18), 0 4px 16px rgba(0,35,102,0.1)",
+      border: "1.5px solid var(--royal-100)",
+      padding: 20, zIndex: 100,
+    }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+          background: company.logo_url ? "#f8fafc" : (company.gradient || "linear-gradient(135deg, #001233, #002366)"),
+          border: company.logo_url ? "1.5px solid var(--line)" : "none",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#fff", fontSize: 16, fontWeight: 700, overflow: "hidden",
+        }}>
+          {company.logo_url
+            ? <img src={company.logo_url} alt={company.name} width={44} height={44} style={{ objectFit: "contain" }} />
+            : logoLetter}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, marginBottom: 2 }}>{company.name}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+            {job.role}
+          </div>
+        </div>
+      </div>
+
+      {/* Salary */}
+      {(job.salary_min || job.salary_max) && (
+        <div style={{ marginBottom: 12 }}>
+          <span style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 800, color: "var(--success)" }}>
+            {formatSalary(job.salary_min, job.salary_max)}
+          </span>
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 4 }}>年収</span>
+        </div>
+      )}
+
+      {/* Location + work style */}
+      {(job.location || job.work_style) && (
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {job.location && (
+            <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
+            </span>
+          )}
+          {job.work_style && (
+            <span style={{ color: job.work_style.includes("リモート") ? "var(--success)" : "var(--ink-soft)", fontWeight: 600 }}>
+              {job.work_style}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Highlight */}
+      {job.highlight && (
+        <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 16 }}>
+          {job.highlight.slice(0, 100)}{job.highlight.length > 100 ? "…" : ""}
+        </p>
+      )}
+
+      {/* CTA */}
+      <Link href={`/jobs/${job.id}`} style={{
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+        padding: "10px 16px", borderRadius: 10,
+        background: "var(--royal)", color: "#fff",
+        fontSize: 13, fontWeight: 700, textDecoration: "none",
+      }}>
+        詳細を見る
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
+      </Link>
+    </div>
+  );
+}
+
 // ─── Pagination ────────────────────────────────────────────────────────────────
 
 function Pagination({
@@ -870,11 +965,14 @@ function FilterChip({
 // ─── Horizontal list card ─────────────────────────────────────────────────────
 
 function JobListCard({
-  job, companyMap, initialBookmarked = false,
+  job, companyMap, initialBookmarked = false, alumni = [], isApplied = false, onHover,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
   initialBookmarked?: boolean;
+  alumni?: CompanyAlumniPreview[];
+  isApplied?: boolean;
+  onHover?: (job: Job | null) => void;
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
@@ -956,19 +1054,23 @@ function JobListCard({
 
       <Link href={`/jobs/${job.id}`} prefetch className="job-list-card-link" style={{
         display: "flex", gap: 16, alignItems: "flex-start",
-        background: "#fff", borderRadius: 14,
+        background: bookmarked ? "#FFF8F2" : "#fff", /* ⑦ bookmarked tint */
+        borderRadius: 14,
         padding: "18px 56px 18px 18px",
         textDecoration: "none",
         borderTop: "1px solid var(--line)",
         borderRight: "1px solid var(--line)",
         borderBottom: "1px solid var(--line)",
         borderLeft: company.accepting_casual_meetings ? "3px solid #ea580c" : "1px solid var(--line)",
-        transition: "box-shadow 0.22s ease, transform 0.22s ease",
-      }}>
-        {/* ④ Logo — 64px で存在感を強調 */}
+        transition: "box-shadow 0.22s ease, transform 0.22s ease, background 0.2s",
+      }}
+        onMouseEnter={() => onHover?.(job)}
+        onMouseLeave={() => onHover?.(null)}
+      >
+        {/* ③④ Logo — 64px、企業の gradient カラーを使用 */}
         <div style={{
           width: 64, height: 64, borderRadius: 14, flexShrink: 0,
-          background: company.logo_url ? "#f8fafc" : "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
+          background: company.logo_url ? "#f8fafc" : (company.gradient || "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)"),
           border: company.logo_url ? "1.5px solid var(--line)" : "none",
           display: "flex", alignItems: "center", justifyContent: "center",
           color: company.logo_url ? undefined : "#fff", fontSize: 22, fontWeight: 700, overflow: "hidden",
@@ -1075,17 +1177,50 @@ function JobListCard({
             )}
           </div>
 
-          {/* Row 4: キャッチコピー */}
+          {/* Row 4: キャッチコピー ④ 1行に固定してカード高さ揃え */}
           {job.highlight && (
             <p style={{
               fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.65, margin: "0 0 10px",
-              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+              display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden",
             }}>
               {job.highlight}
             </p>
           )}
 
-          {/* Row 5: 職種バッジ ⑤短縮 + ③面談バッジ（ボタン削除）+ ⑩詳細→ */}
+          {/* ② 先輩がいます strip — <a> 内は <span> のみ使用 */}
+          {alumni.length > 0 && (
+            <span
+              role="presentation"
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                marginBottom: 10,
+                padding: "6px 10px", borderRadius: 8,
+                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+              }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${job.company_id}#members`); }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center" }}>
+                {alumni.slice(0, 3).map((a, i) => (
+                  <span key={a.userId} style={{
+                    width: 22, height: 22, borderRadius: "50%",
+                    background: a.gradient,
+                    border: "2px solid #fff",
+                    marginLeft: i === 0 ? 0 : -6,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 9, fontWeight: 700, color: "#fff",
+                    flexShrink: 0, position: "relative",
+                  }}>
+                    {a.name.replace(/\s/g, "").charAt(0)}
+                  </span>
+                ))}
+              </span>
+              <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, cursor: "pointer" }}>
+                先輩{alumni.length}名がいます →
+              </span>
+            </span>
+          )}
+
+          {/* Row 5: 職種バッジ + 面談バッジ + ⑩状態バッジ + 詳細→ */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             {job.dept && (
               <span style={{
@@ -1108,7 +1243,17 @@ function JobListCard({
                 面談受付中
               </span>
             )}
-            {/* ⑩ 常に「詳細を見る→」を右端に表示 */}
+            {/* ⑩ 応募済みバッジ */}
+            {isApplied && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
+                background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0",
+                flexShrink: 0,
+              }}>
+                ✓ 応募済み
+              </span>
+            )}
+            {/* 常に「詳細を見る→」を右端に表示 */}
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 4,
               fontSize: 12, color: "var(--royal)", fontWeight: 600,
@@ -1132,10 +1277,12 @@ export default function JobsClient({
   jobs: allJobs,
   companies,
   parentRoles,
+  alumniMap = {},
 }: {
   jobs: Job[];
   companies: Company[];
   parentRoles: { id: string; name: string }[];
+  alumniMap?: Record<string, CompanyAlumniPreview[]>;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1148,7 +1295,6 @@ export default function JobsClient({
   const prefecture = searchParams.get("prefecture") ?? "";
   const empType = searchParams.get("emp_type") ?? "";   // 雇用形態フィルター
   const sort = searchParams.get("sort") ?? "updated";
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
 
   // Local-only keyword search
   const [q, setQ] = useState("");
@@ -1182,6 +1328,24 @@ export default function JobsClient({
       .catch(() => {/* not logged in or network error — silently ignore */});
   }, []);
 
+  // ⑩ Applied jobs: load once on mount
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    fetch("/api/user/applied-jobs")
+      .then((r) => r.ok ? r.json() : { ids: [] })
+      .then((data: { ids?: string[] }) => {
+        if (data.ids) setAppliedJobIds(new Set(data.ids));
+      })
+      .catch(() => {});
+  }, []);
+
+  // ⑥ Hover preview
+  const [hoveredJob, setHoveredJob] = useState<Job | null>(null);
+  const handleHover = useCallback((j: Job | null) => setHoveredJob(j), []);
+
+  // ⑤ "もっと見る" — display count resets when filters change
+  const [displayCount, setDisplayCount] = useState(PER_PAGE);
+
   // Build Map for fast company lookup
   const companyMap = useMemo(
     () => new Map(companies.map((c) => [c.id, c])),
@@ -1202,13 +1366,6 @@ export default function JobsClient({
     else params.delete(key);
     params.delete("page");
     router.replace(`/jobs?${params.toString()}`);
-  }
-
-  function goPage(p: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(p));
-    router.replace(`/jobs?${params.toString()}`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // 実データに含まれる都道府県のみ (北から南順)
@@ -1316,9 +1473,14 @@ export default function JobsClient({
     return Math.max(0, ...Array.from(countMap.values()));
   }, [filtered]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredForDisplay.length / PER_PAGE));
-  const safePage = Math.min(page, totalPages);
-  const paged = filteredForDisplay.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+  // ⑤ reset when filters change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const filterKey = [category, dept, work_style, salary, industry, prefecture, empType, sort, q].join("|");
+  useEffect(() => { setDisplayCount(PER_PAGE); }, [filterKey]);
+
+  const paged = filteredForDisplay.slice(0, displayCount);
+  const hasMore = displayCount < filteredForDisplay.length;
+  const remainingCount = filteredForDisplay.length - displayCount;
 
   const hasFilter = !!(category || dept || work_style || salary || industry || prefecture || empType);
 
@@ -1403,8 +1565,9 @@ export default function JobsClient({
               </div>
             )}
 
-            {/* ④ 2段目: 職種カテゴリーピル（フィルターより上位に配置） */}
+            {/* ⑨ 2段目: 職種カテゴリーピル（右端フェードあり） */}
             {parentRoles.length > 0 && (
+              <div style={{ position: "relative" }}>
               <div style={{
                 display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8,
                 scrollbarWidth: "none",
@@ -1441,9 +1604,16 @@ export default function JobsClient({
                   );
                 })}
               </div>
+              {/* ⑨ 右端フェードオーバーレイ */}
+              <div style={{
+                position: "absolute", top: 0, right: 0, bottom: 8, width: 36,
+                background: "linear-gradient(to right, transparent, #fff)",
+                pointerEvents: "none",
+              }} />
+              </div>
             )}
 
-            {/* ④ 3段目: 絞り込みチップ */}
+            {/* 3段目: 絞り込みチップ */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", paddingBottom: 10, borderBottom: "1px solid var(--line)" }}>
               {/* 勤務形態 chip */}
               <FilterChip
@@ -1660,7 +1830,7 @@ export default function JobsClient({
                   {maxPerCompany > 3 && (
                     <button
                       type="button"
-                      onClick={() => { setGroupByCompany(v => !v); goPage(1); }}
+                      onClick={() => { setGroupByCompany(v => !v); setDisplayCount(PER_PAGE); }}
                       style={{
                         display: "inline-flex", alignItems: "center", gap: 5,
                         padding: "5px 11px", borderRadius: 100,
@@ -1721,10 +1891,18 @@ export default function JobsClient({
             </div>
           ) : (
             <>
-              {/* ⑩ リスト表示のみ（デスクトップ・モバイル共通） */}
+              {/* リスト表示（デスクトップ・モバイル共通） */}
               <div className="jobs-list-desktop">
                 {paged.map((job) => (
-                  <JobListCard key={job.id} job={job} companyMap={companyMap} initialBookmarked={bookmarkedIds.has(job.id)} />
+                  <JobListCard
+                    key={job.id}
+                    job={job}
+                    companyMap={companyMap}
+                    initialBookmarked={bookmarkedIds.has(job.id)}
+                    alumni={alumniMap[job.company_id] ?? []}
+                    isApplied={appliedJobIds.has(job.id)}
+                    onHover={handleHover}
+                  />
                 ))}
               </div>
               {/* ⑧ グルーピングで省略された件数の案内 */}
@@ -1744,15 +1922,35 @@ export default function JobsClient({
                   }}>すべて表示</button>
                 </div>
               )}
-              {/* 表示件数インジケーター */}
-              <div style={{ textAlign: "center", marginBottom: 8, fontSize: 12, color: "var(--ink-mute)" }}>
-                {((safePage - 1) * PER_PAGE + 1)}〜{Math.min(safePage * PER_PAGE, filteredForDisplay.length)}件を表示（全{filteredForDisplay.length}件）
+              {/* ⑤ 表示件数 + もっと見るボタン */}
+              <div style={{ textAlign: "center", marginTop: 8, marginBottom: 4, fontSize: 12, color: "var(--ink-mute)" }}>
+                {paged.length}件を表示（全{filteredForDisplay.length}件）
               </div>
-              <Pagination
-                current={safePage}
-                total={totalPages}
-                onPage={goPage}
-              />
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={() => setDisplayCount((d) => d + PER_PAGE)}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    margin: "16px auto 0",
+                    padding: "12px 32px", borderRadius: 999,
+                    border: "1.5px solid var(--royal)",
+                    background: "#fff", color: "var(--royal)",
+                    fontSize: 14, fontWeight: 700,
+                    cursor: "pointer", fontFamily: "inherit",
+                    transition: "all 0.15s",
+                    boxShadow: "0 2px 8px rgba(0,35,102,0.1)",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--royal)"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)"; }}
+                >
+                  もっと見る
+                  <span style={{ fontSize: 12, opacity: 0.7, fontWeight: 500 }}>（残り{remainingCount}件）</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+              )}
 
             </>
           )}
@@ -1760,6 +1958,9 @@ export default function JobsClient({
           </div>{/* jobs-layout end */}
         </div>
       </div>{/* bg end */}
+
+      {/* ⑥ ホバープレビューパネル（デスクトップのみ） */}
+      <JobPreviewPanel job={hoveredJob} companyMap={companyMap} />
 
       <style>{`
         /* ── Job card hover ── */
@@ -1842,6 +2043,11 @@ export default function JobsClient({
         /* company name hover */
         .company-name-link:hover {
           text-decoration: underline;
+        }
+        /* ⑥ Preview panel — desktop only */
+        .job-preview-panel { display: none; }
+        @media (min-width: 1280px) {
+          .job-preview-panel { display: block; animation: fadeInUp 0.18s ease; }
         }
       `}</style>
     </>

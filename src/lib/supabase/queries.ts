@@ -1337,3 +1337,56 @@ export async function getArticlesBySlugs(slugs: string[]): Promise<Article[]> {
     .map((s) => articleMap.get(s))
     .filter((a): a is Article => a !== undefined);
 }
+
+// ── Company alumni (users with past/current experience at these companies) ────
+
+export type CompanyAlumniPreview = {
+  userId: string;
+  name: string;
+  gradient: string;
+};
+
+export async function getCompanyAlumniMap(
+  companyIds: string[]
+): Promise<Record<string, CompanyAlumniPreview[]>> {
+  if (!companyIds.length) return {};
+  const supabase = await createClient();
+
+  const { data: expRows } = await supabase
+    .from("ow_experiences")
+    .select("company_id, user_id")
+    .in("company_id", companyIds);
+
+  if (!expRows?.length) return {};
+
+  const userIds = Array.from(new Set((expRows as { user_id: string }[]).map((e) => e.user_id)));
+
+  const { data: users } = await supabase
+    .from("ow_users")
+    .select("id, name, avatar_color")
+    .in("id", userIds)
+    .eq("visibility", "public")
+    .not("name", "is", null);
+
+  if (!users?.length) return {};
+
+  const userMap = new Map(
+    (users as { id: string; name: string; avatar_color: string | null }[]).map((u) => [u.id, u])
+  );
+
+  const result: Record<string, CompanyAlumniPreview[]> = {};
+
+  for (const exp of expRows as { company_id: string; user_id: string }[]) {
+    const user = userMap.get(exp.user_id);
+    if (!user) continue;
+    if (!result[exp.company_id]) result[exp.company_id] = [];
+    if (result[exp.company_id].some((a) => a.userId === exp.user_id)) continue;
+    result[exp.company_id].push({
+      userId: exp.user_id,
+      name: user.name,
+      gradient: user.avatar_color ?? FALLBACK_GRADIENT,
+    });
+  }
+
+  return result;
+}
