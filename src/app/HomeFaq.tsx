@@ -27,12 +27,23 @@ export default function HomeFaq() {
   return (
     <section style={{ background: "var(--bg-tint)", padding: "96px 48px" }} className="px-5 py-16 md:py-24 md:px-12">
       <div style={{ maxWidth: 880, margin: "0 auto" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "var(--royal)", textTransform: "uppercase", marginBottom: 16 }}>
-          FAQ
+        {/* ⑦ Improved heading with icon + subtitle */}
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            width: 52, height: 52, borderRadius: "50%",
+            background: "var(--royal)", marginBottom: 16,
+            boxShadow: "0 4px 16px rgba(0,35,102,0.20)",
+          }}>
+            <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: 22, color: "#fff", lineHeight: 1 }}>?</span>
+          </div>
+          <h2 style={{ fontSize: "clamp(26px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
+            よくあるご質問
+          </h2>
+          <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.8, margin: 0 }}>
+            OPINIOを初めて使う方からよくいただく質問に、正直にお答えします。
+          </p>
         </div>
-        <h2 style={{ fontSize: "clamp(26px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: 48 }}>
-          よくあるご質問
-        </h2>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {FAQ_ITEMS.map((item, i) => {
@@ -46,26 +57,47 @@ export default function HomeFaq() {
                   type="button"
                   onClick={() => setOpenIndex(isOpen ? null : i)}
                   style={{
-                    width: "100%", textAlign: "left", padding: "20px 0",
+                    width: "100%", textAlign: "left", padding: "22px 0",
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                     background: "none", border: "none", cursor: "pointer",
-                    fontSize: 16, fontWeight: 600, color: "var(--ink)",
                     gap: 16,
                   }}
                 >
-                  <span>{item.q}</span>
-                  <span style={{
-                    fontSize: 22, fontWeight: 300, color: "var(--royal)",
-                    flexShrink: 0, transform: isOpen ? "rotate(45deg)" : "rotate(0)",
-                    transition: "transform 0.2s",
-                    lineHeight: 1,
+                  {/* ⑦ Q. decoration */}
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1 }}>
+                    <span style={{
+                      fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 800,
+                      color: "var(--royal)", flexShrink: 0, marginTop: 2,
+                      width: 22, textAlign: "center",
+                    }}>
+                      Q.
+                    </span>
+                    <span style={{ fontSize: 16, fontWeight: 600, color: "var(--ink)", lineHeight: 1.5 }}>{item.q}</span>
+                  </div>
+                  {/* ⑦ Larger +/- in circle */}
+                  <div style={{
+                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                    background: isOpen ? "var(--royal)" : "var(--royal-50)",
+                    border: "1.5px solid var(--royal-100)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "background 0.2s",
                   }}>
-                    +
-                  </span>
+                    <span style={{
+                      fontSize: 20, fontWeight: 300,
+                      color: isOpen ? "#fff" : "var(--royal)",
+                      lineHeight: 1,
+                      transform: isOpen ? "rotate(45deg)" : "rotate(0)",
+                      transition: "transform 0.2s, color 0.2s",
+                      display: "block",
+                    }}>
+                      +
+                    </span>
+                  </div>
                 </button>
                 {isOpen && (
                   <div style={{
-                    paddingBottom: 20, fontSize: 15, lineHeight: 1.9,
+                    paddingBottom: 22, paddingLeft: 34,
+                    fontSize: 15, lineHeight: 1.9,
                     color: "var(--ink-soft)",
                   }}>
                     {item.a}

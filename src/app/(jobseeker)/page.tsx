@@ -192,6 +192,24 @@ function Hero() {
               </span>
             ))}
           </div>
+
+          {/* ② Stats row */}
+          <div style={{
+            display: "flex", gap: 28, flexWrap: "wrap" as const,
+            marginTop: 20, paddingTop: 18,
+            borderTop: "1px solid rgba(0,35,102,0.08)",
+          }}>
+            {[
+              { num: "79社+", label: "掲載企業" },
+              { num: "155件+", label: "公開求人" },
+              { num: "無料", label: "登録・閲覧" },
+            ].map(({ num, label }) => (
+              <div key={label} style={{ display: "flex", flexDirection: "column" as const, gap: 1 }}>
+                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 22, fontWeight: 800, color: "var(--ink)", lineHeight: 1 }}>{num}</span>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Right: search mockup */}
@@ -526,90 +544,80 @@ function CompanyMiniCardSkeleton() {
 
 // ─── Trust Strip (social proof) ───────────────────────────────────────────────
 
-type PreviewMentorMin = {
-  id: string;
-  name: string;
-  color: string;
-  photoUrl: string | null;
-  initial: string;
-};
-
 function TrustStrip() {
-  const [mentors, setMentors] = useState<PreviewMentorMin[]>([]);
-
-  useEffect(() => {
-    fetch("/api/mentors/preview?limit=8")
-      .then((r) => r.json())
-      .then((d) => setMentors(Array.isArray(d.mentors) ? d.mentors : []))
-      .catch(() => {});
-  }, []);
+  const STATS = [
+    {
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2} strokeLinecap="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      ),
+      num: "79社+",
+      label: "IT/SaaS 企業掲載",
+    },
+    {
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2} strokeLinecap="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      ),
+      num: "編集部取材",
+      label: "全企業を審査・取材済み",
+    },
+    {
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+      ),
+      num: "完全無料",
+      label: "閲覧・面談・登録すべて",
+    },
+    {
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth={2} strokeLinecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      ),
+      num: "スカウト0",
+      label: "営業電話・メール一切なし",
+    },
+  ];
 
   return (
     <section style={{
       background: "#fff",
       borderBottom: "1px solid var(--line)",
-      padding: "28px 48px",
+      padding: "0 48px",
     }} className="px-5 md:px-12">
       <div style={{
         maxWidth: 1080, margin: "0 auto",
-        display: "flex", alignItems: "center",
-        gap: 40, flexWrap: "wrap" as const,
+        display: "flex", alignItems: "stretch",
+        flexWrap: "wrap" as const,
       }}>
-        {/* メンターアバター + ソーシャルプルーフ */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 260 }}>
-          {mentors.length > 0 && (
-            <div style={{ display: "flex" }}>
-              {mentors.slice(0, 6).map((m, i) => (
-                <div key={m.id} style={{
-                  width: 48, height: 48, borderRadius: "50%",
-                  border: "2.5px solid #fff",
-                  marginLeft: i > 0 ? -14 : 0,
-                  overflow: "hidden",
-                  background: m.color,
-                  flexShrink: 0,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.14)",
-                  zIndex: 6 - i,
-                  position: "relative",
-                }}>
-                  {m.photoUrl
-                    ? <img src={m.photoUrl} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : <span style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff" }}>{m.initial}</span>
-                  }
-                </div>
-              ))}
+        {STATS.map(({ icon, num, label }, i) => (
+          <div key={label} style={{
+            display: "flex", alignItems: "center", gap: 12,
+            flex: "1 1 160px", minWidth: 140,
+            padding: "16px 0",
+            borderRight: i < STATS.length - 1 ? "1px solid var(--line)" : "none",
+            paddingLeft: i > 0 ? 20 : 0, paddingRight: i < STATS.length - 1 ? 20 : 0,
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+              background: "var(--bg-tint)", border: "1px solid var(--line)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {icon}
             </div>
-          )}
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3 }}>
-              {mentors.length > 0 ? `${mentors.length}名` : "多数"}の現役IT/SaaS社員が登録中
-            </div>
-            <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 3 }}>
-              カジュアル面談で直接話を聞ける ·&nbsp;完全無料
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", lineHeight: 1.2, fontFamily: "Inter, sans-serif" }}>{num}</div>
+              <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 2 }}>{label}</div>
             </div>
           </div>
-        </div>
-
-        {/* 区切り */}
-        <div style={{ width: 1, height: 36, background: "var(--line)", flexShrink: 0 }} className="hidden sm:block" />
-
-        {/* Trust signals */}
-        <div style={{ display: "flex", gap: 24, flexWrap: "wrap" as const }}>
-          {[
-            "編集部取材済み企業のみ掲載",
-            "スカウト・電話なし",
-            "登録不要で閲覧可",
-          ].map((text) => (
-            <div key={text} style={{
-              display: "flex", alignItems: "center", gap: 6,
-              fontSize: 13, color: "var(--ink-soft)", fontWeight: 500,
-            }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
-              {text}
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
     </section>
   );
@@ -676,14 +684,19 @@ function FeaturedCompaniesSection() {
           }
         </div>
 
-        {/* Bottom CTA bar */}
+        {/* ④ Bottom CTA bar — proper button */}
         {!loading && companies.length > 6 && (
           <div style={{ textAlign: "center", marginTop: "var(--space-6)" }}>
             <Link href="/companies" style={{
-              fontSize: "var(--text-sm)", color: "var(--ink-mute)", textDecoration: "none",
-              display: "inline-flex", alignItems: "center", gap: 4,
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "11px 28px", borderRadius: 8,
+              border: "1.5px solid var(--royal)", color: "var(--royal)",
+              fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
+              background: "#fff",
+              transition: "background 0.15s",
             }}>
-              他 {companies.length - 6} 社を見る →
+              他 {companies.length - 6} 社を見る
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </Link>
           </div>
         )}
@@ -792,11 +805,13 @@ function HowItWorks() {
                 </div>
                 <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: "var(--space-3)" }}>{s.step}</div>
                 <div style={{
-                  width: 48, height: 48, borderRadius: 12,
+                  width: 56, height: 56, borderRadius: 14,
                   background: s.iconBg, display: "flex", alignItems: "center", justifyContent: "center",
                   color: "#fff", marginBottom: "var(--space-4)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                  flexShrink: 0,
                 }}>
-                  {s.icon}
+                  <div style={{ transform: "scale(1.2)" }}>{s.icon}</div>
                 </div>
                 <div style={{ fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
                   {s.title} <span style={{ fontSize: "var(--text-sm)", fontWeight: 400, color: "var(--ink-mute)" }}>{s.en}</span>
@@ -832,7 +847,7 @@ function HowItWorks() {
 
 function PainPoints() {
   return (
-    <section style={{ padding: "72px 48px", background: "var(--bg-tint)" }} className="px-5 py-14 md:py-20 md:px-12">
+    <section style={{ padding: "56px 48px 72px", background: "var(--bg-tint)" }} className="px-5 pt-10 pb-14 md:pt-14 md:pb-20 md:px-12">
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <SectionTag>よくある悩み</SectionTag>
@@ -935,12 +950,14 @@ function FinalCta() {
         完全無料・メールアドレスのみで登録。
       </p>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-4)" }}>
+        {/* ⑨ Larger, more prominent amber CTA */}
         <Link href="/companies" style={{
-          display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
-          padding: "var(--space-4) var(--space-10)",
+          display: "inline-flex", alignItems: "center", gap: 10,
+          padding: "18px 52px",
           background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
-          fontWeight: 700, fontSize: 15, borderRadius: 8, textDecoration: "none",
-          boxShadow: "0 4px 20px rgba(245,158,11,0.4)",
+          fontWeight: 800, fontSize: 17, borderRadius: 10, textDecoration: "none",
+          boxShadow: "0 8px 32px rgba(245,158,11,0.45), 0 2px 8px rgba(0,0,0,0.12)",
+          letterSpacing: "-0.01em",
         }}>
           まず企業を見てみる <ArrowIcon />
         </Link>
@@ -1221,6 +1238,12 @@ function ArticlesPreview() {
                     }}>
                       {article.company_initial}
                     </div>
+                    {/* ⑧ Dark overlay for title readability */}
+                    <div style={{
+                      position: "absolute", bottom: 0, left: 0, right: 0, height: 90,
+                      background: "linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)",
+                      pointerEvents: "none",
+                    }} />
                     {/* バッジ */}
                     <div style={{
                       position: "absolute", top: 10, left: 12,
@@ -1241,8 +1264,8 @@ function ArticlesPreview() {
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: "vertical",
                       overflow: "hidden",
-                      textShadow: "0 1px 3px rgba(0,0,0,0.35)",
                       margin: 0,
+                      position: "relative", zIndex: 1,
                     } as React.CSSProperties}>
                       {article.title}
                     </p>
