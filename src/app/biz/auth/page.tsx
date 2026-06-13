@@ -185,17 +185,17 @@ function BizAuthInner() {
 
 // ── ブランドパネル（左） ─────────────────────────────────────────────────────
 function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null }) {
-  // Mock候補者カード（ダッシュボードプレビュー用）
   const MOCK_CANDIDATES = [
-    { init: "山", bg: "linear-gradient(135deg,#002366,#3B5FD9)", name: "山田 健太郎", role: "エンタープライズ営業 5年", co: "SmartHR出身", matched: true, tags: ["SaaS営業", "大手開拓"] },
-    { init: "中", bg: "linear-gradient(135deg,#059669,#047857)", name: "中村 さやか", role: "カスタマーサクセス 3年", co: "Salesforce Japan出身", matched: true, tags: ["CS", "オンボーディング"] },
+    { init: "山", bg: "linear-gradient(135deg,#002366,#3B5FD9)", name: "山田 健太郎", role: "エンタープライズ営業 5年", co: "SmartHR出身", tag: "SaaS営業", tagColor: "var(--royal)" },
+    { init: "中", bg: "linear-gradient(135deg,#059669,#047857)", name: "中村 さやか", role: "カスタマーサクセス 3年", co: "Salesforce Japan出身", tag: "CS", tagColor: "var(--success)" },
   ];
 
   return (
     <div
       className="biz-brand-side"
       style={{
-        background: "linear-gradient(160deg,#f0f4ff 0%,#eef2ff 35%,#f5f0ff 65%,#fafafa 100%)",
+        // ⑥ Deep navy — strong contrast against white right panel (LinkedIn/HubSpot style)
+        background: "linear-gradient(155deg,#001233 0%,#002366 50%,#1a3a7a 100%)",
         padding: "40px 44px",
         display: "flex",
         flexDirection: "column",
@@ -209,33 +209,25 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
     >
       {/* Decorative circles */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
-        <div style={{ position: "absolute", width: 340, height: 340, borderRadius: "50%", background: "rgba(59,95,217,0.06)", top: -100, right: -80 }} />
-        <div style={{ position: "absolute", width: 220, height: 220, borderRadius: "50%", background: "rgba(124,58,237,0.05)", bottom: 40, left: -60 }} />
+        <div style={{ position: "absolute", width: 360, height: 360, borderRadius: "50%", background: "rgba(255,255,255,0.04)", top: -100, right: -80 }} />
+        <div style={{ position: "absolute", width: 240, height: 240, borderRadius: "50%", background: "rgba(255,255,255,0.03)", bottom: 40, left: -60 }} />
       </div>
 
-      {/* 求職者リンク */}
-      <a href="/" className="biz-to-jobseeker" style={{
-        position: "absolute", top: 20, right: 18,
-        fontSize: 11, fontWeight: 500,
-        color: "var(--ink-mute)",
-        display: "inline-flex", alignItems: "center", gap: 4,
-        textDecoration: "none", zIndex: 1,
-      }}>
-        求職者の方はこちら →
-      </a>
+      {/* ⑤ 「求職者の方はこちら」はフォーム側のみに統一 — 左パネルから削除 */}
 
       <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%" }}>
 
         {/* ロゴ */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: 22, letterSpacing: "-0.02em", color: "var(--royal)" }}>
+          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: 22, letterSpacing: "-0.02em", color: "#fff" }}>
             OPINIO
           </span>
           <span style={{
             fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.14em",
-            padding: "3px 7px", background: "var(--royal-50)",
-            border: "1px solid var(--royal-100)", borderRadius: 4,
-            textTransform: "uppercase" as const, color: "var(--royal)",
+            padding: "3px 7px",
+            background: "rgba(255,255,255,0.12)",
+            border: "1px solid rgba(255,255,255,0.22)", borderRadius: 4,
+            textTransform: "uppercase" as const, color: "rgba(255,255,255,0.85)",
           }}>
             BUSINESS
           </span>
@@ -245,57 +237,77 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
         <div style={{ marginTop: "auto", marginBottom: "auto" }}>
 
           {inviteCompanyName ? (
-            /* 招待コンテキスト */
             <div style={{ marginBottom: 32 }}>
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px",
                 borderRadius: 100, marginBottom: 16, fontSize: 11, fontWeight: 700,
-                background: "var(--success-soft)", border: "1px solid #A7F3D0", color: "var(--success)",
+                background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff",
               }}>
                 招待を受け取りました
               </div>
               <h1 className="biz-brand-title" style={{
                 fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 30,
-                lineHeight: 1.45, color: "var(--ink)", marginBottom: 12,
+                lineHeight: 1.45, color: "#fff", marginBottom: 12,
               }}>
                 {inviteCompanyName}<br />への参加。
               </h1>
-              <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.85 }}>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.85 }}>
                 招待されたメールアドレスと<br />同じアドレスでご登録ください。
               </p>
             </div>
           ) : (
-            /* 通常コンテキスト */
             <>
               {/* Headline */}
-              <div style={{ marginBottom: 24 }}>
+              <div style={{ marginBottom: 16 }}>
                 <div style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "4px 12px", borderRadius: 100, marginBottom: 14,
-                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                  fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.06em",
+                  padding: "4px 12px", borderRadius: 100, marginBottom: 12,
+                  background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)",
+                  fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.9)", letterSpacing: "0.06em",
                 }}>
                   掲載・スカウト費用ゼロ
                 </div>
                 <h1 className="biz-brand-title" style={{
                   fontFamily: "var(--font-noto-serif)", fontWeight: 500,
                   fontSize: "clamp(22px, 2.6vw, 30px)", lineHeight: 1.45,
-                  color: "var(--ink)", marginBottom: 10,
+                  color: "#fff", marginBottom: 8,
                 }}>
                   届く応募の、<br />質が違う。
                 </h1>
-                <p className="biz-brand-subtitle" style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.85 }}>
-                  IT/SaaSを深く調べた上で応募する、<strong style={{ color: "var(--ink)" }}>本気度の高い候補者だけ</strong>が届きます。<br />
+                <p className="biz-brand-subtitle" style={{ fontSize: 13, color: "rgba(255,255,255,0.72)", lineHeight: 1.85 }}>
+                  IT/SaaSを深く調べた上で応募する、<strong style={{ color: "#fff" }}>本気度の高い候補者だけ</strong>が届きます。<br />
                   入社まで一切費用は発生しません。
                 </p>
               </div>
 
-              {/* 料金フロー：視覚的にコスト発生タイミングを明示 */}
+              {/* ⑧ Stats strip — MOVED UP (見出し直下に配置してファーストビューで訴求) */}
               <div style={{
-                display: "flex", alignItems: "center", gap: 0,
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 12, overflow: "hidden", marginBottom: 20,
-                boxShadow: "0 2px 8px rgba(0,35,102,0.06)",
+                display: "flex", marginBottom: 14,
+                background: "rgba(255,255,255,0.08)",
+                borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)",
+                padding: "10px 14px",
+              }}>
+                {[
+                  { num: "79社+", label: "掲載中" },
+                  { num: "155件+", label: "公開求人" },
+                  { num: "¥0", label: "掲載費" },
+                ].map(({ num, label }, i) => (
+                  <div key={label} style={{
+                    flex: 1, textAlign: "center",
+                    borderRight: i < 2 ? "1px solid rgba(255,255,255,0.12)" : "none",
+                    paddingRight: i < 2 ? 12 : 0, paddingLeft: i > 0 ? 12 : 0,
+                  }}>
+                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 16, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{num}</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.55)", marginTop: 3, fontWeight: 600 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ⑩ 料金フロー — ¥0 を大きな数字で表示 */}
+              <div style={{
+                display: "flex", alignItems: "stretch",
+                background: "#fff", borderRadius: 12, overflow: "hidden",
+                marginBottom: 14, boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
               }}>
                 {[
                   { label: "求人掲載", value: "¥0", sub: "完全無料", ok: true },
@@ -303,101 +315,73 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
                   { label: "入社決定時", value: "10%", sub: "成果報酬のみ", ok: false },
                 ].map(({ label, value, sub, ok }, i) => (
                   <div key={label} style={{
-                    flex: 1, padding: "12px 10px", textAlign: "center",
+                    flex: 1, padding: "12px 8px", textAlign: "center",
                     borderRight: i < 2 ? "1px solid var(--line)" : "none",
                     background: ok ? "#fff" : "var(--royal-50)",
                   }}>
-                    <div style={{ fontSize: 9, color: "var(--ink-mute)", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 4, textTransform: "uppercase" as const }}>{label}</div>
-                    <div style={{ fontFamily: "Inter,sans-serif", fontWeight: 800, fontSize: 18, color: ok ? "var(--success)" : "var(--royal)", lineHeight: 1 }}>{value}</div>
-                    <div style={{ fontSize: 9, color: ok ? "var(--success)" : "var(--royal)", fontWeight: 600, marginTop: 3 }}>{sub}</div>
+                    <div style={{ fontSize: 9, color: "var(--ink-mute)", fontWeight: 600, letterSpacing: "0.04em", marginBottom: 3 }}>{label}</div>
+                    {/* ⑩ 大きな数字でインパクト */}
+                    <div style={{ fontFamily: "Inter,sans-serif", fontWeight: 900, fontSize: 26, color: ok ? "var(--success)" : "var(--royal)", lineHeight: 1 }}>{value}</div>
+                    <div style={{ fontSize: 9, color: ok ? "var(--success)" : "var(--royal)", fontWeight: 700, marginTop: 3 }}>{sub}</div>
                   </div>
                 ))}
               </div>
 
-              {/* ダッシュボードプレビューカード */}
+              {/* ⑦ ダッシュボードプレビュー — コンパクト化（注記削除、タグ強化） */}
               <div style={{
-                background: "#fff", borderRadius: 14, padding: "16px",
-                border: "1px solid rgba(0,35,102,0.08)",
-                boxShadow: "0 4px 20px rgba(0,35,102,0.07)",
-                marginBottom: 18,
+                background: "#fff", borderRadius: 12, padding: "12px 14px",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.20)",
+                marginBottom: 14,
               }}>
-                {/* Header */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)", display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)", display: "flex", alignItems: "center", gap: 5 }}>
                     <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
                     マッチした候補者
                   </div>
-                  <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>本日更新</span>
+                  <span style={{ fontSize: 9, color: "var(--ink-mute)" }}>本日更新</span>
                 </div>
-                {/* Candidate rows */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {MOCK_CANDIDATES.map((c) => (
                     <div key={c.name} style={{
-                      display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
-                      borderRadius: 8,
-                      background: c.matched ? "var(--royal-50)" : "var(--bg-tint)",
-                      border: c.matched ? "1px solid var(--royal-100)" : "1px solid transparent",
+                      display: "flex", alignItems: "center", gap: 9,
+                      padding: "7px 9px", borderRadius: 8,
+                      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
                     }}>
                       <div style={{
-                        width: 32, height: 32, borderRadius: "50%", background: c.bg,
+                        width: 30, height: 30, borderRadius: "50%", background: c.bg,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0,
+                        fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0,
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
                       }}>{c.init}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{c.name}</div>
                         <div style={{ fontSize: 10, color: "var(--ink-mute)" }}>{c.role} · {c.co}</div>
                       </div>
-                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                        {c.tags.slice(0, 1).map((t) => (
-                          <span key={t} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 100, background: c.matched ? "var(--royal)" : "var(--line)", color: c.matched ? "#fff" : "var(--ink-mute)", fontWeight: 600 }}>{t}</span>
-                        ))}
-                      </div>
+                      {/* ⑨ カラーコーディング済みタグ */}
+                      <span style={{
+                        fontSize: 9, padding: "2px 8px", borderRadius: 100,
+                        background: c.tagColor, color: "#fff", fontWeight: 700, flexShrink: 0,
+                      }}>{c.tag}</span>
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line-soft)", fontSize: 10, color: "var(--ink-mute)", textAlign: "center" }}>
-                  ※ 全候補者はダッシュボードで確認できます
-                </div>
+                {/* ⑦ 「全候補者はダッシュボードで…」の注記を削除 */}
               </div>
 
-              {/* Trust pills */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {/* Trust pills — white on navy */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {["審査不要・即日公開", "入社まで請求なし", "営業電話なし"].map((t) => (
                   <span key={t} style={{
                     display: "inline-flex", alignItems: "center", gap: 5,
-                    padding: "5px 12px", borderRadius: 100, fontSize: 11, fontWeight: 600,
-                    background: "#fff", color: "var(--ink-soft)", border: "1px solid var(--line)",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                    padding: "4px 10px", borderRadius: 100, fontSize: 10, fontWeight: 600,
+                    background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.82)",
+                    border: "1px solid rgba(255,255,255,0.18)",
                   }}>
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3.5" strokeLinecap="round" aria-hidden>
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="3.5" strokeLinecap="round" aria-hidden>
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                     {t}
                   </span>
-                ))}
-              </div>
-
-              {/* ⑩ Social proof stats */}
-              <div style={{
-                marginTop: 16, paddingTop: 14,
-                borderTop: "1px solid rgba(0,35,102,0.08)",
-                display: "flex", gap: 0,
-                background: "rgba(255,255,255,0.6)", borderRadius: 10, padding: "12px 14px",
-                border: "1px solid rgba(0,35,102,0.06)",
-              }}>
-                {[
-                  { num: "79社+", label: "掲載中の企業" },
-                  { num: "155件+", label: "公開中の求人" },
-                  { num: "掲載¥0", label: "入社まで無料" },
-                ].map(({ num, label }, i) => (
-                  <div key={label} style={{
-                    flex: 1, textAlign: "center",
-                    borderRight: i < 2 ? "1px solid rgba(0,35,102,0.08)" : "none",
-                    paddingRight: i < 2 ? 12 : 0, paddingLeft: i > 0 ? 12 : 0,
-                  }}>
-                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 800, color: "var(--royal)", lineHeight: 1 }}>{num}</div>
-                    <div style={{ fontSize: 9, color: "var(--ink-mute)", marginTop: 3, lineHeight: 1.3, fontWeight: 600 }}>{label}</div>
-                  </div>
                 ))}
               </div>
             </>
@@ -405,7 +389,7 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
         </div>
 
         {/* Footer */}
-        <div className="biz-brand-foot" style={{ marginTop: "auto", fontSize: 11, color: "var(--ink-mute)", paddingTop: 20, opacity: 0.6 }}>
+        <div className="biz-brand-foot" style={{ marginTop: "auto", fontSize: 11, color: "rgba(255,255,255,0.38)", paddingTop: 20 }}>
           © 2026 OPINIO · 企業向け採用プラットフォーム
         </div>
       </div>
@@ -792,6 +776,32 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
 
         {error && <ErrorBox message={error} />}
 
+        {/* ④ ソーシャルプルーフ — 79社+ が活用中 */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10, marginBottom: 16,
+          padding: "10px 14px", background: "var(--royal-50)",
+          border: "1px solid var(--royal-100)", borderRadius: 10,
+        }}>
+          <div style={{ display: "flex" }}>
+            {[
+              { init: "山", bg: "linear-gradient(135deg,#002366,#3B5FD9)" },
+              { init: "中", bg: "linear-gradient(135deg,#059669,#047857)" },
+              { init: "佐", bg: "linear-gradient(135deg,#7C3AED,#6D28D9)" },
+            ].map(({ init, bg }, i) => (
+              <div key={i} style={{
+                width: 26, height: 26, borderRadius: "50%", background: bg,
+                border: "2px solid #fff", marginLeft: i > 0 ? -7 : 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10, fontWeight: 700, color: "#fff",
+                position: "relative", zIndex: 3 - i,
+              }}>{init}</div>
+            ))}
+          </div>
+          <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.4 }}>
+            <strong style={{ color: "var(--royal)" }}>79社+</strong> の企業が採用に活用中
+          </span>
+        </div>
+
         {/* ② Google OAuth — primary, prominent */}
         <button type="button" onClick={handleGoogleSignup} style={googleBtnStyle}>
           <GoogleLogo />
@@ -803,9 +813,20 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             whiteSpace: "nowrap",
           }}>推奨</span>
         </button>
-        <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", margin: "5px 0 0" }}>
-          G Suite / Google Workspace も対応
-        </p>
+        {/* ③ G Suite バッジ — 緑ピルに変更 */}
+        <div style={{ display: "flex", justifyContent: "center", margin: "6px 0 0" }}>
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            fontSize: 10, fontWeight: 700, color: "var(--success)",
+            padding: "2px 10px", borderRadius: 100,
+            background: "var(--success-soft)", border: "1px solid #A7F3D0",
+          }}>
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3.5" strokeLinecap="round" aria-hidden>
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            G Suite / Google Workspace も対応
+          </span>
+        </div>
 
         {/* ⑥ OR divider — pill style */}
         <div style={{ display: "flex", alignItems: "center", margin: "20px 0", gap: 10 }}>
@@ -864,7 +885,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             ))}
           </div>
           <button type="submit" style={{ ...submitBtnStyle }}>
-            次へ — 企業情報を入力 →
+            次のステップへ →
           </button>
           <ImplicitConsent />
         </form>
@@ -872,7 +893,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         <SwitchRow label="すでにアカウントをお持ちの方は" action="ログイン" onClick={() => onSwitchToLogin()} />
 
         {/* ⑩ Mobile sticky CTA */}
-        <MobileStickyBar label="次へ — 企業情報を入力 →" formId="biz-s1-form" />
+        <MobileStickyBar label="次のステップへ →" formId="biz-s1-form" />
       </div>
     );
   }
@@ -1167,30 +1188,55 @@ function GoogleLogo() {
 
 const STEP_LABELS = ["アカウント情報", "企業情報"];
 
+// ③ ステップインジケーター — 番号付き円形ステップ
 function StepIndicator({ current, total }: { current: number; total: number }) {
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
-        {Array.from({ length: total }, (_, i) => (
-          <div key={i} style={{
-            flex: 1, height: 3, borderRadius: 99,
-            background: i + 1 <= current ? "var(--royal)" : "var(--line)",
-            transition: "background 0.3s",
-          }} />
-        ))}
+  const trackItems: React.ReactNode[] = [];
+  for (let i = 0; i < total; i++) {
+    const stepNum = i + 1;
+    const isDone = stepNum < current;
+    const isActive = stepNum === current;
+    trackItems.push(
+      <div key={`c-${i}`} style={{
+        width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+        background: isDone ? "var(--success)" : isActive ? "var(--royal)" : "var(--line)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 11, fontWeight: 800,
+        color: isDone || isActive ? "#fff" : "var(--ink-mute)",
+        boxShadow: isActive ? "0 0 0 4px var(--royal-50)" : "none",
+        transition: "all 0.3s",
+      }}>
+        {isDone ? "✓" : stepNum}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        {STEP_LABELS.slice(0, total).map((label, i) => (
-          <span key={label} style={{
-            fontSize: 10, fontWeight: i + 1 <= current ? 700 : 500,
-            color: i + 1 === current ? "var(--royal)" : i + 1 < current ? "var(--success)" : "var(--ink-mute)",
-            display: "flex", alignItems: "center", gap: 3,
-          }}>
-            {i + 1 < current && <span>✓</span>}
-            {i + 1 === current && <span style={{ fontFamily: "Inter", fontWeight: 800 }}>{i + 1}.</span>}
-            {label}
-          </span>
-        ))}
+    );
+    if (i < total - 1) {
+      trackItems.push(
+        <div key={`l-${i}`} style={{
+          flex: 1, height: 2, borderRadius: 99,
+          background: isDone ? "var(--success)" : "var(--line)",
+          transition: "background 0.3s",
+        }} />
+      );
+    }
+  }
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        {trackItems}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+        {STEP_LABELS.slice(0, total).map((label, i) => {
+          const stepNum = i + 1;
+          const isDone = stepNum < current;
+          const isActive = stepNum === current;
+          return (
+            <span key={label} style={{
+              fontSize: 11, fontWeight: isActive ? 700 : 500,
+              color: isActive ? "var(--royal)" : isDone ? "var(--success)" : "var(--ink-mute)",
+            }}>
+              {label}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
