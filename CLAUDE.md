@@ -13,9 +13,22 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
-## 🎯 次のセッションでやること（2026-06-13 セッション20 更新）
+## 🎯 次のセッションでやること（2026-06-13 セッション20後半 更新）
 
-### ✅ 完了 2026-06-13 セッション20: LP 9項目 UX 改善 + medimo 新規企業追加
+### ✅ 完了 2026-06-13 セッション20後半: Hero Salesforce スタイル刷新 + ページ簡素化
+
+  **LP（`src/app/(jobseeker)/page.tsx`）Hero 背景・デザイン大幅改修（commit `1f27d60`）:**
+  - Hero 背景: ダークネイビー → Salesforce Careers 風ソフトラベンダー/ブルーグラデーション
+    `linear-gradient(155deg, #edf0fa 0%, #ece8ff 28%, #f6f0ff 55%, #fafafa 78%, #fff 100%)`
+  - 全テキストカラーをライト背景対応のダークインクカラーに更新（white → var(--ink)系）
+  - amber ハイライト: #F59E0B → #D97706（ライト背景での視認性向上）
+  - タグライン追加: 「今のキャリアを変えなくてもいい。ただ、知ることから始めよう。」（h1直下）
+  - TrustStrip: メンターアバター 34px → 48px（より存在感のある社会的証明）
+  - FinalCta: ghost ボタン「無料登録する」→ テキストリンク「無料会員登録はこちら →」（amber CTA に集中）
+  - 削除セクション: DiffStrip / InfraSection / UserTestimonials（12→9セクションに短縮）
+  - フッター: "Latest Articles" strip 削除（`JobseekerFooter.tsx`）— ArticlesPreview と重複していた
+
+### ✅ 完了 2026-06-13 セッション20前半: LP 9項目 UX 改善 + medimo 新規企業追加
 
   **株式会社medimo 新規追加（Migration 169）:**
   - `supabase/migrations/169_add_medimo.sql` — 企業プロフィール + 25件求人
