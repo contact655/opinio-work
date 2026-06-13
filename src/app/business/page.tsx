@@ -152,7 +152,7 @@ export default async function ForCompaniesPage() {
             }}>
               {[
                 { value: "¥0", unit: "", label: "掲載・スカウト費用", sub: "入社決定まで完全無料" },
-                { value: "36", unit: "社", label: "掲載企業数", sub: "IT/SaaS特化" },
+                { value: "96", unit: "名+", label: "IT/SaaS人材が登録", sub: "全員プロフィール閲覧可" },
                 { value: "30", unit: "分", label: "無料カジュアル面談", sub: "採用前に候補者と対話" },
               ].map(({ value, unit, label, sub }, i) => (
                 <div key={label} style={{
@@ -176,7 +176,7 @@ export default async function ForCompaniesPage() {
               ))}
             </div>
 
-            {/* Company chips */}
+            {/* ③ Company logo tiles */}
             <p style={{
               textAlign: "center",
               fontSize: 12,
@@ -195,16 +195,36 @@ export default async function ForCompaniesPage() {
               justifyContent: "center",
               marginBottom: 40,
             }}>
-              {["Sansan", "freee", "Money Forward", "SmartHR", "LayerX", "Ubie", "PKSHA", "Datadog"].map((name) => (
+              {[
+                { name: "Sansan",        initial: "S",   iconBg: "#E8EFF7", iconColor: "#003566" },
+                { name: "freee",         initial: "f",   iconBg: "#E6F5E8", iconColor: "#1A7A1A" },
+                { name: "Money Forward", initial: "MF",  iconBg: "#E8EDF8", iconColor: "#003CA6" },
+                { name: "SmartHR",       initial: "SHR", iconBg: "#E8F0FA", iconColor: "#0055BB" },
+                { name: "LayerX",        initial: "LX",  iconBg: "#EBEBEB", iconColor: "#191919" },
+                { name: "Ubie",          initial: "U",   iconBg: "#E0F5F2", iconColor: "#007A6A" },
+                { name: "PKSHA",         initial: "P",   iconBg: "#F0E8F5", iconColor: "#6B1A7A" },
+                { name: "Datadog",       initial: "DD",  iconBg: "#EDE8F5", iconColor: "#5A1A8F" },
+              ].map(({ name, initial, iconBg, iconColor }) => (
                 <div key={name} style={{
-                  padding: "7px 18px",
-                  background: "var(--royal-50)",
-                  border: "1px solid var(--royal-100)",
-                  borderRadius: 8,
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "8px 14px",
+                  background: "#fff",
+                  border: "1px solid var(--line)",
+                  borderRadius: 10,
                   fontSize: 13,
                   fontWeight: 600,
-                  color: "var(--royal)",
+                  color: "var(--ink-soft)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                 }}>
+                  <div style={{
+                    width: 26, height: 26, borderRadius: 6,
+                    background: iconBg,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: initial.length > 1 ? 8 : 11, fontWeight: 800, color: iconColor,
+                    flexShrink: 0, letterSpacing: "-0.02em",
+                  }}>
+                    {initial}
+                  </div>
                   {name}
                 </div>
               ))}
@@ -237,39 +257,66 @@ export default async function ForCompaniesPage() {
                 },
               ].map(({ quote, name, role, initial }) => (
                 <div key={name} style={{
-                  padding: "20px 20px",
+                  padding: "22px 22px",
                   background: "#fff",
                   border: "1px solid var(--line)",
-                  borderRadius: 12,
+                  borderRadius: 14,
                   display: "flex",
                   flexDirection: "column",
-                  gap: 14,
+                  gap: 16,
+                  boxShadow: "0 2px 12px rgba(0,35,102,0.05)",
                 }}>
-                  {/* Stars */}
-                  <div style={{ display: "flex", gap: 2 }}>
-                    {[1,2,3,4,5].map(n => (
-                      <span key={n} style={{ color: "#FBBF24", fontSize: 13 }}>★</span>
-                    ))}
+                  {/* Stars + verified badge */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", gap: 2 }}>
+                      {[1,2,3,4,5].map(n => (
+                        <span key={n} style={{ color: "#FBBF24", fontSize: 14 }}>★</span>
+                      ))}
+                    </div>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, color: "var(--success)",
+                      background: "var(--success-soft)", padding: "2px 8px", borderRadius: 100,
+                      letterSpacing: "0.04em",
+                    }}>利用者の声</span>
                   </div>
-                  <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, flex: 1, margin: 0 }}>
-                    <span style={{ color: "var(--royal)", fontStyle: "italic", marginRight: 2 }}>&ldquo;</span>
+                  {/* ⑤ Opening large quote mark */}
+                  <svg width="22" height="18" viewBox="0 0 28 22" fill="var(--royal-100)">
+                    <path d="M0 22V13.818C0 9.697 1.31 6.424 3.93 4c2.62-2.424 6.1-3.758 10.44-4l.63 2C11.8 2.424 9.5 3.394 7.9 5.03 6.3 6.667 5.5 8.727 5.5 11.212h5.5V22H0zm16.5 0V13.818c0-4.121 1.31-7.394 3.93-9.818C23.05 1.576 26.53.242 30.87 0l.63 2c-3.2.424-5.5 1.394-7.1 3.03-1.6 1.637-2.4 3.697-2.4 6.182H27.5V22H16.5z"/>
+                  </svg>
+                  <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.85, flex: 1, margin: 0 }}>
                     {quote}
-                    <span style={{ color: "var(--royal)", fontStyle: "italic", marginLeft: 2 }}>&rdquo;</span>
                   </p>
-                  <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12, display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                    {/* ⑤ Larger avatar circle */}
                     <div style={{
-                      width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                      width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+                      background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 12, fontWeight: 700, color: "var(--royal)",
+                      fontSize: 14, fontWeight: 700, color: "#fff",
+                      boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
                     }}>{initial}</div>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{name}</div>
-                      <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>{role}</div>
+                      <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>{role}</div>
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+            {/* ⑦ 事例導線 */}
+            <div style={{ textAlign: "center", marginTop: 28 }}>
+              <Link href="/articles" style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                fontSize: 13, fontWeight: 600, color: "var(--royal)",
+                textDecoration: "none",
+                borderBottom: "1px solid var(--royal-100)",
+                paddingBottom: 2,
+              }}>
+                企業の活用事例・取材記事を見る
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M5 12h14M13 5l7 7-7 7"/>
+                </svg>
+              </Link>
             </div>
           </div>
         </section>
@@ -538,25 +585,47 @@ export default async function ForCompaniesPage() {
               {[
                 {
                   step: "STEP 1",
-                  icon: "🏢",
+                  icon: (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                      <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                  ),
                   title: "企業を新規登録",
                   body: "無料。メールアドレスだけで1分。クレジットカード登録不要。",
                 },
                 {
                   step: "STEP 2",
-                  icon: "📋",
+                  icon: (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/>
+                      <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                  ),
                   title: "求人を作成・公開",
                   body: "何件でも、何ヶ月でも無料。下書きから「公開」ボタンで即反映。",
                 },
                 {
                   step: "STEP 3",
-                  icon: "👤",
+                  icon: (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                  ),
                   title: "候補者から応募が届く",
                   body: "応募前メンター面談を経た、本気度の高い候補者から応募が届きます。",
                 },
                 {
                   step: "STEP 4",
-                  icon: "✅",
+                  icon: (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                      <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                  ),
                   title: "入社決定時のみ成果報酬",
                   body: "採用が決まるまで一切請求なし。シンプルな料金体系でわかりやすい。",
                 },
@@ -582,13 +651,13 @@ export default async function ForCompaniesPage() {
                     }}>
                       {step}
                     </div>
-                    {/* Icon */}
+                    {/* ⑥ SVG icon */}
                     <div style={{
-                      width: 40, height: 40,
-                      borderRadius: 10,
+                      width: 44, height: 44,
+                      borderRadius: 12,
                       background: "var(--royal-50)",
+                      border: "1px solid var(--royal-100)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 20,
                       marginBottom: 14,
                     }}>
                       {icon}
@@ -623,7 +692,8 @@ export default async function ForCompaniesPage() {
         <div id="mentor" style={{ position: "relative", top: -60 }} aria-hidden="true" />
 
         {/* ─── Section 5: Target ────────────────────────────────────────────── */}
-        <section style={sectionStyle("#fff")}>
+        {/* ⑨ bg-tint background to distinguish this section visually */}
+        <section style={sectionStyle("var(--bg-tint)")}>
           <div style={innerStyle}>
             <div style={{ textAlign: "center", marginBottom: 48 }}>
               <SectionLabel>対象</SectionLabel>
@@ -850,6 +920,40 @@ export default async function ForCompaniesPage() {
             </div>
           </div>
         </section>
+
+        {/* ⑩ Mobile-only sticky CTA bar */}
+        <div className="md:hidden" style={{
+          position: "fixed",
+          bottom: 0, left: 0, right: 0,
+          background: "rgba(255,255,255,0.97)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderTop: "1px solid var(--line)",
+          padding: "12px 16px",
+          paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
+          zIndex: 50,
+          display: "flex",
+          gap: 10,
+        }}>
+          <Link href="/biz/auth" style={{
+            flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+            gap: 6,
+            padding: "13px 16px",
+            background: "var(--royal)",
+            color: "#fff",
+            borderRadius: 8,
+            fontSize: 14, fontWeight: 700,
+            textDecoration: "none",
+            letterSpacing: "0.01em",
+          }}>
+            企業を新規登録（無料）
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M5 12h14M13 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+        {/* ⑩ Spacer to prevent last section from being covered on mobile */}
+        <div className="md:hidden" style={{ height: 80 }} />
 
       </main>
       <JobseekerFooter />

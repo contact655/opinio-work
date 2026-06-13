@@ -53,28 +53,53 @@ function CheckItem({ children }: { children: React.ReactNode }) {
 function CtaButton() {
   return (
     <div>
-      <Link
-        href="/biz/auth"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "16px 36px",
-          background: "var(--royal)",
-          color: "#fff",
-          borderRadius: 10,
-          fontSize: 15,
-          fontWeight: 700,
-          textDecoration: "none",
-          letterSpacing: "0.01em",
-        }}
-      >
-        企業を新規登録（無料）
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M5 12h14M13 5l7 7-7 7" />
-        </svg>
-      </Link>
-      <p style={{ marginTop: 10, fontSize: 12, color: "var(--ink-mute)", textAlign: "center" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+        <Link
+          href="/biz/auth"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "15px 32px",
+            background: "var(--royal)",
+            color: "#fff",
+            borderRadius: 10,
+            fontSize: 15,
+            fontWeight: 700,
+            textDecoration: "none",
+            letterSpacing: "0.01em",
+            boxShadow: "0 4px 16px rgba(0,35,102,0.25)",
+          }}
+        >
+          企業を新規登録（無料）
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M5 12h14M13 5l7 7-7 7" />
+          </svg>
+        </Link>
+        {/* ④ Secondary CTA */}
+        <a
+          href="mailto:contact@opinio.co.jp"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "15px 22px",
+            border: "1.5px solid var(--royal-100)",
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: 600,
+            color: "var(--royal)",
+            textDecoration: "none",
+            background: "var(--royal-50)",
+          }}
+        >
+          まず話を聞く
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </a>
+      </div>
+      <p style={{ marginTop: 12, fontSize: 12, color: "var(--ink-mute)" }}>
         クレジットカード登録不要 · 自動課金なし
       </p>
     </div>
@@ -310,10 +335,11 @@ export function BusinessHero() {
                   padding: "10px 12px", borderRadius: 8, background: "var(--line-soft)",
                 }}>
                   <div style={{
-                    width: 32, height: 32, borderRadius: 8, background: c.color,
+                    width: 36, height: 36, borderRadius: "50%", background: c.color,
                     color: "#fff", fontSize: 13, fontWeight: 700,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     flexShrink: 0,
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
                   }}>
                     {c.init}
                   </div>
