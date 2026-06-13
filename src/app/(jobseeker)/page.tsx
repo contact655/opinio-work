@@ -115,15 +115,15 @@ function Hero({ stats }: { stats: SiteStats }) {
 
   return (
     <section style={{
-      background: `linear-gradient(135deg, #001233 0%, var(--royal) 55%, #1a3569 100%)`,
+      background: `linear-gradient(155deg, #edf0fa 0%, #ece8ff 28%, #f6f0ff 55%, #fafafa 78%, #fff 100%)`,
       padding: "80px 48px 100px",
       overflow: "hidden",
       position: "relative",
     }} className="px-5 pt-16 pb-20 md:px-12 md:pt-20 md:pb-24">
-      {/* Decorative elements */}
+      {/* Decorative orbs — soft on light bg */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
-        <div style={{ position: "absolute", right: "-10%", top: "-20%", width: "50vw", height: "50vw", borderRadius: "50%", background: "radial-gradient(circle, rgba(59,95,217,0.18) 0%, transparent 70%)" }} />
-        <div style={{ position: "absolute", left: "-5%", bottom: "-10%", width: "35vw", height: "35vw", borderRadius: "50%", background: "radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", right: "-8%", top: "-15%", width: "45vw", height: "45vw", borderRadius: "50%", background: "radial-gradient(circle, rgba(59,95,217,0.07) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", left: "-5%", bottom: "-10%", width: "32vw", height: "32vw", borderRadius: "50%", background: "radial-gradient(circle, rgba(124,58,237,0.05) 0%, transparent 70%)" }} />
       </div>
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", position: "relative" }}
         className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16 items-center">
@@ -133,14 +133,13 @@ function Hero({ stats }: { stats: SiteStats }) {
           {/* Eyebrow */}
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 10,
-            padding: "var(--space-2) var(--space-4)", background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.9)",
-            borderRadius: 100, fontSize: "var(--text-sm)", fontWeight: 600, marginBottom: "var(--space-8)",
-            border: "1px solid rgba(255,255,255,0.2)",
+            padding: "var(--space-2) var(--space-4)", background: "var(--royal-50)", color: "var(--royal)",
+            borderRadius: 100, fontSize: "var(--text-sm)", fontWeight: 600, marginBottom: "var(--space-6)",
+            border: "1px solid var(--royal-100)",
             letterSpacing: "0.01em",
-            backdropFilter: "blur(8px)",
           }}>
             <span style={{
-              width: 6, height: 6, borderRadius: "50%", background: "#4ADE80", flexShrink: 0,
+              width: 6, height: 6, borderRadius: "50%", background: "var(--success)", flexShrink: 0,
               animation: "pulseDot 2.5s ease-in-out infinite",
             }} />
             外資系 IT・SaaS・スタートアップに特化
@@ -150,82 +149,64 @@ function Hero({ stats }: { stats: SiteStats }) {
           <h1 style={{
             fontSize: "clamp(28px,3.8vw,46px)",
             fontWeight: 700, lineHeight: 1.4, letterSpacing: "-0.01em",
-            color: "#fff", marginBottom: "var(--space-6)",
+            color: "var(--ink)", marginBottom: "var(--space-3)",
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            <span style={{ color: "#F59E0B" }}>外資・SaaS</span>の転職は、<br />
+            <span style={{ color: "#D97706" }}>外資・SaaS</span>の転職は、<br />
             深く知ってから動く。
           </h1>
 
+          {/* Tagline */}
+          <p style={{ fontSize: 14, color: "var(--ink-mute)", marginBottom: "var(--space-6)", letterSpacing: "0.01em" }}>
+            今のキャリアを変えなくてもいい。ただ、知ることから始めよう。
+          </p>
+
           {/* Lead */}
-          <p style={{ fontSize: 17, lineHeight: 1.9, color: "rgba(255,255,255,0.75)", marginBottom: 40, maxWidth: "var(--max-w-form)" }}>
+          <p style={{ fontSize: 16, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 36, maxWidth: "var(--max-w-form)" }}>
             外資IT・国内SaaS・スタートアップへの転職情報が一か所に。<br />
-            <strong style={{ color: "#F59E0B" }}>登録不要</strong>で閲覧でき、カジュアル面談で<strong style={{ color: "#F59E0B" }}>現役社員に直接</strong>話を聞けます。
+            <strong style={{ color: "#D97706" }}>登録不要</strong>で閲覧でき、カジュアル面談で<strong style={{ color: "#D97706" }}>現役社員に直接</strong>話を聞けます。
           </p>
 
           {/* CTAs */}
-          <div style={{ marginBottom: 40 }}>
-            {/* 主導線: 登録不要でまず見る */}
-            <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" as const, marginBottom: 14 }}>
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" as const, marginBottom: 14, alignItems: "center" }}>
               <Link href="/companies" style={{
                 display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
                 padding: "var(--space-4) 28px", background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
                 fontWeight: 700, fontSize: 15, borderRadius: 8, textDecoration: "none",
-                boxShadow: "0 4px 20px rgba(245,158,11,0.4)",
+                boxShadow: "0 4px 20px rgba(245,158,11,0.3)",
               }}>
                 まず企業を見てみる <ArrowIcon />
               </Link>
+              <Link href="/auth" style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: "var(--text-sm)", color: "var(--ink-mute)", textDecoration: "none",
+                padding: "var(--space-3) var(--space-4)",
+                border: "1px solid var(--line)", borderRadius: 8, background: "#fff",
+              }}>
+                無料登録する
+              </Link>
             </div>
-            {/* 副導線: 登録 */}
-            <Link href="/auth" style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              fontSize: "var(--text-sm)", color: "rgba(255,255,255,0.5)", textDecoration: "none",
-            }}>
-              無料で会員登録する
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M9 18l6-6-6-6"/>
-              </svg>
-            </Link>
           </div>
 
           {/* Trust */}
-          <div style={{ display: "flex", gap: "var(--space-6)", flexWrap: "wrap" as const, fontSize: "var(--text-sm)", color: "rgba(255,255,255,0.6)" }}>
+          <div style={{ display: "flex", gap: "var(--space-5)", flexWrap: "wrap" as const, fontSize: "var(--text-sm)", color: "var(--ink-soft)" }}>
             {["完全無料", "営業電話なし", "登録はメールのみ"].map((t) => (
               <span key={t} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth={2.5} strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
                 {t}
               </span>
             ))}
           </div>
-
-          {/* Mobile trust signals */}
-          <div className="flex md:hidden" style={{
-            marginTop: 24, gap: 8, flexWrap: "wrap" as const,
-          }}>
-            {["完全無料", "電話・スカウトなし", "登録不要で閲覧可"].map((t) => (
-              <span key={t} style={{
-                display: "flex", alignItems: "center", gap: 5,
-                fontSize: 12, fontWeight: 600,
-                color: "rgba(255,255,255,0.7)",
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.15)",
-                padding: "4px 10px", borderRadius: 100,
-              }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth={2.5} strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
-                {t}
-              </span>
-            ))}
-          </div>
-
         </div>
 
         {/* Right: search mockup */}
         <div className="hidden md:flex justify-center hero-fade-right" style={{ position: "relative" }}>
-          {/* Main search mockup card */}
           <div style={{
             background: "#fff", borderRadius: 20,
-            boxShadow: "0 30px 60px rgba(0,35,102,0.12), 0 8px 24px rgba(15,23,42,0.06)",
+            boxShadow: "0 20px 60px rgba(0,35,102,0.10), 0 4px 16px rgba(15,23,42,0.06)",
             padding: "var(--space-6)", width: "100%", maxWidth: 400,
+            border: "1px solid var(--line)",
           }}>
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
@@ -267,17 +248,17 @@ function Hero({ stats }: { stats: SiteStats }) {
                 ? (
                     <div style={{
                       padding: "20px 16px", borderRadius: 12,
-                      background: "rgba(255,255,255,0.08)", textAlign: "center",
-                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "var(--bg-tint)", textAlign: "center",
+                      border: "1px solid var(--line)",
                     }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", marginBottom: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 10 }}>
                         求人を読み込み中…
                       </div>
                       <Link href="/jobs" style={{
                         display: "inline-block", padding: "7px 16px",
-                        borderRadius: 20, background: "rgba(255,255,255,0.15)", color: "#fff",
+                        borderRadius: 20, background: "var(--royal-50)", color: "var(--royal)",
                         fontSize: 12, fontWeight: 600, textDecoration: "none",
-                        border: "1px solid rgba(255,255,255,0.2)",
+                        border: "1px solid var(--royal-100)",
                       }}>
                         すべての求人を見る →
                       </Link>
@@ -289,8 +270,8 @@ function Hero({ stats }: { stats: SiteStats }) {
                       <Link key={job.id} href={`/jobs/${job.id}`} style={{
                         display: "flex", alignItems: "center", gap: 10,
                         padding: "10px 12px", borderRadius: 10,
-                        background: "rgba(255,255,255,0.08)",
-                        border: "1px solid rgba(255,255,255,0.12)",
+                        background: "var(--bg-tint)",
+                        border: "1px solid var(--line)",
                         textDecoration: "none",
                         transition: "background 0.15s",
                       }}>
@@ -308,20 +289,20 @@ function Hero({ stats }: { stats: SiteStats }) {
                         </div>
                         {/* テキスト */}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.companyName}</div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.title}</div>
+                          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.companyName}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.title}</div>
                           <div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}>
                             {job.workStyle && (
                               <span style={{
                                 fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
-                                background: "rgba(59,95,217,0.5)", color: "rgba(255,255,255,0.9)",
-                                border: "1px solid rgba(59,95,217,0.4)",
+                                background: "var(--royal-50)", color: "var(--royal)",
+                                border: "1px solid var(--royal-100)",
                               }}>{job.workStyle}</span>
                             )}
                             {job.employmentType && (
                               <span style={{
                                 fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
-                                background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.65)",
+                                background: "var(--line-soft)", color: "var(--ink-mute)",
                               }}>{job.employmentType}</span>
                             )}
                           </div>
@@ -330,12 +311,12 @@ function Hero({ stats }: { stats: SiteStats }) {
                         {salary && (
                           <div style={{
                             fontSize: 13, fontWeight: 800,
-                            color: "#4ade80", flexShrink: 0,
+                            color: "var(--success)", flexShrink: 0,
                             fontFamily: "Inter, sans-serif",
                             textAlign: "right",
                           }}>
                             {salary}
-                            <div style={{ fontSize: 9, fontWeight: 500, color: "rgba(255,255,255,0.4)", textAlign: "right" }}>万円</div>
+                            <div style={{ fontSize: 9, fontWeight: 500, color: "var(--ink-mute)", textAlign: "right" }}>万円</div>
                           </div>
                         )}
                       </Link>
@@ -346,14 +327,14 @@ function Hero({ stats }: { stats: SiteStats }) {
 
             {/* Footer: 件数 + 全件リンク */}
             <div style={{
-              marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.1)",
+              marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line)",
               display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
-              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "Inter" }}>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter" }}>
                 全 {DEFAULT_STATS.jobs} 件掲載中
               </span>
               <Link href="/jobs" style={{
-                fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)",
+                fontSize: 11, fontWeight: 600, color: "var(--royal)",
                 textDecoration: "none", display: "flex", alignItems: "center", gap: 4,
               }}>
                 すべて見る <ArrowIcon />
@@ -639,7 +620,7 @@ function TrustStrip() {
   const [mentors, setMentors] = useState<PreviewMentorMin[]>([]);
 
   useEffect(() => {
-    fetch("/api/mentors/preview?limit=6")
+    fetch("/api/mentors/preview?limit=8")
       .then((r) => r.json())
       .then((d) => setMentors(Array.isArray(d.mentors) ? d.mentors : []))
       .catch(() => {});
@@ -649,69 +630,68 @@ function TrustStrip() {
     <section style={{
       background: "#fff",
       borderBottom: "1px solid var(--line)",
-      borderTop: "1px solid var(--line)",
-      padding: "18px 48px",
+      padding: "28px 48px",
     }} className="px-5 md:px-12">
       <div style={{
-        maxWidth: 1200, margin: "0 auto",
+        maxWidth: 1080, margin: "0 auto",
         display: "flex", alignItems: "center",
-        justifyContent: "center", gap: 32, flexWrap: "wrap" as const,
+        gap: 40, flexWrap: "wrap" as const,
       }}>
-        {/* メンターアバター */}
-        {mentors.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* メンターアバター + ソーシャルプルーフ */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 260 }}>
+          {mentors.length > 0 && (
             <div style={{ display: "flex" }}>
-              {mentors.slice(0, 5).map((m, i) => (
+              {mentors.slice(0, 6).map((m, i) => (
                 <div key={m.id} style={{
-                  width: 34, height: 34, borderRadius: "50%",
-                  border: "2px solid #fff",
-                  marginLeft: i > 0 ? -10 : 0,
+                  width: 48, height: 48, borderRadius: "50%",
+                  border: "2.5px solid #fff",
+                  marginLeft: i > 0 ? -14 : 0,
                   overflow: "hidden",
                   background: m.color,
                   flexShrink: 0,
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
-                  zIndex: 5 - i,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.14)",
+                  zIndex: 6 - i,
                   position: "relative",
                 }}>
                   {m.photoUrl
                     ? <img src={m.photoUrl} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : <span style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>{m.initial}</span>
+                    : <span style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff" }}>{m.initial}</span>
                   }
                 </div>
               ))}
             </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
-                {mentors.length}名の現役IT社員が登録中
-              </div>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
-                カジュアル面談で直接話を聞ける
-              </div>
+          )}
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3 }}>
+              {mentors.length > 0 ? `${mentors.length}名` : "多数"}の現役IT/SaaS社員が登録中
+            </div>
+            <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 3 }}>
+              カジュアル面談で直接話を聞ける ·&nbsp;完全無料
             </div>
           </div>
-        )}
+        </div>
 
         {/* 区切り */}
-        {mentors.length > 0 && (
-          <div style={{ width: 1, height: 28, background: "var(--line)" }} className="hidden sm:block" />
-        )}
+        <div style={{ width: 1, height: 36, background: "var(--line)", flexShrink: 0 }} className="hidden sm:block" />
 
         {/* Trust signals */}
-        {[
-          { icon: "✓", text: "編集部取材済み企業のみ掲載" },
-          { icon: "✓", text: "スカウト・電話なし" },
-          { icon: "✓", text: "登録不要で閲覧可" },
-        ].map(({ text }) => (
-          <div key={text} style={{
-            display: "flex", alignItems: "center", gap: 5,
-            fontSize: 13, color: "var(--ink-soft)", fontWeight: 500,
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-            {text}
-          </div>
-        ))}
+        <div style={{ display: "flex", gap: 24, flexWrap: "wrap" as const }}>
+          {[
+            "編集部取材済み企業のみ掲載",
+            "スカウト・電話なし",
+            "登録不要で閲覧可",
+          ].map((text) => (
+            <div key={text} style={{
+              display: "flex", alignItems: "center", gap: 6,
+              fontSize: 13, color: "var(--ink-soft)", fontWeight: 500,
+            }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              {text}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1331,10 +1311,10 @@ function FinalCta() {
         IT/SaaS業界の企業情報・求人が、ひとつの場所に。<br />
         完全無料・メールアドレスのみで登録。
       </p>
-      <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "center", flexWrap: "wrap" as const }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-4)" }}>
         <Link href="/companies" style={{
           display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
-          padding: "var(--space-4) var(--space-8)",
+          padding: "var(--space-4) var(--space-10)",
           background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
           fontWeight: 700, fontSize: 15, borderRadius: 8, textDecoration: "none",
           boxShadow: "0 4px 20px rgba(245,158,11,0.4)",
@@ -1342,12 +1322,10 @@ function FinalCta() {
           まず企業を見てみる <ArrowIcon />
         </Link>
         <Link href="/auth" style={{
-          display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
-          padding: "var(--space-4) var(--space-8)", background: "transparent", color: "rgba(255,255,255,0.85)",
-          fontWeight: 600, fontSize: 15, borderRadius: 8, textDecoration: "none",
-          border: "1.5px solid rgba(255,255,255,0.4)",
+          fontSize: 13, color: "rgba(255,255,255,0.6)", textDecoration: "none",
+          display: "flex", alignItems: "center", gap: 4,
         }}>
-          無料登録する
+          無料会員登録はこちら →
         </Link>
       </div>
     </section>
@@ -1699,13 +1677,9 @@ export default function HomePage() {
       <Hero stats={stats} />
       <TrustStrip />
       <HowItWorks />
-      <LogoStripSection />
-      <DiffStrip />
       <FeaturedCompaniesSection />
-      <StoryFeedSection />
-      <InfraSection />
       <PainPoints />
-      <UserTestimonials />
+      <StoryFeedSection />
       <ArticlesPreview />
       <HomeFaq />
       <FinalCta />
