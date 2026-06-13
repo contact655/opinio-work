@@ -485,6 +485,18 @@ function CompanyMiniCard({ c }: { c: PreviewCompany }) {
               社員・OBに聞ける
             </span>
           )}
+          {c.employeeCount && (
+            <span style={{
+              fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter",
+              display: "flex", alignItems: "center", gap: 3,
+              marginLeft: "auto",
+            }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              </svg>
+              {c.employeeCount.toLocaleString()}名
+            </span>
+          )}
         </div>
       </div>
     </Link>
@@ -797,12 +809,12 @@ function HowItWorks() {
               {i < 2 && (
                 <div className="hidden md:flex justify-center items-center" style={{ flexShrink: 0 }}>
                   <div style={{
-                    width: 36, height: 36, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #F59E0B, #D97706)",
+                    width: 32, height: 32, borderRadius: "50%",
+                    background: "var(--royal-50)",
+                    border: "1px solid var(--royal-100)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: "0 3px 10px rgba(245,158,11,0.35)",
                   }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                       <path d="M5 12h14M13 5l7 7-7 7" />
                     </svg>
                   </div>
@@ -876,6 +888,21 @@ function PainPoints() {
             </div>
           ))}
         </div>
+
+        {/* CTA */}
+        <div style={{ textAlign: "center", marginTop: 48 }}>
+          <Link href="/companies" style={{
+            display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
+            padding: "var(--space-4) 32px",
+            background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+            color: "#fff", fontWeight: 700, fontSize: 15,
+            borderRadius: 8, textDecoration: "none",
+            boxShadow: "0 4px 20px rgba(245,158,11,0.25)",
+          }}>
+            企業情報・求人を見てみる <ArrowIcon />
+          </Link>
+          <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 10 }}>登録不要 · 完全無料</p>
+        </div>
       </div>
       <style>{`
         .pain-card:hover {
@@ -893,7 +920,7 @@ function PainPoints() {
 function FinalCta() {
   return (
     <section style={{
-      background: `linear-gradient(135deg, #001233 0%, var(--royal) 60%, var(--accent) 100%)`,
+      background: `linear-gradient(155deg, #002980 0%, #002366 45%, #1a3a8f 100%)`,
       padding: "96px 48px", textAlign: "center",
     }} className="px-5 py-16 md:py-24 md:px-12">
       <h2 style={{
@@ -1166,7 +1193,7 @@ function ArticlesPreview() {
             type ArticleType = "employee" | "mentor" | "ceo" | "report";
             const type = article.type as ArticleType;
             const badge = TYPE_BADGE[type] ?? TYPE_BADGE["employee"];
-            const icon  = TYPE_EYECATCH_ICON[type] ?? TYPE_EYECATCH_ICON["employee"];
+            const _icon  = TYPE_EYECATCH_ICON[type] ?? TYPE_EYECATCH_ICON["employee"]; void _icon;
             return (
               <Link key={article.slug} href={`/articles/${article.slug}`} style={{ textDecoration: "none" }}>
                 <article style={{
@@ -1178,20 +1205,47 @@ function ArticlesPreview() {
                   className="home-article-card"
                 >
                   <div style={{
-                    height: 120, background: article.eyecatch_gradient,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    position: "relative",
+                    height: 160, background: article.eyecatch_gradient,
+                    position: "relative", overflow: "hidden",
+                    display: "flex", flexDirection: "column", justifyContent: "flex-end",
+                    padding: "12px 14px",
                   }}>
-                    <span style={{ fontSize: 40, opacity: 0.3 }}>{icon}</span>
+                    {/* 背景大文字 */}
+                    <div style={{
+                      position: "absolute", top: -10, right: 10,
+                      fontSize: 100, fontWeight: 900, lineHeight: 1,
+                      color: "#fff", opacity: 0.1,
+                      fontFamily: "Inter, sans-serif",
+                      userSelect: "none",
+                      pointerEvents: "none",
+                    }}>
+                      {article.company_initial}
+                    </div>
+                    {/* バッジ */}
                     <div style={{
                       position: "absolute", top: 10, left: 12,
                       display: "inline-flex", alignItems: "center",
                       padding: "3px 9px", borderRadius: 100,
-                      background: badge.bg, color: badge.color,
+                      background: "rgba(255,255,255,0.85)",
+                      backdropFilter: "blur(4px)",
+                      color: badge.color,
                       fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
                     }}>
                       {badge.label}
                     </div>
+                    {/* タイトルプレビュー（下端オーバーレイ） */}
+                    <p style={{
+                      fontSize: 12, fontWeight: 700, color: "#fff",
+                      lineHeight: 1.4,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      textShadow: "0 1px 3px rgba(0,0,0,0.35)",
+                      margin: 0,
+                    } as React.CSSProperties}>
+                      {article.title}
+                    </p>
                   </div>
                   <div style={{ padding: "14px var(--space-4) 18px", flex: 1, display: "flex", flexDirection: "column" }}>
                     <h3 style={{
@@ -1199,7 +1253,7 @@ function ArticlesPreview() {
                       fontSize: 13.5, fontWeight: 700, lineHeight: 1.6,
                       color: "var(--ink)", marginBottom: 10, flex: 1,
                       display: "-webkit-box",
-                      WebkitLineClamp: 3,
+                      WebkitLineClamp: 2,
                       WebkitBoxOrient: "vertical",
                       overflow: "hidden",
                     } as React.CSSProperties}>
