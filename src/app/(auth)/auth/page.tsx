@@ -130,12 +130,13 @@ const PANEL_MENTORS = [
   },
 ];
 
-// ─── Left brand panel (new design) ───────────────────────────────────────────
+// ─── Left brand panel ────────────────────────────────────────────────────────
 function BrandSide() {
   return (
     <div
       style={{
-        background: "linear-gradient(160deg,#edf0fa 0%,#ece8ff 30%,#f6f0ff 60%,#fafafa 100%)",
+        // ⑩ より深みのある背景でコントラスト強化
+        background: "linear-gradient(155deg,#d4dff5 0%,#cec6f0 30%,#d8caf0 60%,#e8e3f5 100%)",
         padding: "40px 44px",
         display: "flex",
         flexDirection: "column",
@@ -143,12 +144,13 @@ function BrandSide() {
         top: 0,
         height: "100vh",
         overflow: "hidden",
+        borderRight: "1px solid var(--royal-100)",
       }}
     >
-      {/* Subtle decorative circles */}
+      {/* Decorative circles */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
-        <div style={{ position: "absolute", width: 320, height: 320, borderRadius: "50%", background: "rgba(59,95,217,0.06)", top: -80, right: -80 }} />
-        <div style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "rgba(124,58,237,0.05)", bottom: 60, left: -60 }} />
+        <div style={{ position: "absolute", width: 320, height: 320, borderRadius: "50%", background: "rgba(59,95,217,0.09)", top: -80, right: -80 }} />
+        <div style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "rgba(124,58,237,0.07)", bottom: 60, left: -60 }} />
       </div>
 
       <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%" }}>
@@ -162,10 +164,10 @@ function BrandSide() {
         <div style={{ marginTop: "auto", marginBottom: "auto" }}>
 
           {/* Headline */}
-          <div style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 28 }}>
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "4px 12px", borderRadius: 100, marginBottom: 16,
+              padding: "4px 12px", borderRadius: 100, marginBottom: 14,
               background: "var(--royal-50)", border: "1px solid var(--royal-100)",
               fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.06em",
             }}>
@@ -174,65 +176,53 @@ function BrandSide() {
             <h2 style={{
               fontFamily: "var(--font-noto-serif)", fontWeight: 500,
               fontSize: "clamp(24px, 2.8vw, 32px)", lineHeight: 1.45,
-              color: "var(--ink)", marginBottom: 12, letterSpacing: "0.01em",
+              color: "var(--ink)", marginBottom: 10, letterSpacing: "0.01em",
             }}>
               先輩に話を聞いてから、<br />キャリアを動かす。
             </h2>
-            <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.85 }}>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.85 }}>
               外資・SaaS・スタートアップで活躍する先輩に<br />
               直接相談できる、IT業界特化のキャリアサービス。
             </p>
           </div>
 
-          {/* Mentor cards */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+          {/* ① メンターカード — コンパクト2枚（コメント削除） */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
             {PANEL_MENTORS.map((m) => (
               <div key={m.name} style={{
-                background: "#fff", borderRadius: 14, padding: "16px 18px",
+                background: "#fff", borderRadius: 12, padding: "12px 14px",
                 border: "1px solid rgba(0,35,102,0.08)",
-                boxShadow: "0 2px 12px rgba(0,35,102,0.06)",
+                boxShadow: "0 2px 10px rgba(0,35,102,0.05)",
               }}>
-                {/* Top: avatar + name + company */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{
-                    width: 44, height: 44, borderRadius: "50%", background: m.bg,
+                    width: 40, height: 40, borderRadius: "50%", background: m.bg,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    fontSize: 15, fontWeight: 700, color: "#fff", flexShrink: 0,
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
                   }}>{m.init}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{m.name}</div>
-                    <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 1 }}>
-                      {m.role} · {m.company}
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{m.name}</div>
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>{m.role} · {m.company}</div>
+                    <div style={{ display: "flex", gap: 4, marginTop: 5 }}>
+                      {m.tags.map((t) => (
+                        <span key={t} style={{
+                          fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 100,
+                          background: "var(--royal-50)", color: "var(--royal)",
+                          border: "1px solid var(--royal-100)",
+                        }}>{t}</span>
+                      ))}
                     </div>
                   </div>
                   <div style={{
-                    display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
-                    padding: "4px 10px", borderRadius: 100,
+                    display: "flex", alignItems: "center", gap: 3, flexShrink: 0,
+                    padding: "3px 8px", borderRadius: 100,
                     background: "var(--success-soft)", border: "1px solid #A7F3D0",
-                    fontSize: 10, fontWeight: 700, color: "var(--success)",
+                    fontSize: 9, fontWeight: 700, color: "var(--success)",
                   }}>
-                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
+                    <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
                     相談受付中
                   </div>
-                </div>
-                {/* Comment */}
-                <p style={{
-                  fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.75, margin: "0 0 10px",
-                  padding: "10px 12px", background: "var(--bg-tint)", borderRadius: 8,
-                  borderLeft: "3px solid var(--royal-100)",
-                }}>
-                  {m.comment}
-                </p>
-                {/* Tags */}
-                <div style={{ display: "flex", gap: 5 }}>
-                  {m.tags.map((t) => (
-                    <span key={t} style={{
-                      fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
-                      background: "var(--royal-50)", color: "var(--royal)",
-                      border: "1px solid var(--royal-100)",
-                    }}>{t}</span>
-                  ))}
                 </div>
               </div>
             ))}
@@ -470,6 +460,13 @@ function AuthPageInner() {
         </div>
 
         <div style={s.formWrap}>
+          {/* ⑧ 企業担当者向けリンク */}
+          <div style={{ textAlign: "right", marginBottom: 10 }}>
+            <a href="/biz/auth" style={{ fontSize: 12, color: "var(--ink-mute)", textDecoration: "none", fontWeight: 500 }}>
+              企業担当者の方はこちら →
+            </a>
+          </div>
+
           {/* ⑦ Mode tabs — active tab is solid royal blue */}
           <div style={s.modeTabs}>
             {(["signup", "login"] as const).map((m) => (
@@ -493,12 +490,16 @@ function AuthPageInner() {
           {/* ── SIGNUP ── */}
           {mode === "signup" && (
             <>
-              <div style={{ marginBottom: 24 }}>
-                <h1 style={s.formTitle}>はじめまして。</h1>
+              <div style={{ marginBottom: 16 }}>
+                {/* ② アクション指向の見出しに変更 */}
+                <h1 style={s.formTitle}>無料で、始める。</h1>
                 <p style={s.formSubtitle}>
-                  IT/SaaS業界のキャリア情報に、<strong>無料</strong>でアクセスできます。
+                  IT/SaaS業界の求人・先輩情報に、<strong>完全無料</strong>でアクセスできます。
                 </p>
               </div>
+
+              {/* ④ ソーシャルプルーフをGoogleボタン前に移動 */}
+              <SocialProofStrip />
 
               {/* ② Google button — primary, prominent, with 推奨 badge */}
               <button type="button" style={s.oauthBtn} onClick={handleGoogleAuth}>
@@ -520,40 +521,21 @@ function AuthPageInner() {
                 ワンクリックで完了。パスワード不要。
               </p>
 
-              {/* Divider */}
-              <div style={{ display: "flex", alignItems: "center", margin: "20px 0", gap: 12 }}>
-                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, whiteSpace: "nowrap" }}>
+              {/* ⑤ ORセパレーター — ピルスタイル */}
+              <div style={{ display: "flex", alignItems: "center", margin: "16px 0", gap: 10 }}>
+                <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", padding: "3px 10px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 100 }}>
                   または メールアドレスで登録
                 </span>
-                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
               </div>
 
               <form onSubmit={handleSignup}>
-                {/* ③ Name — optional */}
-                <div style={s.formGroup}>
-                  <label style={s.label} htmlFor="signup-name">
-                    お名前
-                    <span style={{ fontSize: 10, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6 }}>省略可</span>
-                  </label>
-                  <input
-                    id="signup-name"
-                    type="text"
-                    style={s.input}
-                    placeholder="山田 太郎"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    autoComplete="name"
-                    enterKeyHint="next"
-                  />
-                  <p style={s.hint}>本名でもニックネームでもOK。後から変更できます。</p>
-                </div>
-
+                {/* ③ フィールド順序変更: メール → パスワード → お名前（optional） */}
                 <div style={s.formGroup}>
                   <label style={s.label} htmlFor="signup-email">
                     メールアドレス <span style={s.required}>*</span>
                   </label>
-                  {/* ⑧ inputMode for mobile keyboard */}
                   <input
                     id="signup-email"
                     type="email"
@@ -583,7 +565,7 @@ function AuthPageInner() {
                       required
                       minLength={8}
                       autoComplete="new-password"
-                      enterKeyHint="done"
+                      enterKeyHint="next"
                     />
                     <button
                       type="button"
@@ -594,8 +576,43 @@ function AuthPageInner() {
                       {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                     </button>
                   </div>
-                  {/* ⑥ Password strength indicator */}
+                  {/* ⑦ Password strength indicator */}
                   <PwStrength password={password} />
+                </div>
+
+                {/* ③ お名前は最後（省略可） */}
+                <div style={s.formGroup}>
+                  <label style={s.label} htmlFor="signup-name">
+                    お名前
+                    <span style={{ fontSize: 10, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6 }}>省略可</span>
+                  </label>
+                  <input
+                    id="signup-name"
+                    type="text"
+                    style={s.input}
+                    placeholder="山田 太郎"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    autoComplete="name"
+                    enterKeyHint="done"
+                  />
+                  <p style={s.hint}>本名でもニックネームでもOK。後から変更できます。</p>
+                </div>
+
+                {/* ⑨ 信頼マイクロコピー（送信ボタン直上） */}
+                <div style={{
+                  display: "flex", justifyContent: "center", gap: 14,
+                  padding: "8px 12px", borderRadius: 8, marginBottom: 2,
+                  background: "var(--bg-tint)", border: "1px solid var(--line-soft)",
+                }}>
+                  {["完全無料", "営業電話なし", "登録はメールのみ"].map((t) => (
+                    <span key={t} style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 3 }}>
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3.5" strokeLinecap="round" aria-hidden>
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      {t}
+                    </span>
+                  ))}
                 </div>
 
                 <button
@@ -606,7 +623,6 @@ function AuthPageInner() {
                   {loading ? "登録中..." : "無料で登録する"}
                 </button>
 
-                {/* ④ Implicit consent text (no checkbox) */}
                 <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", lineHeight: 1.8, marginTop: 12 }}>
                   登録することで{" "}
                   <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>
@@ -619,9 +635,6 @@ function AuthPageInner() {
                   {" "}に同意したものとみなします。
                 </p>
               </form>
-
-              {/* ⑩ Social proof */}
-              <SocialProofStrip />
             </>
           )}
 
@@ -650,13 +663,13 @@ function AuthPageInner() {
                 </span>
               </button>
 
-              {/* Divider */}
-              <div style={{ display: "flex", alignItems: "center", margin: "20px 0", gap: 12 }}>
-                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, whiteSpace: "nowrap" }}>
+              {/* ⑤ ORセパレーター — ピルスタイル */}
+              <div style={{ display: "flex", alignItems: "center", margin: "16px 0", gap: 10 }}>
+                <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", padding: "3px 10px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 100 }}>
                   または メールで続ける
                 </span>
-                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
               </div>
 
               <form onSubmit={handleLogin}>
@@ -821,10 +834,10 @@ const s = {
     lineHeight: 1.7,
   } as React.CSSProperties,
 
-  // ② Google button — white with shadow, prominent, larger than before
+  // ⑥ Google button — taller padding + stronger shadow
   oauthBtn: {
     width: "100%",
-    padding: "14px 18px",
+    padding: "16px 18px",
     background: "#fff",
     color: "var(--ink)",
     border: "1.5px solid #dadce0",
@@ -836,7 +849,7 @@ const s = {
     display: "flex",
     alignItems: "center",
     gap: 12,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.06)",
+    boxShadow: "0 3px 10px rgba(0,0,0,0.10),0 1px 4px rgba(0,0,0,0.07)",
     transition: "box-shadow 0.2s",
   } as React.CSSProperties,
 
@@ -911,23 +924,25 @@ const s = {
 
   switchRow: {
     textAlign: "center" as const,
-    marginTop: 24,
-    paddingTop: 20,
-    borderTop: "1px solid var(--line-soft)",
-    fontSize: 14,
-    color: "var(--ink-soft)",
+    marginTop: 20,
+    paddingTop: 16,
+    borderTop: "1px solid var(--line)",
+    fontSize: 12,
+    color: "var(--ink-mute)",
   },
 
+  // ⑩ SwitchRow → ピルボタンスタイル（/biz/auth と統一）
   switchLink: {
+    background: "var(--royal-50)",
+    border: "1.5px solid var(--royal-100)",
     color: "var(--royal)",
-    fontWeight: 600,
-    marginLeft: 6,
-    background: "none",
-    border: "none",
+    fontWeight: 700,
     cursor: "pointer",
     fontFamily: "inherit",
-    fontSize: 14,
-    textDecoration: "underline",
+    fontSize: 12,
+    padding: "4px 12px",
+    borderRadius: 100,
+    marginLeft: 8,
   } as React.CSSProperties,
 } as const;
 
