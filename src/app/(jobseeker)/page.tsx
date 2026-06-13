@@ -5,12 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import HomeFaq from "@/app/HomeFaq";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
-import { CountUp } from "@/components/jobseeker/CountUp";
-
-// ─── Site stats type ─────────────────────────────────────────────────────────
-
-type SiteStats = { companies: number; jobs: number };
-const DEFAULT_STATS: SiteStats = { companies: 80, jobs: 31 };
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -103,7 +97,7 @@ function formatSalary(min: number | null, max: number | null): string | null {
   return `〜${validMax}万`;
 }
 
-function Hero({ stats }: { stats: SiteStats }) {
+function Hero() {
   const [jobs, setJobs] = useState<PreviewJob[]>([]);
 
   useEffect(() => {
@@ -331,7 +325,7 @@ function Hero({ stats }: { stats: SiteStats }) {
               display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter" }}>
-                全 {DEFAULT_STATS.jobs} 件掲載中
+                全 31 件掲載中
               </span>
               <Link href="/jobs" style={{
                 fontSize: 11, fontWeight: 600, color: "var(--royal)",
@@ -343,94 +337,6 @@ function Hero({ stats }: { stats: SiteStats }) {
           </div>
         </div>
       </div>
-    </section>
-  );
-}
-
-// ─── Differentiator Strip ────────────────────────────────────────────────────
-
-function DiffStrip() {
-  const DIFFS: { icon: React.ReactNode; title: string; desc: string; color: string; bg: string }[] = [
-    {
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-        </svg>
-      ),
-      title: "スカウト・電話なし",
-      desc: "企業からの一方的な勧誘はありません。登録後に営業電話が来ることもなく、自分のペースで進められます。",
-      color: "#DC2626",
-      bg: "#FEF2F2",
-    },
-    {
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-      ),
-      title: "現役社員の声",
-      desc: "求人票の裏側にある「実際の働き方」「入社後のギャップ」を確認してから動けます。",
-      color: "var(--success)",
-      bg: "#ECFDF5",
-    },
-    {
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-        </svg>
-      ),
-      title: "編集部の取材情報",
-      desc: "求人票には載らない、組織文化・ミッション・フェーズ感をOPINIO編集部が定期取材してお届けします。",
-      color: "var(--royal)",
-      bg: "var(--royal-50)",
-    },
-  ];
-
-  return (
-    <section style={{ background: "#fff", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 var(--space-6)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)" }}
-          className="grid-cols-1 sm:grid-cols-3">
-          {DIFFS.map((d, i) => (
-            <div key={i}
-              className="diff-strip-item"
-              style={{
-                display: "flex", alignItems: "flex-start", gap: 18,
-                padding: "36px var(--space-6)",
-                borderRight: i < DIFFS.length - 1 ? "1px solid var(--line)" : "none",
-                transition: "background 0.2s",
-              }}>
-              <div
-                className="diff-icon"
-                style={{
-                  width: 52, height: 52, borderRadius: 14, flexShrink: 0,
-                  background: d.bg,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "var(--text-xl)",
-                  transition: "transform 0.2s, box-shadow 0.2s",
-                }}>
-                {d.icon}
-              </div>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", marginBottom: "var(--space-2)", letterSpacing: "-0.01em" }}>
-                  {d.title}
-                </div>
-                <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.75, color: "var(--ink-soft)" }}>
-                  {d.desc}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <style>{`
-        .diff-strip-item:hover { background: var(--bg-tint); }
-        .diff-strip-item:hover .diff-icon {
-          transform: scale(1.1) translateY(-2px);
-          box-shadow: 0 6px 20px rgba(0,0,0,0.10);
-        }
-      `}</style>
     </section>
   );
 }
@@ -697,13 +603,6 @@ function TrustStrip() {
   );
 }
 
-// ─── Logo Strip Section ───────────────────────────────────────────────────────
-
-function LogoStripSection() {
-  // ホームページではロゴウォールを表示しない（/companies ページに移設済み）
-  return null;
-}
-
 function FeaturedCompaniesSection() {
   const [companies, setCompanies] = useState<PreviewCompany[]>([]);
   const [loading, setLoading] = useState(true);
@@ -806,145 +705,6 @@ function FeaturedCompaniesSection() {
             transform: translateY(-2px) !important;
           }
         `}</style>
-      </div>
-    </section>
-  );
-}
-
-// ─── Stats Strip ──────────────────────────────────────────────────────────────
-
-function StatsStrip({ stats }: { stats: SiteStats }) {
-  const STATS = [
-    { value: String(stats.companies), unit: "社", label: "掲載企業" },
-    { value: String(stats.jobs), unit: "件", label: "公開求人" },
-    { value: "30", unit: "分", label: "カジュアル面談・完全無料" },
-  ];
-  return (
-    <section style={{
-      background: "var(--royal)",
-      padding: "36px 48px",
-    }} className="px-5 md:px-12">
-      <div style={{
-        maxWidth: 900, margin: "0 auto",
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap: "28px 0",
-      }} className="sm:[grid-template-columns:repeat(4,1fr)]">
-        {STATS.map(({ value, unit, label }) => (
-          <div key={label} style={{ textAlign: "center" }}>
-            <div style={{
-              display: "flex", alignItems: "baseline", justifyContent: "center", gap: 2,
-              marginBottom: 6,
-            }}>
-              <span style={{
-                fontSize: "clamp(36px,5vw,52px)", fontWeight: 700,
-                fontFamily: "Inter, sans-serif", color: "#fff",
-                lineHeight: 1,
-              }}>
-                <CountUp to={parseInt(value, 10)} />
-              </span>
-              <span style={{ fontSize: 18, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>{unit}</span>
-            </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", fontWeight: 500, letterSpacing: "0.04em" }}>
-              {label}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// ─── Infrastructure Section (simplified) ─────────────────────────────────────
-
-function InfraSection() {
-  const points = [
-    {
-      num: "01",
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-        </svg>
-      ),
-      title: "取材された「今」の情報",
-      body: "OPINIO編集部が企業を定期取材。求人票には載らない、現場のリアルな情報をお届けします。",
-      color: "var(--royal)",
-      bg: "var(--royal-50)",
-    },
-    {
-      num: "02",
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-        </svg>
-      ),
-      title: "企業×人の図鑑",
-      body: "どの企業にどんな人が在籍・在籍したかが一覧できます。現役社員・OBOGのプロフィールが各企業ページに集まり、入社後のイメージがリアルに描けます。",
-      color: "var(--purple)",
-      bg: "var(--purple-soft,#F3E8FF)",
-    },
-    {
-      num: "03",
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-      ),
-      title: "カジュアル面談で直接聞ける",
-      body: "気になった企業には直接カジュアル面談を申し込めます。現役メンバーに30分話を聞いてから、応募を判断できます。",
-      color: "var(--success)",
-      bg: "var(--success-soft)",
-    },
-  ];
-
-  return (
-    <section style={{ padding: "72px 48px", background: "#fff" }} className="px-5 md:px-12">
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <SectionTag>他社との違い</SectionTag>
-          <h2 style={{ fontSize: "clamp(28px,3.5vw,42px)", fontWeight: 700, color: "var(--ink)", marginTop: "var(--space-4)", marginBottom: "var(--space-3)", letterSpacing: "-0.01em" }}>
-            他のキャリアサービスと、ここが違う。
-          </h2>
-          <p style={{ fontSize: "var(--text-md)", color: "var(--ink-soft)", lineHeight: 1.8 }}>
-            求人の鮮度、現役社員の声、カジュアル面談。まとめてここで。
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {points.map((p) => (
-            <div key={p.num} className="card-hover" style={{
-              background: "#fff",
-              border: "1px solid var(--line)",
-              borderRadius: 20,
-              padding: "var(--space-8) var(--space-6)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-4)",
-              cursor: "default",
-            }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: 14,
-                background: p.bg,
-                color: p.color,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
-              }}>
-                {p.icon}
-              </div>
-              <div>
-                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: p.color, letterSpacing: "0.08em", marginBottom: 6 }}>
-                  {p.num}
-                </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)", marginBottom: 10, lineHeight: 1.4 }}>
-                  {p.title}
-                </h3>
-                <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.8 }}>
-                  {p.body}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </section>
   );
@@ -1119,170 +879,6 @@ function PainPoints() {
       </div>
       <style>{`
         .pain-card:hover {
-          border-color: var(--royal-100) !important;
-          box-shadow: 0 8px 24px rgba(0,35,102,0.08) !important;
-          transform: translateY(-2px) !important;
-        }
-      `}</style>
-    </section>
-  );
-}
-
-// ─── Use Cases ────────────────────────────────────────────────────────────────
-// 架空の声ではなく、編集部が想定するリアルな使い方シナリオを正直に提示する
-
-const USE_CASES = [
-  {
-    persona: "転職を迷っている",
-    detail: "SaaS営業 · 3〜5年目",
-    scene: "「今すぐ転職したいわけじゃないけど、このままでいいのか不安」",
-    how: "企業の取材記事で文化を把握 → カジュアル面談で現役社員の話を聞く → 応募するかどうかは自分で判断",
-    outcome: "焦らず、比較しながら、納得して動ける",
-    tag: "キャリア探索",
-    tagColor: "var(--royal)",
-    tagBg: "var(--royal-50)",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
-    ),
-    gradient: "linear-gradient(135deg, var(--royal), var(--accent))",
-    href: "/companies",
-    cta: "企業を探す →",
-  },
-  {
-    persona: "転職活動を本格化したい",
-    detail: "PdM / エンジニア · 実績あり",
-    scene: "「スカウトも来てるけど、自分から動くならOPINIOの企業が気になる」",
-    how: "求人を条件で絞り込み → カジュアル面談で社内の雰囲気を確認 → 入社後ギャップを減らして応募",
-    outcome: "入社後ギャップを減らして、ミスマッチのない転職を",
-    tag: "転職活動",
-    tagColor: "var(--success)",
-    tagBg: "var(--success-soft)",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-      </svg>
-    ),
-    gradient: "linear-gradient(135deg, var(--success), #34D399)",
-    href: "/jobs",
-    cta: "求人を見る →",
-  },
-  {
-    persona: "転職はまだ先だけど準備したい",
-    detail: "現職満足中 · 情報収集フェーズ",
-    scene: "「今の会社は好きだけど、3年後どうなるかは不安。業界の感覚を磨きたい」",
-    how: "取材記事で業界トレンドをキャッチ → 気になる企業の現役社員に話を聞く → 登録なしで閲覧できる",
-    outcome: "転職せずに終わってもOK。視野が広がるだけで価値がある",
-    tag: "情報収集",
-    tagColor: "#d97706",
-    tagBg: "var(--warm-soft)",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-      </svg>
-    ),
-    gradient: "linear-gradient(135deg, #F59E0B, #D97706)",
-    href: "/companies",
-    cta: "企業を探す →",
-  },
-];
-
-function UserTestimonials() {
-  return (
-    <section style={{ background: "#fff", padding: "72px 48px", borderTop: "1px solid var(--line)" }} className="px-5 py-14 md:py-20 md:px-12">
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 44 }}>
-          <SectionTag>こんな人が使っています</SectionTag>
-          <h2 style={{
-            fontSize: "clamp(24px,3vw,34px)", fontWeight: 700,
-            color: "var(--ink)", marginBottom: "var(--space-3)",
-            fontFamily: "var(--font-noto-serif)",
-          }}>
-            こんな人が使っています
-          </h2>
-          <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-            転職を決意していなくても、使えるキャリアサービスを目指しています。
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {USE_CASES.map((c, i) => (
-            <div
-              key={i}
-              style={{
-                background: "var(--bg-tint)",
-                border: "1px solid var(--line)",
-                borderRadius: 20,
-                padding: "26px 24px 22px",
-                display: "flex", flexDirection: "column",
-                transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-              }}
-              className="usecase-card"
-            >
-              {/* アイコン + タグ */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: c.gradient,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", flexShrink: 0,
-                }}>
-                  {c.icon}
-                </div>
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: "3px 10px",
-                  borderRadius: 100, background: c.tagBg, color: c.tagColor,
-                  letterSpacing: "0.04em", border: `1px solid ${c.tagColor}33`,
-                }}>
-                  {c.tag}
-                </span>
-              </div>
-
-              {/* ペルソナ */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{c.persona}</div>
-                <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>{c.detail}</div>
-              </div>
-
-              {/* 心の声 */}
-              <p style={{
-                fontSize: "var(--text-sm)", lineHeight: 1.8, color: "var(--ink-soft)",
-                marginBottom: 14, fontStyle: "italic",
-                borderLeft: "3px solid var(--line)", paddingLeft: 10,
-                flex: 1,
-              }}>
-                {c.scene}
-              </p>
-
-              {/* アウトカム */}
-              <div style={{
-                padding: "10px var(--space-3)",
-                borderRadius: 8, marginBottom: "var(--space-4)",
-                background: "#fff", border: "1px solid var(--line)",
-                fontSize: 12, fontWeight: 600, color: "var(--ink)",
-                display: "flex", alignItems: "flex-start", gap: 6,
-              }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
-                  <path d="M20 6L9 17l-5-5"/>
-                </svg>
-                {c.outcome}
-              </div>
-
-              {/* CTA */}
-              <Link href={c.href} style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: 12, fontWeight: 700, color: c.tagColor,
-                textDecoration: "none",
-              }}>
-                {c.cta}
-              </Link>
-            </div>
-          ))}
-        </div>
-      </div>
-      <style>{`
-        .usecase-card:hover {
           border-color: var(--royal-100) !important;
           box-shadow: 0 8px 24px rgba(0,35,102,0.08) !important;
           transform: translateY(-2px) !important;
@@ -1656,25 +1252,9 @@ function ArticlesPreview() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [stats, setStats] = useState<SiteStats>(DEFAULT_STATS);
-
-  useEffect(() => {
-    fetch("/api/stats")
-      .then((r) => r.json())
-      .then((d: Partial<SiteStats>) => {
-        if (d.companies != null || d.jobs != null) {
-          setStats({
-            companies: d.companies ?? DEFAULT_STATS.companies,
-            jobs: d.jobs ?? DEFAULT_STATS.jobs,
-          });
-        }
-      })
-      .catch(() => {/* デフォルトを維持 */});
-  }, []);
-
   return (
     <>
-      <Hero stats={stats} />
+      <Hero />
       <TrustStrip />
       <HowItWorks />
       <FeaturedCompaniesSection />
