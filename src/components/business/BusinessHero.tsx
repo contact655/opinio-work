@@ -33,15 +33,6 @@ const MOCK_CANDIDATES = [
   },
 ];
 
-function CheckItem({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-      <span style={{ color: "var(--royal)", fontWeight: 700, marginTop: 1, flexShrink: 0 }}>✓</span>
-      <span style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.6 }}>{children}</span>
-    </div>
-  );
-}
-
 function CtaButton() {
   return (
     <div>
