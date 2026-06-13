@@ -141,13 +141,13 @@ function Hero() {
 
           {/* Title */}
           <h1 style={{
-            fontSize: "clamp(28px,3.8vw,46px)",
-            fontWeight: 700, lineHeight: 1.4, letterSpacing: "-0.01em",
-            color: "var(--ink)", marginBottom: "var(--space-3)",
+            fontSize: "clamp(40px,5vw,64px)",
+            fontWeight: 700, lineHeight: 1.22, letterSpacing: "-0.03em",
+            color: "var(--ink)", marginBottom: "var(--space-2)",
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            <span style={{ color: "#D97706" }}>外資・SaaS</span>の転職は、<br />
-            深く知ってから動く。
+            <span style={{ color: "#D97706" }}>外資・SaaS</span>の転職。<br />
+            深く知ってから、動く。
           </h1>
 
           {/* Tagline */}
@@ -161,35 +161,52 @@ function Hero() {
             <strong style={{ color: "#D97706" }}>登録不要</strong>で閲覧でき、カジュアル面談で<strong style={{ color: "#D97706" }}>現役社員に直接</strong>話を聞けます。
           </p>
 
-          {/* CTAs */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" as const, marginBottom: 14, alignItems: "center" }}>
-              <Link href="/companies" style={{
-                display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
-                padding: "var(--space-4) 28px", background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
-                fontWeight: 700, fontSize: 15, borderRadius: 8, textDecoration: "none",
-                boxShadow: "0 4px 20px rgba(245,158,11,0.3)",
-              }}>
-                まず企業を見てみる <ArrowIcon />
-              </Link>
+          {/* CTAs — primary only, secondary as text link */}
+          <div style={{ marginBottom: 28 }}>
+            <Link href="/companies" style={{
+              display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
+              padding: "16px 32px", background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
+              fontWeight: 800, fontSize: 16, borderRadius: 10, textDecoration: "none",
+              boxShadow: "0 6px 24px rgba(245,158,11,0.35)",
+              letterSpacing: "-0.01em",
+            }}>
+              まず企業を見てみる <ArrowIcon />
+            </Link>
+            <div style={{ marginTop: 10 }}>
               <Link href="/auth" style={{
+                fontSize: 12, color: "var(--ink-mute)", textDecoration: "none",
                 display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: "var(--text-sm)", color: "var(--ink-mute)", textDecoration: "none",
-                padding: "var(--space-3) var(--space-4)",
-                border: "1px solid var(--line)", borderRadius: 8, background: "#fff",
               }}>
-                無料登録する
+                → 無料会員登録はこちら（30秒）
               </Link>
             </div>
           </div>
 
-          {/* Trust */}
-          <div style={{ display: "flex", gap: "var(--space-5)", flexWrap: "wrap" as const, fontSize: "var(--text-sm)", color: "var(--ink-soft)" }}>
-            {["完全無料", "営業電話なし", "登録はメールのみ"].map((t) => (
-              <span key={t} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
-                {t}
-              </span>
+          {/* ④ Trust pills — stamp style, bigger */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+            {[
+              { label: "完全無料", sub: "閲覧・面談・登録すべて" },
+              { label: "スカウトなし", sub: "営業電話・メールゼロ" },
+              { label: "30秒で登録", sub: "メールアドレスだけ" },
+            ].map(({ label, sub }) => (
+              <div key={label} style={{
+                display: "inline-flex", alignItems: "center", gap: 9,
+                padding: "8px 14px", borderRadius: 10,
+                background: "#fff", border: "1.5px solid var(--line)",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
+              }}>
+                <div style={{
+                  width: 22, height: 22, borderRadius: "50%",
+                  background: "var(--success-soft)",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={3} strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1 }}>{label}</div>
+                  <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.3, marginTop: 2 }}>{sub}</div>
+                </div>
+              </div>
             ))}
           </div>
 
@@ -230,8 +247,8 @@ function Hero() {
             </div>
 
             {/* Search label */}
-            <div style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
-              ライフスタイルで絞り込む
+            <div style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 8 }}>
+              最新求人を探す
             </div>
 
             {/* Search bar */}
@@ -243,16 +260,17 @@ function Hero() {
               <span style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)" }}>フルリモート・副業OKのSaaS企業</span>
             </div>
 
-            {/* Result count */}
-            {jobs.length > 0 && (
-              <div style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                fontSize: 12, marginBottom: "var(--space-3)", color: "var(--ink-soft)",
-              }}>
-                <span><strong style={{ color: "var(--ink)", fontSize: 14 }}>{jobs.length}</strong> 件が該当</span>
-                <span style={{ color: "var(--success)", fontSize: 11 }}>今日更新</span>
-              </div>
-            )}
+            {/* ② Show total job count directly — no "1件が該当" issue */}
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              fontSize: 12, marginBottom: "var(--space-3)", color: "var(--ink-soft)",
+            }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <span className="animate-blink-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
+                <span>今日更新 · 全 <strong style={{ color: "var(--ink)" }}>155件+</strong></span>
+              </span>
+              <span style={{ fontSize: 10, color: "var(--success)" }}>掲載中</span>
+            </div>
 
             {/* Job list */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -501,18 +519,6 @@ function CompanyMiniCard({ c }: { c: PreviewCompany }) {
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
               社員・OBに聞ける
-            </span>
-          )}
-          {c.employeeCount && (
-            <span style={{
-              fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter",
-              display: "flex", alignItems: "center", gap: 3,
-              marginLeft: "auto",
-            }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              </svg>
-              {c.employeeCount.toLocaleString()}名
             </span>
           )}
         </div>
@@ -784,17 +790,18 @@ function HowItWorks() {
           {STEPS.map((s, i) => (
             <React.Fragment key={i}>
               <div className="card-hover" style={{
-                background: s.highlight ? "linear-gradient(135deg, var(--royal-50) 0%, #fff 100%)" : "#fff",
-                border: `1px solid ${s.highlight ? "var(--royal-100)" : "var(--line)"}`,
+                background: s.highlight ? "linear-gradient(135deg, #FEF9EC 0%, #fff 100%)" : "#fff",
+                border: s.highlight ? "2px solid #D97706" : "1px solid var(--line)",
                 borderRadius: 16, padding: 28,
                 cursor: "default",
                 position: "relative", overflow: "hidden",
+                boxShadow: s.highlight ? "0 8px 32px rgba(245,158,11,0.12)" : "none",
               }}>
                 {/* 背景ステップ数字 */}
                 <div style={{
                   position: "absolute", top: -4, right: 12,
                   fontSize: 96, fontWeight: 900,
-                  color: s.highlight ? "var(--royal)" : "var(--ink)",
+                  color: s.highlight ? "#D97706" : "var(--ink)",
                   opacity: 0.04,
                   fontFamily: "Inter, sans-serif",
                   lineHeight: 1,
@@ -803,7 +810,18 @@ function HowItWorks() {
                 }}>
                   {String(i + 1).padStart(2, "0")}
                 </div>
-                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: "var(--space-3)" }}>{s.step}</div>
+                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: s.highlight ? "#D97706" : "var(--royal)", marginBottom: "var(--space-2)" }}>{s.step}</div>
+                {/* ⑤ OPINIOの強み badge for Step 02 */}
+                {s.highlight && (
+                  <div style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    padding: "3px 10px", borderRadius: 100, marginBottom: 10,
+                    background: "#FEF3C7", border: "1px solid #FDE68A",
+                    fontSize: 10, fontWeight: 700, color: "#D97706",
+                  }}>
+                    ★ OPINIOの強み
+                  </div>
+                )}
                 <div style={{
                   width: 56, height: 56, borderRadius: 14,
                   background: s.iconBg, display: "flex", alignItems: "center", justifyContent: "center",
@@ -884,21 +902,21 @@ function PainPoints() {
                 <p style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 8, lineHeight: 1.5 }}>{p.q}</p>
                 <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-mute)" }}>{p.pain}</p>
               </div>
-              {/* 解決部分 */}
+              {/* ⑦ 解決部分 — green success styling for clear Before→After contrast */}
               <div style={{
-                background: "var(--royal-50)",
-                borderTop: "1px solid var(--royal-100)",
+                background: "linear-gradient(to bottom, #ECFDF5, #F0FDF4)",
+                borderTop: "2px solid var(--success)",
                 padding: "14px 22px 18px",
               }}>
                 <div style={{
-                  fontSize: 11, fontWeight: 700, color: "var(--royal)",
+                  fontSize: 11, fontWeight: 700, color: "var(--success)",
                   letterSpacing: "0.06em", marginBottom: 6,
                   display: "flex", alignItems: "center", gap: 5,
                 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
                   OPINIOなら
                 </div>
-                <p style={{ fontSize: 13, lineHeight: 1.8, color: "#1e3a6e", fontWeight: 500 }}>{p.resolution}</p>
+                <p style={{ fontSize: 13, lineHeight: 1.8, color: "#064E3B", fontWeight: 500 }}>{p.resolution}</p>
               </div>
             </div>
           ))}
@@ -930,6 +948,121 @@ function PainPoints() {
   );
 }
 
+// ─── Mentor Preview ──────────────────────────────────────────────────────────
+
+type PreviewMentor = {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  avatarColor: string;
+  avatarInitial: string;
+  currentCompany: string | null;
+  roles: string[];
+  catchphrase: string | null;
+};
+
+function MentorPreviewSection() {
+  const [mentors, setMentors] = useState<PreviewMentor[]>([]);
+
+  useEffect(() => {
+    fetch("/api/mentors/preview?limit=6")
+      .then((r) => r.json())
+      .then((d) => {
+        const arr = Array.isArray(d) ? d : Array.isArray(d.mentors) ? d.mentors : [];
+        setMentors(arr);
+      })
+      .catch(() => {});
+  }, []);
+
+  if (mentors.length === 0) return null;
+
+  return (
+    <section style={{
+      background: "linear-gradient(155deg, var(--royal-50) 0%, #fff 70%)",
+      borderTop: "1px solid var(--royal-100)",
+      borderBottom: "1px solid var(--royal-100)",
+      padding: "72px 48px",
+    }} className="px-5 py-14 md:py-20 md:px-12">
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <SectionTag>先輩に話を聞く</SectionTag>
+          <h2 style={{ fontSize: "clamp(24px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: 12, letterSpacing: "-0.02em" }}>
+            この先輩に、<span style={{ color: "var(--royal)" }}>話を聞ける。</span>
+          </h2>
+          <p style={{ fontSize: 15, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: 480, margin: "0 auto" }}>
+            IT/SaaS業界で数年先を歩く先輩が、30分無料で話を聞いてくれます。<br />
+            エージェントではなく、リアルな経験者の声。
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          {mentors.slice(0, 6).map((m) => (
+            <Link key={m.id} href={`/mentors/${m.id}`} style={{ textDecoration: "none" }}>
+              <div className="mentor-preview-card" style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 16, padding: "20px 14px",
+                textAlign: "center",
+                transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+                height: "100%",
+              }}>
+                {/* Avatar */}
+                <div style={{
+                  width: 64, height: 64, borderRadius: "50%",
+                  background: m.avatarColor,
+                  margin: "0 auto 12px",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 22, fontWeight: 700, color: "#fff",
+                  overflow: "hidden",
+                  boxShadow: "0 4px 12px rgba(0,35,102,0.15)",
+                  flexShrink: 0,
+                }}>
+                  {m.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.photoUrl} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    m.avatarInitial
+                  )}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{m.name}</div>
+                {m.currentCompany && (
+                  <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 8 }}>{m.currentCompany}</div>
+                )}
+                {m.roles[0] && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                    background: "var(--royal-50)", color: "var(--royal)",
+                    border: "1px solid var(--royal-100)",
+                  }}>{m.roles[0]}</span>
+                )}
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: 40 }}>
+          <Link href="/mentors" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "12px 28px", borderRadius: 8,
+            background: "var(--royal)", color: "#fff",
+            fontSize: 14, fontWeight: 700, textDecoration: "none",
+            boxShadow: "0 4px 16px rgba(0,35,102,0.20)",
+          }}>
+            先輩一覧を見る <ArrowIcon />
+          </Link>
+          <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 10 }}>30分 · 無料 · 営業なし</p>
+        </div>
+      </div>
+      <style>{`
+        .mentor-preview-card:hover {
+          border-color: var(--royal-100) !important;
+          box-shadow: 0 8px 24px rgba(0,35,102,0.10) !important;
+          transform: translateY(-2px) !important;
+        }
+      `}</style>
+    </section>
+  );
+}
+
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
 function FinalCta() {
@@ -949,23 +1082,29 @@ function FinalCta() {
         IT/SaaS業界の企業情報・求人が、ひとつの場所に。<br />
         完全無料・メールアドレスのみで登録。
       </p>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-4)" }}>
-        {/* ⑨ Larger, more prominent amber CTA */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-3)" }}>
+        {/* ⑩ Persuasive final CTA with timing hint */}
         <Link href="/companies" style={{
           display: "inline-flex", alignItems: "center", gap: 10,
-          padding: "18px 52px",
+          padding: "18px 56px",
           background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
-          fontWeight: 800, fontSize: 17, borderRadius: 10, textDecoration: "none",
-          boxShadow: "0 8px 32px rgba(245,158,11,0.45), 0 2px 8px rgba(0,0,0,0.12)",
+          fontWeight: 800, fontSize: 18, borderRadius: 10, textDecoration: "none",
+          boxShadow: "0 8px 32px rgba(245,158,11,0.50), 0 2px 8px rgba(0,0,0,0.12)",
           letterSpacing: "-0.01em",
         }}>
           まず企業を見てみる <ArrowIcon />
         </Link>
+        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: 0 }}>
+          登録不要 · 今すぐ全 79社+ の企業情報を見られます
+        </p>
         <Link href="/auth" style={{
-          fontSize: 13, color: "rgba(255,255,255,0.6)", textDecoration: "none",
+          fontSize: 14, color: "rgba(255,255,255,0.7)", textDecoration: "none",
           display: "flex", alignItems: "center", gap: 4,
+          padding: "8px 20px", border: "1px solid rgba(255,255,255,0.25)",
+          borderRadius: 8, background: "rgba(255,255,255,0.08)",
+          fontWeight: 500,
         }}>
-          無料会員登録はこちら →
+          → メールアドレスで無料登録（30秒）
         </Link>
       </div>
     </section>
@@ -1181,17 +1320,24 @@ function ArticlesPreview() {
   return (
     <section style={{ background: "var(--bg-tint)", borderTop: "1px solid var(--line)", padding: "72px 0" }}>
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "var(--space-8)", flexWrap: "wrap", gap: "var(--space-3)" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "var(--space-8)", flexWrap: "wrap", gap: "var(--space-3)" }}>
           <div>
+            <div style={{
+              fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.12em",
+              color: "var(--royal)", textTransform: "uppercase" as const, marginBottom: "var(--space-2)",
+            }}>
+              独自取材レポート
+            </div>
             <h2 style={{
               fontFamily: 'var(--font-noto-serif)',
-              fontSize: "clamp(22px, 3vw, 28px)", fontWeight: 500,
-              color: "var(--ink)", letterSpacing: "0.04em", marginBottom: 6,
+              fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
+              color: "var(--ink)", letterSpacing: "-0.01em", marginBottom: 8,
             }}>
-              現場から届く、キャリアの声。
+              現役社員に会いに行く、<br />
+              <span style={{ color: "var(--royal)" }}>OPINIO の取材記事。</span>
             </h2>
             <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", lineHeight: 1.7 }}>
-              OPINIO編集部が IT/SaaS 業界の現場に会いに行く、4種類の取材コンテンツ。
+              CEO・社員・メンター・OGへの独自取材。求人票には載らない「中の声」を届けます。
             </p>
           </div>
           <Link href="/articles" style={{
@@ -1335,6 +1481,7 @@ export default function HomePage() {
       <TrustStrip />
       <HowItWorks />
       <FeaturedCompaniesSection />
+      <MentorPreviewSection />
       <PainPoints />
       <StoryFeedSection />
       <ArticlesPreview />
