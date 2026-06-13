@@ -1,16 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
-
-// ── Role data: typewriter labels + synced search placeholders ─────────────────
-const ROLES = [
-  { label: "エンタープライズ営業", placeholder: "エンタープライズ営業 経験5年以上" },
-  { label: "カスタマーサクセス",   placeholder: "カスタマーサクセス + SaaS経験" },
-  { label: "プロダクトマネージャー", placeholder: "PM経験あり、IT業界10年以上" },
-  { label: "インサイドセールス",   placeholder: "インサイドセールス + BtoB経験" },
-  { label: "BizDev",              placeholder: "BizDev + 事業立ち上げ経験" },
-];
 
 // ── Mock Candidates (right side preview) ─────────────────────────────────────
 const MOCK_CANDIDATES = [
@@ -21,6 +11,7 @@ const MOCK_CANDIDATES = [
     role: "フィールドセールス",
     company: "SmartHR 出身",
     tags: ["SaaS営業", "エンタープライズ"],
+    matched: true,
   },
   {
     init: "中",
@@ -29,6 +20,7 @@ const MOCK_CANDIDATES = [
     role: "カスタマーサクセス",
     company: "Salesforce Japan 出身",
     tags: ["CS", "オンボーディング"],
+    matched: true,
   },
   {
     init: "佐",
@@ -37,10 +29,10 @@ const MOCK_CANDIDATES = [
     role: "プロダクトマネージャー",
     company: "Money Forward 出身",
     tags: ["BtoB SaaS", "PM"],
+    matched: false,
   },
 ];
 
-// ── Sub-components ────────────────────────────────────────────────────────────
 function CheckItem({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -76,7 +68,6 @@ function CtaButton() {
             <path d="M5 12h14M13 5l7 7-7 7" />
           </svg>
         </Link>
-        {/* ④ Secondary CTA */}
         <a
           href="mailto:contact@opinio.co.jp"
           style={{
@@ -108,46 +99,6 @@ function CtaButton() {
 
 // ── Hero Component ────────────────────────────────────────────────────────────
 export function BusinessHero() {
-  const [wordIndex, setWordIndex] = useState(0);
-  const [displayed, setDisplayed] = useState("");
-  const [deleting, setDeleting] = useState(false);
-  // placeholder fades out while deleting, fades in when new word starts typing
-  const [phVisible, setPhVisible] = useState(true);
-
-  useEffect(() => {
-    const target = ROLES[wordIndex].label;
-    let timeout: ReturnType<typeof setTimeout>;
-
-    if (!deleting && displayed.length < target.length) {
-      // typing — same speed as jobseeker LP (60ms per char)
-      timeout = setTimeout(() => setDisplayed(target.slice(0, displayed.length + 1)), 60);
-    } else if (!deleting && displayed.length === target.length) {
-      // pause at full word — same as jobseeker LP (1800ms)
-      timeout = setTimeout(() => {
-        setDeleting(true);
-        setPhVisible(false); // fade out placeholder as we start deleting
-      }, 1800);
-    } else if (deleting && displayed.length > 0) {
-      // deleting — same speed as jobseeker LP (35ms per char)
-      timeout = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 35);
-    } else if (deleting && displayed.length === 0) {
-      // advance to next word
-      setDeleting(false);
-      setWordIndex((i) => (i + 1) % ROLES.length);
-    }
-
-    return () => clearTimeout(timeout);
-  }, [displayed, deleting, wordIndex]);
-
-  // fade placeholder back in once we start typing the new word
-  useEffect(() => {
-    if (!deleting && displayed.length === 1) {
-      setPhVisible(true);
-    }
-  }, [deleting, displayed]);
-
-  const currentRole = ROLES[wordIndex];
-
   return (
     <section
       style={{
@@ -159,13 +110,11 @@ export function BusinessHero() {
       }}
       className="px-6 pt-20 pb-24 md:px-12 md:pt-24 md:pb-28"
     >
-      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
-
       <div
         style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
         className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16 items-center"
       >
-        {/* ── Left: Copy ── */}
+        {/* ── Left: Copy（① 静的コピーに変更） ── */}
         <div>
           {/* Badge */}
           <div style={{
@@ -185,58 +134,70 @@ export function BusinessHero() {
             IT/SaaS業界 採用担当者の方へ
           </div>
 
-          {/* H1 — typewriter on line 1, fixed suffix on line 2 */}
+          {/* ① Static H1 — no typewriter, message reads instantly */}
           <h1 style={{
             fontFamily: "var(--font-noto-serif)",
-            fontSize: "clamp(32px, 4.5vw, 52px)",
+            fontSize: "clamp(34px, 4.8vw, 56px)",
             fontWeight: 500,
-            lineHeight: 1.3,
+            lineHeight: 1.25,
             color: "var(--ink)",
             letterSpacing: "-0.02em",
-            marginBottom: 16,
+            marginBottom: 12,
           }}>
-            {/* Typewriter line — royal blue, mirrors jobseeker LP HeroTypewriter */}
-            <span style={{ color: "var(--royal)" }}>
-              {displayed}
-              <span style={{
-                display: "inline-block",
-                width: 2,
-                height: "0.9em",
-                background: "var(--royal)",
-                marginLeft: 2,
-                verticalAlign: "middle",
-                animation: "blink 1s step-end infinite",
-              }} />
-            </span>
-            <br />
-            の即戦力に出会う。
+            スカウトしない、<br />
+            <span style={{ color: "var(--royal)" }}>採用を。</span>
           </h1>
 
           {/* Sub headline */}
           <p style={{
-            fontSize: "clamp(17px, 2vw, 21px)",
+            fontSize: "clamp(16px, 1.8vw, 19px)",
             fontWeight: 700,
             color: "var(--ink)",
             letterSpacing: "-0.01em",
-            marginBottom: 28,
+            marginBottom: 14,
           }}>
-            採用コスト、ゼロから。
+            掲載費ゼロ · 成果報酬のみ。
           </p>
 
-          {/* Checklist */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 40 }}>
-            <CheckItem>完全無料で求人掲載</CheckItem>
-            <CheckItem>営業電話なし</CheckItem>
-            <CheckItem>入社まで一切請求なし</CheckItem>
+          {/* Description */}
+          <p style={{
+            fontSize: 15,
+            color: "var(--ink-soft)",
+            lineHeight: 1.85,
+            marginBottom: 32,
+            maxWidth: 460,
+          }}>
+            応募前にIT業界メンターと面談した、<strong style={{ color: "var(--ink)", fontWeight: 700 }}>本気度の高い候補者だけ</strong>が届きます。
+            スカウト0通で、IT/SaaS即戦力採用を。
+          </p>
+
+          {/* Trust pills */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 36 }}>
+            {[
+              { icon: "✓", label: "掲載・面談まで完全無料" },
+              { icon: "✓", label: "営業電話なし" },
+              { icon: "✓", label: "入社まで請求なし" },
+            ].map(({ icon, label }) => (
+              <span key={label} style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "5px 12px",
+                background: "var(--royal-50)",
+                border: "1px solid var(--royal-100)",
+                borderRadius: 100,
+                fontSize: 12, fontWeight: 600, color: "var(--royal)",
+              }}>
+                <span style={{ color: "var(--success)", fontWeight: 700 }}>{icon}</span>
+                {label}
+              </span>
+            ))}
           </div>
 
           {/* CTA */}
           <CtaButton />
         </div>
 
-        {/* ── Right: Search mockup (synced with typewriter) ── */}
+        {/* ── Right: Candidate search mockup ── */}
         <div className="hidden md:flex justify-center" style={{ position: "relative" }}>
-
           {/* Floating mentor bubble */}
           <div style={{
             position: "absolute",
@@ -265,7 +226,7 @@ export function BusinessHero() {
             </div>
           </div>
 
-          {/* Main search mockup card */}
+          {/* Main candidate list mockup */}
           <div style={{
             background: "#fff",
             borderRadius: 20,
@@ -281,7 +242,7 @@ export function BusinessHero() {
             }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
                 <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--royal)" }}>OPINIO</span>
-                <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 9, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Business</span>
+                <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 9, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>Business</span>
               </div>
               <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--ink-soft)" }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", flexShrink: 0, display: "inline-block" }} />
@@ -289,40 +250,22 @@ export function BusinessHero() {
               </span>
             </div>
 
-            {/* Search label */}
-            <div style={{
-              fontSize: 10, fontWeight: 600, color: "var(--ink-mute)",
-              letterSpacing: "0.06em", textTransform: "uppercase",
-              marginBottom: 8,
-            }}>
+            {/* Search bar — static placeholder */}
+            <div style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 8 }}>
               経験で絞り込む
             </div>
-
-            {/* Search bar — placeholder synced with typewriter wordIndex */}
             <div style={{
               border: "1.5px solid var(--royal)", borderRadius: 8, padding: "10px 14px",
               display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
             }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
               </svg>
-              {/* Placeholder fades with phVisible */}
-              <span style={{
-                fontSize: 13,
-                color: "var(--ink-soft)",
-                opacity: phVisible ? 1 : 0,
-                transition: "opacity 0.25s ease",
-              }}>
-                {currentRole.placeholder}
-              </span>
+              <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>エンタープライズ営業 経験5年以上</span>
             </div>
 
             {/* Result count */}
-            <div style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              fontSize: 12, marginBottom: 12, color: "var(--ink-soft)",
-            }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 12, color: "var(--ink-soft)" }}>
               <span><strong style={{ color: "var(--ink)", fontSize: 14 }}>47</strong> 件が該当</span>
               <span style={{ color: "var(--success)", fontSize: 11 }}>今日更新</span>
             </div>
@@ -332,17 +275,16 @@ export function BusinessHero() {
               {MOCK_CANDIDATES.map((c, i) => (
                 <div key={i} style={{
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 12px", borderRadius: 8, background: "var(--line-soft)",
+                  padding: "10px 12px", borderRadius: 8,
+                  background: c.matched ? "var(--royal-50)" : "var(--line-soft)",
+                  border: c.matched ? "1px solid var(--royal-100)" : "1px solid transparent",
                 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: "50%", background: c.color,
                     color: "#fff", fontSize: 13, fontWeight: 700,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-                  }}>
-                    {c.init}
-                  </div>
+                    flexShrink: 0, boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                  }}>{c.init}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{c.company}</div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{c.name} · {c.role}</div>
@@ -358,11 +300,12 @@ export function BusinessHero() {
                   <div style={{
                     display: "flex", alignItems: "center", gap: 2,
                     padding: "3px 7px",
-                    background: "var(--success-soft)", color: "var(--success)",
+                    background: c.matched ? "var(--success-soft)" : "var(--bg-tint)",
+                    color: c.matched ? "var(--success)" : "var(--ink-mute)",
                     borderRadius: 100, fontSize: 9, fontWeight: 700,
-                    flexShrink: 0, whiteSpace: "nowrap",
+                    flexShrink: 0, whiteSpace: "nowrap" as const,
                   }}>
-                    ★ 面談済
+                    {c.matched ? "★ 面談済" : "未面談"}
                   </div>
                 </div>
               ))}
@@ -380,7 +323,6 @@ export function BusinessHero() {
             </div>
           </div>
         </div>
-
       </div>
     </section>
   );
