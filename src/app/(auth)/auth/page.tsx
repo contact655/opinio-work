@@ -108,47 +108,35 @@ function SocialProofStrip() {
   );
 }
 
-// ─── Brand feature list ──────────────────────────────────────────────────────
-const BRAND_FEATURES = [
+// ─── Mentor card shown in brand panel ────────────────────────────────────────
+const PANEL_MENTORS = [
   {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    ),
-    title: "現役社員にカジュアル面談を申し込める",
-    desc: "気になる企業に直接、30分の対話リクエストを送れます",
+    init: "生",
+    bg: "linear-gradient(135deg,#059669,#047857)",
+    name: "生藤 弘樹",
+    role: "エンタープライズ営業",
+    company: "Salesforce Japan",
+    comment: "外資SaaSの営業キャリアって実際どうなの？と聞かれることが多いので、気軽に話しかけてください。",
+    tags: ["SaaS営業", "外資系"],
   },
   {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <path d="M14 2v6h6M16 13H8M16 17H8" />
-      </svg>
-    ),
-    title: "編集部が直接取材した企業情報",
-    desc: "他では読めない、第三者視点の企業インタビュー記事",
-  },
-  {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
-        <circle cx="11" cy="11" r="8" />
-        <path d="M21 21l-4.3-4.3" />
-      </svg>
-    ),
-    title: "IT/SaaS業界 特化の求人 30件+",
-    desc: "外資・国内SaaSのポジションに、先輩OBからコメント付き",
+    init: "小",
+    bg: "linear-gradient(135deg,#7C3AED,#6D28D9)",
+    name: "小松 耕野",
+    role: "カスタマーサクセス",
+    company: "HubSpot Japan",
+    comment: "CS職への転職を考えている方、SaaS業界の実情をお伝えします。",
+    tags: ["CS", "マーケ"],
   },
 ];
 
-// ─── Left brand panel ────────────────────────────────────────────────────────
+// ─── Left brand panel (new design) ───────────────────────────────────────────
 function BrandSide() {
   return (
     <div
       style={{
-        background: "linear-gradient(155deg,#001233 0%,var(--royal) 50%,#3B5FD9 80%,#5B21B6 100%)",
-        color: "#fff",
-        padding: "44px 48px",
+        background: "linear-gradient(160deg,#edf0fa 0%,#ece8ff 30%,#f6f0ff 60%,#fafafa 100%)",
+        padding: "40px 44px",
         display: "flex",
         flexDirection: "column",
         position: "sticky",
@@ -157,126 +145,125 @@ function BrandSide() {
         overflow: "hidden",
       }}
     >
-      {/* Decorative overlay */}
-      <div
-        style={{
-          position: "absolute", inset: 0, pointerEvents: "none",
-          backgroundImage:
-            "radial-gradient(ellipse 80% 60% at 10% 90%,rgba(255,255,255,0.04) 0%,transparent 60%)," +
-            "radial-gradient(circle at 85% 15%,rgba(91,33,182,0.35) 0%,transparent 50%)",
-        }}
-      />
+      {/* Subtle decorative circles */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+        <div style={{ position: "absolute", width: 320, height: 320, borderRadius: "50%", background: "rgba(59,95,217,0.06)", top: -80, right: -80 }} />
+        <div style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "rgba(124,58,237,0.05)", bottom: 60, left: -60 }} />
+      </div>
 
       <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%" }}>
+
         {/* Logo */}
-        <a
-          href="/"
-          style={{
-            fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 24,
-            letterSpacing: "-0.02em", color: "#fff", textDecoration: "none",
-          }}
-        >
+        <a href="/" style={{ fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: 22, letterSpacing: "-0.02em", color: "var(--royal)", textDecoration: "none" }}>
           OPINIO
         </a>
 
         {/* Main content */}
-        <div style={{ margin: "auto 0" }}>
-          <h2
-            style={{
-              fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 38,
-              lineHeight: 1.5, letterSpacing: "0.03em", marginBottom: 20, color: "#fff",
-            }}
-          >
-            対話の、<br />産業を作る。
-          </h2>
-          <p style={{ fontSize: 15, lineHeight: 1.9, opacity: 0.88, maxWidth: 380, marginBottom: 40, color: "#fff" }}>
-            IT/SaaS業界の先輩に話を聞き、自分のキャリアを<br />
-            一緒に考える場所。
-          </p>
+        <div style={{ marginTop: "auto", marginBottom: "auto" }}>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 380 }}>
-            {BRAND_FEATURES.map((f, i) => (
-              <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <div
-                  style={{
-                    width: 36, height: 36, borderRadius: 10,
-                    background: "rgba(255,255,255,0.15)",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  {f.icon}
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{f.title}</div>
-                  <div style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.6 }}>{f.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Stats */}
-          <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
-            {[
-              { value: "96名+", label: "IT/SaaS人材登録" },
-              { value: "30件+", label: "公開求人" },
-              { value: "16件", label: "取材記事" },
-            ].map(({ value, label }) => (
-              <div
-                key={label}
-                style={{
-                  background: "rgba(255,255,255,0.1)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  borderRadius: 10, padding: "12px 10px", textAlign: "center",
-                }}
-              >
-                <div style={{ fontFamily: "Inter,sans-serif", fontSize: 18, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
-                  {value}
-                </div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", marginTop: 4, fontWeight: 500 }}>
-                  {label}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Social proof avatars */}
-          <div style={{ marginTop: 28, display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex" }}>
-              {[
-                { init: "柴", bg: "linear-gradient(135deg,#002366,#3B5FD9)" },
-                { init: "生", bg: "linear-gradient(135deg,#059669,#047857)" },
-                { init: "木", bg: "linear-gradient(135deg,#7C3AED,#6D28D9)" },
-                { init: "山", bg: "linear-gradient(135deg,#D97706,#B45309)" },
-              ].map((m, i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: 32, height: 32, borderRadius: "50%",
-                    background: m.bg, border: "2.5px solid rgba(255,255,255,0.8)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 11, fontWeight: 700, color: "#fff",
-                    marginLeft: i === 0 ? 0 : -10, flexShrink: 0,
-                  }}
-                >
-                  {m.init}
-                </div>
-              ))}
+          {/* Headline */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "4px 12px", borderRadius: 100, marginBottom: 16,
+              background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+              fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.06em",
+            }}>
+              IT/SaaS業界特化
             </div>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", margin: 0, lineHeight: 1.5 }}>
-              <strong style={{ fontWeight: 700 }}>96名+</strong> のIT/SaaSプロが<br />すでに利用中
+            <h2 style={{
+              fontFamily: "var(--font-noto-serif)", fontWeight: 500,
+              fontSize: "clamp(24px, 2.8vw, 32px)", lineHeight: 1.45,
+              color: "var(--ink)", marginBottom: 12, letterSpacing: "0.01em",
+            }}>
+              先輩に話を聞いてから、<br />キャリアを動かす。
+            </h2>
+            <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.85 }}>
+              外資・SaaS・スタートアップで活躍する先輩に<br />
+              直接相談できる、IT業界特化のキャリアサービス。
             </p>
+          </div>
+
+          {/* Mentor cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+            {PANEL_MENTORS.map((m) => (
+              <div key={m.name} style={{
+                background: "#fff", borderRadius: 14, padding: "16px 18px",
+                border: "1px solid rgba(0,35,102,0.08)",
+                boxShadow: "0 2px 12px rgba(0,35,102,0.06)",
+              }}>
+                {/* Top: avatar + name + company */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: "50%", background: m.bg,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                  }}>{m.init}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{m.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 1 }}>
+                      {m.role} · {m.company}
+                    </div>
+                  </div>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
+                    padding: "4px 10px", borderRadius: 100,
+                    background: "var(--success-soft)", border: "1px solid #A7F3D0",
+                    fontSize: 10, fontWeight: 700, color: "var(--success)",
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
+                    相談受付中
+                  </div>
+                </div>
+                {/* Comment */}
+                <p style={{
+                  fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.75, margin: "0 0 10px",
+                  padding: "10px 12px", background: "var(--bg-tint)", borderRadius: 8,
+                  borderLeft: "3px solid var(--royal-100)",
+                }}>
+                  {m.comment}
+                </p>
+                {/* Tags */}
+                <div style={{ display: "flex", gap: 5 }}>
+                  {m.tags.map((t) => (
+                    <span key={t} style={{
+                      fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
+                      background: "var(--royal-50)", color: "var(--royal)",
+                      border: "1px solid var(--royal-100)",
+                    }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Trust pills */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            {["完全無料", "登録はメールのみ", "営業電話なし"].map((t) => (
+              <span key={t} style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "5px 12px", borderRadius: 100, fontSize: 11, fontWeight: 600,
+                background: "#fff", color: "var(--ink-soft)",
+                border: "1px solid var(--line)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3.5" strokeLinecap="round" aria-hidden>
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {t}
+              </span>
+            ))}
           </div>
         </div>
 
-        {/* Footer links */}
-        <div style={{ fontSize: 11, opacity: 0.45, marginTop: "auto", paddingTop: 16 }}>
+        {/* Footer */}
+        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: "auto", paddingTop: 16, opacity: 0.65 }}>
           © 2026 Opinio, Inc.
           {" · "}
-          <a href="/terms" style={{ color: "rgba(255,255,255,0.6)", textDecoration: "none" }}>利用規約</a>
+          <a href="/terms" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>利用規約</a>
           {" · "}
-          <a href="/privacy" style={{ color: "rgba(255,255,255,0.6)", textDecoration: "none" }}>プライバシー</a>
+          <a href="/privacy" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>プライバシー</a>
         </div>
       </div>
     </div>
