@@ -189,7 +189,6 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
   const MOCK_CANDIDATES = [
     { init: "山", bg: "linear-gradient(135deg,#002366,#3B5FD9)", name: "山田 健太郎", role: "エンタープライズ営業 5年", co: "SmartHR出身", matched: true, tags: ["SaaS営業", "大手開拓"] },
     { init: "中", bg: "linear-gradient(135deg,#059669,#047857)", name: "中村 さやか", role: "カスタマーサクセス 3年", co: "Salesforce Japan出身", matched: true, tags: ["CS", "オンボーディング"] },
-    { init: "佐", bg: "linear-gradient(135deg,#7C3AED,#6D28D9)", name: "佐々木 拓也", role: "プロダクトマネージャー 4年", co: "Money Forward出身", matched: false, tags: ["BtoB SaaS", "PM"] },
   ];
 
   return (
@@ -216,15 +215,11 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
 
       {/* 求職者リンク */}
       <a href="/" className="biz-to-jobseeker" style={{
-        position: "absolute", top: 18, right: 18,
-        padding: "6px 12px",
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 8, fontSize: 11, fontWeight: 500,
-        color: "var(--ink-soft)",
-        display: "inline-flex", alignItems: "center", gap: 5,
+        position: "absolute", top: 20, right: 18,
+        fontSize: 11, fontWeight: 500,
+        color: "var(--ink-mute)",
+        display: "inline-flex", alignItems: "center", gap: 4,
         textDecoration: "none", zIndex: 1,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
       }}>
         求職者の方はこちら →
       </a>
@@ -290,7 +285,7 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
                   届く応募の、<br />質が違う。
                 </h1>
                 <p className="biz-brand-subtitle" style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.85 }}>
-                  応募前にメンター面談を経た<strong style={{ color: "var(--ink)" }}>本気度の高い候補者だけ</strong>が届きます。<br />
+                  IT/SaaSを深く調べた上で応募する、<strong style={{ color: "var(--ink)" }}>本気度の高い候補者だけ</strong>が届きます。<br />
                   入社まで一切費用は発生しません。
                 </p>
               </div>
@@ -381,6 +376,30 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
                   </span>
                 ))}
               </div>
+
+              {/* ⑩ Social proof stats */}
+              <div style={{
+                marginTop: 16, paddingTop: 14,
+                borderTop: "1px solid rgba(0,35,102,0.08)",
+                display: "flex", gap: 0,
+                background: "rgba(255,255,255,0.6)", borderRadius: 10, padding: "12px 14px",
+                border: "1px solid rgba(0,35,102,0.06)",
+              }}>
+                {[
+                  { num: "79社+", label: "掲載中の企業" },
+                  { num: "155件+", label: "公開中の求人" },
+                  { num: "掲載¥0", label: "入社まで無料" },
+                ].map(({ num, label }, i) => (
+                  <div key={label} style={{
+                    flex: 1, textAlign: "center",
+                    borderRight: i < 2 ? "1px solid rgba(0,35,102,0.08)" : "none",
+                    paddingRight: i < 2 ? 12 : 0, paddingLeft: i > 0 ? 12 : 0,
+                  }}>
+                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 800, color: "var(--royal)", lineHeight: 1 }}>{num}</div>
+                    <div style={{ fontSize: 9, color: "var(--ink-mute)", marginTop: 3, lineHeight: 1.3, fontWeight: 600 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
             </>
           )}
         </div>
@@ -427,6 +446,12 @@ function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin
       }}
     >
       <div style={{ maxWidth: 440, margin: "0 auto", width: "100%" }}>
+        {/* ⑨ 求職者リンク — visible on all screens */}
+        <div style={{ textAlign: "right", marginBottom: 10 }}>
+          <a href="/" style={{ fontSize: 11, color: "var(--ink-mute)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            求職者の方はこちら →
+          </a>
+        </div>
         {/* ⑤ Mode tabs — active = solid royal */}
         <ModeTabBar mode={mode} onChange={setMode} />
         {mode === "signup" ? (
@@ -758,9 +783,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         <StepIndicator current={1} total={2} />
 
         <div style={{ marginBottom: 24 }}>
-          <h2 style={titleStyle}>始める。</h2>
+          <h2 style={titleStyle}>採用を、今日から。</h2>
           <p style={subtitleStyle}>
-            アカウント情報を設定してください。<br />
+            アカウント情報を入力してください。<br />
             <strong>掲載費用は無料</strong>、入社まで一切請求なし。
           </p>
         </div>
@@ -782,13 +807,17 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
           G Suite / Google Workspace も対応
         </p>
 
-        {/* OR divider */}
-        <div style={{ display: "flex", alignItems: "center", margin: "20px 0", gap: 12 }}>
-          <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-          <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, whiteSpace: "nowrap" }}>
+        {/* ⑥ OR divider — pill style */}
+        <div style={{ display: "flex", alignItems: "center", margin: "20px 0", gap: 10 }}>
+          <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
+          <span style={{
+            fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap",
+            padding: "3px 10px", background: "var(--bg-tint)",
+            border: "1px solid var(--line)", borderRadius: 100,
+          }}>
             または企業メールで登録
           </span>
-          <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+          <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
         </div>
 
         <form onSubmit={handleStep1Next} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
@@ -823,7 +852,18 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             <PwStrength password={password} />
           </div>
 
-          <button type="submit" style={{ ...submitBtnStyle, marginTop: 20 }}>
+          {/* ⑦ Trust micro-strip above submit */}
+          <div style={{ marginTop: 20, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 14, flexWrap: "wrap" as const }}>
+            {["掲載費¥0", "入社まで請求なし", "即日公開"].map((t) => (
+              <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, color: "var(--ink-mute)", fontWeight: 600 }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3.5" strokeLinecap="round" aria-hidden>
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {t}
+              </span>
+            ))}
+          </div>
+          <button type="submit" style={{ ...submitBtnStyle }}>
             次へ — 企業情報を入力 →
           </button>
           <ImplicitConsent />
@@ -1063,10 +1103,14 @@ function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, route
         }}>推奨</span>
       </button>
 
-      <div style={{ display: "flex", alignItems: "center", margin: "20px 0", gap: 12 }}>
-        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-        <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, whiteSpace: "nowrap" }}>または</span>
-        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+      <div style={{ display: "flex", alignItems: "center", margin: "20px 0", gap: 10 }}>
+        <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
+        <span style={{
+          fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap",
+          padding: "3px 10px", background: "var(--bg-tint)",
+          border: "1px solid var(--line)", borderRadius: 100,
+        }}>または</span>
+        <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
@@ -1121,19 +1165,33 @@ function GoogleLogo() {
   );
 }
 
+const STEP_LABELS = ["アカウント情報", "企業情報"];
+
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-      {Array.from({ length: total }, (_, i) => (
-        <div key={i} style={{
-          flex: 1, height: 3, borderRadius: 99,
-          background: i + 1 <= current ? "var(--royal)" : "var(--line)",
-          transition: "background 0.3s",
-        }} />
-      ))}
-      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", whiteSpace: "nowrap", flexShrink: 0 }}>
-        {current} / {total}
-      </span>
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+        {Array.from({ length: total }, (_, i) => (
+          <div key={i} style={{
+            flex: 1, height: 3, borderRadius: 99,
+            background: i + 1 <= current ? "var(--royal)" : "var(--line)",
+            transition: "background 0.3s",
+          }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        {STEP_LABELS.slice(0, total).map((label, i) => (
+          <span key={label} style={{
+            fontSize: 10, fontWeight: i + 1 <= current ? 700 : 500,
+            color: i + 1 === current ? "var(--royal)" : i + 1 < current ? "var(--success)" : "var(--ink-mute)",
+            display: "flex", alignItems: "center", gap: 3,
+          }}>
+            {i + 1 < current && <span>✓</span>}
+            {i + 1 === current && <span style={{ fontFamily: "Inter", fontWeight: 800 }}>{i + 1}.</span>}
+            {label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1291,16 +1349,18 @@ function ImplicitConsent() {
 function SwitchRow({ label, action, onClick }: { label: string; action: string; onClick: () => void }) {
   return (
     <div style={{
-      textAlign: "center", marginTop: 24, paddingTop: 20,
-      borderTop: "1px solid var(--line)", fontSize: 12, color: "var(--ink-soft)",
+      textAlign: "center", marginTop: 20, paddingTop: 16,
+      borderTop: "1px solid var(--line)",
     }}>
-      {label}
+      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{label}</span>
+      {" "}
       <button type="button" onClick={onClick} style={{
-        background: "none", border: "none", color: "var(--royal)", fontWeight: 600,
-        cursor: "pointer", fontFamily: "inherit", fontSize: 12, marginLeft: 6, padding: 0,
-        textDecoration: "underline",
+        background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
+        color: "var(--royal)", fontWeight: 700,
+        cursor: "pointer", fontFamily: "inherit", fontSize: 12,
+        padding: "4px 12px", borderRadius: 100,
       }}>
-        {action}
+        {action} →
       </button>
     </div>
   );
@@ -1379,14 +1439,14 @@ const subtitleStyle: React.CSSProperties = {
   fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8,
 };
 
-// ② Google button — prominent white card with shadow
+// ④ Google button — prominent, slightly larger
 const googleBtnStyle: React.CSSProperties = {
-  width: "100%", padding: "14px 18px",
+  width: "100%", padding: "15px 18px",
   background: "#fff", color: "var(--ink)",
   border: "1.5px solid #dadce0", borderRadius: 10,
   fontFamily: "inherit", fontSize: 15, fontWeight: 600,
   cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
-  boxShadow: "0 2px 8px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.06)",
+  boxShadow: "0 3px 10px rgba(0,0,0,0.10),0 1px 4px rgba(0,0,0,0.07)",
   transition: "box-shadow 0.2s",
 };
 
