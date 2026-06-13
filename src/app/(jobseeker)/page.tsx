@@ -18,17 +18,20 @@ const PAIN_POINTS = [
   {
     icon: <ClockIcon />,
     q: "情報が古い気がして、応募に踏み切れない",
-    a: "求人票がいつ更新されたのか分からない。OPINIOでは編集部の取材と企業アンケートで情報を更新し続け、更新日も明示します。",
+    pain: "求人票がいつ更新されたのかわからない。鮮度の見えない情報では、動き出せない。",
+    resolution: "OPINIO編集部が定期取材。更新日を明示し、求人票には載らない「今の状態」を届けます。",
   },
   {
     icon: <ChatIcon />,
     q: "求人票には書けない「本当の組織文化」が知りたい",
-    a: "公式情報だけでは、入社後のギャップが怖い。OPINIO編集部が現場メンバーへ直接取材した、生の組織文化レポートを各企業ページで公開しています。",
+    pain: "公式情報だけでは、入社後のギャップが怖い。会社の内側がわからないまま応募するリスク。",
+    resolution: "現役社員・OBへの取材レポートを各企業ページで公開。カジュアル面談で直接確かめることもできます。",
   },
   {
     icon: <PhoneOffIcon />,
     q: "エージェントに登録すると、営業電話が止まらない",
-    a: "登録したら電話・メールラッシュで、冷静に比較できない。OPINIOは電話一切なし、すべてオンラインで自分のペースで進められる設計です。",
+    pain: "登録したら電話・メールラッシュで冷静に比較できない。転職活動が「追われる」感覚に。",
+    resolution: "OPINIOはスカウト・営業電話・メール一切なし。登録後も企業からの連絡は来ません。",
   },
 ];
 
@@ -140,24 +143,24 @@ function Hero({ stats }: { stats: SiteStats }) {
               width: 6, height: 6, borderRadius: "50%", background: "#4ADE80", flexShrink: 0,
               animation: "pulseDot 2.5s ease-in-out infinite",
             }} />
-            IT / SaaS 業界に、特化している。
+            外資系 IT・SaaS・スタートアップに特化
           </div>
 
           {/* Title */}
           <h1 style={{
-            fontSize: "clamp(28px,4.5vw,52px)",
-            fontWeight: 500, lineHeight: 1.4, letterSpacing: "0.01em",
+            fontSize: "clamp(28px,3.8vw,46px)",
+            fontWeight: 700, lineHeight: 1.4, letterSpacing: "-0.01em",
             color: "#fff", marginBottom: "var(--space-6)",
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            <span style={{ color: "#F59E0B" }}>IT/SaaS業界</span>の転職は、<br />
-            OPINIOで。
+            <span style={{ color: "#F59E0B" }}>外資・SaaS</span>の転職は、<br />
+            深く知ってから動く。
           </h1>
 
           {/* Lead */}
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "rgba(255,255,255,0.75)", marginBottom: 40, maxWidth: "var(--max-w-form)" }}>
-            編集部が取材した<strong style={{ color: "#F59E0B" }}>企業情報</strong>と求人票が揃っています。<br />
-            カジュアル面談で確かめて、<strong style={{ color: "#F59E0B" }}>自分のペース</strong>で動けます。
+            外資IT・国内SaaS・スタートアップへの転職情報が一か所に。<br />
+            <strong style={{ color: "#F59E0B" }}>登録不要</strong>で閲覧でき、カジュアル面談で<strong style={{ color: "#F59E0B" }}>現役社員に直接</strong>話を聞けます。
           </p>
 
           {/* CTAs */}
@@ -195,28 +198,22 @@ function Hero({ stats }: { stats: SiteStats }) {
             ))}
           </div>
 
-          {/* Mobile-only key stats strip */}
+          {/* Mobile trust signals */}
           <div className="flex md:hidden" style={{
-            marginTop: 28, gap: 0,
-            background: "rgba(255,255,255,0.08)", borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.15)", overflow: "hidden",
+            marginTop: 24, gap: 8, flexWrap: "wrap" as const,
           }}>
-            {[
-              { value: String(stats.companies), unit: "社", label: "掲載企業" },
-              { value: String(stats.jobs), unit: "件", label: "公開求人" },
-            ].map((s, i) => (
-              <div key={s.label} style={{
-                flex: 1, textAlign: "center", padding: "14px var(--space-2)",
-                borderRight: i < 1 ? "1px solid rgba(255,255,255,0.1)" : "none",
+            {["完全無料", "電話・スカウトなし", "登録不要で閲覧可"].map((t) => (
+              <span key={t} style={{
+                display: "flex", alignItems: "center", gap: 5,
+                fontSize: 12, fontWeight: 600,
+                color: "rgba(255,255,255,0.7)",
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.15)",
+                padding: "4px 10px", borderRadius: 100,
               }}>
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 2 }}>
-                  <span style={{ fontSize: "var(--text-xl)", fontWeight: 700, fontFamily: "Inter, sans-serif", color: "#fff" }}>
-                    {s.value}
-                  </span>
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "#F59E0B" }}>{s.unit}</span>
-                </div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2, fontWeight: 500 }}>{s.label}</div>
-              </div>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth={2.5} strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
+                {t}
+              </span>
             ))}
           </div>
 
@@ -307,7 +304,7 @@ function Hero({ stats }: { stats: SiteStats }) {
                         }}>
                           {job.logoUrl
                             ? <Image src={job.logoUrl} alt={job.companyName} width={34} height={34} style={{ objectFit: "contain" }} />
-                            : job.logoLetter}
+                            : (job.logoLetter || job.companyName[0])}
                         </div>
                         {/* テキスト */}
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -628,6 +625,98 @@ function CompanyMiniCardSkeleton() {
   );
 }
 
+// ─── Trust Strip (social proof) ───────────────────────────────────────────────
+
+type PreviewMentorMin = {
+  id: string;
+  name: string;
+  color: string;
+  photoUrl: string | null;
+  initial: string;
+};
+
+function TrustStrip() {
+  const [mentors, setMentors] = useState<PreviewMentorMin[]>([]);
+
+  useEffect(() => {
+    fetch("/api/mentors/preview?limit=6")
+      .then((r) => r.json())
+      .then((d) => setMentors(Array.isArray(d.mentors) ? d.mentors : []))
+      .catch(() => {});
+  }, []);
+
+  return (
+    <section style={{
+      background: "#fff",
+      borderBottom: "1px solid var(--line)",
+      borderTop: "1px solid var(--line)",
+      padding: "18px 48px",
+    }} className="px-5 md:px-12">
+      <div style={{
+        maxWidth: 1200, margin: "0 auto",
+        display: "flex", alignItems: "center",
+        justifyContent: "center", gap: 32, flexWrap: "wrap" as const,
+      }}>
+        {/* メンターアバター */}
+        {mentors.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex" }}>
+              {mentors.slice(0, 5).map((m, i) => (
+                <div key={m.id} style={{
+                  width: 34, height: 34, borderRadius: "50%",
+                  border: "2px solid #fff",
+                  marginLeft: i > 0 ? -10 : 0,
+                  overflow: "hidden",
+                  background: m.color,
+                  flexShrink: 0,
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+                  zIndex: 5 - i,
+                  position: "relative",
+                }}>
+                  {m.photoUrl
+                    ? <img src={m.photoUrl} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : <span style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>{m.initial}</span>
+                  }
+                </div>
+              ))}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
+                {mentors.length}名の現役IT社員が登録中
+              </div>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+                カジュアル面談で直接話を聞ける
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 区切り */}
+        {mentors.length > 0 && (
+          <div style={{ width: 1, height: 28, background: "var(--line)" }} className="hidden sm:block" />
+        )}
+
+        {/* Trust signals */}
+        {[
+          { icon: "✓", text: "編集部取材済み企業のみ掲載" },
+          { icon: "✓", text: "スカウト・電話なし" },
+          { icon: "✓", text: "登録不要で閲覧可" },
+        ].map(({ text }) => (
+          <div key={text} style={{
+            display: "flex", alignItems: "center", gap: 5,
+            fontSize: 13, color: "var(--ink-soft)", fontWeight: 500,
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+            {text}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ─── Logo Strip Section ───────────────────────────────────────────────────────
 
 function LogoStripSection() {
@@ -833,7 +922,7 @@ function InfraSection() {
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <SectionTag>他社との違い</SectionTag>
-          <h2 style={{ fontSize: "clamp(24px,3vw,34px)", fontWeight: 700, color: "var(--ink)", marginTop: "var(--space-4)", marginBottom: "var(--space-3)" }}>
+          <h2 style={{ fontSize: "clamp(28px,3.5vw,42px)", fontWeight: 700, color: "var(--ink)", marginTop: "var(--space-4)", marginBottom: "var(--space-3)", letterSpacing: "-0.01em" }}>
             他のキャリアサービスと、ここが違う。
           </h2>
           <p style={{ fontSize: "var(--text-md)", color: "var(--ink-soft)", lineHeight: 1.8 }}>
@@ -917,7 +1006,7 @@ function HowItWorks() {
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <SectionTag>使い方</SectionTag>
-          <h2 style={{ fontSize: "clamp(26px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: "var(--space-4)" }}>
+          <h2 style={{ fontSize: "clamp(28px,3.5vw,42px)", fontWeight: 700, color: "var(--ink)", marginBottom: "var(--space-4)", letterSpacing: "-0.01em" }}>
             OPINIOの、使い方
           </h2>
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: "var(--max-w-form)", margin: "0 auto" }}>
@@ -934,7 +1023,21 @@ function HowItWorks() {
                 border: `1px solid ${s.highlight ? "var(--royal-100)" : "var(--line)"}`,
                 borderRadius: 16, padding: 28,
                 cursor: "default",
+                position: "relative", overflow: "hidden",
               }}>
+                {/* 背景ステップ数字 */}
+                <div style={{
+                  position: "absolute", top: -4, right: 12,
+                  fontSize: 96, fontWeight: 900,
+                  color: s.highlight ? "var(--royal)" : "var(--ink)",
+                  opacity: 0.04,
+                  fontFamily: "Inter, sans-serif",
+                  lineHeight: 1,
+                  userSelect: "none" as const,
+                  pointerEvents: "none",
+                }}>
+                  {String(i + 1).padStart(2, "0")}
+                </div>
                 <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: "var(--space-3)" }}>{s.step}</div>
                 <div style={{
                   width: 48, height: 48, borderRadius: 12,
@@ -981,7 +1084,7 @@ function PainPoints() {
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <SectionTag>よくある悩み</SectionTag>
-          <h2 style={{ fontSize: "clamp(26px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: "var(--space-4)" }}>
+          <h2 style={{ fontSize: "clamp(28px,3.5vw,42px)", fontWeight: 700, color: "var(--ink)", marginBottom: "var(--space-4)", letterSpacing: "-0.01em" }}>
             転職活動、こんな不便ありませんか？
           </h2>
           <p style={{ fontSize: "var(--text-md)", lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: 600, margin: "0 auto" }}>
@@ -993,23 +1096,43 @@ function PainPoints() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {PAIN_POINTS.map((p, i) => (
             <div key={i} style={{
-              background: "#fff", borderRadius: 16, padding: 24,
+              background: "#fff", borderRadius: 16,
               border: "1px solid var(--line)",
               boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              overflow: "hidden",
               transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
             }}
               className="pain-card"
             >
-              <div style={{
-                width: 48, height: 48, borderRadius: 12,
-                background: "var(--royal-50)", color: "var(--royal)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                marginBottom: "var(--space-4)",
-              }}>
-                {p.icon}
+              {/* 問題部分 */}
+              <div style={{ padding: "22px 22px 18px" }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: "#FEF2F2", color: "#DC2626",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  marginBottom: "var(--space-3)", flexShrink: 0,
+                }}>
+                  {p.icon}
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 8, lineHeight: 1.5 }}>{p.q}</p>
+                <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-mute)" }}>{p.pain}</p>
               </div>
-              <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)", marginBottom: 10, lineHeight: 1.5 }}>{p.q}</p>
-              <p style={{ fontSize: "var(--text-sm)", lineHeight: 1.9, color: "var(--ink-soft)" }}>{p.a}</p>
+              {/* 解決部分 */}
+              <div style={{
+                background: "var(--royal-50)",
+                borderTop: "1px solid var(--royal-100)",
+                padding: "14px 22px 18px",
+              }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, color: "var(--royal)",
+                  letterSpacing: "0.06em", marginBottom: 6,
+                  display: "flex", alignItems: "center", gap: 5,
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  OPINIOなら
+                </div>
+                <p style={{ fontSize: 13, lineHeight: 1.8, color: "#1e3a6e", fontWeight: 500 }}>{p.resolution}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -1209,21 +1332,22 @@ function FinalCta() {
         完全無料・メールアドレスのみで登録。
       </p>
       <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "center", flexWrap: "wrap" as const }}>
-        <Link href="/auth" style={{
-          display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
-          padding: "var(--space-4) var(--space-8)", background: "#fff", color: "var(--royal)",
-          fontWeight: 700, fontSize: 15, borderRadius: 8, textDecoration: "none",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-        }}>
-          無料登録する <ArrowIcon />
-        </Link>
         <Link href="/companies" style={{
           display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
-          padding: "var(--space-4) var(--space-8)", background: "transparent", color: "#fff",
-          fontWeight: 600, fontSize: 15, borderRadius: 8, textDecoration: "none",
-          border: "1.5px solid rgba(255,255,255,0.5)",
+          padding: "var(--space-4) var(--space-8)",
+          background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
+          fontWeight: 700, fontSize: 15, borderRadius: 8, textDecoration: "none",
+          boxShadow: "0 4px 20px rgba(245,158,11,0.4)",
         }}>
-          まず企業を見てみる
+          まず企業を見てみる <ArrowIcon />
+        </Link>
+        <Link href="/auth" style={{
+          display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
+          padding: "var(--space-4) var(--space-8)", background: "transparent", color: "rgba(255,255,255,0.85)",
+          fontWeight: 600, fontSize: 15, borderRadius: 8, textDecoration: "none",
+          border: "1.5px solid rgba(255,255,255,0.4)",
+        }}>
+          無料登録する
         </Link>
       </div>
     </section>
@@ -1573,12 +1697,12 @@ export default function HomePage() {
   return (
     <>
       <Hero stats={stats} />
+      <TrustStrip />
       <HowItWorks />
       <LogoStripSection />
       <DiffStrip />
       <FeaturedCompaniesSection />
       <StoryFeedSection />
-      <StatsStrip stats={stats} />
       <InfraSection />
       <PainPoints />
       <UserTestimonials />
