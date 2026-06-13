@@ -13,6 +13,35 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🎯 次のセッションでやること（2026-06-13 セッション20 更新）
+
+### ✅ 完了 2026-06-13 セッション20: LP 9項目 UX 改善 + medimo 新規企業追加
+
+  **株式会社medimo 新規追加（Migration 169）:**
+  - `supabase/migrations/169_add_medimo.sql` — 企業プロフィール + 25件求人
+  - Medical AI・シリーズA・東京都港区（虎ノ門33森ビル）・設立2022年・ハイブリッド
+  - 25ポジション: ML Engineer / Full Stack / Mobile / SRE / VPoE / EM / UI/UX Designer / 営業 / BizDev / コーポレート 等
+  - Source: https://hrmos.co/pages/medimo/jobs / https://recruit.medimo.ai/
+  - ⚠️ **手動適用が必要**: Supabase SQL Editor で `supabase/migrations/169_add_medimo.sql` を実行
+
+  **LP（`src/app/(jobseeker)/page.tsx`）9項目改善（commit `860ccb8`）:**
+  - ① h1: "外資・SaaSの転職は、深く知ってから動く。" 2行・`clamp(28px,3.8vw,46px)`
+  - ② eyebrow: "外資系 IT・SaaS・スタートアップに特化"
+  - ③ StatsStrip（79社・155件）削除 → 数字を出さない方針
+  - ④ lead text: 「登録不要」「現役社員に直接」をアンバー強調
+  - ⑤ trust pills 追加: 完全無料 / 営業電話なし / 登録はメールのみ（hero 下部）
+  - ⑥ TrustStrip コンポーネント追加（Hero直後）: メンター円形写真オーバーラップ + 信頼シグナル3点
+  - ⑦ PainPoints: 2ゾーンカード（問題=白背景 red icon / OPINIOなら=royal-50 背景）
+  - ⑧ HowItWorks: 背景に大きなステップ番号（opacity 0.04 ウォーターマーク）
+  - ⑨ FinalCta: amber/orange を primary に、ghost を secondary に（ビズリーチ等競合と同等の視認性）
+
+### 🟢 次の優先候補（2026-06-13 セッション20後）
+- **Migration 168 の手動適用** — Archi Village 18求人表示
+- **Migration 169 の手動適用** — medimo 25求人表示
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+
+---
+
 ## 🎯 次のセッションでやること（2026-06-13 セッション19 更新）
 
 ### ✅ 完了 2026-06-13 セッション19: Archi Village 企業情報・求人データ充実 + Jobs UX 6改善のESLint修正
