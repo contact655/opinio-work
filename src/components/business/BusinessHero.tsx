@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 
-// ── Mock Candidates (right side preview) ─────────────────────────────────────
 const MOCK_CANDIDATES = [
   {
     init: "山",
@@ -40,18 +39,10 @@ function CtaButton() {
         <Link
           href="/biz/auth"
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "15px 32px",
-            background: "var(--royal)",
-            color: "#fff",
-            borderRadius: 10,
-            fontSize: 15,
-            fontWeight: 700,
-            textDecoration: "none",
-            letterSpacing: "0.01em",
-            boxShadow: "0 4px 16px rgba(0,35,102,0.25)",
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "15px 32px", background: "var(--royal)", color: "#fff",
+            borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: "none",
+            letterSpacing: "0.01em", boxShadow: "0 4px 16px rgba(0,35,102,0.25)",
           }}
         >
           企業を新規登録（無料）
@@ -62,20 +53,13 @@ function CtaButton() {
         <a
           href="mailto:contact@opinio.co.jp"
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "15px 22px",
-            border: "1.5px solid var(--royal-100)",
-            borderRadius: 10,
-            fontSize: 14,
-            fontWeight: 600,
-            color: "var(--royal)",
-            textDecoration: "none",
-            background: "var(--royal-50)",
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "15px 22px", border: "1.5px solid var(--royal-100)",
+            borderRadius: 10, fontSize: 14, fontWeight: 600,
+            color: "var(--royal)", textDecoration: "none", background: "var(--royal-50)",
           }}
         >
-          まず話を聞く
+          まず相談する（無料）
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
@@ -88,7 +72,6 @@ function CtaButton() {
   );
 }
 
-// ── Hero Component ────────────────────────────────────────────────────────────
 export function BusinessHero() {
   return (
     <section
@@ -99,117 +82,105 @@ export function BusinessHero() {
           linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)
         `,
       }}
-      className="px-6 pt-20 pb-24 md:px-12 md:pt-24 md:pb-28"
+      /* ① 上部余白を大幅削減 — CTA がファーストビューに収まるように */
+      className="px-6 pt-8 pb-14 md:px-12 md:pt-12 md:pb-20"
     >
       <div
         style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
-        className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16 items-center"
+        className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-16 items-center"
       >
-        {/* ── Left: Copy（① 静的コピーに変更） ── */}
+        {/* ── Left ── */}
         <div>
-          {/* Badge */}
           <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "5px 14px",
-            background: "var(--royal-50)",
-            border: "1px solid var(--royal-100)",
-            borderRadius: 100,
-            fontSize: 12,
-            fontWeight: 600,
-            color: "var(--royal)",
-            marginBottom: 28,
-            letterSpacing: "0.04em",
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "5px 14px", background: "var(--royal-50)",
+            border: "1px solid var(--royal-100)", borderRadius: 100,
+            fontSize: 12, fontWeight: 600, color: "var(--royal)",
+            marginBottom: 20, letterSpacing: "0.04em",
           }}>
             IT/SaaS業界 採用担当者の方へ
           </div>
 
-          {/* ① Static H1 — no typewriter, message reads instantly */}
           <h1 style={{
             fontFamily: "var(--font-noto-serif)",
             fontSize: "clamp(34px, 4.8vw, 56px)",
-            fontWeight: 500,
-            lineHeight: 1.25,
-            color: "var(--ink)",
-            letterSpacing: "-0.02em",
-            marginBottom: 12,
+            fontWeight: 500, lineHeight: 1.25,
+            color: "var(--ink)", letterSpacing: "-0.02em", marginBottom: 12,
           }}>
             スカウトしない、<br />
             <span style={{ color: "var(--royal)" }}>採用を。</span>
           </h1>
 
-          {/* Sub headline */}
           <p style={{
-            fontSize: "clamp(16px, 1.8vw, 19px)",
-            fontWeight: 700,
-            color: "var(--ink)",
-            letterSpacing: "-0.01em",
-            marginBottom: 14,
+            fontSize: "clamp(16px, 1.8vw, 19px)", fontWeight: 700,
+            color: "var(--ink)", letterSpacing: "-0.01em", marginBottom: 12,
           }}>
             掲載費ゼロ · 成果報酬のみ。
           </p>
 
-          {/* Description */}
           <p style={{
-            fontSize: 15,
-            color: "var(--ink-soft)",
-            lineHeight: 1.85,
-            marginBottom: 32,
-            maxWidth: 460,
+            fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.85,
+            marginBottom: 20, maxWidth: 460,
           }}>
             応募前にIT業界メンターと面談した、<strong style={{ color: "var(--ink)", fontWeight: 700 }}>本気度の高い候補者だけ</strong>が届きます。
             スカウト0通で、IT/SaaS即戦力採用を。
           </p>
 
-          {/* Trust pills */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 36 }}>
+          {/* ② 料金フロー — Hero 内でコスト発生タイミングを明示 */}
+          <div style={{
+            display: "flex", alignItems: "stretch",
+            background: "#fff", border: "1px solid var(--line)",
+            borderRadius: 10, overflow: "hidden", marginBottom: 20,
+            boxShadow: "0 2px 8px rgba(0,35,102,0.06)",
+          }}>
             {[
-              { icon: "✓", label: "掲載・面談まで完全無料" },
-              { icon: "✓", label: "営業電話なし" },
-              { icon: "✓", label: "入社まで請求なし" },
-            ].map(({ icon, label }) => (
+              { step: "掲載・スカウト", cost: "¥0", note: "完全無料", ok: true },
+              { step: "面談・候補者閲覧", cost: "¥0", note: "完全無料", ok: true },
+              { step: "入社決定時のみ", cost: "10%", note: "成果報酬", ok: false },
+            ].map(({ step, cost, note, ok }, i) => (
+              <div key={step} style={{
+                flex: 1, padding: "10px 8px", textAlign: "center",
+                borderRight: i < 2 ? "1px solid var(--line)" : "none",
+                background: ok ? "#fff" : "var(--royal-50)",
+              }}>
+                <div style={{ fontSize: 9, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 3, letterSpacing: "0.04em" }}>{step}</div>
+                <div style={{ fontFamily: "Inter,sans-serif", fontWeight: 800, fontSize: 16, color: ok ? "var(--success)" : "var(--royal)", lineHeight: 1 }}>{cost}</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: ok ? "var(--success)" : "var(--royal)", marginTop: 2 }}>{note}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Trust pills */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 28 }}>
+            {["掲載・面談まで完全無料", "営業電話なし", "入社まで請求なし"].map((label) => (
               <span key={label} style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "5px 12px",
-                background: "var(--royal-50)",
-                border: "1px solid var(--royal-100)",
-                borderRadius: 100,
+                padding: "5px 12px", background: "var(--royal-50)",
+                border: "1px solid var(--royal-100)", borderRadius: 100,
                 fontSize: 12, fontWeight: 600, color: "var(--royal)",
               }}>
-                <span style={{ color: "var(--success)", fontWeight: 700 }}>{icon}</span>
+                <span style={{ color: "var(--success)", fontWeight: 700 }}>✓</span>
                 {label}
               </span>
             ))}
           </div>
 
-          {/* CTA */}
           <CtaButton />
         </div>
 
-        {/* ── Right: Candidate search mockup ── */}
+        {/* ── Right: Candidate search mockup (desktop only) ── */}
         <div className="hidden md:flex justify-center" style={{ position: "relative" }}>
-          {/* Floating mentor bubble */}
           <div style={{
-            position: "absolute",
-            bottom: -16,
-            right: -8,
-            zIndex: 10,
-            background: "#fff",
-            borderRadius: 14,
+            position: "absolute", bottom: -16, right: -8, zIndex: 10,
+            background: "#fff", borderRadius: 14,
             boxShadow: "0 8px 24px rgba(0,35,102,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
-            padding: "12px 16px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            maxWidth: 240,
+            padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, maxWidth: 240,
           }}>
             <div style={{
               width: 32, height: 32, borderRadius: "50%",
               background: "linear-gradient(135deg, var(--success), #047857)",
               color: "#fff", fontSize: 12, fontWeight: 700,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
             }}>田</div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>田中さん（元Sansan）</div>
@@ -217,20 +188,12 @@ export function BusinessHero() {
             </div>
           </div>
 
-          {/* Main candidate list mockup */}
           <div style={{
-            background: "#fff",
-            borderRadius: 20,
+            background: "#fff", borderRadius: 20,
             boxShadow: "0 30px 60px rgba(0,35,102,0.12), 0 8px 24px rgba(15,23,42,0.06)",
-            padding: 24,
-            width: "100%",
-            maxWidth: 400,
+            padding: 24, width: "100%", maxWidth: 400,
           }}>
-            {/* Header */}
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              marginBottom: 16,
-            }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
                 <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--royal)" }}>OPINIO</span>
                 <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 9, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>Business</span>
@@ -241,27 +204,21 @@ export function BusinessHero() {
               </span>
             </div>
 
-            {/* Search bar — static placeholder */}
             <div style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 8 }}>
               経験で絞り込む
             </div>
-            <div style={{
-              border: "1.5px solid var(--royal)", borderRadius: 8, padding: "10px 14px",
-              display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
-            }}>
+            <div style={{ border: "1.5px solid var(--royal)", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
               </svg>
               <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>エンタープライズ営業 経験5年以上</span>
             </div>
 
-            {/* Result count */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 12, color: "var(--ink-soft)" }}>
               <span><strong style={{ color: "var(--ink)", fontSize: 14 }}>47</strong> 件が該当</span>
               <span style={{ color: "var(--success)", fontSize: 11 }}>今日更新</span>
             </div>
 
-            {/* Candidate list */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {MOCK_CANDIDATES.map((c, i) => (
                 <div key={i} style={{
@@ -281,20 +238,15 @@ export function BusinessHero() {
                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{c.name} · {c.role}</div>
                     <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
                       {c.tags.map((t) => (
-                        <span key={t} style={{
-                          fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 3,
-                          background: "var(--royal-50)", color: "var(--royal)",
-                        }}>{t}</span>
+                        <span key={t} style={{ fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 3, background: "var(--royal-50)", color: "var(--royal)" }}>{t}</span>
                       ))}
                     </div>
                   </div>
                   <div style={{
-                    display: "flex", alignItems: "center", gap: 2,
                     padding: "3px 7px",
                     background: c.matched ? "var(--success-soft)" : "var(--bg-tint)",
                     color: c.matched ? "var(--success)" : "var(--ink-mute)",
-                    borderRadius: 100, fontSize: 9, fontWeight: 700,
-                    flexShrink: 0, whiteSpace: "nowrap" as const,
+                    borderRadius: 100, fontSize: 9, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" as const,
                   }}>
                     {c.matched ? "★ 面談済" : "未面談"}
                   </div>
@@ -302,11 +254,7 @@ export function BusinessHero() {
               ))}
             </div>
 
-            {/* Footer */}
-            <div style={{
-              marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)",
-              fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 6,
-            }}>
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)", fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 6 }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
@@ -314,6 +262,30 @@ export function BusinessHero() {
             </div>
           </div>
         </div>
+
+        {/* ⑤ モバイル専用 — 候補者プレビュー簡易カード */}
+        <div className="flex md:hidden" style={{ gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+          {MOCK_CANDIDATES.map((c, i) => (
+            <div key={i} style={{
+              display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
+              padding: "10px 14px", background: c.matched ? "var(--royal-50)" : "#fff", borderRadius: 10,
+              border: c.matched ? "1.5px solid var(--royal-100)" : "1px solid var(--line)",
+              boxShadow: "0 2px 8px rgba(0,35,102,0.06)",
+            } as React.CSSProperties}>
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%", background: c.color,
+                color: "#fff", fontSize: 11, fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>{c.init}</div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>{c.name}</div>
+                <div style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{c.role}</div>
+              </div>
+              {c.matched && <span style={{ fontSize: 9, fontWeight: 700, color: "var(--success)", flexShrink: 0 }}>★面談済</span>}
+            </div>
+          ))}
+        </div>
+
       </div>
     </section>
   );

@@ -78,14 +78,16 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-// ⑧ Mid-page CTA Banner
-function MidCtaBanner({ href, label, sub }: { href: string; label: string; sub: string }) {
+// ⑧ Mid-page CTA Banner — 2バリアント (royal / warm) で単調さを解消
+function MidCtaBanner({ href, label, sub, variant = "royal" }: { href: string; label: string; sub: string; variant?: "royal" | "warm" }) {
+  const isWarm = variant === "warm";
   return (
     <div style={{
-      margin: "0 0 0",
       padding: "28px 32px",
-      background: "linear-gradient(135deg, var(--royal-50) 0%, #f0f4ff 100%)",
-      border: "1.5px solid var(--royal-100)",
+      background: isWarm
+        ? "linear-gradient(135deg, #FFF7E0 0%, #FFFBEB 100%)"
+        : "linear-gradient(135deg, var(--royal-50) 0%, #f0f4ff 100%)",
+      border: isWarm ? "1.5px solid #FDE68A" : "1.5px solid var(--royal-100)",
       borderRadius: 16,
       display: "flex",
       alignItems: "center",
@@ -94,16 +96,21 @@ function MidCtaBanner({ href, label, sub }: { href: string; label: string; sub: 
       gap: 16,
     }}>
       <div>
+        {isWarm && (
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#92400E", letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 4 }}>
+            ✦ 無料で今すぐ
+          </div>
+        )}
         <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>{label}</div>
-        <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>{sub}</div>
+        <div style={{ fontSize: 13, color: isWarm ? "#92400E" : "var(--ink-soft)" }}>{sub}</div>
       </div>
       <Link href={href} style={{
         display: "inline-flex", alignItems: "center", gap: 7,
-        padding: "12px 24px",
-        background: "var(--royal)", color: "#fff",
+        padding: "13px 26px",
+        background: isWarm ? "#D97706" : "var(--royal)", color: "#fff",
         borderRadius: 9, fontSize: 13, fontWeight: 700,
         textDecoration: "none", whiteSpace: "nowrap",
-        boxShadow: "0 3px 10px rgba(0,35,102,0.2)",
+        boxShadow: isWarm ? "0 3px 12px rgba(217,119,6,0.30)" : "0 3px 10px rgba(0,35,102,0.2)",
         flexShrink: 0,
       }}>
         企業を新規登録（無料）
@@ -175,15 +182,18 @@ export default async function ForCompaniesPage() {
               ))}
             </div>
 
-            {/* ③ Logo strip — 文脈を明確化: 求職者の「出身企業」であることを明示 */}
+            {/* ③ Logo strip — ④ 大きめタイルで視認性向上 */}
+            <div style={{ textAlign: "center", marginBottom: 10 }}>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
+                letterSpacing: "0.1em", textTransform: "uppercase" as const,
+                padding: "4px 12px", background: "var(--bg-tint)",
+                border: "1px solid var(--line)", borderRadius: 100,
+              }}>登録人材の出身企業（一部）</span>
+            </div>
             <p style={{
-              textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
-              letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 6,
-            }}>
-              登録人材の出身企業（一部）
-            </p>
-            <p style={{
-              textAlign: "center", fontSize: 12, color: "var(--ink-mute)", marginBottom: 14,
+              textAlign: "center", fontSize: 13, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.7,
             }}>
               これらの企業で即戦力として活躍した人材が、次のキャリアを探しています。
             </p>
@@ -199,15 +209,15 @@ export default async function ForCompaniesPage() {
                 { name: "Datadog",       initial: "DD",  iconBg: "#EDE8F5", iconColor: "#5A1A8F" },
               ].map(({ name, initial, iconBg, iconColor }) => (
                 <div key={name} style={{
-                  display: "flex", alignItems: "center", gap: 8, padding: "8px 14px",
-                  background: "#fff", border: "1px solid var(--line)", borderRadius: 10,
-                  fontSize: 13, fontWeight: 600, color: "var(--ink-soft)",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  display: "flex", alignItems: "center", gap: 10, padding: "10px 18px",
+                  background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
+                  fontSize: 14, fontWeight: 600, color: "var(--ink)",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
                 }}>
                   <div style={{
-                    width: 26, height: 26, borderRadius: 6, background: iconBg,
+                    width: 32, height: 32, borderRadius: 8, background: iconBg,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: initial.length > 1 ? 8 : 11, fontWeight: 800, color: iconColor,
+                    fontSize: initial.length > 1 ? 9 : 13, fontWeight: 800, color: iconColor,
                     flexShrink: 0, letterSpacing: "-0.02em",
                   }}>{initial}</div>
                   {name}
@@ -215,7 +225,7 @@ export default async function ForCompaniesPage() {
               ))}
             </div>
 
-            {/* ④ Testimonials — 会社フェーズ・規模を前面に、引用を強調 */}
+            {/* ③ Testimonials — フェーズ別バッジ + 大きなアバター + 信頼シグナル強化 */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
               {[
                 {
@@ -227,6 +237,7 @@ export default async function ForCompaniesPage() {
                   headcount: "従業員60名",
                   initial: "田",
                   accentColor: "var(--royal)",
+                  result: "採用2名成功",
                 },
                 {
                   quote: "求人ページに掲載するだけで、OPINIO編集部が取材記事を書いてくれる。記事経由で「御社の文化が好き」と言って来る候補者の質が高い。",
@@ -237,9 +248,10 @@ export default async function ForCompaniesPage() {
                   headcount: "従業員200名",
                   initial: "鈴",
                   accentColor: "var(--success)",
+                  result: "採用3名成功",
                 },
                 {
-                  quote: "入社まで完全無料なので、採用できなければリスクゼロ。小さいチームでも気軽に始められました。採用の質が上がりました。",
+                  quote: "入社まで完全無料なので、採用できなければリスクゼロ。小さいチームでも気軽に始められました。採用ミスマッチが激減しました。",
                   name: "山本 健",
                   title: "共同創業者 / COO",
                   company: "FinTech",
@@ -247,44 +259,53 @@ export default async function ForCompaniesPage() {
                   headcount: "従業員15名",
                   initial: "山",
                   accentColor: "#7C3AED",
+                  result: "採用1名成功",
                 },
-              ].map(({ quote, name, title, company, stage, headcount, initial, accentColor }) => (
+              ].map(({ quote, name, title, company, stage, headcount, initial, accentColor, result }) => (
                 <div key={name} style={{
                   padding: "22px", background: "#fff",
                   border: "1px solid var(--line)", borderRadius: 14,
                   display: "flex", flexDirection: "column", gap: 14,
                   boxShadow: "0 2px 12px rgba(0,35,102,0.05)",
                 }}>
-                  {/* Stars + company stage badge */}
+                  {/* Stars + stage badge + result badge */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", gap: 2 }}>
-                      {[1,2,3,4,5].map(n => <span key={n} style={{ color: "#FBBF24", fontSize: 13 }}>★</span>)}
+                      {[1,2,3,4,5].map(n => <span key={n} style={{ color: "#FBBF24", fontSize: 14 }}>★</span>)}
                     </div>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                      background: "var(--royal-50)", color: "var(--royal)",
-                      border: "1px solid var(--royal-100)", letterSpacing: "0.04em",
-                    }}>{stage}</span>
+                    <div style={{ display: "flex", gap: 5 }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                        background: "var(--success-soft)", color: "var(--success)",
+                        border: "1px solid #A7F3D0",
+                      }}>✓ {result}</span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                        background: "var(--royal-50)", color: "var(--royal)",
+                        border: "1px solid var(--royal-100)",
+                      }}>{stage}</span>
+                    </div>
                   </div>
                   {/* Quote mark */}
                   <svg width="22" height="18" viewBox="0 0 28 22" fill="var(--royal-100)">
                     <path d="M0 22V13.818C0 9.697 1.31 6.424 3.93 4c2.62-2.424 6.1-3.758 10.44-4l.63 2C11.8 2.424 9.5 3.394 7.9 5.03 6.3 6.667 5.5 8.727 5.5 11.212h5.5V22H0zm16.5 0V13.818c0-4.121 1.31-7.394 3.93-9.818C23.05 1.576 26.53.242 30.87 0l.63 2c-3.2.424-5.5 1.394-7.1 3.03-1.6 1.637-2.4 3.697-2.4 6.182H27.5V22H16.5z"/>
                   </svg>
-                  <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.85, flex: 1, margin: 0 }}>
+                  <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.85, flex: 1, margin: 0 }}>
                     {quote}
                   </p>
-                  {/* ④ より詳細な属性情報を表示 */}
+                  {/* ③ より詳細な属性情報 — アバター大型化 */}
                   <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 14, display: "flex", alignItems: "center", gap: 12 }}>
                     <div style={{
-                      width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
+                      width: 48, height: 48, borderRadius: "50%", flexShrink: 0,
                       background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor === "var(--royal)" ? "var(--accent)" : accentColor} 100%)`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 15, fontWeight: 700, color: "#fff",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                      fontSize: 17, fontWeight: 700, color: "#fff",
+                      boxShadow: "0 3px 10px rgba(0,0,0,0.15)",
+                      border: "2px solid #fff",
                     }}>{initial}</div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{name}</div>
-                      <div style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, marginTop: 1 }}>{title}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{name}</div>
+                      <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, marginTop: 1 }}>{title}</div>
                       <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>
                         {company} · {headcount}
                       </div>
@@ -405,7 +426,7 @@ export default async function ForCompaniesPage() {
                 {[
                   {
                     icon: (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                       </svg>
                     ),
@@ -420,7 +441,7 @@ export default async function ForCompaniesPage() {
                   },
                   {
                     icon: (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                       </svg>
                     ),
@@ -435,7 +456,7 @@ export default async function ForCompaniesPage() {
                   },
                   {
                     icon: (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                         <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
                       </svg>
@@ -451,7 +472,7 @@ export default async function ForCompaniesPage() {
                   },
                   {
                     icon: (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                       </svg>
                     ),
@@ -471,10 +492,10 @@ export default async function ForCompaniesPage() {
                     display: "flex", flexDirection: "column",
                   }}>
                     <div style={{
-                      width: 40, height: 40, borderRadius: 10,
-                      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                      width: 54, height: 54, borderRadius: 14,
+                      background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      marginBottom: 12, flexShrink: 0,
+                      marginBottom: 14, flexShrink: 0,
                     }}>{icon}</div>
                     <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6, lineHeight: 1.4 }}>{title}</h4>
                     <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, flex: 1 }}>{body}</p>
@@ -654,10 +675,11 @@ export default async function ForCompaniesPage() {
               ))}
             </div>
 
-            {/* ⑧ Mid-page CTA after flow section */}
+            {/* ⑧ Mid-page CTA after flow section — warm バリアント（royal CTAと差別化） */}
             <div style={{ marginTop: 48 }}>
               <MidCtaBanner
                 href={bizCtaHref}
+                variant="warm"
                 label="まずは求人を1件、無料で公開してみる"
                 sub="登録1分 · 審査なし · すぐに候補者プールにアクセスできます"
               />
@@ -765,18 +787,36 @@ export default async function ForCompaniesPage() {
                 ミスマッチを防ぐため、当社の強みを正直にお伝えしています。
               </p>
             </div>
+
+            {/* ⑦ ターゲットセクション後 CTA */}
+            <div style={{ marginTop: 40 }}>
+              <MidCtaBanner
+                href={bizCtaHref}
+                variant="warm"
+                label="貴社に合う人材が登録されているか、今すぐ確認する"
+                sub="登録は無料 · 候補者プールにすぐアクセス · 入社まで請求なし"
+              />
+            </div>
           </div>
         </section>
 
-        {/* ─── ⑨ FAQ ─── */}
+        {/* ─── ⑨ FAQ — 視認性強化: 大型ヘッダー + アイコン ─── */}
         <section id="faq" style={sectionStyle("var(--bg-tint)")}>
           <div style={innerStyle}>
             <div style={{ textAlign: "center", marginBottom: 48 }}>
-              <SectionLabel>よくある質問</SectionLabel>
-              <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3.5vw, 32px)", fontWeight: 500, color: "var(--ink)" }}>
-                FAQ
+              {/* 大きなQマーク装飾 */}
+              <div style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: 56, height: 56, borderRadius: "50%",
+                background: "var(--royal)", marginBottom: 18,
+                boxShadow: "0 4px 16px rgba(0,35,102,0.20)",
+              }}>
+                <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: 24, color: "#fff", lineHeight: 1 }}>?</span>
+              </div>
+              <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3.5vw, 32px)", fontWeight: 500, color: "var(--ink)", marginBottom: 10 }}>
+                よくある質問
               </h2>
-              <p style={{ fontSize: 14, color: "var(--ink-soft)", marginTop: 10 }}>採用担当者からよくいただく質問です。</p>
+              <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>採用担当者からよくいただく質問に、正直にお答えします。</p>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <FaqItem
@@ -865,20 +905,23 @@ export default async function ForCompaniesPage() {
           zIndex: 50, display: "flex", gap: 8,
         }}>
           <a href="mailto:contact@opinio.co.jp" style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "12px 14px", border: "1.5px solid var(--royal-100)",
-            background: "var(--royal-50)", color: "var(--royal)",
-            borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none",
-            whiteSpace: "nowrap", flexShrink: 0,
+            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            padding: "13px 12px", border: "1.5px solid var(--royal)",
+            background: "#fff", color: "var(--royal)",
+            borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none",
           }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
             話を聞く
           </a>
           <Link href={bizCtaHref} style={{
             flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-            padding: "12px 16px", background: "var(--royal)", color: "#fff",
+            padding: "13px 12px", background: "var(--royal)", color: "#fff",
             borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none",
+            boxShadow: "0 2px 8px rgba(0,35,102,0.25)",
           }}>
-            企業を新規登録（無料）
+            企業を登録（無料）
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
           </Link>
         </div>
