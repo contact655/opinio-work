@@ -1618,35 +1618,6 @@ export default function JobsClient({
 
   return (
     <>
-      {/* ── ページヘッダー ── */}
-      <div style={{
-        background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
-        padding: "32px 48px 28px",
-        color: "#fff",
-      }} className="px-5 py-7 md:px-12">
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
-          <h1 style={{
-            fontSize: "clamp(22px,3vw,32px)", fontWeight: 800,
-            letterSpacing: "-0.02em", marginBottom: 8, color: "#fff",
-            fontFamily: "var(--font-noto-serif)",
-          }}>
-            IT / SaaS 求人を探す
-          </h1>
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" as const, alignItems: "center" }}>
-            {[
-              { num: `${allJobs.length}件+`, label: "掲載求人" },
-              { num: `${companies.length}社+`, label: "掲載企業" },
-            ].map(({ num, label }) => (
-              <span key={label} style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 800, color: "#F59E0B" }}>{num}</span>
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{label}</span>
-              </span>
-            ))}
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>外資IT・国内SaaS・スタートアップ特化</span>
-          </div>
-        </div>
-      </div>
-
       {/* ── コンパクトフィルターバー（モバイル用、デスクトップは非表示） ── */}
       <div
         ref={filterBarRef}
