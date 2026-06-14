@@ -498,8 +498,8 @@ function AuthPageInner() {
                 </p>
                 <ul style={{ listStyle: "none", padding: 0, margin: "10px 0 0", display: "flex", flexDirection: "column", gap: 7 }}>
                   {[
-                    { icon: "💬", text: "先輩・OBに直接DMを送れる" },
-                    { icon: "☕", text: "企業へカジュアル面談を申し込める" },
+                    { icon: "☕", text: "先輩・OBにカジュアル面談を申し込める" },
+                    { icon: "✍️", text: "フィードで転職の思いを発信できる" },
                     { icon: "🔖", text: "気になる企業・求人をブックマーク管理" },
                   ].map(({ icon, text }) => (
                     <li key={text} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--ink-soft)" }}>
