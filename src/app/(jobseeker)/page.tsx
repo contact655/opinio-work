@@ -99,12 +99,14 @@ function formatSalary(min: number | null, max: number | null): string | null {
 
 function Hero() {
   const [jobs, setJobs] = useState<PreviewJob[]>([]);
+  const [jobsLoaded, setJobsLoaded] = useState(false);
 
   useEffect(() => {
     fetch("/api/jobs/preview")
       .then((r) => r.json())
       .then((d) => { setJobs(Array.isArray(d.jobs) ? d.jobs : []); })
-      .catch(() => { setJobs([]); });
+      .catch(() => { setJobs([]); })
+      .finally(() => { setJobsLoaded(true); });
   }, []);
 
   return (
@@ -141,7 +143,7 @@ function Hero() {
 
           {/* Title */}
           <h1 style={{
-            fontSize: "clamp(40px,5vw,64px)",
+            fontSize: "clamp(28px,3.5vw,48px)",
             fontWeight: 700, lineHeight: 1.22, letterSpacing: "-0.03em",
             color: "var(--ink)", marginBottom: "var(--space-2)",
             fontFamily: 'var(--font-noto-serif)',
@@ -161,29 +163,8 @@ function Hero() {
             <strong style={{ color: "#D97706" }}>登録不要</strong>で閲覧でき、カジュアル面談で<strong style={{ color: "#D97706" }}>現役社員に直接</strong>話を聞けます。
           </p>
 
-          {/* CTAs — primary only, secondary as text link */}
-          <div style={{ marginBottom: 28 }}>
-            <Link href="/companies" style={{
-              display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
-              padding: "16px 32px", background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
-              fontWeight: 800, fontSize: 16, borderRadius: 10, textDecoration: "none",
-              boxShadow: "0 6px 24px rgba(245,158,11,0.35)",
-              letterSpacing: "-0.01em",
-            }}>
-              まず企業を見てみる <ArrowIcon />
-            </Link>
-            <div style={{ marginTop: 10 }}>
-              <Link href="/auth" style={{
-                fontSize: 12, color: "var(--ink-mute)", textDecoration: "none",
-                display: "inline-flex", alignItems: "center", gap: 4,
-              }}>
-                → 無料会員登録はこちら（30秒）
-              </Link>
-            </div>
-          </div>
-
-          {/* ④ Trust pills — stamp style, bigger */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+          {/* Trust pills — above CTA for credibility */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, marginBottom: 20 }}>
             {[
               { label: "完全無料", sub: "閲覧・面談・登録すべて" },
               { label: "スカウトなし", sub: "営業電話・メールゼロ" },
@@ -208,6 +189,27 @@ function Hero() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* CTAs — primary only, secondary as text link */}
+          <div style={{ marginBottom: 28 }}>
+            <Link href="/companies" style={{
+              display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
+              padding: "16px 32px", background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
+              fontWeight: 800, fontSize: 16, borderRadius: 10, textDecoration: "none",
+              boxShadow: "0 6px 24px rgba(245,158,11,0.35)",
+              letterSpacing: "-0.01em",
+            }}>
+              まず企業を見てみる <ArrowIcon />
+            </Link>
+            <div style={{ marginTop: 10 }}>
+              <Link href="/auth" style={{
+                fontSize: 12, color: "var(--ink-mute)", textDecoration: "none",
+                display: "inline-flex", alignItems: "center", gap: 4,
+              }}>
+                → 無料会員登録はこちら（30秒）
+              </Link>
+            </div>
           </div>
 
           {/* ② Stats row */}
@@ -274,7 +276,19 @@ function Hero() {
 
             {/* Job list */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {jobs.length === 0
+              {!jobsLoaded
+                ? (
+                    <div style={{ padding: "20px 16px", textAlign: "center" }}>
+                      <div style={{
+                        width: 18, height: 18,
+                        border: "2px solid var(--royal-100)", borderTopColor: "var(--royal)",
+                        borderRadius: "50%", animation: "spin 0.8s linear infinite",
+                        margin: "0 auto 8px",
+                      }} />
+                      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>求人情報を取得中…</span>
+                    </div>
+                  )
+                : jobs.length === 0
                 ? (
                     <div style={{
                       padding: "20px 16px", borderRadius: 12,
@@ -282,7 +296,7 @@ function Hero() {
                       border: "1px solid var(--line)",
                     }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 10 }}>
-                        求人を読み込み中…
+                        現在掲載中の求人はこちら
                       </div>
                       <Link href="/jobs" style={{
                         display: "inline-block", padding: "7px 16px",
@@ -479,19 +493,7 @@ function CompanyMiniCard({ c }: { c: PreviewCompany }) {
               {c.phase}
             </span>
           )}
-          {/* OPINIO取材済みバッジ（記事が紐づいている場合） */}
-          {(c.articleCount ?? 0) > 0 && (
-            <span style={{
-              fontSize: 10, fontWeight: 700, padding: "3px var(--space-2)", borderRadius: 100,
-              background: "var(--warm-soft)", color: "#92400E",
-              border: "1px solid #FDE68A",
-              display: "flex", alignItems: "center", gap: 3,
-              whiteSpace: "nowrap" as const,
-            }}>
-              ✍️ 取材済み
-            </span>
-          )}
-          {/* 登録メンバーバッジ */}
+          {/* Show one social proof badge — memberCount preferred, else articleCount */}
           {(c.memberCount ?? 0) > 0 ? (
             <span style={{
               fontSize: 10, fontWeight: 700, padding: "3px var(--space-2)", borderRadius: 100,
@@ -506,21 +508,17 @@ function CompanyMiniCard({ c }: { c: PreviewCompany }) {
               </svg>
               {c.memberCount}名登録中
             </span>
-          ) : (
+          ) : (c.articleCount ?? 0) > 0 ? (
             <span style={{
-              fontSize: 10, fontWeight: 600, padding: "3px var(--space-2)", borderRadius: 100,
-              background: "var(--royal-50)", color: "var(--royal)",
-              border: "1px solid var(--royal-100)",
+              fontSize: 10, fontWeight: 700, padding: "3px var(--space-2)", borderRadius: 100,
+              background: "var(--warm-soft)", color: "#92400E",
+              border: "1px solid #FDE68A",
               display: "flex", alignItems: "center", gap: 3,
               whiteSpace: "nowrap" as const,
             }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              社員・OBに聞ける
+              ✍️ 取材済み
             </span>
-          )}
+          ) : null}
         </div>
       </div>
     </Link>
@@ -890,31 +888,34 @@ function PainPoints() {
               className="pain-card"
             >
               {/* 問題部分 */}
-              <div style={{ padding: "22px 22px 18px" }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: "#FEF2F2", color: "#DC2626",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  marginBottom: "var(--space-3)", flexShrink: 0,
-                }}>
-                  {p.icon}
+              <div style={{ padding: "20px 22px 16px", borderTop: "3px solid #DC2626" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)" }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    background: "#FEE2E2", color: "#DC2626",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0, border: "1px solid #FECACA",
+                  }}>
+                    {p.icon}
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#DC2626", letterSpacing: "0.06em" }}>BEFORE</span>
                 </div>
                 <p style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 8, lineHeight: 1.5 }}>{p.q}</p>
                 <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-mute)" }}>{p.pain}</p>
               </div>
-              {/* ⑦ 解決部分 — green success styling for clear Before→After contrast */}
+              {/* 解決部分 */}
               <div style={{
                 background: "linear-gradient(to bottom, #ECFDF5, #F0FDF4)",
                 borderTop: "2px solid var(--success)",
                 padding: "14px 22px 18px",
               }}>
                 <div style={{
-                  fontSize: 11, fontWeight: 700, color: "var(--success)",
+                  fontSize: 10, fontWeight: 700, color: "var(--success)",
                   letterSpacing: "0.06em", marginBottom: 6,
                   display: "flex", alignItems: "center", gap: 5,
                 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-                  OPINIOなら
+                  AFTER · OPINIOなら
                 </div>
                 <p style={{ fontSize: 13, lineHeight: 1.8, color: "#064E3B", fontWeight: 500 }}>{p.resolution}</p>
               </div>
@@ -1402,19 +1403,6 @@ function ArticlesPreview() {
                     }}>
                       {badge.label}
                     </div>
-                    {/* タイトルプレビュー（下端オーバーレイ） */}
-                    <p style={{
-                      fontSize: 12, fontWeight: 700, color: "#fff",
-                      lineHeight: 1.4,
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                      margin: 0,
-                      position: "relative", zIndex: 1,
-                    } as React.CSSProperties}>
-                      {article.title}
-                    </p>
                   </div>
                   <div style={{ padding: "14px var(--space-4) 18px", flex: 1, display: "flex", flexDirection: "column" }}>
                     <h3 style={{

@@ -945,25 +945,26 @@ function JobListCard({
 
   return (
     <div style={{ position: "relative" }}>
-      {/* ⑤ ブックマークボタン — 常にピンク系で目立つデザイン */}
+      {/* ブックマークボタン — bookmarked=pink filled, unbookmarked=gray outline */}
       <button
         type="button"
         onClick={handleBookmark}
         aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
+        aria-pressed={bookmarked}
         style={{
           position: "absolute", top: 12, right: 12, zIndex: 10,
           width: 32, height: 32, borderRadius: "50%",
-          border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid #FECACA",
+          border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid var(--line)",
           cursor: "pointer",
-          background: bookmarked ? "#FEF2F2" : "#FFF5F5",
-          boxShadow: "0 1px 4px rgba(220,38,38,0.12)",
+          background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.92)",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
           display: "flex", alignItems: "center", justifyContent: "center",
           transform: bookmarkAnim ? "scale(1.2)" : "scale(1)",
           transition: "all 0.2s",
           padding: 0,
         }}
       >
-        <Heart size={13} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
+        <Heart size={13} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
       </button>
 
       <Link href={`/jobs/${job.id}`} prefetch className="job-list-card-link" style={{
@@ -1609,7 +1610,34 @@ export default function JobsClient({
 
   return (
     <>
-      <h1 className="sr-only">IT / SaaS 求人を探す</h1>
+      {/* ── ページヘッダー ── */}
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
+        padding: "32px 48px 28px",
+        color: "#fff",
+      }} className="px-5 py-7 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+          <h1 style={{
+            fontSize: "clamp(22px,3vw,32px)", fontWeight: 800,
+            letterSpacing: "-0.02em", marginBottom: 8, color: "#fff",
+            fontFamily: "var(--font-noto-serif)",
+          }}>
+            IT / SaaS 求人を探す
+          </h1>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" as const, alignItems: "center" }}>
+            {[
+              { num: `${allJobs.length}件+`, label: "掲載求人" },
+              { num: `${companies.length}社+`, label: "掲載企業" },
+            ].map(({ num, label }) => (
+              <span key={label} style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 800, color: "#F59E0B" }}>{num}</span>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{label}</span>
+              </span>
+            ))}
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>外資IT・国内SaaS・スタートアップ特化</span>
+          </div>
+        </div>
+      </div>
 
       {/* ── コンパクトフィルターバー（モバイル用、デスクトップは非表示） ── */}
       <div

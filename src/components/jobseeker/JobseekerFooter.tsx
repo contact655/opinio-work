@@ -116,9 +116,14 @@ export function JobseekerFooter() {
           display: "flex", justifyContent: "space-between", alignItems: "center",
           flexWrap: "wrap", gap: 12,
         }}>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>
-            © 2026 Opinio Inc. All rights reserved.
-          </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>
+              © 2026 Opinio Inc. All rights reserved.
+            </span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.18)" }}>
+              Opinio Inc. · 〒107-0062 東京都港区南青山
+            </span>
+          </div>
           <span style={{ fontSize: 12, color: "rgba(255,255,255,0.2)", fontStyle: "italic" }}>
             Truth to Careers.
           </span>
