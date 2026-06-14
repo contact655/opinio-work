@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import HomeFaq from "@/app/HomeFaq";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
@@ -72,42 +71,7 @@ function ArrowIcon() {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
-type PreviewJob = {
-  id: string;
-  title: string;
-  dept: string | null;
-  salaryMin: number | null;
-  salaryMax: number | null;
-  workStyle: string | null;
-  employmentType: string | null;
-  location: string | null;
-  companyName: string;
-  logoLetter: string;
-  logoGradient: string;
-  logoUrl: string | null;
-};
-
-function formatSalary(min: number | null, max: number | null): string | null {
-  // DB は万円単位で格納（例: 500 = 500万円）
-  const validMin = min && min > 0 ? min : null;
-  const validMax = max && max > 0 ? max : null;
-  if (!validMin && !validMax) return null;
-  if (validMin && validMax) return `${validMin}〜${validMax}万`;
-  if (validMin) return `${validMin}万〜`;
-  return `〜${validMax}万`;
-}
-
 function Hero() {
-  const [jobs, setJobs] = useState<PreviewJob[]>([]);
-  const [jobsLoaded, setJobsLoaded] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/jobs/preview")
-      .then((r) => r.json())
-      .then((d) => { setJobs(Array.isArray(d.jobs) ? d.jobs : []); })
-      .catch(() => { setJobs([]); })
-      .finally(() => { setJobsLoaded(true); });
-  }, []);
 
   return (
     <section style={{
