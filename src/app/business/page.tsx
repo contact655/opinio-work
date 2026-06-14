@@ -182,6 +182,47 @@ export default async function ForCompaniesPage() {
               ))}
             </div>
 
+            {/* ── ROI比較テーブル ── */}
+            <div style={{ marginBottom: 40, borderRadius: 16, border: "1px solid var(--line)", overflow: "hidden", background: "#fff" }}>
+              <div style={{ padding: "14px 20px", background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.06em" }}>
+                  採用コスト比較（年収600万円の人材を採用した場合）
+                </span>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: "var(--bg-tint)" }}>
+                      <th style={{ padding: "10px 16px", textAlign: "left", fontWeight: 600, color: "var(--ink-soft)", borderBottom: "1px solid var(--line)", fontSize: 11 }}>費用項目</th>
+                      <th style={{ padding: "10px 16px", textAlign: "center", fontWeight: 700, color: "var(--ink)", borderBottom: "1px solid var(--line)", fontSize: 11 }}>転職エージェント<br /><span style={{ fontWeight: 400, color: "var(--ink-mute)", fontSize: 10 }}>（相場35%）</span></th>
+                      <th style={{ padding: "10px 16px", textAlign: "center", fontWeight: 700, color: "var(--royal)", borderBottom: "1px solid var(--royal-100)", fontSize: 11, background: "var(--royal-50)" }}>OPINIO<br /><span style={{ fontWeight: 600, color: "var(--royal)", fontSize: 10 }}>（10% 成果報酬）</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { item: "掲載費", agent: "¥0", opinio: "¥0", opinioGood: true },
+                      { item: "スカウト費", agent: "¥0〜数十万", opinio: "¥0", opinioGood: true },
+                      { item: "採用決定時", agent: "210万円", opinio: "60万円", opinioGood: true },
+                      { item: "合計コスト目安", agent: "210万円〜", opinio: "60万円", opinioGood: true, highlight: true },
+                    ].map(({ item, agent, opinio, opinioGood, highlight }) => (
+                      <tr key={item} style={{ borderBottom: "1px solid var(--line)", background: highlight ? "var(--royal-50)" : "transparent" }}>
+                        <td style={{ padding: "10px 16px", color: "var(--ink)", fontWeight: highlight ? 700 : 400 }}>{item}</td>
+                        <td style={{ padding: "10px 16px", textAlign: "center", color: highlight ? "var(--error)" : "var(--ink-soft)", fontWeight: highlight ? 700 : 400 }}>{agent}</td>
+                        <td style={{ padding: "10px 16px", textAlign: "center", background: opinioGood ? (highlight ? "rgba(5,150,105,0.08)" : "transparent") : "transparent", fontWeight: 700, color: highlight ? "var(--success)" : "var(--royal)" }}>
+                          {opinio}
+                          {opinioGood && <span style={{ marginLeft: 4, color: "var(--success)" }}>✓</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ padding: "10px 16px", background: "#F0FDF4", borderTop: "1px solid #A7F3D0", fontSize: 11, color: "#065f46", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 14 }}>💰</span>
+                エージェント比較で平均150万円の削減。人材1名あたりのコストが劇的に変わります。
+              </div>
+            </div>
+
             {/* ③ Logo strip — ④ 大きめタイルで視認性向上 */}
             <div style={{ textAlign: "center", marginBottom: 10 }}>
               <span style={{

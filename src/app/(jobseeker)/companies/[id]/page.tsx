@@ -3319,13 +3319,77 @@ export default async function CompanyDetailPage({
               photos={photos}
             />
 
-            {/* 2. 募集中の求人 */}
+            {/* 2. 現役社員・OBOGプロフィール（ファーストビュー直後に配置） */}
+            {(employees.current.length > 0 || employees.alumni.length > 0) && (
+              <div style={{ marginBottom: "var(--space-6)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
+                    社員・OB/OGのプロフィール
+                  </h2>
+                  <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
+                    {employees.current.length + employees.alumni.length}名登録中
+                  </span>
+                  <div style={{ flex: 1 }} />
+                  <a href="#current-employees" style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+                    全員を見る →
+                  </a>
+                </div>
+                {/* アバター一覧（最大6名プレビュー） */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                  {[...employees.current, ...employees.alumni].slice(0, 6).map((emp) => (
+                    <a
+                      key={emp.userId}
+                      href={`/u/${emp.userId}`}
+                      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textDecoration: "none", width: 68 }}
+                    >
+                      {emp.photoUrl ? (
+                        <img src={emp.photoUrl} alt={emp.name} style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)" }} />
+                      ) : (
+                        <div style={{
+                          width: 52, height: 52, borderRadius: "50%",
+                          background: `linear-gradient(135deg, var(--royal), #3B5FD9)`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 18, fontWeight: 700, color: "#fff",
+                          border: "2px solid var(--line)", flexShrink: 0,
+                        }}>
+                          {emp.name.charAt(0)}
+                        </div>
+                      )}
+                      <span style={{ fontSize: 10, color: "var(--ink-soft)", fontWeight: 600, textAlign: "center", lineHeight: 1.3, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {emp.name.replace(/\s/g, "")}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+                {/* DMバナー */}
+                <div style={{
+                  marginTop: 14, padding: "12px 16px", borderRadius: 10,
+                  background: "linear-gradient(135deg, var(--royal-50) 0%, #EFF3FC 100%)",
+                  border: "1.5px solid var(--royal-100)",
+                  display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", flex: 1 }}>
+                    💬 在籍ユーザーに直接DM — 求人票には書けないリアルを聞こう
+                  </div>
+                  <a href="/auth" style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+                    background: "var(--royal)", color: "#fff", textDecoration: "none",
+                    whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
+                  }}>
+                    無料登録してDMを送る
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* 3. 募集中の求人 */}
             <JobsSection company={company} detail={detail} />
 
-            {/* 3. 福利厚生・評価制度 */}
+            {/* 4. 福利厚生・評価制度 */}
             <BenefitsSection detail={detail} />
 
-            {/* ⑧ Mid-page CTA after Benefits */}
+            {/* Mid-page CTA after Benefits */}
             {company.accepting_casual_meetings && (
               <div style={{
                 display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",

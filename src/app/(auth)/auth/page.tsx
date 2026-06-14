@@ -108,28 +108,34 @@ function SocialProofStrip() {
   );
 }
 
-// ─── Feature highlights shown in brand panel ─────────────────────────────────
-const PANEL_FEATURES = [
+// ─── After-signup steps shown in brand panel ─────────────────────────────────
+const AFTER_STEPS = [
   {
-    icon: "🏢",
-    title: "取材された企業情報",
-    desc: "外資・SaaS・スタートアップの組織文化を、編集部の独自取材で届けます。",
+    step: "01",
+    icon: "🔍",
+    title: "気になる企業・求人を探す",
+    desc: "登録不要で閲覧OK。外資・SaaS・スタートアップ80社+の内側情報をチェック。",
     bg: "var(--royal-50)",
     border: "var(--royal-100)",
+    color: "var(--royal)",
   },
   {
-    icon: "💼",
-    title: "ポジション・求人一覧",
-    desc: "職種・年収・働き方でフィルタリング。自分に合うポジションを比較できます。",
+    step: "02",
+    icon: "💬",
+    title: "在籍ユーザーにDMを送る",
+    desc: "企業ページの社員プロフィールから直接DM。求人票には書けないリアルを聞こう。",
     bg: "#FEF3C7",
     border: "#FDE68A",
+    color: "#92400E",
   },
   {
-    icon: "✍️",
-    title: "フィードで発信・つながる",
-    desc: "転職活動の進捗や考えをシェア。同じ業界を目指す人とDMでつながれます。",
+    step: "03",
+    icon: "🎯",
+    title: "納得してから動く",
+    desc: "「なんとなく応募」をなくす。情報を集めてから、自分のペースで転職判断を。",
     bg: "var(--success-soft)",
     border: "#A7F3D0",
+    color: "#065f46",
   },
 ];
 
@@ -167,7 +173,7 @@ function BrandSide() {
         <div style={{ marginTop: "auto", marginBottom: "auto" }}>
 
           {/* Headline */}
-          <div style={{ marginBottom: 28 }}>
+          <div style={{ marginBottom: 24 }}>
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "4px 12px", borderRadius: 100, marginBottom: 14,
@@ -178,29 +184,36 @@ function BrandSide() {
             </div>
             <h2 style={{
               fontFamily: "var(--font-noto-serif)", fontWeight: 500,
-              fontSize: "clamp(22px, 2.8vw, 30px)", lineHeight: 1.45,
-              color: "var(--ink)", marginBottom: 10, letterSpacing: "0.01em",
+              fontSize: "clamp(20px, 2.4vw, 26px)", lineHeight: 1.45,
+              color: "var(--ink)", marginBottom: 8, letterSpacing: "0.01em",
             }}>
-              深く知って、<br />自分で動く。
+              登録後、<span style={{ color: "var(--royal)", fontWeight: 700 }}>3ステップ</span>で<br />転職情報が深まります。
             </h2>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.85 }}>
-              外資・SaaS・スタートアップへの転職情報を<br />
-              一か所に集めた、IT業界特化のキャリアサービス。
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+              在籍ユーザーへの直接DMが、<br />OPINIOの最大の特徴です。
             </p>
           </div>
 
-          {/* 機能ハイライト — 3枚 */}
+          {/* 登録後3ステップ */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-            {PANEL_FEATURES.map((f) => (
-              <div key={f.title} style={{
-                background: f.bg, borderRadius: 12, padding: "12px 14px",
-                border: `1px solid ${f.border}`,
+            {AFTER_STEPS.map((s) => (
+              <div key={s.step} style={{
+                background: s.bg, borderRadius: 12, padding: "11px 14px",
+                border: `1px solid ${s.border}`,
               }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                  <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{f.icon}</span>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                    background: s.color, display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <span style={{ fontSize: 14 }}>{s.icon}</span>
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{f.title}</div>
-                    <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.65 }}>{f.desc}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <span style={{ fontSize: 9, fontWeight: 800, color: s.color, fontFamily: "Inter,sans-serif", letterSpacing: "0.08em" }}>STEP {s.step}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{s.title}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6 }}>{s.desc}</div>
                   </div>
                 </div>
               </div>
@@ -544,6 +557,10 @@ function AuthPageInner() {
                     autoComplete="email"
                     enterKeyHint="next"
                   />
+                  <p style={{ margin: "5px 0 0", fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 4 }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    電話番号不要・スカウトなし・いつでも退会可
+                  </p>
                 </div>
 
                 <div style={s.formGroup}>

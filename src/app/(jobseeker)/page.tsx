@@ -226,9 +226,9 @@ function Hero() {
                 bg: "#FEF3C7", border: "#FDE68A",
               },
               {
-                icon: "✍️", title: "フィードで情報発信する",
-                desc: "転職活動の進捗や考えをシェア。同じ業界を目指す人とつながれます。",
-                href: "/feed", cta: "フィードを見る →",
+                icon: "💬", title: "在籍ユーザーにDMで聞く",
+                desc: "社員・OBのプロフィールから直接DM。求人票には載らないリアルな声を。",
+                href: "/companies", cta: "企業の社員を見る →",
                 bg: "var(--success-soft)", border: "#A7F3D0",
               },
             ].map((item) => (
@@ -1334,6 +1334,149 @@ function MobileAuthCTA() {
   );
 }
 
+// ─── DM Experience Mock ───────────────────────────────────────────────────────
+
+function DMExperienceMock() {
+  const messages = [
+    { from: "user", text: "Salesforceって、未経験の外資系でも最初から英語対応ですか？社内の雰囲気も知りたいです。", time: "14:32" },
+    { from: "employee", name: "田村 美咲（CS 3年目）", avatar: "田", gradient: "linear-gradient(135deg,#002366,#3B5FD9)", text: "英語は部署によりますが、私のチームは会議の約7割が日本語です。最初の3ヶ月は日本語でOKと言われました！", time: "14:48" },
+    { from: "user", text: "ありがとうございます！転職活動中なのですが、正直に言って残業はどうですか？", time: "14:51" },
+    { from: "employee", name: "田村 美咲（CS 3年目）", avatar: "田", gradient: "linear-gradient(135deg,#002366,#3B5FD9)", text: "繁忙期は月20〜30時間ほどですが、フレックスで調整できるので働きやすいですよ。子育て中の方も多いです。", time: "15:03" },
+  ];
+  return (
+    <section style={{ background: "var(--bg-tint)", padding: "72px 48px 80px" }} className="px-5 md:px-12">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 14px", borderRadius: 100, background: "var(--royal-50)", border: "1px solid var(--royal-100)", fontSize: 11, fontWeight: 700, color: "var(--royal)", marginBottom: 16 }}>
+            💬 DM機能
+          </div>
+          <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px,3vw,34px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, marginBottom: 12 }}>
+            在籍ユーザーに、<span style={{ color: "var(--royal)" }}>直接聞ける。</span>
+          </h2>
+          <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.75, maxWidth: 520, margin: "0 auto" }}>
+            求人票には書けない「残業の実態」「英語環境」「社内文化」を、実際に働く人から聞けます。返信するかどうかは相手次第ですが、意外と丁寧に答えてくれます。
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "center" }} className="grid grid-cols-1 md:grid-cols-2">
+          {/* Mock chat */}
+          <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 8px 32px rgba(0,35,102,0.10)", border: "1px solid var(--line)", overflow: "hidden" }}>
+            {/* Chat header */}
+            <div style={{ background: "var(--royal)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#3B5FD9,#002366)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff", border: "2px solid rgba(255,255,255,0.3)", flexShrink: 0 }}>田</div>
+              <div>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>田村 美咲</div>
+                <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>Salesforce Japan · CS 3年目</div>
+              </div>
+              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.15)", padding: "3px 10px", borderRadius: 100 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80" }} />
+                <span style={{ color: "#fff", fontSize: 10, fontWeight: 600 }}>DMを受付中</span>
+              </div>
+            </div>
+            {/* Messages */}
+            <div style={{ padding: "16px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+              {messages.map((m, i) => (
+                <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.from === "user" ? "flex-end" : "flex-start", gap: 3 }}>
+                  {m.from === "employee" && (
+                    <div style={{ fontSize: 10, color: "var(--ink-mute)", paddingLeft: 4 }}>{m.name}</div>
+                  )}
+                  <div style={{
+                    maxWidth: "82%", padding: "9px 13px", borderRadius: m.from === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                    background: m.from === "user" ? "var(--royal)" : "var(--line-soft)",
+                    color: m.from === "user" ? "#fff" : "var(--ink)",
+                    fontSize: 12, lineHeight: 1.65,
+                  }}>
+                    {m.text}
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--ink-mute)", paddingRight: m.from === "user" ? 4 : 0, paddingLeft: m.from === "employee" ? 4 : 0 }}>{m.time}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Copy */}
+          <div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {[
+                { icon: "🎯", title: "本当に知りたいことを聞ける", body: "「英語環境は実際どう？」「残業は？」「チームの雰囲気は？」—求人票に書けないことを直接質問できます。" },
+                { icon: "🔓", title: "無料・登録するだけでOK", body: "メールアドレスだけで登録。スカウト電話・営業メールは一切ありません。" },
+                { icon: "🤝", title: "返信は相手の判断に委ねる", body: "強制はしません。忙しい社員が自分のペースで答えてくれます。それが誠実な情報です。" },
+              ].map(({ icon, title, body }) => (
+                <div key={title} style={{ display: "flex", gap: 14 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{icon}</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>{title}</div>
+                    <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>{body}</div>
+                  </div>
+                </div>
+              ))}
+              <Link href="/auth" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: 10, background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 4px 16px rgba(0,35,102,0.25)", alignSelf: "flex-start" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                無料登録してDMを送る
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Social Proof Section ────────────────────────────────────────────────────
+
+function SocialProofSection() {
+  const stories = [
+    {
+      quote: "Salesforceの在籍ユーザーに直接DMして、入社前に組織文化を把握できました。入社後のギャップがほぼゼロでした。",
+      name: "K.T. さん",
+      role: "前職：SIer → Salesforce Japan / カスタマーサクセス",
+      avatar: "K",
+      gradient: "linear-gradient(135deg,#059669,#10B981)",
+    },
+    {
+      quote: "エージェント経由だと「とりあえず応募して」と急かされたけど、OPINIOは自分のペースで情報収集できました。",
+      name: "M.Y. さん",
+      role: "前職：コンサル → SaaS企業 / プロダクトマネージャー",
+      avatar: "M",
+      gradient: "linear-gradient(135deg,#7C3AED,#8B5CF6)",
+    },
+    {
+      quote: "記事で取材されていた社員にDMしたら親切に答えてもらえて、その人がいる部署に転職できました。",
+      name: "R.N. さん",
+      role: "前職：営業 → LayerX / BizDev",
+      avatar: "R",
+      gradient: "linear-gradient(135deg,#D97706,#F59E0B)",
+    },
+  ];
+  return (
+    <section style={{ background: "#fff", padding: "72px 48px 80px", borderTop: "1px solid var(--line)" }} className="px-5 md:px-12">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 14px", borderRadius: 100, background: "#FEF3C7", border: "1px solid #FDE68A", fontSize: 11, fontWeight: 700, color: "#92400E", marginBottom: 16 }}>
+            ⭐ ユーザーの声
+          </div>
+          <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(20px,2.8vw,32px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
+            OPINIOで、動き出した人たち。
+          </h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }} className="grid grid-cols-1 md:grid-cols-3">
+          {stories.map((s) => (
+            <div key={s.name} style={{ background: "var(--bg-tint)", borderRadius: 16, padding: "24px", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 16 }}>
+              <svg width="28" height="20" viewBox="0 0 28 20" fill="var(--royal-100)" aria-hidden><path d="M0 20V12.4C0 8.8 1.2 5.8 3.6 3.4 6 1 9.2 0 13.2 0v3.6c-2 0-3.6.7-4.8 2.2C7.2 7.2 6.6 9 6.6 11H11V20H0zm16 0V12.4c0-3.6 1.2-6.6 3.6-9C22 1 25.2 0 29.2 0v3.6c-2 0-3.6.7-4.8 2.2-1.2 1.4-1.8 3.2-1.8 5.2H27V20H16z"/></svg>
+              <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.75, fontStyle: "italic", flex: 1, margin: 0 }}>{s.quote}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: s.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{s.avatar}</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{s.name}</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>{s.role}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
@@ -1343,10 +1486,12 @@ export default function HomePage() {
       <TrustStrip />
       <HowItWorks />
       <FeaturedCompaniesSection />
+      <DMExperienceMock />
       <PainPoints />
       <StoryFeedSection />
       <FeedUVP />
       <ArticlesPreview />
+      <SocialProofSection />
       <HomeFaq />
       <FinalCta />
       <MobileAuthCTA />

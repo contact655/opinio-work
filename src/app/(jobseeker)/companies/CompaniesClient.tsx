@@ -1252,6 +1252,36 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
         </div>
       </div>
 
+      {/* ── Quick filter chips ────────────────────────────────────────────── */}
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "10px 48px" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, marginRight: 4 }}>クイック絞り込み:</span>
+          {[
+            { label: "🌐 外資系", active: foreign, onClick: () => setParam("foreign", foreign ? "" : "1"), activeColor: "#6d28d9", activeBg: "#ede9fe", activeBorder: "#c4b5fd" },
+            { label: "📈 上場企業", active: phase === "listed" || phase === "上場", onClick: () => setParam("phase", (phase === "listed" || phase === "上場") ? "" : "listed"), activeColor: "#14532d", activeBg: "#dcfce7", activeBorder: "#86efac" },
+            { label: "💼 求人あり", active: hiring, onClick: () => setParam("hiring", hiring ? "" : "1"), activeColor: "var(--royal)", activeBg: "var(--royal-50)", activeBorder: "var(--royal-100)" },
+          ].map(({ label, active, onClick, activeColor, activeBg, activeBorder }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={onClick}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "5px 14px", borderRadius: 999, cursor: "pointer",
+                fontSize: 12, fontWeight: active ? 700 : 500,
+                border: `1.5px solid ${active ? activeBorder : "var(--line)"}`,
+                background: active ? activeBg : "var(--bg-tint)",
+                color: active ? activeColor : "var(--ink-soft)",
+                transition: "all 0.15s",
+              }}
+            >
+              {label}
+              {active && <span style={{ fontSize: 10, fontWeight: 800 }}>✓</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* ── Sticky filter bar ─────────────────────────────────────────────── */}
       <div
         style={{

@@ -1110,18 +1110,26 @@ function JobListCard({
             >
               <span style={{ display: "inline-flex", alignItems: "center" }}>
                 {alumni.slice(0, 3).map((a, i) => (
-                  <span key={a.userId} style={{
-                    width: 26, height: 26, borderRadius: "50%",
-                    background: a.gradient,
-                    border: "2.5px solid #fff",
-                    marginLeft: i === 0 ? 0 : -8,
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 10, fontWeight: 800, color: "#fff",
-                    flexShrink: 0, position: "relative",
-                    boxShadow: "0 1px 4px rgba(0,35,102,0.2)",
-                  }}>
+                  <a
+                    key={a.userId}
+                    href={`/u/${a.userId}`}
+                    onClick={(e) => e.stopPropagation()}
+                    title={a.name}
+                    style={{
+                      width: 26, height: 26, borderRadius: "50%",
+                      background: a.gradient,
+                      border: "2.5px solid #fff",
+                      marginLeft: i === 0 ? 0 : -8,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 10, fontWeight: 800, color: "#fff",
+                      flexShrink: 0, position: "relative",
+                      boxShadow: "0 1px 4px rgba(0,35,102,0.2)",
+                      textDecoration: "none",
+                      zIndex: 3 - i,
+                    }}
+                  >
                     {a.name.replace(/\s/g, "").charAt(0)}
-                  </span>
+                  </a>
                 ))}
               </span>
               <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, lineHeight: 1.3 }}>

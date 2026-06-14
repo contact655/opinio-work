@@ -675,10 +675,25 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </Link>
                 )}
 
-                {/* DMボタン（ログイン済み・非オーナーのみ） */}
-                {!viewerIsOwner && authUser && (
+                {/* DMボタン */}
+                {!viewerIsOwner && authUser ? (
                   <DMButton targetUserId={owUser.id} targetName={owUser.name} />
-                )}
+                ) : !viewerIsOwner && !authUser ? (
+                  <Link href={`/auth?next=/u/${owUser.id}`} style={{
+                    display: "inline-flex", alignItems: "center", gap: 7,
+                    padding: "9px 18px", borderRadius: 8,
+                    background: "linear-gradient(135deg, var(--royal) 0%, #3B5FD9 100%)",
+                    color: "#fff", fontSize: "var(--text-sm)", fontWeight: 700,
+                    textDecoration: "none", flexShrink: 0,
+                    boxShadow: "0 4px 14px rgba(0,35,102,0.3)",
+                    whiteSpace: "nowrap",
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    DMを送る（無料登録）
+                  </Link>
+                ) : null}
 
                 {viewerIsOwner ? (
                   <Link href="/profile/edit" className="profile-header-cta" style={{
