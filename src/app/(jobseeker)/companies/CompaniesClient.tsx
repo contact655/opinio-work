@@ -1238,7 +1238,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             {[
               { icon: "👥", label: "現役社員に相談できる" },
               { icon: "🎓", label: "OB・OGの話が聞ける" },
-              { icon: "🌟", label: "メンターにも相談可能" },
+              { icon: "💬", label: "在籍ユーザーにDMできる" },
             ].map(({ icon, label }) => (
               <span
                 key={label}

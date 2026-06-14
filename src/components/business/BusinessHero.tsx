@@ -122,7 +122,7 @@ export function BusinessHero() {
             fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.85,
             marginBottom: 20, maxWidth: 460,
           }}>
-            応募前にIT業界メンターと面談した、<strong style={{ color: "var(--ink)", fontWeight: 700 }}>本気度の高い候補者だけ</strong>が届きます。
+            在籍ユーザーへのDMで深くリサーチした、<strong style={{ color: "var(--ink)", fontWeight: 700 }}>本気度の高い候補者だけ</strong>が届きます。
             スカウト0通で、IT/SaaS即戦力採用を。
           </p>
 

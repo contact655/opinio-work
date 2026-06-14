@@ -121,7 +121,9 @@ function Hero({
   recruiters: CompanyRecruiter[];
   coverPhotoUrl?: string | null;
 }) {
-  const initial = company.name.charAt(0).toUpperCase();
+  const displayBrand = (company.brand_name ?? company.name_en ?? company.name)
+    .replace(/^(株式会社|有限会社|合同会社|一般社団法人|一般財団法人)\s*/u, "").trim();
+  const initial = displayBrand.charAt(0).toUpperCase() || company.name.charAt(0).toUpperCase();
   const freshLabel = formatUpdated(company.updated_days_ago);
   const isFresh = company.updated_days_ago <= 30;
 

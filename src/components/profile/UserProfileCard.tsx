@@ -334,7 +334,7 @@ export default function UserProfileCard({
         </div>
       ) : (
         <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-          SNS リンクを追加すると企業やメンターに見てもらえます。{" "}
+          SNS リンクを追加すると企業の在籍ユーザーに見てもらえます。{" "}
           <Link href="/profile/edit?tab=socials" style={{ color: "var(--royal)", fontWeight: 600 }}>
             追加する →
           </Link>
