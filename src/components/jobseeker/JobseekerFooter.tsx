@@ -54,6 +54,7 @@ export function JobseekerFooter() {
               {[
                 { href: "/companies", label: "企業を探す" },
                 { href: "/jobs",      label: "求人を探す" },
+                { href: "/feed",      label: "フィード" },
                 { href: "/articles",  label: "記事" },
                 { href: "/auth",      label: "無料登録" },
               ].map(({ href, label }) => (
