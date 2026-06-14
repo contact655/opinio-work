@@ -15,6 +15,7 @@ type Props = {
 type PhaseOption = { value: string; label: string; color: string; bg: string; dot: string; desc: string };
 
 const PHASE_OPTIONS: PhaseOption[] = [
+  { value: "成長ステージ",    label: "成長ステージ",    color: "#1e3a8a", bg: "#e0e7ff", dot: "#4f46e5", desc: "シード〜シリーズCのスタートアップ" },
   { value: "プレシード",      label: "プレシード",      color: "#78350f", bg: "#fff7ed", dot: "#fb923c", desc: "創業初期・アイデア段階" },
   { value: "ブートストラップ", label: "ブートストラップ", color: "#92400e", bg: "#fef3c7", dot: "#f59e0b", desc: "自己資金・非資金調達" },
   { value: "シード",          label: "シード",          color: "#713f12", bg: "#fef9e7", dot: "#ca8a04", desc: "PMF検証・プロダクト開発期" },
@@ -24,6 +25,7 @@ const PHASE_OPTIONS: PhaseOption[] = [
   { value: "シリーズD以降",   label: "シリーズD以降",   color: "#064e3b", bg: "#ccfbf1", dot: "#14b8a6", desc: "レイトステージ・大規模化" },
   { value: "IPO準備中",       label: "IPO準備中",       color: "#9a3412", bg: "#ffedd5", dot: "#ea580c", desc: "上場直前・承認申請段階" },
   { value: "上場",            label: "上場",            color: "#14532d", bg: "#dcfce7", dot: "#16a34a", desc: "東証グロース・スタンダード・プライム" },
+  { value: "ユニコーン",      label: "ユニコーン",      color: "#581c87", bg: "#f3e8ff", dot: "#a855f7", desc: "評価額10億ドル超の未上場企業" },
 ];
 
 // ── コンパクトフィルターチップ ────────────────────────────────────────────────

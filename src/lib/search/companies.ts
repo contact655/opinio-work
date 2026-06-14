@@ -43,6 +43,21 @@ export type CompanySearchResult = {
   appliedFilters: CompanySearchParams;
 };
 
+// ── フェーズフィルター: 日本語 UI 値 → DB 値（英語/日本語混在）のマッピング ───
+const PHASE_FILTER_MAP: Record<string, string[]> = {
+  "成長ステージ":    ["シード", "seed", "シリーズA", "series-a", "series_a", "シリーズB", "series-b", "series_b", "シリーズC", "series-c", "series_c"],
+  "プレシード":      ["プレシード", "pre-seed", "preseed", "pre_seed"],
+  "ブートストラップ": ["ブートストラップ", "bootstrap"],
+  "シード":          ["シード", "seed"],
+  "シリーズA":       ["シリーズA", "series-a", "series_a"],
+  "シリーズB":       ["シリーズB", "series-b", "series_b"],
+  "シリーズC":       ["シリーズC", "series-c", "series_c"],
+  "シリーズD以降":   ["シリーズD以降", "シリーズD", "series-d", "series_d"],
+  "IPO準備中":       ["IPO準備中", "ipo"],
+  "上場":            ["上場", "listed"],
+  "ユニコーン":      ["ユニコーン", "unicorn"],
+};
+
 // ── メイン検索関数（将来の差し替えポイント）────────────────────────────────────
 
 /**
@@ -71,7 +86,10 @@ export async function searchCompanies(
         q = q.or(`name.ilike.${p},description.ilike.${p},industry.ilike.${p},tagline.ilike.${p}`);
       }
     }
-    if (params.phase && params.phase !== "外資系") q = q.eq("phase", params.phase);
+    if (params.phase && params.phase !== "外資系") {
+      const dbValues = PHASE_FILTER_MAP[params.phase] ?? [params.phase];
+      q = q.in("phase", dbValues);
+    }
     if (params.workStyle) q = q.eq("remote_work_status", params.workStyle);
     if (params.location)  q = q.eq("location", params.location);
     if (params.industry) {
@@ -209,9 +227,13 @@ export async function searchCompanies(
   // client-side: フェーズ順ソート
   if (isPhaseSort) {
     const PHASE_ORDER: Record<string, number> = {
-      "プレシード": 0, "ブートストラップ": 1, "シード": 2,
-      "シリーズA": 3, "シリーズB": 4, "シリーズC": 5,
-      "シリーズD以降": 6, "シリーズD": 6, "IPO準備中": 7, "上場": 8,
+      "プレシード": 0, "ブートストラップ": 1, "シード": 2, "seed": 2,
+      "シリーズA": 3, "series-a": 3, "series_a": 3,
+      "シリーズB": 4, "series-b": 4, "series_b": 4,
+      "シリーズC": 5, "series-c": 5, "series_c": 5,
+      "シリーズD以降": 6, "シリーズD": 6, "series-d": 6, "series_d": 6,
+      "IPO準備中": 7, "上場": 8, "listed": 8,
+      "ユニコーン": 9, "unicorn": 9,
     };
     filteredCompanies = [...filteredCompanies].sort((a, b) => {
       const phaseA = (a as { funding_stage?: string }).funding_stage ?? (a as { phase?: string }).phase ?? "";
