@@ -243,12 +243,12 @@ export default async function PostsPage({ searchParams }: Props) {
           {/* Pagination */}
           <Pagination currentPage={safePage} totalPages={totalPages} />
 
-          {/* ── 先輩に相談 CTA ── */}
+          {/* ── 企業へDM CTA ── */}
           <div style={{
             marginTop: 64,
             padding: "32px 36px",
-            background: "var(--royal-50)",
-            border: "1.5px solid var(--royal-100)",
+            background: "linear-gradient(135deg, var(--success-soft) 0%, #f0fdf4 100%)",
+            border: "1.5px solid #A7F3D0",
             borderRadius: 16,
             display: "flex",
             alignItems: "center",
@@ -257,30 +257,30 @@ export default async function PostsPage({ searchParams }: Props) {
             flexWrap: "wrap",
           }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: 8, textTransform: "uppercase" }}>
-                OPINIO MENTOR
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--success)", marginBottom: 8, textTransform: "uppercase" }}>
+                NEXT STEP
               </div>
               <p style={{
                 fontFamily: "var(--font-noto-serif)",
                 fontSize: "clamp(15px, 2vw, 18px)", fontWeight: 500,
                 color: "var(--ink)", margin: 0, lineHeight: 1.55,
               }}>
-                発信を読んで気になったら、その企業の先輩に話を聞いてみよう。
+                気になった投稿者に、DMで直接話しかけてみよう。
               </p>
               <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
-                気になった企業にカジュアル面談を申し込んで、現役社員の声を直接聞けます。完全無料。
+                ユーザーのプロフィールページから「DMを送る」で直接コンタクトできます。完全無料。
               </p>
             </div>
             <Link href="/companies" style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
-              background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
+              background: "linear-gradient(135deg, var(--success) 0%, #10B981 100%)",
               color: "#fff", textDecoration: "none",
-              boxShadow: "0 4px 16px rgba(0,35,102,0.25)",
+              boxShadow: "0 4px 16px rgba(5,150,105,0.25)",
               flexShrink: 0,
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
               企業を見る（無料）
             </Link>

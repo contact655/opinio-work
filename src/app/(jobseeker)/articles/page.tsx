@@ -453,12 +453,12 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
         </div>
       </div>
 
-      {/* ── 読んだあとは、先輩に相談 CTA ── */}
+      {/* ── 読んだあとは企業へ ── */}
       <div style={{ background: "#fff", borderTop: "1px solid var(--line)", padding: "48px 24px" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
           <div style={{
-            background: "linear-gradient(135deg, var(--warm-soft) 0%, #FFF7E6 100%)",
-            border: "1.5px solid #FDE68A",
+            background: "linear-gradient(135deg, var(--royal-50) 0%, #EEF2FF 100%)",
+            border: "1.5px solid var(--royal-100)",
             borderRadius: 16,
             padding: "32px 40px",
             display: "flex",
@@ -468,7 +468,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
             flexWrap: "wrap",
           }}>
             <div>
-              <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: "#B45309", marginBottom: "var(--space-2)", textTransform: "uppercase" }}>
+              <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: "var(--space-2)", textTransform: "uppercase" }}>
                 NEXT STEP
               </div>
               <p style={{
@@ -476,10 +476,10 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                 fontSize: "clamp(15px, 2vw, 18px)", fontWeight: 500,
                 color: "var(--ink)", margin: 0, lineHeight: 1.55,
               }}>
-                記事を読んで気になったら、その先輩に直接話を聞いてみよう。
+                気になったら、企業ページで在籍者にDMしてみよう。
               </p>
               <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", marginTop: "var(--space-2)", lineHeight: 1.7 }}>
-                記事を読んで気になった企業にカジュアル面談を申し込んで、直接話を聞けます。完全無料。
+                OPINIOに登録している企業の在籍ユーザーにDMで直接コンタクトできます。完全無料。
               </p>
             </div>
             <Link href="/companies" style={{
@@ -493,7 +493,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
-              企業のカジュアル面談を見る
+              企業を見る
             </Link>
           </div>
         </div>

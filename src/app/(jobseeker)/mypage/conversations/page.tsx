@@ -177,20 +177,36 @@ export default function ConversationsPage() {
       )}
 
       {conversations.length === 0 ? (
-        <div className="bg-white rounded-card border border-card-border p-8 text-center">
-          <p className="text-gray-600 text-lg mb-4">まだ対話がありません</p>
+        <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--line)", padding: "40px 32px", textAlign: "center" }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>💬</div>
+          <p style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>まだ対話がありません</p>
           <p style={{ color: "var(--ink-soft)", fontSize: 14, lineHeight: 1.75, marginBottom: 24 }}>
-            気になる企業にカジュアル面談を申し込んで<br />
-            対話を始めてみましょう。
+            気になる企業の在籍ユーザーにDMを送るか、<br />
+            カジュアル面談を申し込んで対話を始めましょう。
           </p>
-          <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <Link
               href="/companies"
               style={{
-                display: "inline-flex", alignItems: "center",
+                display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "10px 20px",
                 background: "var(--royal)", color: "#fff",
-                borderRadius: 8, fontSize: "var(--text-sm)", fontWeight: 600,
+                borderRadius: 8, fontSize: 13, fontWeight: 700,
+                textDecoration: "none",
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              企業を見てDMする
+            </Link>
+            <Link
+              href="/companies"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "10px 20px",
+                border: "1.5px solid var(--royal-100)", background: "var(--royal-50)", color: "var(--royal)",
+                borderRadius: 8, fontSize: 13, fontWeight: 700,
                 textDecoration: "none",
               }}
             >
