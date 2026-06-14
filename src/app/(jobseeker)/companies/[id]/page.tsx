@@ -1546,7 +1546,21 @@ function CurrentEmployeesSection({
         );
       })()}
 
-      {employees.length === 0 ? null : categories.length === 0 ? (
+      {employees.length === 0 ? (
+        <div style={{
+          textAlign: "center",
+          padding: "40px 24px",
+          color: "var(--ink-mute)",
+        }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>📸</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
+            社員プロフィールを準備中です
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.7 }}>
+            現役社員・OB/OGがプロフィールを登録すると<br />ここに表示されます
+          </div>
+        </div>
+      ) : categories.length === 0 ? (
         // カテゴリ設定なし → レスポンシブ列
         <div className="employee-grid">
           {employees.map((emp) => (
@@ -3425,8 +3439,8 @@ export default async function CompanyDetailPage({
             {/* 6. 社員の声 */}
             <EmployeeVoicesSection employees={employees.current} />
 
-            {/* 7. 現役社員・OBOGプロフィール（登録者がいる場合のみ） */}
-            {employees.current.length > 0 && <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />}
+            {/* 7. 現役社員・OBOGプロフィール */}
+            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
             {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
 
             {/* 8. 記事（OPINIO取材記事） */}
