@@ -10,6 +10,7 @@ import { InitialAvatar } from "@/components/ui/InitialAvatar";
 const NAV_LINKS = [
   { href: "/companies", label: "企業を見る", highlight: false },
   { href: "/jobs", label: "求人を探す", highlight: false },
+  { href: "/feed", label: "フィード", highlight: false },
   { href: "/articles", label: "記事", highlight: false },
 ];
 
