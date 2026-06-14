@@ -126,7 +126,7 @@ export async function searchCompanies(
       .from("ow_companies")
       .select(
         "id, name, name_en, tagline, industry, funding_stage:phase, employee_count, description, " +
-        "accepting_casual_meetings, remote_work_status, location, logo_letter, logo_gradient, logo_url, updated_at, " +
+        "accepting_casual_meetings, remote_work_status, location, branch_locations, logo_letter, logo_gradient, logo_url, updated_at, " +
         "current_member_count, obog_count, avg_salary, company_features"
       )
       .eq("is_published", true)

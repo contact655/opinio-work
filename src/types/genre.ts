@@ -30,6 +30,7 @@ export type CompanyForCarousel = {
   jobs_public: boolean;                // 求人・面談バッジの実際の表示制御（engagement_status 連動）
   remote_work_status: string | null;   // 働き方バッジ用
   location: string | null;            // 所在地（都道府県）
+  branch_locations?: string[] | null; // 東京以外の日本国内支社（都道府県名）
   logo_letter: string | null;
   logo_gradient: string | null;
   logo_url: string | null;
