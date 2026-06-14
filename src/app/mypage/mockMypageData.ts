@@ -297,7 +297,7 @@ export const MOCK_BOOKMARKS_MENTORS: Bookmark[] = [
     badge_label: "メンター",
     title: "鈴木 由紀さん",
     meta: "外資コンサル → 事業会社PdM",
-    href: "/mentors",
+    href: "/companies",
   },
   {
     id: "bk-m2",
@@ -305,7 +305,7 @@ export const MOCK_BOOKMARKS_MENTORS: Bookmark[] = [
     badge_label: "メンター",
     title: "渡辺 美穂さん",
     meta: "PdM → CPO / タイミー OBOG",
-    href: "/mentors",
+    href: "/companies",
   },
   {
     id: "bk-m3",
@@ -313,7 +313,7 @@ export const MOCK_BOOKMARKS_MENTORS: Bookmark[] = [
     badge_label: "メンター",
     title: "山本 健一さん",
     meta: "SIer → 事業会社エンジニア",
-    href: "/mentors",
+    href: "/companies",
   },
 ];
 

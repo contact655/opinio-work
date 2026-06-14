@@ -265,59 +265,26 @@ function PositionMembersSection({ members, jobCategory }: { members: JobPosition
             </div>
 
             {/* CTA */}
-            {m.isMentor && m.mentorId ? (
-              <Link
-                href={`/mentors/${m.mentorId}`}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0,
-                  padding: "6px 12px", borderRadius: 8,
-                  background: "var(--purple-soft,#F3E8FF)", color: "var(--purple)",
-                  border: "1px solid #E9D5FF",
-                  fontSize: 11.5, fontWeight: 700, textDecoration: "none",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                相談する
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                  <path d="M9 18l6-6-6-6"/>
-                </svg>
-              </Link>
-            ) : (
-              <Link
-                href={`/u/${m.userId}`}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0,
-                  padding: "6px 12px", borderRadius: 8,
-                  background: "var(--royal-50)", color: "var(--royal)",
-                  border: "1px solid var(--royal-100)",
-                  fontSize: 11.5, fontWeight: 700, textDecoration: "none",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                プロフィール
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                  <path d="M9 18l6-6-6-6"/>
-                </svg>
-              </Link>
-            )}
+            <Link
+              href={`/u/${m.userId}`}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0,
+                padding: "6px 12px", borderRadius: 8,
+                background: "var(--royal-50)", color: "var(--royal)",
+                border: "1px solid var(--royal-100)",
+                fontSize: 11.5, fontWeight: 700, textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              プロフィール
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </Link>
           </div>
         ))}
       </div>
 
-      {members.some((m) => m.isMentor) && (
-        <Link
-          href="/mentors"
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            marginTop: "var(--space-4)", padding: "10px var(--space-6)",
-            background: "transparent", border: "1.5px solid #E9D5FF",
-            color: "var(--purple)", borderRadius: 10,
-            fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
-          }}
-        >
-          他の先輩に相談する →
-        </Link>
-      )}
     </section>
   );
 }

@@ -2033,13 +2033,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     カジュアル面談する
                   </Link>
                 ) : (
-                  <Link href="/mentors" style={{
+                  <Link href="/companies" style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "10px 22px", borderRadius: 8,
                     border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
                     color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
                   }}>
-                    先輩に相談する
+                    企業を探す
                   </Link>
                 )}
               </div>
@@ -2061,13 +2061,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </svg>
                   企業ページを見る
                 </Link>
-                <Link href="/mentors" style={{
+                <Link href="/feed" style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "9px 20px", borderRadius: 8,
                   border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
                   color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
                 }}>
-                  先輩に相談する
+                  フィードを見る
                 </Link>
               </div>
             </>

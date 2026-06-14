@@ -72,6 +72,12 @@ function ArrowIcon() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function Hero() {
+  const [stats, setStats] = useState<{ companies: number; jobs: number } | null>(null);
+  useEffect(() => {
+    fetch("/api/stats").then(r => r.json()).then(setStats).catch(() => {});
+  }, []);
+  const companyNum = stats ? `${stats.companies}社+` : "80社+";
+  const jobNum = stats ? `${stats.jobs}件+` : "155件+";
 
   return (
     <section style={{
@@ -112,13 +118,13 @@ function Hero() {
             color: "var(--ink)", marginBottom: "var(--space-2)",
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            外資・SaaSの先輩に、<br />
-            <span style={{ color: "#D97706" }}>直接</span>話を聞ける。
+            外資・SaaSの転職を、<br />
+            <span style={{ color: "#D97706" }}>深く知って</span>から動く。
           </h1>
 
           {/* Tagline */}
           <p style={{ fontSize: 14, color: "var(--ink-mute)", marginBottom: "var(--space-6)", letterSpacing: "0.01em" }}>
-            IT/SaaS・外資系で活躍する先輩に30分無料で相談できる、業界特化のキャリアサービス。
+            業界特化の取材情報と求人が一か所に。外資・国内SaaS・スタートアップの実態を、登録不要で閲覧できます。
           </p>
 
           {/* Lead */}
@@ -183,8 +189,8 @@ function Hero() {
             borderTop: "1px solid rgba(0,35,102,0.08)",
           }}>
             {[
-              { num: "79社+", label: "掲載企業" },
-              { num: "155件+", label: "公開求人" },
+              { num: companyNum, label: "掲載企業" },
+              { num: jobNum, label: "公開求人" },
               { num: "無料", label: "登録・閲覧" },
             ].map(({ num, label }) => (
               <div key={label} style={{ display: "flex", flexDirection: "column" as const, gap: 1 }}>
@@ -195,7 +201,7 @@ function Hero() {
           </div>
         </div>
 
-        {/* Right: mentor showcase */}
+        {/* Right: feature highlights */}
         <div className="hidden md:flex justify-center hero-fade-right" style={{ position: "relative" }}>
           <div style={{
             background: "#fff", borderRadius: 20,
@@ -203,84 +209,48 @@ function Hero() {
             padding: "24px", width: "100%", maxWidth: 400,
             border: "1px solid var(--line)",
           }}>
-            {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>今すぐ話せる先輩</span>
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: 10, fontWeight: 700, color: "var(--success)",
-                background: "var(--success-soft)", border: "1px solid #A7F3D0",
-                borderRadius: 100, padding: "3px 9px",
-              }}>
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--success)", display: "inline-block", animation: "pulseDot 2.5s ease-in-out infinite" }} />
-                相談受付中
-              </span>
-            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 16 }}>OPINIOでできること</div>
 
-            {/* Mentor cards */}
             {[
               {
-                init: "生", bg: "linear-gradient(135deg,#002366,#3B5FD9)",
-                name: "生藤 弘樹", role: "エンタープライズ営業", company: "Salesforce Japan",
-                comment: "外資SaaSの営業キャリアについて、リアルな経験をお伝えします。",
-                tags: ["SaaS営業", "外資系"],
+                icon: "🏢", title: "企業の内側を知る",
+                desc: "求人票には載らない組織文化・フェーズ感を取材レポートで確認。",
+                href: "/companies", cta: "企業を見る →",
+                bg: "var(--royal-50)", border: "var(--royal-100)",
               },
               {
-                init: "小", bg: "linear-gradient(135deg,#7C3AED,#6D28D9)",
-                name: "小松 耕野", role: "カスタマーサクセス", company: "HubSpot Japan",
-                comment: "CS職へのキャリアチェンジ、SaaS業界の実情をお話しします。",
-                tags: ["CS", "マーケ"],
+                icon: "💼", title: "ポジションを深掘りする",
+                desc: "職種・年収・働き方でフィルタリング。自分に合う求人を探せます。",
+                href: "/jobs", cta: "求人を探す →",
+                bg: "#FEF3C7", border: "#FDE68A",
               },
               {
-                init: "木", bg: "linear-gradient(135deg,#059669,#047857)",
-                name: "木村 勇人", role: "ソリューションエンジニア", company: "Datadog Japan",
-                comment: "技術系営業・SE職への転職サポートができます。",
-                tags: ["SE", "エンジニア系営業"],
+                icon: "✍️", title: "フィードで情報発信する",
+                desc: "転職活動の進捗や考えをシェア。同じ業界を目指す人とつながれます。",
+                href: "/feed", cta: "フィードを見る →",
+                bg: "var(--success-soft)", border: "#A7F3D0",
               },
-            ].map((m) => (
-              <div key={m.name} style={{
-                background: "var(--bg-tint)", borderRadius: 12, padding: "14px 16px",
-                border: "1px solid var(--line)", marginBottom: 10,
-              }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: "50%", background: m.bg,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                  }}>{m.init}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{m.name}</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>{m.role} · {m.company}</div>
-                    <p style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7, margin: "0 0 8px" }}>{m.comment}</p>
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
-                      {m.tags.map((t) => (
-                        <span key={t} style={{
-                          fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
-                          background: "var(--royal-50)", color: "var(--royal)",
-                          border: "1px solid var(--royal-100)",
-                        }}>{t}</span>
-                      ))}
+            ].map((item) => (
+              <Link key={item.title} href={item.href} style={{ textDecoration: "none", display: "block" }}>
+                <div style={{
+                  background: item.bg, borderRadius: 12, padding: "14px 16px",
+                  border: `1px solid ${item.border}`, marginBottom: 10,
+                  transition: "box-shadow 0.15s",
+                }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    <span style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{item.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{item.title}</div>
+                      <p style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7, margin: "0 0 6px" }}>{item.desc}</p>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)" }}>{item.cta}</span>
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
 
-            {/* Footer CTA */}
-            <Link href="/mentors" style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              padding: "12px", borderRadius: 10, marginTop: 4,
-              background: "var(--royal)", color: "#fff",
-              fontSize: 13, fontWeight: 700, textDecoration: "none",
-              boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
-            }}>
-              先輩一覧を見る（全13名） <ArrowIcon />
-            </Link>
-            <p style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center" as const, marginTop: 8 }}>
-              30分 · 完全無料 · 営業電話なし
+            <p style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center" as const, marginTop: 12 }}>
+              すべて無料 · 登録不要で閲覧可 · 営業電話なし
             </p>
           </div>
         </div>
@@ -455,7 +425,7 @@ function TrustStrip() {
           <polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
       ),
-      num: "79社+",
+      num: "80社+",
       label: "IT/SaaS 企業掲載",
     },
     {
@@ -650,10 +620,10 @@ function HowItWorks() {
       icon: <SearchIcon />,
     },
     {
-      step: "STEP 02", title: "先輩に直接聞く", en: "Ask",
-      desc: "登録後、先輩・OBに直接DMやカジュアル面談を申し込めます。エージェントを介さず、30分無料でリアルな本音を聞ける。",
-      action: "→ 先輩一覧を見る",
-      href: "/mentors",
+      step: "STEP 02", title: "在籍者に直接DMする", en: "Connect",
+      desc: "登録後、企業に在籍するユーザーにDMで直接コンタクト。エージェントを介さず、リアルな本音を聞けます。",
+      action: "→ 企業の在籍者を見る",
+      href: "/companies",
       iconBg: "linear-gradient(135deg, #F59E0B, #D97706)",
       icon: <ChatIcon />,
       highlight: true,
@@ -850,119 +820,6 @@ function PainPoints() {
 
 // ─── Mentor Preview ──────────────────────────────────────────────────────────
 
-type PreviewMentor = {
-  id: string;
-  name: string;
-  photoUrl: string | null;
-  avatarColor: string;
-  avatarInitial: string;
-  currentCompany: string | null;
-  roles: string[];
-  catchphrase: string | null;
-};
-
-function MentorPreviewSection() {
-  const [mentors, setMentors] = useState<PreviewMentor[]>([]);
-
-  useEffect(() => {
-    fetch("/api/mentors/preview?limit=6")
-      .then((r) => r.json())
-      .then((d) => {
-        const arr = Array.isArray(d) ? d : Array.isArray(d.mentors) ? d.mentors : [];
-        setMentors(arr);
-      })
-      .catch(() => {});
-  }, []);
-
-  if (mentors.length === 0) return null;
-
-  return (
-    <section style={{
-      background: "linear-gradient(155deg, var(--royal-50) 0%, #fff 70%)",
-      borderTop: "1px solid var(--royal-100)",
-      borderBottom: "1px solid var(--royal-100)",
-      padding: "72px 48px",
-    }} className="px-5 py-14 md:py-20 md:px-12">
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <SectionTag>先輩に話を聞く</SectionTag>
-          <h2 style={{ fontSize: "clamp(24px,3vw,36px)", fontWeight: 700, color: "var(--ink)", marginBottom: 12, letterSpacing: "-0.02em" }}>
-            この先輩に、<span style={{ color: "var(--royal)" }}>話を聞ける。</span>
-          </h2>
-          <p style={{ fontSize: 15, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: 480, margin: "0 auto" }}>
-            IT/SaaS業界で数年先を歩く先輩が、30分無料で話を聞いてくれます。<br />
-            エージェントではなく、リアルな経験者の声。
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {mentors.slice(0, 6).map((m) => (
-            <Link key={m.id} href={`/mentors/${m.id}`} style={{ textDecoration: "none" }}>
-              <div className="mentor-preview-card" style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 16, padding: "20px 14px",
-                textAlign: "center",
-                transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-                height: "100%",
-              }}>
-                {/* Avatar */}
-                <div style={{
-                  width: 64, height: 64, borderRadius: "50%",
-                  background: m.avatarColor,
-                  margin: "0 auto 12px",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 22, fontWeight: 700, color: "#fff",
-                  overflow: "hidden",
-                  boxShadow: "0 4px 12px rgba(0,35,102,0.15)",
-                  flexShrink: 0,
-                }}>
-                  {m.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.photoUrl} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    m.avatarInitial
-                  )}
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{m.name}</div>
-                {m.currentCompany && (
-                  <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 8 }}>{m.currentCompany}</div>
-                )}
-                {m.roles[0] && (
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                    background: "var(--royal-50)", color: "var(--royal)",
-                    border: "1px solid var(--royal-100)",
-                  }}>{m.roles[0]}</span>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <div style={{ textAlign: "center", marginTop: 40 }}>
-          <Link href="/mentors" style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "12px 28px", borderRadius: 8,
-            background: "var(--royal)", color: "#fff",
-            fontSize: 14, fontWeight: 700, textDecoration: "none",
-            boxShadow: "0 4px 16px rgba(0,35,102,0.20)",
-          }}>
-            先輩一覧を見る <ArrowIcon />
-          </Link>
-          <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 10 }}>30分 · 無料 · 営業なし</p>
-        </div>
-      </div>
-      <style>{`
-        .mentor-preview-card:hover {
-          border-color: var(--royal-100) !important;
-          box-shadow: 0 8px 24px rgba(0,35,102,0.10) !important;
-          transform: translateY(-2px) !important;
-        }
-      `}</style>
-    </section>
-  );
-}
-
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
 function FinalCta() {
@@ -995,7 +852,7 @@ function FinalCta() {
           まず企業を見てみる <ArrowIcon />
         </Link>
         <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: 0 }}>
-          登録不要 · 今すぐ全 79社+ の企業情報を見られます
+          登録不要 · 今すぐ全 80社+ の企業情報を見られます
         </p>
         <Link href="/auth" style={{
           fontSize: 14, color: "rgba(255,255,255,0.7)", textDecoration: "none",
@@ -1368,7 +1225,6 @@ export default function HomePage() {
       <TrustStrip />
       <HowItWorks />
       <FeaturedCompaniesSection />
-      <MentorPreviewSection />
       <PainPoints />
       <StoryFeedSection />
       <ArticlesPreview />

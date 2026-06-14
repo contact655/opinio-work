@@ -181,14 +181,14 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
       <!-- メンター相談CTA -->
       <div style="background:#fff8f0;border:1px solid #fde68a;border-radius:12px;padding:20px 24px;margin-top:24px;text-align:center">
         <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:6px">
-          &#x1F3AF; キャリアの悩み、メンターに相談してみませんか？
+          &#x1F4AC; 企業の在籍者にDMで直接相談
         </div>
         <div style="font-size:13px;color:#6b7280;margin-bottom:14px">
-          IT/SaaS業界のプロフェッショナルが無料で相談に乗ります
+          気になる企業のプロフィールページから、在籍ユーザーにDMを送れます
         </div>
-        <a href="${BASE_URL}/mentors"
+        <a href="${BASE_URL}/companies"
            style="display:inline-block;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;padding:10px 28px;border-radius:8px;font-size:14px;text-decoration:none;font-weight:700;box-shadow:0 2px 8px rgba(245,158,11,0.3)">
-          メンターに相談する →
+          企業一覧を見る →
         </a>
       </div>
 
