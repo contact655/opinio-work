@@ -494,8 +494,25 @@ function AuthPageInner() {
                 {/* ② アクション指向の見出しに変更 */}
                 <h1 style={s.formTitle}>無料で、始める。</h1>
                 <p style={s.formSubtitle}>
-                  IT/SaaS業界の求人・先輩情報に、<strong>完全無料</strong>でアクセスできます。
+                  登録すると、こんなことができます：
                 </p>
+                <ul style={{ listStyle: "none", padding: 0, margin: "10px 0 0", display: "flex", flexDirection: "column", gap: 7 }}>
+                  {[
+                    { icon: "💬", text: "先輩・OBに直接DMを送れる" },
+                    { icon: "☕", text: "企業へカジュアル面談を申し込める" },
+                    { icon: "🔖", text: "気になる企業・求人をブックマーク管理" },
+                  ].map(({ icon, text }) => (
+                    <li key={text} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--ink-soft)" }}>
+                      <span style={{
+                        width: 22, height: 22, borderRadius: "50%",
+                        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 12, flexShrink: 0,
+                      }}>{icon}</span>
+                      <span>{text}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
               {/* ④ ソーシャルプルーフをGoogleボタン前に移動 */}

@@ -148,13 +148,13 @@ function Hero() {
             color: "var(--ink)", marginBottom: "var(--space-2)",
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            <span style={{ color: "#D97706" }}>外資・SaaS</span>の転職。<br />
-            深く知ってから、動く。
+            外資・SaaSの先輩に、<br />
+            <span style={{ color: "#D97706" }}>直接</span>話を聞ける。
           </h1>
 
           {/* Tagline */}
           <p style={{ fontSize: 14, color: "var(--ink-mute)", marginBottom: "var(--space-6)", letterSpacing: "0.01em" }}>
-            今のキャリアを変えなくてもいい。ただ、知ることから始めよう。
+            IT/SaaS・外資系で活躍する先輩に30分無料で相談できる、業界特化のキャリアサービス。
           </p>
 
           {/* Lead */}
@@ -231,159 +231,93 @@ function Hero() {
           </div>
         </div>
 
-        {/* Right: search mockup */}
+        {/* Right: mentor showcase */}
         <div className="hidden md:flex justify-center hero-fade-right" style={{ position: "relative" }}>
           <div style={{
             background: "#fff", borderRadius: 20,
             boxShadow: "0 20px 60px rgba(0,35,102,0.10), 0 4px 16px rgba(15,23,42,0.06)",
-            padding: "var(--space-6)", width: "100%", maxWidth: 400,
+            padding: "24px", width: "100%", maxWidth: 400,
             border: "1px solid var(--line)",
           }}>
             {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
-              <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "var(--text-md)", color: "var(--royal)" }}>OPINIO</span>
-              <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "var(--text-xs)", color: "var(--ink-soft)" }}>
-                <span className="animate-blink-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", flexShrink: 0 }} />
-                最新情報
-              </span>
-            </div>
-
-            {/* Search label */}
-            <div style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 8 }}>
-              最新求人を探す
-            </div>
-
-            {/* Search bar */}
-            <div style={{
-              border: "1.5px solid var(--royal)", borderRadius: 8, padding: "10px 14px",
-              display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)",
-            }}>
-              <SearchIcon />
-              <span style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)" }}>フルリモート・副業OKのSaaS企業</span>
-            </div>
-
-            {/* ② Show total job count directly — no "1件が該当" issue */}
-            <div style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              fontSize: 12, marginBottom: "var(--space-3)", color: "var(--ink-soft)",
-            }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span className="animate-blink-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
-                <span>今日更新 · 全 <strong style={{ color: "var(--ink)" }}>155件+</strong></span>
-              </span>
-              <span style={{ fontSize: 10, color: "var(--success)" }}>掲載中</span>
-            </div>
-
-            {/* Job list */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {!jobsLoaded
-                ? (
-                    <div style={{ padding: "20px 16px", textAlign: "center" }}>
-                      <div style={{
-                        width: 18, height: 18,
-                        border: "2px solid var(--royal-100)", borderTopColor: "var(--royal)",
-                        borderRadius: "50%", animation: "spin 0.8s linear infinite",
-                        margin: "0 auto 8px",
-                      }} />
-                      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>求人情報を取得中…</span>
-                    </div>
-                  )
-                : jobs.length === 0
-                ? (
-                    <div style={{
-                      padding: "20px 16px", borderRadius: 12,
-                      background: "var(--bg-tint)", textAlign: "center",
-                      border: "1px solid var(--line)",
-                    }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 10 }}>
-                        現在掲載中の求人はこちら
-                      </div>
-                      <Link href="/jobs" style={{
-                        display: "inline-block", padding: "7px 16px",
-                        borderRadius: 20, background: "var(--royal-50)", color: "var(--royal)",
-                        fontSize: 12, fontWeight: 600, textDecoration: "none",
-                        border: "1px solid var(--royal-100)",
-                      }}>
-                        すべての求人を見る →
-                      </Link>
-                    </div>
-                  )
-                : jobs.map((job) => {
-                    const salary = formatSalary(job.salaryMin, job.salaryMax);
-                    return (
-                      <Link key={job.id} href={`/jobs/${job.id}`} style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        padding: "10px 12px", borderRadius: 10,
-                        background: "var(--bg-tint)",
-                        border: "1px solid var(--line)",
-                        textDecoration: "none",
-                        transition: "background 0.15s",
-                      }}>
-                        {/* ロゴ */}
-                        <div style={{
-                          width: 34, height: 34, borderRadius: 8,
-                          background: job.logoGradient,
-                          color: "#fff", fontSize: 13, fontWeight: 700,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          flexShrink: 0, overflow: "hidden",
-                        }}>
-                          {job.logoUrl
-                            ? <Image src={job.logoUrl} alt={job.companyName} width={34} height={34} style={{ objectFit: "contain" }} />
-                            : (job.logoLetter || job.companyName[0])}
-                        </div>
-                        {/* テキスト */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.companyName}</div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.title}</div>
-                          <div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}>
-                            {job.workStyle && (
-                              <span style={{
-                                fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
-                                background: "var(--royal-50)", color: "var(--royal)",
-                                border: "1px solid var(--royal-100)",
-                              }}>{job.workStyle}</span>
-                            )}
-                            {job.employmentType && (
-                              <span style={{
-                                fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
-                                background: "var(--line-soft)", color: "var(--ink-mute)",
-                              }}>{job.employmentType}</span>
-                            )}
-                          </div>
-                        </div>
-                        {/* 年収 */}
-                        {salary && (
-                          <div style={{
-                            fontSize: 13, fontWeight: 800,
-                            color: "var(--success)", flexShrink: 0,
-                            fontFamily: "Inter, sans-serif",
-                            textAlign: "right",
-                          }}>
-                            {salary}
-                            <div style={{ fontSize: 9, fontWeight: 500, color: "var(--ink-mute)", textAlign: "right" }}>万円</div>
-                          </div>
-                        )}
-                      </Link>
-                    );
-                  })
-              }
-            </div>
-
-            {/* Footer: 件数 + 全件リンク */}
-            <div style={{
-              marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line)",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-            }}>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter" }}>
-                全 31 件掲載中
-              </span>
-              <Link href="/jobs" style={{
-                fontSize: 11, fontWeight: 600, color: "var(--royal)",
-                textDecoration: "none", display: "flex", alignItems: "center", gap: 4,
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>今すぐ話せる先輩</span>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 10, fontWeight: 700, color: "var(--success)",
+                background: "var(--success-soft)", border: "1px solid #A7F3D0",
+                borderRadius: 100, padding: "3px 9px",
               }}>
-                すべて見る <ArrowIcon />
-              </Link>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--success)", display: "inline-block", animation: "pulseDot 2.5s ease-in-out infinite" }} />
+                相談受付中
+              </span>
             </div>
+
+            {/* Mentor cards */}
+            {[
+              {
+                init: "生", bg: "linear-gradient(135deg,#002366,#3B5FD9)",
+                name: "生藤 弘樹", role: "エンタープライズ営業", company: "Salesforce Japan",
+                comment: "外資SaaSの営業キャリアについて、リアルな経験をお伝えします。",
+                tags: ["SaaS営業", "外資系"],
+              },
+              {
+                init: "小", bg: "linear-gradient(135deg,#7C3AED,#6D28D9)",
+                name: "小松 耕野", role: "カスタマーサクセス", company: "HubSpot Japan",
+                comment: "CS職へのキャリアチェンジ、SaaS業界の実情をお話しします。",
+                tags: ["CS", "マーケ"],
+              },
+              {
+                init: "木", bg: "linear-gradient(135deg,#059669,#047857)",
+                name: "木村 勇人", role: "ソリューションエンジニア", company: "Datadog Japan",
+                comment: "技術系営業・SE職への転職サポートができます。",
+                tags: ["SE", "エンジニア系営業"],
+              },
+            ].map((m) => (
+              <div key={m.name} style={{
+                background: "var(--bg-tint)", borderRadius: 12, padding: "14px 16px",
+                border: "1px solid var(--line)", marginBottom: 10,
+              }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: "50%", background: m.bg,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                  }}>{m.init}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{m.name}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>{m.role} · {m.company}</div>
+                    <p style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7, margin: "0 0 8px" }}>{m.comment}</p>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
+                      {m.tags.map((t) => (
+                        <span key={t} style={{
+                          fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
+                          background: "var(--royal-50)", color: "var(--royal)",
+                          border: "1px solid var(--royal-100)",
+                        }}>{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Footer CTA */}
+            <Link href="/mentors" style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              padding: "12px", borderRadius: 10, marginTop: 4,
+              background: "var(--royal)", color: "#fff",
+              fontSize: 13, fontWeight: 700, textDecoration: "none",
+              boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
+            }}>
+              先輩一覧を見る（全13名） <ArrowIcon />
+            </Link>
+            <p style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center" as const, marginTop: 8 }}>
+              30分 · 完全無料 · 営業電話なし
+            </p>
           </div>
         </div>
       </div>
@@ -752,13 +686,14 @@ function HowItWorks() {
       icon: <SearchIcon />,
     },
     {
-      step: "STEP 02", title: "カジュアル面談", en: "Talk",
-      desc: "気になった会社に、カジュアル面談を申し込んで現役社員に直接話を聞けます。完全無料。",
-      action: "→ 企業を探す",
-      href: "/companies",
+      step: "STEP 02", title: "先輩に直接聞く", en: "Ask",
+      desc: "登録後、先輩・OBに直接DMやカジュアル面談を申し込めます。エージェントを介さず、30分無料でリアルな本音を聞ける。",
+      action: "→ 先輩一覧を見る",
+      href: "/mentors",
       iconBg: "linear-gradient(135deg, #F59E0B, #D97706)",
       icon: <ChatIcon />,
       highlight: true,
+      badge: "OPINIOだけの強み",
     },
     {
       step: "STEP 03", title: "自分で決める", en: "Decide",
@@ -809,15 +744,15 @@ function HowItWorks() {
                   {String(i + 1).padStart(2, "0")}
                 </div>
                 <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: s.highlight ? "#D97706" : "var(--royal)", marginBottom: "var(--space-2)" }}>{s.step}</div>
-                {/* ⑤ OPINIOの強み badge for Step 02 */}
-                {s.highlight && (
+                {/* badge for highlight steps */}
+                {"badge" in s && s.badge && (
                   <div style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
                     padding: "3px 10px", borderRadius: 100, marginBottom: 10,
                     background: "#FEF3C7", border: "1px solid #FDE68A",
                     fontSize: 10, fontWeight: 700, color: "#D97706",
                   }}>
-                    ★ OPINIOの強み
+                    ★ {s.badge}
                   </div>
                 )}
                 <div style={{

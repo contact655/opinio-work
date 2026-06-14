@@ -8,9 +8,10 @@ import { ChevronDown } from "lucide-react";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 
 const NAV_LINKS = [
-  { href: "/companies", label: "企業を見る" },
-  { href: "/jobs", label: "求人を探す" },
-  { href: "/articles", label: "記事" },
+  { href: "/companies", label: "企業を見る", highlight: false },
+  { href: "/jobs", label: "求人を探す", highlight: false },
+  { href: "/mentors", label: "先輩に相談", highlight: true },
+  { href: "/articles", label: "記事", highlight: false },
 ];
 
 type SuggestResult = {
@@ -184,9 +185,31 @@ export function JobseekerHeader() {
           </Link>
 
           {/* Nav — desktop only */}
-          <nav className="hidden md:flex" aria-label="メインナビゲーション" style={{ gap: 24, flex: 1 }}>
-            {NAV_LINKS.map(({ href, label }) => {
+          <nav className="hidden md:flex" aria-label="メインナビゲーション" style={{ gap: 8, flex: 1, alignItems: "center" }}>
+            {NAV_LINKS.map(({ href, label, highlight }) => {
               const active = pathname.startsWith(href);
+              if (highlight) {
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    aria-current={active ? "page" : undefined}
+                    style={{
+                      fontSize: 13, fontWeight: 700,
+                      color: active ? "#D97706" : "#B45309",
+                      textDecoration: "none", whiteSpace: "nowrap",
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "5px 12px", borderRadius: 100,
+                      background: active ? "#FEF3C7" : "#FFFBEB",
+                      border: "1.5px solid #FDE68A",
+                      transition: "background 0.15s, border-color 0.15s",
+                    }}
+                  >
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#D97706", flexShrink: 0, animation: "pulseDot 2.5s ease-in-out infinite" }} />
+                    {label}
+                  </Link>
+                );
+              }
               return (
                 <Link
                   key={href}
@@ -199,6 +222,7 @@ export function JobseekerHeader() {
                     textDecoration: "none",
                     borderBottom: active ? "2px solid var(--royal)" : "2px solid transparent",
                     paddingBottom: 2,
+                    padding: "0 8px 2px",
                     transition: "color 0.15s",
                     whiteSpace: "nowrap",
                   }}
@@ -564,8 +588,30 @@ export function JobseekerHeader() {
 
         {/* Nav links */}
         <nav aria-label="モバイルナビゲーション" style={{ padding: "8px 0", flex: 1 }}>
-          {NAV_LINKS.map(({ href, label }) => {
+          {NAV_LINKS.map(({ href, label, highlight }) => {
             const active = pathname.startsWith(href);
+            if (highlight) {
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "14px 24px", fontSize: 15, fontWeight: 700,
+                    color: active ? "#B45309" : "#92400E",
+                    textDecoration: "none",
+                    background: active ? "#FEF3C7" : "transparent",
+                    borderLeft: active ? "3px solid #D97706" : "3px solid transparent",
+                    transition: "background 0.15s",
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#D97706", flexShrink: 0 }} />
+                  {label}
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A", marginLeft: "auto" }}>無料</span>
+                </Link>
+              );
+            }
             return (
               <Link
                 key={href}
