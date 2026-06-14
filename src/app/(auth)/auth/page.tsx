@@ -108,25 +108,28 @@ function SocialProofStrip() {
   );
 }
 
-// ─── Mentor card shown in brand panel ────────────────────────────────────────
-const PANEL_MENTORS = [
+// ─── Feature highlights shown in brand panel ─────────────────────────────────
+const PANEL_FEATURES = [
   {
-    init: "生",
-    bg: "linear-gradient(135deg,#059669,#047857)",
-    name: "生藤 弘樹",
-    role: "エンタープライズ営業",
-    company: "Salesforce Japan",
-    comment: "外資SaaSの営業キャリアって実際どうなの？と聞かれることが多いので、気軽に話しかけてください。",
-    tags: ["SaaS営業", "外資系"],
+    icon: "🏢",
+    title: "取材された企業情報",
+    desc: "外資・SaaS・スタートアップの組織文化を、編集部の独自取材で届けます。",
+    bg: "var(--royal-50)",
+    border: "var(--royal-100)",
   },
   {
-    init: "小",
-    bg: "linear-gradient(135deg,#7C3AED,#6D28D9)",
-    name: "小松 耕野",
-    role: "カスタマーサクセス",
-    company: "HubSpot Japan",
-    comment: "CS職への転職を考えている方、SaaS業界の実情をお伝えします。",
-    tags: ["CS", "マーケ"],
+    icon: "💼",
+    title: "ポジション・求人一覧",
+    desc: "職種・年収・働き方でフィルタリング。自分に合うポジションを比較できます。",
+    bg: "#FEF3C7",
+    border: "#FDE68A",
+  },
+  {
+    icon: "✍️",
+    title: "フィードで発信・つながる",
+    desc: "転職活動の進捗や考えをシェア。同じ業界を目指す人とDMでつながれます。",
+    bg: "var(--success-soft)",
+    border: "#A7F3D0",
   },
 ];
 
@@ -175,53 +178,29 @@ function BrandSide() {
             </div>
             <h2 style={{
               fontFamily: "var(--font-noto-serif)", fontWeight: 500,
-              fontSize: "clamp(24px, 2.8vw, 32px)", lineHeight: 1.45,
+              fontSize: "clamp(22px, 2.8vw, 30px)", lineHeight: 1.45,
               color: "var(--ink)", marginBottom: 10, letterSpacing: "0.01em",
             }}>
-              先輩に話を聞いてから、<br />キャリアを動かす。
+              深く知って、<br />自分で動く。
             </h2>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.85 }}>
-              外資・SaaS・スタートアップで活躍する先輩に<br />
-              直接相談できる、IT業界特化のキャリアサービス。
+              外資・SaaS・スタートアップへの転職情報を<br />
+              一か所に集めた、IT業界特化のキャリアサービス。
             </p>
           </div>
 
-          {/* ① メンターカード — コンパクト2枚（コメント削除） */}
+          {/* 機能ハイライト — 3枚 */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-            {PANEL_MENTORS.map((m) => (
-              <div key={m.name} style={{
-                background: "#fff", borderRadius: 12, padding: "12px 14px",
-                border: "1px solid rgba(0,35,102,0.08)",
-                boxShadow: "0 2px 10px rgba(0,35,102,0.05)",
+            {PANEL_FEATURES.map((f) => (
+              <div key={f.title} style={{
+                background: f.bg, borderRadius: 12, padding: "12px 14px",
+                border: `1px solid ${f.border}`,
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: "50%", background: m.bg,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 15, fontWeight: 700, color: "#fff", flexShrink: 0,
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-                  }}>{m.init}</div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{f.icon}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{m.name}</div>
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>{m.role} · {m.company}</div>
-                    <div style={{ display: "flex", gap: 4, marginTop: 5 }}>
-                      {m.tags.map((t) => (
-                        <span key={t} style={{
-                          fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 100,
-                          background: "var(--royal-50)", color: "var(--royal)",
-                          border: "1px solid var(--royal-100)",
-                        }}>{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 3, flexShrink: 0,
-                    padding: "3px 8px", borderRadius: 100,
-                    background: "var(--success-soft)", border: "1px solid #A7F3D0",
-                    fontSize: 9, fontWeight: 700, color: "var(--success)",
-                  }}>
-                    <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
-                    相談受付中
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{f.title}</div>
+                    <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.65 }}>{f.desc}</div>
                   </div>
                 </div>
               </div>
@@ -441,7 +420,7 @@ function AuthPageInner() {
 
         {/* ⑤ Mobile benefit chips */}
         <div className="flex md:hidden" style={{ gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
-          {["完全無料", "先輩に相談できる", "登録はメールのみ"].map((t) => (
+          {["完全無料", "在籍者にDMできる", "登録はメールのみ"].map((t) => (
             <span
               key={t}
               style={{
@@ -498,7 +477,7 @@ function AuthPageInner() {
                 </p>
                 <ul style={{ listStyle: "none", padding: 0, margin: "10px 0 0", display: "flex", flexDirection: "column", gap: 7 }}>
                   {[
-                    { icon: "☕", text: "先輩・OBにカジュアル面談を申し込める" },
+                    { icon: "💬", text: "企業の在籍ユーザーにDMで直接聞ける" },
                     { icon: "✍️", text: "フィードで転職の思いを発信できる" },
                     { icon: "🔖", text: "気になる企業・求人をブックマーク管理" },
                   ].map(({ icon, text }) => (

@@ -51,7 +51,7 @@ function ArticleCard({ article }: { article: Article }) {
       >
         {/* Eyecatch */}
         <div style={{
-          height: 180,
+          height: 140,
           background: article.eyecatch_gradient || "linear-gradient(135deg, var(--royal), #3B5FD9)",
           display: "flex", alignItems: "center", justifyContent: "center",
           position: "relative", overflow: "hidden",
@@ -69,7 +69,7 @@ function ArticleCard({ article }: { article: Article }) {
               color: "rgba(255,255,255,0.15)", fontWeight: 700, userSelect: "none",
             }}>&ldquo;</span>
           )}
-          <span style={{ fontSize: 56, opacity: 0.2, position: "relative", zIndex: 1 }}>{icon}</span>
+          <span style={{ fontSize: 44, opacity: 0.18, position: "relative", zIndex: 1 }}>{icon}</span>
 
           {/* Category badge */}
           <div style={{
@@ -122,7 +122,7 @@ function ArticleCard({ article }: { article: Article }) {
         </div>
 
         {/* Body */}
-        <div style={{ padding: "16px 18px 18px", flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "12px 14px 14px", flex: 1, display: "flex", flexDirection: "column" }}>
           {/* 取材対象者の役職（社員/メンター/CEO記事のみ） */}
           {mainSubject?.role_at_interview && (
             <div style={{
@@ -137,10 +137,10 @@ function ArticleCard({ article }: { article: Article }) {
 
           <h2 style={{
             fontFamily: 'var(--font-noto-serif)',
-            fontSize: 16, fontWeight: 700, lineHeight: 1.55,
+            fontSize: 14.5, fontWeight: 700, lineHeight: 1.55,
             color: "var(--ink)", marginBottom: "var(--space-2)",
             display: "-webkit-box",
-            WebkitLineClamp: 3,
+            WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
           } as React.CSSProperties}>

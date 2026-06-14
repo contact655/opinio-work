@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import HomeFaq from "@/app/HomeFaq";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 
@@ -1060,6 +1061,69 @@ function StoryFeedSection() {
   );
 }
 
+function FeedUVP() {
+  return (
+    <section style={{ background: "linear-gradient(135deg, #f0fdf8 0%, #ecfdf5 50%, #f0f9ff 100%)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)", padding: "64px 0" }}>
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 56, alignItems: "center" }} className="grid grid-cols-1 md:grid-cols-2">
+          {/* Left */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "var(--success)", textTransform: "uppercase" as const, marginBottom: 10 }}>
+              OPINIO FEED
+            </div>
+            <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 2.8vw, 30px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.45, marginBottom: 14 }}>
+              転職活動の「いま」を、<br />同じ業界の人とシェアする。
+            </h2>
+            <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.85, marginBottom: 24 }}>
+              選考状況・面接対策・業界の動き——OPINIOフィードは、外資・SaaS転職を目指すユーザー同士がリアルな声を共有できる場所です。DMで直接つながることもできます。
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
+              {[
+                { icon: "✍️", text: "転職中のリアルな体験を投稿・共有できる" },
+                { icon: "💬", text: "気になる企業の在籍ユーザーにDMを送れる" },
+                { icon: "🔔", text: "フォロー中の企業の新着情報が届く" },
+              ].map(({ icon, text }) => (
+                <div key={text} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--success-soft)", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</span>
+                  <span style={{ fontSize: 13.5, color: "var(--ink)", fontWeight: 500 }}>{text}</span>
+                </div>
+              ))}
+            </div>
+            <Link href="/feed" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 22px", borderRadius: 8, background: "var(--success)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 2px 10px rgba(5,150,105,0.3)" }}>
+              フィードを見る →
+            </Link>
+          </div>
+
+          {/* Right: mock feed cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              { init: "田", grad: "linear-gradient(135deg, #002366, #3B5FD9)", name: "田中 翔太", role: "SaaS営業 → 転職活動中", text: "Salesforceの最終面接でした。外資のウォータースライド面接、想定より深掘りされた💦 内定出たらまたご報告します。", time: "3時間前", tags: ["Salesforce", "外資転職"] },
+              { init: "K", grad: "linear-gradient(135deg, #7C3AED, #A78BFA)", name: "Kim Jihoon", role: "SRE at Startup", text: "HubSpotのSRE面接通過しました。インフラ経験をどう説明するか、ここ最近で一番練習したかも。", time: "昨日", tags: ["HubSpot", "エンジニア転職"] },
+              { init: "山", grad: "linear-gradient(135deg, #059669, #34D399)", name: "山本 美月", role: "CS → BizDev を検討中", text: "Timeeのカジュアル面談でした。事業フェーズの話を直接聞けて解像度が上がりました🙌", time: "2日前", tags: ["Timee", "BizDev"] },
+            ].map((post) => (
+              <div key={post.name} style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", border: "1px solid var(--line)", boxShadow: "0 2px 8px rgba(15,23,42,0.05)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: post.grad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{post.init}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{post.name}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--ink-mute)" }}>{post.role} · {post.time}</div>
+                  </div>
+                </div>
+                <p style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.7, margin: "0 0 8px" }}>{post.text}</p>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {post.tags.map((t) => (
+                    <span key={t} style={{ fontSize: 9.5, fontWeight: 600, padding: "2px 7px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success)", border: "1px solid #A7F3D0" }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ArticlesPreview() {
   const [articles, setArticles] = useState<PreviewArticle[] | null>(null);
 
@@ -1216,6 +1280,60 @@ function ArticlesPreview() {
   );
 }
 
+// ─── Mobile non-auth sticky CTA ──────────────────────────────────────────────
+
+function MobileAuthCTA() {
+  const [show, setShow] = useState(false);
+  const [authed, setAuthed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setAuthed(!!data.user);
+    });
+
+    const onScroll = () => {
+      setShow(window.scrollY > 300);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // 認証済み or スクロール前 or 判定中は非表示
+  if (authed !== false || !show) return null;
+
+  return (
+    <div className="md:hidden" style={{
+      position: "fixed",
+      bottom: 64, // モバイルボトムナビの上
+      left: 0, right: 0,
+      zIndex: 90,
+      padding: "10px 16px",
+      background: "linear-gradient(135deg, #001233 0%, #002366 100%)",
+      borderTop: "1px solid rgba(255,255,255,0.1)",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      boxShadow: "0 -4px 20px rgba(0,0,0,0.2)",
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", lineHeight: 1.3 }}>無料で始めてみませんか？</div>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", marginTop: 2 }}>メール登録のみ · 営業電話なし</div>
+      </div>
+      <Link href="/auth" style={{
+        padding: "9px 18px", borderRadius: 8, flexShrink: 0,
+        background: "linear-gradient(135deg, #F59E0B, #D97706)",
+        color: "#fff", fontSize: 13, fontWeight: 700,
+        textDecoration: "none",
+        boxShadow: "0 2px 8px rgba(245,158,11,0.4)",
+        whiteSpace: "nowrap",
+      }}>
+        無料登録 →
+      </Link>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
@@ -1227,9 +1345,11 @@ export default function HomePage() {
       <FeaturedCompaniesSection />
       <PainPoints />
       <StoryFeedSection />
+      <FeedUVP />
       <ArticlesPreview />
       <HomeFaq />
       <FinalCta />
+      <MobileAuthCTA />
     </>
   );
 }
