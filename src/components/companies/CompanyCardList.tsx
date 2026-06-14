@@ -63,6 +63,16 @@ function cleanEnName(nameEn: string | null | undefined): string | null {
   return cleaned || null;
 }
 
+function stripLegalSuffix(name: string): string {
+  return name
+    .replace(/^株式会社\s*/, "")
+    .replace(/\s*株式会社$/, "")
+    .replace(/^合同会社\s*/, "")
+    .replace(/\s*合同会社$/, "")
+    .replace(/^有限会社\s*/, "")
+    .trim();
+}
+
 // ⑥ 業種別グラデーション（ロゴなし企業の背景色）
 const INDUSTRY_LOGO_GRADIENTS: Record<string, string> = {
   "HR Tech":        "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
@@ -212,8 +222,10 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
 
   const initial = company.logo_letter ?? company.name.slice(0, 1);
   const stageCfg = getStageCfg(company.funding_stage);
-  const displayName = cleanEnName(company.name_en) ?? company.name;
-  const isEnName = !!cleanEnName(company.name_en);
+  const enName = cleanEnName(company.name_en);
+  const displayName = enName ?? stripLegalSuffix(company.name);
+  const isEnName = !!enName;
+  const showSubtitle = displayName !== company.name;
   const headerGradient =
     company.logo_gradient ??
     "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
@@ -344,7 +356,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
                 display: "block",
               }}>{displayName}</span>
-              {isEnName && company.name && (
+              {showSubtitle && company.name && (
                 <span style={{
                   fontSize: 10.5, color: "var(--ink-mute)", lineHeight: 1.3,
                   fontFamily: "var(--font-noto-sans)",
@@ -372,7 +384,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                   </svg>
-                  <span style={{ whiteSpace: "nowrap" }}>{company.location.replace(/^東京都/, "東京").replace(/^大阪府/, "大阪").replace(/^京都府/, "京都").replace(/[都道府県]$/, "")}</span>
+                  <span style={{ whiteSpace: "nowrap" }}>{company.location.replace(/[（(].*/, "").trim().replace(/^東京都/, "東京").replace(/^大阪府/, "大阪").replace(/^京都府/, "京都").replace(/[都道府県]$/, "")}</span>
                   {company.branch_locations && company.branch_locations.length > 0 && (
                     <span style={{ color: "var(--ink-mute)", opacity: 0.75, whiteSpace: "nowrap" }}>
                       ＋{company.branch_locations.slice(0, 2).join("・")}
@@ -510,7 +522,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             }}>
               {displayName}
             </span>
-            {isEnName && (
+            {showSubtitle && (
               <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 6 }}>
                 {company.name}
               </span>
@@ -550,7 +562,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                   <circle cx="12" cy="10" r="3"/>
                 </svg>
-                <span>{company.location.replace(/^東京都/, "東京").replace(/^大阪府/, "大阪").replace(/^京都府/, "京都").replace(/[都道府県]$/, "")}</span>
+                <span>{company.location.replace(/[（(].*/, "").trim().replace(/^東京都/, "東京").replace(/^大阪府/, "大阪").replace(/^京都府/, "京都").replace(/[都道府県]$/, "")}</span>
                 {company.branch_locations && company.branch_locations.length > 0 && (
                   <span style={{ color: "var(--ink-mute)", fontSize: 11 }}>
                     ＋{company.branch_locations.slice(0, 3).join("・")}
