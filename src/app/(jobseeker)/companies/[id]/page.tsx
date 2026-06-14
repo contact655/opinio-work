@@ -122,7 +122,7 @@ function Hero({
   coverPhotoUrl?: string | null;
 }) {
   const displayBrand = (company.brand_name ?? company.name_en ?? company.name)
-    .replace(/^(株式会社|有限会社|合同会社|一般社団法人|一般財団法人)\s*/u, "").trim();
+    .replace(/^(株式会社|有限会社|合同会社|一般社団法人|一般財団法人)\s*/, "").trim();
   const initial = displayBrand.charAt(0).toUpperCase() || company.name.charAt(0).toUpperCase();
   const freshLabel = formatUpdated(company.updated_days_ago);
   const isFresh = company.updated_days_ago <= 30;
@@ -3342,17 +3342,17 @@ export default async function CompanyDetailPage({
                       href={`/u/${emp.userId}`}
                       style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textDecoration: "none", width: 68 }}
                     >
-                      {emp.photoUrl ? (
-                        <img src={emp.photoUrl} alt={emp.name} style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)" }} />
+                      {emp.avatarUrl ? (
+                        <img src={emp.avatarUrl} alt={emp.name} style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)" }} />
                       ) : (
                         <div style={{
                           width: 52, height: 52, borderRadius: "50%",
-                          background: `linear-gradient(135deg, var(--royal), #3B5FD9)`,
+                          background: emp.avatarGradient || "linear-gradient(135deg, var(--royal), #3B5FD9)",
                           display: "flex", alignItems: "center", justifyContent: "center",
                           fontSize: 18, fontWeight: 700, color: "#fff",
                           border: "2px solid var(--line)", flexShrink: 0,
                         }}>
-                          {emp.name.charAt(0)}
+                          {emp.avatarInitial || emp.name.charAt(0)}
                         </div>
                       )}
                       <span style={{ fontSize: 10, color: "var(--ink-soft)", fontWeight: 600, textAlign: "center", lineHeight: 1.3, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
