@@ -221,7 +221,9 @@ export default function ConversationDetailPage() {
   }
 
   const displayName =
-    conversation?.kind === "mentor"
+    conversation?.kind === "direct_message"
+      ? conversation.mentor?.name ?? "ユーザー"
+      : conversation?.kind === "mentor"
       ? conversation.mentor?.name ?? "メンター"
       : conversation?.ow_companies?.name ?? "(企業情報なし)";
 
@@ -244,8 +246,17 @@ export default function ConversationDetailPage() {
               </svg>
             </Link>
 
-            {/* 企業 / メンターロゴ */}
-            {company?.logo_url ? (
+            {/* 企業 / メンター / DMアバター */}
+            {conversation?.kind === "direct_message" ? (
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 12, fontWeight: 700, color: "#fff",
+              }}>
+                {displayName[0] ?? "?"}
+              </div>
+            ) : company?.logo_url ? (
               <img
                 src={company.logo_url}
                 alt={company.name}

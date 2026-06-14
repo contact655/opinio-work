@@ -192,16 +192,6 @@ function ArticleCard({ article }: { article: Article }) {
               {article.company_name}
             </span>
 
-            {/* メンター相談ミニCTA */}
-            {mainSubject?.is_mentor && mainSubject?.mentor_id && (
-              <span style={{
-                fontSize: 9.5, fontWeight: 700, padding: "3px 8px", borderRadius: 100,
-                background: "var(--warm-soft)", color: "#B45309",
-                border: "1px solid #FDE68A", whiteSpace: "nowrap", flexShrink: 0,
-              }}>
-                相談可
-              </span>
-            )}
 
             <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
               {article.date.replace(/-/g, "/").slice(2)}

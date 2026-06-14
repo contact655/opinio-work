@@ -22,6 +22,7 @@ import {
 } from "@/components/SocialIcon";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { ProfileNavClient } from "@/components/profile/ProfileNavClient";
+import { DMButton } from "@/components/profile/DMButton";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -672,6 +673,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </svg>
                     カジュアル面談する
                   </Link>
+                )}
+
+                {/* DMボタン（ログイン済み・非オーナーのみ） */}
+                {!viewerIsOwner && authUser && (
+                  <DMButton targetUserId={owUser.id} targetName={owUser.name} />
                 )}
 
                 {viewerIsOwner ? (

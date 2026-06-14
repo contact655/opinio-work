@@ -203,7 +203,9 @@ export default function ConversationsPage() {
           {conversations.map((conv) => {
             const company = conv.ow_companies;
             const displayName =
-              conv.kind === "mentor"
+              conv.kind === "direct_message"
+                ? conv.mentor?.name ?? "ユーザー"
+                : conv.kind === "mentor"
                 ? conv.mentor?.name ?? "対話相手"
                 : company?.name ?? "(企業情報なし)";
 
@@ -230,7 +232,16 @@ export default function ConversationsPage() {
                   }`}
                 >
                   {/* Logo / Avatar */}
-                  {company?.logo_url ? (
+                  {conv.kind === "direct_message" ? (
+                    <div style={{
+                      width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+                      background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 14, fontWeight: 700, color: "#fff",
+                    }}>
+                      {displayName[0] ?? "?"}
+                    </div>
+                  ) : company?.logo_url ? (
                     <img
                       src={company.logo_url}
                       alt={company.name}
@@ -245,12 +256,21 @@ export default function ConversationsPage() {
 
                   {/* Name + date */}
                   <div className="flex-1 min-w-0">
-                    <div
-                      className={`text-sm truncate ${
-                        hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground"
-                      }`}
-                    >
-                      {displayName}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span
+                        className={`text-sm truncate ${
+                          hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground"
+                        }`}
+                      >
+                        {displayName}
+                      </span>
+                      {conv.kind === "direct_message" && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100, flexShrink: 0,
+                          background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
+                          letterSpacing: "0.05em",
+                        }}>DM</span>
+                      )}
                     </div>
                     {displayDate ? (
                       <div className="text-xs text-gray-400 mt-0.5 tabular-nums">

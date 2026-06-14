@@ -1,0 +1,142 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+export async function POST(request: Request) {
+  const supabase = createClient();
+  const admin = createAdminClient();
+
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+
+  if (!authUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const { targetUserId, message } = body as {
+    targetUserId: string;
+    message: string;
+  };
+
+  if (!targetUserId || !message?.trim()) {
+    return NextResponse.json({ error: "targetUserId and message are required" }, { status: 400 });
+  }
+
+  // ow_users.id (app UUID) for the current auth user
+  const { data: owMe } = await supabase
+    .from("ow_users")
+    .select("id, name")
+    .eq("auth_id", authUser.id)
+    .maybeSingle();
+
+  if (!owMe) {
+    return NextResponse.json({ error: "User profile not found" }, { status: 404 });
+  }
+
+  if (owMe.id === targetUserId) {
+    return NextResponse.json({ error: "Cannot DM yourself" }, { status: 400 });
+  }
+
+  // Check target user exists
+  const { data: targetUser } = await admin
+    .from("ow_users")
+    .select("id, name")
+    .eq("id", targetUserId)
+    .maybeSingle();
+
+  if (!targetUser) {
+    return NextResponse.json({ error: "Target user not found" }, { status: 404 });
+  }
+
+  // Check if DM conversation already exists between these two users
+  const { data: existing } = await admin
+    .from("ow_conversations")
+    .select("id")
+    .eq("kind", "direct_message")
+    .eq("candidate_user_id", owMe.id)
+    .eq("mentor_user_id", targetUserId)
+    .maybeSingle();
+
+  // Also check reverse direction
+  const { data: existingReverse } = await admin
+    .from("ow_conversations")
+    .select("id")
+    .eq("kind", "direct_message")
+    .eq("candidate_user_id", targetUserId)
+    .eq("mentor_user_id", owMe.id)
+    .maybeSingle();
+
+  const existingConv = existing || existingReverse;
+
+  if (existingConv) {
+    // Add new message to existing conversation
+    const { data: existingParticipant } = await admin
+      .from("ow_conversation_participants")
+      .select("id")
+      .eq("conversation_id", existingConv.id)
+      .eq("user_id", owMe.id)
+      .maybeSingle();
+
+    if (existingParticipant) {
+      await admin.from("ow_conversation_messages").insert({
+        conversation_id: existingConv.id,
+        sender_participant_id: existingParticipant.id,
+        body: message.trim(),
+      });
+      await admin
+        .from("ow_conversations")
+        .update({ last_message_at: new Date().toISOString() })
+        .eq("id", existingConv.id);
+    }
+
+    return NextResponse.json({ conversationId: existingConv.id });
+  }
+
+  // Create new DM conversation
+  const { data: conv, error: convErr } = await admin
+    .from("ow_conversations")
+    .insert({
+      kind: "direct_message",
+      stage: "active",
+      status: "active",
+      candidate_user_id: owMe.id,
+      mentor_user_id: targetUserId,
+      last_message_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (convErr || !conv) {
+    console.error("[dm/start] conv insert error:", convErr);
+    return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
+  }
+
+  // Add both participants
+  const { data: participants, error: partErr } = await admin
+    .from("ow_conversation_participants")
+    .insert([
+      { conversation_id: conv.id, user_id: owMe.id, role: "initiator" },
+      { conversation_id: conv.id, user_id: targetUserId, role: "recipient" },
+    ])
+    .select("id, user_id");
+
+  if (partErr || !participants) {
+    console.error("[dm/start] participants insert error:", partErr);
+    return NextResponse.json({ error: "Failed to add participants" }, { status: 500 });
+  }
+
+  const myParticipant = participants.find((p) => p.user_id === owMe.id);
+
+  // Insert first message
+  if (myParticipant) {
+    await admin.from("ow_conversation_messages").insert({
+      conversation_id: conv.id,
+      sender_participant_id: myParticipant.id,
+      body: message.trim(),
+    });
+  }
+
+  return NextResponse.json({ conversationId: conv.id }, { status: 201 });
+}
