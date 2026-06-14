@@ -2,12 +2,13 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 
 
 
 type Props = {
   locations: string[];
-  industries?: string[];
+  industries?: string[]; // 未使用（INDUSTRY_GROUPS に置き換え済み）
   companySuggestions?: { id: string; name: string }[];
 };
 
@@ -23,7 +24,6 @@ const PHASE_OPTIONS: PhaseOption[] = [
   { value: "シリーズD以降",   label: "シリーズD以降",   color: "#064e3b", bg: "#ccfbf1", dot: "#14b8a6", desc: "レイトステージ・大規模化" },
   { value: "IPO準備中",       label: "IPO準備中",       color: "#9a3412", bg: "#ffedd5", dot: "#ea580c", desc: "上場直前・承認申請段階" },
   { value: "上場",            label: "上場",            color: "#14532d", bg: "#dcfce7", dot: "#16a34a", desc: "東証グロース・スタンダード・プライム" },
-  { value: "外資系",          label: "🌐 外資系",       color: "#3730a3", bg: "#e0e7ff", dot: "#6366f1", desc: "外資系・グローバル企業" },
 ];
 
 // ── コンパクトフィルターチップ ────────────────────────────────────────────────
@@ -239,7 +239,7 @@ function FilterChip({
 }
 
 // ── メインコンポーネント ──────────────────────────────────────────────────────
-export function CompanySearchBar({ locations, industries = [], companySuggestions = [] }: Props) {
+export function CompanySearchBar({ locations, industries: _industries = [], companySuggestions = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -346,9 +346,10 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
     });
   }
   if (currentIndustry) {
+    const industryGroup = INDUSTRY_GROUPS.find((g) => g.key === currentIndustry);
     activeFilters.push({
       key: "industry",
-      label: currentIndustry,
+      label: industryGroup?.label ?? currentIndustry,
       onRemove: () => updateParam("industry", null),
     });
   }
@@ -545,18 +546,15 @@ export function CompanySearchBar({ locations, industries = [], companySuggestion
           />
 
           {/* 業種 */}
-          {industries.length > 0 && (
-            <FilterChip
-              label="業種"
-              value={currentIndustry}
-              options={industries.map((ind) => ({ value: ind, label: ind }))}
-              onSelect={(v) => { updateParam("industry", v); setOpenChip(null); }}
-              isOpen={openChip === "industry"}
-              onToggle={() => toggleChip("industry")}
-              listStyle
-              searchable
-            />
-          )}
+          <FilterChip
+            label="業種"
+            value={currentIndustry}
+            options={INDUSTRY_GROUPS.map((g) => ({ value: g.key, label: g.label }))}
+            onSelect={(v) => { updateParam("industry", v); setOpenChip(null); }}
+            isOpen={openChip === "industry"}
+            onToggle={() => toggleChip("industry")}
+            listStyle
+          />
 
           {/* 都道府県 */}
           {locations.length > 0 && (

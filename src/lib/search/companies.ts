@@ -1,4 +1,5 @@
 // src/lib/search/companies.ts
+import { resolveIndustryFilter } from "./industryGroups";
 // 企業検索の抽象化レイヤー
 //
 // 事前調査結果（2026-05-17）:
@@ -73,7 +74,14 @@ export async function searchCompanies(
     if (params.phase && params.phase !== "外資系") q = q.eq("phase", params.phase);
     if (params.workStyle) q = q.eq("remote_work_status", params.workStyle);
     if (params.location)  q = q.eq("location", params.location);
-    if (params.industry)  q = q.eq("industry", params.industry);
+    if (params.industry) {
+      const groupValues = resolveIndustryFilter(params.industry);
+      if (groupValues) {
+        q = q.in("industry", groupValues);
+      } else {
+        q = q.ilike("industry", `%${params.industry}%`);
+      }
+    }
     return q;
   }
 
