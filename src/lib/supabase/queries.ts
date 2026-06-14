@@ -362,6 +362,8 @@ export type CompanyListRow = {
   cover_photo_url: string | null;
   /** 会社の特徴・強みタグ（例: ["リモートファースト", "成長期"]） */
   company_features: string[] | null;
+  /** ow_experiences 上のユニーク登録ユーザー数（DM可能な在籍・OB人数） */
+  member_count: number;
 };
 
 const COMPANY_LISTPAGE_COLS = [
@@ -396,8 +398,8 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     return [];
   }
 
-  // Fetch active job counts + first office photo per company in parallel
-  const [{ data: jobRows }, { data: photoRows }] = await Promise.all([
+  // Fetch active job counts + first office photo + registered member counts in parallel
+  const [{ data: jobRows }, { data: photoRows }, { data: expRows }] = await Promise.all([
     supabase
       .from("ow_jobs")
       .select("company_id")
@@ -406,6 +408,9 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
       .from("ow_company_office_photos")
       .select("company_id, image_url, display_order")
       .order("display_order", { ascending: true }),
+    supabase
+      .from("ow_experiences")
+      .select("company_id, user_id"),
   ]);
 
   const jobCountMap = new Map<string, number>();
@@ -421,6 +426,15 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     if (!coverPhotoMap.has(cid)) {
       coverPhotoMap.set(cid, p.image_url as string);
     }
+  }
+
+  // ow_experiences のユニークユーザー数（登録メンバー数）
+  const memberCountMap = new Map<string, Set<string>>();
+  for (const e of expRows ?? []) {
+    const cid = e.company_id as string;
+    const uid = e.user_id as string;
+    if (!memberCountMap.has(cid)) memberCountMap.set(cid, new Set());
+    memberCountMap.get(cid)!.add(uid);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -448,6 +462,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     job_count: jobCountMap.get(row.id as string) ?? 0,
     cover_photo_url: coverPhotoMap.get(row.id as string) ?? null,
     company_features: Array.isArray(row.company_features) ? (row.company_features as string[]) : null,
+    member_count: memberCountMap.get(row.id as string)?.size ?? 0,
   }));
 }
 

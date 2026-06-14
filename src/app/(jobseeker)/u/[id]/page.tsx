@@ -640,19 +640,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     })}
                   </div>
                 )}
-                {/* 無料登録CTA — 非ログイン・非オーナー時は名前の下に自然配置 */}
-                {!viewerIsOwner && !authUser && (
-                  <div style={{ marginTop: 12 }}>
-                    <Link href={`/auth?next=/u/${owUser.id}`} style={{
-                      display: "inline-flex", alignItems: "center", gap: 5,
-                      padding: "6px 14px", borderRadius: 6,
-                      border: "1.5px solid var(--royal)", background: "transparent",
-                      color: "var(--royal)", fontSize: 12, fontWeight: 600, textDecoration: "none",
-                    }}>
-                      無料登録して続きを見る →
-                    </Link>
-                  </div>
-                )}
               </div>
 
               {/* Main action CTA (right-side) */}

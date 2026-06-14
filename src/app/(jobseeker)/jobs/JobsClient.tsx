@@ -1411,7 +1411,7 @@ export default function JobsClient({
   const [q, setQ] = useState("");
 
   // ⑧ 企業グルーピング toggle（デフォルトON）
-  const [groupByCompany, setGroupByCompany] = useState(true);
+  const [groupByCompany, setGroupByCompany] = useState(false);
 
   // 面談受付中のみフィルター
   const [meetingOnly, setMeetingOnly] = useState(false);

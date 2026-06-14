@@ -330,6 +330,23 @@ function CompanyCardCard({
                 {phaseBadge.label}
               </span>
             )}
+            {company.member_count > 0 && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: "2px 8px",
+                  borderRadius: 100,
+                  color: "var(--royal)",
+                  background: "var(--royal-50)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 3,
+                }}
+              >
+                👤 {company.member_count}名登録中
+              </span>
+            )}
           </div>
 
           {/* Company name */}

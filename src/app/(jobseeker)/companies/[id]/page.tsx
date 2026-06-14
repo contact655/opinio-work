@@ -1546,30 +1546,7 @@ function CurrentEmployeesSection({
         );
       })()}
 
-      {employees.length === 0 ? (
-        <div style={{
-          textAlign: "center", padding: "32px 20px",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)",
-        }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: "50%",
-            background: "var(--royal-50)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </div>
-          <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--ink-soft)" }}>
-            社員プロフィールを準備中
-          </div>
-          <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-            OPINIO 取材メンバーが順次公開されます。<br />
-            カジュアル面談で直接チームの声を聞けます。
-          </div>
-        </div>
-      ) : categories.length === 0 ? (
+      {employees.length === 0 ? null : categories.length === 0 ? (
         // カテゴリ設定なし → レスポンシブ列
         <div className="employee-grid">
           {employees.map((emp) => (
@@ -3448,9 +3425,9 @@ export default async function CompanyDetailPage({
             {/* 6. 社員の声 */}
             <EmployeeVoicesSection employees={employees.current} />
 
-            {/* 7. 現役社員・OBOGプロフィール */}
-            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
-            <AlumniSection alumni={employees.alumni} />
+            {/* 7. 現役社員・OBOGプロフィール（登録者がいる場合のみ） */}
+            {employees.current.length > 0 && <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />}
+            {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
 
             {/* 8. 記事（OPINIO取材記事） */}
             <CompanyArticlesSection articles={companyArticles} company={company} />
