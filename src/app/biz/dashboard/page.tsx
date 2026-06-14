@@ -69,7 +69,7 @@ async function NoTenantPage() {
           自社情報・求人を管理するには企業アカウントの追加申請が必要です。
         </p>
         <Link
-          href="/biz/auth/signup"
+          href="/biz/companies/add"
           style={{
             display: "inline-block", padding: "12px 28px", borderRadius: 8,
             fontSize: 14, fontWeight: 600,
