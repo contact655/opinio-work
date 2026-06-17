@@ -48,10 +48,19 @@ export function GridSortBar({ totalCount }: Props) {
   const current = searchParams.get("sort") ?? "newest";
   const currentView = searchParams.get("view") ?? "card";
 
+  const isForeign = searchParams.get("foreign") === "1";
+
   const setSort = (s: string) => {
     const p = new URLSearchParams(searchParams.toString());
     if (s === "newest") p.delete("sort");
     else p.set("sort", s);
+    router.push(`/companies?${p.toString()}`);
+  };
+
+  const toggleForeign = () => {
+    const p = new URLSearchParams(searchParams.toString());
+    if (isForeign) p.delete("foreign");
+    else p.set("foreign", "1");
     router.push(`/companies?${p.toString()}`);
   };
 
@@ -167,6 +176,25 @@ export function GridSortBar({ totalCount }: Props) {
                 </button>
               );
             })}
+
+            {/* 外資系トグル（ソートとは別軸のフィルター） */}
+            <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0, margin: "0 2px" }} />
+            <button
+              type="button"
+              onClick={toggleForeign}
+              aria-pressed={isForeign}
+              className="sort-btn"
+              style={isForeign ? {
+                background: "#0c4a6e",
+                borderColor: "#0c4a6e",
+                color: "#fff",
+                fontWeight: 700,
+                boxShadow: "0 3px 12px rgba(12,74,110,0.35)",
+                transform: "scale(1.03)",
+              } : {}}
+            >
+              🌐 外資系
+            </button>
           </div>
         </div>
 
