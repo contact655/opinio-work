@@ -561,7 +561,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 }>
                   仕事内容
                 </SecTitle>
-                <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.8 }}>{job.overview}</p>
+                <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{job.overview}</p>
               </section>
               )}
 
