@@ -417,7 +417,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                     <rect x="2" y="7" width="20" height="14" rx="2"/>
                     <path d="M16 3h-8l-2 4h12l-2-4z"/>
                   </svg>
-                  求人 {company.job_count}件
+                  募集中 {company.job_count}件
                 </span>
               </div>
             )}
@@ -625,7 +625,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 <rect x="2" y="7" width="20" height="14" rx="2"/>
                 <path d="M16 3h-8l-2 4h12l-2-4z"/>
               </svg>
-              求人 {company.job_count}件
+              募集中 {company.job_count}件
             </a>
           ) : (
             <a
@@ -690,7 +690,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
 }
 
 function JobCountStat({ count }: { count: number }) {
-  if (count === 0) return <StatCol label="求人" value={0} unit="件" />;
+  if (count === 0) return <StatCol label="募集中" value={0} unit="件" />;
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 18px", gap: 4 }}>
       <span style={{
@@ -702,9 +702,8 @@ function JobCountStat({ count }: { count: number }) {
           <rect x="2" y="7" width="20" height="14" rx="2"/>
           <path d="M16 3h-8l-2 4h12l-2-4z"/>
         </svg>
-        求人 {count}件
+        募集中 {count}件
       </span>
-      <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>募集中</span>
     </div>
   );
 }

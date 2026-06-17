@@ -756,7 +756,7 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                   <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8l-2 4h12l-2-4z"/>
                 </svg>
-                求人 {company.job_count}件
+                募集中 {company.job_count}件
               </span>
             )}
 
@@ -830,7 +830,7 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
               {company.job_count > 0 ? company.job_count : "—"}
             </div>
             <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 2, fontWeight: 500 }}>
-              求人
+              募集中
             </div>
           </div>
 
@@ -1199,7 +1199,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
   // Sort pills config
   const SORT_PILLS = [
     { value: "newest", label: "新着順" },
-    { value: "hiring", label: "求人あり" },
+    { value: "hiring", label: "募集中あり" },
     { value: "employees", label: "社員数順" },
     { value: "phase", label: "フェーズ順" },
   ] as const;
@@ -1276,7 +1276,7 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           {[
             { label: "🌐 外資系", active: foreign, onClick: () => setParam("foreign", foreign ? "" : "1"), activeColor: "#6d28d9", activeBg: "#ede9fe", activeBorder: "#c4b5fd" },
             { label: "📈 上場企業", active: phase === "listed" || phase === "上場", onClick: () => setParam("phase", (phase === "listed" || phase === "上場") ? "" : "listed"), activeColor: "#14532d", activeBg: "#dcfce7", activeBorder: "#86efac" },
-            { label: "💼 求人あり", active: hiring, onClick: () => setParam("hiring", hiring ? "" : "1"), activeColor: "var(--royal)", activeBg: "var(--royal-50)", activeBorder: "var(--royal-100)" },
+            { label: "💼 募集中", active: hiring, onClick: () => setParam("hiring", hiring ? "" : "1"), activeColor: "var(--royal)", activeBg: "var(--royal-50)", activeBorder: "var(--royal-100)" },
           ].map(({ label, active, onClick, activeColor, activeBg, activeBorder }) => (
             <button
               key={label}
