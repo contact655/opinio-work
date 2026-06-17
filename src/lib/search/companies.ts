@@ -125,7 +125,7 @@ export async function searchCompanies(
     supabase
       .from("ow_companies")
       .select(
-        "id, name, name_en, tagline, industry, funding_stage:phase, employee_count, description, " +
+        "id, name, name_en, tagline, industry, funding_stage:phase, employee_count, description, is_foreign, " +
         "accepting_casual_meetings, remote_work_status, location, branch_locations, logo_letter, logo_gradient, logo_url, updated_at, " +
         "current_member_count, obog_count, avg_salary, company_features"
       )
@@ -205,21 +205,11 @@ export async function searchCompanies(
         : [],
     }));
 
-  // client-side: 外資系フィルター（foreign param または phase="外資系"）
+  // client-side: 外資系フィルター（is_foreign カラムを使用）
   let filteredCompanies = companies;
   if (params.foreign || params.phase === "外資系") {
     filteredCompanies = filteredCompanies.filter((c) => {
-      const name = (c as { name?: string }).name ?? "";
-      const nameEn = (c as { name_en?: string | null }).name_en;
-      return (
-        name.includes(" Japan") ||
-        name.includes(" Inc") ||
-        (!name.includes("株式会社") &&
-          !name.includes("合同会社") &&
-          !name.includes("有限会社") &&
-          !name.includes("株式") &&
-          !!nameEn)
-      );
+      return (c as { is_foreign?: boolean }).is_foreign === true;
     });
     totalCount = filteredCompanies.length;
   }
