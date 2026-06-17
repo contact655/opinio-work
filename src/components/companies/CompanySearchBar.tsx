@@ -26,6 +26,7 @@ const PHASE_OPTIONS: PhaseOption[] = [
   { value: "IPO準備中",       label: "IPO準備中",       color: "#9a3412", bg: "#ffedd5", dot: "#ea580c", desc: "上場直前・承認申請段階" },
   { value: "上場",            label: "上場",            color: "#14532d", bg: "#dcfce7", dot: "#16a34a", desc: "東証グロース・スタンダード・プライム" },
   { value: "ユニコーン",      label: "ユニコーン",      color: "#581c87", bg: "#f3e8ff", dot: "#a855f7", desc: "評価額10億ドル超の未上場企業" },
+  { value: "外資系",          label: "🌐 外資系",       color: "#0c4a6e", bg: "#e0f2fe", dot: "#0284c7", desc: "本社が海外にある外資系企業" },
 ];
 
 // ── コンパクトフィルターチップ ────────────────────────────────────────────────
