@@ -144,7 +144,7 @@ export default function MypageLayout({
           {[
             { key: "dashboard",      label: "ホーム",        href: "/mypage" },
             { key: "applications",   label: "応募管理",      href: "/mypage/applications" },
-            { key: "conversations",  label: "対話",          href: "/mypage/conversations" },
+            { key: "conversations",  label: "メッセージ",    href: "/mypage/conversations" },
             { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks" },
             { key: "profile",        label: "プロフィール",  href: "/profile/edit" },
           ].map((item) => {
@@ -198,7 +198,7 @@ export default function MypageLayout({
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      href="/mypage" />
             <SidebarItem icon={Icons.application} label="応募管理"      active={activeKey === "applications"}   badge={applicationsBadge}   href="/mypage/applications" />
-            <SidebarItem icon={Icons.message}     label="対話"          active={activeKey === "conversations"}  badge={conversationsBadge}  href="/mypage/conversations" />
+            <SidebarItem icon={Icons.message}     label="メッセージ"    active={activeKey === "conversations"}  badge={conversationsBadge}  href="/mypage/conversations" />
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}      onClick={() => nav("bookmarks")} />
           </nav>
 
