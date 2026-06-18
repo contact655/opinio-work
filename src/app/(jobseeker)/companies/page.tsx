@@ -108,7 +108,8 @@ function Pagination({
 export default async function CompaniesPage({ searchParams }: Props) {
   const { q, phase, workStyle, hiring, location, industry, foreign, view, sort } = searchParams;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
-  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry || foreign);
+  // foreign は並び替えモディファイア扱いのため hasFilter に含めない（ソートバーを維持するため）
+  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry);
   // 一覧（4列）= デフォルト（パラメータなし or view=card）
   const isGridView  = !hasFilter && (!view || view === "card");
   // 詳細リスト = view=list
