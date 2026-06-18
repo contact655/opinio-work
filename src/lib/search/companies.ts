@@ -92,7 +92,13 @@ export async function searchCompanies(
       q = q.in("phase", dbValues);
     }
     if (params.workStyle)  q = q.eq("remote_work_status", params.workStyle);
-    if (params.location)   q = q.eq("location", params.location);
+    if (params.location) {
+      // branch_locations 配列にも対応（大阪府 → 大阪, 愛知県 → 名古屋|愛知 等）
+      const branchKey = params.location.replace(/[都道府県]$/, "");
+      const extraKeys = PREF_TO_BRANCH_KEYS[params.location] ?? [branchKey];
+      const branchConds = extraKeys.map((k) => `branch_locations.cs.{"${k}"}`).join(",");
+      q = q.or(`location.ilike.%${params.location}%,${branchConds}`);
+    }
     if (params.salaryMin)  q = q.gte("avg_salary", params.salaryMin * 10000);
     if (params.industry) {
       const groupValues = resolveIndustryFilter(params.industry);
@@ -251,6 +257,19 @@ export async function fetchDistinctIndustries(): Promise<string[]> {
   return result;
 }
 
+// branch_locations の値（都道府県サフィックスなし）→ 正式な都道府県名 マッピング
+const BRANCH_TO_PREF: Record<string, string> = {
+  "大阪": "大阪府", "京都": "京都府", "兵庫": "兵庫県",
+  "神奈川": "神奈川県", "埼玉": "埼玉県", "千葉": "千葉県",
+  "広島": "広島県", "福岡": "福岡県", "宮城": "宮城県",
+  "北海道": "北海道", "名古屋": "愛知県", "愛知": "愛知県",
+};
+
+// 都道府県名 → branch_locations で使われるキー群（複数ある場合）
+const PREF_TO_BRANCH_KEYS: Record<string, string[]> = {
+  "愛知県": ["愛知", "名古屋"],
+};
+
 // 北から南順の都道府県リスト（表示順制御用）
 const PREFECTURE_ORDER = [
   "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
@@ -268,19 +287,24 @@ function normalizePrefecture(loc: string): string {
   return m ? m[1] : loc;
 }
 
-/** 公開企業の distinct location リスト（北から南順） — 5分間キャッシュ */
+/** 公開企業の distinct location リスト（北から南順、branch_locations も含む） — 5分間キャッシュ */
 export const fetchDistinctLocations = unstable_cache(
   async (): Promise<string[]> => {
     const supabase = createPublicClient();
     const { data } = await supabase
       .from("ow_companies")
-      .select("location")
-      .eq("is_published", true)
-      .not("location", "is", null);
+      .select("location, branch_locations")
+      .eq("is_published", true);
 
     const seen = new Set<string>();
     for (const row of data ?? []) {
+      // メイン所在地
       if (row.location) seen.add(normalizePrefecture(row.location));
+      // 支社・拠点
+      for (const branch of (row.branch_locations as string[] | null) ?? []) {
+        const pref = BRANCH_TO_PREF[branch] ?? (branch.match(/[都道府県]$/) ? branch : null);
+        if (pref) seen.add(pref);
+      }
     }
 
     const ordered = PREFECTURE_ORDER.filter((p) => seen.has(p));

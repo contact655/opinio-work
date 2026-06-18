@@ -380,7 +380,7 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
     });
   }
   if (currentWorkStyle) {
-    const wsLabels: Record<string, string> = { full_remote: "🏠 フルリモート", hybrid: "🏠 ハイブリッド", on_site: "🏢 出社のみ" };
+    const wsLabels: Record<string, string> = { full_remote: "🏡 フルリモート", hybrid: "🔀 ハイブリッド", on_site: "🏢 出社のみ" };
     activeFilters.push({
       key: "workStyle",
       label: wsLabels[currentWorkStyle] ?? currentWorkStyle,
@@ -675,7 +675,7 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
               className={`csb-filter-pill${currentWorkStyle ? " active" : ""}`}
               onClick={() => currentWorkStyle ? updateParam("workStyle", null) : toggleChip("workStyle")}
             >
-              🏠 {currentWorkStyle ? (
+              {currentWorkStyle === "full_remote" ? "🏡" : currentWorkStyle === "hybrid" ? "🔀" : "🏢"} {currentWorkStyle ? (
                 currentWorkStyle === "full_remote" ? "フルリモート" :
                 currentWorkStyle === "hybrid" ? "ハイブリッド" : "出社のみ"
               ) : "勤務形態"}
@@ -686,8 +686,8 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
             {openChip === "workStyle" && (
               <div className="csb-filter-pill-menu">
                 {[
-                  { v: "full_remote", l: "🏠 フルリモート" },
-                  { v: "hybrid",      l: "🏠 ハイブリッド" },
+                  { v: "full_remote", l: "🏡 フルリモート" },
+                  { v: "hybrid",      l: "🔀 ハイブリッド" },
                   { v: "on_site",     l: "🏢 出社のみ" },
                 ].map(({ v, l }) => (
                   <button key={v} type="button" className={`csb-filter-pill-item${currentWorkStyle === v ? " selected" : ""}`}
@@ -712,7 +712,7 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
             </button>
             {openChip === "salaryMin" && (
               <div className="csb-filter-pill-menu">
-                {["400", "500", "600", "700", "800", "1000"].map((v) => (
+                {["400", "500", "600", "700", "800", "900", "1000"].map((v) => (
                   <button key={v} type="button" className={`csb-filter-pill-item${currentSalaryMin === v ? " selected" : ""}`}
                     onClick={() => { updateParam("salaryMin", v); setOpenChip(null); }}
                   >{v}万円以上</button>
