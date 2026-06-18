@@ -113,14 +113,12 @@ function LogoChip({
 // ────────────────────────────────────────────────────────────────
 
 function TrajectoryCard({ card }: { card: CardData }) {
-  // 古い順（display_order 降順: 5→4→3→2→1）に並べ、company_id で重複排除
+  // 古い順（display_order 降順: 5→4→3→2→1）に並べ、連続する同一会社のみ除去
+  // 出戻り（A→B→A）は両方表示するため、全体dedup ではなく連続dedup
   const sortedSteps = [...card.steps].sort((a, b) => b.display_order - a.display_order);
-  const seenCompanyIds = new Set<string>();
-  const uniqueSteps = sortedSteps.filter((s) => {
-    if (!s.company_id) return true;
-    if (seenCompanyIds.has(s.company_id)) return false;
-    seenCompanyIds.add(s.company_id);
-    return true;
+  const uniqueSteps = sortedSteps.filter((s, i) => {
+    if (i === 0) return true;
+    return !(s.company_id && s.company_id === sortedSteps[i - 1].company_id);
   });
 
   const MAX_LOGOS = 5;
