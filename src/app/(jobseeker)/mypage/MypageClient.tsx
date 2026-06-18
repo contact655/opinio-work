@@ -9,7 +9,6 @@ import MergedTimeline, { type CareerEntry } from "@/components/profile/MergedTim
 import { PostComposer } from "@/components/profile/PostComposer";
 import {
   toTimelineEducationEntries,
-  buildFutureData,
   type RawEducation,
 } from "@/lib/utils/timeline";
 import {
