@@ -41,6 +41,10 @@ export function GridSortBar({ totalCount }: Props) {
 
   const toggleForeign = () => {
     const p = new URLSearchParams(searchParams.toString());
+    // 廃止されたソートパラメータを除去（例: sort=startup, sort=phase）
+    const validSorts = new Set(SORT_OPTIONS.map(o => o.value));
+    const sortVal = p.get("sort");
+    if (sortVal && !validSorts.has(sortVal)) p.delete("sort");
     if (isForeign) p.delete("foreign");
     else p.set("foreign", "1");
     router.push(`/companies?${p.toString()}`);

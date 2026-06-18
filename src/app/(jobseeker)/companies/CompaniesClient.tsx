@@ -1031,6 +1031,10 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
     if (value) params.set(key, value);
     else params.delete(key);
     params.delete("page");
+    // 廃止されたソート値（startup / phase 等）を除去
+    const validSorts = new Set(["newest", "jobs"]);
+    const s = params.get("sort");
+    if (s && !validSorts.has(s)) params.delete("sort");
     router.replace(`/companies?${params.toString()}`);
   }
 
