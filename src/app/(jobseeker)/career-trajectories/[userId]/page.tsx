@@ -114,18 +114,40 @@ function CompanyLogoSmall({
 
 async function getData(userId: string) {
   const supabase = createClient();
+  // admin client: ow_career_profiles に anon GRANT がないため service role で取得
+  const adminSupabase = createAdminClient();
 
-  const [profileRes, stepsRes] = await Promise.all([
-    supabase
+  // プロフィール取得（is_published=true かつ visibility='public'のユーザーのみ）
+  const [profileRes, userVisRes, stepsRes] = await Promise.all([
+    adminSupabase
       .from("ow_career_profiles")
       .select("headline, years_of_experience, is_published")
       .eq("user_id", userId)
       .eq("is_published", true)
       .maybeSingle(),
+    adminSupabase
+      .from("ow_users")
+      .select("visibility")
+      .eq("id", userId)
+      .maybeSingle(),
     supabase.rpc("get_public_career_steps", { p_user_id: userId }),
   ]);
 
-  if (!profileRes.data) return null;
+  // visibility='public' でない場合は非公開扱い
+  if (!profileRes.data || userVisRes.data?.visibility !== "public") return null;
+
+  // gender/birth_year は Migration 180 以降に存在（error 時は null フォールバック）
+  const { data: extraData } = await adminSupabase
+    .from("ow_career_profiles")
+    .select("gender, birth_year")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const profile = {
+    ...profileRes.data,
+    gender: (extraData as { gender?: string | null } | null)?.gender ?? null,
+    birth_year: (extraData as { birth_year?: number | null } | null)?.birth_year ?? null,
+  };
 
   // 古い順（display_order 降順）に並び替え: display_order=5=最初の会社、1=現職
   const steps = ((stepsRes.data ?? []) as PublicStep[])
@@ -144,7 +166,6 @@ async function getData(userId: string) {
   // ロゴ取得: is_published=false の会社も含むため admin client（RLS バイパス）を使用
   const logoMap: Record<string, CompanyLogo> = {};
   if (companyIds.length > 0) {
-    const adminSupabase = createAdminClient();
     const { data: logos } = await adminSupabase
       .from("ow_companies")
       .select("id, name, logo_url, logo_gradient, logo_letter")
@@ -154,7 +175,7 @@ async function getData(userId: string) {
     }
   }
 
-  return { profile: profileRes.data, steps, logoMap };
+  return { profile, steps, logoMap };
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -220,6 +241,16 @@ export default async function CareerTrajectoryPage({
           )}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {profile.birth_year && (
+              <span style={{ background: "rgba(255,255,255,0.18)", borderRadius: 100, padding: "4px 12px", fontSize: 13, fontWeight: 700, fontFamily: "Inter, sans-serif" }}>
+                {new Date().getFullYear() - profile.birth_year}歳
+              </span>
+            )}
+            {profile.gender && (
+              <span style={{ background: "rgba(255,255,255,0.18)", borderRadius: 100, padding: "4px 12px", fontSize: 13, fontWeight: 700 }}>
+                {profile.gender}
+              </span>
+            )}
             <span style={{ background: "rgba(255,255,255,0.12)", borderRadius: 100, padding: "4px 12px", fontSize: 12 }}>
               {steps.length}社を経験
             </span>

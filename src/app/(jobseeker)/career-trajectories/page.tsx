@@ -31,6 +31,8 @@ type ProfileRow = {
   user_id: string;
   headline: string | null;
   years_of_experience: number | null;
+  gender: string | null;
+  birth_year: number | null;
 };
 
 type UserRow = {
@@ -43,6 +45,8 @@ type CardData = {
   userName: string | null;
   headline: string | null;
   yearsOfExperience: number | null;
+  gender: string | null;
+  birthYear: number | null;
   steps: PublicStep[];
   logoMap: Record<string, CompanyLogo>;
 };
@@ -60,47 +64,47 @@ function LogoChip({
   name: string;
   isCurrent: boolean;
 }) {
-  const size = 32;
+  const size = 40;
   const inner = logo?.logo_url ? (
     <img
       src={logo.logo_url}
       alt={name}
       width={size}
       height={size}
-      style={{ borderRadius: 6, objectFit: "cover", display: "block" }}
+      style={{ borderRadius: 8, objectFit: "cover", display: "block" }}
     />
   ) : (
     <div style={{
-      width: size, height: size, borderRadius: 6,
+      width: size, height: size, borderRadius: 8,
       background: logo?.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 100%)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      color: "#fff", fontWeight: 800, fontSize: 13, fontFamily: "Inter, sans-serif",
+      color: "#fff", fontWeight: 800, fontSize: 16, fontFamily: "Inter, sans-serif",
     }}>
       {logo?.logo_letter ?? name.charAt(0)}
     </div>
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, flexShrink: 0 }}>
       <div style={{
         position: "relative",
         border: isCurrent ? "2px solid var(--royal)" : "2px solid transparent",
-        borderRadius: 8,
+        borderRadius: 10,
         padding: 1,
       }}>
         {inner}
         {isCurrent && (
           <div style={{
             position: "absolute", bottom: -5, left: "50%", transform: "translateX(-50%)",
-            width: 6, height: 6, borderRadius: "50%",
+            width: 7, height: 7, borderRadius: "50%",
             background: "var(--royal)",
           }} />
         )}
       </div>
       <div style={{
-        fontSize: 9, color: "var(--ink-mute)", maxWidth: 52,
+        fontSize: 10, color: "var(--ink-soft)", maxWidth: 58,
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        textAlign: "center",
+        textAlign: "center", fontWeight: 500,
       }}>
         {name}
       </div>
@@ -146,21 +150,41 @@ function TrajectoryCard({ card }: { card: CardData }) {
         className="trajectory-card"
       >
         {/* メタ情報チップ */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+          {card.birthYear && (
+            <span style={{
+              fontSize: 12, fontWeight: 700, fontFamily: "Inter, sans-serif",
+              color: "var(--ink)", background: "var(--bg-tint)",
+              borderRadius: 100, padding: "4px 11px",
+              border: "1px solid var(--line)",
+            }}>
+              {new Date().getFullYear() - card.birthYear}歳
+            </span>
+          )}
+          {card.gender && (
+            <span style={{
+              fontSize: 12, fontWeight: 700,
+              color: "var(--ink)", background: "var(--bg-tint)",
+              borderRadius: 100, padding: "4px 11px",
+              border: "1px solid var(--line)",
+            }}>
+              {card.gender}
+            </span>
+          )}
           {card.yearsOfExperience && (
             <span style={{
-              fontSize: 11, fontWeight: 600, fontFamily: "Inter, sans-serif",
+              fontSize: 12, fontWeight: 600, fontFamily: "Inter, sans-serif",
               color: "var(--ink-soft)", background: "var(--bg-tint)",
-              borderRadius: 100, padding: "3px 10px",
+              borderRadius: 100, padding: "4px 11px",
               border: "1px solid var(--line)",
             }}>
               社会人歴 {card.yearsOfExperience}年
             </span>
           )}
           <span style={{
-            fontSize: 11, fontWeight: 600, fontFamily: "Inter, sans-serif",
+            fontSize: 12, fontWeight: 600, fontFamily: "Inter, sans-serif",
             color: "var(--ink-soft)", background: "var(--bg-tint)",
-            borderRadius: 100, padding: "3px 10px",
+            borderRadius: 100, padding: "4px 11px",
             border: "1px solid var(--line)",
           }}>
             {card.steps.length}社経験
@@ -217,14 +241,14 @@ function TrajectoryCard({ card }: { card: CardData }) {
           borderTop: "1px solid var(--line-soft)", paddingTop: 10, marginTop: 4,
         }}>
           {currentStep ? (
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden" }}>
+            <div style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden" }}>
               <span style={{
                 fontSize: 10, fontWeight: 700, color: "var(--royal)",
                 background: "var(--royal-50)", borderRadius: 100,
-                padding: "1px 6px", marginRight: 5,
+                padding: "2px 7px", marginRight: 6,
               }}>現在</span>
               <span style={{
-                fontSize: 11, color: "var(--ink-soft)", fontWeight: 500,
+                fontSize: 12, color: "var(--ink)", fontWeight: 600,
               }}>
                 {(() => {
                   const logo = currentStep.company_id ? (card.logoMap[currentStep.company_id] ?? null) : null;
@@ -235,7 +259,7 @@ function TrajectoryCard({ card }: { card: CardData }) {
               </span>
             </div>
           ) : <div />}
-          <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, flexShrink: 0 }}>
+          <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, flexShrink: 0 }}>
             詳しく見る →
           </span>
         </div>
@@ -249,16 +273,49 @@ function TrajectoryCard({ card }: { card: CardData }) {
 // ────────────────────────────────────────────────────────────────
 
 async function getProfiles(): Promise<CardData[]> {
-  const supabase = createClient();
+  // admin client: ow_career_profiles に anon GRANT がないため service role でバイパス
+  // is_published=true かつ ow_users.visibility='public' のみ対象（サーバー側で手動フィルタ）
+  const adminSupabase = createAdminClient();
 
-  // is_published=true のプロフィール一覧
-  const { data: profiles } = await supabase
+  // 公開ユーザー一覧取得
+  const { data: publicUsers } = await adminSupabase
+    .from("ow_users")
+    .select("id")
+    .eq("visibility", "public") as { data: { id: string }[] | null };
+
+  const publicUserIds = (publicUsers ?? []).map((u) => u.id);
+  if (publicUserIds.length === 0) return [];
+
+  // is_published=true のプロフィール一覧（gender/birth_year は Migration 180 以降で存在）
+  const { data: rawProfiles } = await adminSupabase
     .from("ow_career_profiles")
     .select("user_id, headline, years_of_experience")
-    .eq("is_published", true) as { data: ProfileRow[] | null };
+    .eq("is_published", true)
+    .in("user_id", publicUserIds);
 
-  if (!profiles || profiles.length === 0) return [];
+  if (!rawProfiles || rawProfiles.length === 0) return [];
 
+  // gender / birth_year 取得（カラム未存在時は null フォールバック）
+  const extraMap: Record<string, { gender: string | null; birth_year: number | null }> = {};
+  const { data: extras, error: extrasError } = await adminSupabase
+    .from("ow_career_profiles")
+    .select("user_id, gender, birth_year")
+    .in("user_id", rawProfiles.map((p) => p.user_id));
+  if (!extrasError && extras) {
+    for (const e of extras as { user_id: string; gender: string | null; birth_year: number | null }[]) {
+      extraMap[e.user_id] = { gender: e.gender ?? null, birth_year: e.birth_year ?? null };
+    }
+  }
+
+  const profiles: ProfileRow[] = rawProfiles.map((p) => ({
+    user_id: p.user_id,
+    headline: p.headline,
+    years_of_experience: p.years_of_experience,
+    gender: extraMap[p.user_id]?.gender ?? null,
+    birth_year: extraMap[p.user_id]?.birth_year ?? null,
+  }));
+
+  const supabase = createClient();
   const userIds = profiles.map((p) => p.user_id);
 
   // ユーザー名一括取得
@@ -304,6 +361,8 @@ async function getProfiles(): Promise<CardData[]> {
       userName: userMap[profile.user_id] ?? null,
       headline: profile.headline,
       yearsOfExperience: profile.years_of_experience,
+      gender: profile.gender ?? null,
+      birthYear: profile.birth_year ?? null,
       steps: typedSteps,
       logoMap,
     });
