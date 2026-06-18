@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { STORIES, getStoryBySlug } from "../mockData";
+import { JourneyStrip } from "../JourneyStrip";
 
 export function generateStaticParams() {
   return STORIES.map((s) => ({ slug: s.slug }));
@@ -154,6 +155,11 @@ export default function CareerChangeDetailPage({ params }: { params: { slug: str
                 </div>
               </div>
             ))}
+
+            {/* Career Journey Strip */}
+            {story.journey && story.journey.length > 1 && (
+              <JourneyStrip steps={story.journey} currentSlug={story.slug} />
+            )}
 
             {/* Author note */}
             <div style={{

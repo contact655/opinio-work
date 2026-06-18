@@ -1,3 +1,14 @@
+export type JourneyStep = {
+  slug?: string;        // undefined = coming soon
+  fromCompany: string;
+  toCompany: string;
+  role: string;
+  roleCategory: string;
+  ageAtChange: number;
+  salaryChange?: string;
+  comingSoon?: boolean;
+};
+
 export type CareerChangeStory = {
   slug: string;
   fromCompany: string;
@@ -20,6 +31,7 @@ export type CareerChangeStory = {
   process: string;
   reality: string;
   advice: string;
+  journey?: JourneyStep[]; // ordered career arc steps, including this story
 };
 
 export const STORIES: CareerChangeStory[] = [
@@ -69,6 +81,25 @@ Salesforceの面接は計4回。うち2回は英語面接でした（ビジネ�
 3. 英語への抵抗を下げておく（TOEIC不問だが、内部ツールは英語）
 
 転職を迷っている方へ：外資系SaaSは「安定しているか不安」という声をよく聞きますが、実際はマーケット価値が上がるので次の転職も有利になります。一歩踏み出す価値は十分にあります。`,
+    journey: [
+      {
+        slug: "recruit-to-salesforce",
+        fromCompany: "リクルート",
+        toCompany: "Salesforce Japan",
+        role: "エンタープライズ営業",
+        roleCategory: "営業",
+        ageAtChange: 28,
+        salaryChange: "+180万円",
+      },
+      {
+        fromCompany: "Salesforce Japan",
+        toCompany: "OPINIO",
+        role: "創業者",
+        roleCategory: "事業開発",
+        ageAtChange: 33,
+        comingSoon: true,
+      },
+    ],
   },
   {
     slug: "ibm-to-hubspot",
