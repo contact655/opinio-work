@@ -25,13 +25,14 @@ export type WorkStyleValue = "on_site" | "hybrid" | "full_remote";
 
 export type CompanySearchParams = {
   q?: string;
-  phase?: string;     // フェーズフィルタ（例: "シリーズA", "上場"）
+  phase?: string;      // フェーズフィルタ（例: "シリーズA", "上場"）
   workStyle?: WorkStyleValue;
   hiring?: boolean;
-  location?: string;  // 都道府県フィルタ（例: "東京都", "大阪府"）
-  industry?: string;  // 業種フィルタ（例: "HR Tech", "FinTech/SaaS"）
-  foreign?: boolean;  // 外資系のみ表示
-  sort?: string;      // "newest" | "jobs" | "employees" | "phase"
+  location?: string;   // 都道府県フィルタ（例: "東京都", "大阪府"）
+  industry?: string;   // 業種フィルタ（例: "HR Tech", "FinTech/SaaS"）
+  foreign?: boolean;   // 外資系のみ表示
+  salaryMin?: number;  // 平均年収下限（万円）
+  sort?: string;       // "newest" | "jobs" | "employees" | "salary"
   // DB側ページネーション（hiring フィルターなしの場合のみ有効）
   limit?: number;
   offset?: number;
@@ -72,8 +73,8 @@ export async function searchCompanies(
   const supabase = createPublicClient();
 
   // ── DB側ページネーションを使うか判定
-  // hiring / foreign フィルターはアプリ側で処理するため、DB ページネーションと併用不可
-  const useDbPagination = !params.hiring && !params.foreign && params.phase !== "外資系" && params.limit !== undefined;
+  // hiring / foreign / salaryMin フィルターはアプリ側で処理するため、DB ページネーションと併用不可
+  const useDbPagination = !params.hiring && !params.foreign && !params.salaryMin && params.phase !== "外資系" && params.limit !== undefined;
 
   // ── フィルター条件を組み立てるヘルパー
   // #14: スペース区切りで AND 検索（例: "SaaS PM" → name.ilike.%SaaS% AND name.ilike.%PM%）
@@ -90,8 +91,9 @@ export async function searchCompanies(
       const dbValues = PHASE_FILTER_MAP[params.phase] ?? [params.phase];
       q = q.in("phase", dbValues);
     }
-    if (params.workStyle) q = q.eq("remote_work_status", params.workStyle);
-    if (params.location)  q = q.eq("location", params.location);
+    if (params.workStyle)  q = q.eq("remote_work_status", params.workStyle);
+    if (params.location)   q = q.eq("location", params.location);
+    if (params.salaryMin)  q = q.gte("avg_salary", params.salaryMin * 10000);
     if (params.industry) {
       const groupValues = resolveIndustryFilter(params.industry);
       if (groupValues) {
@@ -116,7 +118,9 @@ export async function searchCompanies(
   // ── Step 1b: データ取得
   // #3: company_features を SELECT に追加
   // #10: sort パラメータに応じて ORDER BY を切り替え（server-side sort）
-  const orderCol = params.sort === "employees" ? "employee_count" : "updated_at";
+  const orderCol = params.sort === "employees" ? "employee_count"
+                : params.sort === "salary"    ? "avg_salary"
+                : "updated_at";
   const orderAsc = false; // 全ソート DESC
 
   let dataQuery = applyFilters(
@@ -190,6 +194,11 @@ export async function searchCompanies(
   const companies: CompanyForCarousel[] = companyList
     .filter((c) => {
       if (params.hiring && !hiringSet.has(c.id)) return false;
+      if (params.salaryMin) {
+        const sal = (c as { avg_salary?: number | string | null }).avg_salary;
+        const salNum = typeof sal === "number" ? sal : typeof sal === "string" ? parseInt(sal.replace(/[^0-9]/g, ""), 10) : 0;
+        if (!salNum || salNum < params.salaryMin * 10000) return false;
+      }
       return true;
     })
     .map((c) => ({

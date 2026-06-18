@@ -41,6 +41,7 @@ type SearchParams = {
   location?: string;
   industry?: string;
   foreign?: string;
+  salaryMin?: string;
   view?: string;
   sort?: string;
   page?: string;
@@ -106,10 +107,10 @@ function Pagination({
 }
 
 export default async function CompaniesPage({ searchParams }: Props) {
-  const { q, phase, workStyle, hiring, location, industry, foreign, view, sort } = searchParams;
+  const { q, phase, workStyle, hiring, location, industry, foreign, salaryMin, view, sort } = searchParams;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   // foreign は並び替えモディファイア扱いのため hasFilter に含めない（ソートバーを維持するため）
-  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry);
+  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry || salaryMin);
   // 一覧（4列）= デフォルト（パラメータなし or view=card）
   const isGridView  = !hasFilter && (!view || view === "card");
   // 詳細リスト = view=list
@@ -129,7 +130,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
     // グリッド/リスト表示: DB側でページ分だけ取得（総件数も同時取得）
     // #10: sort パラメータをDB側へ渡してサーバーサイドソート
     needsGrid
-      ? searchCompanies({ limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE, sort: sort ?? "newest", foreign: foreign === "1" })
+      ? searchCompanies({
+          limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE,
+          sort: sort ?? "newest", foreign: foreign === "1",
+          salaryMin: salaryMin ? parseInt(salaryMin, 10) : undefined,
+        })
       : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
   ]);
 
@@ -236,6 +241,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
                     return (
                       <>
+                        {/* ⑦ 最近見た企業をソートバー直上に表示 */}
+                        <Suspense fallback={null}>
+                          <RecentlyViewedSection />
+                        </Suspense>
                         <Suspense fallback={null}>
                           <GridSortBar totalCount={allCompaniesResult.totalCount} />
                         </Suspense>
@@ -289,11 +298,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
                 </>
               ) : null}
             </div>
-
-            {/* ── 最近見た企業（グリッド下に移動）── */}
-            <Suspense fallback={null}>
-              <RecentlyViewedSection />
-            </Suspense>
 
           </div>
         )}

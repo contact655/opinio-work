@@ -241,6 +241,29 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const NAVY_GRAD = company.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
   const CARD_LOGO_GRAD = company.logo_url ? "#fff" : getLogoGradient(company.industry, NAVY_GRAD);
 
+  // ⑤ 面談受付中のボーダースタイル
+  const meetingBorder = company.accepting_casual_meetings
+    ? "1.5px solid #fb923c"
+    : "1px solid var(--line)";
+  const meetingBoxShadow = company.accepting_casual_meetings
+    ? "0 1px 4px rgba(251,146,60,0.18)"
+    : "0 1px 4px rgba(15,23,42,0.06)";
+
+  // ① 年収表示
+  const salaryLabel = company.avg_salary
+    ? (typeof company.avg_salary === "number"
+        ? `平均 ${Math.round((company.avg_salary as number) / 10000)}万円`
+        : `平均 ${company.avg_salary}`)
+    : null;
+
+  // ① リモート表示
+  const remoteLabel: Record<string, string> = {
+    full_remote: "🏠 フルリモート",
+    hybrid:      "🏠 ハイブリッド",
+    on_site:     "🏢 出社",
+  };
+  const remoteText = company.remote_work_status ? remoteLabel[company.remote_work_status] ?? null : null;
+
   if (compact) {
     return (
       <>
@@ -263,8 +286,8 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             background: "#fff",
             borderRadius: 12,
             minHeight: 142,
-            border: "1px solid var(--line)",
-            boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+            border: meetingBorder,
+            boxShadow: meetingBoxShadow,
             textDecoration: "none",
             color: "inherit",
             padding: "14px 16px",
@@ -330,20 +353,30 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   面談
                 </span>
               )}
+              {/* ⑨ 鮮度バッジ（コンパクトカード） */}
+              {ago && (
+                <span style={{
+                  fontSize: 10, padding: "1px 5px", borderRadius: 4,
+                  background: "var(--bg-tint)", color: "var(--ink-mute)",
+                  border: "1px solid var(--line)", whiteSpace: "nowrap", flexShrink: 0,
+                }}>{ago}</span>
+              )}
+              {/* ② ♡ボタン — 常時ピンク */}
               <button
                 type="button"
                 onClick={handleBookmark}
                 disabled={bookmarking}
                 aria-label={bookmarked ? "気になりを解除" : "気になりに追加"}
                 style={{
-                  marginLeft: "auto", width: 24, height: 24, flexShrink: 0,
-                  background: bookmarked ? "#fef2f2" : "var(--line-soft)",
-                  border: `1px solid ${bookmarked ? "#fecaca" : "var(--line)"}`,
+                  marginLeft: "auto", width: 26, height: 26, flexShrink: 0,
+                  background: bookmarked ? "#ef4444" : "#fef2f2",
+                  border: `1.5px solid ${bookmarked ? "#ef4444" : "#fca5a5"}`,
                   borderRadius: "50%",
                   cursor: "pointer", padding: 0,
-                  color: bookmarked ? "#ef4444" : "var(--ink-mute)", fontSize: 11,
+                  color: bookmarked ? "#fff" : "#f87171", fontSize: 12,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   transition: "all 0.15s",
+                  boxShadow: bookmarked ? "0 2px 6px rgba(239,68,68,0.30)" : "none",
                 }}
               >{bookmarked ? "♥" : "♡"}</button>
             </div>
@@ -406,7 +439,28 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               )}
             </div>
 
-            {/* 行5: 求人数バッジ */}
+            {/* 行5: 年収・リモート（①） */}
+            {(salaryLabel || remoteText) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                {salaryLabel && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, color: "var(--success)",
+                    display: "flex", alignItems: "center", gap: 2,
+                    whiteSpace: "nowrap",
+                  }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                      <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    {salaryLabel}
+                  </span>
+                )}
+                {remoteText && (
+                  <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{remoteText}</span>
+                )}
+              </div>
+            )}
+
+            {/* 行6: 求人数バッジ */}
             {company.job_count > 0 && (
               <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
                 <span style={{
@@ -447,8 +501,8 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           padding: "18px 20px",
           background: "#fff",
           borderRadius: 14,
-          border: "1px solid var(--line)",
-          boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+          border: meetingBorder,
+          boxShadow: meetingBoxShadow,
           textDecoration: "none",
           color: "inherit",
         }}
@@ -556,6 +610,23 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             </div>
           )}
 
+          {/* ① 年収・リモート（リストカード） */}
+          {(salaryLabel || remoteText) && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
+              {salaryLabel && (
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", display: "flex", alignItems: "center", gap: 3 }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                  {salaryLabel}
+                </span>
+              )}
+              {remoteText && (
+                <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{remoteText}</span>
+              )}
+            </div>
+          )}
+
           {/* 所在地 + 従業員数 + #7: メンバーアバター */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             {company.location && (
@@ -644,7 +715,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             </button>
           )}
 
-          {/* #6: ブックマーク */}
+          {/* ② ♡ボタン — 常時ピンク */}
           <button
             type="button"
             onClick={handleBookmark}
@@ -652,14 +723,15 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             aria-label={bookmarked ? "気になりを解除" : "気になりに追加"}
             style={{
               display: "inline-flex", alignItems: "center", gap: 5,
-              padding: "7px 14px", borderRadius: 999,
-              background: bookmarked ? "#fef2f2" : "var(--line-soft)",
-              border: `1.5px solid ${bookmarked ? "#fecaca" : "var(--line)"}`,
-              color: bookmarked ? "#ef4444" : "var(--ink-soft)",
+              padding: "8px 16px", borderRadius: 999,
+              background: bookmarked ? "#ef4444" : "#fef2f2",
+              border: `1.5px solid ${bookmarked ? "#ef4444" : "#fca5a5"}`,
+              color: bookmarked ? "#fff" : "#f87171",
               fontSize: 12, fontWeight: 700,
               cursor: "pointer",
               transition: "all 0.15s",
               whiteSpace: "nowrap",
+              boxShadow: bookmarked ? "0 2px 8px rgba(239,68,68,0.28)" : "none",
             }}
           >
             <span style={{ fontSize: 14 }}>{bookmarked ? "♥" : "♡"}</span>

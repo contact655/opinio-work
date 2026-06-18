@@ -316,14 +316,16 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
     setShowSuggestions(false);
   }
 
-  const currentPhase     = searchParams.get("phase") ?? "";
-  const currentLocation  = searchParams.get("location") ?? "";
-  const currentIndustry  = searchParams.get("industry") ?? "";
-  const currentHiring    = searchParams.get("hiring") === "1";
-  const currentForeign   = searchParams.get("foreign") === "1";
+  const currentPhase      = searchParams.get("phase") ?? "";
+  const currentLocation   = searchParams.get("location") ?? "";
+  const currentIndustry   = searchParams.get("industry") ?? "";
+  const currentHiring     = searchParams.get("hiring") === "1";
+  const currentForeign    = searchParams.get("foreign") === "1";
+  const currentWorkStyle  = searchParams.get("workStyle") ?? "";
+  const currentSalaryMin  = searchParams.get("salaryMin") ?? "";
 
   const hasAnyFilter = Boolean(
-    searchParams.get("q") || currentPhase || currentHiring || currentLocation || currentIndustry || currentForeign
+    searchParams.get("q") || currentPhase || currentHiring || currentLocation || currentIndustry || currentForeign || currentWorkStyle || currentSalaryMin
   );
 
   const locationOptions = locations.map((l) => ({ value: l, label: l }));
@@ -375,6 +377,21 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
       key: "foreign",
       label: "🌐 外資系",
       onRemove: () => updateParam("foreign", null),
+    });
+  }
+  if (currentWorkStyle) {
+    const wsLabels: Record<string, string> = { full_remote: "🏠 フルリモート", hybrid: "🏠 ハイブリッド", on_site: "🏢 出社のみ" };
+    activeFilters.push({
+      key: "workStyle",
+      label: wsLabels[currentWorkStyle] ?? currentWorkStyle,
+      onRemove: () => updateParam("workStyle", null),
+    });
+  }
+  if (currentSalaryMin) {
+    activeFilters.push({
+      key: "salaryMin",
+      label: `💴 ${currentSalaryMin}万円以上`,
+      onRemove: () => updateParam("salaryMin", null),
     });
   }
 
@@ -446,6 +463,49 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
         }
         .csb-hiring input[type="checkbox"] { display: none; }
         @keyframes pulseHiring { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+        .csb-filter-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 12.5px;
+          color: var(--ink-soft);
+          cursor: pointer;
+          white-space: nowrap;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 999px;
+          padding: 6px 12px;
+          background: #fff;
+          font-family: inherit;
+          font-weight: 500;
+          transition: border-color 0.15s, background 0.15s, color 0.15s;
+          user-select: none;
+          flex-shrink: 0;
+        }
+        .csb-filter-pill:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+        .csb-filter-pill.active {
+          border-color: var(--royal); background: var(--royal); color: #fff; font-weight: 700;
+          box-shadow: 0 2px 8px rgba(0,35,102,0.25);
+        }
+        .csb-filter-pill-menu {
+          position: absolute;
+          top: calc(100% + 4px);
+          left: 0;
+          background: #fff;
+          border: 1.5px solid var(--line);
+          border-radius: 10px;
+          box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+          overflow: hidden;
+          z-index: 100;
+          min-width: 160px;
+        }
+        .csb-filter-pill-item {
+          display: block; width: 100%; text-align: left;
+          padding: 9px 14px; font-size: 13px; color: var(--ink);
+          background: none; border: none; cursor: pointer;
+          font-family: inherit; transition: background 0.1s;
+        }
+        .csb-filter-pill-item:hover { background: var(--royal-50); color: var(--royal); }
+        .csb-filter-pill-item.selected { background: var(--royal-50); color: var(--royal); font-weight: 700; }
         .csb-foreign {
           display: inline-flex;
           align-items: center;
@@ -607,6 +667,59 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
               listStyle
             />
           )}
+
+          {/* ③ リモートフィルター */}
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <button
+              type="button"
+              className={`csb-filter-pill${currentWorkStyle ? " active" : ""}`}
+              onClick={() => currentWorkStyle ? updateParam("workStyle", null) : toggleChip("workStyle")}
+            >
+              🏠 {currentWorkStyle ? (
+                currentWorkStyle === "full_remote" ? "フルリモート" :
+                currentWorkStyle === "hybrid" ? "ハイブリッド" : "出社のみ"
+              ) : "勤務形態"}
+              {currentWorkStyle
+                ? <span style={{ fontSize: 10, opacity: 0.85, marginLeft: 3 }}>✕</span>
+                : <span style={{ fontSize: 10, marginLeft: 2 }}>▾</span>}
+            </button>
+            {openChip === "workStyle" && (
+              <div className="csb-filter-pill-menu">
+                {[
+                  { v: "full_remote", l: "🏠 フルリモート" },
+                  { v: "hybrid",      l: "🏠 ハイブリッド" },
+                  { v: "on_site",     l: "🏢 出社のみ" },
+                ].map(({ v, l }) => (
+                  <button key={v} type="button" className={`csb-filter-pill-item${currentWorkStyle === v ? " selected" : ""}`}
+                    onClick={() => { updateParam("workStyle", v); setOpenChip(null); }}
+                  >{l}</button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ③ 年収フィルター */}
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <button
+              type="button"
+              className={`csb-filter-pill${currentSalaryMin ? " active" : ""}`}
+              onClick={() => currentSalaryMin ? updateParam("salaryMin", null) : toggleChip("salaryMin")}
+            >
+              💴 {currentSalaryMin ? `${currentSalaryMin}万円以上` : "年収"}
+              {currentSalaryMin
+                ? <span style={{ fontSize: 10, opacity: 0.85, marginLeft: 3 }}>✕</span>
+                : <span style={{ fontSize: 10, marginLeft: 2 }}>▾</span>}
+            </button>
+            {openChip === "salaryMin" && (
+              <div className="csb-filter-pill-menu">
+                {["400", "500", "600", "700", "800", "1000"].map((v) => (
+                  <button key={v} type="button" className={`csb-filter-pill-item${currentSalaryMin === v ? " selected" : ""}`}
+                    onClick={() => { updateParam("salaryMin", v); setOpenChip(null); }}
+                  >{v}万円以上</button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* 外資系 */}
           <button
