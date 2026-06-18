@@ -51,8 +51,8 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ### 🟢 次の優先候補（2026-06-18 セッション22後）
 - **キャリア軌跡 Phase 2** — `/admin` の運営者入力画面（ow_experiences への salary_man + visibility_* 設定 + ow_career_profiles.is_published 操作）
-- **Migration 168 の手動適用** — Archi Village 18求人表示（未適用なら）
-- **Migration 169 の手動適用** — medimo 25求人表示（未適用なら）
+- ~~Migration 168 の手動適用~~ ✅ 完了済み（2026-06-18）
+- ~~Migration 169 の手動適用~~ ✅ 完了済み（2026-06-18）
 - **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
 
 ---
