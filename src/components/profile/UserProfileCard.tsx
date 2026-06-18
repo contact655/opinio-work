@@ -23,7 +23,6 @@ export type UserProfileCardProps = {
   userAboutMe?: string | null;
   /** 生年月日（DATE 文字列 "YYYY-MM-DD"）。サーバ側で年齢計算に使用。NULL = 非公開 */
   userBirthDate?: string | null;
-  userFutureAspirations?: string | null;
   /** social_links JSONB — SocialPlatform キー（"twitter" は E で "x" に移行済み）*/
   userSocialLinks?: Record<string, string> | null;
   /** ow_user_skill_tags — sort_order 昇順 */
@@ -73,7 +72,6 @@ export default function UserProfileCard({
   userLocation,
   userAboutMe,
   userBirthDate,
-  userFutureAspirations,
   userSocialLinks,
   userSkillTags = [],
   userCertifications = [],
@@ -240,18 +238,6 @@ export default function UserProfileCard({
           <Link href="/profile/edit" style={{ color: "var(--royal)", marginLeft: 6, fontWeight: 600 }}>
             追加する →
           </Link>
-        </div>
-      )}
-
-      {/* ── 将来の展望 ───────────────────────────────────────────────────── */}
-      {userFutureAspirations && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
-            将来の展望
-          </div>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>
-            {userFutureAspirations}
-          </p>
         </div>
       )}
 

@@ -137,7 +137,6 @@ type OwUser = {
   birth_date: string | null;
   about_me: string | null;
   future_aspirations: string | null;
-  strengths_finder: string[] | null;
   is_open_to_work: boolean | null;
   social_links: Record<string, string> | null;
 } | null;
@@ -2993,10 +2992,10 @@ export default function ProfileEditClient({
   const initialParsed = parseBirthDate(owUser?.birth_date ?? null);
 
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
-    name:             owUser?.name            ?? "",
-    location:         owUser?.location        ?? "",
-    aboutMe:          owUser?.about_me        ?? "",
-    strengthsFinder:  owUser?.strengths_finder ?? [],
+    name:             owUser?.name      ?? "",
+    location:         owUser?.location  ?? "",
+    aboutMe:          owUser?.about_me  ?? "",
+    strengthsFinder:  [],
   });
   const [birthYear,  setBirthYear]  = useState<string>(initialParsed.year);
   const [birthMonth, setBirthMonth] = useState<string>(initialParsed.month);
@@ -3004,10 +3003,10 @@ export default function ProfileEditClient({
 
   // 変更検知用の初期値（保存成功時に更新）
   const [initialBasicInfo, setInitialBasicInfo] = useState<BasicInfo>({
-    name:             owUser?.name            ?? "",
-    location:         owUser?.location        ?? "",
-    aboutMe:          owUser?.about_me        ?? "",
-    strengthsFinder:  owUser?.strengths_finder ?? [],
+    name:             owUser?.name      ?? "",
+    location:         owUser?.location  ?? "",
+    aboutMe:          owUser?.about_me  ?? "",
+    strengthsFinder:  [],
   });
   const [initialBirthYear,  setInitialBirthYear]  = useState<string>(initialParsed.year);
   const [initialBirthMonth, setInitialBirthMonth] = useState<string>(initialParsed.month);
@@ -3040,7 +3039,6 @@ export default function ProfileEditClient({
           location:         basicInfo.location,
           about_me:         basicInfo.aboutMe,
           birth_date:       birthDate,
-          strengths_finder: basicInfo.strengthsFinder,
         }),
       });
       if (!res.ok) throw new Error();

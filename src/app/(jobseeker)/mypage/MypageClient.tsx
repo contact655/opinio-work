@@ -383,7 +383,7 @@ function ProfileCompletenessCard({
 function DashboardView({
   userId, userName, userInitial, userAvatar,
   currentRole,
-  userLocation, userAboutMe, userBirthDate, userFutureAspirations, userSocialLinks,
+  userLocation, userAboutMe, userBirthDate, userSocialLinks,
   userSkillTags, userEducations, userCertifications, timelineCareers,
   hasCareerPreferences,
 }: {
@@ -391,7 +391,7 @@ function DashboardView({
   userName: string; userInitial: string; userAvatar: string;
   currentRole?: string | null;
   userLocation?: string | null; userAboutMe?: string | null;
-  userBirthDate?: string | null; userFutureAspirations?: string | null;
+  userBirthDate?: string | null;
   userSocialLinks?: Record<string, string> | null;
   userSkillTags?: { id: string; label: string; sort_order: number }[];
   userEducations?: {
@@ -432,7 +432,7 @@ function DashboardView({
         userLocation={userLocation}
         userAboutMe={userAboutMe}
         userBirthDate={userBirthDate}
-        userFutureAspirations={userFutureAspirations}
+        
         userSocialLinks={userSocialLinks}
         userSkillTags={userSkillTags}
         userCertifications={userCertifications}
@@ -1022,7 +1022,7 @@ export default function MypageClient({
           userLocation={owUser?.location}
           userAboutMe={owUser?.about_me}
           userBirthDate={owUser?.birth_date}
-          userFutureAspirations={owUser?.future_aspirations}
+          
           userSocialLinks={owUser?.social_links}
           userSkillTags={skillTags}
           userEducations={educations}
