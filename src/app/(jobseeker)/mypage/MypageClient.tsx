@@ -233,13 +233,13 @@ function ProfileCompletenessCard({
   hasCareerPreferences?: boolean;
 }) {
   const checks: { label: string; done: boolean; hint: string }[] = [
-    { label: "名前", done: !!userName && userName !== "ユーザー", hint: "名前を設定する" },
-    { label: "自己紹介", done: !!userAboutMe && userAboutMe.trim().length > 0, hint: "あなたの経歴や想いを一言で" },
-    { label: "居住地", done: !!userLocation && userLocation.trim().length > 0, hint: "勤務地の希望条件に使われます" },
-    { label: "スキルタグ", done: (userSkillTags?.length ?? 0) > 0, hint: "得意な技術・スキルを追加" },
-    { label: "職歴", done: (timelineCareers?.length ?? 0) > 0, hint: "これまでのキャリアを記録" },
-    { label: "学歴", done: (userEducations?.length ?? 0) > 0, hint: "学校・学部を追加" },
-    { label: "希望条件", done: !!hasCareerPreferences, hint: "希望職種・勤務スタイルを設定" },
+    { label: "名前", done: !!userName && userName !== "ユーザー", hint: "名前" },
+    { label: "自己紹介", done: !!userAboutMe && userAboutMe.trim().length > 0, hint: "自己紹介" },
+    { label: "居住地", done: !!userLocation && userLocation.trim().length > 0, hint: "居住地" },
+    { label: "スキルタグ", done: (userSkillTags?.length ?? 0) > 0, hint: "スキルタグ" },
+    { label: "職歴", done: (timelineCareers?.length ?? 0) > 0, hint: "職歴" },
+    { label: "学歴", done: (userEducations?.length ?? 0) > 0, hint: "学歴" },
+    { label: "希望条件", done: !!hasCareerPreferences, hint: "希望条件" },
   ];
   const doneCount = checks.filter((c) => c.done).length;
   const pct = Math.round((doneCount / checks.length) * 100);
@@ -407,12 +407,8 @@ function DashboardView({
 }) {
   // MergedTimeline 用データ整形（/mypage は常に本人なので viewerIsOwner = true）
   const timelineEdus = toTimelineEducationEntries((userEducations ?? []) as RawEducation[]);
-  const futureData = buildFutureData(
-    { name: userName, avatar_color: userAvatar, future_aspirations: userFutureAspirations ?? null },
-    true,
-  );
   const hasMergedTimeline =
-    (timelineCareers?.length ?? 0) > 0 || timelineEdus.length > 0 || futureData != null;
+    (timelineCareers?.length ?? 0) > 0 || timelineEdus.length > 0;
 
   return (
     <div>
@@ -444,6 +440,18 @@ function DashboardView({
         isMentor={false}
       />
 
+      {/* 経歴タイムライン（キャリア + 学歴を統合表示） */}
+      {hasMergedTimeline && (
+        <SectionBlock title="経歴" titleEn="TIMELINE">
+          <MergedTimeline
+            careers={timelineCareers ?? []}
+            educations={timelineEdus}
+            future={null}
+            viewerIsOwner={true}
+          />
+        </SectionBlock>
+      )}
+
       {/* ── アクティビティ投稿フォーム ── */}
       <SectionBlock title="アクティビティ" titleEn="ACTIVITY">
         <PostComposer
@@ -460,18 +468,6 @@ function DashboardView({
           </Link>
         </div>
       </SectionBlock>
-
-      {/* 経歴タイムライン（キャリア + 学歴 + 未来を統合表示） */}
-      {hasMergedTimeline && (
-        <SectionBlock title="経歴" titleEn="TIMELINE">
-          <MergedTimeline
-            careers={timelineCareers ?? []}
-            educations={timelineEdus}
-            future={futureData}
-            viewerIsOwner={true}
-          />
-        </SectionBlock>
-      )}
 
       {/* ── Quick Actions ── */}
       <section style={{
@@ -502,7 +498,7 @@ function DashboardView({
               bg: "var(--royal-50)",
               border: "var(--royal-100)",
               title: "企業を探す",
-              desc: "IT/SaaS業界の13社を見る",
+              desc: "掲載企業を一覧で見る",
             },
             {
               href: "/profile/edit",
@@ -960,38 +956,50 @@ export default function MypageClient({
         <div style={{ marginBottom: "var(--space-3)" }}>
           <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>マイアクティビティ</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--space-2)" }}>
-          {statCards.map((card, i) => (
-            <div
-              key={i}
-              onClick={card.onClick}
-              style={{
-                background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-                padding: "14px", cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-              className="stat-card-hover"
-            >
-              <div style={{
-                width: 28, height: 28, borderRadius: 8,
-                background: card.iconBg, color: card.iconColor,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                marginBottom: "var(--space-2)",
-              }}>
-                {card.icon}
+        {statCards.every(c => c.value === 0) ? (
+          <div style={{
+            background: "var(--bg-tint)", border: "1px solid var(--line)",
+            borderRadius: 12, padding: "16px", textAlign: "center",
+          }}>
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 8 }}>まだ活動がありません</div>
+            <Link href="/companies" style={{
+              fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
+            }}>企業を探してみる →</Link>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--space-2)" }}>
+            {statCards.map((card, i) => (
+              <div
+                key={i}
+                onClick={card.onClick}
+                style={{
+                  background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
+                  padding: "14px", cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                className="stat-card-hover"
+              >
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: card.iconBg, color: card.iconColor,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  marginBottom: "var(--space-2)",
+                }}>
+                  {card.icon}
+                </div>
+                <div style={{
+                  fontFamily: "Inter, sans-serif", fontSize: "var(--text-lg)", fontWeight: 700,
+                  color: "var(--ink)", marginBottom: 2,
+                }}>
+                  {card.value}
+                </div>
+                <div style={{ fontSize: 10, color: "var(--ink-soft)", fontWeight: 500, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                  {card.label}
+                </div>
               </div>
-              <div style={{
-                fontFamily: "Inter, sans-serif", fontSize: "var(--text-lg)", fontWeight: 700,
-                color: "var(--ink)", marginBottom: 2,
-              }}>
-                {card.value}
-              </div>
-              <div style={{ fontSize: 10, color: "var(--ink-soft)", fontWeight: 500, lineHeight: 1.5, whiteSpace: "pre-line" }}>
-                {card.label}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
