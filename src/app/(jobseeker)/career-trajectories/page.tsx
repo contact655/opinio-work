@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 
 // ────────────────────────────────────────────────────────────────
@@ -20,6 +21,7 @@ type PublicStep = {
 
 type CompanyLogo = {
   id: string;
+  name: string;
   logo_url: string | null;
   logo_gradient: string | null;
   logo_letter: string | null;
@@ -111,9 +113,19 @@ function LogoChip({
 // ────────────────────────────────────────────────────────────────
 
 function TrajectoryCard({ card }: { card: CardData }) {
+  // 古い順（display_order 降順: 5→4→3→2→1）に並べ、company_id で重複排除
+  const sortedSteps = [...card.steps].sort((a, b) => b.display_order - a.display_order);
+  const seenCompanyIds = new Set<string>();
+  const uniqueSteps = sortedSteps.filter((s) => {
+    if (!s.company_id) return true;
+    if (seenCompanyIds.has(s.company_id)) return false;
+    seenCompanyIds.add(s.company_id);
+    return true;
+  });
+
   const MAX_LOGOS = 5;
-  const overflow = card.steps.length > MAX_LOGOS ? card.steps.length - MAX_LOGOS : 0;
-  const visibleSteps = card.steps.slice(0, MAX_LOGOS);
+  const overflow = uniqueSteps.length > MAX_LOGOS ? uniqueSteps.length - MAX_LOGOS : 0;
+  const visibleSteps = uniqueSteps.slice(0, MAX_LOGOS);
 
   return (
     <Link
@@ -161,10 +173,10 @@ function TrajectoryCard({ card }: { card: CardData }) {
           borderTop: "1px solid var(--line-soft)",
         }}>
           {visibleSteps.map((step, i) => {
-            const name = step.visibility_company === "real" && step.company_text
-              ? step.company_text
-              : (step.company_anonymized ?? "非公開");
             const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
+            const name = step.visibility_company === "real"
+              ? (step.company_text ?? logo?.name ?? step.company_anonymized ?? "非公開")
+              : (step.company_anonymized ?? "非公開");
 
             return (
               <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
@@ -257,9 +269,10 @@ async function getProfiles(): Promise<CardData[]> {
 
     const logoMap: Record<string, CompanyLogo> = {};
     if (companyIds.length > 0) {
-      const { data: logos } = await supabase
+      const adminSupabase = createAdminClient();
+      const { data: logos } = await adminSupabase
         .from("ow_companies")
-        .select("id, logo_url, logo_gradient, logo_letter")
+        .select("id, name, logo_url, logo_gradient, logo_letter")
         .in("id", companyIds);
       if (logos) {
         for (const l of logos) logoMap[l.id] = l;

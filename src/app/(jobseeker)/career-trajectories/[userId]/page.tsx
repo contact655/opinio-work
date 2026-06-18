@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
@@ -28,6 +29,7 @@ type PublicStep = {
 
 type CompanyLogo = {
   id: string;
+  name: string;
   logo_url: string | null;
   logo_gradient: string | null;
   logo_letter: string | null;
@@ -37,8 +39,11 @@ type CompanyLogo = {
 // ヘルパー
 // ────────────────────────────────────────────────────────────────
 
-function companyDisplay(step: PublicStep): string {
-  if (step.visibility_company === "real" && step.company_text) return step.company_text;
+function companyDisplay(step: PublicStep, logoMap: Record<string, CompanyLogo>): string {
+  if (step.visibility_company === "real") {
+    if (step.company_text) return step.company_text;
+    if (step.company_id && logoMap[step.company_id]?.name) return logoMap[step.company_id].name;
+  }
   return step.company_anonymized ?? "企業名非公開";
 }
 
@@ -63,11 +68,6 @@ function formatDuration(started_at: string, ended_at: string | null, is_current:
 
 function formatSalary(man: number): string {
   return `${man.toLocaleString()}万円`;
-}
-
-function salaryDelta(a: PublicStep, b: PublicStep): number | null {
-  if (a.salary_man === null || b.salary_man === null) return null;
-  return b.salary_man - a.salary_man;
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -127,29 +127,34 @@ async function getData(userId: string) {
 
   if (!profileRes.data) return null;
 
-  const steps = (stepsRes.data ?? []) as PublicStep[];
+  // 古い順（display_order 降順）に並び替え: display_order=5=最初の会社、1=現職
+  const steps = ((stepsRes.data ?? []) as PublicStep[])
+    .slice()
+    .sort((a, b) => b.display_order - a.display_order);
 
-  // 実名公開のステップからcompany_idを収集してロゴ一括取得
-  const companyIds = steps
-    .filter((s) => s.visibility_company === "real" && s.company_id)
-    .map((s) => s.company_id as string);
+  // 実名公開のステップから company_id を収集してロゴ+社名を一括取得
+  const companyIds = Array.from(
+    new Set(
+      steps
+        .filter((s) => s.visibility_company === "real" && s.company_id)
+        .map((s) => s.company_id as string)
+    )
+  );
 
+  // ロゴ取得: is_published=false の会社も含むため admin client（RLS バイパス）を使用
   const logoMap: Record<string, CompanyLogo> = {};
   if (companyIds.length > 0) {
-    const { data: logos } = await supabase
+    const adminSupabase = createAdminClient();
+    const { data: logos } = await adminSupabase
       .from("ow_companies")
-      .select("id, logo_url, logo_gradient, logo_letter")
+      .select("id, name, logo_url, logo_gradient, logo_letter")
       .in("id", companyIds);
     if (logos) {
       for (const l of logos) logoMap[l.id] = l;
     }
   }
 
-  return {
-    profile: profileRes.data,
-    steps,
-    logoMap,
-  };
+  return { profile: profileRes.data, steps, logoMap };
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -188,7 +193,6 @@ export default async function CareerTrajectoryPage({
       }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
-            {/* 匿名アバター — 個人特定につながる情報は一切出さない */}
             <div style={{
               width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
               background: "rgba(255,255,255,0.15)",
@@ -216,17 +220,11 @@ export default async function CareerTrajectoryPage({
           )}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <span style={{
-              background: "rgba(255,255,255,0.12)", borderRadius: 100,
-              padding: "4px 12px", fontSize: 12,
-            }}>
+            <span style={{ background: "rgba(255,255,255,0.12)", borderRadius: 100, padding: "4px 12px", fontSize: 12 }}>
               {steps.length}社を経験
             </span>
             {profile.years_of_experience && (
-              <span style={{
-                background: "rgba(255,255,255,0.12)", borderRadius: 100,
-                padding: "4px 12px", fontSize: 12,
-              }}>
+              <span style={{ background: "rgba(255,255,255,0.12)", borderRadius: 100, padding: "4px 12px", fontSize: 12 }}>
                 社会人歴 {profile.years_of_experience}年
               </span>
             )}
@@ -234,86 +232,100 @@ export default async function CareerTrajectoryPage({
         </div>
       </div>
 
-      {/* ── 縦タイムライン ── */}
+      {/* ── 縦タイムライン（古い順 → 現在）── */}
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 24px 80px" }}>
-
         <div style={{ position: "relative" }}>
-          {/* 中央縦線 */}
+          {/* 縦線 */}
           <div style={{
-            position: "absolute",
-            left: 16,
-            top: 8,
-            bottom: 8,
-            width: 2,
-            background: "var(--line)",
-            zIndex: 0,
+            position: "absolute", left: 16, top: 8, bottom: 8,
+            width: 2, background: "var(--line)", zIndex: 0,
           }} />
 
           {steps.map((step, i) => {
-            const name = companyDisplay(step);
+            const name = companyDisplay(step, logoMap);
             const period = formatPeriod(step.started_at, step.ended_at, step.is_current);
             const duration = formatDuration(step.started_at, step.ended_at, step.is_current);
             const logo = step.company_id ? (logoMap[step.company_id] ?? null) : null;
             const prevStep = i > 0 ? steps[i - 1] : null;
-            const delta = prevStep ? salaryDelta(prevStep, step) : null;
+
+            // 年収デルタ（古い→新しいの変化）
+            const delta = (prevStep && prevStep.salary_man !== null && step.salary_man !== null)
+              ? step.salary_man - prevStep.salary_man
+              : null;
+
+            // 同一会社からの社内昇格・異動か
+            const isSameCompany = !!(
+              prevStep &&
+              step.company_id &&
+              prevStep.company_id &&
+              step.company_id === prevStep.company_id
+            );
 
             return (
-              <div key={step.id} style={{ position: "relative", paddingLeft: 48, marginBottom: i < steps.length - 1 ? 0 : 0 }}>
+              <div key={step.id} style={{ position: "relative", paddingLeft: 48 }}>
 
                 {/* タイムラインドット */}
                 <div style={{
-                  position: "absolute",
-                  left: 10,
-                  top: 20,
-                  width: 14,
-                  height: 14,
-                  borderRadius: "50%",
+                  position: "absolute", left: 10, top: 20,
+                  width: 14, height: 14, borderRadius: "50%", zIndex: 1,
                   background: step.is_current ? "var(--royal)" : "#fff",
                   border: `2px solid ${step.is_current ? "var(--royal)" : "var(--line)"}`,
-                  zIndex: 1,
                 }} />
 
-                {/* 年収変化バッジ（前のステップとの間に表示） */}
-                {i > 0 && delta !== null && (
+                {/* コネクター（2ステップ目以降） */}
+                {i > 0 && (
                   <div style={{
-                    position: "absolute",
-                    left: -4,
-                    top: -14,
-                    zIndex: 2,
-                    background: delta >= 0 ? "var(--success-soft)" : "var(--error-soft)",
-                    color: delta >= 0 ? "var(--success)" : "var(--error)",
-                    fontSize: 10, fontWeight: 700, fontFamily: "Inter, sans-serif",
-                    padding: "2px 7px", borderRadius: 100,
-                    border: `1px solid ${delta >= 0 ? "#6ee7b7" : "#fca5a5"}`,
-                    whiteSpace: "nowrap",
+                    position: "absolute", left: -4, top: -18,
+                    zIndex: 2, display: "flex", alignItems: "center", gap: 4,
                   }}>
-                    {delta >= 0 ? "+" : ""}{delta.toLocaleString()}万円
+                    {isSameCompany ? (
+                      /* 社内昇格・異動 */
+                      <span style={{
+                        fontSize: 9, fontWeight: 700, letterSpacing: "0.05em",
+                        color: "var(--royal)", background: "var(--royal-50)",
+                        padding: "2px 7px", borderRadius: 100,
+                        border: "1px solid var(--royal-100)",
+                        whiteSpace: "nowrap",
+                      }}>
+                        社内昇格・異動
+                      </span>
+                    ) : delta !== null ? (
+                      /* 年収変化バッジ */
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, fontFamily: "Inter, sans-serif",
+                        color: delta >= 0 ? "var(--success)" : "var(--error)",
+                        background: delta >= 0 ? "var(--success-soft)" : "var(--error-soft)",
+                        padding: "2px 7px", borderRadius: 100,
+                        border: `1px solid ${delta >= 0 ? "#6ee7b7" : "#fca5a5"}`,
+                        whiteSpace: "nowrap",
+                      }}>
+                        {delta >= 0 ? "+" : ""}{delta.toLocaleString()}万円
+                      </span>
+                    ) : null}
                   </div>
                 )}
 
                 {/* ステップカード */}
                 <div style={{
                   background: "#fff",
-                  border: `1px solid ${step.is_current ? "var(--royal)" : "var(--line)"}`,
+                  border: `1px solid ${step.is_current ? "var(--royal)" : isSameCompany ? "var(--royal-100)" : "var(--line)"}`,
                   borderRadius: 12,
                   padding: "20px 20px 18px",
-                  marginBottom: i < steps.length - 1 ? 24 : 0,
+                  marginBottom: i < steps.length - 1 ? 28 : 0,
                   boxShadow: step.is_current ? "0 0 0 3px rgba(0,35,102,0.06)" : "none",
                 }}>
 
-                  {/* 在籍中バッジ */}
-                  {step.is_current && (
-                    <div style={{
-                      display: "inline-block",
-                      marginBottom: 10,
-                      fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
-                      color: "var(--royal)",
-                      background: "var(--royal-50)", borderRadius: 100,
-                      padding: "2px 8px",
-                    }}>
-                      現在
-                    </div>
-                  )}
+                  {/* バッジ行 */}
+                  <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+                    {step.is_current && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
+                        color: "var(--royal)", background: "var(--royal-50)", borderRadius: 100, padding: "2px 8px",
+                      }}>
+                        現在
+                      </span>
+                    )}
+                  </div>
 
                   {/* 企業ロゴ + 名前 行 */}
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
@@ -322,10 +334,7 @@ export default async function CareerTrajectoryPage({
                       {step.visibility_company === "real" && step.company_id ? (
                         <Link
                           href={`/companies/${step.company_id}`}
-                          style={{
-                            fontSize: 15, fontWeight: 800, color: "var(--royal)",
-                            textDecoration: "none", display: "block", lineHeight: 1.2,
-                          }}
+                          style={{ fontSize: 15, fontWeight: 800, color: "var(--royal)", textDecoration: "none", display: "block", lineHeight: 1.2 }}
                         >
                           {name}
                         </Link>
@@ -346,32 +355,41 @@ export default async function CareerTrajectoryPage({
                   <div style={{
                     display: "flex", gap: 12, flexWrap: "wrap",
                     fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif",
-                    marginBottom: step.salary_man !== null || step.join_reason ? 12 : 0,
+                    marginBottom: step.join_reason || step.salary_man !== null ? 12 : 0,
                   }}>
                     <span>{period}</span>
                     <span>({duration}{step.employment_type ? ` · ${step.employment_type}` : ""})</span>
                   </div>
 
-                  {/* 転職理由（visibility_reason=true かつ入力あり） */}
+                  {/* 入社・転職のきっかけ */}
                   {step.join_reason && (
-                    <div style={{
-                      fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7,
-                      borderLeft: "3px solid var(--line)", paddingLeft: 12,
-                      marginBottom: step.salary_man !== null ? 10 : 0,
-                      fontStyle: "italic",
-                    }}>
-                      {step.join_reason}
+                    <div style={{ marginBottom: step.salary_man !== null ? 12 : 0 }}>
+                      <div style={{
+                        fontSize: 10, fontWeight: 700, color: "var(--ink-mute)",
+                        letterSpacing: "0.06em", marginBottom: 6,
+                        display: "flex", alignItems: "center", gap: 4,
+                      }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        入社・転職のきっかけ
+                      </div>
+                      <div style={{
+                        fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75,
+                        background: "var(--bg-tint)", borderRadius: 8, padding: "10px 14px",
+                      }}>
+                        {step.join_reason}
+                      </div>
                     </div>
                   )}
 
                   {/* 年収チップ（visibility_salary=true かつ salary_man != null のみ） */}
                   {step.salary_man !== null && (
-                    <div style={{ marginTop: 4 }}>
+                    <div>
                       <span style={{
                         fontSize: 12, fontWeight: 700, fontFamily: "Inter, sans-serif",
-                        color: "var(--success)",
-                        background: "var(--success-soft)", borderRadius: 100,
-                        padding: "3px 10px",
+                        color: "var(--success)", background: "var(--success-soft)",
+                        borderRadius: 100, padding: "3px 10px",
                       }}>
                         {formatSalary(step.salary_man)}
                       </span>
