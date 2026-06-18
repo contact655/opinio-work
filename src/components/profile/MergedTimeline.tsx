@@ -1208,6 +1208,8 @@ export default function MergedTimeline({
                     alignItems: "flex-start",
                     justifyContent: "center",
                     paddingTop: 8,
+                    position: "relative",
+                    zIndex: 1,
                   }}
                 >
                   <SchoolLogoImg schoolMaster={e.school_master ?? null} size={64} />
