@@ -374,7 +374,11 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   transition: "all 0.15s",
                   boxShadow: bookmarked ? "0 2px 6px rgba(239,68,68,0.30)" : "none",
                 }}
-              >{bookmarked ? "♥" : "♡"}</button>
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill={bookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </button>
             </div>
 
             {/* 行2: ブランド名（大・濃）＋ 正式名称（小・薄） */}
@@ -730,7 +734,9 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               boxShadow: bookmarked ? "0 2px 8px rgba(239,68,68,0.28)" : "none",
             }}
           >
-            <span style={{ fontSize: 14 }}>{bookmarked ? "♥" : "♡"}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
             <span>{bookmarked ? "気になり済み" : "気になる"}</span>
           </button>
 
