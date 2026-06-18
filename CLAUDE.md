@@ -38,6 +38,17 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
   - 検証: real/masked/hidden × salary/reason の3パターン全 PASS（`scripts/verify-career-resolve.mjs`）
   - Migration 175 手動適用済み ✅
 
+  **キャリア軌跡 Phase 1 — DB層セキュリティ（Migration 176 + 177）:**
+  - Migration 176: ow_experiences RLS に visibility_company!='hidden' 条件追加、get_public_career_steps() SECURITY DEFINER 関数（初版）
+  - Migration 177: 2つのセキュリティギャップを修正
+    - `get_public_career_steps()` に `is_published=true` ガード追加（非オーナーは ow_career_profiles が未公開なら0行）
+    - anon の salary_man 列保護: REVOKE table-level SELECT → GRANT 列単位（salary_man を除外）
+  - 検証3件 全 PASS（Migration 177 適用後）:
+    - `get_public_career_steps()` → 0行（is_published=false のため）✅
+    - `has_column_privilege('anon', 'ow_experiences', 'salary_man', 'SELECT')` → false ✅
+    - `has_column_privilege('anon', 'ow_experiences', 'company_text', 'SELECT')` → true（既存ページ影響なし）✅
+  - **Phase 1 完了 ✅**
+
 ### 🟢 次の優先候補（2026-06-18 セッション22後）
 - **キャリア軌跡 Phase 2** — `/admin` の運営者入力画面（ow_experiences への salary_man + visibility_* 設定 + ow_career_profiles.is_published 操作）
 - **Migration 168 の手動適用** — Archi Village 18求人表示（未適用なら）
