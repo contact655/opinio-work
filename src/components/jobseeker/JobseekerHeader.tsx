@@ -221,7 +221,10 @@ export function JobseekerHeader() {
                     color: active ? "var(--royal)" : "var(--ink-soft)",
                     textDecoration: "none",
                     borderBottom: active ? "2px solid var(--royal)" : "2px solid transparent",
-                    padding: "0 8px 2px",
+                    paddingTop: 0,
+                    paddingRight: 8,
+                    paddingBottom: 2,
+                    paddingLeft: 8,
                     transition: "color 0.15s",
                     whiteSpace: "nowrap",
                   }}

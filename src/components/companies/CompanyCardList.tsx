@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { CompanyForCarousel } from "@/types/genre";
 import type { MemberPreview } from "./CompanyCardCompact";
@@ -155,6 +156,7 @@ type Props = {
 };
 
 export function CompanyCardList({ company, members = [], compact }: Props) {
+  const router = useRouter();
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarking, setBookmarking] = useState(false);
   const bookmarkingRef = useRef(false);
@@ -610,36 +612,36 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
         {/* ── CTA + ブックマーク ── */}
         <div className="clc-cta" style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
           {company.job_count > 0 ? (
-            <a
-              href={`/companies/${company.id}#jobs`}
+            <button
+              type="button"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "9px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700,
                 background: "linear-gradient(135deg, var(--royal), var(--accent))",
-                color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
+                color: "#fff", border: "none", cursor: "pointer", whiteSpace: "nowrap",
                 boxShadow: "0 2px 8px rgba(0,35,102,0.20)",
               }}
-              onClick={e => e.stopPropagation()}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}#jobs`); }}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                 <rect x="2" y="7" width="20" height="14" rx="2"/>
                 <path d="M16 3h-8l-2 4h12l-2-4z"/>
               </svg>
               募集中 {company.job_count}件
-            </a>
+            </button>
           ) : (
-            <a
-              href={`/companies/${company.id}`}
+            <button
+              type="button"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "9px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700,
                 background: "var(--royal-50)", color: "var(--royal)",
-                border: "1px solid var(--royal-100)", textDecoration: "none", whiteSpace: "nowrap",
+                border: "1px solid var(--royal-100)", cursor: "pointer", whiteSpace: "nowrap",
               }}
-              onClick={e => e.stopPropagation()}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}
             >
               詳細を見る →
-            </a>
+            </button>
           )}
 
           {/* #6: ブックマーク */}

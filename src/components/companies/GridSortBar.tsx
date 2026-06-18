@@ -22,24 +22,6 @@ const SORT_OPTIONS = [
       </svg>
     ),
   },
-  {
-    value: "startup",
-    label: "スタートアップ優先",
-    icon: (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
-      </svg>
-    ),
-  },
-  {
-    value: "phase",
-    label: "早期フェーズ優先",
-    icon: (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
-      </svg>
-    ),
-  },
 ];
 
 export function GridSortBar({ totalCount }: Props) {
@@ -73,7 +55,7 @@ export function GridSortBar({ totalCount }: Props) {
 
   return (
     <>
-      <style>{`
+      <style suppressHydrationWarning>{`
         .sort-btn {
           padding: 6px 14px;
           border-radius: 100px;

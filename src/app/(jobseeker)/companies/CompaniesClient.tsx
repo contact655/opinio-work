@@ -1128,16 +1128,6 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
       list = [...list].sort((a, b) => b.job_count - a.job_count);
     } else if (sort === "employees") {
       list = [...list].sort((a, b) => extractNum(b.employee_count) - extractNum(a.employee_count));
-    } else if (sort === "phase") {
-      const PHASE_ORDER: Record<string, number> = {
-        seed: 0, "series-a": 1, "series-b": 2, "series-c": 3, "series-d": 4,
-        growth: 5, ipo: 6, unicorn: 7, listed: 8, "上場": 8,
-      };
-      list = [...list].sort((a, b) => {
-        const pa = PHASE_ORDER[a.phase.toLowerCase().replace(/\s+/g, "-")] ?? 99;
-        const pb = PHASE_ORDER[b.phase.toLowerCase().replace(/\s+/g, "-")] ?? 99;
-        return pa - pb;
-      });
     }
     // "newest": DB のデフォルト順（updated_at DESC）をそのまま維持
 

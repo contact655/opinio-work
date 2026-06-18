@@ -372,7 +372,7 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
 
   return (
     <>
-      <style>{`
+      <style suppressHydrationWarning>{`
         .csb-bar {
           display: flex;
           align-items: center;

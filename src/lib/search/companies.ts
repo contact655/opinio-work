@@ -118,8 +118,6 @@ export async function searchCompanies(
   // #10: sort パラメータに応じて ORDER BY を切り替え（server-side sort）
   const orderCol = params.sort === "employees" ? "employee_count" : "updated_at";
   const orderAsc = false; // 全ソート DESC
-  // phase sort はクライアント側で処理（後述）
-  const isPhaseSort = params.sort === "phase";
 
   let dataQuery = applyFilters(
     supabase
@@ -212,26 +210,6 @@ export async function searchCompanies(
       return (c as { is_foreign?: boolean }).is_foreign === true;
     });
     totalCount = filteredCompanies.length;
-  }
-
-  // client-side: フェーズ順ソート
-  if (isPhaseSort) {
-    const PHASE_ORDER: Record<string, number> = {
-      "プレシード": 0, "ブートストラップ": 1, "シード": 2, "seed": 2,
-      "シリーズA": 3, "series-a": 3, "series_a": 3,
-      "シリーズB": 4, "series-b": 4, "series_b": 4,
-      "シリーズC": 5, "series-c": 5, "series_c": 5,
-      "シリーズD以降": 6, "シリーズD": 6, "series-d": 6, "series_d": 6,
-      "IPO準備中": 7, "上場": 8, "listed": 8,
-      "ユニコーン": 9, "unicorn": 9,
-    };
-    filteredCompanies = [...filteredCompanies].sort((a, b) => {
-      const phaseA = (a as { funding_stage?: string }).funding_stage ?? (a as { phase?: string }).phase ?? "";
-      const phaseB = (b as { funding_stage?: string }).funding_stage ?? (b as { phase?: string }).phase ?? "";
-      const ao = PHASE_ORDER[phaseA] ?? 99;
-      const bo = PHASE_ORDER[phaseB] ?? 99;
-      return ao - bo;
-    });
   }
 
   return {
