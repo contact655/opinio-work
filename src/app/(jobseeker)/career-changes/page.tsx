@@ -2,8 +2,8 @@ import Link from "next/link";
 import { STORIES } from "./mockData";
 
 export const metadata = {
-  title: "転職体験談 | OPINIO",
-  description: "IT/SaaS業界への転職体験談。リクルート→Salesforce、コンサル→スタートアップなど、実際のキャリアチェンジストーリーをプロのアドバイザーが解説。",
+  title: "転職ストーリー | OPINIO",
+  description: "IT/SaaS業界への転職ストーリー。リクルート→Salesforce、コンサル→スタートアップなど、実際のキャリアチェンジをプロのアドバイザーが解説。",
 };
 
 const ROLE_FILTERS = ["すべて", "営業", "マーケティング", "CS", "PM・プロダクト", "テクニカル", "事業開発"];
@@ -32,7 +32,7 @@ export default function CareerChangesPage() {
             color: "#fff", fontFamily: "var(--font-noto-serif)",
             lineHeight: 1.4, marginBottom: 12,
           }}>
-            転職体験談
+            転職ストーリー
           </h1>
           <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.8, maxWidth: 560 }}>
             IT/SaaS業界への転職を経験した方々のリアルなストーリー。
@@ -42,7 +42,7 @@ export default function CareerChangesPage() {
           {/* Stats */}
           <div style={{ display: "flex", gap: 28, marginTop: 28, flexWrap: "wrap" }}>
             {[
-              { num: `${STORIES.length}件`, label: "掲載体験談" },
+              { num: `${STORIES.length}件`, label: "掲載ストーリー" },
               { num: "6社", label: "転職前企業カバー" },
               { num: "外資〜スタートアップ", label: "転職先ジャンル" },
             ].map((s) => (
@@ -80,7 +80,7 @@ export default function CareerChangesPage() {
       {/* Stories list */}
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px 80px" }}>
         <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20 }}>
-          {STORIES.length}件の体験談
+          {STORIES.length}件のストーリー
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

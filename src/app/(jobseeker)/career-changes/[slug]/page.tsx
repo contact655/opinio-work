@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const story = getStoryBySlug(params.slug);
   if (!story) return {};
   return {
-    title: `${story.headline} | OPINIO転職体験談`,
+    title: `${story.headline} | OPINIO転職ストーリー`,
     description: story.excerpt,
   };
 }
@@ -36,7 +36,7 @@ export default function CareerChangeDetailPage({ params }: { params: { slug: str
         <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--ink-mute)" }}>
           <Link href="/" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>TOP</Link>
           <span>›</span>
-          <Link href="/career-changes" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>転職体験談</Link>
+          <Link href="/career-changes" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>転職ストーリー</Link>
           <span>›</span>
           <span style={{ color: "var(--ink-soft)" }}>{story.fromCompany.replace(/^(株式会社|合同会社)/, "")} → {story.toCompany.replace(/^(株式会社|合同会社)/, "")}</span>
         </div>
