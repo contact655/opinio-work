@@ -6,45 +6,54 @@ export const INDUSTRY_GROUPS = [
   },
   {
     key: "hr",
-    label: "HR Tech",
+    label: "HR・人材",
     values: ["HR Tech"],
   },
   {
     key: "fintech",
-    label: "FinTech・会計",
+    label: "FinTech・経理",
     values: ["FinTech/SaaS", "経費精算", "財務・ERP", "財務会計", "調達管理", "電子署名"],
   },
   {
-    key: "ai",
-    label: "AI・Medical",
-    values: ["AI Tech", "Medical AI"],
-  },
-  {
-    key: "infra",
-    label: "インフラ・セキュリティ",
+    key: "data",
+    label: "データ・分析",
     values: [
-      "クラウドインフラ", "セキュリティ", "データベース", "データストリーミング",
-      "データベース・ERP", "ネットワーキング", "インシデント管理",
-      "SaaS / オブザーバビリティ", "ハードウェア", "半導体",
+      "AI Tech", "データストリーミング", "データベース", "データベース・ERP",
+      "SaaS / オブザーバビリティ", "インシデント管理",
     ],
   },
   {
+    key: "security",
+    label: "セキュリティ",
+    values: ["セキュリティ", "ネットワーキング"],
+  },
+  {
+    key: "infra",
+    label: "クラウド・インフラ",
+    values: ["クラウドインフラ", "ハードウェア", "半導体"],
+  },
+  {
     key: "productivity",
-    label: "生産性・コラボ",
+    label: "業務・コラボ",
     values: [
       "プロジェクト管理", "ワークフロー自動化", "ファイル共有",
-      "コラボレーション", "コンテンツ管理", "デジタルアダプション",
+      "コラボレーション", "コンテンツ管理", "デジタルアダプション", "エンタープライズIT",
     ],
   },
   {
     key: "devtools",
-    label: "DevTools",
+    label: "DevTools・API",
     values: ["DevTools", "API管理", "コミュニケーションAPI"],
+  },
+  {
+    key: "healthcare",
+    label: "ヘルスケア",
+    values: ["Medical AI", "ヘルスケア", "MedTech"],
   },
   {
     key: "other",
     label: "その他",
-    values: ["ConTech", "SNS / メタバース", "クリエイティブ", "モビリティ", "エンタープライズIT"],
+    values: ["ConTech", "SNS / メタバース", "クリエイティブ", "モビリティ"],
   },
 ] as const;
 
