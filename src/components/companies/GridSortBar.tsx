@@ -30,23 +30,10 @@ export function GridSortBar({ totalCount }: Props) {
   const current = searchParams.get("sort") ?? "newest";
   const currentView = searchParams.get("view") ?? "card";
 
-  const isForeign = searchParams.get("foreign") === "1";
-
   const setSort = (s: string) => {
     const p = new URLSearchParams(searchParams.toString());
     if (s === "newest") p.delete("sort");
     else p.set("sort", s);
-    router.push(`/companies?${p.toString()}`);
-  };
-
-  const toggleForeign = () => {
-    const p = new URLSearchParams(searchParams.toString());
-    // 廃止されたソートパラメータを除去（例: sort=startup, sort=phase）
-    const validSorts = new Set(SORT_OPTIONS.map(o => o.value));
-    const sortVal = p.get("sort");
-    if (sortVal && !validSorts.has(sortVal)) p.delete("sort");
-    if (isForeign) p.delete("foreign");
-    else p.set("foreign", "1");
     router.push(`/companies?${p.toString()}`);
   };
 
