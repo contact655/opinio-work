@@ -320,9 +320,10 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
   const currentLocation  = searchParams.get("location") ?? "";
   const currentIndustry  = searchParams.get("industry") ?? "";
   const currentHiring    = searchParams.get("hiring") === "1";
+  const currentForeign   = searchParams.get("foreign") === "1";
 
   const hasAnyFilter = Boolean(
-    searchParams.get("q") || currentPhase || currentHiring || currentLocation || currentIndustry
+    searchParams.get("q") || currentPhase || currentHiring || currentLocation || currentIndustry || currentForeign
   );
 
   const locationOptions = locations.map((l) => ({ value: l, label: l }));
@@ -367,6 +368,13 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
       key: "hiring",
       label: "🟠 面談受付中",
       onRemove: () => updateParam("hiring", null),
+    });
+  }
+  if (currentForeign) {
+    activeFilters.push({
+      key: "foreign",
+      label: "🌐 外資系",
+      onRemove: () => updateParam("foreign", null),
     });
   }
 
@@ -438,6 +446,35 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
         }
         .csb-hiring input[type="checkbox"] { display: none; }
         @keyframes pulseHiring { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+        .csb-foreign {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          color: var(--ink);
+          cursor: pointer;
+          white-space: nowrap;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 999px;
+          padding: 7px 14px;
+          transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+          user-select: none;
+          font-family: inherit;
+          background: #fff;
+          flex-shrink: 0;
+          font-weight: 500;
+        }
+        .csb-foreign:hover {
+          border-color: #a5b4fc;
+          background: #eef2ff;
+        }
+        .csb-foreign.active {
+          border-color: #0c4a6e;
+          background: linear-gradient(135deg, #0369a1, #0c4a6e);
+          color: #fff;
+          font-weight: 700;
+          box-shadow: 0 2px 10px rgba(12,74,110,0.30);
+        }
         .csb-clear {
           font-size: 12.5px;
           color: var(--ink-mute);
@@ -590,6 +627,16 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
               <>面談受付中</>
             )}
           </label>
+
+          {/* 外資系 */}
+          <button
+            type="button"
+            className={`csb-foreign${currentForeign ? " active" : ""}`}
+            onClick={() => updateParam("foreign", currentForeign ? null : "1")}
+            aria-pressed={currentForeign}
+          >
+            🌐 外資系{currentForeign && <span style={{ fontSize: 10, opacity: 0.85, marginLeft: 3 }}>✕</span>}
+          </button>
 
           {hasAnyFilter && (
             <button type="button" className="csb-clear" onClick={handleClear}>
