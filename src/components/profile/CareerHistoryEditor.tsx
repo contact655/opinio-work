@@ -134,12 +134,11 @@ function groupStints(stints: Stint[]): StintGroup[] {
   });
 }
 
-function formatGroupPeriod(group: StintGroup): string {
+function formatGroupDateRange(group: StintGroup): string {
   const fmt = (ym: string) => ym.replace("-", ".");
   const start = fmt(group.earliestStart);
   const end = group.latestEnd === null ? "現在" : fmt(group.latestEnd);
-  const duration = formatDuration(group.totalMonths);
-  return `${start} 〜 ${end} · ${duration}`;
+  return `${start} 〜 ${end}`;
 }
 
 type StintDraft = {
@@ -776,18 +775,18 @@ function StintCard({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        padding: "10px 12px",
+        padding: "12px 14px",
         background: "#fff",
         borderRadius: 8,
-        border: "1px solid var(--line-soft)",
+        border: "1px solid var(--line)",
         position: "relative",
       }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Role + 現在 badge */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
               {stint.roleTitle || stint.roleLabel}
             </span>
             {stint.showCurrentBadge && (
@@ -797,7 +796,7 @@ function StintCard({
             )}
           </div>
           {/* Period */}
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+          <div style={{ fontSize: 12, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
             {formatPeriod(stint.startedAt, stint.endedAt, stint.isCurrent)}
           </div>
           {/* Employment type badge */}
@@ -1085,52 +1084,64 @@ export default function CareerHistoryEditor({
           <div
             key={group.key}
             style={{
-              background: `${avatarColor}0F`,
+              background: `${avatarColor}0D`,
               borderLeft: `4px solid ${avatarColor}`,
-              borderRadius: 10,
-              marginBottom: gIdx < groups.length - 1 ? 12 : 16,
+              borderRadius: 12,
+              marginBottom: gIdx < groups.length - 1 ? 14 : 16,
               overflow: "hidden",
+              boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
             }}
           >
-            {/* グループヘッダー: アバター + 会社名 + 期間（通常の黒文字） */}
+            {/* グループヘッダー: アバター + 会社名 + 期間 */}
             <div
               style={{
-                padding: "14px 16px 10px",
+                padding: "16px 18px 12px",
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
+                gap: 14,
               }}
             >
               <div
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 6,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 8,
                   background: avatarColor,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontWeight: 700,
-                  fontSize: 13,
+                  fontWeight: 800,
+                  fontSize: 16,
                   color: "#fff",
                   fontFamily: "Inter, sans-serif",
                   flexShrink: 0,
+                  boxShadow: `0 2px 8px ${avatarColor}55`,
                 }}
               >
                 {avatarInitial}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3 }}>
                   {group.displayCompanyName}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginTop: 1 }}>
-                  {formatGroupPeriod(group)}
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
+                    {formatGroupDateRange(group)}
+                  </span>
+                  <span style={{
+                    fontSize: 12, fontWeight: 700,
+                    color: "var(--royal)", background: "var(--royal-50)",
+                    borderRadius: 100, padding: "1px 9px",
+                    fontFamily: "Inter, sans-serif", flexShrink: 0,
+                  }}>
+                    {formatDuration(group.totalMonths)}
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* ポジション群（白カード） */}
-            <div style={{ padding: "0 16px 14px" }}>
+            <div style={{ padding: "0 18px 16px" }}>
               {group.positions.map((s, pIdx) => (
                 <div key={s.id} style={{ marginBottom: pIdx < group.positions.length - 1 ? 8 : 0 }}>
                   {editingId === s.id ? (
@@ -1182,12 +1193,13 @@ export default function CareerHistoryEditor({
                     display: "flex",
                     alignItems: "center",
                     gap: 4,
-                    padding: "4px 0",
-                    background: "transparent",
-                    border: "none",
-                    fontSize: 11,
+                    padding: "5px 10px",
+                    background: "var(--royal-50)",
+                    border: "1px dashed var(--royal-100)",
+                    borderRadius: 6,
+                    fontSize: 12,
                     fontWeight: 600,
-                    color: "var(--ink-mute)",
+                    color: "var(--royal)",
                     cursor: "pointer",
                     fontFamily: "inherit",
                   }}
