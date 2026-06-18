@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { InitialAvatar } from "@/components/ui/InitialAvatar";
 
 // ────────────────────────────────────────────────────────────────
 // 型
@@ -116,17 +115,12 @@ function CompanyLogoSmall({
 async function getData(userId: string) {
   const supabase = createClient();
 
-  const [profileRes, userRes, stepsRes] = await Promise.all([
+  const [profileRes, stepsRes] = await Promise.all([
     supabase
       .from("ow_career_profiles")
       .select("headline, years_of_experience, is_published")
       .eq("user_id", userId)
       .eq("is_published", true)
-      .maybeSingle(),
-    supabase
-      .from("ow_users")
-      .select("name, visibility")
-      .eq("id", userId)
       .maybeSingle(),
     supabase.rpc("get_public_career_steps", { p_user_id: userId }),
   ]);
@@ -153,7 +147,6 @@ async function getData(userId: string) {
 
   return {
     profile: profileRes.data,
-    userName: userRes.data?.name ?? null,
     steps,
     logoMap,
   };
@@ -171,7 +164,7 @@ export default async function CareerTrajectoryPage({
   const data = await getData(params.userId);
   if (!data || data.steps.length === 0) notFound();
 
-  const { profile, userName, steps, logoMap } = data;
+  const { profile, steps, logoMap } = data;
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
@@ -195,18 +188,23 @@ export default async function CareerTrajectoryPage({
       }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
-            <InitialAvatar
-              name={userName ?? "?"}
-              size={52}
-              bgStyle="linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%)"
-              textColor="#fff"
-            />
+            {/* 匿名アバター — 個人特定につながる情報は一切出さない */}
+            <div style={{
+              width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
+              background: "rgba(255,255,255,0.15)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
             <div>
               <div style={{ fontSize: 11, letterSpacing: "0.1em", opacity: 0.6, marginBottom: 2 }}>
                 CAREER TRAJECTORY
               </div>
               <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, fontFamily: "Noto Serif JP, serif" }}>
-                {userName ?? "このユーザー"}のキャリア軌跡
+                キャリア軌跡
               </h1>
             </div>
           </div>

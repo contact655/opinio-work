@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { InitialAvatar } from "@/components/ui/InitialAvatar";
 
 // ────────────────────────────────────────────────────────────────
 // 型
@@ -133,14 +132,18 @@ function TrajectoryCard({ card }: { card: CardData }) {
       }}
         className="trajectory-card"
       >
-        {/* ヘッダー: アバター + 名前 + ヘッドライン */}
+        {/* ヘッダー: 匿名アバター + ヘッドライン */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-          <InitialAvatar
-            name={card.userName ?? "?"}
-            size={40}
-            bgStyle="linear-gradient(135deg, #001233 0%, #002366 100%)"
-            textColor="#fff"
-          />
+          <div style={{
+            width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+            background: "linear-gradient(135deg, #001233 0%, #002366 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
               {card.headline ?? "キャリア軌跡"}
