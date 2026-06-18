@@ -13,6 +13,39 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🎯 次のセッションでやること（2026-06-18 セッション22 更新）
+
+### ✅ 完了 2026-06-18 セッション22: キャリア軌跡 Phase 1 + 転職ストーリー 案A
+
+  **転職ストーリー 案A — キャリアジャーニーストリップ（`career-changes/`）:**
+  - `JourneyStep` 型 + `journey?: JourneyStep[]` フィールドを `CareerChangeStory` に追加
+  - `recruit-to-salesforce` に柴さんの2ステップ軌跡を設定（Salesforce + coming-soon OPINIO創業）
+  - `JourneyStrip.tsx`（"use client"）: 横並び step カード、読み中バッジ、準備中点線ボーダー、クリックで詳細表示
+  - 詳細ページ `[slug]/page.tsx` に `<JourneyStrip>` を sections → author note の間に追加
+
+  **キャリア軌跡 Phase 1 — データモデル（Migration 175）:**
+  - `ow_career_profiles`: 軌跡の公開エンベロープ（`is_published`, `headline`, `years_of_experience`）
+    - RLS: is_published=true AND ow_users.visibility 両方を AND 条件（矛盾時は厳しい方優先）
+    - ポリシー4本: 本人ALL / admin ALL / anon公開 / ログイン公開
+  - `ow_experiences` に4カラム追加:
+    - `salary_man` (int) — 年収実数（入力層）
+    - `visibility_company` (text, default 'masked') — real/masked/hidden
+    - `visibility_salary` (boolean, default false) — 既存12行は false（機微情報は安全側）
+    - `visibility_reason` (boolean, default true)
+  - `ow_career_follows`: フォロー関係テーブル（Phase 3の土台）
+  - `src/types/career.ts`: `CareerProfile`, `CareerStep`, `PublicCareerStep`, `CompanyVisibility`
+  - `src/lib/career/resolve.ts`: `resolvePublicStep()`, `resolvePublicSteps()`, `maskCompany()` — サーバー側専用、実データ漏洩防止
+  - 検証: real/masked/hidden × salary/reason の3パターン全 PASS（`scripts/verify-career-resolve.mjs`）
+  - Migration 175 手動適用済み ✅
+
+### 🟢 次の優先候補（2026-06-18 セッション22後）
+- **キャリア軌跡 Phase 2** — `/admin` の運営者入力画面（ow_experiences への salary_man + visibility_* 設定 + ow_career_profiles.is_published 操作）
+- **Migration 168 の手動適用** — Archi Village 18求人表示（未適用なら）
+- **Migration 169 の手動適用** — medimo 25求人表示（未適用なら）
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+
+---
+
 ## 🎯 次のセッションでやること（2026-06-14 セッション21 更新）
 
 ### ✅ 完了 2026-06-14 セッション21: 企業検索フィルター改善
