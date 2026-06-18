@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { InitialAvatar } from "@/components/ui/InitialAvatar";
 
 // ────────────────────────────────────────────────────────────────
 // 型
@@ -26,22 +27,27 @@ type PublicStep = {
   visibility_reason: boolean;
 };
 
+type CompanyLogo = {
+  id: string;
+  logo_url: string | null;
+  logo_gradient: string | null;
+  logo_letter: string | null;
+};
+
 // ────────────────────────────────────────────────────────────────
 // ヘルパー
 // ────────────────────────────────────────────────────────────────
 
 function companyDisplay(step: PublicStep): string {
-  if (step.visibility_company === "real" && step.company_text) {
-    return step.company_text;
-  }
+  if (step.visibility_company === "real" && step.company_text) return step.company_text;
   return step.company_anonymized ?? "企業名非公開";
 }
 
 function formatPeriod(started_at: string, ended_at: string | null, is_current: boolean): string {
   const start = started_at.slice(0, 7).replace("-", ".");
-  if (is_current) return `${start} - 現在`;
+  if (is_current) return `${start} – 現在`;
   const end = ended_at ? ended_at.slice(0, 7).replace("-", ".") : "";
-  return `${start} - ${end}`;
+  return `${start} – ${end}`;
 }
 
 function formatDuration(started_at: string, ended_at: string | null, is_current: boolean): string {
@@ -56,18 +62,51 @@ function formatDuration(started_at: string, ended_at: string | null, is_current:
   return `${y}年${m}ヶ月`;
 }
 
+function formatSalary(man: number): string {
+  return `${man.toLocaleString()}万円`;
+}
+
 function salaryDelta(a: PublicStep, b: PublicStep): number | null {
   if (a.salary_man === null || b.salary_man === null) return null;
   return b.salary_man - a.salary_man;
 }
 
-function formatSalary(man: number): string {
-  return `${man.toLocaleString()}万円`;
-}
+// ────────────────────────────────────────────────────────────────
+// ロゴコンポーネント
+// ────────────────────────────────────────────────────────────────
 
-function formatDelta(delta: number): string {
-  const sign = delta >= 0 ? "+" : "";
-  return `${sign}${delta.toLocaleString()}万円`;
+function CompanyLogoSmall({
+  logo,
+  name,
+  size = 34,
+}: {
+  logo: CompanyLogo | null;
+  name: string;
+  size?: number;
+}) {
+  if (logo?.logo_url) {
+    return (
+      <img
+        src={logo.logo_url}
+        alt={name}
+        width={size}
+        height={size}
+        style={{ borderRadius: 6, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }}
+      />
+    );
+  }
+  const bg = logo?.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 100%)";
+  const letter = logo?.logo_letter ?? name.charAt(0);
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 6, flexShrink: 0,
+      background: bg, display: "flex", alignItems: "center", justifyContent: "center",
+      color: "#fff", fontWeight: 800, fontSize: Math.floor(size * 0.41),
+      fontFamily: "Inter, sans-serif",
+    }}>
+      {letter}
+    </div>
+  );
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -94,10 +133,29 @@ async function getData(userId: string) {
 
   if (!profileRes.data) return null;
 
+  const steps = (stepsRes.data ?? []) as PublicStep[];
+
+  // 実名公開のステップからcompany_idを収集してロゴ一括取得
+  const companyIds = steps
+    .filter((s) => s.visibility_company === "real" && s.company_id)
+    .map((s) => s.company_id as string);
+
+  const logoMap: Record<string, CompanyLogo> = {};
+  if (companyIds.length > 0) {
+    const { data: logos } = await supabase
+      .from("ow_companies")
+      .select("id, logo_url, logo_gradient, logo_letter")
+      .in("id", companyIds);
+    if (logos) {
+      for (const l of logos) logoMap[l.id] = l;
+    }
+  }
+
   return {
     profile: profileRes.data,
     userName: userRes.data?.name ?? null,
-    steps: (stepsRes.data ?? []) as PublicStep[],
+    steps,
+    logoMap,
   };
 }
 
@@ -113,191 +171,143 @@ export default async function CareerTrajectoryPage({
   const data = await getData(params.userId);
   if (!data || data.steps.length === 0) notFound();
 
-  const { profile, userName, steps } = data;
+  const { profile, userName, steps, logoMap } = data;
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      {/* ── ヘッダー ── */}
+
+      {/* ── パンくず ── */}
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "12px 24px" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", fontSize: 12, color: "var(--ink-mute)" }}>
+          <Link href="/career-trajectories" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>
+            キャリア軌跡
+          </Link>
+          <span style={{ margin: "0 6px" }}>›</span>
+          <span style={{ color: "var(--ink-soft)" }}>キャリア詳細</span>
+        </div>
+      </div>
+
+      {/* ── プロフィールヘッダー ── */}
       <div style={{
         background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
-        padding: "48px 24px 40px",
+        padding: "40px 24px 36px",
         color: "#fff",
       }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ marginBottom: 8, fontSize: 11, letterSpacing: "0.1em", opacity: 0.6 }}>
-            CAREER TRAJECTORY
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+            <InitialAvatar
+              name={userName ?? "?"}
+              size={52}
+              bgStyle="linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%)"
+              textColor="#fff"
+            />
+            <div>
+              <div style={{ fontSize: 11, letterSpacing: "0.1em", opacity: 0.6, marginBottom: 2 }}>
+                CAREER TRAJECTORY
+              </div>
+              <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, fontFamily: "Noto Serif JP, serif" }}>
+                {userName ?? "このユーザー"}のキャリア軌跡
+              </h1>
+            </div>
           </div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 8px", fontFamily: "Noto Serif JP, serif" }}>
-            {userName ?? "このユーザー"}のキャリア軌跡
-          </h1>
+
           {profile.headline && (
             <p style={{ fontSize: 15, opacity: 0.85, margin: "0 0 16px", lineHeight: 1.6 }}>
               {profile.headline}
             </p>
           )}
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <span style={{
               background: "rgba(255,255,255,0.12)", borderRadius: 100,
               padding: "4px 12px", fontSize: 12,
             }}>
-              {steps.length}社のキャリア
+              {steps.length}社を経験
             </span>
             {profile.years_of_experience && (
               <span style={{
                 background: "rgba(255,255,255,0.12)", borderRadius: 100,
                 padding: "4px 12px", fontSize: 12,
               }}>
-                経験年数 {profile.years_of_experience}年
+                社会人歴 {profile.years_of_experience}年
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── タイムライン本体 ── */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 24px 80px" }}>
+      {/* ── 縦タイムライン ── */}
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 24px 80px" }}>
 
-        {/* Desktop: 横スクロール / Mobile: 縦積み */}
-        <style>{`
-          .ct-timeline {
-            display: flex;
-            flex-direction: row;
-            align-items: flex-start;
-            gap: 0;
-            overflow-x: auto;
-            padding-bottom: 16px;
-          }
-          .ct-step-wrap {
-            display: flex;
-            flex-direction: row;
-            align-items: flex-start;
-            flex-shrink: 0;
-          }
-          .ct-card {
-            width: 220px;
-            flex-shrink: 0;
-            background: #fff;
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-          }
-          .ct-card.current {
-            border-color: var(--royal);
-            box-shadow: 0 0 0 2px rgba(0,35,102,0.12);
-          }
-          .ct-connector {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding-top: 32px;
-            width: 72px;
-            flex-shrink: 0;
-            gap: 4px;
-          }
-          .ct-arrow-line {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            position: relative;
-          }
-          .ct-arrow-line::before {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--line);
-          }
-          .ct-arrow-head {
-            width: 0; height: 0;
-            border-top: 5px solid transparent;
-            border-bottom: 5px solid transparent;
-            border-left: 8px solid var(--ink-mute);
-          }
-          .ct-delta {
-            font-size: 10px;
-            font-family: Inter, sans-serif;
-            font-weight: 700;
-            color: var(--success);
-            white-space: nowrap;
-          }
-          .ct-delta.negative { color: var(--error); }
+        <div style={{ position: "relative" }}>
+          {/* 中央縦線 */}
+          <div style={{
+            position: "absolute",
+            left: 16,
+            top: 8,
+            bottom: 8,
+            width: 2,
+            background: "var(--line)",
+            zIndex: 0,
+          }} />
 
-          @media (max-width: 767px) {
-            .ct-timeline {
-              flex-direction: column;
-              overflow-x: visible;
-            }
-            .ct-step-wrap {
-              flex-direction: column;
-              align-items: stretch;
-              width: 100%;
-            }
-            .ct-card {
-              width: auto;
-            }
-            .ct-connector {
-              flex-direction: row;
-              padding-top: 0;
-              padding-left: 20px;
-              width: auto;
-              height: 48px;
-              align-items: center;
-              gap: 8px;
-            }
-            .ct-arrow-line {
-              flex-direction: column;
-              width: 1px;
-              height: 100%;
-            }
-            .ct-arrow-line::before {
-              content: '';
-              width: 1px;
-              height: 100%;
-              flex: 1;
-            }
-            .ct-arrow-head {
-              border-left: 5px solid transparent;
-              border-right: 5px solid transparent;
-              border-top: 8px solid var(--ink-mute);
-              border-bottom: none;
-            }
-          }
-        `}</style>
-
-        <div className="ct-timeline">
           {steps.map((step, i) => {
             const name = companyDisplay(step);
             const period = formatPeriod(step.started_at, step.ended_at, step.is_current);
             const duration = formatDuration(step.started_at, step.ended_at, step.is_current);
+            const logo = step.company_id ? (logoMap[step.company_id] ?? null) : null;
             const prevStep = i > 0 ? steps[i - 1] : null;
             const delta = prevStep ? salaryDelta(prevStep, step) : null;
 
             return (
-              <div key={step.id} className="ct-step-wrap">
-                {/* コネクター（前のステップとの間） */}
-                {i > 0 && (
-                  <div className="ct-connector">
-                    {delta !== null && (
-                      <span className={`ct-delta${delta < 0 ? " negative" : ""}`}>
-                        {formatDelta(delta)}
-                      </span>
-                    )}
-                    <div className="ct-arrow-line">
-                      <div className="ct-arrow-head" />
-                    </div>
+              <div key={step.id} style={{ position: "relative", paddingLeft: 48, marginBottom: i < steps.length - 1 ? 0 : 0 }}>
+
+                {/* タイムラインドット */}
+                <div style={{
+                  position: "absolute",
+                  left: 10,
+                  top: 20,
+                  width: 14,
+                  height: 14,
+                  borderRadius: "50%",
+                  background: step.is_current ? "var(--royal)" : "#fff",
+                  border: `2px solid ${step.is_current ? "var(--royal)" : "var(--line)"}`,
+                  zIndex: 1,
+                }} />
+
+                {/* 年収変化バッジ（前のステップとの間に表示） */}
+                {i > 0 && delta !== null && (
+                  <div style={{
+                    position: "absolute",
+                    left: -4,
+                    top: -14,
+                    zIndex: 2,
+                    background: delta >= 0 ? "var(--success-soft)" : "var(--error-soft)",
+                    color: delta >= 0 ? "var(--success)" : "var(--error)",
+                    fontSize: 10, fontWeight: 700, fontFamily: "Inter, sans-serif",
+                    padding: "2px 7px", borderRadius: 100,
+                    border: `1px solid ${delta >= 0 ? "#6ee7b7" : "#fca5a5"}`,
+                    whiteSpace: "nowrap",
+                  }}>
+                    {delta >= 0 ? "+" : ""}{delta.toLocaleString()}万円
                   </div>
                 )}
 
                 {/* ステップカード */}
-                <div className={`ct-card${step.is_current ? " current" : ""}`}>
+                <div style={{
+                  background: "#fff",
+                  border: `1px solid ${step.is_current ? "var(--royal)" : "var(--line)"}`,
+                  borderRadius: 12,
+                  padding: "20px 20px 18px",
+                  marginBottom: i < steps.length - 1 ? 24 : 0,
+                  boxShadow: step.is_current ? "0 0 0 3px rgba(0,35,102,0.06)" : "none",
+                }}>
+
                   {/* 在籍中バッジ */}
                   {step.is_current && (
                     <div style={{
-                      alignSelf: "flex-start",
-                      marginBottom: 8,
+                      display: "inline-block",
+                      marginBottom: 10,
                       fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
                       color: "var(--royal)",
                       background: "var(--royal-50)", borderRadius: 100,
@@ -307,54 +317,50 @@ export default async function CareerTrajectoryPage({
                     </div>
                   )}
 
-                  {/* 企業名 */}
-                  {step.visibility_company === "real" && step.company_id ? (
-                    <Link
-                      href={`/companies/${step.company_id}`}
-                      style={{
-                        fontSize: 15, fontWeight: 800, color: "var(--royal)",
-                        textDecoration: "none", lineHeight: 1.3, marginBottom: 4,
-                        display: "block",
-                      }}
-                    >
-                      {name}
-                    </Link>
-                  ) : (
-                    <div style={{
-                      fontSize: 15, fontWeight: 800, color: "var(--ink)",
-                      lineHeight: 1.3, marginBottom: 4,
-                    }}>
-                      {name}
+                  {/* 企業ロゴ + 名前 行 */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                    <CompanyLogoSmall logo={logo} name={name} size={34} />
+                    <div>
+                      {step.visibility_company === "real" && step.company_id ? (
+                        <Link
+                          href={`/companies/${step.company_id}`}
+                          style={{
+                            fontSize: 15, fontWeight: 800, color: "var(--royal)",
+                            textDecoration: "none", display: "block", lineHeight: 1.2,
+                          }}
+                        >
+                          {name}
+                        </Link>
+                      ) : (
+                        <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.2 }}>
+                          {name}
+                        </div>
+                      )}
+                      {step.role_title && (
+                        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
+                          {step.role_title}
+                        </div>
+                      )}
                     </div>
-                  )}
-
-                  {/* 役職 */}
-                  {step.role_title && (
-                    <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 8 }}>
-                      {step.role_title}
-                    </div>
-                  )}
+                  </div>
 
                   {/* 在籍期間 */}
                   <div style={{
+                    display: "flex", gap: 12, flexWrap: "wrap",
                     fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif",
-                    marginBottom: 6,
+                    marginBottom: step.salary_man !== null || step.join_reason ? 12 : 0,
                   }}>
-                    {period}
-                  </div>
-                  <div style={{
-                    fontSize: 11, color: "var(--ink-mute)", marginBottom: 12,
-                  }}>
-                    在籍 {duration}
-                    {step.employment_type && ` ・ ${step.employment_type}`}
+                    <span>{period}</span>
+                    <span>({duration}{step.employment_type ? ` · ${step.employment_type}` : ""})</span>
                   </div>
 
-                  {/* 転職のきっかけ（visibility_reason=true かつ入力あり） */}
+                  {/* 転職理由（visibility_reason=true かつ入力あり） */}
                   {step.join_reason && (
                     <div style={{
-                      fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6,
+                      fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7,
+                      borderLeft: "3px solid var(--line)", paddingLeft: 12,
+                      marginBottom: step.salary_man !== null ? 10 : 0,
                       fontStyle: "italic",
-                      borderTop: "1px solid var(--line-soft)", paddingTop: 10, marginBottom: 10,
                     }}>
                       {step.join_reason}
                     </div>
@@ -362,14 +368,15 @@ export default async function CareerTrajectoryPage({
 
                   {/* 年収チップ（visibility_salary=true かつ salary_man != null のみ） */}
                   {step.salary_man !== null && (
-                    <div style={{
-                      alignSelf: "flex-start", marginTop: "auto", paddingTop: 8,
-                      fontSize: 12, fontWeight: 700, fontFamily: "Inter, sans-serif",
-                      color: "var(--success)",
-                      background: "var(--success-soft)", borderRadius: 100,
-                      padding: "3px 10px",
-                    }}>
-                      {formatSalary(step.salary_man)}
+                    <div style={{ marginTop: 4 }}>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, fontFamily: "Inter, sans-serif",
+                        color: "var(--success)",
+                        background: "var(--success-soft)", borderRadius: 100,
+                        padding: "3px 10px",
+                      }}>
+                        {formatSalary(step.salary_man)}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -379,7 +386,7 @@ export default async function CareerTrajectoryPage({
         </div>
 
         {/* ── 注記 ── */}
-        <p style={{ marginTop: 32, fontSize: 12, color: "var(--ink-mute)", textAlign: "center" }}>
+        <p style={{ marginTop: 40, fontSize: 12, color: "var(--ink-mute)", textAlign: "center" }}>
           ※ 企業名・年収の一部は本人の希望により非公開にしている場合があります
         </p>
 
@@ -388,11 +395,11 @@ export default async function CareerTrajectoryPage({
           marginTop: 48, background: "#fff", border: "1px solid var(--line)",
           borderRadius: 16, padding: "32px 24px", textAlign: "center",
         }}>
-          <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 8 }}>
+          <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 6 }}>
             同じようなキャリアパスを考えていますか？
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 20 }}>
-            アドバイザーに直接相談する
+            先輩アドバイザーに直接相談する
           </div>
           <Link
             href="/mentors"
@@ -403,7 +410,7 @@ export default async function CareerTrajectoryPage({
               padding: "12px 28px", borderRadius: 8, textDecoration: "none",
             }}
           >
-            先輩アドバイザーを探す →
+            先輩を探す →
           </Link>
         </div>
       </div>
