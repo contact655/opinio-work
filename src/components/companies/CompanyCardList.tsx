@@ -692,22 +692,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
 }
 
 function JobCountStat({ count }: { count: number }) {
-  if (count === 0) return <StatCol label="募集中" value={0} unit="件" />;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 18px", gap: 4 }}>
-      <span style={{
-        display: "inline-flex", alignItems: "center", gap: 3,
-        fontSize: 12, fontWeight: 800, padding: "5px 12px", borderRadius: 100,
-        background: "var(--royal)", color: "#fff", whiteSpace: "nowrap",
-      }}>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-          <rect x="2" y="7" width="20" height="14" rx="2"/>
-          <path d="M16 3h-8l-2 4h12l-2-4z"/>
-        </svg>
-        募集中 {count}件
-      </span>
-    </div>
-  );
+  return <StatCol label="募集中" value={count} unit="件" highlight={count > 0} />;
 }
 
 function StatCol({ label, value, unit, highlight }: { label: string; value: number; unit: string; highlight?: boolean }) {
