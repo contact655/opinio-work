@@ -241,13 +241,9 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const NAVY_GRAD = company.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
   const CARD_LOGO_GRAD = company.logo_url ? "#fff" : getLogoGradient(company.industry, NAVY_GRAD);
 
-  // ⑤ 面談受付中のボーダースタイル
-  const meetingBorder = company.accepting_casual_meetings
-    ? "1.5px solid #fb923c"
-    : "1px solid var(--line)";
-  const meetingBoxShadow = company.accepting_casual_meetings
-    ? "0 1px 4px rgba(251,146,60,0.18)"
-    : "0 1px 4px rgba(15,23,42,0.06)";
+  // ⑤ 面談受付中のボーダースタイル（オレンジ枠は廃止）
+  const meetingBorder = "1px solid var(--line)";
+  const meetingBoxShadow = "0 1px 4px rgba(15,23,42,0.06)";
 
   // ① 年収表示
   const salaryLabel = company.avg_salary
@@ -369,11 +365,11 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 aria-label={bookmarked ? "気になりを解除" : "気になりに追加"}
                 style={{
                   marginLeft: "auto", width: 26, height: 26, flexShrink: 0,
-                  background: bookmarked ? "#ef4444" : "#fef2f2",
-                  border: `1.5px solid ${bookmarked ? "#ef4444" : "#fca5a5"}`,
+                  background: bookmarked ? "#ef4444" : "transparent",
+                  border: `1.5px solid ${bookmarked ? "#ef4444" : "var(--line)"}`,
                   borderRadius: "50%",
                   cursor: "pointer", padding: 0,
-                  color: bookmarked ? "#fff" : "#f87171", fontSize: 12,
+                  color: bookmarked ? "#fff" : "var(--ink-mute)", fontSize: 12,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   transition: "all 0.15s",
                   boxShadow: bookmarked ? "0 2px 6px rgba(239,68,68,0.30)" : "none",
@@ -724,9 +720,9 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             style={{
               display: "inline-flex", alignItems: "center", gap: 5,
               padding: "8px 16px", borderRadius: 999,
-              background: bookmarked ? "#ef4444" : "#fef2f2",
-              border: `1.5px solid ${bookmarked ? "#ef4444" : "#fca5a5"}`,
-              color: bookmarked ? "#fff" : "#f87171",
+              background: bookmarked ? "#ef4444" : "transparent",
+              border: `1.5px solid ${bookmarked ? "#ef4444" : "var(--line)"}`,
+              color: bookmarked ? "#fff" : "var(--ink-mute)",
               fontSize: 12, fontWeight: 700,
               cursor: "pointer",
               transition: "all 0.15s",

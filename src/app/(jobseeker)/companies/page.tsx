@@ -241,10 +241,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
                     return (
                       <>
-                        {/* ⑦ 最近見た企業をソートバー直上に表示 */}
-                        <Suspense fallback={null}>
-                          <RecentlyViewedSection />
-                        </Suspense>
                         <Suspense fallback={null}>
                           <GridSortBar totalCount={allCompaniesResult.totalCount} />
                         </Suspense>
@@ -298,6 +294,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
                 </>
               ) : null}
             </div>
+
+            {/* 最近見た企業（一覧下部） */}
+            <Suspense fallback={null}>
+              <RecentlyViewedSection />
+            </Suspense>
 
           </div>
         )}
