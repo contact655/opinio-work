@@ -608,6 +608,16 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
             />
           )}
 
+          {/* 外資系 */}
+          <button
+            type="button"
+            className={`csb-foreign${currentForeign ? " active" : ""}`}
+            onClick={() => updateParam("foreign", currentForeign ? null : "1")}
+            aria-pressed={currentForeign}
+          >
+            🌐 外資系{currentForeign && <span style={{ fontSize: 10, opacity: 0.85, marginLeft: 3 }}>✕</span>}
+          </button>
+
           {/* 面談受付中 */}
           <label className={`csb-hiring${currentHiring ? " active" : ""}`}>
             <input
@@ -627,16 +637,6 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
               <>面談受付中</>
             )}
           </label>
-
-          {/* 外資系 */}
-          <button
-            type="button"
-            className={`csb-foreign${currentForeign ? " active" : ""}`}
-            onClick={() => updateParam("foreign", currentForeign ? null : "1")}
-            aria-pressed={currentForeign}
-          >
-            🌐 外資系{currentForeign && <span style={{ fontSize: 10, opacity: 0.85, marginLeft: 3 }}>✕</span>}
-          </button>
 
           {hasAnyFilter && (
             <button type="button" className="csb-clear" onClick={handleClear}>

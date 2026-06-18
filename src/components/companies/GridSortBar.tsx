@@ -163,24 +163,6 @@ export function GridSortBar({ totalCount }: Props) {
               );
             })}
 
-            {/* 外資系トグル（ソートとは別軸のフィルター） */}
-            <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0, margin: "0 2px" }} />
-            <button
-              type="button"
-              onClick={toggleForeign}
-              aria-pressed={isForeign}
-              className="sort-btn"
-              style={isForeign ? {
-                background: "#0c4a6e",
-                borderColor: "#0c4a6e",
-                color: "#fff",
-                fontWeight: 700,
-                boxShadow: "0 3px 12px rgba(12,74,110,0.35)",
-                transform: "scale(1.03)",
-              } : {}}
-            >
-              🌐 外資系
-            </button>
           </div>
         </div>
 
