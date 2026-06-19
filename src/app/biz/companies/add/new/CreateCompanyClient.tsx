@@ -479,7 +479,7 @@ export function CreateCompanyClient({
               <strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）<br />
               担当者として参加するには、企業アカウントの管理者に招待を依頼してください。
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               <button
                 type="button"
                 onClick={() => { setConflict(null); setConflictSource(null); setName(""); }}
@@ -495,22 +495,16 @@ export function CreateCompanyClient({
               >
                 別の会社名で探す
               </button>
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, true)}
-                disabled={loading}
+              <a
+                href="mailto:info@opinio.jp?subject=同名企業の登録について"
                 style={{
-                  padding: "8px 16px",
-                  background: "transparent",
-                  color: "var(--royal)",
-                  border: "1.5px solid var(--royal-100)", borderRadius: 8,
-                  fontSize: 12, fontWeight: 600,
-                  cursor: loading ? "not-allowed" : "pointer",
+                  fontSize: 12, color: "var(--royal)",
+                  textDecoration: "underline",
                   fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
                 }}
               >
-                {loading ? "作成中..." : "別法人として新規作成する"}
-              </button>
+                OPINIO に問い合わせる
+              </a>
             </div>
           </div>
         )}
@@ -531,31 +525,15 @@ export function CreateCompanyClient({
               <strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）が既に登録されています。<br />
               参加したい場合は、その企業の管理者に招待を依頼してください。
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, true)}
-                disabled={loading}
-                style={{
-                  padding: "8px 16px",
-                  background: loading ? "var(--ink-mute)" : "var(--ink)",
-                  color: "#fff",
-                  border: "none", borderRadius: 8,
-                  fontSize: 12, fontWeight: 600,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
-                }}
-              >
-                {loading ? "作成中..." : "別法人として新規作成する"}
-              </button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               <button
                 type="button"
                 onClick={() => { setConflict(null); setConflictSource(null); setName(""); }}
                 style={{
                   padding: "8px 16px",
-                  background: "transparent",
-                  color: "#92400E",
-                  border: "1.5px solid #FCD34D", borderRadius: 8,
+                  background: "var(--ink)",
+                  color: "#fff",
+                  border: "none", borderRadius: 8,
                   fontSize: 12, fontWeight: 600,
                   cursor: "pointer",
                   fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
@@ -563,6 +541,16 @@ export function CreateCompanyClient({
               >
                 会社名を変更する
               </button>
+              <a
+                href="mailto:info@opinio.jp?subject=同名企業の登録について"
+                style={{
+                  fontSize: 12, color: "#92400E",
+                  textDecoration: "underline",
+                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                }}
+              >
+                OPINIO に問い合わせる
+              </a>
             </div>
           </div>
         )}

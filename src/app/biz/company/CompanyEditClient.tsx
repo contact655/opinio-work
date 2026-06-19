@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
+import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyEditSubNav, type CompanySubNavSection } from "@/components/business/CompanyEditSubNav";
@@ -351,12 +352,13 @@ export function CompanyEditClient({
         });
         if (!res.ok) throw new Error(await res.text());
         setSaveState("saved");
+        showToast("保存しました ✓", "default");
         // PATCH (publish) が concurrent に走っている間は上書きしない（race condition 防止）
         if (!isPublishingRef.current) {
           setHasDraftChanges(true);
           setLastSavedAt(new Date());
         }
-        setTimeout(() => setSaveState("idle"), 2000);
+        setTimeout(() => setSaveState("idle"), 3000);
       } catch (err) {
         console.error("[company autosave]", err);
         setSaveState("error");
@@ -482,12 +484,13 @@ export function CompanyEditClient({
 
   const saveStatusStyle: React.CSSProperties = {
     display: "inline-flex", alignItems: "center", gap: 6,
-    fontSize: 11, padding: "4px 10px", borderRadius: 100,
+    fontSize: 12, padding: "5px 12px", borderRadius: 100,
     transition: "all 0.3s", flexShrink: 0,
+    fontWeight: saveState === "saved" ? 600 : 400,
     ...(saveState === "saving"
       ? { color: "var(--ink-mute)", background: "var(--bg-tint)" }
       : saveState === "saved"
-        ? { color: "var(--success)", background: "var(--success-soft)" }
+        ? { color: "var(--success)", background: "var(--success-soft)", border: "1px solid #6ee7b7" }
         : saveState === "error"
           ? { color: "var(--error)", background: "var(--error-soft)" }
           : { color: "var(--ink-mute)", background: "transparent" }),
