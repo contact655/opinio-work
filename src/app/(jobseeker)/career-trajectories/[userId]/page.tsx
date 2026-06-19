@@ -71,6 +71,28 @@ function formatDuration(started_at: string, ended_at: string | null, is_current:
 }
 
 // ────────────────────────────────────────────────────────────────
+// 同一会社の連続ステップをグループ化
+// ────────────────────────────────────────────────────────────────
+
+type StepGroupData = {
+  companyId: string | null;
+  companySteps: PublicStep[];
+};
+
+function buildGroups(steps: PublicStep[]): StepGroupData[] {
+  const groups: StepGroupData[] = [];
+  for (const step of steps) {
+    const last = groups[groups.length - 1];
+    if (last && step.company_id && last.companyId === step.company_id) {
+      last.companySteps.push(step);
+    } else {
+      groups.push({ companyId: step.company_id, companySteps: [step] });
+    }
+  }
+  return groups;
+}
+
+// ────────────────────────────────────────────────────────────────
 // ロゴコンポーネント（/u/[id] に合わせ大きく）
 // ────────────────────────────────────────────────────────────────
 
@@ -195,9 +217,15 @@ export default async function CareerTrajectoryPage({
           border-radius: 14px;
           overflow: hidden;
         }
+        .traj-role-section {
+          display: grid;
+          grid-template-columns: 1fr 220px;
+        }
         @media (max-width: 680px) {
           .traj-step-card { grid-template-columns: 1fr; }
           .traj-step-sidebar { border-left: none !important; border-top: 1px solid var(--line-soft); }
+          .traj-role-section { grid-template-columns: 1fr; }
+          .traj-role-sidebar { border-left: none !important; border-top: 1px solid var(--line-soft); }
         }
         .traj-company-link:hover { text-decoration: underline; }
       `}</style>
@@ -305,74 +333,57 @@ export default async function CareerTrajectoryPage({
             width: 2, background: "var(--line)", zIndex: 0,
           }} />
 
-          {steps.map((step, i) => {
-            const name = companyDisplay(step, logoMap);
-            const period = formatPeriod(step.started_at, step.ended_at, step.is_current);
-            const duration = formatDuration(step.started_at, step.ended_at, step.is_current);
-            const logo = step.company_id ? (logoMap[step.company_id] ?? null) : null;
-            const prevStep = i > 0 ? steps[i - 1] : null;
+          {(() => {
+            const groups = buildGroups(steps);
+            return groups.map((group, groupIdx) => {
+              const prevGroup = groupIdx > 0 ? groups[groupIdx - 1] : null;
+              const firstStep = group.companySteps[0];
+              const lastStep = group.companySteps[group.companySteps.length - 1];
+              const prevLastStep = prevGroup
+                ? prevGroup.companySteps[prevGroup.companySteps.length - 1]
+                : null;
 
-            // 年収デルタ
-            const delta = (prevStep && prevStep.salary_man !== null && step.salary_man !== null)
-              ? step.salary_man - prevStep.salary_man
-              : null;
+              const groupYear = firstStep.started_at.slice(0, 4);
+              const prevGroupYear = prevGroup?.companySteps[0].started_at.slice(0, 4);
+              const showYearHeader = groupYear !== prevGroupYear;
 
-            const isSameCompany = !!(
-              prevStep &&
-              step.company_id &&
-              prevStep.company_id &&
-              step.company_id === prevStep.company_id
-            );
+              const isCurrentGroup = group.companySteps.some((s) => s.is_current);
+              const logo = firstStep.company_id ? (logoMap[firstStep.company_id] ?? null) : null;
+              const name = companyDisplay(firstStep, logoMap);
 
-            // 年のヘッダー（年が変わる時に表示）
-            const stepYear = step.started_at.slice(0, 4);
-            const prevYear = prevStep?.started_at.slice(0, 4);
-            const showYearHeader = stepYear !== prevYear;
+              // 年収デルタ（会社変更時のみ）
+              const delta =
+                prevLastStep?.salary_man != null && firstStep.salary_man != null
+                  ? firstStep.salary_man - prevLastStep.salary_man
+                  : null;
 
-            return (
-              <div key={step.id}>
-                {/* 年ヘッダー */}
-                {showYearHeader && (
-                  <div style={{
-                    paddingLeft: 52,
-                    marginBottom: 10,
-                    marginTop: i > 0 ? 4 : 0,
-                  }}>
-                    <span style={{
-                      fontSize: 13, fontWeight: 700, color: "var(--ink-soft)",
-                      fontFamily: "Inter, sans-serif",
-                    }}>
-                      {stepYear}
-                    </span>
-                  </div>
-                )}
+              const isSingle = group.companySteps.length === 1;
+              const step = group.companySteps[0];
 
-                <div style={{ position: "relative", paddingLeft: 52, marginBottom: i < steps.length - 1 ? 32 : 0 }}>
-                  {/* タイムラインドット */}
-                  <div style={{
-                    position: "absolute", left: 11, top: 22,
-                    width: 16, height: 16, borderRadius: "50%", zIndex: 1,
-                    background: step.is_current ? "var(--royal)" : "#fff",
-                    border: `2.5px solid ${step.is_current ? "var(--royal)" : "var(--line)"}`,
-                    boxShadow: step.is_current ? "0 0 0 4px rgba(0,35,102,0.1)" : "none",
-                  }} />
+              return (
+                <div key={`group-${groupIdx}`}>
+                  {/* 年ヘッダー */}
+                  {showYearHeader && (
+                    <div style={{ paddingLeft: 52, marginBottom: 10, marginTop: groupIdx > 0 ? 4 : 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
+                        {groupYear}
+                      </span>
+                    </div>
+                  )}
 
-                  {/* コネクターバッジ（2ステップ目以降） */}
-                  {i > 0 && (
+                  <div style={{ position: "relative", paddingLeft: 52, marginBottom: groupIdx < groups.length - 1 ? 32 : 0 }}>
+                    {/* タイムラインドット */}
                     <div style={{
-                      position: "absolute", left: -2, top: -20,
-                      zIndex: 2,
-                    }}>
-                      {isSameCompany ? (
-                        <span style={{
-                          fontSize: 9, fontWeight: 700, letterSpacing: "0.05em",
-                          color: "var(--royal)", background: "var(--royal-50)",
-                          padding: "2px 8px", borderRadius: 100,
-                          border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
-                        }}>
-                          社内昇格・異動
-                        </span>
-                      ) : delta !== null ? (
+                      position: "absolute", left: 11, top: 22,
+                      width: 16, height: 16, borderRadius: "50%", zIndex: 1,
+                      background: isCurrentGroup ? "var(--royal)" : "#fff",
+                      border: `2.5px solid ${isCurrentGroup ? "var(--royal)" : "var(--line)"}`,
+                      boxShadow: isCurrentGroup ? "0 0 0 4px rgba(0,35,102,0.1)" : "none",
+                    }} />
+
+                    {/* コネクターバッジ（前グループとの間） */}
+                    {groupIdx > 0 && delta !== null && (
+                      <div style={{ position: "absolute", left: -2, top: -20, zIndex: 2 }}>
                         <span style={{
                           fontSize: 10, fontWeight: 700, fontFamily: "Inter, sans-serif",
                           color: delta >= 0 ? "var(--success)" : "var(--error)",
@@ -383,143 +394,181 @@ export default async function CareerTrajectoryPage({
                         }}>
                           {delta >= 0 ? "+" : ""}{delta.toLocaleString()}万円
                         </span>
-                      ) : null}
-                    </div>
-                  )}
-
-                  {/* ── ステップカード（2カラムグリッド） ── */}
-                  <div
-                    className="traj-step-card"
-                    style={{
-                      border: `1px solid ${step.is_current ? "var(--royal)" : isSameCompany ? "var(--royal-100)" : "var(--line)"}`,
-                      boxShadow: step.is_current ? "0 0 0 3px rgba(0,35,102,0.06)" : "0 1px 4px rgba(0,0,0,0.04)",
-                    }}
-                  >
-                    {/* ── メインカラム ── */}
-                    <div style={{ padding: "22px 22px 18px" }}>
-
-                      {/* 現職バッジ */}
-                      {step.is_current && (
-                        <div style={{ marginBottom: 10 }}>
-                          <span style={{
-                            fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
-                            color: "var(--royal)", background: "var(--royal-50)",
-                            borderRadius: 100, padding: "2px 10px",
-                            border: "1px solid var(--royal-100)",
-                          }}>
-                            現在
-                          </span>
-                        </div>
-                      )}
-
-                      {/* ロゴ + 会社名 + 役職 */}
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 10 }}>
-                        {step.visibility_company === "real" && step.company_id ? (
-                          <Link href={`/companies/${step.company_id}`} style={{ flexShrink: 0, display: "block" }}>
-                            <CompanyLogo logo={logo} name={name} size={52} />
-                          </Link>
-                        ) : (
-                          <CompanyLogo logo={logo} name={name} size={52} />
-                        )}
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          {step.visibility_company === "real" && step.company_id ? (
-                            <Link
-                              href={`/companies/${step.company_id}`}
-                              className="traj-company-link"
-                              style={{
-                                fontSize: 17, fontWeight: 800, color: "var(--ink)",
-                                textDecoration: "none", display: "block", lineHeight: 1.25,
-                              }}
-                            >
-                              {name}
-                            </Link>
-                          ) : (
-                            <div style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25 }}>
-                              {name}
-                            </div>
-                          )}
-                          {step.role_title && (
-                            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4, lineHeight: 1.4 }}>
-                              {step.role_title}
-                            </div>
-                          )}
-                        </div>
                       </div>
+                    )}
 
-                      {/* 在籍期間 */}
-                      <div style={{
-                        fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif",
-                        marginBottom: step.description ? 14 : step.salary_man !== null ? 14 : 0,
-                      }}>
-                        {period}
-                        <span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>
-                        {duration}
-                        {step.employment_type && (
-                          <span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>
-                        )}
-                        {step.employment_type && step.employment_type}
-                      </div>
-
-                      {/* 仕事内容 */}
-                      {step.description && (
-                        <div style={{
-                          fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8,
-                          marginBottom: step.salary_man !== null ? 14 : 0,
-                        }}>
-                          {step.description}
-                        </div>
-                      )}
-
-                      {/* 年収チップ */}
-                      {step.salary_man !== null && (
-                        <div>
-                          <span style={{
-                            fontSize: 13, fontWeight: 700, fontFamily: "Inter, sans-serif",
-                            color: "var(--success)", background: "var(--success-soft)",
-                            borderRadius: 100, padding: "3px 12px",
-                            border: "1px solid #6ee7b7",
-                          }}>
-                            {step.salary_man.toLocaleString()}万円
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ── 右サイドバー: 入社・転職のきっかけ ── */}
-                    {step.join_reason && (
+                    {isSingle ? (
+                      /* ── 単独ステップカード ── */
                       <div
-                        className="traj-step-sidebar"
+                        className="traj-step-card"
                         style={{
-                          borderLeft: "1px solid var(--line-soft)",
-                          background: "var(--bg-tint)",
-                          padding: "22px 18px 18px",
-                          display: "flex", flexDirection: "column", gap: 10,
+                          border: `1px solid ${isCurrentGroup ? "var(--royal)" : "var(--line)"}`,
+                          boxShadow: isCurrentGroup ? "0 0 0 3px rgba(0,35,102,0.06)" : "0 1px 4px rgba(0,0,0,0.04)",
                         }}
                       >
-                        <div style={{
-                          fontSize: 10, fontWeight: 700, letterSpacing: "0.08em",
-                          color: "var(--ink-mute)", textTransform: "uppercase",
-                          fontFamily: "Inter, sans-serif",
-                          display: "flex", alignItems: "center", gap: 5,
-                        }}>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                          </svg>
-                          入社・転職のきっかけ
+                        <div style={{ padding: "22px 22px 18px" }}>
+                          {step.is_current && (
+                            <div style={{ marginBottom: 10 }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", color: "var(--royal)", background: "var(--royal-50)", borderRadius: 100, padding: "2px 10px", border: "1px solid var(--royal-100)" }}>現在</span>
+                            </div>
+                          )}
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 10 }}>
+                            {step.visibility_company === "real" && step.company_id ? (
+                              <Link href={`/companies/${step.company_id}`} style={{ flexShrink: 0, display: "block" }}>
+                                <CompanyLogo logo={logo} name={name} size={52} />
+                              </Link>
+                            ) : (
+                              <CompanyLogo logo={logo} name={name} size={52} />
+                            )}
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              {step.visibility_company === "real" && step.company_id ? (
+                                <Link href={`/companies/${step.company_id}`} className="traj-company-link"
+                                  style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", textDecoration: "none", display: "block", lineHeight: 1.25 }}>
+                                  {name}
+                                </Link>
+                              ) : (
+                                <div style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25 }}>{name}</div>
+                              )}
+                              {step.role_title && (
+                                <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4, lineHeight: 1.4 }}>{step.role_title}</div>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginBottom: step.description ? 14 : step.salary_man !== null ? 14 : 0 }}>
+                            {formatPeriod(step.started_at, step.ended_at, step.is_current)}
+                            <span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>
+                            {formatDuration(step.started_at, step.ended_at, step.is_current)}
+                            {step.employment_type && <><span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>{step.employment_type}</>}
+                          </div>
+                          {step.description && (
+                            <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: step.salary_man !== null ? 14 : 0 }}>{step.description}</div>
+                          )}
+                          {step.salary_man !== null && (
+                            <div>
+                              <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--success)", background: "var(--success-soft)", borderRadius: 100, padding: "3px 12px", border: "1px solid #6ee7b7" }}>
+                                {step.salary_man.toLocaleString()}万円
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <p style={{
-                          fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8,
-                          margin: 0,
-                        }}>
-                          {step.join_reason}
-                        </p>
+                        {step.join_reason && (
+                          <div className="traj-step-sidebar" style={{ borderLeft: "1px solid var(--line-soft)", background: "var(--bg-tint)", padding: "22px 18px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--ink-mute)", textTransform: "uppercase", fontFamily: "Inter, sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                              入社・転職のきっかけ
+                            </div>
+                            <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, margin: 0 }}>{step.join_reason}</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* ── 複数ロール: グループカード ── */
+                      <div style={{
+                        background: "#fff", borderRadius: 14, overflow: "hidden",
+                        border: `1px solid ${isCurrentGroup ? "var(--royal)" : "var(--line)"}`,
+                        boxShadow: isCurrentGroup ? "0 0 0 3px rgba(0,35,102,0.06)" : "0 1px 4px rgba(0,0,0,0.04)",
+                      }}>
+                        {/* 会社ヘッダー（1回だけ） */}
+                        <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center", gap: 14 }}>
+                          {firstStep.visibility_company === "real" && firstStep.company_id ? (
+                            <Link href={`/companies/${firstStep.company_id}`} style={{ flexShrink: 0 }}>
+                              <CompanyLogo logo={logo} name={name} size={48} />
+                            </Link>
+                          ) : (
+                            <CompanyLogo logo={logo} name={name} size={48} />
+                          )}
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            {firstStep.visibility_company === "real" && firstStep.company_id ? (
+                              <Link href={`/companies/${firstStep.company_id}`} className="traj-company-link"
+                                style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", textDecoration: "none", display: "block", lineHeight: 1.25 }}>
+                                {name}
+                              </Link>
+                            ) : (
+                              <div style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25 }}>{name}</div>
+                            )}
+                            <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginTop: 2 }}>
+                              {formatPeriod(firstStep.started_at, lastStep.ended_at, lastStep.is_current)}
+                              <span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>
+                              {group.companySteps.length}ポジション
+                            </div>
+                          </div>
+                          {isCurrentGroup && (
+                            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", color: "var(--royal)", background: "var(--royal-50)", borderRadius: 100, padding: "2px 10px", border: "1px solid var(--royal-100)", flexShrink: 0 }}>現在</span>
+                          )}
+                        </div>
+
+                        {/* 各ロール */}
+                        {group.companySteps.map((roleStep, roleIdx) => (
+                          <div key={roleStep.id}>
+                            {/* 社内昇格・異動ディバイダー */}
+                            {roleIdx > 0 && (
+                              <div style={{
+                                padding: "6px 22px", fontSize: 10, fontWeight: 700,
+                                letterSpacing: "0.05em", color: "var(--royal)",
+                                background: "var(--royal-50)",
+                                borderTop: "1px solid var(--royal-100)",
+                                borderBottom: "1px solid var(--royal-100)",
+                                fontFamily: "Inter, sans-serif",
+                              }}>
+                                ↑ 社内昇格・異動
+                              </div>
+                            )}
+
+                            {/* ロールセクション: 2カラム */}
+                            <div className="traj-role-section">
+                              <div style={{ padding: "16px 22px 14px" }}>
+                                {roleStep.role_title && (
+                                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6, lineHeight: 1.4 }}>{roleStep.role_title}</div>
+                                )}
+                                <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginBottom: roleStep.description ? 12 : roleStep.salary_man !== null ? 12 : 0 }}>
+                                  {formatPeriod(roleStep.started_at, roleStep.ended_at, roleStep.is_current)}
+                                  <span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>
+                                  {formatDuration(roleStep.started_at, roleStep.ended_at, roleStep.is_current)}
+                                  {roleStep.employment_type && <><span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>{roleStep.employment_type}</>}
+                                </div>
+                                {roleStep.description && (
+                                  <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: roleStep.salary_man !== null ? 12 : 0 }}>{roleStep.description}</div>
+                                )}
+                                {roleStep.salary_man !== null && (
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--success)", background: "var(--success-soft)", borderRadius: 100, padding: "3px 12px", border: "1px solid #6ee7b7" }}>
+                                      {roleStep.salary_man.toLocaleString()}万円
+                                    </span>
+                                    {roleIdx > 0 && (() => {
+                                      const prev = group.companySteps[roleIdx - 1];
+                                      if (prev.salary_man == null || roleStep.salary_man == null) return null;
+                                      const d = roleStep.salary_man - prev.salary_man;
+                                      if (d === 0) return null;
+                                      return (
+                                        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "Inter, sans-serif", color: d >= 0 ? "var(--success)" : "var(--error)" }}>
+                                          ({d >= 0 ? "+" : ""}{d.toLocaleString()}万円)
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* サイドバー */}
+                              {roleStep.join_reason && (
+                                <div className="traj-role-sidebar" style={{ borderLeft: "1px solid var(--line-soft)", background: "var(--bg-tint)", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 8 }}>
+                                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--ink-mute)", textTransform: "uppercase", fontFamily: "Inter, sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                    {roleIdx === 0 ? "入社・転職のきっかけ" : "昇格・異動のきっかけ"}
+                                  </div>
+                                  <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, margin: 0 }}>{roleStep.join_reason}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
 
         {/* 注記 */}
