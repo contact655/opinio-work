@@ -58,8 +58,8 @@ type CardData = {
 
 function toBrandName(fullName: string): string {
   return fullName
-    .replace(/^(株式会社|合同会社|有限会社|一般社団法人|特定非営利活動法人|NPO法人)\s*/u, "")
-    .replace(/\s*(株式会社|合同会社|有限会社)$/u, "")
+    .replace(/^(株式会社|合同会社|有限会社|一般社団法人|特定非営利活動法人|NPO法人)\s*/, "")
+    .replace(/\s*(株式会社|合同会社|有限会社)$/, "")
     .trim() || fullName;
 }
 
