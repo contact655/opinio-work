@@ -136,12 +136,16 @@ function AddCategoryModal({
   allRoles: RoleForEditor[];
   currentRoleIds: Set<string>;
   onAdd: (roles: RoleForEditor[]) => void;
-  onAddCustom: (name: string) => void;
+  onAddCustom: (name: string, parentRoleId?: string) => void;
   onCancel: () => void;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [customName, setCustomName] = useState("");
+  const [customParentRoleId, setCustomParentRoleId] = useState<string>("");
   useModalClose(onCancel);
+
+  // 親候補: allRoles の親カテゴリ（parentId が null のもの）
+  const parentOptions = allRoles.filter((r) => r.parentId === null);
 
   const parents = allRoles.filter((r) => r.parentId === null);
   const childrenByParent = new Map<string, RoleForEditor[]>();
@@ -347,12 +351,33 @@ function AddCategoryModal({
         {/* 自由入力セクション */}
         <div style={{ padding: "12px 24px", borderTop: "1px solid var(--line)", flexShrink: 0,
           background: "var(--bg-tint)" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, letterSpacing: "0.04em" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6, letterSpacing: "0.04em" }}>
             または、独自のカテゴリ名を入力
           </div>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.6 }}>
-            既存のカテゴリに当てはまらない場合（例: 法人営業・フロント職・テクニカルサポート）
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
+            既存のカテゴリに当てはまらない場合（例: 法人営業・フロント職）
           </div>
+          {/* 親カテゴリ選択 */}
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 4 }}>
+              親カテゴリ（任意）
+            </div>
+            <select
+              value={customParentRoleId}
+              onChange={(e) => setCustomParentRoleId(e.target.value)}
+              style={{
+                width: "100%", padding: "7px 10px", border: "1px solid var(--line)",
+                borderRadius: 8, fontSize: 12, fontFamily: "inherit",
+                color: "var(--ink)", background: "#fff", cursor: "pointer",
+              }}
+            >
+              <option value="">親カテゴリなし（独立したカテゴリ）</option>
+              {parentOptions.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          {/* カテゴリ名入力 */}
           <div style={{ display: "flex", gap: 8 }}>
             <input
               type="text"
@@ -360,7 +385,7 @@ function AddCategoryModal({
               onChange={(e) => setCustomName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && customName.trim()) {
-                  onAddCustom(customName.trim());
+                  onAddCustom(customName.trim(), customParentRoleId || undefined);
                 }
               }}
               placeholder="例: 法人営業"
@@ -373,7 +398,9 @@ function AddCategoryModal({
             />
             <button
               type="button"
-              onClick={() => { if (customName.trim()) onAddCustom(customName.trim()); }}
+              onClick={() => {
+                if (customName.trim()) onAddCustom(customName.trim(), customParentRoleId || undefined);
+              }}
               disabled={!customName.trim()}
               style={{
                 padding: "8px 14px", border: "none", borderRadius: 8, flexShrink: 0,
@@ -605,7 +632,7 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
   // ── State ──────────────────────────────────────────────────────────────────
 
   const [categories, setCategories] = useState<LocalCategory[]>(() =>
-    initialCategories.map((c) => ({ ...c, isNew: false }))
+    initialCategories.map((c) => ({ ...c, isNew: false, isCustom: c.roleId === null }))
   );
   const [isDirty, setIsDirty] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -623,7 +650,7 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
   useEffect(() => {
     if (prevInitialRef.current !== initialCategories) {
       prevInitialRef.current = initialCategories;
-      setCategories(initialCategories.map((c) => ({ ...c, isNew: false })));
+      setCategories(initialCategories.map((c) => ({ ...c, isNew: false, isCustom: c.roleId === null })));
       setIsDirty(false);
       setSaveError(null);
       // "saved" 表示中は saveState をそのままにする（ちらつき防止）
@@ -678,6 +705,7 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
       roleId: role.id,
       roleName: role.name,
       customName: null,
+      parentRoleId: null,
       parentId: role.parentId,
       parentName: role.parentId
         ? (allRoles.find((r) => r.id === role.parentId)?.name ?? null)
@@ -691,14 +719,16 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
     setShowAddModal(false);
   }
 
-  function handleAddCustom(name: string) {
+  function handleAddCustom(name: string, parentRoleId?: string) {
+    const parentRole = parentRoleId ? allRoles.find((r) => r.id === parentRoleId) : undefined;
     const newCat: LocalCategory = {
       id: `new-custom-${Date.now()}`,
       roleId: null,
       roleName: name,
       customName: name,
-      parentId: null,
-      parentName: null,
+      parentRoleId: parentRoleId ?? null,
+      parentId: parentRoleId ?? null,
+      parentName: parentRole?.name ?? null,
       displayOrder: categories.length,
       isNew: true,
       isCustom: true,
@@ -749,7 +779,7 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(
               c.isCustom
-                ? { customName: c.customName, displayOrder: 0 }
+                ? { customName: c.customName, parentRoleId: c.parentRoleId ?? undefined, displayOrder: 0 }
                 : { roleId: c.roleId, displayOrder: 0 }
             ),
           })

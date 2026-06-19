@@ -1106,6 +1106,7 @@ export type CompanyEmployeeCategoryItem = {
   roleId: string | null;
   roleName: string;
   customName: string | null;
+  parentRoleId: string | null;
   parentId: string | null;
   parentName: string | null;
   displayOrder: number;
@@ -1120,7 +1121,7 @@ export async function getCompanyEmployeeCategories(
     supabase
       .from("ow_company_employee_categories")
       // left join: カスタムカテゴリは role_id が null のため !inner ではなく left join
-      .select("id, role_id, display_order, custom_name, ow_roles(id, name, parent_id)")
+      .select("id, role_id, display_order, custom_name, parent_role_id, ow_roles(id, name, parent_id)")
       .eq("company_id", companyId)
       .order("display_order"),
     supabase
@@ -1142,13 +1143,19 @@ export async function getCompanyEmployeeCategories(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const role = item.ow_roles as Record<string, any> | null;
     const customName = (item.custom_name as string | null) ?? null;
-    const parent = role?.parent_id ? roleMap.get(role.parent_id as string) : null;
+    const parentRoleId = (item.parent_role_id as string | null) ?? null;
+
+    // 親の解決: 通常ロールは ow_roles.parent_id、カスタムカテゴリは parent_role_id
+    const resolvedParentId = role?.parent_id ?? parentRoleId ?? null;
+    const parent = resolvedParentId ? roleMap.get(resolvedParentId as string) : null;
+
     return {
       id: item.id as string,
       roleId: (role?.id as string | null) ?? null,
       roleName: customName ?? (role?.name as string) ?? "",
       customName,
-      parentId: (role?.parent_id as string | null) ?? null,
+      parentRoleId,
+      parentId: (resolvedParentId as string | null) ?? null,
       parentName: (parent?.name as string | null) ?? null,
       displayOrder: item.display_order as number,
     };

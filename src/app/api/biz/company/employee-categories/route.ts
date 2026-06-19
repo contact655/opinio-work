@@ -26,14 +26,14 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { roleId?: string; customName?: string; displayOrder?: number };
+  let body: { roleId?: string; customName?: string; parentRoleId?: string; displayOrder?: number };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { roleId, customName, displayOrder } = body;
+  const { roleId, customName, parentRoleId, displayOrder } = body;
   if (!roleId && !customName) {
     return NextResponse.json({ error: "roleId または customName が必要です" }, { status: 400 });
   }
@@ -53,9 +53,10 @@ export async function POST(req: Request) {
       company_id: companyId,
       role_id: roleId ?? null,
       custom_name: customName ?? null,
+      parent_role_id: parentRoleId ?? null,
       display_order: displayOrder ?? 0,
     })
-    .select("id, role_id, display_order, custom_name")
+    .select("id, role_id, display_order, custom_name, parent_role_id")
     .single();
 
   if (error) {
