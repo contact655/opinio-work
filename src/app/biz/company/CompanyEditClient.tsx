@@ -528,9 +528,6 @@ export function CompanyEditClient({
       case "logo":
         return (
           <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-              ロゴ設定
-            </h1>
             <SectionCard
               title="企業ロゴ"
               desc="求職者側の企業詳細ページ・一覧ページに表示されます。アップロードしない場合、企業名の頭文字で自動生成されます。"
@@ -589,10 +586,6 @@ export function CompanyEditClient({
       case "basic":
         return (
           <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-              基本情報
-            </h1>
-
             <SectionCard title="企業の基本情報">
               <FormGroup>
                 <FormLabel required htmlFor="ce-name">企業名</FormLabel>
@@ -646,9 +639,6 @@ export function CompanyEditClient({
       case "about":
         return (
           <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-              About（企業説明）
-            </h1>
             <SectionCard
               title="企業説明"
               desc="企業の事業内容、創業背景、組織カルチャー、これからの展望などを自由に記述してください。読み物として読まれます。"
@@ -800,9 +790,6 @@ export function CompanyEditClient({
       case "data":
         return (
           <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-              数値データ
-            </h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.9 }}>
               求職者側の「数値で見る企業」セクションに表示されます。入力後「回答として登録する」ボタンを押すと、求職者側に更新日時が表示されます。
             </p>
@@ -909,9 +896,6 @@ export function CompanyEditClient({
       case "workstyle":
         return (
           <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-              働き方
-            </h1>
             <SectionCard title="オフィス所在地">
               <FormGroup>
                 <FormLabel required htmlFor="ce-location">本社所在地</FormLabel>
@@ -953,9 +937,6 @@ export function CompanyEditClient({
       case "photos":
         return (
           <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-              オフィス写真
-            </h1>
             <OfficePhotoSection
               companyId={companyId}
               photos={photos}
@@ -967,9 +948,6 @@ export function CompanyEditClient({
       case "settings":
         return (
           <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-              公開設定
-            </h1>
             <SectionCard title="公開状態">
               <FormGroup>
                 <FormLabel>企業情報の公開</FormLabel>
