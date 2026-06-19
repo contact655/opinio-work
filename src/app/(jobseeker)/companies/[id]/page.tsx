@@ -2167,7 +2167,7 @@ function JobsSection({
         </Link>
       </div>
 
-      <div style={{ padding: "20px 28px 24px" }}>
+      <div style={{ padding: "20px 24px 28px", background: "var(--bg-tint)" }}>
         {/* Categories */}
         {displayCats.map((cat, ci) => (
           <div key={cat.cat} style={{ marginBottom: ci < displayCats.length - 1 ? 20 : 0 }}>

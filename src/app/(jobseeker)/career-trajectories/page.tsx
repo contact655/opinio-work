@@ -22,6 +22,7 @@ type PublicStep = {
 type CompanyLogo = {
   id: string;
   name: string;
+  brand_name: string | null;
   logo_url: string | null;
   logo_gradient: string | null;
   logo_letter: string | null;
@@ -52,59 +53,88 @@ type CardData = {
 };
 
 // ────────────────────────────────────────────────────────────────
-// ロゴ（リスト用 小さめ）
+// ブランド名抽出（「株式会社」「合同会社」などを除去）
+// ────────────────────────────────────────────────────────────────
+
+function toBrandName(fullName: string): string {
+  return fullName
+    .replace(/^(株式会社|合同会社|有限会社|一般社団法人|特定非営利活動法人|NPO法人)\s*/u, "")
+    .replace(/\s*(株式会社|合同会社|有限会社)$/u, "")
+    .trim() || fullName;
+}
+
+function getDisplayName(step: PublicStep, logo: CompanyLogo | null): string {
+  if (step.visibility_company !== "real") {
+    return step.company_anonymized ?? "非公開";
+  }
+  if (logo?.brand_name) return logo.brand_name;
+  if (logo?.name) return toBrandName(logo.name);
+  if (step.company_text) return toBrandName(step.company_text);
+  return step.company_anonymized ?? "非公開";
+}
+
+// ────────────────────────────────────────────────────────────────
+// ロゴチップ（直近3社用・大きめ）
 // ────────────────────────────────────────────────────────────────
 
 function LogoChip({
   logo,
   name,
   isCurrent,
+  size = 52,
 }: {
   logo: CompanyLogo | null;
   name: string;
   isCurrent: boolean;
+  size?: number;
 }) {
-  const size = 40;
   const inner = logo?.logo_url ? (
     <img
       src={logo.logo_url}
       alt={name}
       width={size}
       height={size}
-      style={{ borderRadius: 8, objectFit: "cover", display: "block" }}
+      style={{ borderRadius: 10, objectFit: "cover", display: "block" }}
     />
   ) : (
     <div style={{
-      width: size, height: size, borderRadius: 8,
+      width: size, height: size, borderRadius: 10,
       background: logo?.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 100%)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      color: "#fff", fontWeight: 800, fontSize: 16, fontFamily: "Inter, sans-serif",
+      color: "#fff", fontWeight: 800, fontSize: Math.round(size * 0.36),
+      fontFamily: "Inter, sans-serif",
     }}>
       {logo?.logo_letter ?? name.charAt(0)}
     </div>
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, flexShrink: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
       <div style={{
         position: "relative",
-        border: isCurrent ? "2px solid var(--royal)" : "2px solid transparent",
-        borderRadius: 10,
-        padding: 1,
+        border: isCurrent ? "2.5px solid var(--royal)" : "2px solid var(--line)",
+        borderRadius: 12,
+        padding: 2,
+        background: isCurrent ? "var(--royal-50)" : "transparent",
       }}>
         {inner}
         {isCurrent && (
           <div style={{
-            position: "absolute", bottom: -5, left: "50%", transform: "translateX(-50%)",
-            width: 7, height: 7, borderRadius: "50%",
-            background: "var(--royal)",
-          }} />
+            position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)",
+            background: "var(--royal)", color: "#fff",
+            fontSize: 8, fontWeight: 800, fontFamily: "Inter, sans-serif",
+            padding: "1px 5px", borderRadius: 100, whiteSpace: "nowrap",
+            letterSpacing: "0.05em",
+          }}>
+            現職
+          </div>
         )}
       </div>
       <div style={{
-        fontSize: 10, color: "var(--ink-soft)", maxWidth: 58,
-        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        textAlign: "center", fontWeight: 500,
+        fontSize: 11, color: isCurrent ? "var(--ink)" : "var(--ink-soft)",
+        fontWeight: isCurrent ? 700 : 500,
+        maxWidth: 64, overflow: "hidden", textOverflow: "ellipsis",
+        whiteSpace: "nowrap", textAlign: "center",
       }}>
         {name}
       </div>
@@ -117,16 +147,18 @@ function LogoChip({
 // ────────────────────────────────────────────────────────────────
 
 function TrajectoryCard({ card }: { card: CardData }) {
-  // 古い順（display_order 降順: 5→4→3→2→1）に並べ、連続する同一会社のみ除去
+  // 古い順（display_order降順 = 最古→最新）で並べ、連続同社を除去
   const sortedSteps = [...card.steps].sort((a, b) => b.display_order - a.display_order);
   const uniqueSteps = sortedSteps.filter((s, i) => {
     if (i === 0) return true;
     return !(s.company_id && s.company_id === sortedSteps[i - 1].company_id);
   });
 
-  const MAX_LOGOS = 5;
-  const overflow = uniqueSteps.length > MAX_LOGOS ? uniqueSteps.length - MAX_LOGOS : 0;
-  const visibleSteps = uniqueSteps.slice(0, MAX_LOGOS);
+  // 直近3社（末尾から3件 = 最新3社）
+  const MAX_SHOW = 3;
+  const olderCount = uniqueSteps.length > MAX_SHOW ? uniqueSteps.length - MAX_SHOW : 0;
+  const recentSteps = uniqueSteps.slice(olderCount); // 古い→新しい順の末尾3件
+
   const currentStep = uniqueSteps.find((s) => s.is_current);
 
   return (
@@ -134,28 +166,29 @@ function TrajectoryCard({ card }: { card: CardData }) {
       href={`/career-trajectories/${card.userId}`}
       style={{ textDecoration: "none", display: "block", height: "100%" }}
     >
-      <div style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 14,
-        padding: "20px 20px 16px",
-        height: "100%",
-        boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column",
-        gap: 0,
-        transition: "box-shadow 0.15s, border-color 0.15s",
-        cursor: "pointer",
-      }}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid var(--line)",
+          borderRadius: 16,
+          padding: "24px 24px 18px",
+          height: "100%",
+          boxSizing: "border-box",
+          display: "flex",
+          flexDirection: "column",
+          gap: 0,
+          transition: "box-shadow 0.15s, border-color 0.15s, transform 0.15s",
+          cursor: "pointer",
+        }}
         className="trajectory-card"
       >
         {/* メタ情報チップ */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
           {card.birthYear && (
             <span style={{
-              fontSize: 12, fontWeight: 700, fontFamily: "Inter, sans-serif",
+              fontSize: 13, fontWeight: 700, fontFamily: "Inter, sans-serif",
               color: "var(--ink)", background: "var(--bg-tint)",
-              borderRadius: 100, padding: "4px 11px",
+              borderRadius: 100, padding: "4px 12px",
               border: "1px solid var(--line)",
             }}>
               {new Date().getFullYear() - card.birthYear}歳
@@ -163,9 +196,9 @@ function TrajectoryCard({ card }: { card: CardData }) {
           )}
           {card.gender && (
             <span style={{
-              fontSize: 12, fontWeight: 700,
+              fontSize: 13, fontWeight: 700,
               color: "var(--ink)", background: "var(--bg-tint)",
-              borderRadius: 100, padding: "4px 11px",
+              borderRadius: 100, padding: "4px 12px",
               border: "1px solid var(--line)",
             }}>
               {card.gender}
@@ -173,92 +206,99 @@ function TrajectoryCard({ card }: { card: CardData }) {
           )}
           {card.yearsOfExperience && (
             <span style={{
-              fontSize: 12, fontWeight: 600, fontFamily: "Inter, sans-serif",
+              fontSize: 13, fontWeight: 600, fontFamily: "Inter, sans-serif",
               color: "var(--ink-soft)", background: "var(--bg-tint)",
-              borderRadius: 100, padding: "4px 11px",
+              borderRadius: 100, padding: "4px 12px",
               border: "1px solid var(--line)",
             }}>
               社会人歴 {card.yearsOfExperience}年
             </span>
           )}
           <span style={{
-            fontSize: 12, fontWeight: 600, fontFamily: "Inter, sans-serif",
+            fontSize: 13, fontWeight: 600, fontFamily: "Inter, sans-serif",
             color: "var(--ink-soft)", background: "var(--bg-tint)",
-            borderRadius: 100, padding: "4px 11px",
+            borderRadius: 100, padding: "4px 12px",
             border: "1px solid var(--line)",
           }}>
             {card.steps.length}社経験
           </span>
         </div>
 
-        {/* ロゴ軌跡ストリップ（主役） */}
+        {/* ロゴ軌跡ストリップ（直近3社） */}
         <div style={{
-          display: "flex", alignItems: "center", flexWrap: "nowrap",
-          flex: 1, paddingBottom: 4,
+          display: "flex", alignItems: "flex-start", gap: 4,
+          flex: 1, paddingBottom: 8,
         }}>
-          {visibleSteps.map((step, i) => {
+          {/* 古い社の省略表示 */}
+          {olderCount > 0 && (
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <div style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0,
+              }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                  background: "var(--line-soft)", border: "1px dashed var(--line)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
+                  fontFamily: "Inter, sans-serif",
+                }}>
+                  +{olderCount}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
+                  前職
+                </div>
+              </div>
+              <div style={{
+                width: 20, height: 1, borderTop: "2px dashed var(--line)",
+                margin: "0 4px", marginBottom: 18, flexShrink: 0,
+              }} />
+            </div>
+          )}
+
+          {/* 直近3社ロゴ */}
+          {recentSteps.map((step, i) => {
             const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
-            const name = step.visibility_company === "real"
-              ? (step.company_text ?? logo?.name ?? step.company_anonymized ?? "非公開")
-              : (step.company_anonymized ?? "非公開");
+            const name = getDisplayName(step, logo);
 
             return (
               <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
-                <LogoChip logo={logo} name={name} isCurrent={step.is_current} />
-                {i < visibleSteps.length - 1 && (
+                <LogoChip logo={logo} name={name} isCurrent={step.is_current} size={52} />
+                {i < recentSteps.length - 1 && (
                   <div style={{
-                    width: 16, height: 1,
+                    width: 20, height: 1,
                     borderTop: "2px dashed var(--line)",
-                    margin: "0 1px", marginBottom: 20,
+                    margin: "0 4px", marginBottom: 18,
                     flexShrink: 0,
                   }} />
                 )}
               </div>
             );
           })}
-          {overflow > 0 && (
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <div style={{
-                width: 16, height: 1, borderTop: "2px dashed var(--line)",
-                margin: "0 1px", marginBottom: 20, flexShrink: 0,
-              }} />
-              <div style={{
-                width: 32, height: 32, borderRadius: 6, flexShrink: 0,
-                background: "var(--line-soft)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 700, color: "var(--ink-mute)",
-                fontFamily: "Inter, sans-serif", marginBottom: 20,
-              }}>
-                +{overflow}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* 現職表示 + CTA */}
+        {/* 現職 + CTA */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderTop: "1px solid var(--line-soft)", paddingTop: 10, marginTop: 4,
+          borderTop: "1px solid var(--line-soft)", paddingTop: 12, marginTop: 4,
+          gap: 8,
         }}>
           {currentStep ? (
-            <div style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden" }}>
+            <div style={{ fontSize: 13, color: "var(--ink-mute)", overflow: "hidden", flex: 1, minWidth: 0 }}>
               <span style={{
                 fontSize: 10, fontWeight: 700, color: "var(--royal)",
                 background: "var(--royal-50)", borderRadius: 100,
                 padding: "2px 7px", marginRight: 6,
               }}>現在</span>
               <span style={{
-                fontSize: 12, color: "var(--ink)", fontWeight: 600,
+                fontSize: 13, color: "var(--ink)", fontWeight: 700,
               }}>
                 {(() => {
                   const logo = currentStep.company_id ? (card.logoMap[currentStep.company_id] ?? null) : null;
-                  return currentStep.visibility_company === "real"
-                    ? (currentStep.company_text ?? logo?.name ?? "非公開")
-                    : (currentStep.company_anonymized ?? "非公開");
+                  return getDisplayName(currentStep, logo);
                 })()}
               </span>
             </div>
-          ) : <div />}
+          ) : <div style={{ flex: 1 }} />}
           <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, flexShrink: 0 }}>
             詳しく見る →
           </span>
@@ -273,11 +313,8 @@ function TrajectoryCard({ card }: { card: CardData }) {
 // ────────────────────────────────────────────────────────────────
 
 async function getProfiles(): Promise<CardData[]> {
-  // admin client: ow_career_profiles に anon GRANT がないため service role でバイパス
-  // is_published=true かつ ow_users.visibility='public' のみ対象（サーバー側で手動フィルタ）
   const adminSupabase = createAdminClient();
 
-  // 公開ユーザー一覧取得
   const { data: publicUsers } = await adminSupabase
     .from("ow_users")
     .select("id")
@@ -286,7 +323,6 @@ async function getProfiles(): Promise<CardData[]> {
   const publicUserIds = (publicUsers ?? []).map((u) => u.id);
   if (publicUserIds.length === 0) return [];
 
-  // is_published=true のプロフィール一覧（gender/birth_year は Migration 180 以降で存在）
   const { data: rawProfiles } = await adminSupabase
     .from("ow_career_profiles")
     .select("user_id, headline, years_of_experience")
@@ -295,7 +331,6 @@ async function getProfiles(): Promise<CardData[]> {
 
   if (!rawProfiles || rawProfiles.length === 0) return [];
 
-  // gender / birth_year 取得（カラム未存在時は null フォールバック）
   const extraMap: Record<string, { gender: string | null; birth_year: number | null }> = {};
   const { data: extras, error: extrasError } = await adminSupabase
     .from("ow_career_profiles")
@@ -318,7 +353,6 @@ async function getProfiles(): Promise<CardData[]> {
   const supabase = createClient();
   const userIds = profiles.map((p) => p.user_id);
 
-  // ユーザー名一括取得
   const { data: users } = await supabase
     .from("ow_users")
     .select("id, name")
@@ -327,7 +361,6 @@ async function getProfiles(): Promise<CardData[]> {
   const userMap: Record<string, string | null> = {};
   for (const u of users ?? []) userMap[u.id] = u.name;
 
-  // 各プロフィールのステップを取得（セキュリティ: get_public_career_steps 経由）
   const cards: CardData[] = [];
 
   for (const profile of profiles) {
@@ -339,20 +372,18 @@ async function getProfiles(): Promise<CardData[]> {
 
     const typedSteps = steps as PublicStep[];
 
-    // 実名公開企業のロゴ取得
     const companyIds = typedSteps
       .filter((s) => s.visibility_company === "real" && s.company_id)
       .map((s) => s.company_id as string);
 
     const logoMap: Record<string, CompanyLogo> = {};
     if (companyIds.length > 0) {
-      const adminSupabase = createAdminClient();
       const { data: logos } = await adminSupabase
         .from("ow_companies")
-        .select("id, name, logo_url, logo_gradient, logo_letter")
+        .select("id, name, brand_name, logo_url, logo_gradient, logo_letter")
         .in("id", companyIds);
       if (logos) {
-        for (const l of logos) logoMap[l.id] = l;
+        for (const l of logos as CompanyLogo[]) logoMap[l.id] = l;
       }
     }
 
@@ -381,41 +412,47 @@ export default async function CareerTrajectoriesPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
 
-      {/* ── ヒーローバンド ── */}
-      <div style={{
-        background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
-        padding: "48px 24px 44px",
-        color: "#fff",
-      }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.12em", opacity: 0.6, marginBottom: 8 }}>
-            CAREER TRAJECTORIES
+      {/* ── グリッド ── */}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px 80px" }}>
+
+        {/* ページヘッダー */}
+        <div style={{ marginBottom: 36 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, letterSpacing: "0.12em",
+            color: "var(--ink-mute)", marginBottom: 6, fontFamily: "Inter, sans-serif",
+            textTransform: "uppercase",
+          }}>
+            Career Trajectories
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 10px", fontFamily: "Noto Serif JP, serif" }}>
+          <h1 style={{
+            fontSize: 28, fontWeight: 800, margin: "0 0 10px",
+            fontFamily: "Noto Serif JP, serif", color: "var(--ink)",
+          }}>
             キャリア軌跡
           </h1>
-          <p style={{ fontSize: 14, opacity: 0.8, margin: 0, lineHeight: 1.7, maxWidth: 520 }}>
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: 0, lineHeight: 1.7, maxWidth: 520 }}>
             IT/SaaS 業界で活躍する先輩たちの実際のキャリアパスを、
             本人の希望する範囲で公開しています。
           </p>
-          <div style={{ marginTop: 20, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <span style={{
-              background: "rgba(255,255,255,0.12)", borderRadius: 100,
-              padding: "4px 12px", fontSize: 12,
-            }}>
-              {cards.length}件公開中
-            </span>
-          </div>
+          {cards.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <span style={{
+                background: "var(--royal-50)", color: "var(--royal)",
+                borderRadius: 100, padding: "4px 14px",
+                fontSize: 12, fontWeight: 700,
+                border: "1px solid var(--royal-100)",
+              }}>
+                {cards.length}件公開中
+              </span>
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* ── グリッド ── */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 24px 80px" }}>
 
         <style>{`
           .trajectory-card:hover {
-            box-shadow: 0 4px 24px rgba(0,35,102,0.10);
+            box-shadow: 0 4px 24px rgba(0,35,102,0.12);
             border-color: var(--royal-100);
+            transform: translateY(-2px);
           }
           .trajectory-grid {
             display: grid;
