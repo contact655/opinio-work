@@ -576,7 +576,7 @@ function HowItWorks() {
     {
       step: "STEP 01", title: "登録なしで見る", en: "Browse",
       desc: "会員登録不要。企業の取材記事・求人情報を自由に閲覧できます。",
-      action: "→ まず企業・求人を見てみる",
+      action: "→ まず企業を見てみる",
       href: "/companies",
       iconBg: "linear-gradient(135deg, var(--royal), var(--accent))",
       icon: <SearchIcon />,
@@ -764,7 +764,7 @@ function PainPoints() {
             borderRadius: 8, textDecoration: "none",
             boxShadow: "0 4px 20px rgba(245,158,11,0.25)",
           }}>
-            企業情報・求人を見てみる <ArrowIcon />
+            まず企業を見てみる <ArrowIcon />
           </Link>
           <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 10 }}>登録不要 · 完全無料</p>
         </div>
