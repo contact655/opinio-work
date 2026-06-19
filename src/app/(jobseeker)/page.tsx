@@ -1240,6 +1240,106 @@ function ArticlesPreview() {
   );
 }
 
+// ─── Career Trajectories Teaser ──────────────────────────────────────────────
+
+function CareerTrajectoriesTeaser() {
+  const SAMPLE_PATHS = [
+    {
+      chips: ["消費財メーカー", "外資SaaS SDR", "外資SaaS AE", "国内SaaS"],
+      meta: "営業職 · 8年 · 年収310→980万円",
+    },
+    {
+      chips: ["SIer 営業", "外資SaaS", "外資SaaS AE"],
+      meta: "営業職 · 6年 · 年収350→750万円",
+    },
+  ];
+
+  return (
+    <section style={{
+      background: "linear-gradient(160deg, #f0f4ff 0%, #f8f0ff 50%, #fff0f8 100%)",
+      padding: "72px 24px",
+    }}>
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 20, marginBottom: 40 }}>
+          <div>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 7,
+              padding: "4px 12px", background: "rgba(124,58,237,0.1)", color: "#7C3AED",
+              borderRadius: 100, fontSize: 11, fontWeight: 700, marginBottom: 12,
+              letterSpacing: "0.06em",
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              CAREER TRAJECTORIES
+            </div>
+            <h2 style={{
+              fontFamily: 'var(--font-noto-serif)',
+              fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
+              color: "var(--ink)", letterSpacing: "-0.01em", marginBottom: 8,
+            }}>
+              先輩たちの、実際のキャリアパス。
+            </h2>
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.75, maxWidth: 480 }}>
+              転職回数・年収推移・会社を変えた理由まで、本人の許可のもとで公開。<br />
+              自分のキャリアを考えるヒントにしてください。
+            </p>
+          </div>
+          <Link href="/career-trajectories" style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 700,
+            background: "#7C3AED", color: "#fff",
+            textDecoration: "none", flexShrink: 0,
+            boxShadow: "0 4px 16px rgba(124,58,237,0.25)",
+          }}>
+            軌跡を見る →
+          </Link>
+        </div>
+
+        {/* サンプル軌跡カード */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+          {SAMPLE_PATHS.map((path, i) => (
+            <Link key={i} href="/career-trajectories" style={{ textDecoration: "none" }}>
+              <div style={{
+                background: "#fff", borderRadius: 14, padding: "20px 20px 16px",
+                border: "1px solid rgba(124,58,237,0.12)",
+                boxShadow: "0 2px 12px rgba(124,58,237,0.06)",
+                transition: "box-shadow 0.15s, border-color 0.15s",
+              }}
+                className="career-teaser-card"
+              >
+                {/* 矢印チェーン */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                  {path.chips.map((chip, j) => (
+                    <div key={j} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, color: "#7C3AED",
+                        background: "rgba(124,58,237,0.08)",
+                        padding: "4px 10px", borderRadius: 100,
+                        whiteSpace: "nowrap",
+                      }}>{chip}</span>
+                      {j < path.chips.length - 1 && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                  {path.meta}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+      <style>{`
+        .career-teaser-card:hover {
+          box-shadow: 0 6px 24px rgba(124,58,237,0.14) !important;
+          border-color: rgba(124,58,237,0.3) !important;
+        }
+      `}</style>
+    </section>
+  );
+}
+
 // ─── Mobile non-auth sticky CTA ──────────────────────────────────────────────
 
 function MobileAuthCTA() {
@@ -1460,6 +1560,7 @@ export default function HomePage() {
       <StoryFeedSection />
       <FeedUVP />
       <ArticlesPreview />
+      <CareerTrajectoriesTeaser />
       <SocialProofSection />
       <HomeFaq />
       <FinalCta companyNum={companyNum} />

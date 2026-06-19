@@ -23,7 +23,7 @@ async function getUserCareerData(userId: string) {
       .order("display_order", { ascending: true }),
     supabase
       .from("ow_career_profiles")
-      .select("id, user_id, headline, years_of_experience, is_published, updated_at")
+      .select("id, user_id, headline, years_of_experience, is_published, updated_at, gender, birth_year")
       .eq("user_id", userId)
       .maybeSingle(),
     supabase

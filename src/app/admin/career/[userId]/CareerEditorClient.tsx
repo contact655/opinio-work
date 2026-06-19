@@ -39,6 +39,8 @@ type CareerProfile = {
   years_of_experience: number | null;
   is_published: boolean;
   updated_at: string;
+  gender: string | null;
+  birth_year: number | null;
 } | null;
 
 type Company = { id: string; name: string };
@@ -69,6 +71,10 @@ export function CareerEditorClient({
   const [yearsExp, setYearsExp] = useState<string>(
     profile?.years_of_experience?.toString() ?? ""
   );
+  const [gender, setGender] = useState(profile?.gender ?? "");
+  const [birthYear, setBirthYear] = useState<string>(
+    profile?.birth_year?.toString() ?? ""
+  );
   const [isPublished, setIsPublished] = useState(profile?.is_published ?? false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
@@ -90,6 +96,8 @@ export function CareerEditorClient({
           userId: user.id,
           headline: headline || null,
           yearsOfExperience: yearsExp ? parseInt(yearsExp) : null,
+          gender: gender || null,
+          birthYear: birthYear ? parseInt(birthYear) : null,
           isPublished,
         }),
       });
@@ -98,7 +106,7 @@ export function CareerEditorClient({
     } finally {
       setProfileSaving(false);
     }
-  }, [user.id, headline, yearsExp, isPublished]);
+  }, [user.id, headline, yearsExp, gender, birthYear, isPublished]);
 
   // ── Save single experience row ──
   const saveExperience = useCallback(async (exp: Experience) => {
@@ -204,7 +212,7 @@ export function CareerEditorClient({
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 16, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 16, marginBottom: 12 }}>
           <div>
             <label style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", display: "block", marginBottom: 5 }}>
               見出し（例：リクルート → Salesforce → OPINIO創業）
@@ -231,6 +239,45 @@ export function CareerEditorClient({
               min={0}
               max={50}
               placeholder="例: 8"
+              style={{
+                width: "100%", padding: "9px 12px", borderRadius: 7,
+                border: "1px solid var(--line)", fontSize: 14, outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 16, marginBottom: 16 }}>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", display: "block", marginBottom: 5 }}>
+              性別（カード表示用）
+            </label>
+            <select
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              style={{
+                width: "100%", padding: "9px 12px", borderRadius: 7,
+                border: "1px solid var(--line)", fontSize: 14, outline: "none",
+                background: "#fff", boxSizing: "border-box",
+              }}
+            >
+              <option value="">非表示</option>
+              <option value="男性">男性</option>
+              <option value="女性">女性</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", display: "block", marginBottom: 5 }}>
+              生まれ年
+            </label>
+            <input
+              type="number"
+              value={birthYear}
+              onChange={(e) => setBirthYear(e.target.value)}
+              min={1960}
+              max={2005}
+              placeholder="例: 1992"
               style={{
                 width: "100%", padding: "9px 12px", borderRadius: 7,
                 border: "1px solid var(--line)", fontSize: 14, outline: "none",

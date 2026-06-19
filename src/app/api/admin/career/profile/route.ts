@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await request.json();
-  const { userId, headline, yearsOfExperience, isPublished } = body;
+  const { userId, headline, yearsOfExperience, gender, birthYear, isPublished } = body;
 
   if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
 
@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         headline: headline ?? null,
         years_of_experience: yearsOfExperience ?? null,
+        gender: gender ?? null,
+        birth_year: birthYear ?? null,
         is_published: isPublished ?? false,
         updated_at: new Date().toISOString(),
       },
