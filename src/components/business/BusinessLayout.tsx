@@ -102,7 +102,7 @@ export function BusinessLayout({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [avatarOpen]);
 
-  const userInitial = (userName || "?").trim().charAt(0).toUpperCase();
+  const userInitial = userName.trim().charAt(0).toUpperCase() || null;
   const logoLetter = tenantLogoLetter || (tenantName || "?").trim().charAt(0).toUpperCase();
   const logoGradient = tenantLogoGradient || "linear-gradient(135deg, #F97316, #EA580C)";
 
@@ -206,12 +206,14 @@ export function BusinessLayout({
           >
             <div style={{
               width: 28, height: 28, borderRadius: "50%",
-              background: "linear-gradient(135deg, var(--royal), var(--accent))",
+              background: userInitial
+                ? "linear-gradient(135deg, var(--royal), var(--accent))"
+                : "var(--line)",
               color: "#fff",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontWeight: 600, fontSize: 12,
             }}>
-              {userInitial}
+              {userInitial ?? null}
             </div>
             <div style={{ textAlign: "left" }}>
               <div style={{ fontFamily: "'Noto Sans JP', sans-serif", fontSize: 12, color: "var(--ink)", fontWeight: 500 }}>
