@@ -1,8 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getUserAge } from "@/lib/age";
 import { CanCasualMeetingToggle } from "./CanCasualMeetingToggle";
 
-/** Deterministic gradient from a string (same pattern used elsewhere in the app) */
 function getAvatarGradient(str: string): string {
   const gradients = [
     "linear-gradient(135deg, var(--royal), #3B5FD9)",
@@ -19,19 +18,47 @@ function getAvatarGradient(str: string): string {
   return gradients[Math.abs(hash) % gradients.length];
 }
 
+function formatRelative(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86_400_000);
+  if (days === 0) return "今日";
+  if (days === 1) return "昨日";
+  if (days < 7) return `${days}日前`;
+  if (days < 30) return `${Math.floor(days / 7)}週間前`;
+  if (days < 365) return `${Math.floor(days / 30)}ヶ月前`;
+  return `${Math.floor(days / 365)}年前`;
+}
+
 async function getUsers(query?: string) {
-  const supabase = createClient();
-  let q = supabase
+  const admin = createAdminClient();
+
+  // ow_users の一覧取得
+  let q = admin
     .from("ow_users")
-    .select("id, name, email, is_mentor, can_casual_meeting, location, birth_date, visibility, created_at")
+    .select("id, auth_id, name, email, is_mentor, can_casual_meeting, location, birth_date, visibility, created_at")
     .order("created_at", { ascending: false });
 
   if (query) {
     q = q.or(`name.ilike.%${query}%,email.ilike.%${query}%,location.ilike.%${query}%`);
   }
 
-  const { data } = await q.limit(100);
-  return data || [];
+  const [{ data: users }, authResult] = await Promise.all([
+    q.limit(100),
+    admin.auth.admin.listUsers({ perPage: 1000 }),
+  ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const authUsers = (authResult as any).data?.users ?? [];
+  const authMap = new Map<string, string | null>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    authUsers.map((u: any) => [u.id as string, (u.last_sign_in_at ?? null) as string | null])
+  );
+
+  return (users ?? []).map((u) => ({
+    ...u,
+    lastLogin: u.auth_id ? (authMap.get(u.auth_id) ?? null) : null,
+  }));
 }
 
 export default async function AdminCandidatesPage({
@@ -40,7 +67,8 @@ export default async function AdminCandidatesPage({
   searchParams: { q?: string };
 }) {
   const users = await getUsers(searchParams.q);
-  const mentorCount = users.filter((u: any) => u.is_mentor).length;
+  const mentorCount = users.filter((u) => u.is_mentor).length;
+  const neverLoggedInCount = users.filter((u) => !u.lastLogin).length;
 
   return (
     <div style={{ padding: 32 }}>
@@ -48,7 +76,7 @@ export default async function AdminCandidatesPage({
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-            候補者管理
+            求職者管理
           </h1>
           <span style={{
             fontSize: 10, fontWeight: 800, letterSpacing: "0.1em",
@@ -58,7 +86,7 @@ export default async function AdminCandidatesPage({
             ADMIN
           </span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 6, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
             登録ユーザー{" "}
             <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
@@ -71,6 +99,15 @@ export default async function AdminCandidatesPage({
               <strong style={{ color: "#7C3AED", fontFamily: "Inter, sans-serif" }}>
                 {mentorCount}
               </strong>{" "}名
+            </span>
+          )}
+          {neverLoggedInCount > 0 && (
+            <span style={{
+              fontSize: 12, padding: "3px 10px", borderRadius: 100,
+              background: "#FEF3C7", color: "#B45309",
+              border: "1px solid #FDE68A", fontWeight: 600,
+            }}>
+              未ログイン {neverLoggedInCount}名
             </span>
           )}
           {searchParams.q && (
@@ -120,7 +157,7 @@ export default async function AdminCandidatesPage({
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
-              {["名前", "メール", "居住地", "年代", "公開設定", "面談可", "メンター", "登録日"].map((h) => (
+              {["名前", "メール", "居住地", "年代", "公開設定", "面談可", "メンター", "最終ログイン", "登録日"].map((h) => (
                 <th
                   key={h}
                   scope="col"
@@ -139,7 +176,7 @@ export default async function AdminCandidatesPage({
             {users.length === 0 ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}
                 >
                   <div style={{ marginBottom: 8, fontSize: 28 }}>👤</div>
@@ -147,7 +184,7 @@ export default async function AdminCandidatesPage({
                 </td>
               </tr>
             ) : (
-              users.map((u: any) => (
+              users.map((u) => (
                 <tr
                   key={u.id}
                   style={{ borderBottom: "1px solid var(--line-soft)" }}
@@ -164,7 +201,6 @@ export default async function AdminCandidatesPage({
                         textDecoration: "none", color: "inherit",
                       }}
                     >
-                      {/* Avatar */}
                       <div style={{
                         width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
                         background: getAvatarGradient(u.id || u.name || ""),
@@ -232,6 +268,22 @@ export default async function AdminCandidatesPage({
                       }}>メンター</span>
                     ) : (
                       <span style={{ color: "var(--ink-mute)", fontSize: 13 }}>—</span>
+                    )}
+                  </td>
+                  {/* 最終ログイン */}
+                  <td style={{ padding: "11px 14px", whiteSpace: "nowrap" }}>
+                    {u.lastLogin ? (
+                      <span style={{
+                        fontSize: 12, color: "var(--ink-soft)",
+                        fontFamily: "Inter, sans-serif",
+                      }}>
+                        {formatRelative(u.lastLogin)}
+                      </span>
+                    ) : (
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
+                        background: "#FEF3C7", color: "#B45309",
+                      }}>未ログイン</span>
                     )}
                   </td>
                   {/* 登録日 */}

@@ -12,19 +12,41 @@ import {
   Newspaper,
   School,
   TrendingUp,
+  UserCheck,
 } from "lucide-react";
 
-const NAV_ITEMS = [
-  { label: "ダッシュボード",           href: "/admin",                  icon: <LayoutDashboard size={16} strokeWidth={2} /> },
-  { label: "候補者管理",               href: "/admin/candidates",       icon: <Users           size={16} strokeWidth={2} /> },
-  { label: "キャリア軌跡管理",         href: "/admin/career",           icon: <TrendingUp      size={16} strokeWidth={2} /> },
-  { label: "企業審査",                 href: "/admin/companies",        icon: <Building2       size={16} strokeWidth={2} /> },
-  { label: "求人審査",                 href: "/admin/jobs",             icon: <FileText        size={16} strokeWidth={2} /> },
-  { label: "メンター管理",             href: "/admin/mentors",          icon: <GraduationCap   size={16} strokeWidth={2} /> },
-  { label: "記事管理",                 href: "/admin/articles",         icon: <Pencil          size={16} strokeWidth={2} /> },
-  { label: "発信管理",                 href: "/admin/posts",            icon: <Newspaper       size={16} strokeWidth={2} /> },
-  { label: "相談予約管理",             href: "/admin/reservations",     icon: <MessageSquare   size={16} strokeWidth={2} /> },
-  { label: "学校追加リクエスト",       href: "/admin/school-requests",  icon: <School          size={16} strokeWidth={2} /> },
+const NAV_GROUPS = [
+  {
+    label: "概要",
+    items: [
+      { label: "ダッシュボード", href: "/admin",                  icon: <LayoutDashboard size={16} strokeWidth={2} /> },
+    ],
+  },
+  {
+    label: "ユーザー管理",
+    items: [
+      { label: "求職者管理",         href: "/admin/candidates",       icon: <Users        size={16} strokeWidth={2} /> },
+      { label: "BIZ担当者管理",      href: "/admin/biz-accounts",     icon: <UserCheck    size={16} strokeWidth={2} /> },
+      { label: "キャリア軌跡",       href: "/admin/career",           icon: <TrendingUp   size={16} strokeWidth={2} /> },
+    ],
+  },
+  {
+    label: "コンテンツ管理",
+    items: [
+      { label: "企業審査",           href: "/admin/companies",        icon: <Building2    size={16} strokeWidth={2} /> },
+      { label: "求人審査",           href: "/admin/jobs",             icon: <FileText     size={16} strokeWidth={2} /> },
+      { label: "メンター管理",       href: "/admin/mentors",          icon: <GraduationCap size={16} strokeWidth={2} /> },
+      { label: "記事管理",           href: "/admin/articles",         icon: <Pencil       size={16} strokeWidth={2} /> },
+      { label: "発信管理",           href: "/admin/posts",            icon: <Newspaper    size={16} strokeWidth={2} /> },
+    ],
+  },
+  {
+    label: "オペレーション",
+    items: [
+      { label: "相談予約管理",       href: "/admin/reservations",     icon: <MessageSquare size={16} strokeWidth={2} /> },
+      { label: "学校追加リクエスト", href: "/admin/school-requests",  icon: <School       size={16} strokeWidth={2} /> },
+    ],
+  },
 ];
 
 export default async function AdminLayout({
@@ -60,16 +82,25 @@ export default async function AdminLayout({
           </div>
           <p className="text-xs text-gray-400">管理コンソール</p>
         </div>
-        <nav className="p-3 space-y-1">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-            >
-              {item.icon}
-              {item.label}
-            </Link>
+        <nav className="p-3">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className="mb-4">
+              <p className="px-3 mb-1 text-[10px] font-bold tracking-widest uppercase text-gray-600">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
         <div className="absolute bottom-4 left-4 right-4">

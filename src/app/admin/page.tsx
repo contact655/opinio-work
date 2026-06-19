@@ -1,20 +1,47 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 
 async function getStats() {
   const supabase = createClient();
+  const admin = createAdminClient();
 
-  const [users, activeCompanies, activeJobs, totalApplications, pendingJobs, pendingMeetings, pendingReservations] =
-    await Promise.all([
-      supabase.from("ow_users").select("id", { count: "exact", head: true }),
-      supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
-      // "active" = migration 113 適用前の旧ステータス（"published" 相当）
-      supabase.from("ow_jobs").select("id", { count: "exact", head: true }).in("status", ["active", "published"]),
-      supabase.from("ow_job_applications").select("id", { count: "exact", head: true }),
-      supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
-      supabase.from("ow_casual_meetings").select("id", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("ow_mentor_reservations").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
+  const [
+    users, activeCompanies, activeJobs, totalApplications,
+    pendingJobs, pendingMeetings, pendingReservations, bizAdmins,
+  ] = await Promise.all([
+    supabase.from("ow_users").select("id", { count: "exact", head: true }),
+    supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
+    supabase.from("ow_jobs").select("id", { count: "exact", head: true }).in("status", ["active", "published"]),
+    supabase.from("ow_job_applications").select("id", { count: "exact", head: true }),
+    supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
+    supabase.from("ow_casual_meetings").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("ow_mentor_reservations").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
+    admin.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("is_active", true),
+  ]);
+
+  // 未ログインBIZ担当者数を算出（auth.admin → ow_users.auth_id でジョイン）
+  let neverLoggedInBizCount = 0;
+  try {
+    const [{ data: adminRows }, { data: owUsers }, authResult] = await Promise.all([
+      admin.from("ow_company_admins").select("user_id").eq("is_active", true).not("user_id", "is", null),
+      admin.from("ow_users").select("id, auth_id"),
+      admin.auth.admin.listUsers({ perPage: 1000 }),
     ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const authUsers = (authResult as any).data?.users ?? [];
+    const neverLoggedInAuthIds = new Set<string>(
+      authUsers.filter((u: any) => !u.last_sign_in_at).map((u: any) => u.id as string)
+    );
+    const owUserMap = new Map<string, string | null>((owUsers ?? []).map((u) => [u.id, u.auth_id]));
+    const bizUserIds = Array.from(new Set((adminRows ?? []).map((r: any) => r.user_id as string)));
+    for (const owUserId of bizUserIds) {
+      const authId = owUserMap.get(owUserId);
+      if (authId && neverLoggedInAuthIds.has(authId)) neverLoggedInBizCount++;
+    }
+  } catch {
+    // best-effort
+  }
 
   // Recent users
   const { data: recentUsers } = await supabase
@@ -38,6 +65,8 @@ async function getStats() {
     pendingJobsCount: pendingJobs.count ?? 0,
     pendingMeetingsCount: pendingMeetings.count ?? 0,
     pendingReservationsCount: pendingReservations.count ?? 0,
+    bizAdminsCount: bizAdmins.count ?? 0,
+    neverLoggedInBizCount,
     recentUsers: recentUsers ?? [],
     recentCompanies: recentCompanies ?? [],
   };
@@ -53,12 +82,13 @@ const AVATAR_GRADIENTS = [
 
 export default async function AdminDashboard() {
   const stats = await getStats();
-  const totalPending = stats.pendingJobsCount + stats.pendingMeetingsCount + stats.pendingReservationsCount;
+  const totalPending = stats.pendingJobsCount + stats.pendingMeetingsCount + stats.pendingReservationsCount
+    + (stats.neverLoggedInBizCount > 0 ? 1 : 0);
 
   const kpis = [
     {
       label: "登録ユーザー数",
-      sublabel: "Total Users",
+      sublabel: "Job Seekers",
       value: stats.usersCount,
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -70,6 +100,21 @@ export default async function AdminDashboard() {
       iconColor: "var(--royal)",
       accentBar: "var(--royal)",
       href: "/admin/candidates",
+    },
+    {
+      label: "BIZ担当者数",
+      sublabel: "Biz Accounts",
+      value: stats.bizAdminsCount,
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <polyline points="16 11 18 13 22 9"/>
+        </svg>
+      ),
+      iconBg: "#F3E8FF",
+      iconColor: "#7C3AED",
+      accentBar: "#7C3AED",
+      href: "/admin/biz-accounts",
     },
     {
       label: "公開中の企業数",
@@ -94,28 +139,10 @@ export default async function AdminDashboard() {
           <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
         </svg>
       ),
-      iconBg: "#F3E8FF",
-      iconColor: "#7C3AED",
-      accentBar: "#7C3AED",
-      href: "/admin/jobs",
-    },
-    {
-      label: "累計応募数",
-      sublabel: "Total Applications",
-      value: stats.totalApplicationsCount,
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/>
-          <line x1="16" y1="17" x2="8" y2="17"/>
-          <polyline points="10 9 9 9 8 9"/>
-        </svg>
-      ),
       iconBg: "#FEF3C7",
       iconColor: "#B45309",
       accentBar: "#F59E0B",
-      href: "/admin/candidates",
+      href: "/admin/jobs",
     },
   ];
 
@@ -361,6 +388,38 @@ export default async function AdminDashboard() {
               </Link>
             )}
 
+            {stats.neverLoggedInBizCount > 0 && (
+              <Link href="/admin/biz-accounts?filter=never_login" style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "#FFFBEB", border: "1px solid #FDE68A",
+                  cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#FEF3C7", color: "#B45309",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <line x1="17" y1="8" x2="23" y2="14"/><line x1="23" y1="8" x2="17" y2="14"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#92400E", margin: 0, marginBottom: 2 }}>BIZ担当者 未ログイン</p>
+                    <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>
+                      招待済みで未ログインの担当者が{stats.neverLoggedInBizCount}名います
+                    </p>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+              </Link>
+            )}
+
             {totalPending === 0 && (
               <div style={{
                 display: "flex", alignItems: "center", gap: 10,
@@ -535,38 +594,41 @@ export default async function AdminDashboard() {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
               {
-                label: "登録ユーザー",
+                label: "登録ユーザー（求職者）",
                 value: stats.usersCount,
                 color: "var(--royal)",
-                bg: "#EFF3FC",
                 bar: stats.usersCount,
+                max: Math.max(stats.usersCount, 1),
+              },
+              {
+                label: "BIZ担当者",
+                value: stats.bizAdminsCount,
+                color: "#7C3AED",
+                bar: stats.bizAdminsCount,
                 max: Math.max(stats.usersCount, 1),
               },
               {
                 label: "公開中の企業",
                 value: stats.activeCompaniesCount,
                 color: "var(--success)",
-                bg: "#ECFDF5",
                 bar: stats.activeCompaniesCount,
                 max: Math.max(stats.usersCount, 1),
               },
               {
                 label: "公開中の求人",
                 value: stats.activeJobsCount,
-                color: "#7C3AED",
-                bg: "#F3E8FF",
+                color: "#F59E0B",
                 bar: stats.activeJobsCount,
                 max: Math.max(stats.usersCount, 1),
               },
               {
                 label: "累計応募数",
                 value: stats.totalApplicationsCount,
-                color: "#B45309",
-                bg: "#FEF3C7",
+                color: "#DC2626",
                 bar: stats.totalApplicationsCount,
                 max: Math.max(stats.usersCount, 1),
               },
-            ].map(({ label, value, color, bg: _bg, bar, max }) => (
+            ].map(({ label, value, color, bar, max }) => (
               <div key={label}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 12, color: "#475569", fontWeight: 500 }}>{label}</span>
@@ -596,6 +658,12 @@ export default async function AdminDashboard() {
             marginTop: 20, paddingTop: 14, borderTop: "1px solid #F1F5F9",
             display: "flex", flexDirection: "column", gap: 6,
           }}>
+            <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
+              BIZ担当者（未ログイン）:{" "}
+              <strong style={{ color: stats.neverLoggedInBizCount > 0 ? "#B45309" : "var(--success)" }}>
+                {stats.neverLoggedInBizCount}名
+              </strong>
+            </p>
             <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
               審査待ち求人: <strong style={{ color: stats.pendingJobsCount > 0 ? "#B45309" : "var(--success)" }}>
                 {stats.pendingJobsCount}件
