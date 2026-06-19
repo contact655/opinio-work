@@ -157,9 +157,12 @@ function TrajectoryCard({ card }: { card: CardData }) {
   // 直近3社（末尾から3件 = 最新3社）
   const MAX_SHOW = 3;
   const olderCount = uniqueSteps.length > MAX_SHOW ? uniqueSteps.length - MAX_SHOW : 0;
-  const recentSteps = uniqueSteps.slice(olderCount); // 古い→新しい順の末尾3件
+  const recentSteps = uniqueSteps.slice(olderCount);
 
   const currentStep = uniqueSteps.find((s) => s.is_current);
+  const age = card.birthYear ? new Date().getFullYear() - card.birthYear : null;
+  // 現職のロールタイトル → headline にフォールバック
+  const roleTitle = currentStep?.role_title || card.headline;
 
   return (
     <Link
@@ -171,65 +174,64 @@ function TrajectoryCard({ card }: { card: CardData }) {
           background: "#fff",
           border: "1px solid var(--line)",
           borderRadius: 16,
-          padding: "24px 24px 18px",
+          padding: "22px 22px 16px",
           height: "100%",
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
-          gap: 0,
           transition: "box-shadow 0.15s, border-color 0.15s, transform 0.15s",
           cursor: "pointer",
         }}
         className="trajectory-card"
       >
-        {/* メタ情報チップ */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-          {card.birthYear && (
-            <span style={{
-              fontSize: 13, fontWeight: 700, fontFamily: "Inter, sans-serif",
-              color: "var(--ink)", background: "var(--bg-tint)",
-              borderRadius: 100, padding: "4px 12px",
-              border: "1px solid var(--line)",
-            }}>
-              {new Date().getFullYear() - card.birthYear}歳
-            </span>
-          )}
-          {card.gender && (
-            <span style={{
-              fontSize: 13, fontWeight: 700,
-              color: "var(--ink)", background: "var(--bg-tint)",
-              borderRadius: 100, padding: "4px 12px",
-              border: "1px solid var(--line)",
-            }}>
-              {card.gender}
-            </span>
-          )}
-          {card.yearsOfExperience && (
-            <span style={{
-              fontSize: 13, fontWeight: 600, fontFamily: "Inter, sans-serif",
-              color: "var(--ink-soft)", background: "var(--bg-tint)",
-              borderRadius: 100, padding: "4px 12px",
-              border: "1px solid var(--line)",
-            }}>
-              社会人歴 {card.yearsOfExperience}年
-            </span>
-          )}
-          <span style={{
-            fontSize: 13, fontWeight: 600, fontFamily: "Inter, sans-serif",
-            color: "var(--ink-soft)", background: "var(--bg-tint)",
-            borderRadius: 100, padding: "4px 12px",
-            border: "1px solid var(--line)",
+        {/* ── ヘッダー: 年齢 ｜ 性別 / ロール / 経歴サマリー ── */}
+        <div style={{ marginBottom: 14 }}>
+          {/* 年齢 | 性別 */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 0,
+            fontSize: 16, fontWeight: 800, color: "var(--ink)",
+            fontFamily: "var(--font-noto-sans), sans-serif",
+            marginBottom: 4,
           }}>
-            {card.steps.length}社経験
-          </span>
+            {age && <span>{age}歳</span>}
+            {age && card.gender && (
+              <span style={{ color: "var(--line)", margin: "0 8px", fontWeight: 300, fontSize: 18 }}>｜</span>
+            )}
+            {card.gender && <span>{card.gender}</span>}
+          </div>
+          {/* 現職ロール */}
+          {roleTitle && (
+            <div style={{
+              fontSize: 13, fontWeight: 600, color: "var(--ink-soft)",
+              marginBottom: 5, lineHeight: 1.4,
+            }}>
+              {roleTitle}
+            </div>
+          )}
+          {/* 経歴サマリー */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {card.yearsOfExperience && (
+              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+                社会人歴 {card.yearsOfExperience}年
+              </span>
+            )}
+            {card.yearsOfExperience && (
+              <span style={{ fontSize: 12, color: "var(--line)" }}>·</span>
+            )}
+            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+              {uniqueSteps.length}社経験
+            </span>
+          </div>
         </div>
 
-        {/* ロゴ軌跡ストリップ（直近3社） */}
+        {/* 区切り線 */}
+        <div style={{ borderTop: "1px solid var(--line-soft)", marginBottom: 16 }} />
+
+        {/* ── ロゴ軌跡ストリップ（直近3社） ── */}
         <div style={{
           display: "flex", alignItems: "flex-start", gap: 4,
-          flex: 1, paddingBottom: 8,
+          flex: 1, paddingBottom: 4,
         }}>
-          {/* 古い社の省略表示 */}
           {olderCount > 0 && (
             <div style={{ display: "flex", alignItems: "center" }}>
               <div style={{
@@ -255,14 +257,13 @@ function TrajectoryCard({ card }: { card: CardData }) {
             </div>
           )}
 
-          {/* 直近3社ロゴ */}
           {recentSteps.map((step, i) => {
             const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
             const name = getDisplayName(step, logo);
 
             return (
               <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
-                <LogoChip logo={logo} name={name} isCurrent={step.is_current} size={52} />
+                <LogoChip logo={logo} name={name} isCurrent={step.is_current} size={48} />
                 {i < recentSteps.length - 1 && (
                   <div style={{
                     width: 20, height: 1,
@@ -276,30 +277,12 @@ function TrajectoryCard({ card }: { card: CardData }) {
           })}
         </div>
 
-        {/* 現職 + CTA */}
+        {/* ── CTA ── */}
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderTop: "1px solid var(--line-soft)", paddingTop: 12, marginTop: 4,
-          gap: 8,
+          display: "flex", alignItems: "center", justifyContent: "flex-end",
+          borderTop: "1px solid var(--line-soft)", paddingTop: 12, marginTop: 8,
         }}>
-          {currentStep ? (
-            <div style={{ fontSize: 13, color: "var(--ink-mute)", overflow: "hidden", flex: 1, minWidth: 0 }}>
-              <span style={{
-                fontSize: 10, fontWeight: 700, color: "var(--royal)",
-                background: "var(--royal-50)", borderRadius: 100,
-                padding: "2px 7px", marginRight: 6,
-              }}>現在</span>
-              <span style={{
-                fontSize: 13, color: "var(--ink)", fontWeight: 700,
-              }}>
-                {(() => {
-                  const logo = currentStep.company_id ? (card.logoMap[currentStep.company_id] ?? null) : null;
-                  return getDisplayName(currentStep, logo);
-                })()}
-              </span>
-            </div>
-          ) : <div style={{ flex: 1 }} />}
-          <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, flexShrink: 0 }}>
+          <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700 }}>
             詳しく見る →
           </span>
         </div>
