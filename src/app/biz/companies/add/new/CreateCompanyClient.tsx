@@ -96,8 +96,9 @@ export function CreateCompanyClient({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searching, setSearching] = useState(false);
 
-  // 重複（409）情報
+  // 重複情報と発生元（suggestion=ドロップダウン選択 / error=409エラー）
   const [conflict, setConflict] = useState<ConflictInfo | null>(null);
+  const [conflictSource, setConflictSource] = useState<"suggestion" | "error" | null>(null);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -121,7 +122,8 @@ export function CreateCompanyClient({
   // 会社名変更 → デバウンスサジェスト検索
   const handleNameChange = useCallback((value: string) => {
     setName(value);
-    setConflict(null); // 入力変更したら conflict クリア
+    setConflict(null);
+    setConflictSource(null);
     setError(null);
 
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -156,8 +158,8 @@ export function CreateCompanyClient({
     setName(s.name);
     setShowSuggestions(false);
     setSuggestions([]);
-    // 同名企業への注意を表示
     setConflict({ id: s.id, name: s.name, admin_count: s.admin_count });
+    setConflictSource("suggestion");
   }
 
   // フォーム送信
@@ -186,8 +188,8 @@ export function CreateCompanyClient({
       const data = await res.json();
 
       if (res.status === 409 && data.error === "company_name_exists") {
-        // 重複検知 → conflict UI を表示
         setConflict(data.existing_company);
+        setConflictSource("error");
         setLoading(false);
         return;
       }
@@ -461,8 +463,60 @@ export function CreateCompanyClient({
           </div>
         </div>
 
-        {/* 重複（409）通知 */}
-        {conflict && (
+        {/* ドロップダウンから選択 — 情報カード（ロイヤルブルー） */}
+        {conflict && conflictSource === "suggestion" && (
+          <div style={{
+            background: "var(--royal-50)",
+            border: "1.5px solid var(--royal-100)",
+            borderRadius: 10,
+            padding: "16px 18px",
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              この企業は既に OPINIO に登録されています
+            </div>
+            <div style={{ fontSize: 12, color: "#1e3a6e", lineHeight: 1.7, marginBottom: 14 }}>
+              <strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）<br />
+              担当者として参加するには、企業アカウントの管理者に招待を依頼してください。
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => { setConflict(null); setConflictSource(null); setName(""); }}
+                style={{
+                  padding: "8px 16px",
+                  background: "var(--royal)",
+                  color: "#fff",
+                  border: "none", borderRadius: 8,
+                  fontSize: 12, fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                }}
+              >
+                別の会社名で探す
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e, true)}
+                disabled={loading}
+                style={{
+                  padding: "8px 16px",
+                  background: "transparent",
+                  color: "var(--royal)",
+                  border: "1.5px solid var(--royal-100)", borderRadius: 8,
+                  fontSize: 12, fontWeight: 600,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                }}
+              >
+                {loading ? "作成中..." : "別法人として新規作成する"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* フォーム送信時の重複（409） — 警告カード（アンバー） */}
+        {conflict && conflictSource === "error" && (
           <div style={{
             background: "var(--warm-soft)",
             border: "1.5px solid #FCD34D",
@@ -470,7 +524,8 @@ export function CreateCompanyClient({
             padding: "16px 18px",
           }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>同名の企業が既に存在します
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              同名の企業が既に存在します
             </div>
             <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7, marginBottom: 14 }}>
               <strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）が既に登録されています。<br />
@@ -495,7 +550,7 @@ export function CreateCompanyClient({
               </button>
               <button
                 type="button"
-                onClick={() => { setConflict(null); setName(""); }}
+                onClick={() => { setConflict(null); setConflictSource(null); setName(""); }}
                 style={{
                   padding: "8px 16px",
                   background: "transparent",
