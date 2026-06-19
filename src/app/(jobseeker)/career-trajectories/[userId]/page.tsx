@@ -13,6 +13,7 @@ type PublicStep = {
   company_id: string | null;
   company_text: string | null;
   company_anonymized: string | null;
+  role_category_id: string | null;
   role_title: string | null;
   started_at: string;
   ended_at: string | null;
@@ -25,6 +26,11 @@ type PublicStep = {
   visibility_company: "real" | "masked" | "hidden";
   visibility_salary: boolean;
   visibility_reason: boolean;
+};
+
+type RoleInfo = {
+  name: string;
+  parent_name: string | null;
 };
 
 type CompanyLogo = {
@@ -190,7 +196,70 @@ async function getData(userId: string) {
     }
   }
 
-  return { profile, steps, logoMap };
+  // ow_roles から 部門(parent) / 職種(child) を取得
+  const roleMap: Record<string, RoleInfo> = {};
+  const { data: allRoles } = await adminSupabase
+    .from("ow_roles")
+    .select("id, name, parent_id");
+  if (allRoles) {
+    const byId: Record<string, { name: string; parent_id: string | null }> = {};
+    for (const r of allRoles as { id: string; name: string; parent_id: string | null }[]) {
+      byId[r.id] = { name: r.name, parent_id: r.parent_id };
+    }
+    for (const r of allRoles as { id: string; name: string; parent_id: string | null }[]) {
+      roleMap[r.id] = {
+        name: r.name,
+        parent_name: r.parent_id ? (byId[r.parent_id]?.name ?? null) : null,
+      };
+    }
+  }
+
+  return { profile, steps, logoMap, roleMap };
+}
+
+// ────────────────────────────────────────────────────────────────
+// 構造化インフォテーブル（部門 / 職種 / 役職）
+// ────────────────────────────────────────────────────────────────
+
+function RoleInfoTable({
+  role,
+  roleTitle,
+  compact = false,
+}: {
+  role: RoleInfo | null;
+  roleTitle: string | null;
+  compact?: boolean;
+}) {
+  const cells: { label: string; value: string }[] = [];
+  if (role?.parent_name) cells.push({ label: "部門", value: role.parent_name });
+  if (role) cells.push({ label: "職種", value: role.name });
+  if (roleTitle) cells.push({ label: "役職", value: roleTitle });
+  if (cells.length === 0) return null;
+
+  return (
+    <div style={{
+      display: "flex", flexWrap: "wrap",
+      border: "1px solid var(--line-soft)", borderRadius: 8, overflow: "hidden",
+      marginBottom: compact ? 8 : 14,
+      fontSize: compact ? 11 : 12,
+    }}>
+      {cells.map((cell, i) => (
+        <div key={cell.label} style={{
+          display: "flex", flexDirection: "column",
+          padding: compact ? "5px 10px" : "7px 14px",
+          borderRight: i < cells.length - 1 ? "1px solid var(--line-soft)" : undefined,
+          minWidth: 0,
+        }}>
+          <span style={{ fontSize: compact ? 9 : 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 2, whiteSpace: "nowrap" }}>
+            {cell.label}
+          </span>
+          <span style={{ fontWeight: 600, color: "var(--ink)", lineHeight: 1.35 }}>
+            {cell.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -205,7 +274,7 @@ export default async function CareerTrajectoryPage({
   const data = await getData(params.userId);
   if (!data || data.steps.length === 0) notFound();
 
-  const { profile, steps, logoMap } = data;
+  const { profile, steps, logoMap, roleMap } = data;
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
@@ -412,7 +481,7 @@ export default async function CareerTrajectoryPage({
                               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", color: "var(--royal)", background: "var(--royal-50)", borderRadius: 100, padding: "2px 10px", border: "1px solid var(--royal-100)" }}>現在</span>
                             </div>
                           )}
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 10 }}>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
                             {step.visibility_company === "real" && step.company_id ? (
                               <Link href={`/companies/${step.company_id}`} style={{ flexShrink: 0, display: "block" }}>
                                 <CompanyLogo logo={logo} name={name} size={52} />
@@ -429,17 +498,19 @@ export default async function CareerTrajectoryPage({
                               ) : (
                                 <div style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25 }}>{name}</div>
                               )}
-                              {step.role_title && (
-                                <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4, lineHeight: 1.4 }}>{step.role_title}</div>
-                              )}
+                              <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginTop: 4 }}>
+                                {formatPeriod(step.started_at, step.ended_at, step.is_current)}
+                                <span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>
+                                {formatDuration(step.started_at, step.ended_at, step.is_current)}
+                                {step.employment_type && <><span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>{step.employment_type}</>}
+                              </div>
                             </div>
                           </div>
-                          <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginBottom: step.description ? 14 : step.salary_man !== null ? 14 : 0 }}>
-                            {formatPeriod(step.started_at, step.ended_at, step.is_current)}
-                            <span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>
-                            {formatDuration(step.started_at, step.ended_at, step.is_current)}
-                            {step.employment_type && <><span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>{step.employment_type}</>}
-                          </div>
+                          {/* 構造化インフォテーブル */}
+                          <RoleInfoTable
+                            role={step.role_category_id ? (roleMap[step.role_category_id] ?? null) : null}
+                            roleTitle={step.role_title}
+                          />
                           {step.description && (
                             <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: step.salary_man !== null ? 14 : 0 }}>{step.description}</div>
                           )}
@@ -517,15 +588,18 @@ export default async function CareerTrajectoryPage({
                             {/* ロールセクション: 2カラム */}
                             <div className="traj-role-section">
                               <div style={{ padding: "16px 22px 14px" }}>
-                                {roleStep.role_title && (
-                                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6, lineHeight: 1.4 }}>{roleStep.role_title}</div>
-                                )}
-                                <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginBottom: roleStep.description ? 12 : roleStep.salary_man !== null ? 12 : 0 }}>
+                                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginBottom: 8 }}>
                                   {formatPeriod(roleStep.started_at, roleStep.ended_at, roleStep.is_current)}
                                   <span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>
                                   {formatDuration(roleStep.started_at, roleStep.ended_at, roleStep.is_current)}
                                   {roleStep.employment_type && <><span style={{ margin: "0 6px", opacity: 0.5 }}>·</span>{roleStep.employment_type}</>}
                                 </div>
+                                {/* 構造化インフォテーブル */}
+                                <RoleInfoTable
+                                  role={roleStep.role_category_id ? (roleMap[roleStep.role_category_id] ?? null) : null}
+                                  roleTitle={roleStep.role_title}
+                                  compact
+                                />
                                 {roleStep.description && (
                                   <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: roleStep.salary_man !== null ? 12 : 0 }}>{roleStep.description}</div>
                                 )}
