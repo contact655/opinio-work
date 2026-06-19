@@ -1103,8 +1103,9 @@ export async function getCompanyEmployees(companyId: string): Promise<{
 /** Phase Q: 各企業のカテゴリ表示設定 (display_order 順) */
 export type CompanyEmployeeCategoryItem = {
   id: string;
-  roleId: string;
+  roleId: string | null;
   roleName: string;
+  customName: string | null;
   parentId: string | null;
   parentName: string | null;
   displayOrder: number;
@@ -1118,7 +1119,8 @@ export async function getCompanyEmployeeCategories(
   const [catResult, rolesResult] = await Promise.all([
     supabase
       .from("ow_company_employee_categories")
-      .select("id, role_id, display_order, ow_roles!inner(id, name, parent_id)")
+      // left join: カスタムカテゴリは role_id が null のため !inner ではなく left join
+      .select("id, role_id, display_order, custom_name, ow_roles(id, name, parent_id)")
       .eq("company_id", companyId)
       .order("display_order"),
     supabase
@@ -1138,13 +1140,15 @@ export async function getCompanyEmployeeCategories(
 
   return catResult.data.map((item) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const role = item.ow_roles as Record<string, any>;
-    const parent = role.parent_id ? roleMap.get(role.parent_id as string) : null;
+    const role = item.ow_roles as Record<string, any> | null;
+    const customName = (item.custom_name as string | null) ?? null;
+    const parent = role?.parent_id ? roleMap.get(role.parent_id as string) : null;
     return {
       id: item.id as string,
-      roleId: role.id as string,
-      roleName: role.name as string,
-      parentId: (role.parent_id as string | null) ?? null,
+      roleId: (role?.id as string | null) ?? null,
+      roleName: customName ?? (role?.name as string) ?? "",
+      customName,
+      parentId: (role?.parent_id as string | null) ?? null,
       parentName: (parent?.name as string | null) ?? null,
       displayOrder: item.display_order as number,
     };

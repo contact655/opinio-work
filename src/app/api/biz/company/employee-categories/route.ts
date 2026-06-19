@@ -26,16 +26,16 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { roleId?: string; displayOrder?: number };
+  let body: { roleId?: string; customName?: string; displayOrder?: number };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { roleId, displayOrder } = body;
-  if (!roleId) {
-    return NextResponse.json({ error: "roleId is required" }, { status: 400 });
+  const { roleId, customName, displayOrder } = body;
+  if (!roleId && !customName) {
+    return NextResponse.json({ error: "roleId または customName が必要です" }, { status: 400 });
   }
 
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
@@ -51,10 +51,11 @@ export async function POST(req: Request) {
     .from("ow_company_employee_categories")
     .insert({
       company_id: companyId,
-      role_id: roleId,
+      role_id: roleId ?? null,
+      custom_name: customName ?? null,
       display_order: displayOrder ?? 0,
     })
-    .select("id, role_id, display_order")
+    .select("id, role_id, display_order, custom_name")
     .single();
 
   if (error) {

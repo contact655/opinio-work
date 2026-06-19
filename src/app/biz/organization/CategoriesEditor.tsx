@@ -39,6 +39,7 @@ import type { CompanyEmployeeCategoryItem, RoleForEditor } from "@/lib/supabase/
 
 type LocalCategory = CompanyEmployeeCategoryItem & {
   isNew: boolean; // true = 未保存の新規追加、id は temp 文字列
+  isCustom?: boolean; // true = 自由入力カテゴリ（roleId = null）
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -129,14 +130,17 @@ function AddCategoryModal({
   allRoles,
   currentRoleIds,
   onAdd,
+  onAddCustom,
   onCancel,
 }: {
   allRoles: RoleForEditor[];
   currentRoleIds: Set<string>;
   onAdd: (roles: RoleForEditor[]) => void;
+  onAddCustom: (name: string) => void;
   onCancel: () => void;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [customName, setCustomName] = useState("");
   useModalClose(onCancel);
 
   const parents = allRoles.filter((r) => r.parentId === null);
@@ -338,6 +342,49 @@ function AddCategoryModal({
               );
             })
           )}
+        </div>
+
+        {/* 自由入力セクション */}
+        <div style={{ padding: "12px 24px", borderTop: "1px solid var(--line)", flexShrink: 0,
+          background: "var(--bg-tint)" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, letterSpacing: "0.04em" }}>
+            または、独自のカテゴリ名を入力
+          </div>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.6 }}>
+            既存のカテゴリに当てはまらない場合（例: 法人営業・フロント職・テクニカルサポート）
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              type="text"
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && customName.trim()) {
+                  onAddCustom(customName.trim());
+                }
+              }}
+              placeholder="例: 法人営業"
+              maxLength={40}
+              style={{
+                flex: 1, padding: "8px 12px", border: "1px solid var(--line)",
+                borderRadius: 8, fontSize: 13, fontFamily: "inherit",
+                color: "var(--ink)", outline: "none",
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => { if (customName.trim()) onAddCustom(customName.trim()); }}
+              disabled={!customName.trim()}
+              style={{
+                padding: "8px 14px", border: "none", borderRadius: 8, flexShrink: 0,
+                background: customName.trim() ? "var(--accent)" : "var(--line)",
+                fontSize: 13, fontWeight: 700, color: "#fff",
+                cursor: customName.trim() ? "pointer" : "default", fontFamily: "inherit",
+              }}
+            >
+              作成
+            </button>
+          </div>
         </div>
 
         {/* フッター */}
@@ -606,7 +653,9 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
   }, []);
 
   // ── 現在の roleId セット (追加済み判定用) ──────────────────────────────────
-  const currentRoleIds = new Set(categories.map((c) => c.roleId));
+  const currentRoleIds = new Set<string>(
+    categories.filter((c) => c.roleId !== null).map((c) => c.roleId as string)
+  );
 
   // ── DnD ハンドラ ─────────────────────────────────────────────────────────
   function handleDragEnd(event: DragEndEvent) {
@@ -628,14 +677,33 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
       id: `new-${Date.now()}-${i}`,
       roleId: role.id,
       roleName: role.name,
+      customName: null,
       parentId: role.parentId,
       parentName: role.parentId
         ? (allRoles.find((r) => r.id === role.parentId)?.name ?? null)
         : null,
       displayOrder: startOrder + i,
       isNew: true,
+      isCustom: false,
     }));
     setCategories((prev) => [...prev, ...newCats]);
+    setIsDirty(true);
+    setShowAddModal(false);
+  }
+
+  function handleAddCustom(name: string) {
+    const newCat: LocalCategory = {
+      id: `new-custom-${Date.now()}`,
+      roleId: null,
+      roleName: name,
+      customName: name,
+      parentId: null,
+      parentName: null,
+      displayOrder: categories.length,
+      isNew: true,
+      isCustom: true,
+    };
+    setCategories((prev) => [...prev, newCat]);
     setIsDirty(true);
     setShowAddModal(false);
   }
@@ -679,7 +747,11 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
           fetch("/api/biz/company/employee-categories", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roleId: c.roleId, displayOrder: 0 }), // 仮順序、PUT で上書き
+            body: JSON.stringify(
+              c.isCustom
+                ? { customName: c.customName, displayOrder: 0 }
+                : { roleId: c.roleId, displayOrder: 0 }
+            ),
           })
         )
       );
@@ -1028,6 +1100,7 @@ export function CategoriesEditor({ initialCategories, allRoles, companyId: _comp
           allRoles={allRoles}
           currentRoleIds={currentRoleIds}
           onAdd={handleAdd}
+          onAddCustom={handleAddCustom}
           onCancel={() => setShowAddModal(false)}
         />
       )}

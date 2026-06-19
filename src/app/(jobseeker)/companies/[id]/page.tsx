@@ -1448,7 +1448,7 @@ function CurrentEmployeesSection({
   const groups: Group[] = [];
   const groupMap = new Map<string, Group>();
   for (const cat of categories) {
-    const groupKey = cat.parentId ?? cat.roleId;
+    const groupKey = cat.parentId ?? cat.roleId ?? cat.id;
     if (!groupMap.has(groupKey)) {
       const g: Group = {
         groupKey,
@@ -1572,7 +1572,7 @@ function CurrentEmployeesSection({
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
           {groups.map((group) => {
             const totalInGroup = group.children.reduce(
-              (sum, cat) => sum + (empsByCategory.get(cat.roleId)?.length ?? 0),
+              (sum, cat) => sum + (empsByCategory.get(cat.roleId ?? "")?.length ?? 0),
               0
             );
             if (totalInGroup === 0) return null; // 0 名カテゴリは非表示
@@ -1608,7 +1608,7 @@ function CurrentEmployeesSection({
                 {group.isParentDirect ? (
                   // 親直: 子見出しなしでグリッドを直接表示
                   <div className="employee-grid">
-                    {(empsByCategory.get(group.children[0].roleId) ?? []).map((emp) => (
+                    {(empsByCategory.get(group.children[0].roleId ?? "") ?? []).map((emp) => (
                       <EmployeeCard key={emp.userId} employee={emp} />
                     ))}
                   </div>
@@ -1616,10 +1616,10 @@ function CurrentEmployeesSection({
                   // 子カテゴリあり: 子見出し + グリッド
                   <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                     {group.children.map((cat) => {
-                      const empsInCat = empsByCategory.get(cat.roleId) ?? [];
+                      const empsInCat = empsByCategory.get(cat.roleId ?? "") ?? [];
                       if (empsInCat.length === 0) return null;
                       return (
-                        <div key={cat.roleId}>
+                        <div key={cat.roleId ?? cat.id}>
                           <div
                             style={{
                               display: "flex",
