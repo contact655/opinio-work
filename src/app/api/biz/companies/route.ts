@@ -104,6 +104,7 @@ export async function POST(req: Request) {
       url: body.website || null,
       logo_url: body.logo_url || null,
       status: "draft",
+      is_published: false,
       plan: "free",
     })
     .select("id, name, status, created_at, industry, url, logo_url")
