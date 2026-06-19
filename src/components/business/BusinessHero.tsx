@@ -45,7 +45,7 @@ function CtaButton() {
             letterSpacing: "0.01em", boxShadow: "0 4px 16px rgba(0,35,102,0.25)",
           }}
         >
-          企業を新規登録（無料）
+          企業を新規登録
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M5 12h14M13 5l7 7-7 7" />
           </svg>
@@ -59,14 +59,14 @@ function CtaButton() {
             color: "var(--royal)", textDecoration: "none", background: "var(--royal-50)",
           }}
         >
-          まず相談する（無料）
+          まず相談する
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
         </a>
       </div>
       <p style={{ marginTop: 12, fontSize: 12, color: "var(--ink-mute)" }}>
-        クレジットカード登録不要 · 自動課金なし
+        入社まで費用なし · 成果報酬制
       </p>
     </div>
   );
@@ -112,47 +112,16 @@ export function BusinessHero() {
           </h1>
 
           <p style={{
-            fontSize: "clamp(16px, 1.8vw, 19px)", fontWeight: 700,
-            color: "var(--ink)", letterSpacing: "-0.01em", marginBottom: 12,
-          }}>
-            掲載費ゼロ · 成果報酬のみ。
-          </p>
-
-          <p style={{
             fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.85,
-            marginBottom: 20, maxWidth: 460,
+            marginBottom: 28, maxWidth: 460,
           }}>
             在籍ユーザーへのDMで深くリサーチした、<strong style={{ color: "var(--ink)", fontWeight: 700 }}>本気度の高い候補者だけ</strong>が届きます。
             スカウト0通で、IT/SaaS即戦力採用を。
           </p>
 
-          {/* ② 料金フロー — Hero 内でコスト発生タイミングを明示 */}
-          <div style={{
-            display: "flex", alignItems: "stretch",
-            background: "#fff", border: "1px solid var(--line)",
-            borderRadius: 10, overflow: "hidden", marginBottom: 20,
-            boxShadow: "0 2px 8px rgba(0,35,102,0.06)",
-          }}>
-            {[
-              { step: "掲載・スカウト", cost: "¥0", note: "完全無料", ok: true },
-              { step: "面談・候補者閲覧", cost: "¥0", note: "完全無料", ok: true },
-              { step: "入社決定時のみ", cost: "10%", note: "成果報酬", ok: false },
-            ].map(({ step, cost, note, ok }, i) => (
-              <div key={step} style={{
-                flex: 1, padding: "10px 8px", textAlign: "center",
-                borderRight: i < 2 ? "1px solid var(--line)" : "none",
-                background: ok ? "#fff" : "var(--royal-50)",
-              }}>
-                <div style={{ fontSize: 9, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 3, letterSpacing: "0.04em" }}>{step}</div>
-                <div style={{ fontFamily: "Inter,sans-serif", fontWeight: 800, fontSize: 16, color: ok ? "var(--success)" : "var(--royal)", lineHeight: 1 }}>{cost}</div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: ok ? "var(--success)" : "var(--royal)", marginTop: 2 }}>{note}</div>
-              </div>
-            ))}
-          </div>
-
           {/* Trust pills */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 28 }}>
-            {["掲載・面談まで完全無料", "営業電話なし", "入社まで請求なし"].map((label) => (
+            {["IT/SaaS特化の即戦力人材", "営業電話なし", "入社まで費用なし"].map((label) => (
               <span key={label} style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "5px 12px", background: "var(--royal-50)",
