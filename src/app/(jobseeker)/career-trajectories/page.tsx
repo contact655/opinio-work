@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import Link from "next/link";
+import { TrajectoryCardClient, type CardData } from "./TrajectoryCardClient";
 
 // ────────────────────────────────────────────────────────────────
-// 型
+// サーバー側のみで使う型
 // ────────────────────────────────────────────────────────────────
 
 type PublicStep = {
@@ -40,256 +40,6 @@ type UserRow = {
   id: string;
   name: string | null;
 };
-
-type CardData = {
-  userId: string;
-  userName: string | null;
-  headline: string | null;
-  yearsOfExperience: number | null;
-  gender: string | null;
-  birthYear: number | null;
-  steps: PublicStep[];
-  logoMap: Record<string, CompanyLogo>;
-};
-
-// ────────────────────────────────────────────────────────────────
-// ブランド名抽出（「株式会社」「合同会社」などを除去）
-// ────────────────────────────────────────────────────────────────
-
-function toBrandName(fullName: string): string {
-  return fullName
-    .replace(/^(株式会社|合同会社|有限会社|一般社団法人|特定非営利活動法人|NPO法人)\s*/, "")
-    .replace(/\s*(株式会社|合同会社|有限会社)$/, "")
-    .trim() || fullName;
-}
-
-function getDisplayName(step: PublicStep, logo: CompanyLogo | null): string {
-  if (step.visibility_company !== "real") {
-    return step.company_anonymized ?? "非公開";
-  }
-  if (logo?.brand_name) return logo.brand_name;
-  if (logo?.name) return toBrandName(logo.name);
-  if (step.company_text) return toBrandName(step.company_text);
-  return step.company_anonymized ?? "非公開";
-}
-
-// ────────────────────────────────────────────────────────────────
-// ロゴチップ（直近3社用・大きめ）
-// ────────────────────────────────────────────────────────────────
-
-function LogoChip({
-  logo,
-  name,
-  isCurrent,
-  size = 52,
-}: {
-  logo: CompanyLogo | null;
-  name: string;
-  isCurrent: boolean;
-  size?: number;
-}) {
-  const inner = logo?.logo_url ? (
-    <img
-      src={logo.logo_url}
-      alt={name}
-      width={size}
-      height={size}
-      style={{ borderRadius: 10, objectFit: "cover", display: "block" }}
-    />
-  ) : (
-    <div style={{
-      width: size, height: size, borderRadius: 10,
-      background: logo?.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 100%)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      color: "#fff", fontWeight: 800, fontSize: Math.round(size * 0.36),
-      fontFamily: "Inter, sans-serif",
-    }}>
-      {logo?.logo_letter ?? name.charAt(0)}
-    </div>
-  );
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
-      <div style={{
-        position: "relative",
-        border: isCurrent ? "2.5px solid var(--royal)" : "2px solid var(--line)",
-        borderRadius: 12,
-        padding: 2,
-        background: isCurrent ? "var(--royal-50)" : "transparent",
-      }}>
-        {inner}
-        {isCurrent && (
-          <div style={{
-            position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)",
-            background: "var(--royal)", color: "#fff",
-            fontSize: 8, fontWeight: 800, fontFamily: "Inter, sans-serif",
-            padding: "1px 5px", borderRadius: 100, whiteSpace: "nowrap",
-            letterSpacing: "0.05em",
-          }}>
-            現職
-          </div>
-        )}
-      </div>
-      <div style={{
-        fontSize: 11, color: isCurrent ? "var(--ink)" : "var(--ink-soft)",
-        fontWeight: isCurrent ? 700 : 500,
-        maxWidth: 64, overflow: "hidden", textOverflow: "ellipsis",
-        whiteSpace: "nowrap", textAlign: "center",
-      }}>
-        {name}
-      </div>
-    </div>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────
-// カード
-// ────────────────────────────────────────────────────────────────
-
-function TrajectoryCard({ card }: { card: CardData }) {
-  // 古い順（display_order降順 = 最古→最新）で並べ、連続同社を除去
-  const sortedSteps = [...card.steps].sort((a, b) => b.display_order - a.display_order);
-  const uniqueSteps = sortedSteps.filter((s, i) => {
-    if (i === 0) return true;
-    return !(s.company_id && s.company_id === sortedSteps[i - 1].company_id);
-  });
-
-  // 直近3社（末尾から3件 = 最新3社）
-  const MAX_SHOW = 3;
-  const olderCount = uniqueSteps.length > MAX_SHOW ? uniqueSteps.length - MAX_SHOW : 0;
-  const recentSteps = uniqueSteps.slice(olderCount);
-
-  const currentStep = uniqueSteps.find((s) => s.is_current);
-  const age = card.birthYear ? new Date().getFullYear() - card.birthYear : null;
-  // 現職のロールタイトル → headline にフォールバック
-  const roleTitle = currentStep?.role_title || card.headline;
-
-  return (
-    <Link
-      href={`/career-trajectories/${card.userId}`}
-      style={{ textDecoration: "none", display: "block", height: "100%" }}
-    >
-      <div
-        style={{
-          background: "#fff",
-          border: "1px solid var(--line)",
-          borderRadius: 16,
-          padding: "22px 22px 16px",
-          height: "100%",
-          boxSizing: "border-box",
-          display: "flex",
-          flexDirection: "column",
-          transition: "box-shadow 0.15s, border-color 0.15s, transform 0.15s",
-          cursor: "pointer",
-        }}
-        className="trajectory-card"
-      >
-        {/* ── ヘッダー: 年齢 ｜ 性別 / ロール / 経歴サマリー ── */}
-        <div style={{ marginBottom: 14 }}>
-          {/* 年齢 | 性別 */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 0,
-            fontSize: 16, fontWeight: 800, color: "var(--ink)",
-            fontFamily: "var(--font-noto-sans), sans-serif",
-            marginBottom: 4,
-          }}>
-            {age && <span>{age}歳</span>}
-            {age && card.gender && (
-              <span style={{ color: "var(--line)", margin: "0 8px", fontWeight: 300, fontSize: 18 }}>｜</span>
-            )}
-            {card.gender && <span>{card.gender}</span>}
-          </div>
-          {/* 現職ロール */}
-          {roleTitle && (
-            <div style={{
-              fontSize: 13, fontWeight: 600, color: "var(--ink-soft)",
-              marginBottom: 5, lineHeight: 1.4,
-            }}>
-              {roleTitle}
-            </div>
-          )}
-          {/* 経歴サマリー */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {card.yearsOfExperience && (
-              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-                社会人歴 {card.yearsOfExperience}年
-              </span>
-            )}
-            {card.yearsOfExperience && (
-              <span style={{ fontSize: 12, color: "var(--line)" }}>·</span>
-            )}
-            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-              {uniqueSteps.length}社経験
-            </span>
-          </div>
-        </div>
-
-        {/* 区切り線 */}
-        <div style={{ borderTop: "1px solid var(--line-soft)", marginBottom: 16 }} />
-
-        {/* ── ロゴ軌跡ストリップ（直近3社） ── */}
-        <div style={{
-          display: "flex", alignItems: "flex-start", gap: 4,
-          flex: 1, paddingBottom: 4,
-        }}>
-          {olderCount > 0 && (
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <div style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0,
-              }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                  background: "var(--line-soft)", border: "1px dashed var(--line)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
-                  fontFamily: "Inter, sans-serif",
-                }}>
-                  +{olderCount}
-                </div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
-                  前職
-                </div>
-              </div>
-              <div style={{
-                width: 20, height: 1, borderTop: "2px dashed var(--line)",
-                margin: "0 4px", marginBottom: 18, flexShrink: 0,
-              }} />
-            </div>
-          )}
-
-          {recentSteps.map((step, i) => {
-            const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
-            const name = getDisplayName(step, logo);
-
-            return (
-              <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
-                <LogoChip logo={logo} name={name} isCurrent={step.is_current} size={48} />
-                {i < recentSteps.length - 1 && (
-                  <div style={{
-                    width: 20, height: 1,
-                    borderTop: "2px dashed var(--line)",
-                    margin: "0 4px", marginBottom: 18,
-                    flexShrink: 0,
-                  }} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── CTA ── */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "flex-end",
-          borderTop: "1px solid var(--line-soft)", paddingTop: 12, marginTop: 8,
-        }}>
-          <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700 }}>
-            詳しく見る →
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 // ────────────────────────────────────────────────────────────────
 // データ取得
@@ -394,8 +144,6 @@ export default async function CareerTrajectoriesPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-
-      {/* ── グリッド ── */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px 80px" }}>
 
         {/* ページヘッダー */}
@@ -432,11 +180,6 @@ export default async function CareerTrajectoriesPage() {
         </div>
 
         <style>{`
-          .trajectory-card:hover {
-            box-shadow: 0 4px 24px rgba(0,35,102,0.12);
-            border-color: var(--royal-100);
-            transform: translateY(-2px);
-          }
           .trajectory-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -463,7 +206,7 @@ export default async function CareerTrajectoriesPage() {
         ) : (
           <div className="trajectory-grid">
             {cards.map((card) => (
-              <TrajectoryCard key={card.userId} card={card} />
+              <TrajectoryCardClient key={card.userId} card={card} />
             ))}
           </div>
         )}
