@@ -72,13 +72,7 @@ function ArrowIcon() {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
-function Hero() {
-  const [stats, setStats] = useState<{ companies: number; jobs: number } | null>(null);
-  useEffect(() => {
-    fetch("/api/stats").then(r => r.json()).then(setStats).catch(() => {});
-  }, []);
-  const companyNum = stats ? `${stats.companies}社+` : "80社+";
-  const jobNum = stats ? `${stats.jobs}件+` : "155件+";
+function Hero({ companyNum, jobNum }: { companyNum: string; jobNum: string }) {
 
   return (
     <section style={{
@@ -123,44 +117,11 @@ function Hero() {
             <span style={{ color: "#D97706" }}>深く知って</span>から動く。
           </h1>
 
-          {/* Tagline */}
-          <p style={{ fontSize: 14, color: "var(--ink-mute)", marginBottom: "var(--space-6)", letterSpacing: "0.01em" }}>
-            業界特化の取材情報と求人が一か所に。外資・国内SaaS・スタートアップの実態を、登録不要で閲覧できます。
-          </p>
-
           {/* Lead */}
-          <p style={{ fontSize: 16, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 36, maxWidth: "var(--max-w-form)" }}>
+          <p style={{ fontSize: 16, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 28, maxWidth: "var(--max-w-form)" }}>
             外資IT・国内SaaS・スタートアップへの転職情報が一か所に。<br />
             <strong style={{ color: "#D97706" }}>登録不要</strong>で閲覧でき、カジュアル面談で<strong style={{ color: "#D97706" }}>現役社員に直接</strong>話を聞けます。
           </p>
-
-          {/* Trust pills — above CTA for credibility */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, marginBottom: 20 }}>
-            {[
-              { label: "完全無料", sub: "閲覧・面談・登録すべて" },
-              { label: "スカウトなし", sub: "営業電話・メールゼロ" },
-              { label: "30秒で登録", sub: "メールアドレスだけ" },
-            ].map(({ label, sub }) => (
-              <div key={label} style={{
-                display: "inline-flex", alignItems: "center", gap: 9,
-                padding: "8px 14px", borderRadius: 10,
-                background: "#fff", border: "1.5px solid var(--line)",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
-              }}>
-                <div style={{
-                  width: 22, height: 22, borderRadius: "50%",
-                  background: "var(--success-soft)",
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={3} strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1 }}>{label}</div>
-                  <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.3, marginTop: 2 }}>{sub}</div>
-                </div>
-              </div>
-            ))}
-          </div>
 
           {/* CTAs — primary only, secondary as text link */}
           <div style={{ marginBottom: 28 }}>
@@ -417,7 +378,7 @@ function CompanyMiniCardSkeleton() {
 
 // ─── Trust Strip (social proof) ───────────────────────────────────────────────
 
-function TrustStrip() {
+function TrustStrip({ companyNum }: { companyNum: string }) {
   const STATS = [
     {
       icon: (
@@ -426,7 +387,7 @@ function TrustStrip() {
           <polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
       ),
-      num: "80社+",
+      num: companyNum,
       label: "IT/SaaS 企業掲載",
     },
     {
@@ -823,7 +784,7 @@ function PainPoints() {
 
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
-function FinalCta() {
+function FinalCta({ companyNum }: { companyNum: string }) {
   return (
     <section style={{
       background: `linear-gradient(155deg, #002980 0%, #002366 45%, #1a3a8f 100%)`,
@@ -833,15 +794,14 @@ function FinalCta() {
         fontSize: "clamp(28px,3.5vw,44px)", fontWeight: 700, color: "#fff",
         marginBottom: "var(--space-3)", fontFamily: 'var(--font-noto-serif)', lineHeight: 1.35,
       }}>
-        今のキャリアを変えなくてもいい。<br />
-        <span style={{ opacity: 0.85, fontSize: "0.75em" }}>ただ、知ることから始めよう。</span>
+        深く知ってから、動く。<br />
+        <span style={{ opacity: 0.8, fontSize: "0.65em", fontWeight: 500 }}>今のキャリアを変えなくてもいい。まず、知ることから始めよう。</span>
       </h2>
       <p style={{ fontSize: 15, color: "rgba(255,255,255,0.75)", marginBottom: 40, lineHeight: 1.8 }}>
-        IT/SaaS業界の企業情報・求人が、ひとつの場所に。<br />
+        {companyNum}の企業情報・求人が、ひとつの場所に。<br />
         完全無料・メールアドレスのみで登録。
       </p>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-3)" }}>
-        {/* ⑩ Persuasive final CTA with timing hint */}
         <Link href="/companies" style={{
           display: "inline-flex", alignItems: "center", gap: 10,
           padding: "18px 56px",
@@ -853,7 +813,7 @@ function FinalCta() {
           まず企業を見てみる <ArrowIcon />
         </Link>
         <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: 0 }}>
-          登録不要 · 今すぐ全 80社+ の企業情報を見られます
+          登録不要 · 今すぐ全 {companyNum} の企業情報を見られます
         </p>
         <Link href="/auth" style={{
           fontSize: 14, color: "rgba(255,255,255,0.7)", textDecoration: "none",
@@ -1356,6 +1316,7 @@ function DMExperienceMock() {
           <p style={{ fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.75, maxWidth: 520, margin: "0 auto" }}>
             求人票には書けない「残業の実態」「英語環境」「社内文化」を、実際に働く人から聞けます。返信するかどうかは相手次第ですが、意外と丁寧に答えてくれます。
           </p>
+          <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 8 }}>※ 下記の会話はイメージです</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "center" }} className="grid grid-cols-1 md:grid-cols-2">
           {/* Mock chat */}
@@ -1456,6 +1417,7 @@ function SocialProofSection() {
           <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(20px,2.8vw,32px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
             OPINIOで、動き出した人たち。
           </h2>
+          <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 8 }}>※ 実際のご利用者の体験をもとに作成したイメージです</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }} className="grid grid-cols-1 md:grid-cols-3">
           {stories.map((s) => (
@@ -1480,10 +1442,17 @@ function SocialProofSection() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const [stats, setStats] = useState<{ companies: number; jobs: number } | null>(null);
+  useEffect(() => {
+    fetch("/api/stats").then(r => r.json()).then(setStats).catch(() => {});
+  }, []);
+  const companyNum = stats ? `${stats.companies}社+` : "80社+";
+  const jobNum = stats ? `${stats.jobs}件+` : "252件+";
+
   return (
     <>
-      <Hero />
-      <TrustStrip />
+      <Hero companyNum={companyNum} jobNum={jobNum} />
+      <TrustStrip companyNum={companyNum} />
       <HowItWorks />
       <FeaturedCompaniesSection />
       <DMExperienceMock />
@@ -1493,7 +1462,7 @@ export default function HomePage() {
       <ArticlesPreview />
       <SocialProofSection />
       <HomeFaq />
-      <FinalCta />
+      <FinalCta companyNum={companyNum} />
       <MobileAuthCTA />
     </>
   );
