@@ -5,7 +5,6 @@ import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyEditSubNav, type CompanySubNavSection } from "@/components/business/CompanyEditSubNav";
-import { CompanyPublishStatusBar } from "@/components/business/CompanyPublishStatusBar";
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
 import { OfficePhotoSection } from "@/components/business/OfficePhotoSection";
 import { AvailabilityEditor } from "@/components/business/AvailabilityEditor";
@@ -532,13 +531,6 @@ export function CompanyEditClient({
             <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               基本情報
             </h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
-              企業ロゴ、企業名、ミッション、業種など、求職者側のヒーローエリアに表示される情報を編集します。
-            </p>
-            <CompanyPublishStatusBar
-              hasDraftChanges={hasDraftChanges}
-              draftSections="基本情報"
-            />
 
             <SectionCard
               title="企業ロゴ"
@@ -649,9 +641,6 @@ export function CompanyEditClient({
             <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               About（企業説明）
             </h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
-              企業の事業・組織・価値観を、求職者に伝える長文セクションです。マークダウン記法で見出しや太字を使えます。
-            </p>
             <SectionCard
               title="企業説明"
               desc="企業の事業内容、創業背景、組織カルチャー、これからの展望などを自由に記述してください。読み物として読まれます。"
@@ -915,9 +904,6 @@ export function CompanyEditClient({
             <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               働き方
             </h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
-              オフィス所在地、リモートワーク状況、フレックスなど、働き方に関する情報を編集します。
-            </p>
             <SectionCard title="オフィス所在地">
               <FormGroup>
                 <FormLabel required htmlFor="ce-location">本社所在地</FormLabel>
@@ -962,9 +948,6 @@ export function CompanyEditClient({
             <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               オフィス写真
             </h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
-              オフィスの様子を写真で伝えます。カテゴリごとに最大5枚まで登録できます。
-            </p>
             <OfficePhotoSection
               companyId={companyId}
               photos={photos}
@@ -979,9 +962,6 @@ export function CompanyEditClient({
             <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
               公開設定
             </h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 30, lineHeight: 1.9 }}>
-              企業情報の公開状態と、求職者からの問い合わせを受けるかを設定します。
-            </p>
             <SectionCard title="公開状態">
               <FormGroup>
                 <FormLabel>企業情報の公開</FormLabel>
@@ -1184,6 +1164,7 @@ export function CompanyEditClient({
             activeSection={activeSection}
             onSectionClick={(id) => setActiveSection(id as CompanySectionId)}
             completionPercent={completionPercent}
+            hasDraftChanges={hasDraftChanges}
             lastPublishedAt={form.lastPublishedAt}
             lastPublishedAgo={form.lastPublishedAgo}
             onViewPublicPage={() => router.push(`/companies/${companyId}`)}

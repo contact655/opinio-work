@@ -91,16 +91,6 @@ export default async function BizDashboardPage() {
     fetchTeamMembersForDashboard(supabase, ctx.tenantId),
   ]);
 
-  const hour = new Date().getHours();
-  const greeting = getGreeting(hour);
-  const today = new Date().toLocaleDateString("ja-JP", {
-    year: "numeric", month: "long", day: "numeric", weekday: "short",
-  });
-
-  const greetingName = ctx.userName.includes(" ")
-    ? ctx.userName.split(" ").slice(-1)[0]
-    : ctx.userName;
-
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -110,49 +100,6 @@ export default async function BizDashboardPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      {/* ── Greeting header ── */}
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        marginBottom: 20,
-      }}>
-        <div>
-          <h1 style={{
-            fontFamily: "var(--font-noto-serif)",
-            fontWeight: 500, fontSize: 22,
-            color: "var(--ink)", letterSpacing: "0.02em",
-            margin: 0, marginBottom: 2,
-          }}>
-            {greeting}、{greetingName}さん。
-          </h1>
-          <span style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: 11, color: "var(--ink-mute)", fontWeight: 500,
-          }}>
-            {today}
-          </span>
-        </div>
-
-        {/* Quick action buttons */}
-        <div style={{ display: "flex", gap: 8 }}>
-          <Link
-            href="/biz/jobs/new"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 7,
-              padding: "9px 16px",
-              background: "var(--royal)",
-              border: "1px solid var(--royal)",
-              borderRadius: 8, fontSize: 13, fontWeight: 600,
-              color: "#fff", textDecoration: "none",
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            新規求人を作成
-          </Link>
-        </div>
-      </div>
-
       {/* ── Company card ── */}
       <CompanyCard
         tenantId={ctx.tenantId}

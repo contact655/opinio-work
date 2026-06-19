@@ -14,6 +14,7 @@ type Props = {
   activeSection: string;
   onSectionClick: (id: string) => void;
   completionPercent: number;
+  hasDraftChanges: boolean;
   lastPublishedAt?: string;
   lastPublishedAgo?: string;
   onViewPublicPage?: () => void;
@@ -24,6 +25,7 @@ export function CompanyEditSubNav({
   activeSection,
   onSectionClick,
   completionPercent,
+  hasDraftChanges,
   lastPublishedAt,
   lastPublishedAgo,
   onViewPublicPage,
@@ -53,6 +55,29 @@ export function CompanyEditSubNav({
         <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.6 }}>
           編集すると自動的に下書き保存されます。「変更を公開する」で求職者側に反映されます。
         </div>
+      </div>
+
+      {/* 公開ステータス */}
+      <div style={{ padding: "8px 16px 4px" }}>
+        {hasDraftChanges ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "6px 10px", borderRadius: 6,
+            background: "var(--warm-soft)", border: "1px solid #FDE68A",
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warm)", flexShrink: 0 }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#92400E" }}>未公開の変更あり</span>
+          </div>
+        ) : (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "6px 10px", borderRadius: 6,
+            background: "var(--success-soft)", border: "1px solid #A7F3D0",
+          }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--success)" }}>公開済み・最新</span>
+          </div>
+        )}
       </div>
 
       {/* セクションナビ */}
