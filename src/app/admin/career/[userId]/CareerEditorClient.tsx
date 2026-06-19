@@ -117,6 +117,7 @@ export function CareerEditorClient({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          roleTitle: exp.role_title,
           salaryMan: exp.salary_man,
           companyAnonymized: exp.company_anonymized,
           visibilityCompany: exp.visibility_company,
@@ -419,7 +420,26 @@ function ExperienceRow({
       </div>
 
       {/* Input fields */}
-      <div style={{ display: "grid", gridTemplateColumns: "200px 1fr 1fr 1fr", gap: 16, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 160px 1fr 1fr 1fr", gap: 16, alignItems: "start" }}>
+
+        {/* role_title */}
+        <div>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", display: "block", marginBottom: 5 }}>
+            職種・役職名
+          </label>
+          <input
+            value={exp.role_title ?? ""}
+            onChange={(e) =>
+              onUpdate(exp.id, "role_title", e.target.value || null)
+            }
+            placeholder="例: Account Executive、エンジニア"
+            style={{
+              width: "100%", padding: "8px 11px", borderRadius: 7,
+              border: "1px solid var(--line)", fontSize: 14, outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
 
         {/* salary_man */}
         <div>

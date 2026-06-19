@@ -17,6 +17,7 @@ export async function PATCH(
   const body = await request.json();
   const {
     salaryMan,
+    roleTitle,
     companyAnonymized,
     visibilityCompany,
     visibilitySalary,
@@ -30,6 +31,7 @@ export async function PATCH(
   };
 
   if (salaryMan !== undefined)          update.salary_man            = salaryMan;
+  if (roleTitle !== undefined)          update.role_title            = roleTitle;
   if (companyAnonymized !== undefined)  update.company_anonymized    = companyAnonymized;
   if (visibilityCompany !== undefined)  update.visibility_company    = visibilityCompany;
   if (visibilitySalary !== undefined)   update.visibility_salary     = visibilitySalary;
