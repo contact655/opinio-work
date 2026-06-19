@@ -411,17 +411,6 @@ function DashboardView({
 
   return (
     <div>
-      {/* プロフィール完成度ウィジェット */}
-      <ProfileCompletenessCard
-        userName={userName}
-        userAboutMe={userAboutMe}
-        userLocation={userLocation}
-        userSkillTags={userSkillTags}
-        timelineCareers={timelineCareers}
-        userEducations={userEducations}
-        hasCareerPreferences={hasCareerPreferences}
-      />
-
       {/* コンパクトプロフィールカード — Phase ν-6 段階3: 全フィールドインライン編集対応 */}
       <UserProfileCard
         userId={userId}
@@ -841,6 +830,17 @@ export default function MypageClient({
 
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      {/* プロフィール完成度ウィジェット */}
+      <ProfileCompletenessCard
+        userName={userName}
+        userAboutMe={owUser?.about_me}
+        userLocation={owUser?.location}
+        userSkillTags={skillTags}
+        timelineCareers={timelineCareers}
+        userEducations={educations}
+        hasCareerPreferences={hasCareerPreferences}
+      />
+
       {/* 最近の申込 */}
       <div>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>

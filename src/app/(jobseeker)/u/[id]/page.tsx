@@ -433,7 +433,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         @media (min-width: 640px) { .u-role-title { -webkit-line-clamp: unset; display: block; } }
       `}</style>
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 20px 80px" }}>
+      <div style={{ maxWidth: 1060, margin: "0 auto", padding: "32px 20px 80px" }}>
 
         {/* Cover + Avatar header — full width above grid */}
         <div style={{
@@ -1162,6 +1162,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   future={null}
                   viewerIsOwner={viewerIsOwner}
                   collapseAfter={4}
+                  birthDate={owUser.birth_date}
                 />
               </section>
             )}
@@ -1184,6 +1185,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   educations={timelineEdus}
                   future={null}
                   viewerIsOwner={viewerIsOwner}
+                  birthDate={owUser.birth_date}
                 />
               </section>
             )}

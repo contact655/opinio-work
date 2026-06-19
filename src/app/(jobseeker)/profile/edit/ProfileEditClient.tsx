@@ -3540,7 +3540,7 @@ export default function ProfileEditClient({
         {/* 職歴・学歴タブ */}
         {activeTab === "career" && (
           <div style={{ maxWidth: 680 }}>
-            <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} />
+            <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} birthDate={owUser?.birth_date} />
             <EducationEditor
               educations={educations}
               setEducations={setEducations}

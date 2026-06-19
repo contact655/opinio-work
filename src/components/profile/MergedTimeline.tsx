@@ -118,6 +118,8 @@ export interface MergedTimelineProps {
   isAuthenticated?: boolean;
   /** この件数を超えた経歴を折りたたむ（未指定の場合は折りたたみなし） */
   collapseAfter?: number;
+  /** 生年月日（"YYYY-MM-DD"）。年マーカーに年齢を表示するために使用 */
+  birthDate?: string | null;
 }
 
 // ─── Internal discriminated union ─────────────────────────────────────────────
@@ -139,6 +141,8 @@ type RenderEntry =
   | { kind: "career-group";        items: CareerEntry[] }
   | { kind: "career-same-company"; items: CareerEntry[]; companyKey: string }
   | { kind: "education";           data: EducationEntry };
+
+type EnrichedEntry = RenderEntry | { kind: "year-sep"; year: number; age: number | null };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -564,6 +568,82 @@ function FutureIcon({ avatarColor, initial }: { avatarColor: string; initial: st
   );
 }
 
+// ─── Year marker helpers ──────────────────────────────────────────────────────
+
+function getEntryStartYear(entry: RenderEntry): number | null {
+  if (entry.kind === "career") return parseInt(entry.data.started_at.slice(0, 4), 10);
+  if (entry.kind === "career-group") return parseInt(entry.items[0].started_at.slice(0, 4), 10);
+  if (entry.kind === "career-same-company") {
+    const earliest = entry.items.reduce(
+      (e, c) => (c.started_at < e ? c.started_at : e),
+      entry.items[0].started_at
+    );
+    return parseInt(earliest.slice(0, 4), 10);
+  }
+  if (entry.kind === "education") return parseInt(entry.data.enrolled_at.slice(0, 4), 10);
+  return null;
+}
+
+function calcAgeAtYear(year: number, birthDate: string): number | null {
+  const birthYear = parseInt(birthDate.slice(0, 4), 10);
+  const age = year - birthYear;
+  return age > 0 && age < 100 ? age : null;
+}
+
+function YearSeparator({ year, age }: { year: number; age: number | null }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "80px 1fr",
+        alignItems: "center",
+        position: "relative",
+        zIndex: 2,
+        margin: "8px 0 0",
+      }}
+    >
+      {/* 年チップ — 縦線の上に乗る */}
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <div
+          style={{
+            background: "#fff",
+            border: "1.5px solid var(--line)",
+            borderRadius: 100,
+            padding: "2px 9px",
+            fontSize: 11,
+            fontWeight: 700,
+            color: "var(--ink-soft)",
+            fontFamily: "Inter, sans-serif",
+            letterSpacing: "0.04em",
+            lineHeight: 1.6,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {year}
+        </div>
+      </div>
+      {/* 年齢 + 横線 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 12 }}>
+        {age !== null && (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "var(--ink-mute)",
+              fontFamily: "Inter, sans-serif",
+              whiteSpace: "nowrap",
+              letterSpacing: "0.02em",
+            }}
+          >
+            {age}歳
+          </span>
+        )}
+        <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+      </div>
+    </div>
+  );
+}
+
 // ─── Description gate (未ログイン時) ─────────────────────────────────────────
 
 function DescriptionGate() {
@@ -873,6 +953,7 @@ export default function MergedTimeline({
   viewerIsOwner = false,
   isAuthenticated = true,
   collapseAfter,
+  birthDate,
 }: MergedTimelineProps) {
   const hasFuture = future != null && (!!(future.text?.trim()) || viewerIsOwner);
   const parallelIds = buildParallelMap(careers);
@@ -898,6 +979,24 @@ export default function MergedTimeline({
     : renderEntries;
 
   if (renderEntries.length === 0) return null;
+
+  // 年区切りマーカーを注入
+  const enrichedEntries: EnrichedEntry[] = [];
+  let prevYear: number | null = null;
+  for (const entry of visibleEntries) {
+    if (entry.kind !== "future") {
+      const thisYear = getEntryStartYear(entry);
+      if (thisYear !== null && thisYear !== prevYear) {
+        enrichedEntries.push({
+          kind: "year-sep",
+          year: thisYear,
+          age: birthDate ? calcAgeAtYear(thisYear, birthDate) : null,
+        });
+        prevYear = thisYear;
+      }
+    }
+    enrichedEntries.push(entry);
+  }
 
   return (
     <>
@@ -991,7 +1090,11 @@ export default function MergedTimeline({
       `}</style>
 
       <div className="merged-timeline">
-        {visibleEntries.map((entry, _idx) => {
+        {enrichedEntries.map((entry, _idx) => {
+          if (entry.kind === "year-sep") {
+            return <YearSeparator key={`year-${entry.year}-${_idx}`} year={entry.year} age={entry.age} />;
+          }
+
           if (entry.kind === "future") {
             return (
               <div key="future" className="tl-row">

@@ -883,9 +883,11 @@ function StintCard({
 export default function CareerHistoryEditor({
   initialExperiences = [],
   roles = [],
+  birthDate,
 }: {
   initialExperiences?: Stint[];
   roles?: { id: string; name: string; parent_id: string | null; display_order: number }[];
+  birthDate?: string | null;
 }) {
   const [stints, setStints] = useState<Stint[]>(() => sortStints(initialExperiences));
 
@@ -1097,6 +1099,19 @@ export default function CareerHistoryEditor({
   const groups = groupStints(stints);
   const rows = buildTimelineRows(groups);
 
+  // 年区切り用ヘルパー
+  function rowStartYear(row: StintGroup[]): number | null {
+    const earliest = row.reduce((e, g) => (g.earliestStart < e ? g.earliestStart : e), row[0].earliestStart);
+    const y = parseInt(earliest.slice(0, 4), 10);
+    return isNaN(y) ? null : y;
+  }
+  function ageAtYear(year: number): number | null {
+    if (!birthDate) return null;
+    const birthYear = parseInt(birthDate.slice(0, 4), 10);
+    const age = year - birthYear;
+    return age > 0 && age < 100 ? age : null;
+  }
+
   return (
     <div>
       <style>{`
@@ -1105,12 +1120,43 @@ export default function CareerHistoryEditor({
       `}</style>
 
       {/* グループ一覧（並行在籍は横並び） */}
-      {rows.map((row, rowIdx) => (
-        <div
-          key={row.map(g => g.key).join("|")}
-          className="career-row"
-          style={{ marginBottom: rowIdx < rows.length - 1 ? 14 : 0 }}
-        >
+      {rows.map((row, rowIdx) => {
+        const year = rowStartYear(row);
+        const prevYear = rowIdx > 0 ? rowStartYear(rows[rowIdx - 1]) : null;
+        const showYearSep = year !== null && year !== prevYear;
+        const age = year !== null ? ageAtYear(year) : null;
+        return (
+        <div key={row.map(g => g.key).join("|")}>
+          {showYearSep && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              margin: rowIdx === 0 ? "0 0 10px" : "4px 0 10px",
+            }}>
+              <div style={{
+                background: "var(--royal-50)",
+                border: "1px solid var(--royal-100)",
+                borderRadius: 100,
+                padding: "2px 9px",
+                fontSize: 11, fontWeight: 700,
+                color: "var(--royal)",
+                fontFamily: "Inter, sans-serif",
+                letterSpacing: "0.04em",
+                whiteSpace: "nowrap",
+              }}>
+                {year}年
+              </div>
+              {age !== null && (
+                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                  {age}歳
+                </span>
+              )}
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            </div>
+          )}
+          <div
+            className="career-row"
+            style={{ marginBottom: rowIdx < rows.length - 1 ? 14 : 0 }}
+          >
           {row.map((group) => {
             const showBadgeId = group.positions[0]?.isCurrent ? group.positions[0].id : null;
             const avatarColor = getAvatarColor(group.displayCompanyName);
@@ -1249,8 +1295,10 @@ export default function CareerHistoryEditor({
               </div>
             );
           })}
+          </div>
         </div>
-      ))}
+      );
+      })}
 
       {/* Empty state */}
       {stints.length === 0 && addingForCompanyKey === null && (
