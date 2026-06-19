@@ -152,25 +152,14 @@ export default async function CareerTrajectoriesPage() {
 
         {/* ページヘッダー */}
         <div style={{ marginBottom: 36 }}>
-          <div style={{
-            fontSize: 11, fontWeight: 700, letterSpacing: "0.12em",
-            color: "var(--ink-mute)", marginBottom: 6, fontFamily: "Inter, sans-serif",
-            textTransform: "uppercase",
-          }}>
-            Career Trajectories
-          </div>
           <h1 style={{
-            fontSize: 28, fontWeight: 800, margin: "0 0 10px",
+            fontSize: 28, fontWeight: 800, margin: "0 0 12px",
             fontFamily: "Noto Serif JP, serif", color: "var(--ink)",
           }}>
             キャリア軌跡
           </h1>
-          <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: 0, lineHeight: 1.7, maxWidth: 520 }}>
-            IT/SaaS 業界で活躍する先輩たちの実際のキャリアパスを、
-            本人の希望する範囲で公開しています。
-          </p>
           {cards.length > 0 && (
-            <div style={{ marginTop: 14 }}>
+            <div>
               <span style={{
                 background: "var(--royal-50)", color: "var(--royal)",
                 borderRadius: 100, padding: "4px 14px",
@@ -186,10 +175,13 @@ export default async function CareerTrajectoriesPage() {
         <style>{`
           .trajectory-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 24px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
           }
-          @media (max-width: 640px) {
+          @media (max-width: 900px) {
+            .trajectory-grid { grid-template-columns: repeat(2, 1fr); }
+          }
+          @media (max-width: 560px) {
             .trajectory-grid { grid-template-columns: 1fr; }
           }
         `}</style>

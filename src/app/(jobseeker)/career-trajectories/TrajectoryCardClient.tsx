@@ -222,7 +222,7 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
           cursor: pointer; border: none; background: transparent; padding: 0;
         }
         .older-chip {
-          width: 52px; height: 52px; border-radius: 12px;
+          width: 64px; height: 64px; border-radius: 12px;
           background: var(--royal-50); border: 1.5px solid var(--royal-100);
           display: flex; align-items: center; justify-content: center;
           transition: background 0.15s, border-color 0.15s, transform 0.15s;
