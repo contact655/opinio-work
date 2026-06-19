@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -27,20 +29,28 @@ const nextConfig = {
       {
         source: "/for-companies",
         destination: "/business",
-        permanent: true, // 301
+        permanent: true,
       },
       {
         source: "/biz/company/employees/categories",
         destination: "/biz/organization",
-        permanent: true, // 301
+        permanent: true,
       },
       {
         source: "/biz/company/employees/categories/:path*",
         destination: "/biz/organization/:path*",
-        permanent: true, // 301
+        permanent: true,
       },
     ];
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "opinio",
+  project: "javascript-nextjs",
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: true,
+});
