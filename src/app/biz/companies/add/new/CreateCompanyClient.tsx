@@ -512,7 +512,8 @@ export function CreateCompanyClient({
           </div>
         )}
 
-        {/* 業界 */}
+        {/* 業界 — conflict中は非表示 */}
+        {!conflict && (
         <div>
           <label htmlFor="cc-industry" style={labelStyle}>業界</label>
           <select
@@ -527,9 +528,10 @@ export function CreateCompanyClient({
             ))}
           </select>
         </div>
+        )}
 
-        {/* 企業ジャンル */}
-        {availableGenres.length > 0 && (
+        {/* 企業ジャンル — conflict中は非表示 */}
+        {!conflict && availableGenres.length > 0 && (
           <div>
             <label style={labelStyle}>
               企業ジャンル
@@ -549,7 +551,8 @@ export function CreateCompanyClient({
           </div>
         )}
 
-        {/* 企業サイト URL */}
+        {/* 企業サイト URL — conflict中は非表示 */}
+        {!conflict && (
         <div>
           <label htmlFor="cc-website" style={labelStyle}>企業サイト URL</label>
           <input
@@ -561,8 +564,11 @@ export function CreateCompanyClient({
             style={{ ...inputStyle, color: website ? "var(--ink)" : undefined }}
           />
         </div>
+        )}
 
-        {/* エラー */}
+        {/* エラー・送信ボタン — conflict中は非表示（conflict時はカード内のボタンで操作） */}
+        {!conflict && (
+        <>
         {error && (
           <div style={{
             fontSize: 12, color: "var(--error)",
@@ -572,20 +578,7 @@ export function CreateCompanyClient({
             {error}
           </div>
         )}
-
-        {/* 送信ボタン（常に表示、conflict時は無効） */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-          {conflict && (
-            <div style={{
-              fontSize: 12, color: "#92400E",
-              padding: "8px 12px",
-              background: "var(--warm-soft)",
-              border: "1px solid #FCD34D",
-              borderRadius: 6, lineHeight: 1.6,
-            }}>
-              同名の企業が存在します。上記の選択肢から操作してください。
-            </div>
-          )}
           <button
             type="submit"
             disabled={!canSubmit}
@@ -616,6 +609,8 @@ export function CreateCompanyClient({
             キャンセル
           </a>
         </div>
+        </>
+        )}
       </form>
     </div>
   );
