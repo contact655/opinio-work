@@ -450,11 +450,11 @@ function FormSection({
         borderRadius: 14, padding: "28px 32px", marginBottom: 20,
       }}
     >
-      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: desc ? 6 : 20 }}>
+      <div style={{ fontWeight: 700, fontSize: 16, color: "var(--ink)", marginBottom: desc ? 6 : 20 }}>
         {title}
       </div>
       {desc && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 20, lineHeight: 1.7 }}>
           {desc}
         </div>
       )}
@@ -471,17 +471,17 @@ function FormGroup({
   return (
     <div style={{ marginBottom: 20 }}>
       {htmlFor ? (
-        <label htmlFor={htmlFor} style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
+        <label htmlFor={htmlFor} style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
           {label}
         </label>
       ) : (
-        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
           {label}
         </div>
       )}
       {children}
       {hint && (
-        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.6 }}>
           {hint}
         </div>
       )}
@@ -552,7 +552,7 @@ function NotificationSettingsSection() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
         <div>
           <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>メール通知設定</div>
-          <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+          <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
             受け取りたいお知らせを選択してください。設定はいつでも変更できます。
           </div>
         </div>
@@ -578,7 +578,7 @@ function NotificationSettingsSection() {
             <span style={{ fontSize: "var(--text-lg)", flexShrink: 0, marginTop: 1 }}>{icon}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>{label}</div>
-              <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", lineHeight: 1.6 }}>{desc}</div>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.6 }}>{desc}</div>
             </div>
             <div style={{ flexShrink: 0, marginTop: 2 }}>
               {/* Toggle switch */}
@@ -602,7 +602,7 @@ function NotificationSettingsSection() {
           </label>
         ))}
       </div>
-      <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--bg-tint)", borderRadius: 8, fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+      <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--bg-tint)", borderRadius: 8, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
         💡 メール通知の配信は登録メールアドレスに送られます。迷惑メールフォルダもご確認ください。
       </div>
     </div>
