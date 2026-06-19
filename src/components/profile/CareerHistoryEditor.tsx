@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, Fragment } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
@@ -132,6 +132,31 @@ function groupStints(stints: Stint[]): StintGroup[] {
     if (aHasCurrent !== bHasCurrent) return aHasCurrent ? -1 : 1;
     return b.earliestStart.localeCompare(a.earliestStart);
   });
+}
+
+function isOverlapping(a: StintGroup, b: StintGroup): boolean {
+  const aEnd = a.latestEnd ?? "9999-12";
+  const bEnd = b.latestEnd ?? "9999-12";
+  return a.earliestStart <= bEnd && b.earliestStart <= aEnd;
+}
+
+function buildTimelineRows(groups: StintGroup[]): StintGroup[][] {
+  const rows: StintGroup[][] = [];
+  const placed = new Set<string>();
+  for (let i = 0; i < groups.length; i++) {
+    if (placed.has(groups[i].key)) continue;
+    const row: StintGroup[] = [groups[i]];
+    placed.add(groups[i].key);
+    for (let j = i + 1; j < groups.length; j++) {
+      if (placed.has(groups[j].key)) continue;
+      if (row.length < 2 && isOverlapping(groups[i], groups[j])) {
+        row.push(groups[j]);
+        placed.add(groups[j].key);
+      }
+    }
+    rows.push(row);
+  }
+  return rows;
 }
 
 function formatGroupDateRange(group: StintGroup): string {
@@ -606,14 +631,13 @@ function StintForm({
               }
               // 子あり → 親は見出し（選択不可）+ 子のみ選択可
               return (
-                <Fragment key={parent.id}>
-                  <option value="" disabled>── {parent.name} ──</option>
+                <optgroup key={parent.id} label={parent.name}>
                   {children.map((child) => (
                     <option key={child.id} value={child.id}>
                       {child.name}
                     </option>
                   ))}
-                </Fragment>
+                </optgroup>
               );
             })}
         </select>
@@ -843,7 +867,7 @@ function StintCard({
           )}
         </div>
         {/* Controls */}
-        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0.45, transition: "opacity 0.15s", flexShrink: 0 }}>
           <IconButton onClick={onEdit} title="編集">✎</IconButton>
           <IconButton onClick={onDelete} title="削除" danger>×</IconButton>
         </div>
@@ -1071,147 +1095,162 @@ export default function CareerHistoryEditor({
   // ── Render ───────────────────────────────────────────────────────────────────
 
   const groups = groupStints(stints);
+  const rows = buildTimelineRows(groups);
 
   return (
     <div>
-      {/* グループ一覧 */}
-      {groups.map((group, gIdx) => {
-        const showBadgeId = group.positions[0]?.isCurrent ? group.positions[0].id : null;
-        const avatarColor = getAvatarColor(group.displayCompanyName);
-        const avatarInitial = group.displayCompanyName.charAt(0);
+      <style>{`
+        .career-row { display: flex; gap: 12px; }
+        @media (max-width: 640px) { .career-row { flex-direction: column; } }
+      `}</style>
 
-        return (
-          <div
-            key={group.key}
-            style={{
-              background: `${avatarColor}0D`,
-              borderLeft: `4px solid ${avatarColor}`,
-              borderRadius: 12,
-              marginBottom: gIdx < groups.length - 1 ? 14 : 16,
-              overflow: "hidden",
-              boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
-            }}
-          >
-            {/* グループヘッダー: アバター + 会社名 + 期間 */}
-            <div
-              style={{
-                padding: "16px 18px 12px",
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
+      {/* グループ一覧（並行在籍は横並び） */}
+      {rows.map((row, rowIdx) => (
+        <div
+          key={row.map(g => g.key).join("|")}
+          className="career-row"
+          style={{ marginBottom: rowIdx < rows.length - 1 ? 14 : 0 }}
+        >
+          {row.map((group) => {
+            const showBadgeId = group.positions[0]?.isCurrent ? group.positions[0].id : null;
+            const avatarColor = getAvatarColor(group.displayCompanyName);
+            const avatarInitial = group.displayCompanyName.charAt(0);
+
+            return (
               <div
+                key={group.key}
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 8,
-                  background: avatarColor,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 800,
-                  fontSize: 16,
-                  color: "#fff",
-                  fontFamily: "Inter, sans-serif",
-                  flexShrink: 0,
-                  boxShadow: `0 2px 8px ${avatarColor}55`,
+                  flex: 1,
+                  minWidth: 0,
+                  background: "#fff",
+                  border: "1px solid var(--line)",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
                 }}
               >
-                {avatarInitial}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3 }}>
-                  {group.displayCompanyName}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
-                    {formatGroupDateRange(group)}
-                  </span>
-                  <span style={{
-                    fontSize: 12, fontWeight: 700,
-                    color: "var(--royal)", background: "var(--royal-50)",
-                    borderRadius: 100, padding: "1px 9px",
-                    fontFamily: "Inter, sans-serif", flexShrink: 0,
-                  }}>
-                    {formatDuration(group.totalMonths)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* ポジション群（白カード） */}
-            <div style={{ padding: "0 18px 16px" }}>
-              {group.positions.map((s, pIdx) => (
-                <div key={s.id} style={{ marginBottom: pIdx < group.positions.length - 1 ? 8 : 0 }}>
-                  {editingId === s.id ? (
-                    <StintForm
-                      draft={editDraft}
-                      onDraftChange={setEditDraft}
-                      isSaving={editSaving}
-                      justSaved={editJustSaved}
-                      onSave={() => { void saveEdit(); }}
-                      onCancel={cancelEdit}
-                      roles={roles}
-                    />
-                  ) : (
-                    <StintCard
-                      stint={{ ...s, showCurrentBadge: s.id === showBadgeId }}
-                      onEdit={() => startEdit(s)}
-                      onDelete={() => setDeleteTarget(s)}
-                    />
-                  )}
-                </div>
-              ))}
-
-              {/* グループ内追加フォーム */}
-              {addingForCompanyKey === group.key && (
-                <div style={{ marginTop: 10 }}>
-                  <StintForm
-                    draft={addDraft}
-                    onDraftChange={setAddDraft}
-                    isSaving={addSaving}
-                    justSaved={addJustSaved}
-                    onSave={() => { void saveAdd(); }}
-                    onCancel={cancelAdd}
-                    roles={roles}
-                    companyLocked={true}
-                  />
-                </div>
-              )}
-
-              {/* 「+ このポジションに役割を追加」テキストリンク */}
-              {addingForCompanyKey !== group.key && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAddDraft(draftFromGroup(group));
-                    setAddingForCompanyKey(group.key);
-                  }}
+                {/* グループヘッダー: アバター + 会社名 + 期間 */}
+                <div
                   style={{
-                    marginTop: 10,
+                    padding: "16px 18px 12px",
                     display: "flex",
                     alignItems: "center",
-                    gap: 4,
-                    padding: "5px 10px",
-                    background: "var(--royal-50)",
-                    border: "1px dashed var(--royal-100)",
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "var(--royal)",
-                    cursor: "pointer",
-                    fontFamily: "inherit",
+                    gap: 14,
                   }}
                 >
-                  <span style={{ fontSize: 13, lineHeight: 1 }}>+</span>
-                  このポジションに役割を追加
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      })}
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 8,
+                      background: avatarColor,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 800,
+                      fontSize: 16,
+                      color: "#fff",
+                      fontFamily: "Inter, sans-serif",
+                      flexShrink: 0,
+                      boxShadow: `0 2px 8px ${avatarColor}55`,
+                    }}
+                  >
+                    {avatarInitial}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3 }}>
+                      {group.displayCompanyName}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 12, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
+                        {formatGroupDateRange(group)}
+                      </span>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700,
+                        color: "var(--royal)", background: "var(--royal-50)",
+                        borderRadius: 100, padding: "1px 9px",
+                        fontFamily: "Inter, sans-serif", flexShrink: 0,
+                      }}>
+                        {formatDuration(group.totalMonths)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ポジション群 */}
+                <div style={{ padding: "0 18px 16px" }}>
+                  {group.positions.map((s, pIdx) => (
+                    <div key={s.id} style={{ marginBottom: pIdx < group.positions.length - 1 ? 8 : 0 }}>
+                      {editingId === s.id ? (
+                        <StintForm
+                          draft={editDraft}
+                          onDraftChange={setEditDraft}
+                          isSaving={editSaving}
+                          justSaved={editJustSaved}
+                          onSave={() => { void saveEdit(); }}
+                          onCancel={cancelEdit}
+                          roles={roles}
+                        />
+                      ) : (
+                        <StintCard
+                          stint={{ ...s, showCurrentBadge: s.id === showBadgeId }}
+                          onEdit={() => startEdit(s)}
+                          onDelete={() => setDeleteTarget(s)}
+                        />
+                      )}
+                    </div>
+                  ))}
+
+                  {/* グループ内追加フォーム */}
+                  {addingForCompanyKey === group.key && (
+                    <div style={{ marginTop: 10 }}>
+                      <StintForm
+                        draft={addDraft}
+                        onDraftChange={setAddDraft}
+                        isSaving={addSaving}
+                        justSaved={addJustSaved}
+                        onSave={() => { void saveAdd(); }}
+                        onCancel={cancelAdd}
+                        roles={roles}
+                        companyLocked={true}
+                      />
+                    </div>
+                  )}
+
+                  {/* 「+ このポジションに役割を追加」テキストリンク */}
+                  {addingForCompanyKey !== group.key && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddDraft(draftFromGroup(group));
+                        setAddingForCompanyKey(group.key);
+                      }}
+                      style={{
+                        marginTop: 10,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        padding: "5px 10px",
+                        background: "var(--royal-50)",
+                        border: "1px dashed var(--royal-100)",
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "var(--royal)",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      <span style={{ fontSize: 13, lineHeight: 1 }}>+</span>
+                      このポジションに役割を追加
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
 
       {/* Empty state */}
       {stints.length === 0 && addingForCompanyKey === null && (
