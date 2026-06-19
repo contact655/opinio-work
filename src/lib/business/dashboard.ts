@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect";
@@ -104,8 +105,10 @@ export async function getTenantContext(): Promise<TenantContext | null> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
+    // admin client で RLS をバイパスして確実に company membership を解決する
+    const admin = createAdminClient();
     const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
-    const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+    const ctx = await getCompanyContext(admin, user.id, cookieCompanyId);
     if (!ctx) return null;
 
     // Multi-company: redirect to selection page when no cookie is set
@@ -118,14 +121,14 @@ export async function getTenantContext(): Promise<TenantContext | null> {
 
     // ow_companies / ow_users / ow_tenant_plans を一括並列取得
     const [companiesRes, owUserRes, planRes] = await Promise.all([
-      supabase.from("ow_companies")
+      admin.from("ow_companies")
         .select("id, name, logo_gradient, logo_letter")
         .in("id", allMembershipIds),
-      supabase.from("ow_users")
+      admin.from("ow_users")
         .select("avatar_color")
         .eq("id", owUserId)
         .maybeSingle(),
-      supabase.from("ow_tenant_plans")
+      admin.from("ow_tenant_plans")
         .select("plan_type")
         .eq("tenant_id", tenantId)
         .eq("status", "active")
