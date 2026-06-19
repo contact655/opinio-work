@@ -13,6 +13,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
@@ -38,8 +39,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "roleId または customName が必要です" }, { status: 400 });
   }
 
+  const admin = createAdminClient();
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
-  const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+  const ctx = await getCompanyContext(admin, user.id, cookieCompanyId);
   if (!ctx) {
     return NextResponse.json({ error: "Company context not found" }, { status: 404 });
   }
@@ -47,7 +49,7 @@ export async function POST(req: Request) {
 
   try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("ow_company_employee_categories")
     .insert({
       company_id: companyId,
@@ -91,8 +93,9 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "orderedIds must be a non-empty array" }, { status: 400 });
   }
 
+  const admin = createAdminClient();
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
-  const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+  const ctx = await getCompanyContext(admin, user.id, cookieCompanyId);
   if (!ctx) {
     return NextResponse.json({ error: "Company context not found" }, { status: 404 });
   }
@@ -101,7 +104,7 @@ export async function PUT(req: Request) {
   // 各 ID の display_order を index 値に更新
   // 並列実行で高速化、ただし企業帰属確認のため company_id も条件に含める
   const updates = orderedIds.map((id, index) =>
-    supabase
+    admin
       .from("ow_company_employee_categories")
       .update({ display_order: index })
       .eq("id", id)

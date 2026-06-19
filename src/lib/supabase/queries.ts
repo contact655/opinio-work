@@ -8,6 +8,7 @@
 
 import { unstable_cache } from "next/cache";
 import { createClient } from "./server";
+import { createAdminClient } from "./admin";
 import { createPublicClient } from "./public";
 import type { Company, CompanyGenre, WorkStyle } from "@/app/companies/mockCompanies";
 import type { Job } from "@/app/jobs/mockJobData";
@@ -1115,16 +1116,16 @@ export type CompanyEmployeeCategoryItem = {
 export async function getCompanyEmployeeCategories(
   companyId: string
 ): Promise<CompanyEmployeeCategoryItem[]> {
-  const supabase = createClient();
+  // admin client を使用: FK 制約不在による embedded join 失敗を回避
+  const admin = createAdminClient();
 
   const [catResult, rolesResult] = await Promise.all([
-    supabase
+    admin
       .from("ow_company_employee_categories")
-      // left join: カスタムカテゴリは role_id が null のため !inner ではなく left join
-      .select("id, role_id, display_order, custom_name, parent_role_id, ow_roles(id, name, parent_id)")
+      .select("id, role_id, display_order, custom_name, parent_role_id")
       .eq("company_id", companyId)
       .order("display_order"),
-    supabase
+    admin
       .from("ow_roles")
       .select("id, name, parent_id"),
   ]);
@@ -1140,22 +1141,23 @@ export async function getCompanyEmployeeCategories(
   );
 
   return catResult.data.map((item) => {
+    const roleId = (item.role_id as string | null) ?? null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const role = item.ow_roles as Record<string, any> | null;
+    const role = roleId ? roleMap.get(roleId) as Record<string, any> | undefined : undefined;
     const customName = (item.custom_name as string | null) ?? null;
     const parentRoleId = (item.parent_role_id as string | null) ?? null;
 
     // 親の解決: 通常ロールは ow_roles.parent_id、カスタムカテゴリは parent_role_id
-    const resolvedParentId = role?.parent_id ?? parentRoleId ?? null;
-    const parent = resolvedParentId ? roleMap.get(resolvedParentId as string) : null;
+    const resolvedParentId = (role?.parent_id as string | null) ?? parentRoleId ?? null;
+    const parent = resolvedParentId ? roleMap.get(resolvedParentId) : null;
 
     return {
       id: item.id as string,
-      roleId: (role?.id as string | null) ?? null,
+      roleId,
       roleName: customName ?? (role?.name as string) ?? "",
       customName,
       parentRoleId,
-      parentId: (resolvedParentId as string | null) ?? null,
+      parentId: resolvedParentId ?? null,
       parentName: (parent?.name as string | null) ?? null,
       displayOrder: item.display_order as number,
     };

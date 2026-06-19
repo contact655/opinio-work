@@ -10,6 +10,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
@@ -27,8 +28,9 @@ export async function DELETE(
   const { id } = params;
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
+  const admin = createAdminClient();
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
-  const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+  const ctx = await getCompanyContext(admin, user.id, cookieCompanyId);
   if (!ctx) {
     return NextResponse.json({ error: "Company context not found" }, { status: 404 });
   }
@@ -37,7 +39,7 @@ export async function DELETE(
   try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
   // company_id を条件に含めて他社データの削除を防止
-  const { error, count } = await supabase
+  const { error, count } = await admin
     .from("ow_company_employee_categories")
     .delete({ count: "exact" })
     .eq("id", id)
