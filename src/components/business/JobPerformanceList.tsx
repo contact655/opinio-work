@@ -14,7 +14,9 @@ export function JobPerformanceList({ jobs }: { jobs: JobPerformance[] }) {
     <section>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>求人のパフォーマンス</h2>
-        <span style={{ fontSize: 11, color: "#94a3b8" }}>業界平均応募率: {INDUSTRY_AVG_CONVERSION_RATE}%</span>
+        {jobs.length > 0 && (
+          <span style={{ fontSize: 11, color: "#94a3b8" }}>業界平均応募率: {INDUSTRY_AVG_CONVERSION_RATE}%</span>
+        )}
       </div>
 
       {jobs.length === 0 ? (

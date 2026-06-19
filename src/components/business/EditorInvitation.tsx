@@ -45,21 +45,24 @@ export function EditorInvitation() {
 
       {/* Row 3: 数字強調 + CTA */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-          <span style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: 22,
-            fontWeight: 700,
-            color: "#7C3AED",
-            lineHeight: 1,
-          }}>3.2×</span>
-          <span style={{ fontSize: 12, color: "#6D28D9", fontWeight: 500 }}>
-            取材記事掲載後の閲覧数増加（平均）
-          </span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2, flexShrink: 0 }}>
-            <line x1="12" y1="19" x2="12" y2="5"/>
-            <polyline points="5 12 12 5 19 12"/>
-          </svg>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+            <span style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 22,
+              fontWeight: 700,
+              color: "#7C3AED",
+              lineHeight: 1,
+            }}>3.2×</span>
+            <span style={{ fontSize: 12, color: "#6D28D9", fontWeight: 500 }}>
+              取材記事掲載後の閲覧数増加（当社調べ）
+            </span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2, flexShrink: 0 }}>
+              <line x1="12" y1="19" x2="12" y2="5"/>
+              <polyline points="5 12 12 5 19 12"/>
+            </svg>
+          </div>
+          <span style={{ fontSize: 10, color: "#9CA3AF" }}>※ OPINIO掲載企業の平均値（2025年実績）</span>
         </div>
 
         <a
