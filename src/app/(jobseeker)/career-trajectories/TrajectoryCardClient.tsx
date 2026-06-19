@@ -215,30 +215,62 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
       >
         {/* ── ヘッダー ── */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{
-            display: "flex", alignItems: "center",
-            fontSize: 16, fontWeight: 800, color: "var(--ink)",
-            fontFamily: "var(--font-noto-sans), sans-serif", marginBottom: 4,
-          }}>
-            {age && <span>{age}歳</span>}
-            {age && card.gender && (
-              <span style={{ color: "var(--line)", margin: "0 8px", fontWeight: 300, fontSize: 18 }}>｜</span>
+          {/* 年齢 + 性別バッジ */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 6 }}>
+            {age && (
+              <span style={{
+                fontSize: 28, fontWeight: 900, color: "var(--ink)",
+                fontFamily: "Inter, sans-serif", lineHeight: 1,
+              }}>
+                {age}<span style={{ fontSize: 14, fontWeight: 700, marginLeft: 2 }}>歳</span>
+              </span>
             )}
-            {card.gender && <span>{card.gender}</span>}
+            {card.gender && (
+              <span style={{
+                fontSize: 11, fontWeight: 700,
+                padding: "3px 10px", borderRadius: 100,
+                background: card.gender === "女性" ? "#FDF2F8" : "var(--royal-50)",
+                color: card.gender === "女性" ? "#9D174D" : "var(--royal)",
+                border: `1px solid ${card.gender === "女性" ? "#FBCFE8" : "var(--royal-100)"}`,
+                letterSpacing: "0.04em",
+              }}>
+                {card.gender}
+              </span>
+            )}
           </div>
+
+          {/* 役職・ヘッドライン */}
           {roleTitle && (
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5, lineHeight: 1.4 }}>
+            <div style={{
+              fontSize: 13, fontWeight: 700, color: "var(--ink)",
+              marginBottom: 8, lineHeight: 1.45,
+            }}>
               {roleTitle}
             </div>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+
+          {/* メタバッジ行 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             {card.yearsOfExperience && (
-              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>社会人歴 {card.yearsOfExperience}年</span>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 11, fontWeight: 600, color: "var(--ink-soft)",
+                background: "var(--line-soft)", borderRadius: 6,
+                padding: "3px 8px",
+              }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                社会人歴 {card.yearsOfExperience}年
+              </span>
             )}
-            {card.yearsOfExperience && (
-              <span style={{ fontSize: 12, color: "var(--line)" }}>·</span>
-            )}
-            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{uniqueSteps.length}社経験</span>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 11, fontWeight: 600, color: "var(--ink-soft)",
+              background: "var(--line-soft)", borderRadius: 6,
+              padding: "3px 8px",
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+              {uniqueSteps.length}社経験
+            </span>
           </div>
         </div>
 
