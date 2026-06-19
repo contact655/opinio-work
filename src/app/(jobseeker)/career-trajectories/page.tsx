@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+
+import { unstable_noStore as noStore } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TrajectoryCardClient, type CardData } from "./TrajectoryCardClient";
@@ -46,6 +49,7 @@ type UserRow = {
 // ────────────────────────────────────────────────────────────────
 
 async function getProfiles(): Promise<CardData[]> {
+  noStore();
   const adminSupabase = createAdminClient();
 
   const { data: publicUsers } = await adminSupabase

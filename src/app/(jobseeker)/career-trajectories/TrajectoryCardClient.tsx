@@ -63,13 +63,26 @@ function LogoChip({
   logo,
   name,
   isCurrent,
+  companyId,
   size = 48,
 }: {
   logo: CompanyLogo | null;
   name: string;
   isCurrent: boolean;
+  companyId: string | null;
   size?: number;
 }) {
+  const router = useRouter();
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!companyId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/companies/${companyId}`);
+  };
+
+  const isClickable = !!companyId;
+
   const inner = logo?.logo_url ? (
     <img
       src={logo.logo_url}
@@ -91,14 +104,24 @@ function LogoChip({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
+    <div
+      onClick={handleClick}
+      title={isClickable ? `${name}の企業ページへ` : undefined}
+      style={{
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0,
+        cursor: isClickable ? "pointer" : "default",
+      }}
+    >
       <div style={{
         position: "relative",
         border: isCurrent ? "2.5px solid var(--royal)" : "2px solid var(--line)",
         borderRadius: 12,
         padding: 2,
         background: isCurrent ? "var(--royal-50)" : "transparent",
-      }}>
+        transition: isClickable ? "transform 0.15s, box-shadow 0.15s" : undefined,
+      }}
+        className={isClickable ? "logo-chip-hoverable" : undefined}
+      >
         {inner}
         {isCurrent && (
           <div style={{
@@ -117,6 +140,9 @@ function LogoChip({
         fontWeight: isCurrent ? 700 : 500,
         maxWidth: 64, overflow: "hidden", textOverflow: "ellipsis",
         whiteSpace: "nowrap", textAlign: "center",
+        textDecoration: isClickable ? "underline" : "none",
+        textDecorationColor: "var(--line)",
+        textUnderlineOffset: 2,
       }}>
         {name}
       </div>
@@ -207,6 +233,11 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
         }
         .older-chip-btn:hover .older-chip svg { stroke: #fff; }
         .older-chip-btn:hover .older-chip-label { color: var(--royal); }
+        .logo-chip-hoverable:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,35,102,0.18);
+          border-color: var(--royal-100) !important;
+        }
       `}</style>
 
       <div
@@ -292,7 +323,7 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
                   animation: `slideInFromLeft 0.32s ease ${i * 0.07}s both`,
                 }}
               >
-                <LogoChip logo={logo} name={name} isCurrent={false} size={64} />
+                <LogoChip logo={logo} name={name} isCurrent={false} companyId={step.company_id} size={64} />
                 <div style={{ animation: `fadeInConnector 0.3s ease ${i * 0.07 + 0.15}s both`, opacity: 0 }}>
                   <Connector />
                 </div>
@@ -331,7 +362,7 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
             const name = getDisplayName(step, logo);
             return (
               <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
-                <LogoChip logo={logo} name={name} isCurrent={step.is_current} size={64} />
+                <LogoChip logo={logo} name={name} isCurrent={step.is_current} companyId={step.company_id} size={64} />
                 {i < recentSteps.length - 1 && <Connector />}
               </div>
             );
