@@ -105,9 +105,6 @@ export default async function BizDashboardPage() {
       {/* ── Upgrade banner ── */}
       <UpgradeBanner />
 
-      {/* ── Editor invitation ── */}
-      <EditorInvitation />
-
       {/* ── 2-col: JobStatusCards + TeamMembers ── */}
       <div style={{
         display: "grid",
@@ -149,6 +146,9 @@ export default async function BizDashboardPage() {
         </div>
         <JobPerformanceList jobs={jobPerformance} />
       </section>
+
+      {/* ── Editor invitation (最下部) ── */}
+      <EditorInvitation />
     </BusinessLayout>
   );
 }

@@ -124,9 +124,6 @@ export function DashboardMockView() {
         activeJobCount={mockJobStatusCounts.active}
       />
 
-      {/* ── Editor invitation ── */}
-      <EditorInvitation />
-
       {/* ── 2-col: PendingMeetings + ActivityList ── */}
       <div style={{
         display: "grid",
@@ -189,6 +186,9 @@ export function DashboardMockView() {
         </div>
         <JobPerformanceList jobs={mockJobPerformance} />
       </section>
+
+      {/* ── Editor invitation (最下部) ── */}
+      <EditorInvitation />
     </BusinessLayout>
   );
 }
