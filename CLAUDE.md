@@ -13,6 +13,35 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🎯 次のセッションでやること（2026-06-19 セッション23 更新）
+
+### ✅ 完了 2026-06-19 セッション23: LP改善 P0-P2 + Phase 2 Admin UI + Archi Village重複修正
+
+  **LP（`src/app/(jobseeker)/page.tsx`）改善:**
+  - P0-4: Stats統一 — `/api/stats` を HomePage で一元フェッチし、companyNum/jobNum を Hero/TrustStrip/FinalCta に props 渡し（3箇所で別々にfetchしていた問題を解消）
+  - P1-5: 全一次CTA統一 — 「企業情報・求人を見てみる」「→ まず企業・求人を見てみる」を「まず企業を見てみる」に統一
+  - DMExperienceMock: `※ 下記の会話はイメージです` 注意書き追加
+  - SocialProofSection: `※ 実際のご利用者の体験をもとに作成したイメージです` 注意書き追加
+  - FinalCta: h2 を「深く知ってから、動く。」に変更、companyNum を動的表示
+  - CareerTrajectoriesTeaser: 新セクション追加（purple グラデーション背景、サンプルキャリアチップ列、/career-trajectories へのリンク）
+
+  **キャリア軌跡 Phase 2 Admin UI（`admin/career/[userId]/`）:**
+  - `gender` select（非表示/男性/女性）+ `birth_year` number input を CareerEditorClient に追加
+  - `/api/admin/career/profile` POST に gender/birthYear を追加
+  - `page.tsx` の SELECT に gender, birth_year を追加
+  - 小松耕野（男性/1994年生）・生藤弘樹（男性/1991年生）は DB に既設定済み確認 ✅
+
+  **Archi Village 求人重複修正（Migration 181）:**
+  - Migration 168 が5回適用され 18件 → 90件になっていた
+  - `supabase/migrations/181_fix_archi_village_job_duplicates.sql` 作成・コミット
+  - Supabase SQL Editor で手動適用 → 18件に復元 ✅
+
+### 🟢 次の優先候補（2026-06-19 セッション23後）
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- **キャリア軌跡 Phase 3** — /career-trajectories 公開ページ実装
+
+---
+
 ## 🎯 次のセッションでやること（2026-06-18 セッション22 更新）
 
 ### ✅ 完了 2026-06-18 セッション22: キャリア軌跡 Phase 1 + 転職ストーリー 案A
@@ -50,9 +79,10 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
   - **Phase 1 完了 ✅**
 
 ### 🟢 次の優先候補（2026-06-18 セッション22後）
-- **キャリア軌跡 Phase 2** — `/admin` の運営者入力画面（ow_experiences への salary_man + visibility_* 設定 + ow_career_profiles.is_published 操作）
+- ~~キャリア軌跡 Phase 2~~ ✅ 完了済み（2026-06-19）
 - ~~Migration 168 の手動適用~~ ✅ 完了済み（2026-06-18）
 - ~~Migration 169 の手動適用~~ ✅ 完了済み（2026-06-18）
+- ~~Archi Village 重複修正 (Migration 181)~~ ✅ 完了済み（2026-06-19）
 - **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
 
 ---
