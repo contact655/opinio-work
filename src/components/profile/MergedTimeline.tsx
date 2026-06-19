@@ -758,29 +758,6 @@ function CareerContent({
         )
       )}
 
-      {/* Join reason — "なぜこの会社を選んだか" */}
-      {data.join_reason && (
-        <div style={{
-          marginTop: 12,
-          padding: "10px 12px",
-          borderRadius: 8,
-          background: "linear-gradient(135deg, #f8f4ff 0%, #eff6ff 100%)",
-          border: "1px solid #e8e0ff",
-          maxWidth: 560,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.5" strokeLinecap="round">
-              <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-            </svg>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--purple)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-              Why I joined
-            </span>
-          </div>
-          <p style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" }}>
-            {data.join_reason}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
@@ -1269,26 +1246,6 @@ export default function MergedTimeline({
                               ) : (
                                 <DescriptionGate />
                               )
-                            )}
-                            {c.join_reason && (
-                              <div style={{
-                                marginTop: 8,
-                                padding: "8px 10px",
-                                borderRadius: 7,
-                                background: "linear-gradient(135deg, #f8f4ff 0%, #eff6ff 100%)",
-                                border: "1px solid #e8e0ff",
-                                maxWidth: 520,
-                              }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.5" strokeLinecap="round">
-                                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-                                  </svg>
-                                  <span style={{ fontSize: 9, fontWeight: 700, color: "var(--purple)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Why I joined</span>
-                                </div>
-                                <p style={{ fontSize: 12, color: "var(--ink)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" }}>
-                                  {c.join_reason}
-                                </p>
-                              </div>
                             )}
                           </div>
                         );
