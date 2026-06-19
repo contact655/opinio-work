@@ -129,9 +129,9 @@ function LogoChip({
 function Connector() {
   return (
     <div style={{
-      width: 20, height: 1,
+      width: 28, height: 1,
       borderTop: "2px dashed var(--line)",
-      margin: "0 4px", marginBottom: 18, flexShrink: 0,
+      margin: "0 4px", marginBottom: 24, flexShrink: 0,
     }} />
   );
 }
@@ -196,7 +196,7 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
           cursor: pointer; border: none; background: transparent; padding: 0;
         }
         .older-chip {
-          width: 40px; height: 40px; border-radius: 10px;
+          width: 52px; height: 52px; border-radius: 12px;
           background: var(--royal-50); border: 1.5px solid var(--royal-100);
           display: flex; align-items: center; justify-content: center;
           transition: background 0.15s, border-color 0.15s, transform 0.15s;
@@ -292,7 +292,7 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
                   animation: `slideInFromLeft 0.32s ease ${i * 0.07}s both`,
                 }}
               >
-                <LogoChip logo={logo} name={name} isCurrent={false} size={48} />
+                <LogoChip logo={logo} name={name} isCurrent={false} size={64} />
                 <div style={{ animation: `fadeInConnector 0.3s ease ${i * 0.07 + 0.15}s both`, opacity: 0 }}>
                   <Connector />
                 </div>
@@ -331,7 +331,7 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
             const name = getDisplayName(step, logo);
             return (
               <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
-                <LogoChip logo={logo} name={name} isCurrent={step.is_current} size={48} />
+                <LogoChip logo={logo} name={name} isCurrent={step.is_current} size={64} />
                 {i < recentSteps.length - 1 && <Connector />}
               </div>
             );
