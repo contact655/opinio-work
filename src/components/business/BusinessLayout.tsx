@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, MessageSquare, ClipboardList, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, KanbanSquare } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, KanbanSquare } from "lucide-react";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
 
@@ -50,24 +50,14 @@ const NAV_ITEMS: NavItem[] = [
     icon: <Briefcase size={16} strokeWidth={2.2} />,
   },
   {
-    href: "/biz/meetings",
-    label: "カジュアル面談",
-    icon: <MessageSquare size={16} strokeWidth={2.2} />,
-  },
-  {
-    href: "/biz/applications",
-    label: "選考管理",
-    icon: <ClipboardList size={16} strokeWidth={2.2} />,
+    href: "/biz/pipeline",
+    label: "パイプライン",
+    icon: <KanbanSquare size={16} strokeWidth={2.2} />,
   },
   {
     href: "/biz/conversations",
     label: "メッセージ",
     icon: <Inbox size={16} strokeWidth={2.2} />,
-  },
-  {
-    href: "/biz/pipeline",
-    label: "パイプライン",
-    icon: <KanbanSquare size={16} strokeWidth={2.2} />,
   },
   {
     href: "/biz/posts",
@@ -101,24 +91,6 @@ export function BusinessLayout({
   const router = useRouter();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const avatarRef = useRef<HTMLDivElement>(null);
-  const [pendingMeetings, setPendingMeetings] = useState(0);
-  const [pendingApplications, setPendingApplications] = useState(0);
-
-  useEffect(() => {
-    async function fetchBadgeCounts() {
-      try {
-        const res = await fetch("/api/biz/badge-counts", { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          setPendingMeetings(data.pendingMeetings ?? 0);
-          setPendingApplications(data.pendingApplications ?? 0);
-        }
-      } catch {
-        // best-effort — silently ignore
-      }
-    }
-    fetchBadgeCounts();
-  }, [pathname]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -335,10 +307,7 @@ export function BusinessLayout({
               // 子が active な時は親をサブデュード表示 (背景なし・テキストのみ royal)
               const showFullActive = active && !childActive;
 
-              // バッジカウント
-              const badgeCount =
-                item.href === "/biz/meetings" ? pendingMeetings :
-                item.href === "/biz/applications" ? pendingApplications : 0;
+              const badgeCount = 0;
 
               return (
                 <div key={item.href}>

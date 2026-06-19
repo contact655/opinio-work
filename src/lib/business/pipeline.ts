@@ -1,6 +1,24 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchMeetingsForCompany } from "@/lib/business/meetings";
+import { createClient } from "@/lib/supabase/server";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export type PipelineMeetingStatus = "pending" | "company_contacted" | "scheduled" | "completed" | "declined";
+
+export type PipelineMeeting = {
+  id: string;
+  applicantUserId: string | null;
+  name: string;
+  initial: string;
+  gradient: string;
+  currentCompany: string;
+  currentRole: string;
+  jobTitle: string | null;
+  intent: string;
+  status: PipelineMeetingStatus;
+  submittedAt: string;
+};
 
 export type PipelineStage = {
   id: string;
@@ -129,4 +147,24 @@ export async function fetchPipelineData(companyId: string): Promise<{
   }));
 
   return { stages, candidates, jobs };
+}
+
+// ─── Meetings for pipeline ────────────────────────────────────────────────────
+
+export async function fetchPipelineMeetings(companyId: string): Promise<PipelineMeeting[]> {
+  const supabase = createClient();
+  const meetings = await fetchMeetingsForCompany(supabase, companyId);
+  return meetings.map((m) => ({
+    id: m.id,
+    applicantUserId: m.applicantUserId,
+    name: m.applicantName,
+    initial: m.applicantInitial,
+    gradient: m.applicantGradient,
+    currentCompany: m.applicantCurrentCompany,
+    currentRole: m.applicantCurrentRole,
+    jobTitle: m.jobTitle,
+    intent: m.intent,
+    status: m.status as PipelineMeetingStatus,
+    submittedAt: m.submittedAt,
+  }));
 }

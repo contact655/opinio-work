@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
-import type { PipelineStage, PipelineCandidate } from "@/lib/business/pipeline";
+import type { PipelineStage, PipelineCandidate, PipelineMeeting } from "@/lib/business/pipeline";
 
 // ─── Source config ────────────────────────────────────────────────────────────
 
@@ -59,11 +59,12 @@ type Props = {
   initialCandidates: PipelineCandidate[];
   jobs: { id: string; title: string }[];
   agencies?: AgencyOption[];
+  meetings?: PipelineMeeting[];
 };
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function PipelineClient({ initialStages, initialCandidates, jobs, agencies = [] }: Props) {
+export function PipelineClient({ initialStages, initialCandidates, jobs, agencies = [], meetings: initialMeetings = [] }: Props) {
   const router = useRouter();
 
   const [view, setView] = useState<"kanban" | "list">("kanban");
@@ -75,6 +76,8 @@ export function PipelineClient({ initialStages, initialCandidates, jobs, agencie
   const [movingId, setMovingId] = useState<string | null>(null);
   const [rejectedExpanded, setRejectedExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [meetings, setMeetings] = useState<PipelineMeeting[]>(initialMeetings);
+  const [meetingDeclinedExpanded, setMeetingDeclinedExpanded] = useState(false);
 
   // Which sources actually have candidates (for filter bar)
   const activeSources = useMemo(() => {
@@ -117,10 +120,138 @@ export function PipelineClient({ initialStages, initialCandidates, jobs, agencie
     }
   }
 
+  // ── Update meeting status ───────────────────────────────────────────────────
+
+  async function updateMeetingStatus(meetingId: string, newStatus: string) {
+    const prev = meetings.find((m) => m.id === meetingId);
+    if (!prev) return;
+    setMeetings((ms) => ms.map((m) => m.id === meetingId ? { ...m, status: newStatus as PipelineMeeting["status"] } : m));
+    const res = await fetch(`/api/biz/meetings/${meetingId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "status", value: newStatus }),
+    });
+    if (!res.ok) {
+      setMeetings((ms) => ms.map((m) => m.id === meetingId ? prev : m));
+      setError("面談ステータスの更新に失敗しました。");
+    } else {
+      router.refresh();
+    }
+  }
+
+  // ── Meeting column data ────────────────────────────────────────────────────
+
+  const meetingActive = meetings.filter((m) => ["pending", "company_contacted", "scheduled"].includes(m.status));
+  const meetingDone = meetings.filter((m) => m.status === "completed");
+  const meetingDeclined = meetings.filter((m) => m.status === "declined");
+
   // ── Kanban ─────────────────────────────────────────────────────────────────
 
   const kanbanStages = stages.filter((s) => !s.isRejected);
   const rejectedStage = stages.find((s) => s.isRejected);
+
+  // ── Meeting card + column ──────────────────────────────────────────────────
+
+  function MeetingKanbanCard({ m }: { m: PipelineMeeting }) {
+    const NEXT: Record<string, { label: string; value: string }> = {
+      pending:           { label: "確認する →",  value: "company_contacted" },
+      company_contacted: { label: "日程調整へ →", value: "scheduled" },
+      scheduled:         { label: "面談完了 ✓",  value: "completed" },
+    };
+    const next = NEXT[m.status];
+    return (
+      <div style={{
+        background: "#fff", border: "1px solid var(--line)",
+        borderRadius: 10, padding: "12px 14px",
+        display: "flex", flexDirection: "column", gap: 7,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+      }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            width: 30, height: 30, borderRadius: "50%",
+            background: m.gradient, color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 12, fontWeight: 700, flexShrink: 0,
+          }}>{m.initial}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {m.name}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {m.currentCompany}
+            </div>
+          </div>
+        </div>
+        {/* Job title if any */}
+        {m.jobTitle && (
+          <div style={{ fontSize: 11, color: "var(--ink-soft)", padding: "3px 8px", background: "var(--royal-50)", borderRadius: 6 }}>
+            {m.jobTitle}
+          </div>
+        )}
+        {/* Intent */}
+        <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{m.intent}</div>
+        {/* Footer */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
+          <span style={{ fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>{m.submittedAt}</span>
+          <div style={{ display: "flex", gap: 4 }}>
+            {next && (
+              <button
+                onClick={() => updateMeetingStatus(m.id, next.value)}
+                style={{
+                  fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6,
+                  border: "1px solid var(--royal-100)", background: "var(--royal-50)",
+                  color: "var(--royal)", cursor: "pointer",
+                }}
+              >
+                {next.label}
+              </button>
+            )}
+            <button
+              onClick={() => updateMeetingStatus(m.id, "declined")}
+              style={{
+                fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 6,
+                border: "1px solid var(--line)", background: "#fff",
+                color: "var(--ink-mute)", cursor: "pointer",
+              }}
+            >
+              見送り
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function MeetingKanbanColumn({ title, color, bgColor, items }: {
+    title: string; color: string; bgColor: string; items: PipelineMeeting[];
+  }) {
+    return (
+      <div style={{ minWidth: 240, maxWidth: 270, flex: "0 0 250px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "8px 12px", background: bgColor,
+          borderRadius: 10, border: `1px solid ${color}22`,
+        }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0, display: "inline-block" }} />
+          <span style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)", flex: 1 }}>{title}</span>
+          <span style={{
+            background: "rgba(255,255,255,0.6)", color, fontSize: 11, fontWeight: 700,
+            borderRadius: 100, padding: "1px 8px", fontFamily: "Inter, sans-serif",
+          }}>{items.length}</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {items.map((m) => <MeetingKanbanCard key={m.id} m={m} />)}
+          {items.length === 0 && (
+            <div style={{
+              padding: "20px 12px", textAlign: "center", color: "var(--ink-mute)", fontSize: 12,
+              border: "1.5px dashed var(--line)", borderRadius: 10,
+            }}>申込なし</div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   function KanbanColumn({ stage }: { stage: PipelineStage }) {
     const colCandidates = filteredCandidates.filter(
@@ -449,8 +580,8 @@ export function PipelineClient({ initialStages, initialCandidates, jobs, agencie
         })}
       </div>
 
-      {/* Empty state */}
-      {candidates.length === 0 && (
+      {/* Empty state — only show when no meetings AND no candidates */}
+      {candidates.length === 0 && meetings.length === 0 && (
         <div style={{
           display: "flex", flexDirection: "column", alignItems: "center",
           justifyContent: "center", padding: "80px 20px", gap: 16,
@@ -485,9 +616,28 @@ export function PipelineClient({ initialStages, initialCandidates, jobs, agencie
       )}
 
       {/* Kanban view */}
-      {view === "kanban" && candidates.length > 0 && (
+      {view === "kanban" && (
         <div style={{ overflowX: "auto", paddingBottom: 16 }}>
-          <div style={{ display: "flex", gap: 12, minWidth: "max-content" }}>
+          <div style={{ display: "flex", gap: 12, minWidth: "max-content", alignItems: "flex-start" }}>
+            {/* ── Meeting columns ──────────────────────────── */}
+            <MeetingKanbanColumn
+              title="面談"
+              color="var(--warm)"
+              bgColor="var(--warm-soft)"
+              items={meetingActive}
+            />
+            <MeetingKanbanColumn
+              title="面談済"
+              color="var(--ink-soft)"
+              bgColor="var(--bg-tint)"
+              items={meetingDone}
+            />
+            {/* Separator arrow */}
+            <div style={{
+              display: "flex", alignItems: "flex-start", paddingTop: 14, color: "var(--line)",
+              fontSize: 22, flexShrink: 0, userSelect: "none",
+            }}>→</div>
+            {/* ── Application pipeline stages ──────────────── */}
             {kanbanStages.map((stage) => (
               <KanbanColumn key={stage.id} stage={stage} />
             ))}
@@ -526,6 +676,42 @@ export function PipelineClient({ initialStages, initialCandidates, jobs, agencie
                         <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>{c.jobTitle}</div>
                       </div>
                     ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Declined meetings (collapsible) */}
+          {meetingDeclined.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <button
+                onClick={() => setMeetingDeclinedExpanded((e) => !e)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  background: "none", border: "none", cursor: "pointer",
+                  color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, marginBottom: 8,
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--error)", display: "inline-block" }} />
+                面談見送り
+                <span style={{ color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                  ({meetingDeclined.length})
+                </span>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                  {meetingDeclinedExpanded ? "▲" : "▼"}
+                </span>
+              </button>
+              {meetingDeclinedExpanded && (
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  {meetingDeclined.map((m) => (
+                    <div key={m.id} style={{
+                      background: "#fff", border: "1px solid var(--line)",
+                      borderRadius: 10, padding: "12px 14px", width: 240, opacity: 0.6,
+                    }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: "var(--ink)", marginBottom: 2 }}>{m.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{m.currentCompany}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

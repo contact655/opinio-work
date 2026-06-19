@@ -2,7 +2,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { PipelineClient } from "./PipelineClient";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { fetchPipelineData } from "@/lib/business/pipeline";
+import { fetchPipelineData, fetchPipelineMeetings } from "@/lib/business/pipeline";
 import { fetchAgenciesForCompany } from "@/lib/business/agents";
 
 export const dynamic = "force-dynamic";
@@ -15,9 +15,10 @@ export default async function BizPipelinePage() {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
-  const [{ stages, candidates, jobs }, agencies] = await Promise.all([
+  const [{ stages, candidates, jobs }, agencies, meetings] = await Promise.all([
     fetchPipelineData(ctx.tenantId),
     fetchAgenciesForCompany(ctx.tenantId),
+    fetchPipelineMeetings(ctx.tenantId),
   ]);
 
   const agencyOptions = agencies
@@ -38,6 +39,7 @@ export default async function BizPipelinePage() {
         initialCandidates={candidates}
         jobs={jobs}
         agencies={agencyOptions}
+        meetings={meetings}
       />
     </BusinessLayout>
   );
