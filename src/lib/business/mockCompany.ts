@@ -158,6 +158,7 @@ export const MOCK_COMPANY: BizCompany = {
 // セクション定義
 export const COMPANY_SECTIONS = [
   { id: "basic",     label: "基本情報",     showStatus: true },
+  { id: "logo",      label: "ロゴ設定",     showStatus: true },
   { id: "about",     label: "About",        showStatus: true },
   { id: "data",      label: "数値データ",   showStatus: true },
   { id: "workstyle", label: "働き方",       showStatus: true },

@@ -525,13 +525,12 @@ export function CompanyEditClient({
   function renderSection() {
     switch (activeSection) {
 
-      case "basic":
+      case "logo":
         return (
           <>
             <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-              基本情報
+              ロゴ設定
             </h1>
-
             <SectionCard
               title="企業ロゴ"
               desc="求職者側の企業詳細ページ・一覧ページに表示されます。アップロードしない場合、企業名の頭文字で自動生成されます。"
@@ -584,6 +583,15 @@ export function CompanyEditClient({
                 </div>
               </div>
             </SectionCard>
+          </>
+        );
+
+      case "basic":
+        return (
+          <>
+            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
+              基本情報
+            </h1>
 
             <SectionCard title="企業の基本情報">
               <FormGroup>
