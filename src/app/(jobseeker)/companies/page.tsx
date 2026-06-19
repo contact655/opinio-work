@@ -261,7 +261,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                 .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 14px; }
                               }
                               @media (max-width: 600px) {
-                                .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+                                .companies-grid4 { grid-template-columns: repeat(1, 1fr); gap: 8px; }
                               }
                             `}</style>
                             <div className="companies-grid4">
