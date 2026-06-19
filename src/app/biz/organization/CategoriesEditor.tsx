@@ -161,21 +161,26 @@ function AddCategoryModal({
   // ロール定義が 0 件か
   const noRolesDefined = allRoles.length === 0;
 
-  function toggle(id: string) {
+  function toggle(id: string, availableChildIds?: string[]) {
     const role = allRoles.find((r) => r.id === id);
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+
+      if (role?.parentId === null && availableChildIds) {
+        // 子ありの親: 全子を一括選択/解除（親自体は追加しない）
+        const allChildrenSelected = availableChildIds.length > 0 &&
+          availableChildIds.every((cid) => next.has(cid));
+        if (allChildrenSelected) {
+          for (const cid of availableChildIds) next.delete(cid);
+        } else {
+          for (const cid of availableChildIds) next.add(cid);
+        }
       } else {
-        next.add(id);
-        if (role?.parentId === null) {
-          // 親を選択 → その子をすべて除去
-          const children = childrenByParent.get(id) ?? [];
-          for (const child of children) next.delete(child.id);
-        } else if (role?.parentId) {
-          // 子を選択 → その親を除去
-          next.delete(role.parentId);
+        // 子なし親 or 子ロール: 個別トグル
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
         }
       }
       return next;
@@ -262,43 +267,87 @@ function AddCategoryModal({
             parents.map((parent) => {
               const children = childrenByParent.get(parent.id) ?? [];
               const isParentAdded = currentRoleIds.has(parent.id);
-              const isParentSelected = selected.has(parent.id);
-              const isParentDisabledByChildren = children.length > 0 && children.some(
-                (child) => selected.has(child.id) || currentRoleIds.has(child.id)
-              );
-              const isParentDisabled = isParentAdded || isParentDisabledByChildren;
+
+              if (children.length === 0) {
+                // 子なし親: 単体追加
+                const isSelected = selected.has(parent.id);
+                const isDisabled = isParentAdded;
+                return (
+                  <div key={parent.id}>
+                    <label
+                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 24px",
+                        cursor: isDisabled ? "default" : "pointer",
+                        background: isSelected ? "var(--royal-50)" : "transparent" }}
+                      onMouseEnter={(e) => {
+                        if (!isDisabled && !isSelected)
+                          (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isDisabled && !isSelected)
+                          (e.currentTarget as HTMLElement).style.background = "transparent";
+                      }}
+                    >
+                      <input type="checkbox" checked={isParentAdded || isSelected}
+                        disabled={isDisabled}
+                        onChange={() => !isDisabled && toggle(parent.id)}
+                        style={{ width: 15, height: 15, cursor: isDisabled ? "default" : "pointer", flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: 13, fontWeight: 700,
+                        color: isDisabled ? "var(--ink-mute)" : "var(--ink)" }}>
+                        {parent.name}
+                      </span>
+                      {isParentAdded && (
+                        <span style={{ fontSize: 10, color: "var(--success)", marginLeft: "auto" }}>
+                          追加済み
+                        </span>
+                      )}
+                    </label>
+                  </div>
+                );
+              }
+
+              // 子あり親: 親チェック = 全子一括選択
+              const availableChildren = children.filter((c) => !currentRoleIds.has(c.id));
+              const availableChildIds = availableChildren.map((c) => c.id);
+              const selectedChildCount = availableChildIds.filter((cid) => selected.has(cid)).length;
+              const allChildrenSelected = availableChildIds.length > 0 && selectedChildCount === availableChildIds.length;
+              const someChildrenSelected = selectedChildCount > 0 && !allChildrenSelected;
+              const allChildrenAdded = availableChildren.length === 0; // 全て追加済み
+
               return (
                 <div key={parent.id}>
-                  {/* 親カテゴリ行 */}
+                  {/* 親カテゴリ行（子を一括選択するコントロール） */}
                   <label
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 24px",
-                      cursor: isParentDisabled ? "default" : "pointer",
-                      background: isParentSelected ? "var(--royal-50)" : "transparent" }}
+                      cursor: allChildrenAdded ? "default" : "pointer",
+                      background: allChildrenSelected ? "var(--royal-50)" : "transparent" }}
                     onMouseEnter={(e) => {
-                      if (!isParentDisabled && !isParentSelected)
+                      if (!allChildrenAdded && !allChildrenSelected)
                         (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)";
                     }}
                     onMouseLeave={(e) => {
-                      if (!isParentDisabled && !isParentSelected)
+                      if (!allChildrenAdded && !allChildrenSelected)
                         (e.currentTarget as HTMLElement).style.background = "transparent";
                     }}
                   >
-                    <input type="checkbox" checked={isParentAdded || isParentSelected}
-                      disabled={isParentDisabled}
-                      onChange={() => !isParentDisabled && toggle(parent.id)}
-                      style={{ width: 15, height: 15, cursor: isParentDisabled ? "default" : "pointer", flexShrink: 0 }}
+                    <input
+                      type="checkbox"
+                      checked={allChildrenSelected}
+                      ref={(el) => { if (el) el.indeterminate = someChildrenSelected; }}
+                      disabled={allChildrenAdded}
+                      onChange={() => !allChildrenAdded && toggle(parent.id, availableChildIds)}
+                      style={{ width: 15, height: 15, cursor: allChildrenAdded ? "default" : "pointer", flexShrink: 0 }}
                     />
                     <span style={{ fontSize: 13, fontWeight: 700,
-                      color: isParentDisabled ? "var(--ink-mute)" : "var(--ink)" }}>
+                      color: allChildrenAdded ? "var(--ink-mute)" : "var(--ink)" }}>
                       {parent.name}
                     </span>
-                    {children.length > 0 && !isParentAdded && !isParentDisabledByChildren && (
-                      <span style={{ fontSize: 10, color: "var(--ink-mute)", background: "var(--line-soft)",
-                        border: "1px solid var(--line)", borderRadius: 4, padding: "1px 6px", marginLeft: "auto" }}>
-                        親直として追加
+                    {!allChildrenAdded && (
+                      <span style={{ fontSize: 10, color: "var(--ink-mute)", marginLeft: "auto" }}>
+                        すべて選択
                       </span>
                     )}
-                    {isParentAdded && (
+                    {allChildrenAdded && (
                       <span style={{ fontSize: 10, color: "var(--success)", marginLeft: "auto" }}>
                         追加済み
                       </span>
@@ -309,8 +358,7 @@ function AddCategoryModal({
                   {children.map((child) => {
                     const isChildAdded = currentRoleIds.has(child.id);
                     const isChildSelected = selected.has(child.id);
-                    const isChildDisabledByParent = selected.has(child.parentId!) || currentRoleIds.has(child.parentId!);
-                    const isChildDisabled = isChildAdded || isChildDisabledByParent;
+                    const isChildDisabled = isChildAdded;
                     return (
                       <label key={child.id}
                         style={{ display: "flex", alignItems: "center", gap: 10,
