@@ -116,8 +116,8 @@ export async function getTenantContext(): Promise<TenantContext | null> {
     const { companyId: tenantId, owUserId } = ctx;
     const allMembershipIds = ctx.allMemberships.map((m) => m.companyId);
 
-    // ow_companies（全所属）と ow_users を並列取得
-    const [companiesRes, owUserRes] = await Promise.all([
+    // ow_companies / ow_users / ow_tenant_plans を一括並列取得
+    const [companiesRes, owUserRes, planRes] = await Promise.all([
       supabase.from("ow_companies")
         .select("id, name, logo_gradient, logo_letter")
         .in("id", allMembershipIds),
@@ -125,34 +125,30 @@ export async function getTenantContext(): Promise<TenantContext | null> {
         .select("avatar_color")
         .eq("id", owUserId)
         .maybeSingle(),
+      supabase.from("ow_tenant_plans")
+        .select("plan_type")
+        .eq("tenant_id", tenantId)
+        .eq("status", "active")
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then((r) => r, () => ({ data: null, error: null })),
     ]);
 
     const companies = companiesRes.data ?? [];
     const companyRow = companies.find((c) => c.id === tenantId);
     if (!companyRow) return null;
 
-    // allCompanies: joined_at 順を保持（getCompanyContext の order そのまま）
+    // allCompanies: joined_at 順を保持
     const allCompanies: TenantCompany[] = ctx.allMemberships.map((m) => ({
       id: m.companyId,
-      name: companies.find((c) => c.id === m.companyId)?.name ?? "(不明)",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      name: (companies as any[]).find((c) => c.id === m.companyId)?.name ?? "(不明)",
       isDefault: m.isDefault,
     }));
 
-    // plan_type は best-effort（テーブル未存在時に備える）
-    let planType: TenantContext["planType"] = null;
-    try {
-      const { data: planRow } = await supabase
-        .from("ow_tenant_plans")
-        .select("plan_type")
-        .eq("tenant_id", tenantId)
-        .eq("status", "active")
-        .order("started_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      planType = (planRow?.plan_type as any) ?? null;
-    } catch {
-      // ow_tenant_plans が無い場合に備える
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const planType: TenantContext["planType"] = ((planRes as any).data?.plan_type as any) ?? null;
 
     const userName =
       (user.user_metadata as any)?.name ||

@@ -211,23 +211,31 @@ export async function getCompanyContext(
   authUserId: string,
   cookieCompanyId?: string,
 ): Promise<CompanyContext | null> {
-  // 1. auth_id → ow_users.id
+  // auth_id → ow_users + ow_company_admins を1クエリで取得（直列2回→1回に削減）
   const { data: owUser } = await supabase
     .from("ow_users")
-    .select("id")
+    .select(`
+      id,
+      ow_company_admins!inner(
+        company_id, is_default, joined_at, permission
+      )
+    `)
     .eq("auth_id", authUserId)
+    .eq("ow_company_admins.is_active", true)
     .maybeSingle();
+
   if (!owUser) return null;
 
-  // 2. 全アクティブ所属を取得
-  const { data: rows } = await supabase
-    .from("ow_company_admins")
-    .select("company_id, is_default, joined_at, permission")
-    .eq("user_id", owUser.id)
-    .eq("is_active", true)
-    .order("joined_at", { ascending: true, nullsFirst: false });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows: any[] = (owUser as any).ow_company_admins ?? [];
+  if (rows.length === 0) return null;
 
-  if (!rows || rows.length === 0) return null;
+  // joined_at で昇順ソート（DB ORDER BY の代替）
+  rows.sort((a, b) => {
+    if (!a.joined_at) return 1;
+    if (!b.joined_at) return -1;
+    return a.joined_at < b.joined_at ? -1 : 1;
+  });
 
   const allMemberships: CompanyMembership[] = rows.map((r) => ({
     companyId: r.company_id,
