@@ -1,27 +1,18 @@
 import Link from "next/link";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyCard } from "@/components/business/CompanyCard";
-import { DashboardStatCards } from "@/components/business/DashboardStatCards";
 import { JobPerformanceList } from "@/components/business/JobPerformanceList";
 import { UpgradeBanner } from "@/components/business/UpgradeBanner";
 import { EditorInvitation } from "@/components/business/EditorInvitation";
-import { PendingMeetings } from "@/components/business/PendingMeetings";
-import { ActivityList } from "@/components/business/ActivityList";
-import { MatchCandidates } from "@/components/business/MatchCandidates";
 import { JobStatusCards } from "@/components/business/JobStatusCards";
 import { TeamMembers } from "@/components/business/TeamMembers";
-// RecruiterProfile: S1c で ow_users 接続後に有効化
 import { DashboardMockView } from "./DashboardMockView";
 import {
   getTenantContext,
-  getTodoCounts,
-  getMonthlyStats,
   getJobPerformance,
   getJobStatusCounts,
 } from "@/lib/business/dashboard";
-import { fetchActivitiesForDashboard } from "@/lib/business/activities";
 import { fetchTeamMembersForDashboard } from "@/lib/business/team";
-import { fetchPendingMeetingsForDashboard } from "@/lib/business/meetings";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -42,12 +33,6 @@ async function NoTenantPage() {
   const userName = user?.email ? user.email.split("@")[0] : "ご担当者";
   return (
     <BusinessLayout userName={userName}>
-      <style>{`
-        .setup-step-card:hover {
-          border-color: var(--royal-100) !important;
-          box-shadow: 0 4px 12px rgba(0,35,102,0.08) !important;
-        }
-      `}</style>
       <div style={{
         background: "#fff",
         borderRadius: 14,
@@ -100,13 +85,9 @@ export default async function BizDashboardPage() {
   }
 
   const supabase = createClient();
-  const [todoCounts, monthlyStats, jobPerformance, jobStatusCounts, pendingMeetings, activities, teamMembers] = await Promise.all([
-    getTodoCounts(ctx.tenantId),
-    getMonthlyStats(ctx.tenantId),
+  const [jobPerformance, jobStatusCounts, teamMembers] = await Promise.all([
     getJobPerformance(ctx.tenantId),
     getJobStatusCounts(ctx.tenantId),
-    fetchPendingMeetingsForDashboard(supabase, ctx.tenantId),
-    fetchActivitiesForDashboard(supabase, ctx.tenantId),
     fetchTeamMembersForDashboard(supabase, ctx.tenantId),
   ]);
 
@@ -119,9 +100,6 @@ export default async function BizDashboardPage() {
   const greetingName = ctx.userName.includes(" ")
     ? ctx.userName.split(" ").slice(-1)[0]
     : ctx.userName;
-
-  // Determine if this is a "new" company with nothing set up yet
-  const isNewCompany = jobStatusCounts.active === 0 && jobStatusCounts.draft === 0 && activities.length === 0;
 
   return (
     <BusinessLayout
@@ -172,19 +150,6 @@ export default async function BizDashboardPage() {
             </svg>
             新規求人を作成
           </Link>
-          {[
-            { href: "/biz/meetings", label: "面談" },
-            { href: "/biz/candidates", label: "候補者" },
-          ].map(({ href, label }) => (
-            <Link key={href} href={href} style={{
-              display: "inline-flex", alignItems: "center", gap: 7,
-              padding: "9px 14px", background: "#fff",
-              border: "1px solid var(--line)", borderRadius: 8,
-              fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", textDecoration: "none",
-            }}>
-              {label}
-            </Link>
-          ))}
         </div>
       </div>
 
@@ -199,116 +164,8 @@ export default async function BizDashboardPage() {
       {/* ── Upgrade banner ── */}
       <UpgradeBanner />
 
-      {/* ── Getting Started (新規企業のみ) ── */}
-      {isNewCompany && (
-        <div style={{
-          background: "linear-gradient(135deg, #EFF3FC 0%, #F8FAFC 100%)",
-          border: "1px solid var(--royal-100)",
-          borderRadius: 14,
-          padding: "22px 26px",
-          marginBottom: 20,
-        }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 8, marginBottom: 14,
-          }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: "var(--royal)", color: "#fff",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 8v4l3 3"/>
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--royal)" }}>
-                スタートアップガイド
-              </div>
-              <div style={{ fontSize: 11, color: "var(--ink-soft)" }}>
-                以下のステップで求人掲載を開始しましょう
-              </div>
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-            {[
-              {
-                step: "1",
-                title: "企業情報を完成させる",
-                desc: "ミッション・写真・カルチャーを入力",
-                href: "/biz/company",
-                done: false,
-              },
-              {
-                step: "2",
-                title: "求人を作成・公開する",
-                desc: "審査後 OPINIO に掲載されます",
-                href: "/biz/jobs/new",
-                done: false,
-              },
-              {
-                step: "3",
-                title: "カジュアル面談を受け付ける",
-                desc: "候補者からの申込が届き始めます",
-                href: "/biz/company",
-                done: false,
-              },
-            ].map(({ step, title, desc, href }) => (
-              <Link key={step} href={href} className="setup-step-card" style={{
-                display: "block", textDecoration: "none",
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 10, padding: "14px 16px",
-                transition: "box-shadow 0.15s, border-color 0.15s",
-              }}
-              >
-                <div style={{
-                  width: 22, height: 22, borderRadius: "50%",
-                  background: "var(--royal-50)", color: "var(--royal)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 11, fontWeight: 700, marginBottom: 8,
-                }}>
-                  {step}
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-                  {title}
-                </div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5 }}>
-                  {desc}
-                </div>
-                <div style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, marginTop: 8 }}>
-                  設定する →
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Stat cards (4枚) ── */}
-      <DashboardStatCards
-        todoCounts={todoCounts}
-        monthlyStats={monthlyStats}
-        activeJobCount={jobStatusCounts.active}
-      />
-
       {/* ── Editor invitation ── */}
       <EditorInvitation />
-
-      {/* ── 2-col: PendingMeetings + ActivityList ── */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 16,
-        marginTop: 4,
-      }}>
-        <PendingMeetings meetings={pendingMeetings} />
-        <ActivityList activities={activities} />
-      </div>
-
-      {/* ── Match candidates ── */}
-      <div style={{ marginTop: 16 }}>
-        <MatchCandidates candidates={[]} />
-      </div>
 
       {/* ── 2-col: JobStatusCards + TeamMembers ── */}
       <div style={{
