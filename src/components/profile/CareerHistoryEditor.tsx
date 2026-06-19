@@ -25,6 +25,10 @@ export type Stint = {
   description?: string;
   joinReason?: string;
   employmentType?: string;
+  salaryMan?: number | null;
+  visibilityCompany?: "real" | "masked" | "hidden";
+  visibilitySalary?: boolean;
+  visibilityReason?: boolean;
 };
 
 // ── Group types and helpers ───────────────────────────────────────────────────
@@ -178,6 +182,10 @@ type StintDraft = {
   description: string;
   joinReason: string;
   employmentType: string;
+  salaryMan: string;           // 入力は string、保存時に number に変換
+  visibilityCompany: "real" | "masked" | "hidden";
+  visibilitySalary: boolean;
+  visibilityReason: boolean;
 };
 
 const EMPTY_DRAFT: StintDraft = {
@@ -192,6 +200,10 @@ const EMPTY_DRAFT: StintDraft = {
   description: "",
   joinReason: "",
   employmentType: "",
+  salaryMan: "",
+  visibilityCompany: "real",
+  visibilitySalary: false,
+  visibilityReason: true,
 };
 
 // ── Company body helpers ──────────────────────────────────────────────────────
@@ -753,6 +765,92 @@ function StintForm({
         </div>
       </div>
 
+      {/* 年収（任意） */}
+      <div>
+        <label style={labelStyle()}>年収（万円・任意）</label>
+        <input
+          type="number"
+          aria-label="年収（万円）"
+          value={draft.salaryMan}
+          onChange={(e) => set("salaryMan", e.target.value)}
+          placeholder="例: 600"
+          disabled={isSaving}
+          min={0}
+          max={10000}
+          style={{ ...fieldStyle(), maxWidth: 180 }}
+        />
+      </div>
+
+      {/* 公開設定 */}
+      <div style={{
+        background: "var(--bg-tint)",
+        border: "1px solid var(--line)",
+        borderRadius: 10,
+        padding: "14px 16px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em" }}>
+          公開設定（キャリア軌跡ページへの表示）
+        </div>
+
+        {/* 会社名の公開範囲 */}
+        <div>
+          <label style={{ ...labelStyle(), marginBottom: 4 }}>会社名の表示</label>
+          <select
+            value={draft.visibilityCompany}
+            onChange={(e) => set("visibilityCompany", e.target.value as "real" | "masked" | "hidden")}
+            disabled={isSaving}
+            style={{ ...fieldStyle(), width: "auto", minWidth: 220 }}
+          >
+            <option value="real">実名で表示する</option>
+            <option value="masked">匿名で表示する（「非公開企業」と表示）</option>
+            <option value="hidden">この職歴をキャリア軌跡に含めない</option>
+          </select>
+        </div>
+
+        {/* 年収を公開するか */}
+        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+          <div
+            onClick={() => set("visibilitySalary", !draft.visibilitySalary)}
+            style={{
+              width: 36, height: 20, borderRadius: 10, flexShrink: 0,
+              background: draft.visibilitySalary ? "var(--royal)" : "var(--line)",
+              position: "relative", cursor: "pointer", transition: "background 0.2s",
+            }}
+          >
+            <div style={{
+              position: "absolute", top: 2, left: draft.visibilitySalary ? 18 : 2,
+              width: 16, height: 16, borderRadius: "50%",
+              background: "#fff", transition: "left 0.2s",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+            }} />
+          </div>
+          <span style={{ fontSize: 13, color: "var(--ink)" }}>年収を公開する</span>
+        </label>
+
+        {/* 入社理由を公開するか */}
+        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+          <div
+            onClick={() => set("visibilityReason", !draft.visibilityReason)}
+            style={{
+              width: 36, height: 20, borderRadius: 10, flexShrink: 0,
+              background: draft.visibilityReason ? "var(--royal)" : "var(--line)",
+              position: "relative", cursor: "pointer", transition: "background 0.2s",
+            }}
+          >
+            <div style={{
+              position: "absolute", top: 2, left: draft.visibilityReason ? 18 : 2,
+              width: 16, height: 16, borderRadius: "50%",
+              background: "#fff", transition: "left 0.2s",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+            }} />
+          </div>
+          <span style={{ fontSize: 13, color: "var(--ink)" }}>入社理由を公開する</span>
+        </label>
+      </div>
+
       {/* Action buttons */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
         <button
@@ -934,6 +1032,10 @@ export default function CareerHistoryEditor({
     description: s.description ?? "",
     joinReason: s.joinReason ?? "",
     employmentType: s.employmentType ?? "",
+    salaryMan: s.salaryMan != null ? String(s.salaryMan) : "",
+    visibilityCompany: s.visibilityCompany ?? "real",
+    visibilitySalary: s.visibilitySalary ?? false,
+    visibilityReason: s.visibilityReason ?? true,
   }), []);
 
   const draftFromGroup = useCallback((group: StintGroup): StintDraft => ({
@@ -950,6 +1052,10 @@ export default function CareerHistoryEditor({
     description: "",
     joinReason: "",
     employmentType: "",
+    salaryMan: "",
+    visibilityCompany: "real",
+    visibilitySalary: false,
+    visibilityReason: true,
   }), []);
 
   // ── Edit handlers ────────────────────────────────────────────────────────────
@@ -976,6 +1082,10 @@ export default function CareerHistoryEditor({
         description: editDraft.description || undefined,
         join_reason: editDraft.joinReason || undefined,
         employment_type: editDraft.employmentType || undefined,
+        salary_man: editDraft.salaryMan ? parseInt(editDraft.salaryMan, 10) : null,
+        visibility_company: editDraft.visibilityCompany,
+        visibility_salary: editDraft.visibilitySalary,
+        visibility_reason: editDraft.visibilityReason,
       };
       Object.assign(body, buildCompanyBody(editDraft));
 
@@ -1002,6 +1112,10 @@ export default function CareerHistoryEditor({
                 description: editDraft.description || undefined,
                 joinReason: editDraft.joinReason || undefined,
                 employmentType: editDraft.employmentType || undefined,
+                salaryMan: editDraft.salaryMan ? parseInt(editDraft.salaryMan, 10) : null,
+                visibilityCompany: editDraft.visibilityCompany,
+                visibilitySalary: editDraft.visibilitySalary,
+                visibilityReason: editDraft.visibilityReason,
               }
             : s
         ))
@@ -1037,6 +1151,10 @@ export default function CareerHistoryEditor({
         join_reason: addDraft.joinReason || undefined,
         employment_type: addDraft.employmentType || undefined,
         display_order: stints.length,
+        salary_man: addDraft.salaryMan ? parseInt(addDraft.salaryMan, 10) : null,
+        visibility_company: addDraft.visibilityCompany,
+        visibility_salary: addDraft.visibilitySalary,
+        visibility_reason: addDraft.visibilityReason,
       };
       Object.assign(body, buildCompanyBody(addDraft));
 
@@ -1060,6 +1178,10 @@ export default function CareerHistoryEditor({
         description: addDraft.description || undefined,
         joinReason: addDraft.joinReason || undefined,
         employmentType: addDraft.employmentType || undefined,
+        salaryMan: addDraft.salaryMan ? parseInt(addDraft.salaryMan, 10) : null,
+        visibilityCompany: addDraft.visibilityCompany,
+        visibilitySalary: addDraft.visibilitySalary,
+        visibilityReason: addDraft.visibilityReason,
       };
 
       setStints((prev) => sortStints([...prev, newStint]));

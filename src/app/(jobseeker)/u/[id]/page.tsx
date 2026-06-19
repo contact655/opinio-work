@@ -142,7 +142,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   ] = await Promise.all([
     supabase
       .from("ow_experiences")
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason")
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, visibility_company, visibility_salary, visibility_reason")
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
@@ -252,8 +252,27 @@ export default async function UserProfilePage({ params }: { params: { id: string
     roleNameById.set(role.id as string, role.name as string);
   }
 
+  // オーナー以外には visibility_company に従ってマスキングを適用
+  // hidden → 除外（RLS で保護されているが念のため）
+  // masked → company_id/company_text を null に上書き（company_anonymized のみ残す）
+  // visibility_reason=false → join_reason を除外
+  const visibleExpRows = viewerIsOwner
+    ? (expRows ?? [])
+    : (expRows ?? [])
+        .filter((r) => (r as { visibility_company?: string }).visibility_company !== "hidden")
+        .map((r) => {
+          const vc = (r as { visibility_company?: string }).visibility_company ?? "real";
+          const vr = (r as { visibility_reason?: boolean }).visibility_reason ?? true;
+          return {
+            ...r,
+            company_id: vc === "masked" ? null : r.company_id,
+            company_text: vc === "masked" ? null : r.company_text,
+            join_reason: vr ? r.join_reason : null,
+          };
+        });
+
   // Resolve company info (name + logo 3 フィールド) for master entries in experiences
-  const expCompanyIds = (expRows ?? [])
+  const expCompanyIds = visibleExpRows
     .filter((r) => r.company_id)
     .map((r) => r.company_id as string);
 
@@ -279,7 +298,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
   // MergedTimeline 用データ整形
   const timelineCareers = buildTimelineCareerEntriesFromRaw(
-    (expRows ?? []) as RawExperienceRow[],
+    visibleExpRows as unknown as RawExperienceRow[],
     roleNameById,
     companyInfoById,
   );
