@@ -385,7 +385,6 @@ function DashboardView({
   currentRole,
   userLocation, userAboutMe, userBirthDate, userSocialLinks,
   userSkillTags, userEducations, userCertifications, timelineCareers,
-  hasCareerPreferences,
 }: {
   userId: string;
   userName: string; userInitial: string; userAvatar: string;
@@ -402,7 +401,6 @@ function DashboardView({
   }[];
   userCertifications?: { id: string; name: string; sort_order: number }[];
   timelineCareers?: CareerEntry[];
-  hasCareerPreferences?: boolean;
 }) {
   // MergedTimeline 用データ整形（/mypage は常に本人なので viewerIsOwner = true）
   const timelineEdus = toTimelineEducationEntries((userEducations ?? []) as RawEducation[]);
@@ -1028,7 +1026,6 @@ export default function MypageClient({
           userEducations={educations}
           userCertifications={certifications}
           timelineCareers={timelineCareers}
-          hasCareerPreferences={hasCareerPreferences}
         />
       )}
       {activeView === "casual" && <CasualView casualMeetings={casualMeetings} />}

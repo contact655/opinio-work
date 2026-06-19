@@ -219,7 +219,7 @@ export function CreateCompanyClient({
     }
   }
 
-  const canSubmit = name.trim() !== "" && !loading;
+  const canSubmit = name.trim() !== "" && !loading && !conflict;
 
   return (
     <div style={{ maxWidth: "var(--max-w-form)", margin: "0 auto", padding: "48px 24px" }}>
@@ -573,40 +573,49 @@ export function CreateCompanyClient({
           </div>
         )}
 
-        {/* 送信ボタン（conflict表示中は非表示） */}
-        {!conflict && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              style={{
-                display: "block", width: "100%",
-                padding: "13px",
-                background: canSubmit ? "var(--royal)" : "var(--ink-mute)",
-                color: "#fff",
-                border: "none", borderRadius: 10,
-                fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
-                fontSize: 14, fontWeight: 700,
-                cursor: canSubmit ? "pointer" : "not-allowed",
-                transition: "background 0.15s",
-                boxShadow: canSubmit ? "0 4px 14px rgba(0,35,102,0.2)" : "none",
-                boxSizing: "border-box",
-              } as React.CSSProperties}
-            >
-              {loading ? "作成中..." : "作成する"}
-            </button>
-            <a
-              href="/biz/companies/add"
-              style={{
-                display: "block", textAlign: "center",
-                fontSize: 13, color: "var(--ink-mute)", textDecoration: "none",
-                padding: "8px",
-              }}
-            >
-              キャンセル
-            </a>
-          </div>
-        )}
+        {/* 送信ボタン（常に表示、conflict時は無効） */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+          {conflict && (
+            <div style={{
+              fontSize: 12, color: "#92400E",
+              padding: "8px 12px",
+              background: "var(--warm-soft)",
+              border: "1px solid #FCD34D",
+              borderRadius: 6, lineHeight: 1.6,
+            }}>
+              同名の企業が存在します。上記の選択肢から操作してください。
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            style={{
+              display: "block", width: "100%",
+              padding: "13px",
+              background: canSubmit ? "var(--royal)" : "var(--ink-mute)",
+              color: "#fff",
+              border: "none", borderRadius: 10,
+              fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+              fontSize: 14, fontWeight: 700,
+              cursor: canSubmit ? "pointer" : "not-allowed",
+              transition: "background 0.15s",
+              boxShadow: canSubmit ? "0 4px 14px rgba(0,35,102,0.2)" : "none",
+              boxSizing: "border-box",
+            } as React.CSSProperties}
+          >
+            {loading ? "作成中..." : "作成する"}
+          </button>
+          <a
+            href="/biz/companies/add"
+            style={{
+              display: "block", textAlign: "center",
+              fontSize: 13, color: "var(--ink-mute)", textDecoration: "none",
+              padding: "8px",
+            }}
+          >
+            キャンセル
+          </a>
+        </div>
       </form>
     </div>
   );
