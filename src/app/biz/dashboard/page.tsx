@@ -44,24 +44,19 @@ async function NoTenantPage() {
           企業アカウントを追加しますか？
         </h2>
         <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 22 }}>
-          このアカウントには企業ロールが紐付いていません。<br />
-          自社情報・求人を管理するには企業アカウントの追加申請が必要です。
+          このアカウントには企業が紐付いていません。<br />
+          新しく企業を登録するか、招待リンクから参加してください。
         </p>
         <Link
-          href="/biz/companies/add"
+          href="/biz/companies/add/new"
           style={{
             display: "inline-block", padding: "12px 28px", borderRadius: 8,
             fontSize: 14, fontWeight: 600,
             background: "var(--royal)", color: "#fff", textDecoration: "none",
           }}
         >
-          企業アカウントを追加 →
+          企業を新規登録する →
         </Link>
-        <div style={{ marginTop: 16 }}>
-          <Link href="/" style={{ fontSize: 12, color: "var(--ink-mute)", textDecoration: "underline" }}>
-            候補者サイトに戻る
-          </Link>
-        </div>
       </div>
     </BusinessLayout>
   );
