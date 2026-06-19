@@ -191,19 +191,22 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
           border-color: var(--royal-100);
           transform: translateY(-2px);
         }
+        .older-chip-btn {
+          display: flex; flex-direction: column; align-items: center; gap: 6;
+          cursor: pointer; border: none; background: transparent; padding: 0;
+        }
         .older-chip {
           width: 40px; height: 40px; border-radius: 10px;
-          background: var(--line-soft); border: 1px dashed var(--line);
+          background: var(--royal-50); border: 1.5px solid var(--royal-100);
           display: flex; align-items: center; justify-content: center;
-          font-size: 11px; font-weight: 700; color: var(--ink-mute);
-          font-family: Inter, sans-serif;
-          transition: background 0.15s, border-color 0.15s;
+          transition: background 0.15s, border-color 0.15s, transform 0.15s;
         }
-        .older-chip-wrap:hover .older-chip {
-          background: var(--royal-50);
-          border-color: var(--royal-100);
-          color: var(--royal);
+        .older-chip-btn:hover .older-chip {
+          background: var(--royal); border-color: var(--royal);
+          transform: scale(1.08);
         }
+        .older-chip-btn:hover .older-chip svg { stroke: #fff; }
+        .older-chip-btn:hover .older-chip-label { color: var(--royal); }
       `}</style>
 
       <div
@@ -265,18 +268,27 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
             );
           })}
 
-          {/* 折りたたみ時: +N チップ */}
+          {/* 折りたたみ時: 矢印チップ */}
           {!expanded && olderCount > 0 && (
-            <div
-              className="older-chip-wrap"
-              style={{ display: "flex", alignItems: "center" }}
-              onClick={handleChipClick}
-              title={`過去${olderCount}社を表示`}
-            >
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                <div className="older-chip">+{olderCount}</div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>前職</div>
-              </div>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <button
+                className="older-chip-btn"
+                onClick={handleChipClick}
+                title={`過去${olderCount}社を表示`}
+              >
+                <div className="older-chip">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </div>
+                <div className="older-chip-label" style={{
+                  fontSize: 10, color: "var(--ink-mute)", fontWeight: 600,
+                  fontFamily: "Inter, sans-serif",
+                }}>
+                  +{olderCount}社
+                </div>
+              </button>
               <Connector />
             </div>
           )}
