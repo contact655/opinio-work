@@ -211,23 +211,26 @@ export async function getCompanyContext(
   authUserId: string,
   cookieCompanyId?: string,
 ): Promise<CompanyContext | null> {
-  // auth_id → ow_users + ow_company_admins を1クエリで取得（直列2回→1回に削減）
+  // Step 1: auth_id → ow_users.id
+  // NOTE: ow_company_admins に FK 制約がないため embedded join (!inner) は使えない。
+  //       2 クエリに分割して解決する。
   const { data: owUser } = await supabase
     .from("ow_users")
-    .select(`
-      id,
-      ow_company_admins!inner(
-        company_id, is_default, joined_at, permission
-      )
-    `)
+    .select("id")
     .eq("auth_id", authUserId)
-    .eq("ow_company_admins.is_active", true)
     .maybeSingle();
 
   if (!owUser) return null;
 
+  // Step 2: ow_users.id → ow_company_admins
+  const { data: adminRows } = await supabase
+    .from("ow_company_admins")
+    .select("company_id, is_default, joined_at, permission")
+    .eq("user_id", owUser.id)
+    .eq("is_active", true);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows: any[] = (owUser as any).ow_company_admins ?? [];
+  const rows: any[] = adminRows ?? [];
   if (rows.length === 0) return null;
 
   // joined_at で昇順ソート（DB ORDER BY の代替）
