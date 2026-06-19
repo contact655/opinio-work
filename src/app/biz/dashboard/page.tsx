@@ -21,12 +21,6 @@ export const metadata = {
   title: "ホーム | OPINIO Business",
 };
 
-function getGreeting(hour: number): string {
-  if (hour < 12) return "おはようございます";
-  if (hour < 18) return "こんにちは";
-  return "おかえりなさい";
-}
-
 async function NoTenantPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
