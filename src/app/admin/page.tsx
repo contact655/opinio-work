@@ -147,7 +147,10 @@ export default async function AdminDashboard() {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 1100, margin: "0 auto" }}>
-      <style>{`.admin-kpi-card:hover { box-shadow: 0 6px 20px rgba(15,23,42,0.08); transform: translateY(-2px); border-color: #DCE5F7 !important; }`}</style>
+      <style>{`
+        .admin-kpi-card:hover { box-shadow: 0 6px 20px rgba(15,23,42,0.08); transform: translateY(-2px); border-color: #DCE5F7 !important; }
+        .admin-quick-link:hover { background: #F8FAFC !important; border-color: #E2E8F0 !important; }
+      `}</style>
       {/* ── Header ── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -471,21 +474,12 @@ export default async function AdminDashboard() {
               { href: "/admin/candidates", label: "候補者を確認する", desc: "登録ユーザーの一覧", icon: "👤" },
             ].map(({ href, label, desc, icon }) => (
               <Link key={href} href={href} style={{ textDecoration: "none" }}>
-                <div style={{
+                <div className="admin-quick-link" style={{
                   display: "flex", alignItems: "center", gap: 12,
                   padding: "10px 14px", borderRadius: 10,
                   border: "1px solid #F1F5F9",
                   cursor: "pointer", transition: "background 0.15s, border-color 0.15s",
-                }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.background = "#F8FAFC";
-                    (e.currentTarget as HTMLDivElement).style.borderColor = "#E2E8F0";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.background = "transparent";
-                    (e.currentTarget as HTMLDivElement).style.borderColor = "#F1F5F9";
-                  }}
-                >
+                }}>
                   <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
                   <div>
                     <p style={{ fontSize: 12, fontWeight: 600, color: "#0F172A", margin: 0, marginBottom: 1 }}>{label}</p>
@@ -497,6 +491,7 @@ export default async function AdminDashboard() {
           </div>
         </div>
       </div>
+
 
       {/* ── Recent Users ── */}
       <div style={{
