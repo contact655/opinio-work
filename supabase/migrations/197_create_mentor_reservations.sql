@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS ow_mentor_reservations (
   id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id           UUID        NOT NULL REFERENCES ow_users(id)   ON DELETE CASCADE,
-  mentor_id         UUID                 REFERENCES ow_mentors(id) ON DELETE SET NULL,
+  mentor_id         UUID                 REFERENCES mentors(id)    ON DELETE SET NULL,
   mentor_user_id    UUID                 REFERENCES ow_users(id)   ON DELETE SET NULL,
 
   -- 申込内容

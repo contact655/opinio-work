@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
   // メンター情報を取得（存在確認 + user_id 解決）
   const { data: mentor } = await supabase
-    .from("ow_mentors")
+    .from("mentors")
     .select("id, name, user_id, is_available")
     .eq("id", mentor_id)
     .maybeSingle();
@@ -120,7 +120,7 @@ export async function GET() {
     .from("ow_mentor_reservations")
     .select(`
       id, mentor_id, status, themes, scheduled_at, created_at,
-      mentor:ow_mentors!mentor_id(name, photo_url)
+      mentor:mentors!mentor_id(name, photo_url)
     `)
     .eq("user_id", owUserId)
     .order("created_at", { ascending: false });
