@@ -20,6 +20,8 @@ type PublicStep = {
   is_current: boolean;
   display_order: number;
   visibility_company: "real" | "masked" | "hidden";
+  salary_man: number | null;
+  visibility_salary: boolean;
 };
 
 type CompanyLogo = {
@@ -124,6 +126,12 @@ async function getProfiles(): Promise<CardData[]> {
       }
     }
 
+    // 年収カーブ: visibility_salary=true かつ salary_man 非 null の点を時系列昇順で抽出
+    const salaryCurve = typedSteps
+      .filter((s) => s.visibility_salary && s.salary_man != null)
+      .sort((a, b) => a.display_order - b.display_order)
+      .map((s) => s.salary_man as number);
+
     cards.push({
       userId: profile.user_id,
       userName: userMap[profile.user_id] ?? null,
@@ -133,6 +141,7 @@ async function getProfiles(): Promise<CardData[]> {
       birthYear: profile.birth_year ?? null,
       steps: typedSteps,
       logoMap,
+      salaryCurve,
     });
   }
 

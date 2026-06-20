@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CareerSalarySparkline } from "@/components/ui/CareerSalarySparkline";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ export type CardData = {
   birthYear: number | null;
   steps: PublicStep[];
   logoMap: Record<string, CompanyLogo>;
+  salaryCurve: number[];
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -370,11 +372,16 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
           })}
         </div>
 
-        {/* ── CTA ── */}
+        {/* ── 年収カーブ + CTA ── */}
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "flex-end",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
           borderTop: "1px solid var(--line-soft)", paddingTop: 12, marginTop: 8,
         }}>
+          {card.salaryCurve.length >= 2 ? (
+            <CareerSalarySparkline curve={card.salaryCurve} width={130} height={30} />
+          ) : (
+            <div />
+          )}
           <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700 }}>
             詳しく見る →
           </span>

@@ -772,33 +772,58 @@ export default async function CareerTrajectoryPage({
           ※ 企業名・年収の一部は本人の希望により非公開にしている場合があります
         </p>
 
-        {/* CTA */}
-        <div style={{
-          marginTop: 40,
-          background: "linear-gradient(135deg, #001233 0%, #002366 100%)",
-          borderRadius: 16, padding: "32px 28px", textAlign: "center",
-          position: "relative", overflow: "hidden",
-        }}>
-          <div style={{ position: "absolute", top: -40, right: -20, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 8, letterSpacing: "0.05em" }}>
-            同じようなキャリアを考えていますか？
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 22, fontFamily: "Noto Serif JP, serif", lineHeight: 1.5 }}>
-            先輩アドバイザーに<br />直接話を聞いてみる
-          </div>
-          <Link
-            href="/mentors"
-            style={{
-              display: "inline-block",
-              background: "linear-gradient(135deg, var(--warm) 0%, #f97316 100%)",
-              color: "#fff", fontWeight: 700, fontSize: 14,
-              padding: "12px 32px", borderRadius: 8, textDecoration: "none",
-              boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
-            }}
-          >
-            先輩を探す →
-          </Link>
-        </div>
+        {/* CTA — 現職に連動した動的文言 */}
+        {(() => {
+          // 現職の情報からCTA文言を生成
+          const isCompanyReal = currentStep?.visibility_company === "real";
+          const ctaCompany = isCompanyReal ? currentCompanyName : null;
+          const ctaRole = currentStep?.role_title ?? (roleLabels[0] ? `${roleLabels[0]}職` : null);
+
+          const ctaHeading = ctaCompany
+            ? `${ctaCompany}の先輩に\n話を聞いてみる`
+            : ctaRole
+              ? `${ctaRole}の先輩に\n話を聞いてみる`
+              : `先輩アドバイザーに\n直接話を聞いてみる`;
+
+          const ctaButton = ctaCompany
+            ? `${ctaCompany}の先輩を探す →`
+            : ctaRole
+              ? `${ctaRole}の先輩を探す →`
+              : `先輩を探す →`;
+
+          const ctaSub = ctaCompany
+            ? `${ctaCompany}への転職を考えていますか？`
+            : `同じようなキャリアを考えていますか？`;
+
+          return (
+            <div style={{
+              marginTop: 40,
+              background: "linear-gradient(135deg, #001233 0%, #002366 100%)",
+              borderRadius: 16, padding: "32px 28px", textAlign: "center",
+              position: "relative", overflow: "hidden",
+            }}>
+              <div style={{ position: "absolute", top: -40, right: -20, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 8, letterSpacing: "0.05em" }}>
+                {ctaSub}
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 22, fontFamily: "Noto Serif JP, serif", lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                {ctaHeading}
+              </div>
+              <Link
+                href="/mentors"
+                style={{
+                  display: "inline-block",
+                  background: "linear-gradient(135deg, var(--warm) 0%, #f97316 100%)",
+                  color: "#fff", fontWeight: 700, fontSize: 14,
+                  padding: "12px 32px", borderRadius: 8, textDecoration: "none",
+                  boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+                }}
+              >
+                {ctaButton}
+              </Link>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
