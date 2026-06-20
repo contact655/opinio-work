@@ -35,12 +35,10 @@ export function CareerSalarySparkline({ curve, width = 120, height = 32 }: Props
   // Build polyline points string
   const polyline = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
 
-  const first = points[0];
   const last = points[points.length - 1];
   const endValue = curve[curve.length - 1];
 
   const COLOR = "#F39C12";
-  const DOT_R = 2.5;
 
   return (
     <svg
@@ -59,11 +57,9 @@ export function CareerSalarySparkline({ curve, width = 120, height = 32 }: Props
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* Start dot */}
-      <circle cx={first.x} cy={first.y} r={DOT_R} fill={COLOR} />
-      {/* End dot */}
-      <circle cx={last.x} cy={last.y} r={DOT_R} fill={COLOR} />
-      {/* End label */}
+      {/* End dot (最新年収を強調) */}
+      <circle cx={last.x} cy={last.y} r={3.5} fill={COLOR} />
+      {/* End label (最新年収のみ) */}
       <text
         x={last.x + 6}
         y={last.y + 4}

@@ -118,9 +118,11 @@ async function getProfiles(): Promise<CardData[]> {
     }
 
     // 年収カーブ: visibility_salary=true かつ salary_man 非 null の点を時系列昇順で抽出
+    // display_order は大きいほど「古い」（カードのロゴストリップと同じ降順設計）
+    // → 降順ソートで先頭が最古 = 左から右に時系列順（古→新）
     const salaryCurve = typedSteps
       .filter((s) => s.visibility_salary && s.salary_man != null)
-      .sort((a, b) => a.display_order - b.display_order)
+      .sort((a, b) => b.display_order - a.display_order)
       .map((s) => s.salary_man as number);
 
     cards.push({
