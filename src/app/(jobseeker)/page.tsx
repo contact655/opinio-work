@@ -69,6 +69,12 @@ function PhoneOffIcon() {
 function ArrowIcon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>;
 }
+function BuildingIcon() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h6M3 15h6M15 9h6M15 15h6"/></svg>;
+}
+function BriefcaseIcon() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>;
+}
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
@@ -1340,6 +1346,176 @@ function CareerTrajectoriesTeaser() {
   );
 }
 
+// ─── First-Visit Onboarding（初回1問3カード） ─────────────────────────────────
+
+const FV_KEY = "opinio_ftv_done";
+
+function FirstVisitOnboarding() {
+  const [show, setShow] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) { setShow(false); return; }
+      setShow(!localStorage.getItem(FV_KEY));
+    });
+  }, []);
+
+  const go = (href: string) => {
+    localStorage.setItem(FV_KEY, "1");
+    setShow(false);
+    setTimeout(() => { window.location.href = href; }, 60);
+  };
+
+  const skip = () => {
+    localStorage.setItem(FV_KEY, "1");
+    setShow(false);
+  };
+
+  // null=判定中、false=非表示
+  if (!show) return null;
+
+  const cards: {
+    icon: React.ReactNode;
+    title: string;
+    sub: string;
+    href: string;
+    color: string;
+    accent: string;
+    border: string;
+  }[] = [
+    {
+      icon: <BuildingIcon />,
+      title: "企業のリアルを知りたい",
+      sub: "現役社員・OBの声、カジュアル面談",
+      href: "/companies",
+      color: "#002366",
+      accent: "var(--royal-50)",
+      border: "var(--royal-100)",
+    },
+    {
+      icon: <BriefcaseIcon />,
+      title: "自分に合う求人を探したい",
+      sub: "職種・年収・働き方で絞り込む",
+      href: "/jobs",
+      color: "#D97706",
+      accent: "#FEF3C7",
+      border: "#FDE68A",
+    },
+    {
+      icon: <ChatIcon />,
+      title: "キャリアの相談がしたい",
+      sub: "転職を迫らない第三者に話す",
+      href: "/career-consultation",
+      color: "#7C3AED",
+      accent: "#F3E8FF",
+      border: "#DDD6FE",
+    },
+  ];
+
+  return (
+    <section style={{
+      background: "#fff",
+      borderBottom: "1px solid var(--line)",
+      padding: "52px 48px 44px",
+    }} className="px-5 md:px-12">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+        {/* 見出し */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <h2 style={{
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: "clamp(20px, 2.4vw, 28px)",
+            fontWeight: 700,
+            color: "var(--ink)",
+            lineHeight: 1.4,
+            margin: 0,
+          }}>
+            今日は、何から始めますか？
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8 }}>
+            選んだページに移動します
+          </p>
+        </div>
+
+        {/* 3カード */}
+        <style>{`
+          .ftv-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+          @media (max-width: 640px) { .ftv-grid { grid-template-columns: 1fr; } }
+          .ftv-card { transition: transform 0.15s, box-shadow 0.15s; }
+          .ftv-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+          .ftv-card:active { transform: translateY(-1px); }
+        `}</style>
+        <div className="ftv-grid">
+          {cards.map((c) => (
+            <button
+              key={c.href}
+              className="ftv-card"
+              onClick={() => go(c.href)}
+              style={{
+                background: "#fff",
+                border: `1.5px solid ${c.border}`,
+                borderRadius: 16,
+                padding: "28px 24px 24px",
+                cursor: "pointer",
+                textAlign: "left",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                width: "100%",
+              }}
+            >
+              {/* アイコン */}
+              <div style={{
+                width: 48, height: 48,
+                borderRadius: 12,
+                background: c.accent,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: c.color,
+                flexShrink: 0,
+              }}>
+                {c.icon}
+              </div>
+              {/* テキスト */}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>
+                  {c.title}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 5, lineHeight: 1.6 }}>
+                  {c.sub}
+                </div>
+              </div>
+              {/* アクション */}
+              <div style={{
+                display: "flex", alignItems: "center", gap: 4,
+                fontSize: 13, fontWeight: 600, color: c.color,
+                marginTop: 4,
+              }}>
+                見てみる <ArrowIcon />
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* スキップ */}
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <button
+            onClick={skip}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: 12, color: "var(--ink-mute)",
+              padding: "6px 16px",
+              textDecoration: "underline",
+            }}
+          >
+            あとで
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Mobile non-auth sticky CTA ──────────────────────────────────────────────
 
 function MobileAuthCTA() {
@@ -1552,6 +1728,7 @@ export default function HomePage() {
   return (
     <>
       <Hero companyNum={companyNum} jobNum={jobNum} />
+      <FirstVisitOnboarding />
       <TrustStrip companyNum={companyNum} />
       <HowItWorks />
       <FeaturedCompaniesSection />
