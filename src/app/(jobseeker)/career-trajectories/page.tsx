@@ -67,17 +67,20 @@ async function getProfiles(): Promise<CardData[]> {
     .from("ow_career_profiles")
     .select("user_id, headline, years_of_experience, gender, birth_year, verified")
     .eq("is_published", true)
-    .in("user_id", publicUserIds);
+    .in("user_id", publicUserIds)
+    .order("created_at", { ascending: true })
+    .order("user_id", { ascending: true });
 
   if (!rawProfiles || rawProfiles.length === 0) return [];
 
-  const profiles: ProfileRow[] = rawProfiles.map((p) => ({
+  const profiles: (ProfileRow & { serialNumber: number })[] = rawProfiles.map((p, idx) => ({
     user_id: p.user_id,
     headline: p.headline,
     years_of_experience: p.years_of_experience,
     gender: (p as { gender?: string | null }).gender ?? null,
     birth_year: (p as { birth_year?: number | null }).birth_year ?? null,
     verified: (p as { verified?: boolean }).verified ?? false,
+    serialNumber: idx + 1,
   }));
 
   const supabase = createClient();
@@ -136,6 +139,7 @@ async function getProfiles(): Promise<CardData[]> {
       logoMap,
       salaryCurve,
       verified: profile.verified,
+      serialNumber: profile.serialNumber,
     });
   }
 

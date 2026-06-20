@@ -39,6 +39,7 @@ export type CardData = {
   logoMap: Record<string, CompanyLogo>;
   salaryCurve: number[];
   verified: boolean;
+  serialNumber: number;
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -250,28 +251,40 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
       >
         {/* ── ヘッダー ── */}
         <div style={{ marginBottom: 14 }}>
-          {/* 年齢 + 性別バッジ */}
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 6 }}>
-            {age && (
-              <span style={{
-                fontSize: 28, fontWeight: 900, color: "var(--ink)",
-                fontFamily: "Inter, sans-serif", lineHeight: 1,
-              }}>
-                {age}<span style={{ fontSize: 14, fontWeight: 700, marginLeft: 2 }}>歳</span>
-              </span>
-            )}
-            {card.gender && (
-              <span style={{
-                fontSize: 11, fontWeight: 700,
-                padding: "3px 10px", borderRadius: 100,
-                background: card.gender === "女性" ? "#FDF2F8" : "var(--royal-50)",
-                color: card.gender === "女性" ? "#9D174D" : "var(--royal)",
-                border: `1px solid ${card.gender === "女性" ? "#FBCFE8" : "var(--royal-100)"}`,
-                letterSpacing: "0.04em",
-              }}>
-                {card.gender}
-              </span>
-            )}
+          {/* 年齢 + 性別バッジ + 通し番号 */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+              {age && (
+                <span style={{
+                  fontSize: 28, fontWeight: 900, color: "var(--ink)",
+                  fontFamily: "Inter, sans-serif", lineHeight: 1,
+                }}>
+                  {age}<span style={{ fontSize: 14, fontWeight: 700, marginLeft: 2 }}>歳</span>
+                </span>
+              )}
+              {card.gender && (
+                <span style={{
+                  fontSize: 11, fontWeight: 700,
+                  padding: "3px 10px", borderRadius: 100,
+                  background: card.gender === "女性" ? "#FDF2F8" : "var(--royal-50)",
+                  color: card.gender === "女性" ? "#9D174D" : "var(--royal)",
+                  border: `1px solid ${card.gender === "女性" ? "#FBCFE8" : "var(--royal-100)"}`,
+                  letterSpacing: "0.04em",
+                }}>
+                  {card.gender}
+                </span>
+              )}
+            </div>
+            <div style={{
+              fontSize: 11, fontWeight: 700,
+              color: "rgba(0,35,102,0.28)",
+              fontFamily: "Inter, monospace",
+              letterSpacing: "0.06em",
+              paddingTop: 3,
+              flexShrink: 0,
+            }}>
+              #{String(card.serialNumber).padStart(3, "0")}
+            </div>
           </div>
 
           {/* 役職・ヘッドライン */}

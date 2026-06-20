@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound } from "next/navigation";
@@ -260,6 +261,59 @@ function InterviewContent({ blocks }: { blocks: ContentBlockConfig[] }) {
 }
 
 // ────────────────────────────────────────────────────────────────
+// メタデータ
+// ────────────────────────────────────────────────────────────────
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { userId: string };
+}): Promise<Metadata> {
+  const adminSupabase = createAdminClient();
+  const { data: profile } = await adminSupabase
+    .from("ow_career_profiles")
+    .select("headline, years_of_experience, birth_year")
+    .eq("user_id", params.userId)
+    .eq("is_published", true)
+    .maybeSingle();
+
+  if (!profile) {
+    return { title: "キャリア軌跡 | OPINIO" };
+  }
+
+  const age = profile.birth_year
+    ? new Date().getFullYear() - profile.birth_year
+    : null;
+  const headline = profile.headline ?? "キャリア軌跡";
+  const title = `${headline} | OPINIO キャリア軌跡`;
+  const description = [
+    age ? `${age}歳` : null,
+    profile.years_of_experience
+      ? `社会人歴${profile.years_of_experience}年`
+      : null,
+    "IT/SaaS業界のリアルなキャリア事例。外資・SaaS・スタートアップへの転職を考えている人向けに、OPINIO編集部が取材。",
+  ]
+    .filter(Boolean)
+    .join(" / ");
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "article",
+      siteName: "OPINIO",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
+
+// ────────────────────────────────────────────────────────────────
 // データ取得
 // ────────────────────────────────────────────────────────────────
 
@@ -267,7 +321,7 @@ async function getData(userId: string) {
   const supabase = createClient();
   const adminSupabase = createAdminClient();
 
-  const [profileRes, userRes, stepsRes] = await Promise.all([
+  const [profileRes, userRes, stepsRes, allProfilesRes] = await Promise.all([
     adminSupabase
       .from("ow_career_profiles")
       .select("headline, years_of_experience, is_published, gender, birth_year, verified")
@@ -280,6 +334,12 @@ async function getData(userId: string) {
       .eq("id", userId)
       .maybeSingle(),
     supabase.rpc("get_public_career_steps", { p_user_id: userId }),
+    adminSupabase
+      .from("ow_career_profiles")
+      .select("user_id")
+      .eq("is_published", true)
+      .order("created_at", { ascending: true })
+      .order("user_id", { ascending: true }),
   ]);
 
   if (!profileRes.data || userRes.data?.visibility !== "public") return null;
@@ -324,7 +384,11 @@ async function getData(userId: string) {
     }
   }
 
-  return { profile: profileRes.data, steps, logoMap, roleMap };
+  const allProfiles = (allProfilesRes.data ?? []) as { user_id: string }[];
+  const serialIdx = allProfiles.findIndex((p) => p.user_id === userId);
+  const serialNumber = serialIdx >= 0 ? serialIdx + 1 : null;
+
+  return { profile: profileRes.data, steps, logoMap, roleMap, serialNumber };
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -417,7 +481,7 @@ export default async function CareerTrajectoryPage({
   const data = await getData(params.userId);
   if (!data || data.steps.length === 0) notFound();
 
-  const { profile, steps, logoMap, roleMap } = data;
+  const { profile, steps, logoMap, roleMap, serialNumber } = data;
 
   const groups = buildGroups(steps);
   const totalCompanies = groups.length;
@@ -518,6 +582,11 @@ export default async function CareerTrajectoryPage({
             <div style={{ fontSize: 10, letterSpacing: "0.18em", color: "rgba(255,255,255,0.45)", fontFamily: "Inter, sans-serif", fontWeight: 700, textTransform: "uppercase" }}>
               Career Trajectory
             </div>
+            {serialNumber != null && (
+              <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.28)", fontFamily: "Inter, monospace", letterSpacing: "0.1em" }}>
+                #{String(serialNumber).padStart(3, "0")}
+              </div>
+            )}
             {(profile as { verified?: boolean }).verified && (
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 4,
