@@ -38,6 +38,7 @@ export type CardData = {
   steps: PublicStep[];
   logoMap: Record<string, CompanyLogo>;
   salaryCurve: number[];
+  verified: boolean;
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -305,6 +306,18 @@ export function TrajectoryCardClient({ card }: { card: CardData }) {
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
               {uniqueSteps.length}社経験
             </span>
+            {card.verified && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 3,
+                fontSize: 10, fontWeight: 700, color: "var(--royal)",
+                background: "var(--royal-50)", borderRadius: 6,
+                padding: "3px 7px", border: "1px solid var(--royal-100)",
+                letterSpacing: "0.02em",
+              }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                OPINIO編集部 取材済み
+              </span>
+            )}
           </div>
         </div>
 

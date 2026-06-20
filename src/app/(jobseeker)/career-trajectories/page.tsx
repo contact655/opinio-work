@@ -39,6 +39,7 @@ type ProfileRow = {
   years_of_experience: number | null;
   gender: string | null;
   birth_year: number | null;
+  verified: boolean;
 };
 
 type UserRow = {
@@ -64,29 +65,19 @@ async function getProfiles(): Promise<CardData[]> {
 
   const { data: rawProfiles } = await adminSupabase
     .from("ow_career_profiles")
-    .select("user_id, headline, years_of_experience")
+    .select("user_id, headline, years_of_experience, gender, birth_year, verified")
     .eq("is_published", true)
     .in("user_id", publicUserIds);
 
   if (!rawProfiles || rawProfiles.length === 0) return [];
 
-  const extraMap: Record<string, { gender: string | null; birth_year: number | null }> = {};
-  const { data: extras, error: extrasError } = await adminSupabase
-    .from("ow_career_profiles")
-    .select("user_id, gender, birth_year")
-    .in("user_id", rawProfiles.map((p) => p.user_id));
-  if (!extrasError && extras) {
-    for (const e of extras as { user_id: string; gender: string | null; birth_year: number | null }[]) {
-      extraMap[e.user_id] = { gender: e.gender ?? null, birth_year: e.birth_year ?? null };
-    }
-  }
-
   const profiles: ProfileRow[] = rawProfiles.map((p) => ({
     user_id: p.user_id,
     headline: p.headline,
     years_of_experience: p.years_of_experience,
-    gender: extraMap[p.user_id]?.gender ?? null,
-    birth_year: extraMap[p.user_id]?.birth_year ?? null,
+    gender: (p as { gender?: string | null }).gender ?? null,
+    birth_year: (p as { birth_year?: number | null }).birth_year ?? null,
+    verified: (p as { verified?: boolean }).verified ?? false,
   }));
 
   const supabase = createClient();
@@ -142,6 +133,7 @@ async function getProfiles(): Promise<CardData[]> {
       steps: typedSteps,
       logoMap,
       salaryCurve,
+      verified: profile.verified,
     });
   }
 

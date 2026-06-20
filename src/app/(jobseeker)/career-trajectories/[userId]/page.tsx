@@ -270,7 +270,7 @@ async function getData(userId: string) {
   const [profileRes, userRes, stepsRes] = await Promise.all([
     adminSupabase
       .from("ow_career_profiles")
-      .select("headline, years_of_experience, is_published, gender, birth_year")
+      .select("headline, years_of_experience, is_published, gender, birth_year, verified")
       .eq("user_id", userId)
       .eq("is_published", true)
       .maybeSingle(),
@@ -514,8 +514,22 @@ export default async function CareerTrajectoryPage({
         <div style={{ position: "absolute", bottom: -80, left: "40%", width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.025)", pointerEvents: "none" }} />
 
         <div style={{ maxWidth: 800, margin: "0 auto", position: "relative" }}>
-          <div style={{ fontSize: 10, letterSpacing: "0.18em", color: "rgba(255,255,255,0.45)", fontFamily: "Inter, sans-serif", fontWeight: 700, marginBottom: 16, textTransform: "uppercase" }}>
-            Career Trajectory
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 10, letterSpacing: "0.18em", color: "rgba(255,255,255,0.45)", fontFamily: "Inter, sans-serif", fontWeight: 700, textTransform: "uppercase" }}>
+              Career Trajectory
+            </div>
+            {(profile as { verified?: boolean }).verified && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 10, fontWeight: 700,
+                color: "#002366", background: "rgba(255,255,255,0.92)",
+                borderRadius: 6, padding: "3px 8px",
+                letterSpacing: "0.02em",
+              }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#002366" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                OPINIO編集部 取材・検証済み
+              </span>
+            )}
           </div>
           <h1 style={{ fontSize: "clamp(20px, 3vw, 26px)", fontWeight: 800, margin: "0 0 20px", fontFamily: "Noto Serif JP, serif", lineHeight: 1.5, color: "#fff" }}>
             {profile.headline ?? "キャリア軌跡"}
