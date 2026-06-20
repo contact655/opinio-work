@@ -113,7 +113,7 @@ function CompanyLogoIcon({
   name: string;
   isCurrent?: boolean;
 }) {
-  const size = 64;
+  const size = 48;
   const wrapStyle: React.CSSProperties = {
     width: size, height: size, borderRadius: 11, flexShrink: 0,
     position: "relative", zIndex: 1,
