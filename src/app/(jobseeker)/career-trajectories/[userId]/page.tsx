@@ -113,9 +113,9 @@ function CompanyLogoIcon({
   name: string;
   isCurrent?: boolean;
 }) {
-  const size = 48;
+  const size = 56;
   const wrapStyle: React.CSSProperties = {
-    width: size, height: size, borderRadius: 11, flexShrink: 0,
+    width: size, height: size, borderRadius: 12, flexShrink: 0,
     position: "relative", zIndex: 1,
     display: "flex", alignItems: "center", justifyContent: "center",
   };
@@ -128,7 +128,7 @@ function CompanyLogoIcon({
           alt={name}
           width={size}
           height={size}
-          style={{ borderRadius: 11, objectFit: "contain", background: "#fff", border: "1px solid var(--line)", display: "block" }}
+          style={{ borderRadius: 12, objectFit: "contain", background: "#fff", border: "1px solid var(--line)", display: "block" }}
         />
       </div>
     );
