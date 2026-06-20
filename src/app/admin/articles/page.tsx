@@ -30,6 +30,11 @@ type OWCompany = {
   name: string;
 };
 
+type CompanyUserLink = {
+  company_id: string;
+  user_id: string;
+};
+
 const TYPE_LABELS: Record<string, string> = {
   employee: "社員インタビュー",
   mentor: "メンターインタビュー",
@@ -41,6 +46,8 @@ export default function AdminArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [users, setUsers] = useState<OWUser[]>([]);
   const [companies, setCompanies] = useState<OWCompany[]>([]);
+  // company_id → Set<user_id> (ow_experiences + ow_company_admins から構築)
+  const [companyUserMap, setCompanyUserMap] = useState<Map<string, Set<string>>>(new Map());
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
   const [linkingUser, setLinkingUser] = useState<string | null>(null);
@@ -70,10 +77,31 @@ export default function AdminArticlesPage() {
         .select("id, name")
         .eq("is_published", true)
         .order("name", { ascending: true }),
-    ]).then(([{ data: arts }, { data: usrs }, { data: comps }]) => {
+      supabase
+        .from("ow_experiences")
+        .select("company_id, user_id")
+        .not("company_id", "is", null)
+        .not("user_id", "is", null),
+      supabase
+        .from("ow_company_admins")
+        .select("company_id, user_id")
+        .not("user_id", "is", null),
+    ]).then(([{ data: arts }, { data: usrs }, { data: comps }, { data: exps }, { data: admins }]) => {
       setArticles(arts || []);
       setUsers((usrs || []).filter((u) => u.name));
       setCompanies(comps || []);
+
+      // company_id → Set<user_id> のマップを構築
+      const map = new Map<string, Set<string>>();
+      const addLink = (link: CompanyUserLink | null) => {
+        if (!link?.company_id || !link?.user_id) return;
+        if (!map.has(link.company_id)) map.set(link.company_id, new Set());
+        map.get(link.company_id)!.add(link.user_id);
+      };
+      (exps || []).forEach(addLink);
+      (admins || []).forEach(addLink);
+      setCompanyUserMap(map);
+
       setLoading(false);
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -326,27 +354,42 @@ export default function AdminArticlesPage() {
                   </td>
                   {/* ── 紐づけユーザー ── */}
                   <td className="px-4 py-3" style={{ minWidth: 180 }}>
-                    <select
-                      value={article.user_id ?? ""}
-                      onChange={(e) => handleUserLink(article.id, e.target.value || null)}
-                      disabled={linkingUser === article.id}
-                      style={{
-                        width: "100%", padding: "5px 8px", borderRadius: 6,
-                        border: `1px solid ${article.user_id ? "var(--royal, var(--royal))" : "var(--line, #E2E8F0)"}`,
-                        fontSize: 12, fontFamily: "inherit",
-                        background: article.user_id ? "var(--royal-50, #EFF3FC)" : "#fff",
-                        color: article.user_id ? "var(--royal, var(--royal))" : "var(--ink-mute, #94A3B8)",
-                        cursor: "pointer",
-                        opacity: linkingUser === article.id ? 0.5 : 1,
-                      }}
-                    >
-                      <option value="">— 紐づけなし —</option>
-                      {users.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name}{u.email ? ` (${u.email.split("@")[0]})` : ""}
-                        </option>
-                      ))}
-                    </select>
+                    {(() => {
+                      // 企業が選ばれている場合はその企業のユーザーのみ表示
+                      const allowedIds = article.company_id
+                        ? companyUserMap.get(article.company_id)
+                        : null;
+                      const filtered = allowedIds
+                        ? users.filter((u) => allowedIds.has(u.id))
+                        : users;
+                      return (
+                        <select
+                          value={article.user_id ?? ""}
+                          onChange={(e) => handleUserLink(article.id, e.target.value || null)}
+                          disabled={linkingUser === article.id}
+                          style={{
+                            width: "100%", padding: "5px 8px", borderRadius: 6,
+                            border: `1px solid ${article.user_id ? "var(--royal)" : "var(--line, #E2E8F0)"}`,
+                            fontSize: 12, fontFamily: "inherit",
+                            background: article.user_id ? "var(--royal-50, #EFF3FC)" : "#fff",
+                            color: article.user_id ? "var(--royal)" : "var(--ink-mute, #94A3B8)",
+                            cursor: "pointer",
+                            opacity: linkingUser === article.id ? 0.5 : 1,
+                          }}
+                        >
+                          <option value="">
+                            {article.company_id && filtered.length === 0
+                              ? "— この企業のユーザーなし —"
+                              : "— 紐づけなし —"}
+                          </option>
+                          {filtered.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name}{u.email ? ` (${u.email.split("@")[0]})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 text-xs rounded-full whitespace-nowrap ${

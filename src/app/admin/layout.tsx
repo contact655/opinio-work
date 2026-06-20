@@ -6,13 +6,13 @@ import {
   Users,
   Building2,
   FileText,
-  GraduationCap,
   Pencil,
-  MessageSquare,
   Newspaper,
   School,
   TrendingUp,
   UserCheck,
+  Briefcase,
+  CalendarCheck,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -25,26 +25,27 @@ const NAV_GROUPS = [
   {
     label: "ユーザー管理",
     items: [
-      { label: "求職者管理",         href: "/admin/candidates",       icon: <Users        size={16} strokeWidth={2} /> },
-      { label: "BIZ担当者管理",      href: "/admin/biz-accounts",     icon: <UserCheck    size={16} strokeWidth={2} /> },
-      { label: "キャリア軌跡",       href: "/admin/career",           icon: <TrendingUp   size={16} strokeWidth={2} /> },
+      { label: "ユーザー管理",        href: "/admin/candidates",       icon: <Users        size={16} strokeWidth={2} /> },
+      { label: "BIZ企業",             href: "/admin/biz-companies",    icon: <Building2    size={16} strokeWidth={2} /> },
+      { label: "BIZ担当者管理",       href: "/admin/biz-accounts",     icon: <UserCheck    size={16} strokeWidth={2} /> },
+      { label: "キャリア軌跡",        href: "/admin/career",           icon: <TrendingUp   size={16} strokeWidth={2} /> },
     ],
   },
   {
     label: "コンテンツ管理",
     items: [
-      { label: "企業審査",           href: "/admin/companies",        icon: <Building2    size={16} strokeWidth={2} /> },
-      { label: "求人審査",           href: "/admin/jobs",             icon: <FileText     size={16} strokeWidth={2} /> },
-      { label: "メンター管理",       href: "/admin/mentors",          icon: <GraduationCap size={16} strokeWidth={2} /> },
-      { label: "記事管理",           href: "/admin/articles",         icon: <Pencil       size={16} strokeWidth={2} /> },
-      { label: "発信管理",           href: "/admin/posts",            icon: <Newspaper    size={16} strokeWidth={2} /> },
+      { label: "企業審査",            href: "/admin/companies",        icon: <Briefcase    size={16} strokeWidth={2} /> },
+      { label: "求人審査",            href: "/admin/jobs",             icon: <FileText     size={16} strokeWidth={2} /> },
+      { label: "記事管理",            href: "/admin/articles",         icon: <Pencil       size={16} strokeWidth={2} /> },
+      { label: "発信管理",            href: "/admin/posts",            icon: <Newspaper    size={16} strokeWidth={2} /> },
     ],
   },
   {
     label: "オペレーション",
     items: [
-      { label: "相談予約管理",       href: "/admin/reservations",     icon: <MessageSquare size={16} strokeWidth={2} /> },
-      { label: "学校追加リクエスト", href: "/admin/school-requests",  icon: <School       size={16} strokeWidth={2} /> },
+      { label: "面談管理",            href: "/admin/meetings",         icon: <CalendarCheck size={16} strokeWidth={2} /> },
+      { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },
+      { label: "学校追加リクエスト",  href: "/admin/school-requests",  icon: <School       size={16} strokeWidth={2} /> },
     ],
   },
 ];
