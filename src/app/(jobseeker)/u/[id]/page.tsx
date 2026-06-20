@@ -4,8 +4,6 @@ import Link from "next/link";
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
 import { PostCard } from "@/components/profile/PostCard";
-import { RecommendationCard } from "@/components/profile/RecommendationCard";
-import { RecommendationForm } from "@/components/profile/RecommendationForm";
 import {
   buildTimelineCareerEntriesFromRaw,
   toTimelineEducationEntries,
@@ -133,12 +131,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
     (k) => socialLinks[k] && socialLinks[k]!.trim() !== ""
   );
 
-  // Fetch experiences + skill tags + educations + certifications + content links + achievements + awards + media + recommendations in parallel
+  // Fetch experiences + skill tags + educations + certifications + content links + achievements + awards + media in parallel
   const [
     { data: expRows }, { data: allRoles }, { data: skillTagsRaw },
     { data: educationsRaw }, { data: certificationsRaw }, { data: contentLinksRaw },
     { data: achievementsRaw }, { data: awardsRaw }, { data: mediaAppearancesRaw },
-    { data: recentPostsRaw }, { data: recommendationsRaw },
+    { data: recentPostsRaw },
   ] = await Promise.all([
     supabase
       .from("ow_experiences")
@@ -188,11 +186,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .eq("user_id", owUser.id)
       .order("created_at", { ascending: false })
       .limit(6),
-    supabase
-      .from("ow_user_recommendations")
-      .select("id, recommender_user_id, recommender_name, recommender_title, recommender_company, relationship, content, is_visible, created_at")
-      .eq("target_user_id", owUser.id)
-      .order("created_at", { ascending: false }),
   ]);
 
   const skillTags      = skillTagsRaw      ?? [];
@@ -219,18 +212,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
     id: string; content: string; image_url: string | null; created_at: string;
     likes: Array<{ count: number }>;
   }>;
-  type RecRow = {
-    id: string; recommender_user_id: string | null;
-    recommender_name: string; recommender_title: string | null;
-    recommender_company: string | null; relationship: string | null;
-    content: string; is_visible: boolean; created_at: string;
-  };
-  // オーナーは全件（非表示含む）、他者は表示中のみ
-  const allRecommendations = (recommendationsRaw ?? []) as RecRow[];
-  const recommendations = viewerIsOwner
-    ? allRecommendations
-    : allRecommendations.filter((r) => r.is_visible);
-
   // ログインユーザーがいいねしている投稿ID一覧
   const likedPostIds = new Set<string>();
   if (authUser && recentPostsTyped.length > 0) {
