@@ -8,7 +8,7 @@ async function getStats() {
 
   const [
     users, activeCompanies, activeJobs, totalApplications,
-    pendingJobs, pendingMeetings, pendingReservations, bizAdmins,
+    pendingJobs, pendingMeetings, bizAdmins,
   ] = await Promise.all([
     supabase.from("ow_users").select("id", { count: "exact", head: true }),
     supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
@@ -16,7 +16,6 @@ async function getStats() {
     supabase.from("ow_job_applications").select("id", { count: "exact", head: true }),
     supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
     supabase.from("ow_casual_meetings").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    supabase.from("ow_mentor_reservations").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
     admin.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("is_active", true),
   ]);
 
@@ -64,7 +63,7 @@ async function getStats() {
     totalApplicationsCount: totalApplications.count ?? 0,
     pendingJobsCount: pendingJobs.count ?? 0,
     pendingMeetingsCount: pendingMeetings.count ?? 0,
-    pendingReservationsCount: pendingReservations.count ?? 0,
+    pendingReservationsCount: 0, // ow_mentor_reservations テーブル未作成のため固定値
     bizAdminsCount: bizAdmins.count ?? 0,
     neverLoggedInBizCount,
     recentUsers: recentUsers ?? [],
@@ -148,6 +147,7 @@ export default async function AdminDashboard() {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 1100, margin: "0 auto" }}>
+      <style>{`.admin-kpi-card:hover { box-shadow: 0 6px 20px rgba(15,23,42,0.08); transform: translateY(-2px); border-color: #DCE5F7 !important; }`}</style>
       {/* ── Header ── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -199,30 +199,16 @@ export default async function AdminDashboard() {
       }}>
         {kpis.map((kpi) => (
           <Link key={kpi.label} href={kpi.href} style={{ textDecoration: "none", display: "block" }}>
-            <div
-              style={{
-                background: "#fff",
-                border: "1px solid #E2E8F0",
-                borderRadius: 14,
-                padding: "20px 22px 16px",
-                transition: "all 0.18s ease",
-                position: "relative",
-                overflow: "hidden",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLDivElement;
-                el.style.boxShadow = "0 6px 20px rgba(15,23,42,0.08)";
-                el.style.transform = "translateY(-2px)";
-                el.style.borderColor = "#DCE5F7";
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLDivElement;
-                el.style.boxShadow = "none";
-                el.style.transform = "none";
-                el.style.borderColor = "#E2E8F0";
-              }}
-            >
+            <div className="admin-kpi-card" style={{
+              background: "#fff",
+              border: "1px solid #E2E8F0",
+              borderRadius: 14,
+              padding: "20px 22px 16px",
+              transition: "all 0.18s ease",
+              position: "relative",
+              overflow: "hidden",
+              cursor: "pointer",
+            }}>
               {/* Top accent bar */}
               <div style={{
                 position: "absolute", top: 0, left: 0, right: 0,
