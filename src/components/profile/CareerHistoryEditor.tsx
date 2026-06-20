@@ -328,16 +328,16 @@ function formatPeriod(startedAt: string, endedAt?: string, isCurrent?: boolean):
 function fieldStyle(): React.CSSProperties {
   return {
     width: "100%",
-    border: "1.5px solid var(--line)",
+    border: "1.5px solid transparent",
     borderRadius: 8,
-    padding: "8px 10px",
+    padding: "10px 12px",
     fontSize: 13,
     color: "var(--ink)",
-    background: "#fff",
+    background: "#F2F4F7",
     outline: "none",
     fontFamily: "inherit",
     boxSizing: "border-box",
-    transition: "border-color 0.15s, box-shadow 0.15s",
+    transition: "border-color 0.15s, background 0.15s",
   };
 }
 
@@ -1706,7 +1706,7 @@ export default function CareerHistoryEditor({
           {/* モーダルカード */}
           <div style={{
             position: "relative", zIndex: 1, background: "#fff",
-            borderRadius: 16, width: "min(600px, 95vw)", maxHeight: "90vh",
+            borderRadius: 16, width: "min(760px, 96vw)", maxHeight: "92vh",
             overflow: "hidden", display: "flex", flexDirection: "column",
             boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
           }}>
