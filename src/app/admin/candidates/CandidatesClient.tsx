@@ -141,7 +141,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
                   aria-label="全選択"
                 />
               </th>
-              {["名前", "メール", "居住地", "年代", "公開設定", "面談可", "最終ログイン", "登録日"].map((h) => (
+              {["名前", "メール", "居住地", "年代", "BIZ", "公開設定", "面談可", "最終ログイン", "登録日"].map((h) => (
                 <th
                   key={h}
                   scope="col"
@@ -159,7 +159,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
+                <td colSpan={10} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
                   <div style={{ marginBottom: 8, fontSize: 28 }}>👤</div>
                   ユーザーが見つかりません
                 </td>
@@ -200,15 +200,6 @@ export function CandidatesClient({ users }: { users: User[] }) {
                           {u.name?.[0]?.toUpperCase() || "?"}
                         </div>
                         <span style={{ fontWeight: 600, color: "var(--royal)" }}>{u.name || "未入力"}</span>
-                        {u.isBizAdmin && (
-                          <span style={{
-                            fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
-                            background: "#001233", color: "#fff", letterSpacing: "0.04em",
-                            flexShrink: 0,
-                          }}>
-                            BIZ
-                          </span>
-                        )}
                       </a>
                     </td>
                     {/* メール */}
@@ -220,6 +211,19 @@ export function CandidatesClient({ users }: { users: User[] }) {
                     {/* 年代 */}
                     <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
                       {u.birth_date ? `${getUserAge(u.birth_date)}歳` : <span style={{ color: "var(--ink-mute)" }}>—</span>}
+                    </td>
+                    {/* BIZ */}
+                    <td style={{ padding: "11px 14px" }}>
+                      {u.isBizAdmin ? (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                          background: "#001233", color: "#fff", letterSpacing: "0.04em",
+                        }}>
+                          BIZ
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--ink-mute)" }}>—</span>
+                      )}
                     </td>
                     {/* 公開設定 */}
                     <td style={{ padding: "11px 14px" }}>
