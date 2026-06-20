@@ -27,6 +27,9 @@ export type Stint = {
   joinReason?: string;
   rank?: "none" | "leader" | "manager" | "general_manager" | "executive" | null;
   employmentType?: string;
+  salaryBase?: number | null;
+  salaryBonus?: number | null;
+  salaryStock?: number | null;
   salaryMan?: number | null;
   visibilityCompany?: "real" | "masked" | "hidden";
   visibilityCompanyProfile?: "real" | "masked" | "hidden";
@@ -187,7 +190,10 @@ type StintDraft = {
   description: string;
   joinReason: string;
   employmentType: string;
-  salaryMan: string;           // 入力は string、保存時に number に変換
+  salaryBase: string;
+  salaryBonus: string;
+  salaryStock: string;
+  salaryMan: string;           // 自動計算 = salaryBase + salaryBonus + salaryStock
   visibilityCompany: "real" | "masked" | "hidden";
   visibilityCompanyProfile: "real" | "masked" | "hidden";
   visibilitySalary: boolean;
@@ -244,6 +250,9 @@ const EMPTY_DRAFT: StintDraft = {
   description: "",
   joinReason: "",
   employmentType: "",
+  salaryBase: "",
+  salaryBonus: "",
+  salaryStock: "",
   salaryMan: "",
   visibilityCompany: "real",
   visibilityCompanyProfile: "real",
@@ -865,21 +874,81 @@ function StintForm({
         </div>
       </div>
 
-      {/* 年収（任意） */}
-      <div>
-        <label style={labelStyle()}>年収（万円・任意）</label>
-        <input
-          type="number"
-          aria-label="年収（万円）"
-          value={draft.salaryMan}
-          onChange={(e) => set("salaryMan", e.target.value)}
-          placeholder="例: 600"
-          disabled={isSaving}
-          min={0}
-          max={10000}
-          style={{ ...fieldStyle(), maxWidth: 180 }}
-        />
-      </div>
+      {/* 年収（内訳） */}
+      {(() => {
+        const base = draft.salaryBase ? parseInt(draft.salaryBase, 10) : 0;
+        const bonus = draft.salaryBonus ? parseInt(draft.salaryBonus, 10) : 0;
+        const stock = draft.salaryStock ? parseInt(draft.salaryStock, 10) : 0;
+        const total = base + bonus + stock;
+        return (
+          <div style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em" }}>年収（任意）</div>
+
+            {/* ベースの給与 */}
+            <div>
+              <label style={labelStyle()}>ベースの給与（年間）</label>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>基本給・残業代などの合計金額を万円単位で入力してください</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="number"
+                  value={draft.salaryBase}
+                  onChange={(e) => set("salaryBase", e.target.value)}
+                  placeholder="例: 500"
+                  disabled={isSaving}
+                  min={0} max={10000}
+                  style={{ ...fieldStyle(), maxWidth: 160 }}
+                />
+                <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>万円</span>
+              </div>
+            </div>
+
+            {/* 賞与・インセンティブ */}
+            <div>
+              <label style={labelStyle()}>賞与・インセンティブ（年間）</label>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>インセンティブや歩合給なども含めた年間賞与の合計金額（なしの場合は 0）</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="number"
+                  value={draft.salaryBonus}
+                  onChange={(e) => set("salaryBonus", e.target.value)}
+                  placeholder="例: 80"
+                  disabled={isSaving}
+                  min={0} max={10000}
+                  style={{ ...fieldStyle(), maxWidth: 160 }}
+                />
+                <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>万円</span>
+              </div>
+            </div>
+
+            {/* 株式報酬 */}
+            <div>
+              <label style={labelStyle()}>株式報酬（年間・任意）</label>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>RSU・ストックオプションなどの年間換算額（例：売却想定価格300万円 ÷ 3年在籍 = 100）</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="number"
+                  value={draft.salaryStock}
+                  onChange={(e) => set("salaryStock", e.target.value)}
+                  placeholder="例: 100"
+                  disabled={isSaving}
+                  min={0} max={10000}
+                  style={{ ...fieldStyle(), maxWidth: 160 }}
+                />
+                <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>万円</span>
+              </div>
+            </div>
+
+            {/* 合計表示 */}
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 10, textAlign: "right" }}>
+              <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>年収 </span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: total > 0 ? "var(--success)" : "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                {total.toLocaleString()}
+              </span>
+              <span style={{ fontSize: 13, color: "var(--ink-soft)" }}> 万円</span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 公開設定 */}
       <div style={{
@@ -1149,6 +1218,9 @@ export default function CareerHistoryEditor({
     description: s.description ?? "",
     joinReason: s.joinReason ?? "",
     employmentType: s.employmentType ?? "",
+    salaryBase: s.salaryBase != null ? String(s.salaryBase) : "",
+    salaryBonus: s.salaryBonus != null ? String(s.salaryBonus) : "",
+    salaryStock: s.salaryStock != null ? String(s.salaryStock) : "",
     salaryMan: s.salaryMan != null ? String(s.salaryMan) : "",
     visibilityCompany: s.visibilityCompany ?? "real",
     visibilityCompanyProfile: s.visibilityCompanyProfile ?? "real",
@@ -1172,6 +1244,9 @@ export default function CareerHistoryEditor({
     description: "",
     joinReason: "",
     employmentType: "",
+    salaryBase: "",
+    salaryBonus: "",
+    salaryStock: "",
     salaryMan: "",
     visibilityCompany: "real",
     visibilityCompanyProfile: "real",
@@ -1203,7 +1278,16 @@ export default function CareerHistoryEditor({
         description: editDraft.description || undefined,
         join_reason: editDraft.joinReason || undefined,
         employment_type: editDraft.employmentType || undefined,
-        salary_man: editDraft.salaryMan ? parseInt(editDraft.salaryMan, 10) : null,
+        salary_base: editDraft.salaryBase ? parseInt(editDraft.salaryBase, 10) : null,
+        salary_bonus: editDraft.salaryBonus ? parseInt(editDraft.salaryBonus, 10) : null,
+        salary_stock: editDraft.salaryStock ? parseInt(editDraft.salaryStock, 10) : null,
+        salary_man: (() => {
+          const b = editDraft.salaryBase ? parseInt(editDraft.salaryBase, 10) : 0;
+          const bo = editDraft.salaryBonus ? parseInt(editDraft.salaryBonus, 10) : 0;
+          const st = editDraft.salaryStock ? parseInt(editDraft.salaryStock, 10) : 0;
+          const total = b + bo + st;
+          return total > 0 ? total : null;
+        })(),
         department: editDraft.department || null,
         rank: editDraft.rank || null,
         visibility_company: editDraft.visibilityCompany,
@@ -1236,7 +1320,10 @@ export default function CareerHistoryEditor({
                 description: editDraft.description || undefined,
                 joinReason: editDraft.joinReason || undefined,
                 employmentType: editDraft.employmentType || undefined,
-                salaryMan: editDraft.salaryMan ? parseInt(editDraft.salaryMan, 10) : null,
+                salaryBase: editDraft.salaryBase ? parseInt(editDraft.salaryBase, 10) : null,
+                salaryBonus: editDraft.salaryBonus ? parseInt(editDraft.salaryBonus, 10) : null,
+                salaryStock: editDraft.salaryStock ? parseInt(editDraft.salaryStock, 10) : null,
+                salaryMan: (() => { const t = (editDraft.salaryBase ? parseInt(editDraft.salaryBase,10):0)+(editDraft.salaryBonus ? parseInt(editDraft.salaryBonus,10):0)+(editDraft.salaryStock ? parseInt(editDraft.salaryStock,10):0); return t>0?t:null; })(),
                 department: editDraft.department || undefined,
                 rank: (editDraft.rank || null) as Stint["rank"],
                 visibilityCompany: editDraft.visibilityCompany,
@@ -1278,7 +1365,16 @@ export default function CareerHistoryEditor({
         join_reason: addDraft.joinReason || undefined,
         employment_type: addDraft.employmentType || undefined,
         display_order: stints.length,
-        salary_man: addDraft.salaryMan ? parseInt(addDraft.salaryMan, 10) : null,
+        salary_base: addDraft.salaryBase ? parseInt(addDraft.salaryBase, 10) : null,
+        salary_bonus: addDraft.salaryBonus ? parseInt(addDraft.salaryBonus, 10) : null,
+        salary_stock: addDraft.salaryStock ? parseInt(addDraft.salaryStock, 10) : null,
+        salary_man: (() => {
+          const b = addDraft.salaryBase ? parseInt(addDraft.salaryBase, 10) : 0;
+          const bo = addDraft.salaryBonus ? parseInt(addDraft.salaryBonus, 10) : 0;
+          const st = addDraft.salaryStock ? parseInt(addDraft.salaryStock, 10) : 0;
+          const total = b + bo + st;
+          return total > 0 ? total : null;
+        })(),
         department: addDraft.department || null,
         rank: addDraft.rank || null,
         visibility_company: addDraft.visibilityCompany,
@@ -1308,7 +1404,10 @@ export default function CareerHistoryEditor({
         description: addDraft.description || undefined,
         joinReason: addDraft.joinReason || undefined,
         employmentType: addDraft.employmentType || undefined,
-        salaryMan: addDraft.salaryMan ? parseInt(addDraft.salaryMan, 10) : null,
+        salaryBase: addDraft.salaryBase ? parseInt(addDraft.salaryBase, 10) : null,
+        salaryBonus: addDraft.salaryBonus ? parseInt(addDraft.salaryBonus, 10) : null,
+        salaryStock: addDraft.salaryStock ? parseInt(addDraft.salaryStock, 10) : null,
+        salaryMan: (() => { const t = (addDraft.salaryBase ? parseInt(addDraft.salaryBase,10):0)+(addDraft.salaryBonus ? parseInt(addDraft.salaryBonus,10):0)+(addDraft.salaryStock ? parseInt(addDraft.salaryStock,10):0); return t>0?t:null; })(),
         visibilityCompany: addDraft.visibilityCompany,
         department: addDraft.department || undefined,
         rank: (addDraft.rank || null) as Stint["rank"],

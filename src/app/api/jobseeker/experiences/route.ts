@@ -28,7 +28,7 @@ export async function GET() {
 
   const { data: rows, error: rowsErr } = await supabase
     .from("ow_experiences")
-    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, salary_man, visibility_company, visibility_company_profile, visibility_salary, visibility_reason")
+    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, salary_base, salary_bonus, salary_stock, salary_man, visibility_company, visibility_company_profile, visibility_salary, visibility_reason")
     .eq("user_id", owUserId)
     .order("is_current", { ascending: false })
     .order("started_at", { ascending: false });
@@ -79,6 +79,9 @@ export async function GET() {
       roleTitle: r.role_title as string | undefined || undefined,
       department: (r.department as string | null) ?? undefined,
       rank: (r.rank as string | null) ?? null,
+      salaryBase: (r.salary_base as number | null) ?? null,
+      salaryBonus: (r.salary_bonus as number | null) ?? null,
+      salaryStock: (r.salary_stock as number | null) ?? null,
       startedAt: (r.started_at as string).slice(0, 7),
       endedAt: r.ended_at ? (r.ended_at as string).slice(0, 7) : undefined,
       isCurrent: r.is_current as boolean,
@@ -140,6 +143,9 @@ export async function POST(req: Request) {
       role_title: (body.role_title as string | undefined) ?? null,
       department: (body.department as string | undefined) ?? null,
       rank: (body.rank as string | undefined) ?? null,
+      salary_base: (body.salary_base as number | undefined) ?? null,
+      salary_bonus: (body.salary_bonus as number | undefined) ?? null,
+      salary_stock: (body.salary_stock as number | undefined) ?? null,
       started_at: `${body.started_at}-01`,
       ended_at: body.ended_at ? `${body.ended_at}-01` : null,
       is_current: (body.is_current as boolean | undefined) ?? false,
