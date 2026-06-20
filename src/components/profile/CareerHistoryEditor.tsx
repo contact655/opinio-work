@@ -330,8 +330,8 @@ function fieldStyle(): React.CSSProperties {
     width: "100%",
     border: "1.5px solid transparent",
     borderRadius: 8,
-    padding: "10px 12px",
-    fontSize: 13,
+    padding: "13px 14px",
+    fontSize: 14,
     color: "var(--ink)",
     background: "#F2F4F7",
     outline: "none",
@@ -344,13 +344,15 @@ function fieldStyle(): React.CSSProperties {
 function labelStyle(): React.CSSProperties {
   return {
     display: "block",
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: 700,
-    color: "var(--ink-mute)",
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    marginBottom: 4,
+    color: "#111",
+    marginBottom: 6,
   };
+}
+
+function RequiredMark() {
+  return <span style={{ color: "#E53935", marginLeft: 3, fontWeight: 700 }}>*</span>;
 }
 
 // ── IconButton ────────────────────────────────────────────────────────────────
@@ -643,8 +645,8 @@ function StintForm({
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Company name + anon toggle */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <label style={labelStyle()}>会社名 *</label>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <label style={labelStyle()}>会社名<RequiredMark /></label>
           <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: companyLocked ? "var(--ink-mute)" : "var(--ink-soft)", cursor: companyLocked ? "default" : "pointer", userSelect: "none" }}>
             <input
               type="checkbox"
@@ -683,7 +685,7 @@ function StintForm({
 
       {/* 職種カテゴリー（親） */}
       <div>
-        <label style={labelStyle()}>職種カテゴリー *</label>
+        <label style={labelStyle()}>職種カテゴリー<RequiredMark /></label>
         <select
           aria-label="職種カテゴリー"
           value={parentId}
@@ -704,7 +706,7 @@ function StintForm({
       {/* 職種（子カテゴリー）— 親に子がある場合のみ表示 */}
       {parentId && roles.filter((r) => r.parent_id === parentId).length > 0 && (
         <div>
-          <label style={labelStyle()}>職種 *</label>
+          <label style={labelStyle()}>職種<RequiredMark /></label>
           <select
             aria-label="職種"
             value={draft.roleCategoryId}
@@ -723,72 +725,69 @@ function StintForm({
         </div>
       )}
 
-      {/* 役職 + 雇用形態（2カラム） */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div>
-          <label style={labelStyle()}>役職</label>
-          <select
-            value={draft.rank}
-            onChange={(e) => set("rank", e.target.value)}
-            disabled={isSaving}
-            style={{ ...fieldStyle() }}
-          >
-            {RANK_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label style={labelStyle()}>雇用形態</label>
-          <select
-            value={draft.employmentType}
-            onChange={(e) => set("employmentType", e.target.value)}
-            disabled={isSaving}
-            style={{ ...fieldStyle() }}
-          >
-            {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
+      {/* 役職 */}
+      <div>
+        <label style={labelStyle()}>役職</label>
+        <select
+          value={draft.rank}
+          onChange={(e) => set("rank", e.target.value)}
+          disabled={isSaving}
+          style={fieldStyle()}
+        >
+          {RANK_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
       </div>
 
-      {/* グレード・等級名 + 部署名（2カラム） */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div>
-          <label style={labelStyle()}>職種名（任意）</label>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
-            社内職名・グレード（例: M2、AE、シニアAM）
-          </div>
-          <input
-            type="text"
-            value={draft.roleTitle}
-            onChange={(e) => set("roleTitle", e.target.value)}
-            placeholder="例: アカウントエグゼクティブ"
-            disabled={isSaving}
-            style={fieldStyle()}
-          />
+      {/* 雇用形態 */}
+      <div>
+        <label style={labelStyle()}>雇用形態</label>
+        <select
+          value={draft.employmentType}
+          onChange={(e) => set("employmentType", e.target.value)}
+          disabled={isSaving}
+          style={fieldStyle()}
+        >
+          {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* 職種名 */}
+      <div>
+        <label style={labelStyle()}>職種名（任意）</label>
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
+          社内職名・グレード（例: M2、シニアアソシエイト、プロデューサーなど社内で規定されているグレード・等級名を入力してください）
         </div>
-        <div>
-          <label style={labelStyle()}>部署名（任意）</label>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
-            所属部門・チーム名
-          </div>
-          <input
-            type="text"
-            value={draft.department}
-            onChange={(e) => set("department", e.target.value)}
-            placeholder="例: エンタープライズ営業本部"
-            disabled={isSaving}
-            style={fieldStyle()}
-            maxLength={100}
-          />
-        </div>
+        <input
+          type="text"
+          value={draft.roleTitle}
+          onChange={(e) => set("roleTitle", e.target.value)}
+          placeholder="例: アカウントエグゼクティブ"
+          disabled={isSaving}
+          style={fieldStyle()}
+        />
+      </div>
+
+      {/* 部署名 */}
+      <div>
+        <label style={labelStyle()}>部署名（任意）</label>
+        <input
+          type="text"
+          value={draft.department}
+          onChange={(e) => set("department", e.target.value)}
+          placeholder="例: エンタープライズ営業本部"
+          disabled={isSaving}
+          style={fieldStyle()}
+          maxLength={100}
+        />
       </div>
 
       {/* Period — 年/月 separate selects */}
       <div>
-        <label style={labelStyle()}>入社年月 *</label>
+        <label style={labelStyle()}>入社年月<RequiredMark /></label>
         <div style={{ display: "flex", gap: 8 }}>
           <select
             value={parseYearMonth(draft.startedAt).year}
@@ -813,7 +812,7 @@ function StintForm({
 
       {/* 現職 or 退職年月 */}
       <div>
-        <label style={labelStyle()}>現職 or 退職年月 *</label>
+        <label style={labelStyle()}>現職 or 退職年月<RequiredMark /></label>
         <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 13, color: "var(--ink-soft)", cursor: "pointer" }}>
           <input
             type="checkbox"
@@ -854,7 +853,7 @@ function StintForm({
 
       {/* Description (業務内容) */}
       <div>
-        <label style={labelStyle()}>業務内容（任意）</label>
+        <label style={labelStyle()}>業務内容</label>
         <textarea
           aria-label="業務内容"
           value={draft.description}
