@@ -22,7 +22,23 @@ const AGENT_PUBLIC_PATHS = ["/agent/auth"];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 既存のセッション同期
+  // /biz/ または /admin/ 配下かつ public ページでない場合に認証チェックが必要
+  const needsAuth =
+    (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) ||
+    pathname.startsWith("/admin");
+
+  // Supabase セッションクッキーの有無を確認（sb-<ref>-auth-token）
+  const hasSessionCookie = request.cookies.getAll().some(
+    (c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token")
+  );
+
+  // 認証不要 かつ セッションクッキーなし → updateSession（Supabase外部呼び出し）をスキップ
+  // これにより未ログインユーザーのパブリックページ閲覧時のタイムアウトを防ぐ
+  if (!needsAuth && !hasSessionCookie) {
+    return NextResponse.next();
+  }
+
+  // セッション同期（ログイン中ユーザー or 認証が必要なパスのみ）
   const response = await updateSession(request);
 
   // BIZ_MOCK_MODE=true の場合は /biz/ 認証チェックをスキップ（dev 専用）
@@ -32,14 +48,8 @@ export async function middleware(request: NextRequest) {
 
   // Agent portal: /agent/auth is public; other /agent/* pages handle auth themselves
   if (pathname.startsWith("/agent") && !AGENT_PUBLIC_PATHS.includes(pathname)) {
-    // Let the page components handle auth (they call createClient().auth.getUser() and redirect)
     return response;
   }
-
-  // /biz/ または /admin/ 配下かつ public ページでない場合に認証チェック
-  const needsAuth =
-    (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) ||
-    pathname.startsWith("/admin");
 
   if (needsAuth) {
     const supabase = createServerClient(
