@@ -263,7 +263,7 @@ async function getData(userId: string) {
       .maybeSingle(),
     adminSupabase
       .from("ow_users")
-      .select("visibility, name")
+      .select("visibility")
       .eq("id", userId)
       .maybeSingle(),
     supabase.rpc("get_public_career_steps", { p_user_id: userId }),
@@ -311,7 +311,7 @@ async function getData(userId: string) {
     }
   }
 
-  return { profile: profileRes.data, userName: userRes.data?.name ?? null, steps, logoMap, roleMap };
+  return { profile: profileRes.data, steps, logoMap, roleMap };
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -466,7 +466,7 @@ export default async function CareerTrajectoryPage({
   const data = await getData(params.userId);
   if (!data || data.steps.length === 0) notFound();
 
-  const { profile, userName, steps, logoMap, roleMap } = data;
+  const { profile, steps, logoMap, roleMap } = data;
 
   // キャリアサマリ計算
   const groups = buildGroups(steps);
