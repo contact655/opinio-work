@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
-type Action = "permission" | "deactivate" | "reactivate" | "update_profile";
+type Action = "permission" | "deactivate" | "reactivate" | "update_profile" | "ambassador";
 
 export async function PATCH(
   req: Request,
@@ -168,6 +168,20 @@ export async function PATCH(
 
     if (error) {
       console.error("[members PATCH update_profile]", error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
+
+  // ── action: ambassador ────────────────────────────────────────────
+  else if (body.action === "ambassador") {
+    const isAmbassador = body.value === "true";
+    const { error } = await supabase
+      .from("ow_company_admins")
+      .update({ is_ambassador: isAmbassador })
+      .eq("id", adminRecordId);
+
+    if (error) {
+      console.error("[members PATCH ambassador]", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }

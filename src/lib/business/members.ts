@@ -11,6 +11,7 @@ export type MemberRecord = {
   department: string | null;
   permission: "admin" | "member";
   is_active: boolean;
+  is_ambassador: boolean;
   created_at: string;
 };
 
@@ -31,6 +32,7 @@ type DbRow = {
   role_title: string | null;
   department: string | null;
   is_active: boolean;
+  is_ambassador: boolean;
   created_at: string;
   user: { id: string; name: string; email: string; avatar_color: string | null } | null;
 };
@@ -78,7 +80,7 @@ export async function fetchMembersForCompany(
   try {
     const { data, error } = await supabase
       .from("ow_company_admins")
-      .select("id, permission, role_title, department, is_active, created_at, user:ow_users!user_id (id, name, email, avatar_color)")
+      .select("id, permission, role_title, department, is_active, is_ambassador, created_at, user:ow_users!user_id (id, name, email, avatar_color)")
       .eq("company_id", tenantId)
       .not("user_id", "is", null)
       .order("permission", { ascending: true })
@@ -105,6 +107,7 @@ export async function fetchMembersForCompany(
         department: r.department,
         permission: r.permission === "admin" ? "admin" : "member",
         is_active: r.is_active,
+        is_ambassador: r.is_ambassador ?? false,
         created_at: r.created_at,
       };
     });

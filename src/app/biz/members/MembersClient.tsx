@@ -1031,6 +1031,9 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   // toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // ambassador toggle
+  const [ambassadorTogglingId, setAmbassadorTogglingId] = useState<string | null>(null);
+
   const [pendingInvites, setPendingInvites] = useState(initialPendingInvites);
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
@@ -1167,6 +1170,28 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
       setErrorMessage("通信エラーが発生しました");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleToggleAmbassador(memberId: string, newValue: boolean) {
+    setAmbassadorTogglingId(memberId);
+    try {
+      const res = await fetch(`/api/biz/members/${memberId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "ambassador", value: String(newValue) }),
+      });
+      const json = await res.json() as { error?: string };
+      if (!res.ok) {
+        setToastMessage(json.error ?? "エラーが発生しました");
+        return;
+      }
+      setToastMessage(newValue ? "「話せる人」バッジを付与しました" : "バッジを外しました");
+      router.refresh();
+    } catch {
+      setToastMessage("通信エラーが発生しました");
+    } finally {
+      setAmbassadorTogglingId(null);
     }
   }
 
@@ -1506,8 +1531,46 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                   </div>
                 </div>
 
-                {/* 権限バッジ + 操作メニュー */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {/* 権限バッジ + 話せる人トグル + 操作メニュー */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {/* 話せる人バッジトグル（アクティブメンバーかつ admin 権限がある場合） */}
+                  {member.is_active && isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleToggleAmbassador(member.id, !member.is_ambassador)}
+                      disabled={ambassadorTogglingId === member.id}
+                      title={member.is_ambassador ? "「話せる人」バッジを外す" : "「話せる人」バッジを付与する"}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        padding: "4px 10px",
+                        borderRadius: 6,
+                        border: `1px solid ${member.is_ambassador ? "#FED7AA" : "var(--line)"}`,
+                        background: member.is_ambassador ? "#FFF7ED" : "var(--bg-tint)",
+                        color: member.is_ambassador ? "#C2410C" : "var(--ink-mute)",
+                        cursor: ambassadorTogglingId === member.id ? "not-allowed" : "pointer",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                        opacity: ambassadorTogglingId === member.id ? 0.6 : 1,
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <span style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: member.is_ambassador ? "#F97316" : "var(--line)",
+                        flexShrink: 0,
+                      }} />
+                      {ambassadorTogglingId === member.id
+                        ? "..."
+                        : member.is_ambassador
+                          ? "話せる人"
+                          : "バッジ付与"}
+                    </button>
+                  )}
                   <span style={{
                     fontSize: 11,
                     fontWeight: 700,
