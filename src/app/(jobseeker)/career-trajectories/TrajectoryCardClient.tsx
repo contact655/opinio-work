@@ -89,7 +89,7 @@ function LogoChip({
       alt={name}
       width={size}
       height={size}
-      style={{ borderRadius: 10, objectFit: "cover", display: "block" }}
+      style={{ borderRadius: 10, objectFit: "contain", background: "#fff", display: "block" }}
     />
   ) : (
     <div style={{
@@ -114,7 +114,8 @@ function LogoChip({
     >
       <div style={{
         position: "relative",
-        border: isCurrent ? "2.5px solid var(--royal)" : "2px solid var(--line)",
+        border: "2px solid var(--line)",
+        boxShadow: isCurrent ? "0 0 0 2px var(--royal)" : "none",
         borderRadius: 12,
         padding: 2,
         background: isCurrent ? "var(--royal-50)" : "transparent",

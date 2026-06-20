@@ -128,7 +128,7 @@ function CompanyLogoIcon({
           alt={name}
           width={size}
           height={size}
-          style={{ borderRadius: 11, objectFit: "cover", border: "1px solid var(--line)", display: "block" }}
+          style={{ borderRadius: 11, objectFit: "contain", background: "#fff", border: "1px solid var(--line)", display: "block" }}
         />
       </div>
     );

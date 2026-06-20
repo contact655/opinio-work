@@ -1533,60 +1533,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </section>
             )}
 
-            {/* ── 推薦文 (LinkedIn Recommendations) ── */}
-            {(recommendations.length > 0 || (!viewerIsOwner && !!authUser)) && (
-              <section style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-                    推薦文
-                  </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                    RECOMMENDATIONS
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                  {recommendations.length > 0 && (
-                    <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
-                      {recommendations.filter((r) => r.is_visible).length}件
-                    </span>
-                  )}
-                </div>
-
-                {/* 推薦文カード一覧 */}
-                {recommendations.length > 0 && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: !viewerIsOwner && !!authUser ? 16 : 0 }}>
-                    {recommendations.map((rec) => (
-                      <RecommendationCard
-                        key={rec.id}
-                        rec={rec}
-                        isOwner={viewerIsOwner}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* 推薦文を書くフォーム（ログイン済み非オーナーのみ） */}
-                {!viewerIsOwner && !!authUser && (
-                  <RecommendationForm
-                    targetUserId={owUser.id}
-                    targetName={owUser.name}
-                    defaultName=""
-                    defaultTitle=""
-                    defaultCompany=""
-                  />
-                )}
-
-                {/* 非ログイン向け案内 */}
-                {!viewerIsOwner && !authUser && recommendations.length === 0 && (
-                  <div style={{ textAlign: "center", padding: "20px 0", color: "var(--ink-mute)", fontSize: 13 }}>
-                    まだ推薦文がありません
-                  </div>
-                )}
-              </section>
-            )}
 
             {/* ── 発信コンテンツ (外部リンク) ── */}
             {(contentLinks.length > 0 || viewerIsOwner) && (
