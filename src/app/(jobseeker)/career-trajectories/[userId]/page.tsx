@@ -359,16 +359,12 @@ const IconArrow = (
 
 function StepCard({
   step,
-  logo,
-  name,
   roleMap,
   joinLabel = "入社の決め手",
   showExitReason = true,
   isCurrentGroup = false,
 }: {
   step: PublicStep;
-  logo: CompanyLogo | null;
-  name: string;
   roleMap: Record<string, RoleInfo>;
   joinLabel?: string;
   showExitReason?: boolean;
@@ -698,8 +694,6 @@ export default async function CareerTrajectoryPage({
                         <div style={{ padding: "20px 24px 24px" }}>
                           <StepCard
                             step={group.companySteps[0]}
-                            logo={logo}
-                            name={name}
                             roleMap={roleMap}
                             joinLabel="入社の決め手"
                             showExitReason={true}
@@ -777,8 +771,6 @@ export default async function CareerTrajectoryPage({
                               }}>
                                 <StepCard
                                   step={roleStep}
-                                  logo={logo}
-                                  name={name}
                                   roleMap={roleMap}
                                   joinLabel={roleIdx === 0 ? "入社の決め手" : "異動・昇格のきっかけ"}
                                   showExitReason={!isLast}
