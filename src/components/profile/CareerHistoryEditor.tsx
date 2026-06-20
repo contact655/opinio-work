@@ -709,64 +709,67 @@ function StintForm({
         </select>
       </div>
 
-      {/* 役職グレード */}
-      <div>
-        <label style={labelStyle()}>役職</label>
-        <select
-          value={draft.rank}
-          onChange={(e) => set("rank", e.target.value)}
-          disabled={isSaving}
-          style={{ ...fieldStyle() }}
-        >
-          {RANK_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* グレード・等級名（社内タイトル） */}
-      <div>
-        <label style={labelStyle()}>グレード・等級名（任意）</label>
-        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.5 }}>
-          M2、2級、シニアアソシエイト、アカウントエグゼクティブなど社内で規定されているグレード・役職名を入力してください
+      {/* 役職 + 雇用形態（2カラム） */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div>
+          <label style={labelStyle()}>役職</label>
+          <select
+            value={draft.rank}
+            onChange={(e) => set("rank", e.target.value)}
+            disabled={isSaving}
+            style={{ ...fieldStyle() }}
+          >
+            {RANK_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
-        <input
-          type="text"
-          value={draft.roleTitle}
-          onChange={(e) => set("roleTitle", e.target.value)}
-          placeholder="入力してください"
-          disabled={isSaving}
-          style={fieldStyle()}
-        />
+        <div>
+          <label style={labelStyle()}>雇用形態</label>
+          <select
+            value={draft.employmentType}
+            onChange={(e) => set("employmentType", e.target.value)}
+            disabled={isSaving}
+            style={{ ...fieldStyle() }}
+          >
+            {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* 部署名 */}
-      <div>
-        <label style={labelStyle()}>部署名（任意）</label>
-        <input
-          type="text"
-          value={draft.department}
-          onChange={(e) => set("department", e.target.value)}
-          placeholder="例: エンタープライズ営業本部、プロダクト開発部"
-          disabled={isSaving}
-          style={fieldStyle()}
-          maxLength={100}
-        />
-      </div>
-
-      {/* 雇用形態 */}
-      <div>
-        <label style={labelStyle()}>雇用形態</label>
-        <select
-          value={draft.employmentType}
-          onChange={(e) => set("employmentType", e.target.value)}
-          disabled={isSaving}
-          style={{ ...fieldStyle() }}
-        >
-          {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+      {/* グレード・等級名 + 部署名（2カラム） */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div>
+          <label style={labelStyle()}>グレード・等級名（任意）</label>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
+            社内職名・グレード（例: M2、AE、シニアAM）
+          </div>
+          <input
+            type="text"
+            value={draft.roleTitle}
+            onChange={(e) => set("roleTitle", e.target.value)}
+            placeholder="例: アカウントエグゼクティブ"
+            disabled={isSaving}
+            style={fieldStyle()}
+          />
+        </div>
+        <div>
+          <label style={labelStyle()}>部署名（任意）</label>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
+            所属部門・チーム名
+          </div>
+          <input
+            type="text"
+            value={draft.department}
+            onChange={(e) => set("department", e.target.value)}
+            placeholder="例: エンタープライズ営業本部"
+            disabled={isSaving}
+            style={fieldStyle()}
+            maxLength={100}
+          />
+        </div>
       </div>
 
       {/* Period — 年/月 separate selects */}
@@ -881,65 +884,68 @@ function StintForm({
         const stock = draft.salaryStock ? parseInt(draft.salaryStock, 10) : 0;
         const total = base + bonus + stock;
         return (
-          <div style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em" }}>年収（任意）</div>
 
-            {/* ベースの給与 */}
-            <div>
-              <label style={labelStyle()}>ベースの給与（年間）</label>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>基本給・残業代などの合計金額を万円単位で入力してください</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="number"
-                  value={draft.salaryBase}
-                  onChange={(e) => set("salaryBase", e.target.value)}
-                  placeholder="例: 500"
-                  disabled={isSaving}
-                  min={0} max={10000}
-                  style={{ ...fieldStyle(), maxWidth: 160 }}
-                />
-                <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>万円</span>
+            {/* 3カラム横並び */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              {/* ベースの給与 */}
+              <div>
+                <label style={{ ...labelStyle(), fontSize: 11 }}>ベースの給与</label>
+                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>基本給＋残業代</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <input
+                    type="number"
+                    value={draft.salaryBase}
+                    onChange={(e) => set("salaryBase", e.target.value)}
+                    placeholder="500"
+                    disabled={isSaving}
+                    min={0} max={10000}
+                    style={{ ...fieldStyle(), minWidth: 0, width: "100%" }}
+                  />
+                  <span style={{ fontSize: 12, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
+                </div>
               </div>
-            </div>
 
-            {/* 賞与・インセンティブ */}
-            <div>
-              <label style={labelStyle()}>賞与・インセンティブ（年間）</label>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>インセンティブや歩合給なども含めた年間賞与の合計金額（なしの場合は 0）</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="number"
-                  value={draft.salaryBonus}
-                  onChange={(e) => set("salaryBonus", e.target.value)}
-                  placeholder="例: 80"
-                  disabled={isSaving}
-                  min={0} max={10000}
-                  style={{ ...fieldStyle(), maxWidth: 160 }}
-                />
-                <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>万円</span>
+              {/* 賞与・インセンティブ */}
+              <div>
+                <label style={{ ...labelStyle(), fontSize: 11 }}>賞与・インセンティブ</label>
+                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>年間合計（なし=0）</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <input
+                    type="number"
+                    value={draft.salaryBonus}
+                    onChange={(e) => set("salaryBonus", e.target.value)}
+                    placeholder="80"
+                    disabled={isSaving}
+                    min={0} max={10000}
+                    style={{ ...fieldStyle(), minWidth: 0, width: "100%" }}
+                  />
+                  <span style={{ fontSize: 12, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
+                </div>
               </div>
-            </div>
 
-            {/* 株式報酬 */}
-            <div>
-              <label style={labelStyle()}>株式報酬（年間・任意）</label>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>RSU・ストックオプションなどの年間換算額（例：売却想定価格300万円 ÷ 3年在籍 = 100）</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="number"
-                  value={draft.salaryStock}
-                  onChange={(e) => set("salaryStock", e.target.value)}
-                  placeholder="例: 100"
-                  disabled={isSaving}
-                  min={0} max={10000}
-                  style={{ ...fieldStyle(), maxWidth: 160 }}
-                />
-                <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>万円</span>
+              {/* 株式報酬 */}
+              <div>
+                <label style={{ ...labelStyle(), fontSize: 11 }}>株式報酬（任意）</label>
+                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>RSU/SO 年間換算</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <input
+                    type="number"
+                    value={draft.salaryStock}
+                    onChange={(e) => set("salaryStock", e.target.value)}
+                    placeholder="100"
+                    disabled={isSaving}
+                    min={0} max={10000}
+                    style={{ ...fieldStyle(), minWidth: 0, width: "100%" }}
+                  />
+                  <span style={{ fontSize: 12, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
+                </div>
               </div>
             </div>
 
             {/* 合計表示 */}
-            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 10, textAlign: "right" }}>
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 8, textAlign: "right" }}>
               <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>年収 </span>
               <span style={{ fontSize: 20, fontWeight: 800, color: total > 0 ? "var(--success)" : "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                 {total.toLocaleString()}
@@ -964,34 +970,34 @@ function StintForm({
           公開設定（キャリア軌跡ページへの表示）
         </div>
 
-        {/* 会社名の公開範囲（キャリア軌跡ページ） */}
-        <div>
-          <label style={{ ...labelStyle(), marginBottom: 4 }}>会社名の表示（キャリア軌跡ページ）</label>
-          <select
-            value={draft.visibilityCompany}
-            onChange={(e) => set("visibilityCompany", e.target.value as "real" | "masked" | "hidden")}
-            disabled={isSaving}
-            style={{ ...fieldStyle(), width: "auto", minWidth: 220 }}
-          >
-            <option value="real">実名で表示する</option>
-            <option value="masked">業界・規模で表示する</option>
-            <option value="hidden">この職歴をキャリア軌跡に含めない</option>
-          </select>
-        </div>
-
-        {/* 会社名の公開範囲（プロフィールページ） */}
-        <div>
-          <label style={{ ...labelStyle(), marginBottom: 4 }}>会社名の表示（プロフィールページ）</label>
-          <select
-            value={draft.visibilityCompanyProfile}
-            onChange={(e) => set("visibilityCompanyProfile", e.target.value as "real" | "masked" | "hidden")}
-            disabled={isSaving}
-            style={{ ...fieldStyle(), width: "auto", minWidth: 220 }}
-          >
-            <option value="real">実名で表示する</option>
-            <option value="masked">業界・規模で表示する</option>
-            <option value="hidden">この職歴をプロフィールに含めない</option>
-          </select>
+        {/* 会社名公開設定（2カラム） */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <label style={{ ...labelStyle(), marginBottom: 4, fontSize: 11 }}>キャリア軌跡ページ</label>
+            <select
+              value={draft.visibilityCompany}
+              onChange={(e) => set("visibilityCompany", e.target.value as "real" | "masked" | "hidden")}
+              disabled={isSaving}
+              style={{ ...fieldStyle() }}
+            >
+              <option value="real">実名で表示する</option>
+              <option value="masked">業界・規模で表示する</option>
+              <option value="hidden">含めない</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ ...labelStyle(), marginBottom: 4, fontSize: 11 }}>プロフィールページ</label>
+            <select
+              value={draft.visibilityCompanyProfile}
+              onChange={(e) => set("visibilityCompanyProfile", e.target.value as "real" | "masked" | "hidden")}
+              disabled={isSaving}
+              style={{ ...fieldStyle() }}
+            >
+              <option value="real">実名で表示する</option>
+              <option value="masked">業界・規模で表示する</option>
+              <option value="hidden">含めない</option>
+            </select>
+          </div>
         </div>
 
         {/* 年収を公開するか */}
