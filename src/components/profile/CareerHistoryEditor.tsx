@@ -19,6 +19,7 @@ export type Stint = {
   roleCategoryId: string;
   roleLabel: string;
   roleTitle?: string;
+  department?: string;
   startedAt: string;   // YYYY-MM
   endedAt?: string;    // YYYY-MM
   isCurrent: boolean;
@@ -178,6 +179,7 @@ type StintDraft = {
   isAnon: boolean;
   roleCategoryId: string;
   roleTitle: string;
+  department: string;
   rank: string;
   startedAt: string;
   endedAt: string;
@@ -193,6 +195,21 @@ type StintDraft = {
 };
 
 // ── Select options ────────────────────────────────────────────────────────────
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 1979 }, (_, i) => CURRENT_YEAR - i);
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+
+/** "YYYY-MM" ↔ { year, month } 変換ヘルパー */
+function parseYearMonth(ym: string): { year: string; month: string } {
+  if (!ym) return { year: "", month: "" };
+  const [y, m] = ym.split("-");
+  return { year: y ?? "", month: m ? String(parseInt(m, 10)) : "" };
+}
+function buildYearMonth(year: string, month: string): string {
+  if (!year || !month) return "";
+  return `${year}-${month.padStart(2, "0")}`;
+}
 
 const RANK_OPTIONS = [
   { value: "", label: "選択してください" },
@@ -219,6 +236,7 @@ const EMPTY_DRAFT: StintDraft = {
   isAnon: false,
   roleCategoryId: "",
   roleTitle: "",
+  department: "",
   rank: "",
   startedAt: "",
   endedAt: "",
@@ -697,16 +715,33 @@ function StintForm({
         </select>
       </div>
 
-      {/* Role title (optional) */}
+      {/* グレード・等級名（社内タイトル） */}
       <div>
-        <label style={labelStyle()}>社内タイトル（任意）</label>
+        <label style={labelStyle()}>グレード・等級名（任意）</label>
+        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.5 }}>
+          M2、2級、シニアアソシエイト、アカウントエグゼクティブなど社内で規定されているグレード・役職名を入力してください
+        </div>
         <input
           type="text"
           value={draft.roleTitle}
           onChange={(e) => set("roleTitle", e.target.value)}
-          placeholder="例: アカウントエグゼクティブ、プロダクトマネージャー（Bakuraku事業）"
+          placeholder="入力してください"
           disabled={isSaving}
           style={fieldStyle()}
+        />
+      </div>
+
+      {/* 部署名 */}
+      <div>
+        <label style={labelStyle()}>部署名（任意）</label>
+        <input
+          type="text"
+          value={draft.department}
+          onChange={(e) => set("department", e.target.value)}
+          placeholder="例: エンタープライズ営業本部、プロダクト開発部"
+          disabled={isSaving}
+          style={fieldStyle()}
+          maxLength={100}
         />
       </div>
 
@@ -725,38 +760,68 @@ function StintForm({
         </select>
       </div>
 
-      {/* Period */}
+      {/* Period — 年/月 separate selects */}
       <div>
-        <label style={labelStyle()}>期間 *</label>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <input
-            type="month"
-            value={draft.startedAt}
-            onChange={(e) => set("startedAt", e.target.value)}
+        <label style={labelStyle()}>入社年月 *</label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <select
+            value={parseYearMonth(draft.startedAt).year}
+            onChange={(e) => set("startedAt", buildYearMonth(e.target.value, parseYearMonth(draft.startedAt).month))}
             disabled={isSaving}
-            style={{ ...fieldStyle(), width: "auto", flex: "1 1 130px" }}
-          />
-          <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>〜</span>
-          <input
-            type="month"
-            value={draft.isCurrent ? "" : draft.endedAt}
-            onChange={(e) => set("endedAt", e.target.value)}
-            disabled={isSaving || draft.isCurrent}
-            style={{ ...fieldStyle(), width: "auto", flex: "1 1 130px", opacity: draft.isCurrent ? 0.4 : 1 }}
-          />
-          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--ink-soft)", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
-            <input
-              type="checkbox"
-              checked={draft.isCurrent}
-              onChange={(e) => set("isCurrent", e.target.checked)}
-              style={{ accentColor: "var(--royal)" }}
-            />
-            現在も在籍中
-          </label>
+            style={{ ...fieldStyle(), flex: 1 }}
+          >
+            <option value="">年</option>
+            {YEAR_OPTIONS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
+          </select>
+          <select
+            value={parseYearMonth(draft.startedAt).month}
+            onChange={(e) => set("startedAt", buildYearMonth(parseYearMonth(draft.startedAt).year, e.target.value))}
+            disabled={isSaving}
+            style={{ ...fieldStyle(), flex: 1 }}
+          >
+            <option value="">月</option>
+            {MONTH_OPTIONS.map((m) => <option key={m} value={String(m)}>{m}月</option>)}
+          </select>
         </div>
+      </div>
+
+      {/* 現職 or 退職年月 */}
+      <div>
+        <label style={labelStyle()}>現職 or 退職年月 *</label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 13, color: "var(--ink-soft)", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={draft.isCurrent}
+            onChange={(e) => set("isCurrent", e.target.checked)}
+            style={{ accentColor: "var(--royal)" }}
+          />
+          現在も勤務している
+        </label>
+        {!draft.isCurrent && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <select
+              value={parseYearMonth(draft.endedAt).year}
+              onChange={(e) => set("endedAt", buildYearMonth(e.target.value, parseYearMonth(draft.endedAt).month))}
+              disabled={isSaving}
+              style={{ ...fieldStyle(), flex: 1 }}
+            >
+              <option value="">年</option>
+              {YEAR_OPTIONS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
+            </select>
+            <select
+              value={parseYearMonth(draft.endedAt).month}
+              onChange={(e) => set("endedAt", buildYearMonth(parseYearMonth(draft.endedAt).year, e.target.value))}
+              disabled={isSaving}
+              style={{ ...fieldStyle(), flex: 1 }}
+            >
+              <option value="">月</option>
+              {MONTH_OPTIONS.map((m) => <option key={m} value={String(m)}>{m}月</option>)}
+            </select>
+          </div>
+        )}
         {periodInvalid && (
           <div style={{ fontSize: 11, color: "var(--error)", marginTop: 4, fontFamily: "Inter, sans-serif" }}>
-            終了年月は開始年月以降に設定してください
+            退職年月は入社年月以降に設定してください
           </div>
         )}
       </div>
@@ -1076,6 +1141,7 @@ export default function CareerHistoryEditor({
     isAnon: s.companyType === "anon",
     roleCategoryId: s.roleCategoryId,
     roleTitle: s.roleTitle ?? "",
+    department: s.department ?? "",
     rank: s.rank ?? "",
     startedAt: s.startedAt,
     endedAt: s.endedAt ?? "",
@@ -1098,6 +1164,7 @@ export default function CareerHistoryEditor({
     isAnon: group.companyType === "anon",
     roleCategoryId: "",
     roleTitle: "",
+    department: "",
     rank: "",
     startedAt: group.earliestStart,       // そのグループの開始年月をプリフィル
     endedAt: group.latestEnd ?? "",        // 現職グループは "" (isCurrent チェックで制御)
@@ -1137,6 +1204,7 @@ export default function CareerHistoryEditor({
         join_reason: editDraft.joinReason || undefined,
         employment_type: editDraft.employmentType || undefined,
         salary_man: editDraft.salaryMan ? parseInt(editDraft.salaryMan, 10) : null,
+        department: editDraft.department || null,
         rank: editDraft.rank || null,
         visibility_company: editDraft.visibilityCompany,
         visibility_company_profile: editDraft.visibilityCompanyProfile,
@@ -1169,6 +1237,7 @@ export default function CareerHistoryEditor({
                 joinReason: editDraft.joinReason || undefined,
                 employmentType: editDraft.employmentType || undefined,
                 salaryMan: editDraft.salaryMan ? parseInt(editDraft.salaryMan, 10) : null,
+                department: editDraft.department || undefined,
                 rank: (editDraft.rank || null) as Stint["rank"],
                 visibilityCompany: editDraft.visibilityCompany,
                 visibilityCompanyProfile: editDraft.visibilityCompanyProfile,
@@ -1210,6 +1279,7 @@ export default function CareerHistoryEditor({
         employment_type: addDraft.employmentType || undefined,
         display_order: stints.length,
         salary_man: addDraft.salaryMan ? parseInt(addDraft.salaryMan, 10) : null,
+        department: addDraft.department || null,
         rank: addDraft.rank || null,
         visibility_company: addDraft.visibilityCompany,
         visibility_company_profile: addDraft.visibilityCompanyProfile,
@@ -1240,6 +1310,7 @@ export default function CareerHistoryEditor({
         employmentType: addDraft.employmentType || undefined,
         salaryMan: addDraft.salaryMan ? parseInt(addDraft.salaryMan, 10) : null,
         visibilityCompany: addDraft.visibilityCompany,
+        department: addDraft.department || undefined,
         rank: (addDraft.rank || null) as Stint["rank"],
         visibilityCompanyProfile: addDraft.visibilityCompanyProfile,
         visibilitySalary: addDraft.visibilitySalary,
