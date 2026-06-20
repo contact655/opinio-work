@@ -61,7 +61,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "This person is not currently accepting requests" }, { status: 403 });
   }
 
-  const ambassadorUser = ambassador.ow_users as { name: string } | null;
+  const owUsersRaw = ambassador.ow_users as { name: string }[] | { name: string } | null;
+  const ambassadorUser = Array.isArray(owUsersRaw) ? (owUsersRaw[0] ?? null) : owUsersRaw;
   const ambassadorName = ambassadorUser?.name ?? "担当者";
 
   const { data: reservation, error } = await supabase
