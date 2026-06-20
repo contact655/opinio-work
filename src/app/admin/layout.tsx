@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import {
   LayoutDashboard,
   Users,
-  Building2,
   FileText,
   Pencil,
   Newspaper,
@@ -26,7 +25,6 @@ const NAV_GROUPS = [
     label: "ユーザー管理",
     items: [
       { label: "ユーザー管理",        href: "/admin/candidates",       icon: <Users        size={16} strokeWidth={2} /> },
-      { label: "BIZ企業",             href: "/admin/biz-companies",    icon: <Building2    size={16} strokeWidth={2} /> },
       { label: "BIZ担当者管理",       href: "/admin/biz-accounts",     icon: <UserCheck    size={16} strokeWidth={2} /> },
       { label: "キャリア軌跡",        href: "/admin/career",           icon: <TrendingUp   size={16} strokeWidth={2} /> },
     ],

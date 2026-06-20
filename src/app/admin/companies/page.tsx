@@ -36,6 +36,8 @@ const STATUS_TABS = [
   { key: "none",       label: "未認証" },
 ];
 
+type CompanyAdmin = { name: string; isActive: boolean };
+
 type Company = {
   id: string;
   name: string | null;
@@ -53,6 +55,7 @@ type Company = {
   updated_at: string;
   sort_order: number | null;
   job_count?: number;
+  admins?: CompanyAdmin[];
 };
 
 export default function AdminCompaniesPage() {
@@ -68,7 +71,7 @@ export default function AdminCompaniesPage() {
   const loadCompanies = useCallback(async () => {
     const supabase = createClient();
 
-    const [{ data: companyRows }, { data: jobRows }] = await Promise.all([
+    const [{ data: companyRows }, { data: jobRows }, { data: adminRows }, { data: userRows }] = await Promise.all([
       supabase
         .from("ow_companies")
         .select("id, name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order")
@@ -77,6 +80,12 @@ export default function AdminCompaniesPage() {
       supabase
         .from("ow_jobs")
         .select("company_id"),
+      supabase
+        .from("ow_company_admins")
+        .select("company_id, user_id, is_active"),
+      supabase
+        .from("ow_users")
+        .select("id, name"),
     ]);
 
     const jobCountMap = new Map<string, number>();
@@ -85,9 +94,23 @@ export default function AdminCompaniesPage() {
       jobCountMap.set(cid, (jobCountMap.get(cid) ?? 0) + 1);
     }
 
+    const userNameMap = new Map<string, string>(
+      (userRows ?? []).map((u) => [u.id as string, (u.name as string) ?? "不明"])
+    );
+    const adminMap = new Map<string, CompanyAdmin[]>();
+    for (const row of adminRows ?? []) {
+      const cid = row.company_id as string;
+      if (!adminMap.has(cid)) adminMap.set(cid, []);
+      adminMap.get(cid)!.push({
+        name: userNameMap.get(row.user_id as string) ?? "不明",
+        isActive: row.is_active as boolean,
+      });
+    }
+
     const rows: Company[] = (companyRows ?? []).map((c) => ({
       ...(c as Company),
       job_count: jobCountMap.get(c.id as string) ?? 0,
+      admins: adminMap.get(c.id as string) ?? [],
     }));
 
     setCompanies(rows);
@@ -313,7 +336,7 @@ export default function AdminCompaniesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>
             <thead>
               <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
-                {["", "企業名", "業界", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
+                {["", "企業名", "業界", "担当者", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
                   <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -322,7 +345,7 @@ export default function AdminCompaniesPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
+                <tr><td colSpan={10} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
                   <div style={{ marginBottom: 8, fontSize: 28 }}>🏢</div>企業が見つかりません
                 </td></tr>
               ) : (
@@ -367,6 +390,30 @@ export default function AdminCompaniesPage() {
 
                       {/* 業界 */}
                       <td style={{ padding: "10px 14px", color: "var(--ink-soft)" }}>{c.industry || <span style={{ color: "var(--ink-mute)" }}>—</span>}</td>
+
+                      {/* 担当者 */}
+                      <td style={{ padding: "10px 14px" }}>
+                        {(c.admins ?? []).length === 0 ? (
+                          <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>なし</span>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                            {(c.admins ?? []).slice(0, 2).map((a, i) => (
+                              <span key={i} style={{
+                                fontSize: 11, fontWeight: 600,
+                                color: a.isActive ? "var(--ink)" : "var(--ink-mute)",
+                              }}>
+                                {a.name}
+                                {!a.isActive && <span style={{ fontWeight: 400, color: "var(--ink-mute)" }}> (無効)</span>}
+                              </span>
+                            ))}
+                            {(c.admins ?? []).length > 2 && (
+                              <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>
+                                他{(c.admins ?? []).length - 2}名
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
 
                       {/* 掲載 (is_published) */}
                       <td style={{ padding: "10px 14px" }}>
