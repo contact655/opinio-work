@@ -13,6 +13,43 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🎯 次のセッションでやること（2026-06-21 セッション24 更新）
+
+### ✅ 完了 2026-06-21 セッション24: キャリア軌跡 Phase 3 修正 + mentor_reservations migration + Ambassador UI
+
+  **`/career-trajectories` Phase 3 バグ修正（`src/app/(jobseeker)/career-trajectories/`）:**
+  - 公開ユーザーが訪問するとカードが一切表示されない問題を修正
+  - 根本原因: `createClient()`（anon Supabase）で `get_public_career_steps()` RPC を呼んでいた
+    - `get_public_career_steps()` は SECURITY DEFINER だが EXECUTE が `authenticated` + `service_role` のみ付与
+    - anon ユーザーからの RPC 呼び出しは silent エラー → 全プロフィールのステップが0件 → 全カード非表示
+  - 修正: `page.tsx` と `[userId]/page.tsx` の両方で `adminSupabase.rpc(...)` に切り替え
+  - `createClient` import を削除 → `createAdminClient` のみ使用
+  - ページ確認: 10件公開中・全カード表示 ✅（dev-only hydration warning はキャッシュ起因・本番影響なし）
+
+  **`ow_mentor_reservations` Migration 197（`supabase/migrations/197_create_mentor_reservations.sql`）:**
+  - migration 031 のスキーマ定義が現 Supabase プロジェクトに未適用だったため新規作成
+  - FK 名を現行に合わせて修正（旧 `mentors` → `ow_mentors`）
+  - テーブル: id / user_id / mentor_id / mentor_user_id / themes / current_situation / questions /
+    background / preferred_days / preferred_times / contact_email / preferred_platform / status /
+    editor_note / mentor_note / scheduled_at / created_at / updated_at
+  - RLS: 本人は自分の予約を全操作 / admin は全件閲覧・更新
+  - API: `POST /api/mentor-reservations`（予約作成・admin メール通知）/ `GET`（自分の予約一覧）
+  - ⚠️ **手動適用が必要**: Supabase SQL Editor で migration 197 を実行
+
+  **Ambassador 設定 UI（`/admin/biz-accounts`）:**
+  - `src/app/admin/biz-accounts/AmbassadorToggle.tsx` 新規作成
+    - `"use client"` + `useTransition` でトグルスイッチ（navy=on / gray=off）
+  - `src/app/admin/biz-accounts/actions.ts` 新規作成
+    - `toggleAmbassador(adminId, value)` Server Action — `ow_company_admins.is_ambassador` を更新し `/admin/biz-accounts` と `/people` を revalidate
+  - `src/app/admin/biz-accounts/page.tsx` 更新
+    - `is_ambassador` フィールド追加・「話せる人」列追加・トグル + 公開中バッジ表示
+
+### 🟢 次の優先候補（2026-06-21 セッション24後）
+- **Migration 197 手動適用** — Supabase SQL Editor で `supabase/migrations/197_create_mentor_reservations.sql` を実行（メンター予約 API が有効化される）
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+
+---
+
 ## 🎯 次のセッションでやること（2026-06-19 セッション23 更新）
 
 ### ✅ 完了 2026-06-19 セッション23: LP改善 P0-P2 + Phase 2 Admin UI + Archi Village重複修正

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -318,7 +317,6 @@ export async function generateMetadata({
 // ────────────────────────────────────────────────────────────────
 
 async function getData(userId: string) {
-  const supabase = createClient();
   const adminSupabase = createAdminClient();
 
   const [profileRes, userRes, stepsRes, allProfilesRes] = await Promise.all([
@@ -333,7 +331,7 @@ async function getData(userId: string) {
       .select("visibility")
       .eq("id", userId)
       .maybeSingle(),
-    supabase.rpc("get_public_career_steps", { p_user_id: userId }),
+    adminSupabase.rpc("get_public_career_steps", { p_user_id: userId }),
     adminSupabase
       .from("ow_career_profiles")
       .select("user_id")

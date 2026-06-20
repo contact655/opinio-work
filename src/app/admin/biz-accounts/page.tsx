@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
+import { AmbassadorToggle } from "./AmbassadorToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,7 @@ type BizAccount = {
   permission: "admin" | "member";
   roleTitle: string | null;
   isActive: boolean;
+  isAmbassador: boolean;
   createdAt: string;
   lastLogin: string | null;
   neverLoggedIn: boolean;
@@ -67,7 +69,7 @@ async function getBizAccounts(): Promise<BizAccount[]> {
     await Promise.all([
       admin
         .from("ow_company_admins")
-        .select("id, company_id, user_id, permission, role_title, is_active, created_at")
+        .select("id, company_id, user_id, permission, role_title, is_active, is_ambassador, created_at")
         .order("created_at", { ascending: false }),
       admin.from("ow_users").select("id, auth_id, name, email, avatar_color"),
       admin.from("ow_companies").select("id, name, engagement_status, is_published"),
@@ -102,6 +104,7 @@ async function getBizAccounts(): Promise<BizAccount[]> {
       permission: (row.permission ?? "member") as "admin" | "member",
       roleTitle: row.role_title as string | null,
       isActive: row.is_active as boolean,
+      isAmbassador: (row.is_ambassador as boolean) ?? false,
       createdAt: row.created_at as string,
       lastLogin,
       neverLoggedIn: !lastLogin,
@@ -238,7 +241,7 @@ export default async function AdminBizAccountsPage({
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-                {["担当者", "所属企業", "権限 / 役職", "最終ログイン", "招待日", "状態"].map((h) => (
+                {["担当者", "所属企業", "権限 / 役職", "最終ログイン", "招待日", "状態", "話せる人"].map((h) => (
                   <th key={h} style={{
                     textAlign: "left", padding: "10px 16px",
                     fontSize: 10, fontWeight: 700, color: "#94A3B8",
@@ -362,6 +365,22 @@ export default async function AdminBizAccountsPage({
                         }} />
                         {acc.isActive ? "アクティブ" : "非アクティブ"}
                       </span>
+                    </td>
+
+                    {/* 話せる人 ambassador トグル */}
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <AmbassadorToggle adminId={acc.id} isAmbassador={acc.isAmbassador} />
+                        {acc.isAmbassador && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, color: "var(--royal)",
+                            background: "var(--royal-50)", padding: "2px 8px",
+                            borderRadius: 100, border: "1px solid var(--royal-100)",
+                          }}>
+                            公開中
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

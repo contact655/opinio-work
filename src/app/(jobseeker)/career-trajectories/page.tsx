@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import { unstable_noStore as noStore } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TrajectoryCardClient, type CardData } from "./TrajectoryCardClient";
 
@@ -83,10 +82,9 @@ async function getProfiles(): Promise<CardData[]> {
     serialNumber: idx + 1,
   }));
 
-  const supabase = createClient();
   const userIds = profiles.map((p) => p.user_id);
 
-  const { data: users } = await supabase
+  const { data: users } = await adminSupabase
     .from("ow_users")
     .select("id, name")
     .in("id", userIds) as { data: UserRow[] | null };
@@ -97,7 +95,7 @@ async function getProfiles(): Promise<CardData[]> {
   const cards: CardData[] = [];
 
   for (const profile of profiles) {
-    const { data: steps } = await supabase.rpc("get_public_career_steps", {
+    const { data: steps } = await adminSupabase.rpc("get_public_career_steps", {
       p_user_id: profile.user_id,
     });
 
