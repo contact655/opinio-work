@@ -13,9 +13,10 @@ async function getUsers(query?: string) {
     q = q.or(`name.ilike.%${query}%,email.ilike.%${query}%,location.ilike.%${query}%`);
   }
 
-  const [{ data: users }, authResult] = await Promise.all([
+  const [{ data: users }, authResult, { data: bizAdmins }] = await Promise.all([
     q.limit(500),
     admin.auth.admin.listUsers({ perPage: 1000 }),
+    admin.from("ow_company_admins").select("user_id").eq("is_active", true),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,10 +25,12 @@ async function getUsers(query?: string) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     authUsers.map((u: any) => [u.id as string, (u.last_sign_in_at ?? null) as string | null])
   );
+  const bizUserIds = new Set((bizAdmins ?? []).map((a) => a.user_id).filter(Boolean));
 
   return (users ?? []).map((u) => ({
     ...u,
     lastLogin: u.auth_id ? (authMap.get(u.auth_id) ?? null) : null,
+    isBizAdmin: bizUserIds.has(u.id),
   }));
 }
 
@@ -38,6 +41,7 @@ export default async function AdminCandidatesPage({
 }) {
   const users = await getUsers(searchParams.q);
   const mentorCount = users.filter((u) => u.is_mentor).length;
+  const bizAdminCount = users.filter((u) => u.isBizAdmin).length;
   const neverLoggedInCount = users.filter((u) => !u.lastLogin).length;
 
   return (
@@ -68,6 +72,14 @@ export default async function AdminCandidatesPage({
               うちメンター{" "}
               <strong style={{ color: "#7C3AED", fontFamily: "Inter, sans-serif" }}>
                 {mentorCount}
+              </strong>{" "}名
+            </span>
+          )}
+          {bizAdminCount > 0 && (
+            <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+              うちBIZ担当者{" "}
+              <strong style={{ color: "#001233", fontFamily: "Inter, sans-serif" }}>
+                {bizAdminCount}
               </strong>{" "}名
             </span>
           )}

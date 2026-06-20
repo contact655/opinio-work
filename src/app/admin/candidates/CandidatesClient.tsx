@@ -15,6 +15,7 @@ type User = {
   visibility: string | null;
   created_at: string;
   lastLogin: string | null;
+  isBizAdmin: boolean;
 };
 
 function getAvatarGradient(str: string): string {
@@ -199,6 +200,15 @@ export function CandidatesClient({ users }: { users: User[] }) {
                           {u.name?.[0]?.toUpperCase() || "?"}
                         </div>
                         <span style={{ fontWeight: 600, color: "var(--royal)" }}>{u.name || "未入力"}</span>
+                        {u.isBizAdmin && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+                            background: "#001233", color: "#fff", letterSpacing: "0.04em",
+                            flexShrink: 0,
+                          }}>
+                            BIZ
+                          </span>
+                        )}
                       </a>
                     </td>
                     {/* メール */}
