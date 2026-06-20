@@ -640,18 +640,7 @@ function StintForm({
   const effectivelyDisabled = !canSave || !!justSaved;
 
   return (
-    <div
-      style={{
-        background: "var(--bg-tint)",
-        border: "1.5px solid var(--royal)",
-        borderRadius: 10,
-        padding: 16,
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-        boxShadow: "0 0 0 3px rgba(0,35,102,0.06)",
-      }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Company name + anon toggle */}
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
@@ -1460,6 +1449,17 @@ export default function CareerHistoryEditor({
     }
   }, [addDraft, stints.length, cancelAdd, showToast]);
 
+  // Escape キーでモーダルを閉じる
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (editingId !== null) cancelEdit();
+      else if (addingForCompanyKey !== null) cancelAdd();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editingId, addingForCompanyKey, cancelEdit, cancelAdd]);
+
   // ── Delete handlers ──────────────────────────────────────────────────────────
   const confirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
@@ -1612,44 +1612,16 @@ export default function CareerHistoryEditor({
                 <div style={{ padding: "0 18px 16px" }}>
                   {group.positions.map((s, pIdx) => (
                     <div key={s.id} style={{ marginBottom: pIdx < group.positions.length - 1 ? 8 : 0 }}>
-                      {editingId === s.id ? (
-                        <StintForm
-                          draft={editDraft}
-                          onDraftChange={setEditDraft}
-                          isSaving={editSaving}
-                          justSaved={editJustSaved}
-                          onSave={() => { void saveEdit(); }}
-                          onCancel={cancelEdit}
-                          roles={roles}
-                        />
-                      ) : (
-                        <StintCard
-                          stint={{ ...s, showCurrentBadge: s.id === showBadgeId }}
-                          onEdit={() => startEdit(s)}
-                          onDelete={() => setDeleteTarget(s)}
-                        />
-                      )}
+                      <StintCard
+                        stint={{ ...s, showCurrentBadge: s.id === showBadgeId }}
+                        onEdit={() => startEdit(s)}
+                        onDelete={() => setDeleteTarget(s)}
+                      />
                     </div>
                   ))}
 
-                  {/* グループ内追加フォーム */}
-                  {addingForCompanyKey === group.key && (
-                    <div style={{ marginTop: 10 }}>
-                      <StintForm
-                        draft={addDraft}
-                        onDraftChange={setAddDraft}
-                        isSaving={addSaving}
-                        justSaved={addJustSaved}
-                        onSave={() => { void saveAdd(); }}
-                        onCancel={cancelAdd}
-                        roles={roles}
-                        companyLocked={true}
-                      />
-                    </div>
-                  )}
-
                   {/* 「+ このポジションに役割を追加」テキストリンク */}
-                  {addingForCompanyKey !== group.key && (
+                  {(
                     <button
                       type="button"
                       onClick={() => {
@@ -1692,22 +1664,6 @@ export default function CareerHistoryEditor({
         </div>
       )}
 
-      {/* 新規会社の追加フォーム */}
-      {addingForCompanyKey === "__new__" && (
-        <div style={{ marginTop: stints.length > 0 ? 12 : 0 }}>
-          <StintForm
-            draft={addDraft}
-            onDraftChange={setAddDraft}
-            isSaving={addSaving}
-            justSaved={addJustSaved}
-            onSave={() => { void saveAdd(); }}
-            onCancel={cancelAdd}
-            roles={roles}
-            companyLocked={false}
-          />
-        </div>
-      )}
-
       {/* 新規会社用「+ 経歴を追加」ボタン */}
       {addingForCompanyKey === null && (
         <button
@@ -1737,6 +1693,60 @@ export default function CareerHistoryEditor({
           <span style={{ fontSize: 15, lineHeight: 1 }}>+</span>
           経歴を追加
         </button>
+      )}
+
+      {/* フォームモーダル（編集・追加共通） */}
+      {(editingId !== null || addingForCompanyKey !== null) && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {/* バックドロップ */}
+          <div
+            onClick={editingId !== null ? cancelEdit : cancelAdd}
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)" }}
+          />
+          {/* モーダルカード */}
+          <div style={{
+            position: "relative", zIndex: 1, background: "#fff",
+            borderRadius: 16, width: "min(600px, 95vw)", maxHeight: "90vh",
+            overflow: "hidden", display: "flex", flexDirection: "column",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
+          }}>
+            {/* ヘッダー */}
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+                {editingId !== null ? "職歴を編集" : "職歴を追加"}
+              </div>
+              <button
+                onClick={editingId !== null ? cancelEdit : cancelAdd}
+                style={{ width: 28, height: 28, border: "none", background: "var(--line-soft)", borderRadius: 6, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-soft)", flexShrink: 0 }}
+              >×</button>
+            </div>
+            {/* ボディ（スクロール可能） */}
+            <div style={{ overflow: "auto", flex: 1, padding: "20px 24px" }}>
+              {editingId !== null ? (
+                <StintForm
+                  draft={editDraft}
+                  onDraftChange={setEditDraft}
+                  isSaving={editSaving}
+                  justSaved={editJustSaved}
+                  onSave={() => { void saveEdit(); }}
+                  onCancel={cancelEdit}
+                  roles={roles}
+                />
+              ) : (
+                <StintForm
+                  draft={addDraft}
+                  onDraftChange={setAddDraft}
+                  isSaving={addSaving}
+                  justSaved={addJustSaved}
+                  onSave={() => { void saveAdd(); }}
+                  onCancel={cancelAdd}
+                  roles={roles}
+                  companyLocked={addingForCompanyKey !== null && addingForCompanyKey !== "__new__"}
+                />
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete confirmation dialog */}
