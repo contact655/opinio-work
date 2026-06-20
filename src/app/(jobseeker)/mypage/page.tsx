@@ -70,7 +70,7 @@ export default async function MypagePage() {
         .order("started_at", { ascending: false }),
       supabase
         .from("ow_roles")
-        .select("id, name"),
+        .select("id, name, parent_id"),
     ]);
 
     skillTags = (tags ?? []).map((t) => ({
@@ -96,11 +96,20 @@ export default async function MypagePage() {
       sort_order: c.sort_order as number,
     }));
 
-    // ow_roles.name は日本語表示ラベルそのもの（slug 変換不要）
-    const roleNameById = new Map<string, string>();
-    for (const role of allRoles ?? []) {
-      roleNameById.set(role.id as string, role.name as string);
+    // ロール情報 Map（職種名 + 親カテゴリ名）
+    const roleByIdRaw = new Map<string, { name: string; parent_id: string | null }>();
+    for (const role of (allRoles ?? []) as { id: string; name: string; parent_id: string | null }[]) {
+      roleByIdRaw.set(role.id, { name: role.name, parent_id: role.parent_id });
     }
+    const roleNameById = new Map(
+      Array.from(roleByIdRaw.entries()).map(([id, r]) => [
+        id,
+        {
+          name: r.name,
+          parent_name: r.parent_id ? (roleByIdRaw.get(r.parent_id)?.name ?? null) : null,
+        },
+      ])
+    );
 
     // master 企業の会社名 + ロゴ 3 フィールドを二次取得（A-1: logo_url / logo_letter / logo_gradient 追加）
     const masterCompanyIds = (expRows ?? [])

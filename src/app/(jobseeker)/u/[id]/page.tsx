@@ -146,7 +146,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
-    supabase.from("ow_roles").select("id, name"),
+    supabase.from("ow_roles").select("id, name, parent_id"),
     supabase
       .from("ow_user_skill_tags")
       .select("id, label, category, sort_order")
@@ -246,11 +246,20 @@ export default async function UserProfilePage({ params }: { params: { id: string
     }
   }
 
-  // ロール表示名を直接参照（ow_roles.name が日本語表示ラベルそのもの、slug 変換不要）
-  const roleNameById = new Map<string, string>();
-  for (const role of allRoles ?? []) {
-    roleNameById.set(role.id as string, role.name as string);
+  // ロール情報 Map（職種名 + 親カテゴリ名）
+  const roleByIdRaw = new Map<string, { name: string; parent_id: string | null }>();
+  for (const role of (allRoles ?? []) as { id: string; name: string; parent_id: string | null }[]) {
+    roleByIdRaw.set(role.id, { name: role.name, parent_id: role.parent_id });
   }
+  const roleInfoById = new Map(
+    Array.from(roleByIdRaw.entries()).map(([id, r]) => [
+      id,
+      {
+        name: r.name,
+        parent_name: r.parent_id ? (roleByIdRaw.get(r.parent_id)?.name ?? null) : null,
+      },
+    ])
+  );
 
   // オーナー以外には visibility_company に従ってマスキングを適用
   // hidden → 除外（RLS で保護されているが念のため）
@@ -299,7 +308,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   // MergedTimeline 用データ整形
   const timelineCareers = buildTimelineCareerEntriesFromRaw(
     visibleExpRows as unknown as RawExperienceRow[],
-    roleNameById,
+    roleInfoById,
     companyInfoById,
   );
   const timelineEdus    = toTimelineEducationEntries(educations as RawEducation[]);

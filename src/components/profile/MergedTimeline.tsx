@@ -65,9 +65,11 @@ export interface CareerEntry {
   logo_letter?: string | null;
   /** 企業ロゴ背景グラデーション（ow_companies.logo_gradient）。フォールバック表示に使用 */
   logo_gradient?: string | null;
-  /** ロールカテゴリのラベル（例: "プロダクトマネージャー"） */
+  /** ロールカテゴリのラベル（例: "フィールドセールス"） */
   role_label: string;
-  /** 自由記述の役職名（例: "Bakuraku事業 PdM"） */
+  /** 親カテゴリ（部門）ラベル（例: "営業"） */
+  role_parent_name?: string | null;
+  /** 自由記述の役職名（例: "AE 関西DX推進営業部"） */
   role_title?: string | null;
   started_at: string;       // "YYYY-MM-DD"
   ended_at: string | null;  // "YYYY-MM-DD" | null when is_current
@@ -646,6 +648,54 @@ function YearSeparator({ year, age }: { year: number; age: number | null }) {
 
 // ─── Description gate (未ログイン時) ─────────────────────────────────────────
 
+// ── 部門 / 職種 / 役職の小テーブル ──────────────────────────────────────────
+function RoleInfoChips({
+  parentName,
+  roleName,
+  roleTitle,
+  size = "md",
+}: {
+  parentName?: string | null;
+  roleName: string;
+  roleTitle?: string | null;
+  size?: "sm" | "md";
+}) {
+  const cells: { label: string; value: string }[] = [];
+  if (parentName) cells.push({ label: "部門", value: parentName });
+  cells.push({ label: "職種", value: roleName });
+  if (roleTitle) cells.push({ label: "役職", value: roleTitle });
+
+  const labelSz = size === "sm" ? 9 : 10;
+  const valueSz = size === "sm" ? 12 : 13;
+
+  return (
+    <div style={{
+      display: "inline-flex", flexWrap: "wrap",
+      border: "1px solid var(--line-soft)", borderRadius: 7, overflow: "hidden",
+      fontSize: valueSz, marginBottom: size === "sm" ? 5 : 8,
+    }}>
+      {cells.map((cell, i) => (
+        <div key={cell.label} style={{
+          display: "flex", flexDirection: "column",
+          padding: size === "sm" ? "4px 10px" : "5px 12px",
+          borderRight: i < cells.length - 1 ? "1px solid var(--line-soft)" : undefined,
+          background: "#FAFBFC",
+        }}>
+          <span style={{
+            fontSize: labelSz, fontWeight: 700, color: "var(--ink-mute)",
+            letterSpacing: "0.05em", marginBottom: 1, whiteSpace: "nowrap",
+          }}>
+            {cell.label}
+          </span>
+          <span style={{ fontWeight: 600, color: "var(--ink)", lineHeight: 1.3 }}>
+            {cell.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function DescriptionGate() {
   return (
     <div style={{ position: "relative", marginTop: 8, borderRadius: 8, overflow: "hidden" }}>
@@ -734,10 +784,9 @@ function CareerContent({
         {isParallel && <ParallelBadge />}
       </div>
 
-      {/* Role — merged to single line */}
-      <div style={{ fontSize: 14, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 5, lineHeight: 1.45 }}>
-        {data.role_label}{data.role_title && ` · ${data.role_title}`}
-      </div>
+      {/* Role info table */}
+      <RoleInfoChips parentName={data.role_parent_name} roleName={data.role_label} roleTitle={data.role_title} size="md" />
+
 
       {/* Date + duration — always inline */}
       <div style={{
@@ -892,10 +941,9 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
         <ParallelBadge />
       </div>
 
-      {/* Role — merged to single line */}
-      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.4 }}>
-        {data.role_label}{data.role_title && ` · ${data.role_title}`}
-      </div>
+      {/* Role info table */}
+      <RoleInfoChips parentName={data.role_parent_name} roleName={data.role_label} roleTitle={data.role_title} size="sm" />
+
 
       {/* Date + duration — always inline */}
       <div style={{
@@ -1231,9 +1279,8 @@ export default function MergedTimeline({
                         const isLast = idx === items.length - 1;
                         return (
                           <div key={c.id} style={{ paddingBottom: isLast ? 0 : 16 }}>
-                            <div style={{ fontSize: 14, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 3, lineHeight: 1.4 }}>
-                              {c.role_label}{c.role_title && ` · ${c.role_title}`}
-                            </div>
+                            <RoleInfoChips parentName={c.role_parent_name} roleName={c.role_label} roleTitle={c.role_title} size="md" />
+
                             <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginBottom: c.description ? 8 : 0, lineHeight: 1.4 }}>
                               {formatYM(c.started_at)} – {c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
                               {posDuration && ` · ${posDuration}`}

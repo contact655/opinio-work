@@ -85,6 +85,12 @@ export type RawExperienceRow = {
   employment_type: string | null;
 };
 
+/** ow_roles の id → 名前 + 親カテゴリ名 の Map value 型 */
+export type RoleInfo = {
+  name: string;
+  parent_name: string | null;
+};
+
 /**
  * ow_experiences の SELECT 結果 + 解決済み Map から MergedTimeline の CareerEntry を生成する。
  *
@@ -92,12 +98,12 @@ export type RawExperienceRow = {
  * なので、slug 変換（DB_NAME_TO_SLUG）を経由せず直接 role_label に使う。
  *
  * @param expRows        - ow_experiences SELECT 結果（is_current DESC, started_at DESC ソート済み）
- * @param roleNameById   - Map<role_category_id, ow_roles.name>（= 表示ラベル）
+ * @param roleInfoById   - Map<role_category_id, RoleInfo>（name + parent_name）
  * @param companyInfoById - Map<company_id, CompanyLogoInfo>（master 企業のみ。名前 + ロゴ 3 フィールド）
  */
 export function buildTimelineCareerEntriesFromRaw(
   expRows: RawExperienceRow[],
-  roleNameById: Map<string, string>,
+  roleInfoById: Map<string, RoleInfo>,
   companyInfoById: Map<string, CompanyLogoInfo>,
 ): CareerEntry[] {
   return expRows.map((r) => {
@@ -119,7 +125,8 @@ export function buildTimelineCareerEntriesFromRaw(
     }
 
     // ow_roles.name は日本語表示ラベルそのものなので変換不要
-    const role_label = roleNameById.get(r.role_category_id) ?? r.role_category_id;
+    const roleInfo = roleInfoById.get(r.role_category_id);
+    const role_label = roleInfo?.name ?? r.role_category_id;
 
     // ロゴ文字 + グラデーション解決:
     //   1. master 企業 → DB の logo_letter / logo_gradient を優先
@@ -147,19 +154,20 @@ export function buildTimelineCareerEntriesFromRaw(
     }
 
     return {
-      id:            r.id,
-      company_id:    resolvedCompanyId,
+      id:              r.id,
+      company_id:      resolvedCompanyId,
       company_name,
-      logo_url:      companyInfo?.logoUrl ?? null,
+      logo_url:        companyInfo?.logoUrl ?? null,
       logo_letter,
       logo_gradient,
       role_label,
-      role_title:    r.role_title,
-      started_at:    r.started_at,
-      ended_at:      r.ended_at,
-      is_current:    r.is_current,
-      description:   r.description,
-      join_reason:   r.join_reason,
+      role_parent_name: roleInfo?.parent_name ?? null,
+      role_title:      r.role_title,
+      started_at:      r.started_at,
+      ended_at:        r.ended_at,
+      is_current:      r.is_current,
+      description:     r.description,
+      join_reason:     r.join_reason,
       employment_type: r.employment_type,
     };
   });
