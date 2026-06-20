@@ -607,6 +607,29 @@ function StintForm({
     [draft, onDraftChange]
   );
 
+  // 職種カテゴリー（親）ローカル state — StintDraft には保存しない
+  const [parentId, setParentId] = useState(() => {
+    if (!draft.roleCategoryId) return "";
+    const role = roles.find((r) => r.id === draft.roleCategoryId);
+    if (!role) return "";
+    return role.parent_id ?? role.id;
+  });
+
+  // 外部から draft.roleCategoryId が変わったとき（編集開始・キャンセル後）に同期
+  useEffect(() => {
+    if (!draft.roleCategoryId) { setParentId(""); return; }
+    const role = roles.find((r) => r.id === draft.roleCategoryId);
+    if (role) setParentId(role.parent_id ?? role.id);
+  }, [draft.roleCategoryId, roles]);
+
+  const handleParentChange = useCallback((newParentId: string) => {
+    setParentId(newParentId);
+    if (!newParentId) { onDraftChange({ ...draft, roleCategoryId: "" }); return; }
+    const children = roles.filter((r) => r.parent_id === newParentId);
+    // 子なし → 親自体を roleCategoryId として保存
+    onDraftChange({ ...draft, roleCategoryId: children.length === 0 ? newParentId : "" });
+  }, [draft, onDraftChange, roles]);
+
   const descLen = draft.description.length;
   const descOver = descLen > 500;
   // 期間バリデーション: ended_at が入力済みかつ現職フラグなし の場合のみ started_at <= ended_at を検証
@@ -669,13 +692,13 @@ function StintForm({
         )}
       </div>
 
-      {/* Role category */}
+      {/* 職種カテゴリー（親） */}
       <div>
-        <label style={labelStyle()}>役職カテゴリ *</label>
+        <label style={labelStyle()}>職種カテゴリー *</label>
         <select
-          aria-label="役職カテゴリ"
-          value={draft.roleCategoryId}
-          onChange={(e) => set("roleCategoryId", e.target.value)}
+          aria-label="職種カテゴリー"
+          value={parentId}
+          onChange={(e) => handleParentChange(e.target.value)}
           disabled={isSaving}
           style={fieldStyle()}
         >
@@ -683,31 +706,33 @@ function StintForm({
           {roles
             .filter((r) => r.parent_id === null)
             .sort((a, b) => a.display_order - b.display_order)
-            .map((parent) => {
-              const children = roles
-                .filter((r) => r.parent_id === parent.id)
-                .sort((a, b) => a.display_order - b.display_order);
-              if (children.length === 0) {
-                // 子なし → 親を選択可
-                return (
-                  <option key={parent.id} value={parent.id}>
-                    {parent.name}
-                  </option>
-                );
-              }
-              // 子あり → 親は見出し（選択不可）+ 子のみ選択可
-              return (
-                <optgroup key={parent.id} label={parent.name}>
-                  {children.map((child) => (
-                    <option key={child.id} value={child.id}>
-                      {child.name}
-                    </option>
-                  ))}
-                </optgroup>
-              );
-            })}
+            .map((parent) => (
+              <option key={parent.id} value={parent.id}>{parent.name}</option>
+            ))}
         </select>
       </div>
+
+      {/* 職種（子カテゴリー）— 親に子がある場合のみ表示 */}
+      {parentId && roles.filter((r) => r.parent_id === parentId).length > 0 && (
+        <div>
+          <label style={labelStyle()}>職種 *</label>
+          <select
+            aria-label="職種"
+            value={draft.roleCategoryId}
+            onChange={(e) => set("roleCategoryId", e.target.value)}
+            disabled={isSaving}
+            style={fieldStyle()}
+          >
+            <option value="">選択してください</option>
+            {roles
+              .filter((r) => r.parent_id === parentId)
+              .sort((a, b) => a.display_order - b.display_order)
+              .map((child) => (
+                <option key={child.id} value={child.id}>{child.name}</option>
+              ))}
+          </select>
+        </div>
+      )}
 
       {/* 役職 + 雇用形態（2カラム） */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -742,7 +767,7 @@ function StintForm({
       {/* グレード・等級名 + 部署名（2カラム） */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>
-          <label style={labelStyle()}>グレード・等級名（任意）</label>
+          <label style={labelStyle()}>職種名（任意）</label>
           <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
             社内職名・グレード（例: M2、AE、シニアAM）
           </div>
