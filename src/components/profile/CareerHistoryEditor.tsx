@@ -27,6 +27,7 @@ export type Stint = {
   employmentType?: string;
   salaryMan?: number | null;
   visibilityCompany?: "real" | "masked" | "hidden";
+  visibilityCompanyProfile?: "real" | "masked" | "hidden";
   visibilitySalary?: boolean;
   visibilityReason?: boolean;
 };
@@ -184,6 +185,7 @@ type StintDraft = {
   employmentType: string;
   salaryMan: string;           // 入力は string、保存時に number に変換
   visibilityCompany: "real" | "masked" | "hidden";
+  visibilityCompanyProfile: "real" | "masked" | "hidden";
   visibilitySalary: boolean;
   visibilityReason: boolean;
 };
@@ -202,6 +204,7 @@ const EMPTY_DRAFT: StintDraft = {
   employmentType: "",
   salaryMan: "",
   visibilityCompany: "real",
+  visibilityCompanyProfile: "real",
   visibilitySalary: false,
   visibilityReason: true,
 };
@@ -795,9 +798,9 @@ function StintForm({
           公開設定（キャリア軌跡ページへの表示）
         </div>
 
-        {/* 会社名の公開範囲 */}
+        {/* 会社名の公開範囲（キャリア軌跡ページ） */}
         <div>
-          <label style={{ ...labelStyle(), marginBottom: 4 }}>会社名の表示</label>
+          <label style={{ ...labelStyle(), marginBottom: 4 }}>会社名の表示（キャリア軌跡ページ）</label>
           <select
             value={draft.visibilityCompany}
             onChange={(e) => set("visibilityCompany", e.target.value as "real" | "masked" | "hidden")}
@@ -805,8 +808,23 @@ function StintForm({
             style={{ ...fieldStyle(), width: "auto", minWidth: 220 }}
           >
             <option value="real">実名で表示する</option>
-            <option value="masked">匿名で表示する（「非公開企業」と表示）</option>
+            <option value="masked">業界・規模で表示する</option>
             <option value="hidden">この職歴をキャリア軌跡に含めない</option>
+          </select>
+        </div>
+
+        {/* 会社名の公開範囲（プロフィールページ） */}
+        <div>
+          <label style={{ ...labelStyle(), marginBottom: 4 }}>会社名の表示（プロフィールページ）</label>
+          <select
+            value={draft.visibilityCompanyProfile}
+            onChange={(e) => set("visibilityCompanyProfile", e.target.value as "real" | "masked" | "hidden")}
+            disabled={isSaving}
+            style={{ ...fieldStyle(), width: "auto", minWidth: 220 }}
+          >
+            <option value="real">実名で表示する</option>
+            <option value="masked">業界・規模で表示する</option>
+            <option value="hidden">この職歴をプロフィールに含めない</option>
           </select>
         </div>
 
@@ -1034,6 +1052,7 @@ export default function CareerHistoryEditor({
     employmentType: s.employmentType ?? "",
     salaryMan: s.salaryMan != null ? String(s.salaryMan) : "",
     visibilityCompany: s.visibilityCompany ?? "real",
+    visibilityCompanyProfile: s.visibilityCompanyProfile ?? "real",
     visibilitySalary: s.visibilitySalary ?? false,
     visibilityReason: s.visibilityReason ?? true,
   }), []);
@@ -1054,6 +1073,7 @@ export default function CareerHistoryEditor({
     employmentType: "",
     salaryMan: "",
     visibilityCompany: "real",
+    visibilityCompanyProfile: "real",
     visibilitySalary: false,
     visibilityReason: true,
   }), []);
@@ -1084,6 +1104,7 @@ export default function CareerHistoryEditor({
         employment_type: editDraft.employmentType || undefined,
         salary_man: editDraft.salaryMan ? parseInt(editDraft.salaryMan, 10) : null,
         visibility_company: editDraft.visibilityCompany,
+        visibility_company_profile: editDraft.visibilityCompanyProfile,
         visibility_salary: editDraft.visibilitySalary,
         visibility_reason: editDraft.visibilityReason,
       };
@@ -1114,6 +1135,7 @@ export default function CareerHistoryEditor({
                 employmentType: editDraft.employmentType || undefined,
                 salaryMan: editDraft.salaryMan ? parseInt(editDraft.salaryMan, 10) : null,
                 visibilityCompany: editDraft.visibilityCompany,
+                visibilityCompanyProfile: editDraft.visibilityCompanyProfile,
                 visibilitySalary: editDraft.visibilitySalary,
                 visibilityReason: editDraft.visibilityReason,
               }
@@ -1153,6 +1175,7 @@ export default function CareerHistoryEditor({
         display_order: stints.length,
         salary_man: addDraft.salaryMan ? parseInt(addDraft.salaryMan, 10) : null,
         visibility_company: addDraft.visibilityCompany,
+        visibility_company_profile: addDraft.visibilityCompanyProfile,
         visibility_salary: addDraft.visibilitySalary,
         visibility_reason: addDraft.visibilityReason,
       };
@@ -1180,6 +1203,7 @@ export default function CareerHistoryEditor({
         employmentType: addDraft.employmentType || undefined,
         salaryMan: addDraft.salaryMan ? parseInt(addDraft.salaryMan, 10) : null,
         visibilityCompany: addDraft.visibilityCompany,
+        visibilityCompanyProfile: addDraft.visibilityCompanyProfile,
         visibilitySalary: addDraft.visibilitySalary,
         visibilityReason: addDraft.visibilityReason,
       };

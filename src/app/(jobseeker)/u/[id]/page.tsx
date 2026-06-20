@@ -142,7 +142,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   ] = await Promise.all([
     supabase
       .from("ow_experiences")
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, visibility_company, visibility_salary, visibility_reason")
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
@@ -261,55 +261,43 @@ export default async function UserProfilePage({ params }: { params: { id: string
     ])
   );
 
-  // オーナー以外には visibility_company に従ってマスキングを適用
-  // hidden → 除外（RLS で保護されているが念のため）
-  // masked → company_id/company_text を null に上書き（company_anonymized のみ残す）
-  // visibility_reason=false → join_reason を除外
-  const visibleExpRows = viewerIsOwner
-    ? (expRows ?? [])
-    : (expRows ?? [])
-        .filter((r) => (r as { visibility_company?: string }).visibility_company !== "hidden")
-        .map((r) => {
-          const vc = (r as { visibility_company?: string }).visibility_company ?? "real";
-          const vr = (r as { visibility_reason?: boolean }).visibility_reason ?? true;
-          return {
-            ...r,
-            company_id: vc === "masked" ? null : r.company_id,
-            company_text: vc === "masked" ? null : r.company_text,
-            join_reason: vr ? r.join_reason : null,
-          };
-        });
+  // visibility_reason=false の場合のみ join_reason を除外（プロフィール・軌跡共通設定）
+  // visibility_company_profile は buildTimelineCareerEntriesFromRaw が isOwner で制御する
+  const processedExpRows = (expRows ?? []).map((r) => {
+    const vr = (r as { visibility_reason?: boolean }).visibility_reason ?? true;
+    return vr ? r : { ...r, join_reason: null };
+  });
 
-  // Resolve company info (name + logo 3 フィールド) for master entries in experiences
-  const expCompanyIds = visibleExpRows
-    .filter((r) => r.company_id)
-    .map((r) => r.company_id as string);
+  // Resolve company info for ALL master entries（masked 時も業種・フェーズを使って代替テキスト生成する）
+  const allCompanyIds = Array.from(
+    new Set(processedExpRows.filter((r) => r.company_id).map((r) => r.company_id as string))
+  );
 
   const companyInfoById = new Map<string, CompanyLogoInfo>();
-  const companyPhaseById = new Map<string, string | null>();
-  if (expCompanyIds.length > 0) {
+  if (allCompanyIds.length > 0) {
     const { data: expCompanies } = await supabase
       .from("ow_companies")
-      .select("id, name, logo_url, logo_letter, logo_gradient, phase")
-      .in("id", expCompanyIds);
+      .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count")
+      .in("id", allCompanyIds);
     for (const c of expCompanies ?? []) {
       companyInfoById.set(c.id as string, {
         name: c.name as string,
         logoUrl: (c.logo_url as string | null) ?? null,
         logoLetter: (c.logo_letter as string | null) ?? null,
         logoGradient: (c.logo_gradient as string | null) ?? null,
+        industry: (c.industry as string | null) ?? null,
+        phase: (c.phase as string | null) ?? null,
+        employee_count: (c.employee_count as number | null) ?? null,
       });
-    }
-    for (const c of expCompanies ?? []) {
-      companyPhaseById.set(c.id as string, (c.phase as string | null) ?? null);
     }
   }
 
-  // MergedTimeline 用データ整形
+  // MergedTimeline 用データ整形（isOwner=true なら visibility_company_profile を無視して実名表示）
   const timelineCareers = buildTimelineCareerEntriesFromRaw(
-    visibleExpRows as unknown as RawExperienceRow[],
+    processedExpRows as unknown as RawExperienceRow[],
     roleInfoById,
     companyInfoById,
+    viewerIsOwner,
   );
   const timelineEdus    = toTimelineEducationEntries(educations as RawEducation[]);
 
@@ -382,7 +370,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   })();
 
   // 現職企業フェーズ
-  const currentCompanyPhase = currentCareer?.company_id ? (companyPhaseById.get(currentCareer.company_id) ?? null) : null;
+  const currentCompanyPhase = currentCareer?.company_id ? (companyInfoById.get(currentCareer.company_id)?.phase ?? null) : null;
 
   // サイドバーにコンテンツがあるか（なければ1カラム）
   const hasSidebarContent = isCurrentCompanyKnown || certifications.length > 0;

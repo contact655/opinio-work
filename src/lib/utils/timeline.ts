@@ -54,17 +54,53 @@ const ANON_GRADIENT = "linear-gradient(135deg, #475569, #6b7280)";
 // ─── buildTimelineCareerEntriesFromRaw ───────────────────────────────────────
 
 /**
- * ow_companies の企業情報（名前 + ロゴ 3 フィールド）を格納する Map の value 型。
+ * ow_companies の企業情報（名前 + ロゴ + マスク用メタ情報）を格納する Map の value 型。
  * buildTimelineCareerEntriesFromRaw の第3引数 Map<company_id, CompanyLogoInfo> として使用。
  *
  * ロゴフィールドは optional ではなく null 許容: DB から取得した値をそのまま格納する。
+ * industry / phase / employee_count は visibility_company_profile='masked' 時の代替表示生成に使用。
  */
 export type CompanyLogoInfo = {
   name: string;
   logoUrl: string | null;
   logoLetter: string | null;
   logoGradient: string | null;
+  industry?: string | null;
+  phase?: string | null;
+  employee_count?: number | null;
 };
+
+// ─── Masked company label ─────────────────────────────────────────────────────
+
+const PHASE_LABEL: Record<string, string> = {
+  seed: "シード", series_a: "シリーズA", "series-a": "シリーズA",
+  series_b: "シリーズB", "series-b": "シリーズB",
+  series_c: "シリーズC", "series-c": "シリーズC",
+  ipo: "IPO準備中", "IPO準備中": "IPO準備中",
+  listed: "上場", 上場: "上場",
+  大企業: "大企業", 外資系: "外資系",
+};
+
+/**
+ * visibility_company_profile='masked' のとき、会社マスタの情報から代替表示テキストを生成する。
+ * 例: "SaaS（シリーズB・50名規模）"
+ * company_anonymized が入力済みの場合はそちらを優先する。
+ */
+function generateMaskedCompanyLabel(
+  companyInfo: CompanyLogoInfo | undefined,
+  companyAnonymized: string | null,
+): string {
+  if (companyAnonymized) return companyAnonymized;
+  if (!companyInfo) return "非公開企業";
+  const { industry, phase, employee_count } = companyInfo;
+  const phaseLabel = phase ? (PHASE_LABEL[phase] ?? null) : null;
+  const sizeLabel = employee_count ? `${employee_count}名規模` : null;
+  const suffix = [phaseLabel, sizeLabel].filter(Boolean).join("・");
+  if (!industry && !suffix) return "非公開企業";
+  if (!suffix) return industry!;
+  if (!industry) return suffix;
+  return `${industry}（${suffix}）`;
+}
 
 /** ow_experiences の SELECT 結果の行型 */
 export type RawExperienceRow = {
@@ -83,6 +119,8 @@ export type RawExperienceRow = {
   description: string | null;
   join_reason: string | null;
   employment_type: string | null;
+  /** プロフィールページでの企業名表示制御 */
+  visibility_company_profile?: "real" | "masked" | "hidden" | null;
 };
 
 /** ow_roles の id → 名前 + 親カテゴリ名 の Map value 型 */
@@ -97,16 +135,21 @@ export type RoleInfo = {
  * /mypage・/u/[id] 共通。ow_roles.name が日本語表示ラベルそのもの（"プロダクトマネージャー" 等）
  * なので、slug 変換（DB_NAME_TO_SLUG）を経由せず直接 role_label に使う。
  *
- * @param expRows        - ow_experiences SELECT 結果（is_current DESC, started_at DESC ソート済み）
- * @param roleInfoById   - Map<role_category_id, RoleInfo>（name + parent_name）
- * @param companyInfoById - Map<company_id, CompanyLogoInfo>（master 企業のみ。名前 + ロゴ 3 フィールド）
+ * @param expRows         - ow_experiences SELECT 結果（is_current DESC, started_at DESC ソート済み）
+ * @param roleInfoById    - Map<role_category_id, RoleInfo>（name + parent_name）
+ * @param companyInfoById - Map<company_id, CompanyLogoInfo>（master 企業のみ。名前 + ロゴ + 業種/フェーズ）
+ * @param isOwner         - true のときは visibility_company_profile を無視（本人は常に実名表示）
  */
 export function buildTimelineCareerEntriesFromRaw(
   expRows: RawExperienceRow[],
   roleInfoById: Map<string, RoleInfo>,
   companyInfoById: Map<string, CompanyLogoInfo>,
+  isOwner = false,
 ): CareerEntry[] {
-  return expRows.map((r) => {
+  const results: (CareerEntry | null)[] = expRows.map((r) => {
+    // プロフィールページ表示制御（本人は常にスキップ）
+    const profileVis = r.visibility_company_profile ?? "real";
+    if (!isOwner && profileVis === "hidden") return null;
     // ロゴ情報: master 企業（company_id あり）のみ取得。custom / anon は null
     const companyInfo = r.company_id ? companyInfoById.get(r.company_id) : undefined;
 
@@ -153,13 +196,28 @@ export function buildTimelineCareerEntriesFromRaw(
       logo_gradient = ANON_GRADIENT;
     }
 
+    // masked 時: 会社名・ID・ロゴを代替表示に差し替え（実データをクライアントに渡さない）
+    let effectiveCompanyName = company_name;
+    let effectiveCompanyId: string | null = resolvedCompanyId;
+    let effectiveLogoUrl: string | null = companyInfo?.logoUrl ?? null;
+    let effectiveLogoLetter = logo_letter;
+    let effectiveLogoGradient = logo_gradient;
+
+    if (!isOwner && profileVis === "masked") {
+      effectiveCompanyName = generateMaskedCompanyLabel(companyInfo, r.company_anonymized ?? null);
+      effectiveCompanyId   = null;
+      effectiveLogoUrl     = null;
+      effectiveLogoLetter  = "非";
+      effectiveLogoGradient = ANON_GRADIENT;
+    }
+
     return {
       id:              r.id,
-      company_id:      resolvedCompanyId,
-      company_name,
-      logo_url:        companyInfo?.logoUrl ?? null,
-      logo_letter,
-      logo_gradient,
+      company_id:      effectiveCompanyId,
+      company_name:    effectiveCompanyName,
+      logo_url:        effectiveLogoUrl,
+      logo_letter:     effectiveLogoLetter,
+      logo_gradient:   effectiveLogoGradient,
       role_label,
       role_parent_name: roleInfo?.parent_name ?? null,
       role_title:      r.role_title,
@@ -171,6 +229,7 @@ export function buildTimelineCareerEntriesFromRaw(
       employment_type: r.employment_type,
     };
   });
+  return results.filter((e): e is CareerEntry => e !== null);
 }
 
 // ─── toTimelineEducationEntries ───────────────────────────────────────────────

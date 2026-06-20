@@ -28,7 +28,7 @@ export async function GET() {
 
   const { data: rows, error: rowsErr } = await supabase
     .from("ow_experiences")
-    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, salary_man, visibility_company, visibility_salary, visibility_reason")
+    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, salary_man, visibility_company, visibility_company_profile, visibility_salary, visibility_reason")
     .eq("user_id", owUserId)
     .order("is_current", { ascending: false })
     .order("started_at", { ascending: false });
@@ -86,6 +86,7 @@ export async function GET() {
       displayOrder: (r.display_order as number) ?? 0,
       salaryMan: r.salary_man as number | null ?? null,
       visibilityCompany: (r.visibility_company as "real" | "masked" | "hidden" | undefined) ?? "real",
+      visibilityCompanyProfile: (r.visibility_company_profile as "real" | "masked" | "hidden" | undefined) ?? "real",
       visibilitySalary: (r.visibility_salary as boolean | undefined) ?? false,
       visibilityReason: (r.visibility_reason as boolean | undefined) ?? true,
     };
@@ -144,6 +145,7 @@ export async function POST(req: Request) {
       display_order: (body.display_order as number | undefined) ?? 0,
       salary_man: (body.salary_man as number | undefined) ?? null,
       visibility_company: (body.visibility_company as string | undefined) ?? "real",
+      visibility_company_profile: (body.visibility_company_profile as string | undefined) ?? "real",
       visibility_salary: (body.visibility_salary as boolean | undefined) ?? false,
       visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
     })

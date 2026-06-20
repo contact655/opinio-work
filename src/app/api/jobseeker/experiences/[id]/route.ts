@@ -50,6 +50,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       employment_type: (body.employment_type as string | undefined) ?? null,
       salary_man: (body.salary_man as number | undefined) ?? null,
       visibility_company: (body.visibility_company as string | undefined) ?? "real",
+      visibility_company_profile: (body.visibility_company_profile as string | undefined) ?? "real",
       visibility_salary: (body.visibility_salary as boolean | undefined) ?? false,
       visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
       updated_at: new Date().toISOString(),

@@ -64,7 +64,7 @@ export default async function MypagePage() {
         .order("sort_order", { ascending: true }),
       supabase
         .from("ow_experiences")
-        .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description")
+        .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type, salary_man, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
         .eq("user_id", owUser.id)
         .order("is_current", { ascending: false })
         .order("started_at", { ascending: false }),
@@ -119,7 +119,7 @@ export default async function MypagePage() {
     if (masterCompanyIds.length > 0) {
       const { data: companies } = await supabase
         .from("ow_companies")
-        .select("id, name, logo_url, logo_letter, logo_gradient")
+        .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count")
         .in("id", masterCompanyIds);
       for (const c of companies ?? []) {
         companyInfoById.set(c.id as string, {
@@ -127,6 +127,9 @@ export default async function MypagePage() {
           logoUrl: (c.logo_url as string | null) ?? null,
           logoLetter: (c.logo_letter as string | null) ?? null,
           logoGradient: (c.logo_gradient as string | null) ?? null,
+          industry: (c.industry as string | null) ?? null,
+          phase: (c.phase as string | null) ?? null,
+          employee_count: (c.employee_count as number | null) ?? null,
         });
       }
     }
@@ -135,6 +138,7 @@ export default async function MypagePage() {
       (expRows ?? []) as RawExperienceRow[],
       roleNameById,
       companyInfoById,
+      true, // マイページは常にオーナー本人 → 実名表示
     );
   }
 
