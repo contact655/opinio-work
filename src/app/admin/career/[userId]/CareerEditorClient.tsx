@@ -29,7 +29,10 @@ type Experience = {
   visibility_salary: boolean;
   visibility_reason: boolean;
   display_order: number;
+  description: string | null;
   join_reason: string | null;
+  turning_point: string | null;
+  exit_reason: string | null;
 };
 
 type CareerProfile = {
@@ -117,12 +120,16 @@ export function CareerEditorClient({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          roleTitle: exp.role_title,
-          salaryMan: exp.salary_man,
+          roleTitle:         exp.role_title,
+          salaryMan:         exp.salary_man,
           companyAnonymized: exp.company_anonymized,
           visibilityCompany: exp.visibility_company,
-          visibilitySalary: exp.visibility_salary,
-          visibilityReason: exp.visibility_reason,
+          visibilitySalary:  exp.visibility_salary,
+          visibilityReason:  exp.visibility_reason,
+          description:       exp.description,
+          joinReason:        exp.join_reason,
+          turningPoint:      exp.turning_point,
+          exitReason:        exp.exit_reason,
         }),
       });
       setSavedId(exp.id);
@@ -175,6 +182,16 @@ export function CareerEditorClient({
           <div style={{ fontSize: 13, color: "var(--ink-mute)" }}>{user.email}</div>
         </div>
         <Link
+          href={`/career-trajectories/${user.id}`}
+          target="_blank"
+          style={{
+            fontSize: 12, color: "var(--purple)", textDecoration: "none", fontWeight: 600,
+            padding: "6px 12px", border: "1px solid #DDD6FE", borderRadius: 6, marginRight: 8,
+          }}
+        >
+          キャリア軌跡ページ →
+        </Link>
+        <Link
           href={`/u/${user.id}`}
           target="_blank"
           style={{
@@ -195,11 +212,8 @@ export function CareerEditorClient({
           <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
             キャリアプロフィール
           </h2>
-          {/* Public toggle */}
           <button
-            onClick={() => {
-              setIsPublished((v) => !v);
-            }}
+            onClick={() => setIsPublished((v) => !v)}
             style={{
               display: "flex", alignItems: "center", gap: 8,
               padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
@@ -237,8 +251,7 @@ export function CareerEditorClient({
               type="number"
               value={yearsExp}
               onChange={(e) => setYearsExp(e.target.value)}
-              min={0}
-              max={50}
+              min={0} max={50}
               placeholder="例: 8"
               style={{
                 width: "100%", padding: "9px 12px", borderRadius: 7,
@@ -276,8 +289,7 @@ export function CareerEditorClient({
               type="number"
               value={birthYear}
               onChange={(e) => setBirthYear(e.target.value)}
-              min={1960}
-              max={2005}
+              min={1960} max={2005}
               placeholder="例: 1992"
               style={{
                 width: "100%", padding: "9px 12px", borderRadius: 7,
@@ -324,7 +336,7 @@ export function CareerEditorClient({
             職歴ステップ ({rows.length}件)
           </h2>
           <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-            ステップごとに年収・公開設定を入力して「保存」を押してください
+            各フィールドを入力して「保存」を押してください
           </span>
         </div>
 
@@ -373,20 +385,36 @@ function ExperienceRow({
     "企業名未設定";
 
   const VIS_OPTIONS: { value: "real" | "masked" | "hidden"; label: string; color: string }[] = [
-    { value: "real",   label: "実名表示",   color: "var(--success)" },
-    { value: "masked", label: "匿名表示",   color: "var(--warm)" },
-    { value: "hidden", label: "非公開",     color: "var(--error)" },
+    { value: "real",   label: "実名表示", color: "var(--success)" },
+    { value: "masked", label: "匿名表示", color: "var(--warm)" },
+    { value: "hidden", label: "非公開",   color: "var(--error)" },
   ];
 
   const visOption = VIS_OPTIONS.find((o) => o.value === exp.visibility_company) ?? VIS_OPTIONS[1];
 
+  const inputStyle = {
+    width: "100%", padding: "8px 11px", borderRadius: 7,
+    border: "1px solid var(--line)", fontSize: 13, outline: "none",
+    boxSizing: "border-box" as const,
+  };
+
+  const textareaStyle = {
+    width: "100%", padding: "9px 11px", borderRadius: 7,
+    border: "1px solid var(--line)", fontSize: 13, outline: "none",
+    boxSizing: "border-box" as const, resize: "vertical" as const,
+    lineHeight: "1.7", minHeight: 90, fontFamily: "inherit",
+  };
+
+  const labelStyle = {
+    fontSize: 11, fontWeight: 700 as const,
+    color: "var(--ink-soft)", display: "block" as const, marginBottom: 5,
+  };
+
   return (
-    <div style={{
-      borderBottom: "1px solid var(--line-soft)",
-      padding: "20px 24px",
-    }}>
-      {/* Row header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
+    <div style={{ borderBottom: "1px solid var(--line-soft)", padding: "24px 24px 20px" }}>
+
+      {/* ── Row header ── */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 18 }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 2 }}>
             {companyLabel}
@@ -407,92 +435,63 @@ function ExperienceRow({
           disabled={isSaving}
           style={{
             display: "inline-flex", alignItems: "center", gap: 5,
-            padding: "7px 16px", borderRadius: 7, border: "none", cursor: "pointer",
-            background: isSaved ? "var(--success)" : "var(--royal-50)",
-            color: isSaved ? "#fff" : "var(--royal)",
-            fontWeight: 700, fontSize: 12,
+            padding: "8px 18px", borderRadius: 7, border: "none", cursor: "pointer",
+            background: isSaved ? "var(--success)" : "var(--royal)",
+            color: "#fff",
+            fontWeight: 700, fontSize: 13,
             opacity: isSaving ? 0.6 : 1, transition: "all 0.15s",
           }}
         >
-          {isSaved ? <CheckCircle size={12} /> : <Save size={12} />}
+          {isSaved ? <CheckCircle size={13} /> : <Save size={13} />}
           {isSaving ? "保存中..." : isSaved ? "保存済み" : "保存"}
         </button>
       </div>
 
-      {/* Input fields */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 160px 1fr 1fr 1fr", gap: 16, alignItems: "start" }}>
+      {/* ── メタ情報（1行目）── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
 
         {/* role_title */}
         <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", display: "block", marginBottom: 5 }}>
-            職種・役職名
-          </label>
+          <label style={labelStyle}>職種・役職名</label>
           <input
             value={exp.role_title ?? ""}
-            onChange={(e) =>
-              onUpdate(exp.id, "role_title", e.target.value || null)
-            }
-            placeholder="例: Account Executive、エンジニア"
-            style={{
-              width: "100%", padding: "8px 11px", borderRadius: 7,
-              border: "1px solid var(--line)", fontSize: 14, outline: "none",
-              boxSizing: "border-box",
-            }}
+            onChange={(e) => onUpdate(exp.id, "role_title", e.target.value || null)}
+            placeholder="例: Account Executive"
+            style={inputStyle}
           />
         </div>
 
         {/* salary_man */}
         <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", display: "block", marginBottom: 5 }}>
-            年収（万円）
-          </label>
+          <label style={labelStyle}>年収（万円）</label>
           <input
             type="number"
             value={exp.salary_man ?? ""}
-            onChange={(e) =>
-              onUpdate(exp.id, "salary_man", e.target.value ? parseInt(e.target.value) : null)
-            }
+            onChange={(e) => onUpdate(exp.id, "salary_man", e.target.value ? parseInt(e.target.value) : null)}
             placeholder="例: 800"
-            min={0}
-            max={9999}
-            style={{
-              width: "100%", padding: "8px 11px", borderRadius: 7,
-              border: "1px solid var(--line)", fontSize: 14, outline: "none",
-              boxSizing: "border-box",
-            }}
+            min={0} max={9999}
+            style={inputStyle}
           />
         </div>
 
         {/* company_anonymized */}
         <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", display: "block", marginBottom: 5 }}>
-            匿名ラベル（masked 時に表示）
-          </label>
+          <label style={labelStyle}>匿名ラベル（masked 時）</label>
           <input
             value={exp.company_anonymized ?? ""}
-            onChange={(e) =>
-              onUpdate(exp.id, "company_anonymized", e.target.value || null)
-            }
-            placeholder="例: 大手SaaS企業、国内ITスタートアップ"
-            style={{
-              width: "100%", padding: "8px 11px", borderRadius: 7,
-              border: "1px solid var(--line)", fontSize: 14, outline: "none",
-              boxSizing: "border-box",
-            }}
+            onChange={(e) => onUpdate(exp.id, "company_anonymized", e.target.value || null)}
+            placeholder="例: 大手SaaS企業"
+            style={inputStyle}
           />
         </div>
 
         {/* visibility_company */}
         <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", display: "block", marginBottom: 5 }}>
-            企業名の公開設定
-          </label>
+          <label style={labelStyle}>企業名の公開設定</label>
           <div style={{ position: "relative" }}>
             <select
               value={exp.visibility_company}
-              onChange={(e) =>
-                onUpdate(exp.id, "visibility_company", e.target.value as "real" | "masked" | "hidden")
-              }
+              onChange={(e) => onUpdate(exp.id, "visibility_company", e.target.value as "real" | "masked" | "hidden")}
               style={{
                 width: "100%", padding: "8px 32px 8px 11px", borderRadius: 7,
                 border: `2px solid ${visOption.color}`,
@@ -514,10 +513,8 @@ function ExperienceRow({
 
         {/* visibility checkboxes */}
         <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", display: "block", marginBottom: 9 }}>
-            追加公開項目
-          </label>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label style={labelStyle}>追加公開項目</label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
               <input
                 type="checkbox"
@@ -537,17 +534,107 @@ function ExperienceRow({
                 style={{ width: 15, height: 15, cursor: "pointer", accentColor: "var(--success)" }}
               />
               <span style={{ color: exp.visibility_reason ? "var(--success)" : "var(--ink-mute)", fontWeight: exp.visibility_reason ? 600 : 400 }}>
-                転職理由を公開
+                インタビューを公開
               </span>
             </label>
           </div>
         </div>
       </div>
 
-      {/* Preview: what will be shown publicly */}
+      {/* ── インタビューコンテンツ（4フィールド）── */}
+      <div style={{
+        background: "var(--bg-tint)", border: "1px solid var(--line-soft)",
+        borderRadius: 10, padding: "18px 20px",
+      }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, letterSpacing: "0.08em",
+          color: "var(--ink-mute)", marginBottom: 16,
+          textTransform: "uppercase", fontFamily: "Inter, sans-serif",
+          display: "flex", alignItems: "center", gap: 6,
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          インタビューコンテンツ
+          <span style={{ fontSize: 10, fontWeight: 500, textTransform: "none", letterSpacing: 0, marginLeft: 4 }}>
+            — 「インタビューを公開」がONの場合のみ表示されます
+          </span>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+
+          {/* ① 入社の決め手 */}
+          <div>
+            <label style={{ ...labelStyle, color: "var(--royal)" }}>
+              ① 入社の決め手
+              <span style={{ fontWeight: 400, color: "var(--ink-mute)", marginLeft: 6 }}>
+                — なぜこの会社に入社したか？
+              </span>
+            </label>
+            <textarea
+              value={exp.join_reason ?? ""}
+              onChange={(e) => onUpdate(exp.id, "join_reason", e.target.value || null)}
+              placeholder="「当時、〇〇に課題を感じていて、この会社のプロダクトが...」"
+              style={{ ...textareaStyle, borderColor: exp.join_reason ? "var(--royal-100)" : undefined }}
+            />
+          </div>
+
+          {/* ② 仕事の内容・成果 */}
+          <div>
+            <label style={{ ...labelStyle, color: "var(--ink-soft)" }}>
+              ② 仕事の内容・成果
+              <span style={{ fontWeight: 400, color: "var(--ink-mute)", marginLeft: 6 }}>
+                — 何をして、どんな成果を出したか？
+              </span>
+            </label>
+            <textarea
+              value={exp.description ?? ""}
+              onChange={(e) => onUpdate(exp.id, "description", e.target.value || null)}
+              placeholder="「担当領域は〇〇で、チームの売上を...」"
+              style={{ ...textareaStyle, borderColor: exp.description ? "var(--line)" : undefined }}
+            />
+          </div>
+
+          {/* ③ 転機・成長のポイント */}
+          <div>
+            <label style={{ ...labelStyle, color: "#D97706" }}>
+              ③ 転機・成長のポイント
+              <span style={{ fontWeight: 400, color: "var(--ink-mute)", marginLeft: 6 }}>
+                — ここで変わったこと、気づいたこと
+              </span>
+            </label>
+            <textarea
+              value={exp.turning_point ?? ""}
+              onChange={(e) => onUpdate(exp.id, "turning_point", e.target.value || null)}
+              placeholder="「入社3年目に〇〇の案件を任され、初めてチームを...」"
+              style={{ ...textareaStyle, borderColor: exp.turning_point ? "#FDE68A" : undefined }}
+            />
+          </div>
+
+          {/* ④ 次に進んだ理由 */}
+          <div>
+            <label style={{ ...labelStyle, color: "var(--purple)" }}>
+              ④ 次に進んだ理由
+              <span style={{ fontWeight: 400, color: "var(--ink-mute)", marginLeft: 6 }}>
+                — なぜ次のステージへ？{exp.is_current ? "（現職のため通常は不要）" : ""}
+              </span>
+            </label>
+            <textarea
+              value={exp.exit_reason ?? ""}
+              onChange={(e) => onUpdate(exp.id, "exit_reason", e.target.value || null)}
+              placeholder="「〇年在籍してある程度やりきった感があり、次は...」"
+              style={{ ...textareaStyle, borderColor: exp.exit_reason ? "#DDD6FE" : undefined,
+                opacity: exp.is_current ? 0.55 : 1 }}
+            />
+          </div>
+
+        </div>
+      </div>
+
+      {/* ── 公開プレビュー ── */}
       <div style={{
         marginTop: 12, padding: "10px 14px", borderRadius: 7,
-        background: "var(--bg-tint)", border: "1px solid var(--line-soft)",
+        background: "#fff", border: "1px solid var(--line-soft)",
         fontSize: 12, color: "var(--ink-soft)",
         display: "flex", gap: 16, flexWrap: "wrap",
       }}>
@@ -556,7 +643,7 @@ function ExperienceRow({
           企業:{" "}
           <strong style={{ color: "var(--ink)" }}>
             {exp.visibility_company === "real"
-              ? (companyLabel)
+              ? companyLabel
               : exp.visibility_company === "masked"
               ? (exp.company_anonymized ?? "匿名ラベル未設定")
               : "非公開（非表示）"}
@@ -564,16 +651,14 @@ function ExperienceRow({
         </span>
         <span>
           年収:{" "}
-          <strong style={{ color: "var(--ink)" }}>
-            {exp.visibility_salary && exp.salary_man
-              ? `${exp.salary_man}万円`
-              : "非公開"}
+          <strong style={{ color: exp.visibility_salary && exp.salary_man ? "var(--success)" : "var(--ink)" }}>
+            {exp.visibility_salary && exp.salary_man ? `${exp.salary_man}万円` : "非公開"}
           </strong>
         </span>
         <span>
-          転職理由:{" "}
-          <strong style={{ color: "var(--ink)" }}>
-            {exp.visibility_reason ? "公開" : "非公開"}
+          インタビュー:{" "}
+          <strong style={{ color: exp.visibility_reason ? "var(--success)" : "var(--ink-mute)" }}>
+            {exp.visibility_reason ? `${[exp.join_reason, exp.description, exp.turning_point, exp.exit_reason].filter(Boolean).length}/4フィールド入力済み` : "非公開"}
           </strong>
         </span>
       </div>

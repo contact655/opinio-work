@@ -6,7 +6,6 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // ── Auth: admin のみ ──
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,6 +21,10 @@ export async function PATCH(
     visibilityCompany,
     visibilitySalary,
     visibilityReason,
+    description,
+    joinReason,
+    turningPoint,
+    exitReason,
   } = body;
 
   const admin = createAdminClient();
@@ -30,12 +33,16 @@ export async function PATCH(
     updated_at: new Date().toISOString(),
   };
 
-  if (salaryMan !== undefined)          update.salary_man            = salaryMan;
-  if (roleTitle !== undefined)          update.role_title            = roleTitle;
-  if (companyAnonymized !== undefined)  update.company_anonymized    = companyAnonymized;
-  if (visibilityCompany !== undefined)  update.visibility_company    = visibilityCompany;
-  if (visibilitySalary !== undefined)   update.visibility_salary     = visibilitySalary;
-  if (visibilityReason !== undefined)   update.visibility_reason     = visibilityReason;
+  if (salaryMan          !== undefined) update.salary_man         = salaryMan;
+  if (roleTitle          !== undefined) update.role_title         = roleTitle;
+  if (companyAnonymized  !== undefined) update.company_anonymized = companyAnonymized;
+  if (visibilityCompany  !== undefined) update.visibility_company = visibilityCompany;
+  if (visibilitySalary   !== undefined) update.visibility_salary  = visibilitySalary;
+  if (visibilityReason   !== undefined) update.visibility_reason  = visibilityReason;
+  if (description        !== undefined) update.description        = description;
+  if (joinReason         !== undefined) update.join_reason        = joinReason;
+  if (turningPoint       !== undefined) update.turning_point      = turningPoint;
+  if (exitReason         !== undefined) update.exit_reason        = exitReason;
 
   const { error } = await admin
     .from("ow_experiences")
