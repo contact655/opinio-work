@@ -12,6 +12,7 @@ import {
   UserCheck,
   Briefcase,
   CalendarCheck,
+  Receipt,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -41,6 +42,7 @@ const NAV_GROUPS = [
   {
     label: "オペレーション",
     items: [
+      { label: "請求管理",            href: "/admin/billing",          icon: <Receipt       size={16} strokeWidth={2} /> },
       { label: "面談管理",            href: "/admin/meetings",         icon: <CalendarCheck size={16} strokeWidth={2} /> },
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },
       { label: "学校追加リクエスト",  href: "/admin/school-requests",  icon: <School       size={16} strokeWidth={2} /> },
