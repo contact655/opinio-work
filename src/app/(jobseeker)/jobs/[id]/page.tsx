@@ -360,6 +360,15 @@ export default async function JobDetailPage({ params }: { params: { id: string }
     }
   }
 
+  // 年収レンジコンテキスト計算（レンジ幅 ≥200万のとき表示）
+  const salaryMin = job.salary_min ?? 0;
+  const salaryMax = job.salary_max ?? 0;
+  const showSalaryContext = salaryMin > 0 && salaryMax > 0 && salaryMax - salaryMin >= 200;
+  const salaryMidpoint = showSalaryContext ? Math.round((salaryMin + salaryMax) / 2) : 0;
+  const salaryMidPct = showSalaryContext
+    ? Math.round(((salaryMidpoint - salaryMin) / (salaryMax - salaryMin)) * 100)
+    : 50;
+
   return (
     <>
       <ReadingProgress />
@@ -482,6 +491,35 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     : job.salary_min ? `${job.salary_min}万円〜`
                     : `〜${job.salary_max}万円`}
                 </span>
+
+                {/* レンジコンテキスト：幅が広いとき目安と可視化バーを追加 */}
+                {showSalaryContext && (
+                  <div style={{ marginTop: 10, maxWidth: 320 }}>
+                    {/* ラベル付きレンジバー */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+                        {salaryMin}万
+                      </span>
+                      <div style={{ position: "relative", flex: 1, height: 4, background: "var(--line)", borderRadius: 2 }}>
+                        {/* 中央値ドット */}
+                        <div style={{
+                          position: "absolute", left: `${salaryMidPct}%`, top: "50%",
+                          width: 10, height: 10, borderRadius: "50%",
+                          background: "var(--success)", border: "2px solid #fff",
+                          transform: "translate(-50%, -50%)",
+                          boxShadow: "0 0 0 1.5px var(--success)",
+                        }} />
+                      </div>
+                      <span style={{ fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+                        {salaryMax}万
+                      </span>
+                    </div>
+                    {/* 目安テキスト */}
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 5, lineHeight: 1.5 }}>
+                      目安 ~{salaryMidpoint}万前後 ／ 職位・経験によって大きく変動します
+                    </div>
+                  </div>
+                )}
               </div>
               )}
 

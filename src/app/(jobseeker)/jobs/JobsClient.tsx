@@ -42,6 +42,34 @@ function formatSalary(min: number, max: number): string {
   return `${min}万円〜`;
 }
 
+// レンジ幅 ≥200万のとき、ミニレンジバー + 目安テキストを返す（年収の「盛り」感を緩和）
+function SalaryRangeContext({ min, max }: { min: number | null; max: number | null }) {
+  if (!min || !max || max - min < 200) return null;
+  const mid = Math.round((min + max) / 2);
+  const pct = Math.round(((mid - min) / (max - min)) * 100);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
+      {/* ミニレンジバー */}
+      <div style={{
+        position: "relative", width: 60, height: 3,
+        background: "var(--line)", borderRadius: 2, flexShrink: 0,
+      }}>
+        {/* 中央値ドット */}
+        <div style={{
+          position: "absolute", left: `${pct}%`, top: "50%",
+          width: 7, height: 7, borderRadius: "50%",
+          background: "var(--success)", border: "1.5px solid #fff",
+          transform: "translate(-50%, -50%)",
+          boxShadow: "0 0 0 1px var(--success)",
+        }} />
+      </div>
+      <span style={{ fontSize: 9, color: "var(--ink-mute)", whiteSpace: "nowrap", lineHeight: 1 }}>
+        目安 ~{mid}万前後
+      </span>
+    </div>
+  );
+}
+
 // ⑧ 相対時間表示
 // ③ フェーズバッジ
 const PHASE_BADGE_MAP: Record<string, { bg: string; color: string; label: string }> = {
@@ -519,19 +547,22 @@ function JobCard({
               </span>
             )}
           </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <div style={{
-              fontFamily: "Inter, sans-serif",
-              fontSize: 17,
-              fontWeight: (job.salary_min || job.salary_max) ? 800 : 400,
-              color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
-              lineHeight: 1.2,
-            }}>
-              {formatSalary(job.salary_min, job.salary_max)}
+          <div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+              <div style={{
+                fontFamily: "Inter, sans-serif",
+                fontSize: 17,
+                fontWeight: (job.salary_min || job.salary_max) ? 800 : 400,
+                color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
+                lineHeight: 1.2,
+              }}>
+                {formatSalary(job.salary_min, job.salary_max)}
+              </div>
+              {(job.salary_min || job.salary_max) && (
+                <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500 }}>年収</span>
+              )}
             </div>
-            {(job.salary_min || job.salary_max) && (
-              <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500 }}>年収</span>
-            )}
+            <SalaryRangeContext min={job.salary_min} max={job.salary_max} />
           </div>
         </div>
         <span
@@ -614,6 +645,7 @@ function JobPreviewPanel({
               {formatSalary(job.salary_min, job.salary_max)}
             </span>
             <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 4 }}>年収</span>
+            <SalaryRangeContext min={job.salary_min} max={job.salary_max} />
           </>
         ) : (
           <span style={{ fontSize: 14, color: "var(--ink-mute)", fontWeight: 500 }}>年収応相談</span>
@@ -1078,6 +1110,7 @@ function JobListCard({
                   {formatSalary(job.salary_min, job.salary_max)}
                 </span>
                 <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500, marginLeft: 4 }}>年収</span>
+                <SalaryRangeContext min={job.salary_min} max={job.salary_max} />
               </>
             ) : (
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontStyle: "italic", background: "#F8FAFC", padding: "2px 8px", borderRadius: 6, border: "1px solid var(--line)" }}>年収応相談</span>
