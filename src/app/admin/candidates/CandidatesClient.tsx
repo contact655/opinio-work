@@ -140,7 +140,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
                   aria-label="全選択"
                 />
               </th>
-              {["名前", "メール", "居住地", "年代", "公開設定", "面談可", "メンター", "最終ログイン", "登録日"].map((h) => (
+              {["名前", "メール", "居住地", "年代", "公開設定", "面談可", "最終ログイン", "登録日"].map((h) => (
                 <th
                   key={h}
                   scope="col"
@@ -158,7 +158,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={10} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
+                <td colSpan={9} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
                   <div style={{ marginBottom: 8, fontSize: 28 }}>👤</div>
                   ユーザーが見つかりません
                 </td>
@@ -226,14 +226,6 @@ export function CandidatesClient({ users }: { users: User[] }) {
                       <span style={{ color: "var(--ink-mute)", fontSize: 13 }}>
                         {u.can_casual_meeting ? "✓" : "—"}
                       </span>
-                    </td>
-                    {/* メンター */}
-                    <td style={{ padding: "11px 14px" }}>
-                      {u.is_mentor ? (
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100, background: "var(--purple-soft)", color: "var(--purple)", border: "1px solid #DDD6FE" }}>メンター</span>
-                      ) : (
-                        <span style={{ color: "var(--ink-mute)", fontSize: 13 }}>—</span>
-                      )}
                     </td>
                     {/* 最終ログイン */}
                     <td style={{ padding: "11px 14px", whiteSpace: "nowrap" }}>
