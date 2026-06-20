@@ -15,7 +15,7 @@ async function resolveOwUserId(supabase: ReturnType<typeof createClient>): Promi
   return data?.id ?? null;
 }
 
-// POST /api/mentor-reservations — メンター相談予約申込（要認証）
+// POST /api/mentor-reservations — 「話せる人」相談予約申込（要認証）
 export async function POST(req: Request) {
   const supabase = createClient();
   const owUserId = await resolveOwUserId(supabase);
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   }
 
   const {
-    mentor_id,
+    ambassador_id,
     contact_email,
     themes,
     current_situation,
@@ -40,33 +40,36 @@ export async function POST(req: Request) {
     preferred_platform,
   } = body;
 
-  if (!mentor_id || typeof mentor_id !== "string") {
-    return NextResponse.json({ error: "mentor_id required" }, { status: 400 });
+  if (!ambassador_id || typeof ambassador_id !== "string") {
+    return NextResponse.json({ error: "ambassador_id required" }, { status: 400 });
   }
   if (!contact_email || typeof contact_email !== "string" || !contact_email.includes("@")) {
     return NextResponse.json({ error: "Valid contact_email required" }, { status: 400 });
   }
 
-  // メンター情報を取得（存在確認 + user_id 解決）
-  const { data: mentor } = await supabase
-    .from("mentors")
-    .select("id, name, user_id, is_available")
-    .eq("id", mentor_id)
+  // 「話せる人」情報を取得（ambassador = ow_company_admins.is_ambassador=true）
+  const { data: ambassador } = await supabase
+    .from("ow_company_admins")
+    .select("id, user_id, is_ambassador, ow_users!user_id(name)")
+    .eq("id", ambassador_id)
     .maybeSingle();
 
-  if (!mentor) {
-    return NextResponse.json({ error: "Mentor not found" }, { status: 404 });
+  if (!ambassador) {
+    return NextResponse.json({ error: "Ambassador not found" }, { status: 404 });
   }
-  if (!mentor.is_available) {
-    return NextResponse.json({ error: "Mentor is not currently available" }, { status: 403 });
+  if (!ambassador.is_ambassador) {
+    return NextResponse.json({ error: "This person is not currently accepting requests" }, { status: 403 });
   }
+
+  const ambassadorUser = ambassador.ow_users as { name: string } | null;
+  const ambassadorName = ambassadorUser?.name ?? "担当者";
 
   const { data: reservation, error } = await supabase
     .from("ow_mentor_reservations")
     .insert({
       user_id: owUserId,
-      mentor_id,
-      mentor_user_id: mentor.user_id ?? null,
+      ambassador_id,
+      ambassador_user_id: ambassador.user_id ?? null,
       contact_email: contact_email as string,
       themes: Array.isArray(themes) ? themes : null,
       current_situation: (current_situation as string) || null,
@@ -90,11 +93,11 @@ export async function POST(req: Request) {
     const adminEmail = process.env.ADMIN_EMAIL ?? "contact@opinio.co.jp";
     await notify({
       to: adminEmail,
-      subject: `【OPINIO】メンター相談申込: ${mentor.name}`,
+      subject: `【OPINIO】話せる人への相談申込: ${ambassadorName}`,
       html: `
-        <p>新しいメンター相談申込が届きました。</p>
+        <p>新しい相談申込が届きました。</p>
         <ul>
-          <li>メンター: ${mentor.name}</li>
+          <li>相手: ${ambassadorName}</li>
           <li>申込者ID: ${owUserId}</li>
           <li>連絡先: ${contact_email}</li>
           <li>相談テーマ: ${Array.isArray(themes) ? themes.join(", ") : "—"}</li>
@@ -119,8 +122,11 @@ export async function GET() {
   const { data, error } = await supabase
     .from("ow_mentor_reservations")
     .select(`
-      id, mentor_id, status, themes, scheduled_at, created_at,
-      mentor:mentors!mentor_id(name, photo_url)
+      id, ambassador_id, status, themes, scheduled_at, created_at,
+      ambassador:ow_company_admins!ambassador_id(
+        user_id,
+        ow_users!user_id(name)
+      )
     `)
     .eq("user_id", owUserId)
     .order("created_at", { ascending: false });
