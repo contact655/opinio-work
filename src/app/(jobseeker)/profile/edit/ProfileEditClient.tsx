@@ -1141,14 +1141,34 @@ function EducationCard({
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ padding: "10px 0", position: "relative" }}
+      style={{
+        padding: "12px 14px",
+        background: "#fff",
+        borderRadius: 8,
+        border: "1px solid var(--line)",
+        position: "relative",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 12,
+      }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2)" }}>
-        {/* Content */}
+      {/* Graduation cap icon */}
+      <div style={{
+        width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+        background: "linear-gradient(135deg, #7C3AED 0%, #a855f7 100%)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+        </svg>
+      </div>
+
+      {/* Content + controls */}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* School name + "在学中" badge */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-            <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
               {edu.school}
             </span>
             {edu.is_current && (
@@ -1164,19 +1184,19 @@ function EducationCard({
           </div>
           {/* Faculty / Degree */}
           {(edu.faculty || edu.degree) && (
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 1 }}>
+            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 2 }}>
               {[edu.faculty, edu.degree].filter(Boolean).join(" / ")}
             </div>
           )}
           {/* Period */}
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
             {formatEduPeriod(edu.enrolled_at, edu.graduated_at, edu.is_current)}
           </div>
         </div>
         {/* Controls: ✎ and × on hover */}
         <div style={{
           display: "flex", alignItems: "center", gap: 1,
-          opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0,
+          opacity: hovered ? 1 : 0.45, transition: "opacity 0.15s", flexShrink: 0,
         }}>
           <EduIconButton onClick={onEdit} title="編集"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></EduIconButton>
           <EduIconButton onClick={onDelete} title="削除" danger><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></EduIconButton>
@@ -1215,15 +1235,14 @@ function EducationForm({
   const effectivelyDisabled = !canSave || !!justSaved;
 
   const ef = (): React.CSSProperties => ({
-    width: "100%", border: "1.5px solid var(--line)", borderRadius: 8,
-    padding: "8px 10px", fontSize: 13, color: "var(--ink)",
-    background: "#fff", outline: "none", fontFamily: "inherit",
-    boxSizing: "border-box", transition: "border-color 0.15s",
+    width: "100%", border: "1.5px solid transparent", borderRadius: 8,
+    padding: "13px 14px", fontSize: 14, color: "var(--ink)",
+    background: "#F2F4F7", outline: "none", fontFamily: "inherit",
+    boxSizing: "border-box", transition: "border-color 0.15s, background 0.15s",
   });
   const el = (): React.CSSProperties => ({
-    display: "block", fontSize: "var(--text-xs)", fontWeight: 700,
-    color: "var(--ink-mute)", letterSpacing: "0.08em",
-    textTransform: "uppercase", marginBottom: 4,
+    display: "block", fontSize: 14, fontWeight: 700,
+    color: "#111", marginBottom: 6,
   });
   const selectExtra: React.CSSProperties = {
     appearance: "none", paddingRight: 28,
@@ -1772,7 +1791,7 @@ function EducationEditor({
           )}
           {/* Divider */}
           {idx < educations.length - 1 && editingId !== edu.id && (
-            <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
+            <div style={{ height: 8 }} />
           )}
         </div>
       ))}
