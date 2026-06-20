@@ -42,6 +42,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       company_anonymized: hasCompanyAnon ? (body.company_anonymized as string) : null,
       role_category_id: roleId,
       role_title: (body.role_title as string | undefined) ?? null,
+      rank: (body.rank as string | undefined) ?? null,
       started_at: `${body.started_at}-01`,
       ended_at: body.ended_at ? `${body.ended_at}-01` : null,
       is_current: (body.is_current as boolean | undefined) ?? false,

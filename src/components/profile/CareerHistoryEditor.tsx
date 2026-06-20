@@ -24,6 +24,7 @@ export type Stint = {
   isCurrent: boolean;
   description?: string;
   joinReason?: string;
+  rank?: "none" | "leader" | "manager" | "general_manager" | "executive" | null;
   employmentType?: string;
   salaryMan?: number | null;
   visibilityCompany?: "real" | "masked" | "hidden";
@@ -177,6 +178,7 @@ type StintDraft = {
   isAnon: boolean;
   roleCategoryId: string;
   roleTitle: string;
+  rank: string;
   startedAt: string;
   endedAt: string;
   isCurrent: boolean;
@@ -190,12 +192,34 @@ type StintDraft = {
   visibilityReason: boolean;
 };
 
+// ── Select options ────────────────────────────────────────────────────────────
+
+const RANK_OPTIONS = [
+  { value: "", label: "選択してください" },
+  { value: "none", label: "役職なし" },
+  { value: "leader", label: "係長・リーダークラス" },
+  { value: "manager", label: "課長・マネージャークラス" },
+  { value: "general_manager", label: "部長・ゼネラルマネージャークラス" },
+  { value: "executive", label: "役員クラス" },
+];
+
+const EMPLOYMENT_TYPE_OPTIONS = [
+  { value: "", label: "選択してください" },
+  { value: "正社員", label: "正社員" },
+  { value: "契約社員", label: "契約社員" },
+  { value: "派遣社員", label: "派遣社員" },
+  { value: "業務委託", label: "業務委託" },
+  { value: "アルバイト・パート", label: "アルバイト・パート" },
+  { value: "その他", label: "その他" },
+];
+
 const EMPTY_DRAFT: StintDraft = {
   companyName: "",
   companyId: null,
   isAnon: false,
   roleCategoryId: "",
   roleTitle: "",
+  rank: "",
   startedAt: "",
   endedAt: "",
   isCurrent: false,
@@ -658,14 +682,29 @@ function StintForm({
         </select>
       </div>
 
+      {/* 役職グレード */}
+      <div>
+        <label style={labelStyle()}>役職</label>
+        <select
+          value={draft.rank}
+          onChange={(e) => set("rank", e.target.value)}
+          disabled={isSaving}
+          style={{ ...fieldStyle() }}
+        >
+          {RANK_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Role title (optional) */}
       <div>
-        <label style={labelStyle()}>役職タイトル（任意）</label>
+        <label style={labelStyle()}>社内タイトル（任意）</label>
         <input
           type="text"
           value={draft.roleTitle}
           onChange={(e) => set("roleTitle", e.target.value)}
-          placeholder="例: プロダクトマネージャー（Bakuraku事業）"
+          placeholder="例: アカウントエグゼクティブ、プロダクトマネージャー（Bakuraku事業）"
           disabled={isSaving}
           style={fieldStyle()}
         />
@@ -673,23 +712,16 @@ function StintForm({
 
       {/* 雇用形態 */}
       <div>
-        <label style={labelStyle()}>
-          <span>雇用形態</span>
-        </label>
+        <label style={labelStyle()}>雇用形態</label>
         <select
           value={draft.employmentType}
           onChange={(e) => set("employmentType", e.target.value)}
           disabled={isSaving}
           style={{ ...fieldStyle() }}
-          aria-label="雇用形態"
         >
-          <option value="">選択しない</option>
-          <option value="正社員">正社員</option>
-          <option value="業務委託">業務委託</option>
-          <option value="インターン">インターン</option>
-          <option value="役員">役員</option>
-          <option value="嘱託">嘱託</option>
-          <option value="アルバイト">アルバイト</option>
+          {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
         </select>
       </div>
 
@@ -1044,6 +1076,7 @@ export default function CareerHistoryEditor({
     isAnon: s.companyType === "anon",
     roleCategoryId: s.roleCategoryId,
     roleTitle: s.roleTitle ?? "",
+    rank: s.rank ?? "",
     startedAt: s.startedAt,
     endedAt: s.endedAt ?? "",
     isCurrent: s.isCurrent,
@@ -1065,6 +1098,7 @@ export default function CareerHistoryEditor({
     isAnon: group.companyType === "anon",
     roleCategoryId: "",
     roleTitle: "",
+    rank: "",
     startedAt: group.earliestStart,       // そのグループの開始年月をプリフィル
     endedAt: group.latestEnd ?? "",        // 現職グループは "" (isCurrent チェックで制御)
     isCurrent: false,
@@ -1103,6 +1137,7 @@ export default function CareerHistoryEditor({
         join_reason: editDraft.joinReason || undefined,
         employment_type: editDraft.employmentType || undefined,
         salary_man: editDraft.salaryMan ? parseInt(editDraft.salaryMan, 10) : null,
+        rank: editDraft.rank || null,
         visibility_company: editDraft.visibilityCompany,
         visibility_company_profile: editDraft.visibilityCompanyProfile,
         visibility_salary: editDraft.visibilitySalary,
@@ -1134,6 +1169,7 @@ export default function CareerHistoryEditor({
                 joinReason: editDraft.joinReason || undefined,
                 employmentType: editDraft.employmentType || undefined,
                 salaryMan: editDraft.salaryMan ? parseInt(editDraft.salaryMan, 10) : null,
+                rank: (editDraft.rank || null) as Stint["rank"],
                 visibilityCompany: editDraft.visibilityCompany,
                 visibilityCompanyProfile: editDraft.visibilityCompanyProfile,
                 visibilitySalary: editDraft.visibilitySalary,
@@ -1174,6 +1210,7 @@ export default function CareerHistoryEditor({
         employment_type: addDraft.employmentType || undefined,
         display_order: stints.length,
         salary_man: addDraft.salaryMan ? parseInt(addDraft.salaryMan, 10) : null,
+        rank: addDraft.rank || null,
         visibility_company: addDraft.visibilityCompany,
         visibility_company_profile: addDraft.visibilityCompanyProfile,
         visibility_salary: addDraft.visibilitySalary,
@@ -1203,6 +1240,7 @@ export default function CareerHistoryEditor({
         employmentType: addDraft.employmentType || undefined,
         salaryMan: addDraft.salaryMan ? parseInt(addDraft.salaryMan, 10) : null,
         visibilityCompany: addDraft.visibilityCompany,
+        rank: (addDraft.rank || null) as Stint["rank"],
         visibilityCompanyProfile: addDraft.visibilityCompanyProfile,
         visibilitySalary: addDraft.visibilitySalary,
         visibilityReason: addDraft.visibilityReason,
