@@ -1,11 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
+// 5分キャッシュ（公開データのみ返すためadminClientを使用）
+export const revalidate = 300;
 
 // GET /api/articles/preview — 最新3件の公開記事を返す（ホームページのプレビュー用）
 export async function GET() {
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("ow_articles")

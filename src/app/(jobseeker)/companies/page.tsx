@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { fetchDistinctLocations, fetchDistinctIndustries, searchCompanies } from "@/lib/search/companies";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSection";
@@ -118,7 +118,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const needsGrid = isGridView || isListView;
 
   // ── 並列フェッチ（不要なクエリはスキップ）──────────────────────────────────
-  const supabase = createClient();
+  const supabase = createPublicClient();
 
   const [locations, industries, companyNamesResult, allCompaniesResult] = await Promise.all([
     // フィルターバー用ロケーション（キャッシュ済み）

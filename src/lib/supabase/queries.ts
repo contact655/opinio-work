@@ -1413,7 +1413,7 @@ export async function getJobAlumniMap(
   jobs: JobAlumniInput[]
 ): Promise<Record<string, CompanyAlumniPreview[]>> {
   if (!jobs.length) return {};
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const companyIds = Array.from(new Set(jobs.map((j) => j.companyId).filter(Boolean)));
   if (!companyIds.length) return {};

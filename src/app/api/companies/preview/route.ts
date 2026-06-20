@@ -1,7 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
+// 5分キャッシュ（公開データのみ返すためadminClientを使用）
+export const revalidate = 300;
 
 /**
  * GET /api/companies/preview
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
  * memberCount: 登録済みメンバー数バッジ用
  */
 export async function GET() {
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("ow_companies")

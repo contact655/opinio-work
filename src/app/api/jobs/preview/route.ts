@@ -1,7 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
+// 5分キャッシュ（公開データのみ返すためadminClientを使用）
+export const revalidate = 300;
 
 const WORK_STYLE_LABELS: Record<string, string> = {
   full_remote: "フルリモート",
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "3", 10), 9);
 
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("ow_jobs")
     .select("id, title, job_category, salary_min, salary_max, work_style, employment_type, location, ow_companies!inner(id, name, logo_letter, logo_gradient, logo_url)")
