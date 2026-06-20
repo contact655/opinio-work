@@ -175,14 +175,14 @@ export default async function CareerTrajectoriesPage() {
         <style>{`
           .trajectory-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 20px;
           }
           @media (max-width: 900px) {
-            .trajectory-grid { grid-template-columns: repeat(2, 1fr); }
+            .trajectory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           }
           @media (max-width: 560px) {
-            .trajectory-grid { grid-template-columns: 1fr; }
+            .trajectory-grid { grid-template-columns: minmax(0, 1fr); }
           }
         `}</style>
 
