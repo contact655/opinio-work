@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { unstable_noStore as noStore } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { TrajectoryCardClient, type CardData } from "./TrajectoryCardClient";
+import { type CardData } from "./TrajectoryCardClient";
+import { TrajectoryPageClient } from "./TrajectoryPageClient";
 
 // ────────────────────────────────────────────────────────────────
 // サーバー側のみで使う型
@@ -151,64 +152,5 @@ async function getProfiles(): Promise<CardData[]> {
 export default async function CareerTrajectoriesPage() {
   const cards = await getProfiles();
 
-  return (
-    <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px 80px" }}>
-
-        {/* ページヘッダー */}
-        <div style={{ marginBottom: 36 }}>
-          <h1 style={{
-            fontSize: 28, fontWeight: 800, margin: "0 0 12px",
-            fontFamily: "Noto Serif JP, serif", color: "var(--ink)",
-          }}>
-            キャリア軌跡
-          </h1>
-          {cards.length > 0 && (
-            <div>
-              <span style={{
-                background: "var(--royal-50)", color: "var(--royal)",
-                borderRadius: 100, padding: "4px 14px",
-                fontSize: 12, fontWeight: 700,
-                border: "1px solid var(--royal-100)",
-              }}>
-                {cards.length}件公開中
-              </span>
-            </div>
-          )}
-        </div>
-
-        <style>{`
-          .trajectory-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 20px;
-          }
-          @media (max-width: 900px) {
-            .trajectory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          }
-          @media (max-width: 560px) {
-            .trajectory-grid { grid-template-columns: minmax(0, 1fr); }
-          }
-        `}</style>
-
-        {cards.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "80px 24px" }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>🗺️</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
-              公開中の軌跡はまだありません
-            </div>
-            <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>
-              メンターのキャリア軌跡が公開されると、ここに表示されます。
-            </div>
-          </div>
-        ) : (
-          <div className="trajectory-grid">
-            {cards.map((card) => (
-              <TrajectoryCardClient key={card.userId} card={card} />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return <TrajectoryPageClient cards={cards} />;
 }
