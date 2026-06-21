@@ -602,7 +602,7 @@ function SecTitle({
         style={{
           width: 34,
           height: 34,
-          borderRadius: 9,
+          borderRadius: "50%",
           background: iconBg[iconColor],
           color: iconFg[iconColor],
           display: "flex",
