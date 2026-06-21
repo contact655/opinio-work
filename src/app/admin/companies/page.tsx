@@ -41,6 +41,7 @@ type CompanyAdmin = { name: string; isActive: boolean };
 type Company = {
   id: string;
   name: string | null;
+  brand_name: string | null;
   industry: string | null;
   location: string | null;
   employee_count: string | number | null;
@@ -74,7 +75,7 @@ export default function AdminCompaniesPage() {
     const [{ data: companyRows }, { data: jobRows }, { data: adminRows }, { data: userRows }] = await Promise.all([
       supabase
         .from("ow_companies")
-        .select("id, name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order")
+        .select("id, name, brand_name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order")
         .order("sort_order", { ascending: true, nullsFirst: false })
         .order("updated_at", { ascending: false }),
       supabase
@@ -384,7 +385,12 @@ export default function AdminCompaniesPage() {
                           <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: getCompanyGradient(c.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff" }}>
                             {(c.name || "?")[0]}
                           </div>
-                          <span style={{ fontWeight: 600, color: "var(--royal)" }}>{c.name || "—"}</span>
+                          <div>
+                            <span style={{ fontWeight: 600, color: "var(--royal)" }}>{c.name || "—"}</span>
+                            {c.brand_name && (
+                              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>{c.brand_name}</div>
+                            )}
+                          </div>
                         </Link>
                       </td>
 
