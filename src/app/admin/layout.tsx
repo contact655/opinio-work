@@ -8,7 +8,6 @@ import {
   Pencil,
   Newspaper,
   School,
-  TrendingUp,
   UserCheck,
   Briefcase,
   CalendarCheck,
@@ -27,7 +26,6 @@ const NAV_GROUPS = [
     items: [
       { label: "ユーザー管理",        href: "/admin/candidates",       icon: <Users        size={16} strokeWidth={2} /> },
       { label: "BIZ担当者管理",       href: "/admin/biz-accounts",     icon: <UserCheck    size={16} strokeWidth={2} /> },
-      { label: "キャリア軌跡",        href: "/admin/career",           icon: <TrendingUp   size={16} strokeWidth={2} /> },
     ],
   },
   {
