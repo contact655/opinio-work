@@ -201,6 +201,7 @@ const CARD_STYLES = `
     border-radius: 16px;
     padding: 20px 20px 16px;
     height: 100%;
+    min-height: 280px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -343,10 +344,15 @@ export function TrajectoryCardClient({
   // ── ③⑦ ロゴストリップ（グリッド用：全件対応、リスト用：最大2件） ──────────
 
   const LogoStrip = ({ chipSize, listCap }: { chipSize: number; listCap?: number }) => {
-    // ⑦ リストモードは最大2ロゴに制限（現職含む最新N社を表示）
+    // リストモード：チップ表示時は現職（末尾1社）のみ表示してコンテナに収める
     if (listCap !== undefined) {
-      const visibleSteps = recentSteps.slice(-listCap); // 最新N社（現職を含む右側）
-      const hiddenCount = (olderCount) + (recentSteps.length - visibleSteps.length);
+      // まず仮計算してチップが出るかを確認
+      const tentativeVisible = recentSteps.slice(-listCap);
+      const tentativeHidden = olderCount + (recentSteps.length - tentativeVisible.length);
+      // チップが出る場合は現職のみ1社に絞る（chip+connector+1logoで収まる）
+      const effectiveCap = tentativeHidden > 0 ? 1 : listCap;
+      const visibleSteps = recentSteps.slice(-effectiveCap);
+      const hiddenCount = olderCount + (recentSteps.length - visibleSteps.length);
       return (
         <div style={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
           {hiddenCount > 0 && !expanded && (
@@ -387,7 +393,9 @@ export function TrajectoryCardClient({
       );
     }
 
-    // グリッドモード：従来通り全件
+    // グリッドモード：チップがある場合は直近2社まで（右端クリップ防止）
+    const stepsToShow = (olderCount > 0 && !expanded) ? recentSteps.slice(-2) : recentSteps;
+
     return (
       <div style={{ display: "flex", alignItems: "flex-start", gap: 2, overflow: "hidden" }}>
         {expanded && olderSteps.map((step, i) => {
@@ -434,13 +442,13 @@ export function TrajectoryCardClient({
           </div>
         )}
 
-        {recentSteps.map((step, i) => {
+        {stepsToShow.map((step, i) => {
           const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
           const name = getDisplayName(step, logo);
           return (
             <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
               <LogoChip logo={logo} name={name} isCurrent={step.is_current} companyId={step.company_id} size={chipSize} />
-              {i < recentSteps.length - 1 && <Connector small={chipSize <= 40} />}
+              {i < stepsToShow.length - 1 && <Connector small={chipSize <= 40} />}
             </div>
           );
         })}
@@ -475,8 +483,8 @@ export function TrajectoryCardClient({
         <style>{CARD_STYLES}</style>
         <div className="trajectory-list-card" onClick={handleCardClick}>
 
-          {/* ⑦ 左：ロゴストリップ（最大2社・固定幅でクリップ） */}
-          <div style={{ flexShrink: 0, width: 130, overflow: "hidden" }}>
+          {/* 左：ロゴストリップ（固定幅） */}
+          <div style={{ flexShrink: 0, width: 140, overflow: "hidden" }}>
             <LogoStrip chipSize={40} listCap={2} />
           </div>
 
@@ -532,19 +540,18 @@ export function TrajectoryCardClient({
 
       <div className="trajectory-card-interactive" onClick={handleCardClick}>
 
-        {/* ── ⑧ ヘッダー：役職左 + verified バッジ右上に固定 ── */}
+        {/* ヘッダー：役職（1行に収める） */}
         <div style={{ marginBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
-            {roleTitle && (
-              <div style={{
-                fontSize: 15, fontWeight: 800, color: "var(--ink)",
-                lineHeight: 1.4, flex: 1, minWidth: 0,
-              }}>
-                {roleTitle}
-              </div>
-            )}
-            <VerifiedBadge />
-          </div>
+          {roleTitle && (
+            <div style={{
+              fontSize: 15, fontWeight: 800, color: "var(--ink)",
+              lineHeight: 1.4, marginBottom: 6,
+              overflow: "hidden", textOverflow: "ellipsis",
+              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+            }}>
+              {roleTitle}
+            </div>
+          )}
 
           {/* 年齢 + 性別 */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -563,7 +570,11 @@ export function TrajectoryCardClient({
             )}
           </div>
 
-          <MetaBadges />
+          {/* メタバッジ行にVerifiedBadgeを統合（タイトル行での折り返し防止） */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <MetaBadges />
+            <VerifiedBadge />
+          </div>
         </div>
 
         {/* 区切り線 */}
