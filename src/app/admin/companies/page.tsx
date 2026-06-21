@@ -232,6 +232,7 @@ export default function AdminCompaniesPage() {
       const q = searchQuery.toLowerCase();
       return (
         (c.name ?? "").toLowerCase().includes(q) ||
+        (c.brand_name ?? "").toLowerCase().includes(q) ||
         (c.industry ?? "").toLowerCase().includes(q) ||
         (c.location ?? "").toLowerCase().includes(q)
       );
