@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 
 export type AmbassadorCard = {
@@ -336,15 +336,44 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
   );
 }
 
+// ── ロールカテゴリ定義 ───────────────────────────────────────────────
+const ROLE_CATEGORIES = [
+  { key: "all",      label: "すべて",       pattern: null },
+  { key: "hr",       label: "人事・採用",   pattern: /人事|採用|hr|recruit/i },
+  { key: "sales",    label: "営業・セールス", pattern: /営業|sales|セールス/i },
+  { key: "mktcs",   label: "マーケ・CS",   pattern: /マーケ|market|cs|カスタマー|customer/i },
+  { key: "eng",      label: "エンジニア",   pattern: /エンジニア|engineer|開発|dev|tech/i },
+] as const;
+
+type RoleCategoryKey = typeof ROLE_CATEGORIES[number]["key"];
+
+function matchesRoleCategory(card: AmbassadorCard, key: RoleCategoryKey): boolean {
+  if (key === "all") return true;
+  const text = `${card.roleTitle ?? ""} ${card.department ?? ""}`;
+  const cat = ROLE_CATEGORIES.find((c) => c.key === key);
+  return cat?.pattern ? cat.pattern.test(text) : true;
+}
+
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors, companies }: Props) {
+export function PeopleListClient({ ambassadors, companies: _companies }: Props) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [roleCategory, setRoleCategory] = useState<RoleCategoryKey>("all");
+  const [keyword, setKeyword] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
-    if (!selectedCompanyId) return ambassadors;
-    return ambassadors.filter((a) => a.companyId === selectedCompanyId);
-  }, [ambassadors, selectedCompanyId]);
+    const q = keyword.trim().toLowerCase();
+    return ambassadors.filter((a) => {
+      if (!matchesRoleCategory(a, roleCategory)) return false;
+      if (!q) return true;
+      return (
+        a.name.toLowerCase().includes(q) ||
+        a.companyName.toLowerCase().includes(q) ||
+        (a.roleTitle ?? "").toLowerCase().includes(q) ||
+        (a.department ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [ambassadors, roleCategory, keyword]);
 
   if (ambassadors.length === 0) {
     return (
@@ -362,148 +391,180 @@ export function PeopleListClient({ ambassadors, companies }: Props) {
 
   return (
     <div>
-      {/* ── ページヘッダー ── */}
-      <div style={{
-        background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
-        borderRadius: 16,
-        padding: "36px 40px",
-        marginBottom: 32,
-        color: "#fff",
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.55)", marginBottom: 8, textTransform: "uppercase" }}>
-          People
-        </div>
-        <h1 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 10px", lineHeight: 1.3, fontFamily: "'Noto Serif JP', serif" }}>
-          企業の人に、直接話を聞こう。
+      {/* ── ページタイトル ── */}
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px", fontFamily: "'Noto Serif JP', serif" }}>
+          話せる人
         </h1>
-        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.72)", lineHeight: 1.8, margin: "0 0 20px", maxWidth: 480 }}>
-          各企業の採用担当や現役社員が「話せる人」として登録しています。<br />
-          転職前提なしで、仕事のリアルを30分カジュアルに聞けます。
-        </p>
-        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <span style={{ fontSize: 24, fontWeight: 800, fontFamily: "Inter, sans-serif", color: "#fff" }}>
-              {ambassadors.length}
-            </span>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.60)" }}>名が話せます</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <span style={{ fontSize: 24, fontWeight: 800, fontFamily: "Inter, sans-serif", color: "#fff" }}>
-              {companies.length}
-            </span>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.60)" }}>社が参加中</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6,
-            background: "rgba(245,158,11,0.18)", border: "1px solid rgba(245,158,11,0.35)",
-            borderRadius: 100, padding: "4px 12px",
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.7 }}>
+          各企業の採用担当・現役社員に直接話を聞けます。転職前提なし・完全無料。
+          <span style={{
+            marginLeft: 10, fontSize: 11, fontWeight: 700,
+            padding: "2px 8px", borderRadius: 100,
+            background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA",
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B", flexShrink: 0 }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#FCD34D" }}>完全無料・転職前提なし</span>
-          </div>
-        </div>
+            {ambassadors.length}名が話せます
+          </span>
+        </p>
       </div>
 
-      {/* ── コントロールバー ── */}
+      {/* ── 検索 + フィルター ── */}
       <div style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 14,
+        padding: "16px 20px",
+        marginBottom: 16,
         display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
+        flexDirection: "column",
         gap: 12,
-        marginBottom: 20,
-        flexWrap: "wrap",
       }}>
-        {/* 企業フィルター */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
-            企業
-          </span>
-          <button
-            type="button"
-            onClick={() => setSelectedCompanyId(null)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 100,
-              border: `1.5px solid ${!selectedCompanyId ? "var(--royal)" : "var(--line)"}`,
-              background: !selectedCompanyId ? "var(--royal-50)" : "#fff",
-              color: !selectedCompanyId ? "var(--royal)" : "var(--ink-mute)",
-              fontSize: 12, fontWeight: 600,
-              cursor: "pointer",
-            }}
+        {/* フリーワード検索 */}
+        <div style={{ position: "relative" }}>
+          <svg
+            style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+            width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round"
           >
-            すべて ({ambassadors.length})
-          </button>
-          {companies.map((c) => {
-            const count = ambassadors.filter((a) => a.companyId === c.id).length;
-            const isActive = selectedCompanyId === c.id;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setSelectedCompanyId(isActive ? null : c.id)}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 100,
-                  border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
-                  background: isActive ? "var(--royal-50)" : "#fff",
-                  color: isActive ? "var(--royal)" : "var(--ink-mute)",
-                  fontSize: 12, fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {c.name} ({count})
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ビュー切り替え */}
-        <div style={{
-          display: "flex",
-          gap: 2,
-          background: "var(--bg-tint)",
-          border: "1.5px solid var(--line)",
-          borderRadius: 10,
-          padding: 3,
-          flexShrink: 0,
-        }}>
-          {([
-            { mode: "list" as const, label: "リスト", icon: (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-              </svg>
-            )},
-            { mode: "grid" as const, label: "グリッド", icon: (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-              </svg>
-            )},
-          ]).map(({ mode, label, icon }) => (
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            ref={inputRef}
+            type="search"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            placeholder="名前・会社名・役職で検索..."
+            style={{
+              width: "100%",
+              padding: "9px 16px 9px 36px",
+              border: "1.5px solid var(--line)",
+              borderRadius: 9,
+              fontSize: 13,
+              color: "var(--ink)",
+              background: "var(--bg-tint)",
+              outline: "none",
+              boxSizing: "border-box",
+              fontFamily: "inherit",
+              transition: "border-color 0.15s",
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--royal)"; e.currentTarget.style.background = "#fff"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.background = "var(--bg-tint)"; }}
+          />
+          {keyword && (
             <button
-              key={mode}
               type="button"
-              onClick={() => setViewMode(mode)}
-              title={label}
+              onClick={() => { setKeyword(""); inputRef.current?.focus(); }}
               style={{
-                padding: "6px 12px",
-                borderRadius: 7,
-                border: "none",
-                background: viewMode === mode ? "#fff" : "transparent",
-                color: viewMode === mode ? "var(--royal)" : "var(--ink-mute)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                fontSize: 11, fontWeight: 600,
-                boxShadow: viewMode === mode ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
-                transition: "all 0.15s",
+                position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                background: "none", border: "none", cursor: "pointer",
+                color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2,
               }}
             >
-              {icon}
-              {label}
+              ×
             </button>
-          ))}
+          )}
         </div>
+
+        {/* ロールカテゴリ + ビュー切り替え */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {ROLE_CATEGORIES.map((cat) => {
+              const count = cat.key === "all"
+                ? ambassadors.length
+                : ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length;
+              const isActive = roleCategory === cat.key;
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setRoleCategory(cat.key)}
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: 100,
+                    border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
+                    background: isActive ? "var(--royal)" : "#fff",
+                    color: isActive ? "#fff" : "var(--ink-soft)",
+                    fontSize: 12, fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {cat.label}
+                  <span style={{
+                    marginLeft: 5,
+                    fontSize: 10,
+                    fontFamily: "Inter, sans-serif",
+                    opacity: isActive ? 0.8 : 0.6,
+                  }}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ビュー切り替え */}
+          <div style={{
+            display: "flex", gap: 2,
+            background: "var(--bg-tint)", border: "1.5px solid var(--line)",
+            borderRadius: 9, padding: 3, flexShrink: 0,
+          }}>
+            {([
+              { mode: "list" as const, label: "リスト", icon: (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+              )},
+              { mode: "grid" as const, label: "グリッド", icon: (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+              )},
+            ]).map(({ mode, label, icon }) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setViewMode(mode)}
+                title={label}
+                style={{
+                  padding: "5px 10px",
+                  borderRadius: 7, border: "none",
+                  background: viewMode === mode ? "#fff" : "transparent",
+                  color: viewMode === mode ? "var(--royal)" : "var(--ink-mute)",
+                  cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 4,
+                  fontSize: 11, fontWeight: 600,
+                  boxShadow: viewMode === mode ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
+                  transition: "all 0.15s",
+                }}
+              >
+                {icon}{label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* アクティブフィルター表示 */}
+        {(keyword || roleCategory !== "all") && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+              {filtered.length}名が見つかりました
+            </span>
+            <button
+              type="button"
+              onClick={() => { setKeyword(""); setRoleCategory("all"); }}
+              style={{
+                fontSize: 11, fontWeight: 600,
+                padding: "2px 8px", borderRadius: 100,
+                background: "var(--bg-tint)", border: "1px solid var(--line)",
+                color: "var(--ink-mute)", cursor: "pointer",
+              }}
+            >
+              フィルターをリセット
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── リストビュー ── */}
