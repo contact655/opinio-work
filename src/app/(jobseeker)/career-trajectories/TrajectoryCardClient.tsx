@@ -297,6 +297,12 @@ export function TrajectoryCardClient({
     setExpanded(true);
   };
 
+  const handleCollapse = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpanded(false);
+  };
+
   const handleCardClick = () => router.push(`/career-trajectories/${card.userId}`);
 
   // ── メタバッジ行（verified バッジ除外） ─────────────────────────────────────
@@ -332,6 +338,30 @@ export function TrajectoryCardClient({
 
     return (
       <div style={{ display: "flex", alignItems: "flex-start", gap: 2, overflow: "hidden" }}>
+        {/* 展開時：折りたたみボタン */}
+        {expanded && olderCount > 0 && (
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <button
+              className="older-chip-btn"
+              onClick={handleCollapse}
+              title="折りたたむ"
+            >
+              <div className="older-chip" style={{ width: GRID_CHIP_SIZE, height: GRID_CHIP_SIZE }}>
+                <svg width={GRID_CHIP_SIZE * 0.36} height={GRID_CHIP_SIZE * 0.36} viewBox="0 0 24 24" fill="none"
+                  stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+              <div className="older-chip-label" style={{
+                fontSize: 10, color: "var(--ink-mute)", fontWeight: 700,
+                fontFamily: "Inter, sans-serif", textAlign: "center", lineHeight: 1.3,
+              }}>
+                まとめる
+              </div>
+            </button>
+            <Connector small />
+          </div>
+        )}
         {expanded && olderSteps.map((step, i) => {
           const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
           const name = getDisplayName(step, logo);
