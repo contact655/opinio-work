@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CareerSalarySparkline } from "@/components/ui/CareerSalarySparkline";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,14 +60,33 @@ function getDisplayName(step: PublicStep, logo: CompanyLogo | null): string {
   return step.company_anonymized ?? "非公開";
 }
 
-function getSalaryDiff(curve: number[]): { text: string; positive: boolean } | null {
+function getSalaryDiff(curve: number[]): { text: string; value: number; positive: boolean } | null {
   if (curve.length < 2) return null;
   const diff = curve[curve.length - 1] - curve[0];
   if (diff === 0) return null;
   return {
     text: `${diff > 0 ? "+" : ""}${diff}万円`,
+    value: diff,
     positive: diff > 0,
   };
+}
+
+// ② パーソナライズされたCTAテキスト生成
+function getCTAText(
+  salaryDiff: { text: string; positive: boolean } | null,
+  currentCompanyName: string | null,
+  headline: string | null,
+): string {
+  if (salaryDiff?.positive) {
+    return `${salaryDiff.text}の年収変化の内訳を見る →`;
+  }
+  if (currentCompanyName) {
+    return `${currentCompanyName}に転職した理由 →`;
+  }
+  if (headline) {
+    return `${headline}の軌跡を見る →`;
+  }
+  return "転職理由・年収変化を見る →";
 }
 
 // ── LogoChip ──────────────────────────────────────────────────────────────────
@@ -132,22 +150,12 @@ function LogoChip({
         boxShadow: isCurrent ? "0 0 0 2px var(--royal)" : "none",
         borderRadius: 10,
         padding: 2,
-        background: isCurrent ? "var(--royal-50)" : "transparent",
+        background: "transparent",
         transition: isClickable ? "transform 0.15s, box-shadow 0.15s" : undefined,
       }}
         className={isClickable ? "logo-chip-hoverable" : undefined}
       >
         {inner}
-        {isCurrent && (
-          <div style={{
-            position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)",
-            background: "var(--royal)", color: "#fff",
-            fontSize: 8, fontWeight: 800, fontFamily: "Inter, sans-serif",
-            padding: "1px 5px", borderRadius: 100, whiteSpace: "nowrap",
-          }}>
-            現職
-          </div>
-        )}
       </div>
       <div style={{
         fontSize: 10, color: isCurrent ? "var(--ink)" : "var(--ink-soft)",
@@ -191,7 +199,7 @@ const CARD_STYLES = `
     background: #fff;
     border: 1px solid var(--line);
     border-radius: 16px;
-    padding: 22px 22px 16px;
+    padding: 20px 20px 16px;
     height: 100%;
     box-sizing: border-box;
     display: flex;
@@ -211,7 +219,7 @@ const CARD_STYLES = `
     padding: 16px 20px;
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     cursor: pointer;
     transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
   }
@@ -272,6 +280,16 @@ export function TrajectoryCardClient({
 
   const salaryDiff = getSalaryDiff(card.salaryCurve);
 
+  // ② 現職会社名の取得（CTAテキスト用）
+  const currentCompanyName = (() => {
+    if (!currentStep) return null;
+    const logo = currentStep.company_id ? (card.logoMap[currentStep.company_id] ?? null) : null;
+    if (currentStep.visibility_company !== "real") return null;
+    return getDisplayName(currentStep, logo);
+  })();
+
+  const ctaText = getCTAText(salaryDiff, currentCompanyName, card.headline);
+
   const handleChipClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -280,7 +298,7 @@ export function TrajectoryCardClient({
 
   const handleCardClick = () => router.push(`/career-trajectories/${card.userId}`);
 
-  // ── メタバッジ行（共通） ──────────────────────────────────────────────────
+  // ── メタバッジ行（verified バッジ除外） ─────────────────────────────────────
 
   const MetaBadges = () => (
     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -302,105 +320,146 @@ export function TrajectoryCardClient({
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
         {uniqueSteps.length}社経験
       </span>
-      {card.verified && (
-        <span
-          title="OPINIO編集部が実際に面談し、職歴・年収の内容を確認しています"
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 3,
-            fontSize: 10, fontWeight: 700, color: "var(--royal)",
-            background: "var(--royal-50)", borderRadius: 6,
-            padding: "3px 7px", border: "1px solid var(--royal-100)",
-            cursor: "help",
-          }}
-        >
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          OPINIO編集部 取材済み
-        </span>
-      )}
     </div>
   );
 
-  // ── ロゴストリップ（共通） ────────────────────────────────────────────────
+  // ⑧ Verified バッジ（独立コンポーネント・右上固定配置用）
+  const VerifiedBadge = () => card.verified ? (
+    <span
+      title="OPINIO編集部が実際に面談し、職歴・年収の内容を確認しています"
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 3,
+        fontSize: 10, fontWeight: 700, color: "var(--royal)",
+        background: "var(--royal-50)", borderRadius: 6,
+        padding: "3px 7px", border: "1px solid var(--royal-100)",
+        cursor: "help", whiteSpace: "nowrap", flexShrink: 0,
+      }}
+    >
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      OPINIO編集部 取材済み
+    </span>
+  ) : null;
 
-  const LogoStrip = ({ chipSize }: { chipSize: number }) => (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 2, overflow: "hidden" }}>
-      {/* 展開後の古い職歴 */}
-      {expanded && olderSteps.map((step, i) => {
-        const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
-        const name = getDisplayName(step, logo);
-        return (
-          <div
-            key={step.id}
-            style={{
-              display: "flex", alignItems: "center",
-              animation: `slideInFromLeft 0.32s ease ${i * 0.07}s both`,
-            }}
-          >
-            <LogoChip logo={logo} name={name} isCurrent={false} companyId={step.company_id} size={chipSize} />
-            <div style={{ animation: `fadeInConnector 0.3s ease ${i * 0.07 + 0.15}s both`, opacity: 0 }}>
+  // ── ③⑦ ロゴストリップ（グリッド用：全件対応、リスト用：最大2件） ──────────
+
+  const LogoStrip = ({ chipSize, listCap }: { chipSize: number; listCap?: number }) => {
+    // ⑦ リストモードは最大2ロゴに制限（現職含む最新N社を表示）
+    if (listCap !== undefined) {
+      const visibleSteps = recentSteps.slice(-listCap); // 最新N社（現職を含む右側）
+      const hiddenCount = (olderCount) + (recentSteps.length - visibleSteps.length);
+      return (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
+          {hiddenCount > 0 && !expanded && (
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <button
+                className="older-chip-btn"
+                onClick={handleChipClick}
+                title={`さらに${hiddenCount}社の経歴あり`}
+              >
+                <div className="older-chip" style={{ width: chipSize, height: chipSize }}>
+                  <svg width={chipSize * 0.36} height={chipSize * 0.36} viewBox="0 0 24 24" fill="none"
+                    stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </div>
+                {/* ⑩ ラベル変更 */}
+                <div className="older-chip-label" style={{
+                  fontSize: 10, color: "var(--ink-mute)", fontWeight: 700,
+                  fontFamily: "Inter, sans-serif", textAlign: "center", lineHeight: 1.3,
+                }}>
+                  さらに<br />{hiddenCount}社
+                </div>
+              </button>
               <Connector small={chipSize <= 40} />
             </div>
-          </div>
-        );
-      })}
-
-      {/* 折りたたみ時：前職チップ */}
-      {!expanded && olderCount > 0 && (
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <button
-            className="older-chip-btn"
-            onClick={handleChipClick}
-            title={`前職含む${olderCount}社をクリックで表示`}
-          >
-            <div className="older-chip" style={{ width: chipSize, height: chipSize }}>
-              <svg width={chipSize * 0.36} height={chipSize * 0.36} viewBox="0 0 24 24" fill="none"
-                stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </div>
-            <div className="older-chip-label" style={{
-              fontSize: 10, color: "var(--ink-mute)", fontWeight: 700,
-              fontFamily: "Inter, sans-serif", textAlign: "center", lineHeight: 1.3,
-            }}>
-              前職<br />+{olderCount}社
-            </div>
-          </button>
-          <Connector small={chipSize <= 40} />
+          )}
+          {visibleSteps.map((step, i) => {
+            const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
+            const name = getDisplayName(step, logo);
+            return (
+              <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
+                <LogoChip logo={logo} name={name} isCurrent={step.is_current} companyId={step.company_id} size={chipSize} />
+                {i < visibleSteps.length - 1 && <Connector small={chipSize <= 40} />}
+              </div>
+            );
+          })}
         </div>
-      )}
+      );
+    }
 
-      {/* 直近3社 */}
-      {recentSteps.map((step, i) => {
-        const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
-        const name = getDisplayName(step, logo);
-        return (
-          <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
-            <LogoChip logo={logo} name={name} isCurrent={step.is_current} companyId={step.company_id} size={chipSize} />
-            {i < recentSteps.length - 1 && <Connector small={chipSize <= 40} />}
+    // グリッドモード：従来通り全件
+    return (
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 2, overflow: "hidden" }}>
+        {expanded && olderSteps.map((step, i) => {
+          const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
+          const name = getDisplayName(step, logo);
+          return (
+            <div
+              key={step.id}
+              style={{
+                display: "flex", alignItems: "center",
+                animation: `slideInFromLeft 0.32s ease ${i * 0.07}s both`,
+              }}
+            >
+              <LogoChip logo={logo} name={name} isCurrent={false} companyId={step.company_id} size={chipSize} />
+              <div style={{ animation: `fadeInConnector 0.3s ease ${i * 0.07 + 0.15}s both`, opacity: 0 }}>
+                <Connector small={chipSize <= 40} />
+              </div>
+            </div>
+          );
+        })}
+
+        {/* ⑩ 折りたたみ時：前職チップ — ラベル変更 */}
+        {!expanded && olderCount > 0 && (
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <button
+              className="older-chip-btn"
+              onClick={handleChipClick}
+              title={`さらに${olderCount}社の経歴あり`}
+            >
+              <div className="older-chip" style={{ width: chipSize, height: chipSize }}>
+                <svg width={chipSize * 0.36} height={chipSize * 0.36} viewBox="0 0 24 24" fill="none"
+                  stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </div>
+              <div className="older-chip-label" style={{
+                fontSize: 10, color: "var(--ink-mute)", fontWeight: 700,
+                fontFamily: "Inter, sans-serif", textAlign: "center", lineHeight: 1.3,
+              }}>
+                さらに<br />{olderCount}社
+              </div>
+            </button>
+            <Connector small={chipSize <= 40} />
           </div>
-        );
-      })}
-    </div>
-  );
+        )}
 
-  // ── 年収エリア（共通） ────────────────────────────────────────────────────
+        {recentSteps.map((step, i) => {
+          const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
+          const name = getDisplayName(step, logo);
+          return (
+            <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
+              <LogoChip logo={logo} name={name} isCurrent={step.is_current} companyId={step.company_id} size={chipSize} />
+              {i < recentSteps.length - 1 && <Connector small={chipSize <= 40} />}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
+  // ⑥ 年収エリア：スパークライン廃止、数値を大型化
   const SalaryArea = ({ compact }: { compact?: boolean }) => (
-    <div style={{
-      display: "flex", alignItems: "center", gap: compact ? 8 : 10,
-      flexShrink: 0,
-    }}>
-      {card.salaryCurve.length >= 2 && (
-        <CareerSalarySparkline curve={card.salaryCurve} width={compact ? 80 : 110} height={28} />
-      )}
+    <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
       {salaryDiff && (
         <span style={{
-          fontSize: compact ? 12 : 13, fontWeight: 800,
+          fontSize: compact ? 15 : 18, fontWeight: 900,
           color: salaryDiff.positive ? "var(--success)" : "var(--error)",
           fontFamily: "Inter, sans-serif",
           background: salaryDiff.positive ? "var(--success-soft)" : "var(--error-soft)",
-          borderRadius: 6, padding: "3px 8px",
+          borderRadius: 8, padding: compact ? "4px 10px" : "6px 12px",
           whiteSpace: "nowrap",
+          letterSpacing: "-0.02em",
         }}>
           {salaryDiff.text}
         </span>
@@ -416,19 +475,24 @@ export function TrajectoryCardClient({
         <style>{CARD_STYLES}</style>
         <div className="trajectory-list-card" onClick={handleCardClick}>
 
-          {/* 左：ロゴストリップ（コンパクト） */}
-          <div style={{ flexShrink: 0, minWidth: 0 }}>
-            <LogoStrip chipSize={40} />
+          {/* ⑦ 左：ロゴストリップ（最大2社・固定幅でクリップ） */}
+          <div style={{ flexShrink: 0, width: 130, overflow: "hidden" }}>
+            <LogoStrip chipSize={40} listCap={2} />
           </div>
 
           {/* 中：役職 + メタ */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: 15, fontWeight: 800, color: "var(--ink)",
-              lineHeight: 1.3, marginBottom: 6,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
-              {roleTitle ?? "—"}
+            {/* ⑧ verified バッジをタイトル行の右に固定 */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+              <div style={{
+                fontSize: 15, fontWeight: 800, color: "var(--ink)",
+                lineHeight: 1.3,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                flex: 1, minWidth: 0,
+              }}>
+                {roleTitle ?? "—"}
+              </div>
+              <VerifiedBadge />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               {age && (
@@ -445,14 +509,14 @@ export function TrajectoryCardClient({
             </div>
           </div>
 
-          {/* 右：年収diff + CTA */}
+          {/* 右：⑥ 大型年収diff + ② パーソナライズCTA */}
           <div style={{
             flexShrink: 0, display: "flex", flexDirection: "column",
-            alignItems: "flex-end", gap: 8,
+            alignItems: "flex-end", gap: 6,
           }}>
             <SalaryArea compact />
-            <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, whiteSpace: "nowrap" }}>
-              転職理由・年収変化を見る →
+            <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, whiteSpace: "nowrap", maxWidth: 180, textAlign: "right", lineHeight: 1.4 }}>
+              {ctaText}
             </span>
           </div>
         </div>
@@ -468,20 +532,21 @@ export function TrajectoryCardClient({
 
       <div className="trajectory-card-interactive" onClick={handleCardClick}>
 
-        {/* ── ヘッダー ── */}
+        {/* ── ⑧ ヘッダー：役職左 + verified バッジ右上に固定 ── */}
         <div style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+            {roleTitle && (
+              <div style={{
+                fontSize: 15, fontWeight: 800, color: "var(--ink)",
+                lineHeight: 1.4, flex: 1, minWidth: 0,
+              }}>
+                {roleTitle}
+              </div>
+            )}
+            <VerifiedBadge />
+          </div>
 
-          {/* 役職（主役・大きく） */}
-          {roleTitle && (
-            <div style={{
-              fontSize: 15, fontWeight: 800, color: "var(--ink)",
-              marginBottom: 8, lineHeight: 1.4,
-            }}>
-              {roleTitle}
-            </div>
-          )}
-
-          {/* 年齢 + 性別（サブ情報） */}
+          {/* 年齢 + 性別 */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             {age && (
               <span style={{
@@ -492,27 +557,24 @@ export function TrajectoryCardClient({
               </span>
             )}
             {card.gender && (
-              <span style={{
-                fontSize: 11, color: "var(--ink-mute)", fontWeight: 500,
-              }}>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
                 {card.gender}
               </span>
             )}
           </div>
 
-          {/* メタバッジ */}
           <MetaBadges />
         </div>
 
         {/* 区切り線 */}
         <div style={{ borderTop: "1px solid var(--line-soft)", marginBottom: 16 }} />
 
-        {/* ── ロゴストリップ ── */}
+        {/* ── ③ ロゴストリップ（グリッドモード：overflow制御済み） ── */}
         <div style={{ flex: 1, paddingBottom: 4 }}>
           <LogoStrip chipSize={56} />
         </div>
 
-        {/* ── 年収カーブ + CTA ── */}
+        {/* ── ⑥② 年収大型表示 + パーソナライズCTA ── */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           borderTop: "1px solid var(--line-soft)", paddingTop: 12, marginTop: 8,
@@ -520,10 +582,11 @@ export function TrajectoryCardClient({
         }}>
           <SalaryArea />
           <span style={{
-            fontSize: 12, color: "var(--royal)", fontWeight: 700,
-            whiteSpace: "nowrap", flexShrink: 0,
+            fontSize: 11, color: "var(--royal)", fontWeight: 700,
+            textAlign: "right", flexShrink: 1, lineHeight: 1.5,
+            maxWidth: 160,
           }}>
-            転職理由・年収変化を見る →
+            {ctaText}
           </span>
         </div>
       </div>

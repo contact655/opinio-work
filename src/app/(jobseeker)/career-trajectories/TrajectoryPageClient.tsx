@@ -7,9 +7,9 @@ import { TrajectoryCardClient, type CardData } from "./TrajectoryCardClient";
 
 const ROLE_FILTERS = [
   { label: "営業・AE", keywords: ["Account Executive", "営業", "Sales", "アカウント"] },
-  { label: "マーケ", keywords: ["マーケティング", "Marketing", "マーケ"] },
-  { label: "CS", keywords: ["カスタマーサクセス", "Customer Success", "CS"] },
-  { label: "PM", keywords: ["プロダクト", "Product Manager", "PM"] },
+  { label: "マーケ",   keywords: ["マーケティング", "Marketing", "マーケ"] },
+  { label: "CS",       keywords: ["カスタマーサクセス", "Customer Success", "CS"] },
+  { label: "PM",       keywords: ["プロダクト", "Product Manager", "PM"] },
   { label: "エンジニア", keywords: ["エンジニア", "Engineer", "Developer", "CTO", "VPoE", "SRE"] },
   { label: "コンサル", keywords: ["コンサル", "Consultant", "コンサルタント"] },
 ];
@@ -21,18 +21,48 @@ function matchesRole(card: CardData, keywords: string[]): boolean {
   return keywords.some((kw) => haystack.includes(kw));
 }
 
+function getSalaryDiffVal(curve: number[]): number | null {
+  if (curve.length < 2) return null;
+  return curve[curve.length - 1] - curve[0];
+}
+
 // ── TrajectoryPageClient ───────────────────────────────────────────────────────
 
 export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // ① デフォルトをリストに変更
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
+  // ⑤ ソート機能追加
+  const [sort, setSort] = useState<"default" | "salary_desc" | "exp_desc">("default");
 
-  const verifiedCount = cards.filter((c) => c.verified).length;
+  // ① ヒーロー数字計算
+  const maxSalaryDiff = useMemo(() => {
+    const diffs = cards
+      .map((c) => getSalaryDiffVal(c.salaryCurve))
+      .filter((d): d is number => d !== null && d > 0);
+    return diffs.length > 0 ? Math.max(...diffs) : null;
+  }, [cards]);
+
+  const avgSalaryDiff = useMemo(() => {
+    const diffs = cards
+      .map((c) => getSalaryDiffVal(c.salaryCurve))
+      .filter((d): d is number => d !== null && d > 0);
+    if (diffs.length === 0) return null;
+    return Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length);
+  }, [cards]);
+
+  // ④ 各フィルターの件数計算
+  const roleCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const rf of ROLE_FILTERS) {
+      counts[rf.label] = cards.filter((c) => matchesRole(c, rf.keywords)).length;
+    }
+    return counts;
+  }, [cards]);
 
   const filtered = useMemo(() => {
-    return cards.filter((card) => {
-      // テキスト検索（職種・会社名）
+    let result = cards.filter((card) => {
       if (search.trim()) {
         const q = search.trim().toLowerCase();
         const haystack = [
@@ -46,14 +76,28 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
           .toLowerCase();
         if (!haystack.includes(q)) return false;
       }
-      // 職種フィルター
       if (roleFilter) {
         const def = ROLE_FILTERS.find((r) => r.label === roleFilter);
         if (def && !matchesRole(card, def.keywords)) return false;
       }
       return true;
     });
-  }, [cards, search, roleFilter]);
+
+    // ⑤ ソート
+    if (sort === "salary_desc") {
+      result = [...result].sort((a, b) => {
+        const da = getSalaryDiffVal(a.salaryCurve) ?? -Infinity;
+        const db = getSalaryDiffVal(b.salaryCurve) ?? -Infinity;
+        return db - da;
+      });
+    } else if (sort === "exp_desc") {
+      result = [...result].sort((a, b) =>
+        (b.yearsOfExperience ?? 0) - (a.yearsOfExperience ?? 0)
+      );
+    }
+
+    return result;
+  }, [cards, search, roleFilter, sort]);
 
   // ── Styles ──────────────────────────────────────────────────────────────────
 
@@ -76,19 +120,9 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
         @media (max-width: 560px) {
           .trajectory-grid { grid-template-columns: minmax(0, 1fr); }
         }
-        .view-toggle-btn {
-          width: 36px; height: 36px;
-          display: flex; align-items: center; justify-content: center;
-          border-radius: 8px; cursor: pointer; border: 1px solid var(--line);
-          transition: background 0.12s, border-color 0.12s;
-        }
-        .view-toggle-btn.active {
-          background: var(--royal); border-color: var(--royal);
-        }
-        .view-toggle-btn.active svg { stroke: #fff; }
         .role-chip {
-          display: inline-flex; align-items: center;
-          padding: 6px 14px; border-radius: 100px;
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 6px 12px; border-radius: 100px;
           font-size: 12px; font-weight: 700;
           cursor: pointer; border: 1.5px solid var(--line);
           background: #fff; color: var(--ink-soft);
@@ -97,8 +131,19 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
         .role-chip.active {
           background: var(--royal); color: #fff; border-color: var(--royal);
         }
-        .role-chip:not(.active):hover {
+        .role-chip:not(.active):hover:not(:disabled) {
           border-color: var(--royal-100); color: var(--royal); background: var(--royal-50);
+        }
+        .role-chip:disabled {
+          opacity: 0.35; cursor: not-allowed;
+        }
+        .role-chip-count {
+          font-size: 10px; font-weight: 800;
+          background: rgba(0,0,0,0.08); border-radius: 100px;
+          padding: 1px 5px; line-height: 1.4;
+        }
+        .role-chip.active .role-chip-count {
+          background: rgba(255,255,255,0.25);
         }
         .traj-search-input {
           border: 1.5px solid var(--line); border-radius: 10px;
@@ -107,21 +152,53 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
           width: 200px; transition: border-color 0.12s;
         }
         .traj-search-input:focus { border-color: var(--royal); }
+        .traj-sort-select {
+          border: 1.5px solid var(--line); border-radius: 10px;
+          padding: 8px 12px; font-size: 12px; font-weight: 600;
+          background: #fff; color: var(--ink-soft); outline: none;
+          cursor: pointer; transition: border-color 0.12s;
+          appearance: none; -webkit-appearance: none;
+          padding-right: 28px;
+        }
+        .traj-sort-select:focus { border-color: var(--royal); }
         .stats-strip {
-          display: flex; align-items: center; gap: 32px;
-          background: #fff; border: 1px solid var(--line);
-          border-radius: 14px; padding: 20px 28px;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
           margin-bottom: 28px;
         }
-        .stat-item { display: flex; flex-direction: column; gap: 2px; }
+        .stat-card {
+          background: #fff; border: 1px solid var(--line);
+          border-radius: 14px; padding: 18px 20px;
+          display: flex; flex-direction: column; gap: 4px;
+        }
         .stat-num {
-          font-size: 28px; font-weight: 900;
+          font-size: 26px; font-weight: 900;
           color: var(--ink); font-family: 'Inter', sans-serif; line-height: 1;
         }
-        .stat-label { font-size: 11px; font-weight: 600; color: var(--ink-mute); }
-        .stat-divider { width: 1px; height: 36px; background: var(--line); }
+        .stat-num-success {
+          font-size: 24px; font-weight: 900;
+          color: var(--success); font-family: 'Inter', sans-serif; line-height: 1;
+        }
+        .stat-label { font-size: 11px; font-weight: 600; color: var(--ink-mute); margin-top: 2px; }
+        .stat-sub { font-size: 11px; color: var(--ink-mute); }
+        .view-seg {
+          display: flex; border: 1.5px solid var(--line);
+          border-radius: 10px; overflow: hidden; background: #fff;
+        }
+        .view-seg-btn {
+          display: flex; align-items: center; gap: 5px;
+          padding: 6px 12px; font-size: 12px; font-weight: 700;
+          cursor: pointer; border: none; background: transparent;
+          color: var(--ink-mute); transition: background 0.12s, color 0.12s;
+          border-right: 1.5px solid var(--line);
+        }
+        .view-seg-btn:last-child { border-right: none; }
+        .view-seg-btn.active {
+          background: var(--royal); color: #fff;
+        }
         @media (max-width: 640px) {
-          .stats-strip { gap: 20px; padding: 16px 20px; flex-wrap: wrap; }
+          .stats-strip { grid-template-columns: 1fr; }
           .traj-search-input { width: 140px; }
         }
       `}</style>
@@ -147,33 +224,36 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
           </p>
         </div>
 
-        {/* ── Stats strip ── */}
+        {/* ① Stats strip — 感情を動かす数字に刷新 */}
         {cards.length > 0 && (
           <div className="stats-strip">
-            <div className="stat-item">
-              <span className="stat-num">{cards.length}</span>
-              <span className="stat-label">名が匿名公開中</span>
+            <div className="stat-card">
+              <span className="stat-num">{cards.length}<span style={{ fontSize: 14, fontWeight: 600, marginLeft: 2, color: "var(--ink-soft)" }}>名</span></span>
+              <span className="stat-label">匿名で軌跡を公開中</span>
             </div>
-            <div className="stat-divider" />
-            <div className="stat-item">
-              <span className="stat-num">{verifiedCount}</span>
-              <span className="stat-label">編集部 取材・確認済み</span>
+            <div className="stat-card">
+              <span className="stat-num-success">
+                {maxSalaryDiff !== null ? `最大+${maxSalaryDiff}万円` : "—"}
+              </span>
+              <span className="stat-label">
+                {avgSalaryDiff !== null ? `平均+${avgSalaryDiff}万円 の年収変化` : "年収変化を公開"}
+              </span>
             </div>
-            <div className="stat-divider" />
-            <div className="stat-item">
-              <span className="stat-num">0円</span>
-              <span className="stat-label">完全無料・登録不要</span>
+            <div className="stat-card">
+              <span className="stat-num" style={{ color: "var(--royal)" }}>全員</span>
+              <span className="stat-label">OPINIO編集部が面談・内容確認済み</span>
+              <span className="stat-sub">完全無料・登録不要</span>
             </div>
           </div>
         )}
 
-        {/* ── フィルター + ビュー切替 ── */}
+        {/* ── フィルター + ソート + ビュー切替 ── */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           flexWrap: "wrap", gap: 12, marginBottom: 20,
         }}>
           {/* 左：検索 + 職種チップ */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             {/* 検索ボックス */}
             <div style={{ position: "relative" }}>
               <svg
@@ -192,61 +272,82 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
               />
             </div>
 
-            {/* 職種フィルターチップ */}
+            {/* ④ 職種フィルターチップ（件数バッジ付き） */}
             <button
               className={`role-chip${roleFilter === null ? " active" : ""}`}
               onClick={() => setRoleFilter(null)}
             >
               すべて
+              <span className="role-chip-count">{cards.length}</span>
             </button>
-            {ROLE_FILTERS.map((rf) => (
-              <button
-                key={rf.label}
-                className={`role-chip${roleFilter === rf.label ? " active" : ""}`}
-                onClick={() => setRoleFilter(roleFilter === rf.label ? null : rf.label)}
-              >
-                {rf.label}
-              </button>
-            ))}
+            {ROLE_FILTERS.map((rf) => {
+              const count = roleCounts[rf.label] ?? 0;
+              return (
+                <button
+                  key={rf.label}
+                  className={`role-chip${roleFilter === rf.label ? " active" : ""}`}
+                  onClick={() => setRoleFilter(roleFilter === rf.label ? null : rf.label)}
+                  disabled={count === 0}
+                >
+                  {rf.label}
+                  <span className="role-chip-count">{count}</span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* 右：ビュー切替 + 件数 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* 右：ソート + ビュー切替 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {filtered.length < cards.length && (
               <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>
                 {filtered.length}件表示
               </span>
             )}
-            <div style={{ display: "flex", gap: 4 }}>
-              {/* グリッドボタン */}
+
+            {/* ⑤ ソートセレクト */}
+            <div style={{ position: "relative" }}>
+              <select
+                className="traj-sort-select"
+                value={sort}
+                onChange={(e) => setSort(e.target.value as "default" | "salary_desc" | "exp_desc")}
+              >
+                <option value="default">掲載順</option>
+                <option value="salary_desc">年収増加額が多い順</option>
+                <option value="exp_desc">社会人歴が長い順</option>
+              </select>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+
+            {/* ⑨ ビュー切替：テキストラベル付きセグメント */}
+            <div className="view-seg">
               <button
-                className={`view-toggle-btn${viewMode === "grid" ? " active" : ""}`}
+                className={`view-seg-btn${viewMode === "grid" ? " active" : ""}`}
                 onClick={() => setViewMode("grid")}
                 title="グリッド表示"
-                style={{ background: viewMode === "grid" ? "var(--royal)" : "#fff" }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke={viewMode === "grid" ? "#fff" : "var(--ink-soft)"} strokeWidth="2.5"
-                  strokeLinecap="round" strokeLinejoin="round"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
                   <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
                 </svg>
+                グリッド
               </button>
-              {/* リストボタン */}
               <button
-                className={`view-toggle-btn${viewMode === "list" ? " active" : ""}`}
+                className={`view-seg-btn${viewMode === "list" ? " active" : ""}`}
                 onClick={() => setViewMode("list")}
                 title="リスト表示"
-                style={{ background: viewMode === "list" ? "var(--royal)" : "#fff" }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke={viewMode === "list" ? "#fff" : "var(--ink-soft)"} strokeWidth="2.5"
-                  strokeLinecap="round" strokeLinejoin="round"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" />
                   <line x1="3" y1="18" x2="21" y2="18" />
                 </svg>
+                リスト
               </button>
             </div>
           </div>
