@@ -50,7 +50,7 @@ export default async function AdminCandidatesPage({
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-            求職者管理
+            ユーザー管理
           </h1>
           <span style={{
             fontSize: 10, fontWeight: 800, letterSpacing: "0.1em",
