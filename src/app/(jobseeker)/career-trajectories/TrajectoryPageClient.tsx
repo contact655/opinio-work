@@ -224,29 +224,6 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
           </p>
         </div>
 
-        {/* ① Stats strip — 感情を動かす数字に刷新 */}
-        {cards.length > 0 && (
-          <div className="stats-strip">
-            <div className="stat-card">
-              <span className="stat-num">{cards.length}<span style={{ fontSize: 14, fontWeight: 600, marginLeft: 2, color: "var(--ink-soft)" }}>名</span></span>
-              <span className="stat-label">匿名で軌跡を公開中</span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-num-success">
-                {maxSalaryDiff !== null ? `最大+${maxSalaryDiff}万円` : "—"}
-              </span>
-              <span className="stat-label">
-                {avgSalaryDiff !== null ? `平均+${avgSalaryDiff}万円 の年収変化` : "年収変化を公開"}
-              </span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-num" style={{ color: "var(--royal)" }}>全員</span>
-              <span className="stat-label">OPINIO編集部が面談・内容確認済み</span>
-              <span className="stat-sub">完全無料・登録不要</span>
-            </div>
-          </div>
-        )}
-
         {/* ── フィルター + ソート + ビュー切替 ── */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
