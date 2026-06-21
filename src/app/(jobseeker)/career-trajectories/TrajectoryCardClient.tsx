@@ -491,16 +491,14 @@ export function TrajectoryCardClient({
           {/* 中：役職 + メタ */}
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* ⑧ verified バッジをタイトル行の右に固定 */}
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+            <div style={{ marginBottom: 4 }}>
               <div style={{
                 fontSize: 15, fontWeight: 800, color: "var(--ink)",
                 lineHeight: 1.3,
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                flex: 1, minWidth: 0,
               }}>
                 {roleTitle ?? "—"}
               </div>
-              <VerifiedBadge />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               {age && (
@@ -570,11 +568,7 @@ export function TrajectoryCardClient({
             )}
           </div>
 
-          {/* メタバッジ行にVerifiedBadgeを統合（タイトル行での折り返し防止） */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <MetaBadges />
-            <VerifiedBadge />
-          </div>
+          <MetaBadges />
         </div>
 
         {/* 区切り線 */}
