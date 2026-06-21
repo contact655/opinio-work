@@ -21,6 +21,7 @@ type DbAmbassador = {
   company_id: string;
   role_title: string | null;
   department: string | null;
+  talk_themes: string[] | null;
   user: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; visibility: string | null } | null;
   company: {
     id: string;
@@ -46,6 +47,7 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
       company_id,
       role_title,
       department,
+      talk_themes,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility),
       company:ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter)
     `)
@@ -78,6 +80,7 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
         avatarUrl: r.user?.avatar_url ?? null,
         roleTitle: r.role_title,
         department: r.department,
+        talkThemes: r.talk_themes ?? [],
         companyId: r.company?.id ?? r.company_id,
         companyName: r.company?.brand_name ?? r.company?.name ?? "—",
         companyLogoUrl: r.company?.logo_url ?? null,

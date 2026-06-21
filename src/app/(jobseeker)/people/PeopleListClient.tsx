@@ -12,6 +12,7 @@ export type AmbassadorCard = {
   avatarUrl: string | null;
   roleTitle: string | null;
   department: string | null;
+  talkThemes: string[];
   companyId: string;
   companyName: string;
   companyLogoUrl: string | null;
@@ -26,15 +27,16 @@ type Props = {
   companies: Company[];
 };
 
-// ── テーマタグ推定 ────────────────────────────────────────────────────
-function deriveTopicTags(roleTitle: string | null, department: string | null): string[] {
-  const text = `${roleTitle ?? ""} ${department ?? ""}`.toLowerCase();
+// ── テーマタグ取得（DB設定値優先、なければ役職から推定） ──────────────
+function resolveTopicTags(card: AmbassadorCard): string[] {
+  if (card.talkThemes && card.talkThemes.length > 0) return card.talkThemes;
+  const text = `${card.roleTitle ?? ""} ${card.department ?? ""}`.toLowerCase();
   if (text.match(/人事|採用|hr|recruit/)) return ["採用について", "職場環境", "入社後のリアル"];
   if (text.match(/営業|sales|セールス/)) return ["営業スタイル", "顧客事例", "キャリアパス"];
   if (text.match(/エンジニア|engineer|開発|dev|tech/)) return ["技術スタック", "開発文化", "キャリア"];
   if (text.match(/マーケ|market|marketing/)) return ["マーケ戦略", "チーム文化", "働き方"];
   if (text.match(/cs|カスタマー|customer/)) return ["CS業務", "顧客対応", "キャリア"];
-  return ["仕事内容", "職場環境", "会社の魅力"];
+  return [];
 }
 
 // ── Avatar ────────────────────────────────────────────────────────────
@@ -79,9 +81,18 @@ function Avatar({ card, size }: { card: AmbassadorCard; size: number }) {
   );
 }
 
+// 株式会社 等のプレフィックスを除いたブランド先頭文字を返す
+function companyInitial(card: AmbassadorCard): string {
+  if (card.companyLogoLetter) return card.companyLogoLetter;
+  const stripped = card.companyName
+    .replace(/^(株式会社|合同会社|有限会社|一般社団法人|一般財団法人|公益社団法人)\s*/, "")
+    .replace(/\s*(株式会社|合同会社|有限会社)$/, "");
+  return stripped.charAt(0) || card.companyName.charAt(0) || "社";
+}
+
 // ── CompanyBadge ──────────────────────────────────────────────────────
 function CompanyBadge({ card }: { card: AmbassadorCard }) {
-  const initial = card.companyLogoLetter ?? card.companyName.charAt(0) ?? "社";
+  const initial = companyInitial(card);
   const bg = card.companyLogoGradient ?? "linear-gradient(135deg, #001233, #002366)";
 
   return (
@@ -148,8 +159,10 @@ function TalkBadge() {
 
 // ── AmbassadorGridCard ───────────────────────────────────────────────
 function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
-  const tags = deriveTopicTags(card.roleTitle, card.department);
-  const roleDisplay = card.roleTitle ?? (card.department ?? "採用担当");
+  const tags = resolveTopicTags(card);
+  // ②重複防止: roleTitle と department が同じ文字列なら department を省略
+  const roleDisplay = card.roleTitle ?? card.department ?? "採用担当";
+  const showDept = card.department && card.roleTitle && card.department !== card.roleTitle;
 
   return (
     <div
@@ -172,17 +185,9 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
       }}
     >
-      {/* アバター + 現職バッジ */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
+      {/* アバター（④現職バッジは削除） */}
+      <div style={{ marginBottom: 14 }}>
         <Avatar card={card} size={64} />
-        <span style={{
-          fontSize: 10, fontWeight: 700,
-          padding: "3px 8px", borderRadius: 100,
-          background: "#F0FDF4", color: "#15803D",
-          border: "1px solid #BBF7D0",
-        }}>
-          現職
-        </span>
       </div>
 
       {/* 名前 + 話せるバッジ */}
@@ -193,10 +198,10 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
         <TalkBadge />
       </div>
 
-      {/* 役職 */}
+      {/* 役職（②重複排除） */}
       <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10 }}>
         {roleDisplay}
-        {card.department && card.roleTitle && (
+        {showDept && (
           <span style={{ color: "var(--ink-mute)" }}> · {card.department}</span>
         )}
       </div>
@@ -206,33 +211,40 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
         <CompanyBadge card={card} />
       </div>
 
-      {/* 話せるテーマタグ */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          話せるテーマ
+      {/* ⑦ 話せるテーマタグ（DB設定値優先） */}
+      {tags.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5 }}>
+            話せるテーマ
+          </div>
+          <TopicTags tags={tags} />
         </div>
-        <TopicTags tags={tags} />
-      </div>
+      )}
 
-      {/* CTAボタン */}
+      {/* ⑧CTAボタン + サブテキスト */}
       <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
-        <Link
-          href={`/companies/${card.companyId}/casual-meeting`}
-          style={{
-            display: "block", textAlign: "center",
-            padding: "9px 16px",
-            background: "linear-gradient(135deg, #F59E0B, #F97316)",
-            color: "#fff",
-            borderRadius: 9,
-            fontSize: 13, fontWeight: 700,
-            textDecoration: "none",
-            transition: "opacity 0.15s",
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "0.88"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "1"; }}
-        >
-          話を聞く →
-        </Link>
+        <div>
+          <Link
+            href={`/companies/${card.companyId}/casual-meeting`}
+            style={{
+              display: "block", textAlign: "center",
+              padding: "9px 16px",
+              background: "linear-gradient(135deg, #F59E0B, #F97316)",
+              color: "#fff",
+              borderRadius: 9,
+              fontSize: 13, fontWeight: 700,
+              textDecoration: "none",
+              transition: "opacity 0.15s",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "0.88"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "1"; }}
+          >
+            話を聞く →
+          </Link>
+          <div style={{ textAlign: "center", fontSize: 10, color: "var(--ink-mute)", marginTop: 4 }}>
+            カジュアル面談を申し込む（無料）
+          </div>
+        </div>
         <Link
           href={`/u/${card.userId}`}
           style={{
@@ -255,8 +267,10 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
 
 // ── AmbassadorListRow ────────────────────────────────────────────────
 function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
-  const tags = deriveTopicTags(card.roleTitle, card.department);
-  const roleDisplay = card.roleTitle ?? (card.department ?? "採用担当");
+  const tags = resolveTopicTags(card);
+  // ②重複防止
+  const roleDisplay = card.roleTitle ?? card.department ?? "採用担当";
+  const showDept = card.department && card.roleTitle && card.department !== card.roleTitle;
 
   return (
     <div style={{
@@ -275,36 +289,31 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
       {/* アバター */}
       <Avatar card={card} size={52} />
 
-      {/* 名前・役職・タグ */}
+      {/* 名前・役職・タグ（④現職バッジ削除） */}
       <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
           <TalkBadge />
-          <span style={{
-            fontSize: 10, fontWeight: 700,
-            padding: "2px 7px", borderRadius: 100,
-            background: "#F0FDF4", color: "#15803D",
-            border: "1px solid #BBF7D0",
-          }}>現職</span>
         </div>
         <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>
           {roleDisplay}
-          {card.department && card.roleTitle && (
+          {showDept && (
             <span style={{ color: "var(--ink-mute)" }}> · {card.department}</span>
           )}
           <span style={{ margin: "0 6px", color: "var(--line)" }}>|</span>
           <CompanyBadge card={card} />
         </div>
-        <TopicTags tags={tags} />
+        {/* ⑦ DB設定タグがある場合のみ表示 */}
+        {tags.length > 0 && <TopicTags tags={tags} />}
       </div>
 
-      {/* CTAボタン */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+      {/* ⑧CTAボタン + サブテキスト */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "center" }}>
         <Link
           href={`/companies/${card.companyId}/casual-meeting`}
           style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
-            padding: "8px 16px",
+            padding: "8px 18px",
             background: "linear-gradient(135deg, #F59E0B, #F97316)",
             color: "#fff",
             borderRadius: 8,
@@ -315,12 +324,15 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
         >
           話を聞く →
         </Link>
+        <div style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+          カジュアル面談（無料）
+        </div>
         <Link
           href={`/u/${card.userId}`}
           style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
-            padding: "7px 14px",
-            background: "var(--royal-50)",
+            padding: "6px 14px",
+            background: "transparent",
             color: "var(--royal)",
             borderRadius: 8,
             fontSize: 11, fontWeight: 600,
@@ -642,12 +654,13 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
             style={{
               flexShrink: 0,
               padding: "8px 16px",
-              background: "var(--royal)",
-              color: "#fff",
+              background: "transparent",
+              color: "var(--royal)",
               borderRadius: 8,
               fontSize: 12, fontWeight: 700,
               textDecoration: "none",
               whiteSpace: "nowrap",
+              border: "1.5px solid var(--royal)",
             }}
           >
             企業を見る →
