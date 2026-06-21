@@ -36,22 +36,6 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
   // ⑤ ソート機能追加
   const [sort, setSort] = useState<"default" | "salary_desc" | "exp_desc">("default");
 
-  // ① ヒーロー数字計算
-  const maxSalaryDiff = useMemo(() => {
-    const diffs = cards
-      .map((c) => getSalaryDiffVal(c.salaryCurve))
-      .filter((d): d is number => d !== null && d > 0);
-    return diffs.length > 0 ? Math.max(...diffs) : null;
-  }, [cards]);
-
-  const avgSalaryDiff = useMemo(() => {
-    const diffs = cards
-      .map((c) => getSalaryDiffVal(c.salaryCurve))
-      .filter((d): d is number => d !== null && d > 0);
-    if (diffs.length === 0) return null;
-    return Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length);
-  }, [cards]);
-
   // ④ 各フィルターの件数計算
   const roleCounts = useMemo(() => {
     const counts: Record<string, number> = {};

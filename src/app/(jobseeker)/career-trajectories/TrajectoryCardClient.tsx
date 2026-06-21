@@ -270,7 +270,7 @@ export function TrajectoryCardClient({
     return !(s.company_id && s.company_id === sortedSteps[i - 1].company_id);
   });
 
-  const MAX_SHOW = 3;
+  const MAX_SHOW = listMode ? 5 : 3;
   const olderCount = uniqueSteps.length > MAX_SHOW ? uniqueSteps.length - MAX_SHOW : 0;
   const olderSteps = uniqueSteps.slice(0, olderCount);
   const recentSteps = uniqueSteps.slice(olderCount);
@@ -324,75 +324,9 @@ export function TrajectoryCardClient({
     </div>
   );
 
-  // ⑧ Verified バッジ（独立コンポーネント・右上固定配置用）
-  const VerifiedBadge = () => card.verified ? (
-    <span
-      title="OPINIO編集部が実際に面談し、職歴・年収の内容を確認しています"
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 3,
-        fontSize: 10, fontWeight: 700, color: "var(--royal)",
-        background: "var(--royal-50)", borderRadius: 6,
-        padding: "3px 7px", border: "1px solid var(--royal-100)",
-        cursor: "help", whiteSpace: "nowrap", flexShrink: 0,
-      }}
-    >
-      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      OPINIO編集部 取材済み
-    </span>
-  ) : null;
+  // ── ロゴストリップ（グリッド：直近3社, リスト：直近5社） ───────────────────
 
-  // ── ③⑦ ロゴストリップ（グリッド用：全件対応、リスト用：最大2件） ──────────
-
-  const LogoStrip = ({ chipSize, listCap }: { chipSize: number; listCap?: number }) => {
-    // リストモード：チップ表示時は現職（末尾1社）のみ表示してコンテナに収める
-    if (listCap !== undefined) {
-      // まず仮計算してチップが出るかを確認
-      const tentativeVisible = recentSteps.slice(-listCap);
-      const tentativeHidden = olderCount + (recentSteps.length - tentativeVisible.length);
-      // チップが出る場合は現職のみ1社に絞る（chip+connector+1logoで収まる）
-      const effectiveCap = tentativeHidden > 0 ? 1 : listCap;
-      const visibleSteps = recentSteps.slice(-effectiveCap);
-      const hiddenCount = olderCount + (recentSteps.length - visibleSteps.length);
-      return (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
-          {hiddenCount > 0 && !expanded && (
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <button
-                className="older-chip-btn"
-                onClick={handleChipClick}
-                title={`さらに${hiddenCount}社の経歴あり`}
-              >
-                <div className="older-chip" style={{ width: chipSize, height: chipSize }}>
-                  <svg width={chipSize * 0.36} height={chipSize * 0.36} viewBox="0 0 24 24" fill="none"
-                    stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15 18 9 12 15 6" />
-                  </svg>
-                </div>
-                {/* ⑩ ラベル変更 */}
-                <div className="older-chip-label" style={{
-                  fontSize: 10, color: "var(--ink-mute)", fontWeight: 700,
-                  fontFamily: "Inter, sans-serif", textAlign: "center", lineHeight: 1.3,
-                }}>
-                  さらに<br />{hiddenCount}社
-                </div>
-              </button>
-              <Connector small={chipSize <= 40} />
-            </div>
-          )}
-          {visibleSteps.map((step, i) => {
-            const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
-            const name = getDisplayName(step, logo);
-            return (
-              <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
-                <LogoChip logo={logo} name={name} isCurrent={step.is_current} companyId={step.company_id} size={chipSize} />
-                {i < visibleSteps.length - 1 && <Connector small={chipSize <= 40} />}
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-
+  const LogoStrip = ({ chipSize }: { chipSize: number }) => {
     // グリッドモード：直近3社を常に表示、チップは40px固定でスペースを節約
     const GRID_CHIP_SIZE = 40; // チップを小さく固定してロゴ3社分のスペースを確保
 
@@ -484,9 +418,9 @@ export function TrajectoryCardClient({
         <style>{CARD_STYLES}</style>
         <div className="trajectory-list-card" onClick={handleCardClick}>
 
-          {/* 左：ロゴストリップ（固定幅） */}
-          <div style={{ flexShrink: 0, width: 140, overflow: "hidden" }}>
-            <LogoStrip chipSize={40} listCap={2} />
+          {/* 左：ロゴストリップ（最大5社） */}
+          <div style={{ flexShrink: 0 }}>
+            <LogoStrip chipSize={40} />
           </div>
 
           {/* 中：役職 + メタ */}
