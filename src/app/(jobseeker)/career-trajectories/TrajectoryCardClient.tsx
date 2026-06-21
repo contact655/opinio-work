@@ -580,25 +580,9 @@ export function TrajectoryCardClient({
         {/* 区切り線 */}
         <div style={{ borderTop: "1px solid var(--line-soft)", marginBottom: 16 }} />
 
-        {/* ── ③ ロゴストリップ（グリッドモード：overflow制御済み） ── */}
+        {/* ロゴストリップ（グリッドモード） */}
         <div style={{ flex: 1, paddingBottom: 4 }}>
           <LogoStrip chipSize={56} />
-        </div>
-
-        {/* ── ⑥② 年収大型表示 + パーソナライズCTA ── */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderTop: "1px solid var(--line-soft)", paddingTop: 12, marginTop: 8,
-          gap: 8,
-        }}>
-          <SalaryArea />
-          <span style={{
-            fontSize: 11, color: "var(--royal)", fontWeight: 700,
-            textAlign: "right", flexShrink: 1, lineHeight: 1.5,
-            maxWidth: 160,
-          }}>
-            {ctaText}
-          </span>
         </div>
       </div>
     </>
