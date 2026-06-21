@@ -1957,7 +1957,7 @@ function JobEmbedCard({
     >
       <div style={{
         border: "1px solid var(--line)",
-        borderRadius: 16,
+        borderRadius: 12,
         background: "#fff",
         padding: "14px 16px",
         transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
