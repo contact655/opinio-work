@@ -2135,7 +2135,7 @@ function JobsSection({
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-5) 28px var(--space-4)",
+        padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
         display: "flex",
         alignItems: "center",
