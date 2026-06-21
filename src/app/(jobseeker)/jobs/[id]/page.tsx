@@ -246,15 +246,6 @@ function PositionMembersSection({ members, jobCategory }: { members: JobPosition
                     現職
                   </span>
                 )}
-                {m.isMentor && (
-                  <span style={{
-                    fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 100,
-                    background: "var(--purple-soft,#F3E8FF)", color: "var(--purple)", border: "1px solid #E9D5FF",
-                    letterSpacing: "0.04em",
-                  }}>
-                    相談可
-                  </span>
-                )}
               </div>
               <div style={{
                 fontSize: 11.5, color: "var(--ink-mute)", overflow: "hidden",

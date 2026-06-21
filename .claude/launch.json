@@ -14,6 +14,27 @@
       "runtimeArgs": ["-c", "cd /Users/hisato/opinio-corp && PATH=/opt/homebrew/bin:$PATH ./node_modules/.bin/next dev -p 3001"],
       "port": 3001,
       "autoPort": true
+    },
+    {
+      "name": "corporate",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "cd /Users/hisato/opinio-corporate && PATH=/opt/homebrew/bin:$PATH ./node_modules/.bin/next dev -p 3001"],
+      "port": 3001,
+      "autoPort": true
+    }
+  ,{
+      "name": "agentpick",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "cd /Users/hisato/agentpick && PATH=/opt/homebrew/bin:$PATH ./node_modules/.bin/next dev -p 3002"],
+      "port": 3002,
+      "autoPort": true
+    }
+  ,{
+      "name": "career",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "cd /Users/hisato/opinio-agent && PATH=/opt/homebrew/bin:$PATH ./node_modules/.bin/next dev -p 3003"],
+      "port": 3003,
+      "autoPort": true
     }
   ]
 }
