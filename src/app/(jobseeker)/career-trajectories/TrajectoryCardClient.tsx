@@ -393,8 +393,8 @@ export function TrajectoryCardClient({
       );
     }
 
-    // グリッドモード：チップがある場合は直近2社まで（右端クリップ防止）
-    const stepsToShow = (olderCount > 0 && !expanded) ? recentSteps.slice(-2) : recentSteps;
+    // グリッドモード：直近3社を常に表示、チップは40px固定でスペースを節約
+    const GRID_CHIP_SIZE = 40; // チップを小さく固定してロゴ3社分のスペースを確保
 
     return (
       <div style={{ display: "flex", alignItems: "flex-start", gap: 2, overflow: "hidden" }}>
@@ -411,13 +411,13 @@ export function TrajectoryCardClient({
             >
               <LogoChip logo={logo} name={name} isCurrent={false} companyId={step.company_id} size={chipSize} />
               <div style={{ animation: `fadeInConnector 0.3s ease ${i * 0.07 + 0.15}s both`, opacity: 0 }}>
-                <Connector small={chipSize <= 40} />
+                <Connector small />
               </div>
             </div>
           );
         })}
 
-        {/* ⑩ 折りたたみ時：前職チップ — ラベル変更 */}
+        {/* 折りたたみ時：チップを小さく固定（40px）して直近3社を全て表示 */}
         {!expanded && olderCount > 0 && (
           <div style={{ display: "flex", alignItems: "center" }}>
             <button
@@ -425,8 +425,8 @@ export function TrajectoryCardClient({
               onClick={handleChipClick}
               title={`さらに${olderCount}社の経歴あり`}
             >
-              <div className="older-chip" style={{ width: chipSize, height: chipSize }}>
-                <svg width={chipSize * 0.36} height={chipSize * 0.36} viewBox="0 0 24 24" fill="none"
+              <div className="older-chip" style={{ width: GRID_CHIP_SIZE, height: GRID_CHIP_SIZE }}>
+                <svg width={GRID_CHIP_SIZE * 0.36} height={GRID_CHIP_SIZE * 0.36} viewBox="0 0 24 24" fill="none"
                   stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
@@ -438,17 +438,18 @@ export function TrajectoryCardClient({
                 さらに<br />{olderCount}社
               </div>
             </button>
-            <Connector small={chipSize <= 40} />
+            <Connector small />
           </div>
         )}
 
-        {stepsToShow.map((step, i) => {
+        {/* 直近3社を常に全表示 */}
+        {recentSteps.map((step, i) => {
           const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
           const name = getDisplayName(step, logo);
           return (
             <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
               <LogoChip logo={logo} name={name} isCurrent={step.is_current} companyId={step.company_id} size={chipSize} />
-              {i < stepsToShow.length - 1 && <Connector small={chipSize <= 40} />}
+              {i < recentSteps.length - 1 && <Connector small />}
             </div>
           );
         })}
