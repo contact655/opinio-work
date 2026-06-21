@@ -1940,7 +1940,6 @@ function JobEmbedCard({
       const d = Math.floor((Date.now() - new Date(job.publishedAt).getTime()) / (1000 * 60 * 60 * 24));
       if (d === 0) return "今日";
       if (d <= 7) return `${d}日前`;
-      if (d <= 31) return "今月";
       return null;
     }
     if (job.is_new) return "新着";
@@ -1958,7 +1957,7 @@ function JobEmbedCard({
     >
       <div style={{
         border: "1px solid var(--line)",
-        borderRadius: 12,
+        borderRadius: 16,
         background: "#fff",
         padding: "14px 16px",
         transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
