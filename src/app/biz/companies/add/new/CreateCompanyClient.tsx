@@ -373,11 +373,11 @@ export function CreateCompanyClient({
         fontSize: 22, fontWeight: 700,
         color: "var(--ink)", marginBottom: 8,
       }}>
-        新しい会社を作成
+        所属企業を登録する
       </h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.7 }}>
-        あなたが代表となる新しい会社を OPINIO に登録します。
-        詳細な企業情報は作成後に会社設定ページから編集できます。
+        会社名を入力してください。OPINIO に登録済みの企業が見つかった場合は、管理者に招待を依頼してください。
+        詳細な企業情報は登録後に会社設定ページから編集できます。
       </p>
 
       <form onSubmit={(e) => handleSubmit(e, false)} style={{ display: "flex", flexDirection: "column", gap: 16 }}>

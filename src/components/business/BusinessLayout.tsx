@@ -66,7 +66,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: "/biz/posts",
-    label: "発信",
+    label: "投稿・発信",
     icon: <Newspaper size={16} strokeWidth={2.2} />,
   },
   {

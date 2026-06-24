@@ -123,7 +123,7 @@ function detectPlatform(url: string): string {
   return "other";
 }
 
-type ProfileTab = "basic" | "career" | "skills" | "preferences" | "certs" | "achievements" | "socials" | "content" | "account";
+type ProfileTab = "basic" | "career" | "skills" | "preferences" | "certs_achievements" | "socials_content" | "account";
 
 type OwUser = {
   id: string;
@@ -425,15 +425,13 @@ function formatYMToDate(year: string, month: string): string | null {
 }
 
 const PROFILE_TABS: TabItem[] = [
-  { key: "basic",        label: "基本情報" },
-  { key: "career",       label: "職歴・学歴" },
-  { key: "skills",       label: "スキル" },
-  { key: "preferences",  label: "希望条件" },
-  { key: "certs",        label: "資格" },
-  { key: "achievements", label: "実績・受賞" },
-  { key: "socials",      label: "SNS" },
-  { key: "content",      label: "発信コンテンツ" },
-  { key: "account",      label: "アカウント設定" },
+  { key: "basic",             label: "基本情報" },
+  { key: "career",            label: "職歴・学歴" },
+  { key: "skills",            label: "スキル" },
+  { key: "preferences",       label: "希望条件" },
+  { key: "certs_achievements", label: "資格・実績" },
+  { key: "socials_content",   label: "SNS・発信" },
+  { key: "account",           label: "アカウント設定" },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -3162,15 +3160,13 @@ export default function ProfileEditClient({
 
   // ── タブ完成度（各タブにデータがあれば green dot） ─────────────────────────
   const tabCompletion: Record<ProfileTab, boolean> = {
-    basic:        !!(basicInfo.name.trim() || basicInfo.aboutMe.trim()),
-    career:       initialExperiences.length > 0 || educations.length > 0,
-    skills:       skillTags.length > 0,
-    preferences:  !!(prefJobType || prefWorkStyle || prefSalaryMin || prefSalaryMax || prefTiming),
-    certs:        certifications.length > 0,
-    achievements: achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0,
-    socials:      Object.values(socialLinks).some((v) => !!v),
-    content:      contentLinks.length > 0,
-    account:      true, // 設定タブは常に「入力済み」とみなす
+    basic:             !!(basicInfo.name.trim() || basicInfo.aboutMe.trim()),
+    career:            initialExperiences.length > 0 || educations.length > 0,
+    skills:            skillTags.length > 0,
+    preferences:       !!(prefJobType || prefWorkStyle || prefSalaryMin || prefSalaryMax || prefTiming),
+    certs_achievements: certifications.length > 0 || achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0,
+    socials_content:   Object.values(socialLinks).some((v) => !!v) || contentLinks.length > 0,
+    account:           true,
   };
 
   const profileTabsWithCompletion = PROFILE_TABS.map((tab) => ({
@@ -4026,36 +4022,34 @@ export default function ProfileEditClient({
           </div>
         )}
 
-        {/* 資格タブ */}
-        {activeTab === "certs" && (
-          <CertificationEditor
-            certifications={certifications}
-            setCertifications={setCertifications}
-          />
-        )}
-
-        {/* 実績・受賞タブ */}
-        {activeTab === "achievements" && (
+        {/* 資格・実績タブ */}
+        {activeTab === "certs_achievements" && (
           <div style={{ maxWidth: 680 }}>
-            {/* why-fill hint */}
-            <div style={{
-              display: "flex", alignItems: "flex-start", gap: 8,
-              padding: "10px 14px", borderRadius: 10, marginBottom: 16,
-              background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-            }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span style={{ fontSize: 12, color: "var(--royal)", lineHeight: 1.6 }}>
-                埋めると、公開プロフィールの説得力が上がり、メンターやキャリアの先輩からの声かけ率が上がります
-              </span>
+            <CertificationEditor
+              certifications={certifications}
+              setCertifications={setCertifications}
+            />
+            <div style={{ marginTop: 24 }}>
+              {/* why-fill hint */}
+              <div style={{
+                display: "flex", alignItems: "flex-start", gap: 8,
+                padding: "10px 14px", borderRadius: 10, marginBottom: 16,
+                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span style={{ fontSize: 12, color: "var(--royal)", lineHeight: 1.6 }}>
+                  埋めると、公開プロフィールの説得力が上がり、メンターやキャリアの先輩からの声かけ率が上がります
+                </span>
+              </div>
+              <AchievementEditor achievements={achievements} setAchievements={setAchievements} />
+              <AwardEditor awards={awards} setAwards={setAwards} />
+              <MediaAppearanceEditor mediaAppearances={mediaAppearances} setMediaAppearances={setMediaAppearances} />
             </div>
-            <AchievementEditor achievements={achievements} setAchievements={setAchievements} />
-            <AwardEditor awards={awards} setAwards={setAwards} />
-            <MediaAppearanceEditor mediaAppearances={mediaAppearances} setMediaAppearances={setMediaAppearances} />
           </div>
         )}
 
-        {/* SNS タブ */}
-        {activeTab === "socials" && (
+        {/* SNS・発信コンテンツタブ */}
+        {activeTab === "socials_content" && (
           <>
             <SocialLinksEditor
               socialLinks={socialLinks}
@@ -4105,8 +4099,8 @@ export default function ProfileEditClient({
           </>
         )}
 
-        {/* 発信コンテンツ タブ */}
-        {activeTab === "content" && (
+        {/* 発信コンテンツ（SNS・発信タブ内） */}
+        {activeTab === "socials_content" && (
           <div style={{ maxWidth: 680 }}>
             {/* why-fill hint */}
             <div style={{

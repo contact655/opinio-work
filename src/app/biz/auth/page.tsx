@@ -670,7 +670,11 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
       });
 
       if (authError) {
-        if (authError.message.includes("already registered") || authError.message.includes("User already registered")) {
+        if (
+          authError.message.includes("already registered") ||
+          authError.message.includes("User already registered") ||
+          authError.message.toLowerCase().includes("database error")
+        ) {
           setShowExistingNotice(true);
           try {
             const pending: PendingCompany = { name: companyName, industry, employeeCount, genres: [] };
@@ -842,6 +846,14 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         </div>
 
         <form onSubmit={handleStep1Next} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          <div style={{ marginBottom: 14 }}>
+            <FieldLabel label="お名前" required htmlFor="biz-s1-name" />
+            <input id="biz-s1-name" type="text" required value={contactName}
+              onChange={(e) => setContactName(e.target.value)}
+              placeholder="山田 太郎"
+              style={inputStyle} autoComplete="name"
+              onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
+          </div>
           <div style={{ marginBottom: 16 }}>
             <FieldLabel label="企業メールアドレス" required htmlFor="biz-s1-email" />
             <input id="biz-s1-email" type="email" inputMode="email" required value={email}
@@ -917,8 +929,8 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         >
           ← 戻る
         </button>
-        <h2 style={titleStyle}>企業情報を教えてください</h2>
-        <p style={subtitleStyle}>登録後、ダッシュボードからいつでも変更できます。</p>
+        <h2 style={titleStyle}>あなたの所属企業を教えてください</h2>
+        <p style={subtitleStyle}>すでに OPINIO に登録されている企業の方は、管理者に招待を依頼してください。</p>
       </div>
 
       {error && <ErrorBox message={error} />}
@@ -963,18 +975,10 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <FieldLabel label="ご担当者のお名前" required htmlFor="biz-s2-name" />
-          <input id="biz-s2-name" type="text" required value={contactName}
-            onChange={(e) => setContactName(e.target.value)}
-            placeholder="山田 太郎" style={inputStyle} autoComplete="name"
-            onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
-        </div>
-
-        <div style={{ marginBottom: 14 }}>
-          <FieldLabel label="部署・役職" required htmlFor="biz-s2-title" />
-          <input id="biz-s2-title" type="text" required value={contactTitle}
+          <FieldLabel label="部署・役職" htmlFor="biz-s2-title" />
+          <input id="biz-s2-title" type="text" value={contactTitle}
             onChange={(e) => setContactTitle(e.target.value)}
-            placeholder="例：人事部 採用マネージャー" style={inputStyle} autoComplete="organization-title"
+            placeholder="例：人事部 採用マネージャー（任意）" style={inputStyle} autoComplete="organization-title"
             onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
         </div>
 
