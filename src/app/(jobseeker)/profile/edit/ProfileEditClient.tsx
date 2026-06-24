@@ -673,6 +673,7 @@ function SkillTagsEditor({
   const [inputError, setInputError]     = useState<string | null>(null);
   const [skillToastMsg,     setSkillToastMsg]     = useState<string | null>(null);
   const [skillToastVariant, setSkillToastVariant] = useState<"default" | "error">("default");
+  const [addedFeedback, setAddedFeedback] = useState<string | null>(null);
 
   const count       = skillTags.length;
   const isAtLimit   = count >= 15;
@@ -723,6 +724,9 @@ function SkillTagsEditor({
       setSkillTags((prev) => prev.map((t) => (t.id === tempId ? confirmed : t)));
       setSkillToastVariant("default");
       setSkillToastMsg("スキルタグを追加しました");
+      // 即時フィードバック
+      setAddedFeedback("この技術に注目している企業：12社（サンプル）");
+      setTimeout(() => setAddedFeedback(null), 4000);
     } catch (e) {
       // ロールバック: 仮チップを除去 + inline エラー
       setSkillTags((prev) => prev.filter((t) => t.id !== tempId));
@@ -765,6 +769,31 @@ function SkillTagsEditor({
       title="スキル"
       desc="あなたのスキルや得意な技術・経験した領域をタグで登録してください。最大15個まで。"
     >
+      {/* why-fill hint */}
+      <div style={{
+        display: "flex", alignItems: "flex-start", gap: 8,
+        padding: "10px 12px", borderRadius: 8, marginBottom: 14,
+        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span style={{ fontSize: 12, color: "var(--royal)", lineHeight: 1.6 }}>
+          埋めると、同じ技術スタックの企業ページで「相性の良い人」として表示されます
+        </span>
+      </div>
+
+      {/* スキル追加直後の即時フィードバック */}
+      {addedFeedback && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "8px 12px", borderRadius: 8, marginBottom: 12,
+          background: "var(--warm-soft)", border: "1px solid #FDE68A",
+          animation: "fadeInUp 0.2s ease",
+        }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#92400E" }}>{addedFeedback}</span>
+        </div>
+      )}
+
       {/* 確定済みタグのチップ列 */}
       {skillTags.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", marginBottom: "var(--space-4)" }}>
@@ -3737,6 +3766,17 @@ export default function ProfileEditClient({
         {/* 希望条件タブ */}
         {activeTab === "preferences" && (
           <div style={{ maxWidth: 680 }}>
+            {/* why-fill hint */}
+            <div style={{
+              display: "flex", alignItems: "flex-start", gap: 8,
+              padding: "10px 14px", borderRadius: 10, marginBottom: 16,
+              background: "var(--warm-soft)", border: "1px solid #FDE68A",
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span style={{ fontSize: 12, color: "#92400E", lineHeight: 1.6 }}>
+                埋めると、条件に合う企業があなたのキャリア軌跡を見たとき、興味シグナルとして届きます
+              </span>
+            </div>
             {/* 保存状態インジケーター */}
             {(prefSaving || prefSaved) && (
               <div style={{
@@ -3997,6 +4037,17 @@ export default function ProfileEditClient({
         {/* 実績・受賞タブ */}
         {activeTab === "achievements" && (
           <div style={{ maxWidth: 680 }}>
+            {/* why-fill hint */}
+            <div style={{
+              display: "flex", alignItems: "flex-start", gap: 8,
+              padding: "10px 14px", borderRadius: 10, marginBottom: 16,
+              background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span style={{ fontSize: 12, color: "var(--royal)", lineHeight: 1.6 }}>
+                埋めると、公開プロフィールの説得力が上がり、メンターやキャリアの先輩からの声かけ率が上がります
+              </span>
+            </div>
             <AchievementEditor achievements={achievements} setAchievements={setAchievements} />
             <AwardEditor awards={awards} setAwards={setAwards} />
             <MediaAppearanceEditor mediaAppearances={mediaAppearances} setMediaAppearances={setMediaAppearances} />
@@ -4057,6 +4108,17 @@ export default function ProfileEditClient({
         {/* 発信コンテンツ タブ */}
         {activeTab === "content" && (
           <div style={{ maxWidth: 680 }}>
+            {/* why-fill hint */}
+            <div style={{
+              display: "flex", alignItems: "flex-start", gap: 8,
+              padding: "10px 14px", borderRadius: 10, marginBottom: 16,
+              background: "var(--warm-soft)", border: "1px solid #FDE68A",
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span style={{ fontSize: 12, color: "#92400E", lineHeight: 1.6 }}>
+                note / YouTube を繋ぐと、あなたの考え方が企業に伝わり、価値観マッチが起きやすくなります
+              </span>
+            </div>
             <FormSection
               title="発信コンテンツ"
               desc="note・Zenn・YouTube・Speaker Deck・GitHub など、外部で発信しているコンテンツのURLを登録できます。プロフィールページに表示されます。"
