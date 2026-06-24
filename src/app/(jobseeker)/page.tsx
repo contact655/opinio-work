@@ -16,13 +16,13 @@ const PAIN_POINTS = [
   },
   {
     icon: <ChatIcon />,
-    q: "求人票には書けない「本当の組織文化」が知りたい",
+    q: "求人票には記載がない「本当の組織文化」が知りたい",
     pain: "公式情報だけでは、入社後のギャップが怖い。会社の内側がわからないまま応募するリスク。",
     resolution: "現役社員・OBへの取材レポートを各企業ページで公開。カジュアル面談で直接確かめることもできます。",
   },
   {
     icon: <PhoneOffIcon />,
-    q: "エージェントに登録すると、営業電話が止まらない",
+    q: "転職サイトに登録するとスカウトメールがたくさん届く",
     pain: "登録したら電話・メールラッシュで冷静に比較できない。転職活動が「追われる」感覚に。",
     resolution: "OPINIOはスカウト・営業電話・メール一切なし。登録後も企業からの連絡は来ません。",
   },
@@ -97,20 +97,6 @@ function Hero() {
         {/* Left: message */}
         <div className="hero-fade">
           {/* Eyebrow */}
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 10,
-            padding: "var(--space-2) var(--space-4)", background: "var(--royal-50)", color: "var(--royal)",
-            borderRadius: 100, fontSize: "var(--text-sm)", fontWeight: 600, marginBottom: "var(--space-6)",
-            border: "1px solid var(--royal-100)",
-            letterSpacing: "0.01em",
-          }}>
-            <span style={{
-              width: 6, height: 6, borderRadius: "50%", background: "var(--success)", flexShrink: 0,
-              animation: "pulseDot 2.5s ease-in-out infinite",
-            }} />
-            外資系 IT・SaaS・スタートアップに特化
-          </div>
-
           {/* Title */}
           <h1 style={{
             fontSize: "clamp(28px,3.5vw,48px)",
@@ -124,7 +110,7 @@ function Hero() {
           {/* Lead */}
           <p style={{ fontSize: 16, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 28, maxWidth: "var(--max-w-form)" }}>
             外資IT・国内SaaS・スタートアップの企業情報・求人・転職データが一か所に。<br />
-            <strong style={{ color: "#D97706" }}>登録不要</strong>で閲覧でき、求人票には載らない実情を確認できます。
+            <strong style={{ color: "#D97706" }}>メール登録のみ</strong>で、求人票には載らない実情を確認できます。
           </p>
 
           {/* CTAs — primary only, secondary as text link */}
@@ -163,7 +149,7 @@ function Hero() {
             {[
               {
                 icon: "🏢", title: "企業の内側を知る",
-                desc: "取材記事・求人・社員情報がひとつの企業ページに集約。登録不要で閲覧できます。",
+                desc: "取材記事・求人・社員情報がひとつの企業ページに集約。メール登録のみで閲覧できます。",
                 href: "/companies", cta: "企業を見る →",
                 bg: "var(--royal-50)", border: "var(--royal-100)",
               },
@@ -199,7 +185,7 @@ function Hero() {
             ))}
 
             <p style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center" as const, marginTop: 12 }}>
-              すべて無料 · 登録不要で閲覧可 · 営業電話なし
+              すべて無料 · メール登録のみ · 営業電話なし
             </p>
           </div>
         </div>
@@ -482,7 +468,7 @@ function HowItWorks() {
   const STEPS = [
     {
       step: "STEP 01", title: "企業の内側を知る", en: "Research",
-      desc: "取材記事・求人票・組織情報が一か所に集約。登録不要で、IT/SaaS企業のリアルを自由に調べられます。",
+      desc: "取材記事・求人票・組織情報が一か所に集約。メール登録のみで、IT/SaaS企業のリアルを自由に調べられます。",
       action: "→ 企業を見てみる",
       href: "/companies",
       iconBg: "linear-gradient(135deg, var(--royal), var(--accent))",
@@ -673,7 +659,7 @@ function PainPoints() {
           }}>
             まず企業を見てみる <ArrowIcon />
           </Link>
-          <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 10 }}>登録不要 · 完全無料</p>
+          <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 10 }}>メール登録のみ · 完全無料</p>
         </div>
       </div>
       <style>{`
@@ -720,7 +706,7 @@ function FinalCta({ companyNum }: { companyNum: string }) {
           まず企業を見てみる <ArrowIcon />
         </Link>
         <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: 0 }}>
-          登録不要 · 今すぐ全 {companyNum} の企業情報を見られます
+          メールアドレスのみ · 全 {companyNum} 社の企業情報にアクセス
         </p>
         <Link href="/auth" style={{
           fontSize: 14, color: "rgba(255,255,255,0.7)", textDecoration: "none",
@@ -741,69 +727,89 @@ function FinalCta({ companyNum }: { companyNum: string }) {
 function CareerTrajectoriesTeaser() {
   const SAMPLE_PATHS = [
     {
+      role: "営業職 · 社会人8年",
       chips: ["消費財メーカー", "外資SaaS SDR", "外資SaaS AE", "国内SaaS"],
-      meta: "営業職 · 8年 · 年収310→980万円",
+      salaryFrom: "310",
+      salaryTo: "980",
+      diff: "+670",
     },
     {
+      role: "営業職 · 社会人6年",
       chips: ["SIer 営業", "外資SaaS", "外資SaaS AE"],
-      meta: "営業職 · 6年 · 年収350→750万円",
+      salaryFrom: "350",
+      salaryTo: "750",
+      diff: "+400",
     },
   ];
 
   return (
     <section style={{
-      background: "linear-gradient(160deg, #f0f4ff 0%, #f8f0ff 50%, #fff0f8 100%)",
+      background: "linear-gradient(160deg, #F3F0FF 0%, #EDE9FE 40%, #F8F4FF 100%)",
       padding: "72px 24px",
     }}>
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 20, marginBottom: 40 }}>
-          <div>
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 7,
-              padding: "4px 12px", background: "rgba(124,58,237,0.1)", color: "#7C3AED",
-              borderRadius: 100, fontSize: 11, fontWeight: 700, marginBottom: 12,
-              letterSpacing: "0.06em",
-            }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-              CAREER TRAJECTORIES
-            </div>
-            <h2 style={{
-              fontFamily: 'var(--font-noto-serif)',
-              fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
-              color: "var(--ink)", letterSpacing: "-0.01em", marginBottom: 8,
-            }}>
-              先輩たちの、実際のキャリアパス。
-            </h2>
-            <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.75, maxWidth: 480 }}>
-              転職回数・年収推移・会社を変えた理由まで、本人の許可のもとで公開。<br />
-              自分のキャリアを考えるヒントにしてください。
-            </p>
-          </div>
-          <Link href="/career-trajectories" style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 700,
-            background: "#7C3AED", color: "#fff",
-            textDecoration: "none", flexShrink: 0,
-            boxShadow: "0 4px 16px rgba(124,58,237,0.25)",
+
+        {/* ヘッダー */}
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 7,
+            padding: "4px 14px", background: "rgba(124,58,237,0.12)", color: "#7C3AED",
+            borderRadius: 100, fontSize: 11, fontWeight: 700, marginBottom: 14,
+            letterSpacing: "0.08em",
           }}>
-            軌跡を見る →
-          </Link>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            CAREER TRAJECTORIES
+          </div>
+          <h2 style={{
+            fontFamily: 'var(--font-noto-serif)',
+            fontSize: "clamp(22px, 3vw, 34px)", fontWeight: 700,
+            color: "var(--ink)", letterSpacing: "-0.02em", marginBottom: 10,
+          }}>
+            IT転職者の年収変化・軌跡を公開
+          </h2>
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.75 }}>
+            転職前後の年収・会社を変えた理由を、本人の許可のもとで匿名公開。<br />
+            求人票には載らないリアルな数字を確認できます。
+          </p>
         </div>
 
         {/* サンプル軌跡カード */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 32 }}>
           {SAMPLE_PATHS.map((path, i) => (
             <Link key={i} href="/career-trajectories" style={{ textDecoration: "none" }}>
               <div style={{
-                background: "#fff", borderRadius: 14, padding: "20px 20px 16px",
-                border: "1px solid rgba(124,58,237,0.12)",
-                boxShadow: "0 2px 12px rgba(124,58,237,0.06)",
-                transition: "box-shadow 0.15s, border-color 0.15s",
+                background: "#fff", borderRadius: 16, padding: "24px",
+                border: "1.5px solid rgba(124,58,237,0.15)",
+                boxShadow: "0 4px 20px rgba(124,58,237,0.08)",
+                transition: "box-shadow 0.15s, border-color 0.15s, transform 0.15s",
               }}
                 className="career-teaser-card"
               >
+                {/* ロール */}
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 14, fontFamily: "Inter, sans-serif" }}>
+                  {path.role}
+                </div>
+
+                {/* 年収変化 — 大きく表示 */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  marginBottom: 18, padding: "12px 16px",
+                  background: "rgba(5,150,105,0.06)", borderRadius: 10,
+                  border: "1px solid rgba(5,150,105,0.15)",
+                }}>
+                  <span style={{ fontSize: 13, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>{path.salaryFrom}万</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                  <span style={{ fontSize: 22, fontWeight: 900, color: "var(--success)", fontFamily: "Inter, sans-serif" }}>{path.salaryTo}万円</span>
+                  <span style={{
+                    marginLeft: "auto", fontSize: 13, fontWeight: 800,
+                    color: "var(--success)", fontFamily: "Inter, sans-serif",
+                    background: "rgba(5,150,105,0.1)", padding: "3px 10px",
+                    borderRadius: 100,
+                  }}>{path.diff}万</span>
+                </div>
+
                 {/* 矢印チェーン */}
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                   {path.chips.map((chip, j) => (
                     <div key={j} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{
@@ -818,18 +824,30 @@ function CareerTrajectoriesTeaser() {
                     </div>
                   ))}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
-                  {path.meta}
-                </div>
               </div>
             </Link>
           ))}
         </div>
+
+        {/* CTA */}
+        <div style={{ textAlign: "center" }}>
+          <Link href="/career-trajectories" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "14px 32px", borderRadius: 10, fontSize: 14, fontWeight: 700,
+            background: "#7C3AED", color: "#fff",
+            textDecoration: "none",
+            boxShadow: "0 6px 24px rgba(124,58,237,0.3)",
+          }}>
+            全員の軌跡・年収を見る →
+          </Link>
+          <p style={{ fontSize: 11, color: "#9E7FD4", marginTop: 10 }}>メール登録のみ · 完全無料</p>
+        </div>
       </div>
       <style>{`
         .career-teaser-card:hover {
-          box-shadow: 0 6px 24px rgba(124,58,237,0.14) !important;
-          border-color: rgba(124,58,237,0.3) !important;
+          box-shadow: 0 8px 32px rgba(124,58,237,0.16) !important;
+          border-color: rgba(124,58,237,0.35) !important;
+          transform: translateY(-2px) !important;
         }
       `}</style>
     </section>
