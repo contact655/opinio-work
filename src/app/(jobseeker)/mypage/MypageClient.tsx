@@ -218,160 +218,222 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
   );
 }
 
-// ─── Profile completeness widget ─────────────────────────────────────────────
+// ─── Profile completeness widget (マイルストーン式) ──────────────────────────
+
+type StageItem = { label: string; done: boolean; href: string };
+
+function getProfileStage(
+  userName: string,
+  userAboutMe?: string | null,
+  userSkillTags?: { id: string }[],
+  timelineCareers?: CareerEntry[],
+  hasCareerPreferences?: boolean,
+  _userCertifications?: { id: string }[],
+): 1 | 2 | 3 {
+  const hasName   = !!userName && userName !== "ユーザー";
+  const hasAbout  = !!userAboutMe && userAboutMe.trim().length > 0;
+  const hasSkills = (userSkillTags?.length ?? 0) > 0;
+  if (!hasName || !hasAbout || !hasSkills) return 1;
+
+  const hasCareer = (timelineCareers?.length ?? 0) > 0;
+  const hasPrefs  = !!hasCareerPreferences;
+  if (!hasCareer || !hasPrefs) return 2;
+
+  return 3;
+}
+
+const STAGES = [
+  {
+    id: 1 as const,
+    label: "公開できる",
+    unlock: "企業一覧に表示される状態",
+    color: "var(--royal)",
+    bg: "var(--royal-50)",
+    border: "var(--royal-100)",
+  },
+  {
+    id: 2 as const,
+    label: "見つけてもらえる",
+    unlock: "条件マッチで企業に気づかれる状態",
+    color: "#7C3AED",
+    bg: "#F3E8FF",
+    border: "#DDD6FE",
+  },
+  {
+    id: 3 as const,
+    label: "声がかかる",
+    unlock: "メンターからの声かけ対象になる",
+    color: "var(--success)",
+    bg: "var(--success-soft)",
+    border: "#A7F3D0",
+  },
+];
+
+function CheckIcon({ done, next }: { done: boolean; next: boolean }) {
+  if (done) return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round">
+      <circle cx="12" cy="12" r="10" fill="#D1FAE5" stroke="#6EE7B7"/>
+      <polyline points="9 12 11 14 15 10"/>
+    </svg>
+  );
+  if (next) return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round">
+      <circle cx="12" cy="12" r="10" fill="#FEF3C7" stroke="#FCD34D"/>
+      <line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+    </svg>
+  );
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--line)" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+    </svg>
+  );
+}
 
 function ProfileCompletenessCard({
-  userName, userAboutMe, userLocation, userSkillTags, timelineCareers, userEducations, hasCareerPreferences,
+  userName, userAboutMe, userSkillTags, timelineCareers, hasCareerPreferences, userCertifications,
 }: {
   userName: string;
   userAboutMe?: string | null;
-  userLocation?: string | null;
   userSkillTags?: { id: string; label: string; sort_order: number }[];
   timelineCareers?: CareerEntry[];
-  userEducations?: { id: string; school: string; [key: string]: unknown }[];
   hasCareerPreferences?: boolean;
+  userCertifications?: { id: string; name: string; sort_order: number }[];
 }) {
-  const checks: { label: string; done: boolean; hint: string }[] = [
-    { label: "名前", done: !!userName && userName !== "ユーザー", hint: "名前" },
-    { label: "自己紹介", done: !!userAboutMe && userAboutMe.trim().length > 0, hint: "自己紹介" },
-    { label: "居住地", done: !!userLocation && userLocation.trim().length > 0, hint: "居住地" },
-    { label: "スキルタグ", done: (userSkillTags?.length ?? 0) > 0, hint: "スキルタグ" },
-    { label: "職歴", done: (timelineCareers?.length ?? 0) > 0, hint: "職歴" },
-    { label: "学歴", done: (userEducations?.length ?? 0) > 0, hint: "学歴" },
-    { label: "希望条件", done: !!hasCareerPreferences, hint: "希望条件" },
+  const stage = getProfileStage(userName, userAboutMe, userSkillTags, timelineCareers, hasCareerPreferences, userCertifications);
+
+  if (stage === 3 && (userCertifications?.length ?? 0) > 0) return null; // 全完了なら非表示
+
+  const currentStage = STAGES[stage - 1];
+  const nextStage    = stage < 3 ? STAGES[stage] : null;
+
+  const stage1Items: StageItem[] = [
+    { label: "名前",      done: !!userName && userName !== "ユーザー",               href: "/profile/edit" },
+    { label: "自己紹介",  done: !!userAboutMe && userAboutMe.trim().length > 0,       href: "/profile/edit" },
+    { label: "スキルタグ", done: (userSkillTags?.length ?? 0) > 0,                   href: "/profile/edit" },
   ];
-  const doneCount = checks.filter((c) => c.done).length;
-  const pct = Math.round((doneCount / checks.length) * 100);
+  const stage2Items: StageItem[] = [
+    { label: "職歴",      done: (timelineCareers?.length ?? 0) > 0,                  href: "/profile/edit" },
+    { label: "希望条件",  done: !!hasCareerPreferences,                               href: "/profile/edit" },
+  ];
+  const stage3Items: StageItem[] = [
+    { label: "資格・実績", done: (userCertifications?.length ?? 0) > 0,              href: "/profile/edit" },
+  ];
 
-  if (pct === 100) return null; // 完成したら非表示
-
-  const firstMissing = checks.find((c) => !c.done);
+  const allItems = [...stage1Items, ...stage2Items, ...stage3Items];
+  const nextItem = allItems.find((i) => !i.done);
 
   return (
     <section style={{
-      background: "linear-gradient(135deg, #EFF3FC 0%, #fff 60%)",
+      background: "#fff",
       border: "1.5px solid var(--royal-100)",
-      borderRadius: 16,
-      padding: "22px 26px",
+      borderRadius: 16, padding: "20px 22px",
       marginBottom: 20,
-      position: "relative",
-      overflow: "hidden",
     }}>
-      {/* 背景デコレーション */}
-      <div style={{
-        position: "absolute", right: -20, top: -20,
-        width: 120, height: 120, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(59,95,217,0.06) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} />
-
-      {/* Header row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      {/* ── ヘッダー ── */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16, gap: 8 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 6 }}>
+            プロフィール状態
+          </div>
           <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: "linear-gradient(135deg, var(--royal), #3B5FD9)", color: "#fff",
-            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-            boxShadow: "0 2px 8px rgba(0,35,102,0.25)",
+            display: "inline-flex", alignItems: "center", gap: 7,
+            background: currentStage.bg, border: `1.5px solid ${currentStage.border}`,
+            borderRadius: 10, padding: "6px 12px",
           }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={currentStage.color} strokeWidth="2.5" strokeLinecap="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
-          </div>
-          <div>
-            <div style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
-              プロフィール完成度
-            </div>
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
-              充実させるほど、企業に伝わりやすくなります
-            </div>
-          </div>
-        </div>
-        <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{
-            display: "flex", alignItems: "baseline", gap: 2,
-            background: "var(--royal)", borderRadius: 10,
-            padding: "6px 14px",
-          }}>
-            <span style={{
-              fontFamily: "Inter, sans-serif", fontSize: 26, fontWeight: 800, color: "#fff",
-              lineHeight: 1,
-            }}>
-              {pct}
+            <span style={{ fontSize: 13, fontWeight: 800, color: currentStage.color }}>
+              {currentStage.label}
             </span>
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: "var(--text-sm)", fontWeight: 700, color: "rgba(255,255,255,0.75)" }}>%</span>
           </div>
+          <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 7, lineHeight: 1.5 }}>
+            いま「<strong style={{ color: "var(--ink)" }}>{currentStage.unlock}</strong>」です
+          </div>
+        </div>
+
+        {/* ステージドット */}
+        <div style={{ display: "flex", gap: 5, alignItems: "center", flexShrink: 0, paddingTop: 4 }}>
+          {STAGES.map((s) => (
+            <div key={s.id} style={{
+              width: s.id === stage ? 20 : 8,
+              height: 8, borderRadius: 100,
+              background: s.id <= stage ? s.color : "var(--line)",
+              transition: "all 0.3s",
+            }} />
+          ))}
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div style={{
-        height: 10, borderRadius: 100, background: "rgba(0,35,102,0.08)",
-        overflow: "hidden", marginBottom: "var(--space-4)",
-      }}>
-        <div style={{
-          height: "100%", borderRadius: 100,
-          background: pct >= 80
-            ? "linear-gradient(90deg, var(--success), #34D399)"
-            : "linear-gradient(90deg, var(--royal), #3B5FD9)",
-          width: `${pct}%`,
-          transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: pct >= 80
-            ? "0 0 8px rgba(5,150,105,0.4)"
-            : "0 0 8px rgba(59,95,217,0.4)",
-        }} />
-      </div>
+      {/* ── チェックリスト ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+        {/* Stage 1 */}
+        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em", marginBottom: 2 }}>
+          STEP 1 — {STAGES[0].label}
+        </div>
+        {stage1Items.map((item) => (
+            <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <CheckIcon done={item.done} next={!item.done && item === nextItem} />
+              <span style={{ fontSize: 12, color: item.done ? "var(--ink-soft)" : "var(--ink)", fontWeight: item.done ? 400 : 600, flex: 1 }}>
+                {item.label}
+              </span>
+              {!item.done && (
+                <Link href={item.href} style={{
+                  fontSize: 10, fontWeight: 700, color: "#D97706", textDecoration: "none",
+                  background: "#FEF3C7", padding: "2px 8px", borderRadius: 100,
+                }}>追加 →</Link>
+              )}
+            </div>
+        ))}
 
-      {/* Checklist (6 pills) */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-        {checks.map((c) => (
-          <div key={c.label} style={{
-            display: "flex", alignItems: "center", gap: 5,
-            padding: "4px 10px", borderRadius: 100,
-            background: c.done ? "var(--success-soft)" : "var(--bg-tint)",
-            border: `1px solid ${c.done ? "#A7F3D0" : "var(--line)"}`,
-            fontSize: "var(--text-xs)", fontWeight: 600,
-            color: c.done ? "var(--success)" : "var(--ink-mute)",
-          }}>
-            {c.done
-              ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
-              : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/></svg>
-            }
-            {c.label}
+        {/* Stage 2 */}
+        <div style={{ fontSize: 10, fontWeight: 700, color: stage >= 2 ? "var(--ink-mute)" : "var(--line)", letterSpacing: "0.05em", marginTop: 6, marginBottom: 2 }}>
+          STEP 2 — {STAGES[1].label}
+        </div>
+        {stage2Items.map((item) => (
+          <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 8, opacity: stage < 2 ? 0.45 : 1 }}>
+            <CheckIcon done={item.done} next={!item.done && item === nextItem} />
+            <span style={{ fontSize: 12, color: item.done ? "var(--ink-soft)" : "var(--ink)", fontWeight: item.done ? 400 : 600, flex: 1 }}>
+              {item.label}
+            </span>
+            {!item.done && stage >= 1 && (
+              <Link href={item.href} style={{
+                fontSize: 10, fontWeight: 700, color: "#7C3AED", textDecoration: "none",
+                background: "#F3E8FF", padding: "2px 8px", borderRadius: 100,
+              }}>追加 →</Link>
+            )}
+          </div>
+        ))}
+
+        {/* Stage 3 */}
+        <div style={{ fontSize: 10, fontWeight: 700, color: stage >= 3 ? "var(--ink-mute)" : "var(--line)", letterSpacing: "0.05em", marginTop: 6, marginBottom: 2 }}>
+          STEP 3 — {STAGES[2].label}
+        </div>
+        {stage3Items.map((item) => (
+          <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 8, opacity: stage < 3 ? 0.45 : 1 }}>
+            <CheckIcon done={item.done} next={!item.done && item === nextItem} />
+            <span style={{ fontSize: 12, color: item.done ? "var(--ink-soft)" : "var(--ink)", fontWeight: item.done ? 400 : 600, flex: 1 }}>
+              {item.label}
+            </span>
+            {!item.done && stage >= 2 && (
+              <Link href={item.href} style={{
+                fontSize: 10, fontWeight: 700, color: "var(--success)", textDecoration: "none",
+                background: "var(--success-soft)", padding: "2px 8px", borderRadius: 100,
+              }}>追加 →</Link>
+            )}
           </div>
         ))}
       </div>
 
-      {/* 面談承認率UPバナー */}
-      <div style={{
-        fontSize: 12, color: "var(--ink-soft)",
-        background: "var(--royal-50)", borderRadius: 8,
-        padding: "8px 12px", marginTop: 8, marginBottom: 14,
-        lineHeight: 1.6,
-      }}>
-        プロフィールを完成させると、企業担当者からの面談承認率が上がります
-      </div>
-
-      {/* Next step CTA */}
-      {firstMissing && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <Link href="/profile/edit" style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "9px 18px", borderRadius: 8,
-            background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff",
-            fontSize: 12, fontWeight: 700, textDecoration: "none",
-            boxShadow: "0 2px 8px rgba(245,158,11,0.3)",
-            transition: "opacity 0.15s",
-          }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14m-7-7h14"/></svg>
-            {firstMissing.hint}を追加する
-          </Link>
-          <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            入力は自動保存されます
-          </span>
+      {/* ── 次の段階へのナッジ ── */}
+      {nextStage && nextItem && (
+        <div style={{
+          background: nextStage.bg, border: `1px solid ${nextStage.border}`,
+          borderRadius: 10, padding: "10px 14px",
+          fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6,
+        }}>
+          <span style={{ fontWeight: 700, color: "var(--ink)" }}>あと「{nextItem.label}」を追加</span>すると
+          「<strong style={{ color: nextStage.color }}>{nextStage.unlock}</strong>」になります
         </div>
       )}
     </section>
@@ -832,15 +894,14 @@ export default function MypageClient({
 
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-      {/* プロフィール完成度ウィジェット */}
+      {/* プロフィール完成度（マイルストーン式） */}
       <ProfileCompletenessCard
         userName={userName}
         userAboutMe={owUser?.about_me}
-        userLocation={owUser?.location}
         userSkillTags={skillTags}
         timelineCareers={timelineCareers}
-        userEducations={educations}
         hasCareerPreferences={hasCareerPreferences}
+        userCertifications={certifications}
       />
 
       {/* 最近の申込 */}
