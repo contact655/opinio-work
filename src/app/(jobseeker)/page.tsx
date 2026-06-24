@@ -118,7 +118,7 @@ function Hero() {
             color: "var(--ink)", marginBottom: "var(--space-2)",
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            外資・SaaS転職、データで<br /><span style={{ color: "#D97706" }}>深く知って</span>から動く。
+            IT転職、データで<br /><span style={{ color: "#D97706" }}>深く知って</span>から動く。
           </h1>
 
           {/* Lead */}
