@@ -78,7 +78,7 @@ function BriefcaseIcon() {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
-function Hero({ companyNum, jobNum }: { companyNum: string; jobNum: string }) {
+function Hero() {
 
   return (
     <section style={{
@@ -150,23 +150,6 @@ function Hero({ companyNum, jobNum }: { companyNum: string; jobNum: string }) {
             </div>
           </div>
 
-          {/* ② Stats row */}
-          <div style={{
-            display: "flex", gap: 28, flexWrap: "wrap" as const,
-            marginTop: 20, paddingTop: 18,
-            borderTop: "1px solid rgba(0,35,102,0.08)",
-          }}>
-            {[
-              { num: companyNum, label: "掲載企業" },
-              { num: jobNum, label: "公開求人" },
-              { num: "無料", label: "登録・閲覧" },
-            ].map(({ num, label }) => (
-              <div key={label} style={{ display: "flex", flexDirection: "column" as const, gap: 1 }}>
-                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 22, fontWeight: 800, color: "var(--ink)", lineHeight: 1 }}>{num}</span>
-                <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{label}</span>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* Right: feature highlights */}
@@ -382,86 +365,6 @@ function CompanyMiniCardSkeleton() {
   );
 }
 
-// ─── Trust Strip (social proof) ───────────────────────────────────────────────
-
-function TrustStrip({ companyNum }: { companyNum: string }) {
-  const STATS = [
-    {
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2} strokeLinecap="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-      ),
-      num: companyNum,
-      label: "IT/SaaS 企業掲載",
-    },
-    {
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2} strokeLinecap="round">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-        </svg>
-      ),
-      num: "編集部取材",
-      label: "全企業を審査・取材済み",
-    },
-    {
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
-          <path d="M20 6L9 17l-5-5"/>
-        </svg>
-      ),
-      num: "完全無料",
-      label: "閲覧・面談・登録すべて",
-    },
-    {
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth={2} strokeLinecap="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      ),
-      num: "スカウト0",
-      label: "営業電話・メール一切なし",
-    },
-  ];
-
-  return (
-    <section style={{
-      background: "#fff",
-      borderBottom: "1px solid var(--line)",
-      padding: "0 48px",
-    }} className="px-5 md:px-12">
-      <div style={{
-        maxWidth: 1080, margin: "0 auto",
-        display: "flex", alignItems: "stretch",
-        flexWrap: "wrap" as const,
-      }}>
-        {STATS.map(({ icon, num, label }, i) => (
-          <div key={label} style={{
-            display: "flex", alignItems: "center", gap: 12,
-            flex: "1 1 160px", minWidth: 140,
-            padding: "16px 0",
-            borderRight: i < STATS.length - 1 ? "1px solid var(--line)" : "none",
-            paddingLeft: i > 0 ? 20 : 0, paddingRight: i < STATS.length - 1 ? 20 : 0,
-          }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: "var(--bg-tint)", border: "1px solid var(--line)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              {icon}
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", lineHeight: 1.2, fontFamily: "Inter, sans-serif" }}>{num}</div>
-              <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 2 }}>{label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 function FeaturedCompaniesSection() {
   const [companies, setCompanies] = useState<PreviewCompany[]>([]);
@@ -1395,13 +1298,13 @@ export default function HomePage() {
     fetch("/api/stats").then(r => r.json()).then(setStats).catch(() => {});
   }, []);
   const companyNum = stats ? `${stats.companies}社+` : "80社+";
-  const jobNum = stats ? `${stats.jobs}件+` : "252件+";
+
 
   return (
     <>
-      <Hero companyNum={companyNum} jobNum={jobNum} />
+      <Hero />
       <FirstVisitOnboarding />
-      <TrustStrip companyNum={companyNum} />
+
       <HowItWorks />
       <FeaturedCompaniesSection />
       <PainPoints />
