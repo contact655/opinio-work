@@ -102,7 +102,32 @@ export default async function PeoplePage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 24px 80px" }}>
+      {/* ヒーローヘッダー（loading.tsx と同じレイアウト） */}
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, #002366 60%, #0f3280 100%)",
+        padding: "48px 24px 40px",
+      }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.08em", marginBottom: 10 }}>
+            PEOPLE
+          </div>
+          <h1 style={{
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: "clamp(22px, 3vw, 32px)",
+            fontWeight: 800,
+            color: "#fff",
+            margin: "0 0 10px",
+            lineHeight: 1.3,
+          }}>
+            企業の中の人に、直接話を聞く。
+          </h1>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", margin: 0, lineHeight: 1.7 }}>
+            採用担当・現役社員が直接登録。転職を前提としない話も、もちろんOKです。
+          </p>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 24px 80px" }}>
         <PeopleListClient ambassadors={ambassadors} companies={companies} />
       </div>
     </div>
