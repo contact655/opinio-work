@@ -193,9 +193,9 @@ function Hero({ companyNum, jobNum }: { companyNum: string; jobNum: string }) {
                 bg: "#FEF3C7", border: "#FDE68A",
               },
               {
-                icon: "💬", title: "在籍ユーザーにDMで聞く",
-                desc: "社員・OBのプロフィールから直接DM。求人票には載らないリアルな声を。",
-                href: "/companies", cta: "企業の社員を見る →",
+                icon: "💬", title: "先輩に直接相談する",
+                desc: "企業で働く先輩に直接相談。求人票には載らないリアルな声を聞けます。",
+                href: "/people", cta: "話せる人を見る →",
                 bg: "var(--success-soft)", border: "#A7F3D0",
               },
             ].map((item) => (
@@ -588,10 +588,10 @@ function HowItWorks() {
       icon: <SearchIcon />,
     },
     {
-      step: "STEP 02", title: "在籍者に直接DMする", en: "Connect",
-      desc: "登録後、企業に在籍するユーザーにDMで直接コンタクト。エージェントを介さず、リアルな本音を聞けます。",
-      action: "→ 企業の在籍者を見る",
-      href: "/companies",
+      step: "STEP 02", title: "先輩に直接相談する", en: "Connect",
+      desc: "登録後、企業で働く先輩に直接相談。求人票には載らないリアルな声を、エージェントを介さずに聞けます。",
+      action: "→ 話せる人を見る",
+      href: "/people",
       iconBg: "linear-gradient(135deg, #F59E0B, #D97706)",
       icon: <ChatIcon />,
       highlight: true,
@@ -1662,7 +1662,7 @@ function DMExperienceMock() {
 function SocialProofSection() {
   const stories = [
     {
-      quote: "Salesforceの在籍ユーザーに直接DMして、入社前に組織文化を把握できました。入社後のギャップがほぼゼロでした。",
+      quote: "Salesforceの先輩に相談して、入社前に組織文化を把握できました。入社後のギャップがほぼゼロでした。",
       name: "K.T. さん",
       role: "前職：SIer → Salesforce Japan / カスタマーサクセス",
       avatar: "K",
@@ -1676,7 +1676,7 @@ function SocialProofSection() {
       gradient: "linear-gradient(135deg,#7C3AED,#8B5CF6)",
     },
     {
-      quote: "記事で取材されていた社員にDMしたら親切に答えてもらえて、その人がいる部署に転職できました。",
+      quote: "OPINIOで取材記事を読んで解像度が上がり、カジュアル面談で背中を押してもらえました。納得感のある転職ができました。",
       name: "R.N. さん",
       role: "前職：営業 → LayerX / BizDev",
       avatar: "R",
@@ -1732,10 +1732,7 @@ export default function HomePage() {
       <TrustStrip companyNum={companyNum} />
       <HowItWorks />
       <FeaturedCompaniesSection />
-      <DMExperienceMock />
       <PainPoints />
-      <StoryFeedSection />
-      <FeedUVP />
       <ArticlesPreview />
       <CareerTrajectoriesTeaser />
       <SocialProofSection />
