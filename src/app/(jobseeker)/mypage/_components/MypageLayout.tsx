@@ -126,7 +126,7 @@ export default function MypageLayout({
   const { isMentor: _isMentor } = useMypageMock();
   const topOffset = 65;
 
-  function nav(key: MypageActiveKey) {
+  function _nav(key: MypageActiveKey) {
     onNavigate?.(key);
   }
 
