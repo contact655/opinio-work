@@ -15,6 +15,8 @@ export type AmbassadorCard = {
   talkThemes: string[];
   companyId: string;
   companyName: string;
+  companyPhase: string | null;
+  companyIndustry: string | null;
   companyLogoUrl: string | null;
   companyLogoGradient: string | null;
   companyLogoLetter: string | null;
@@ -355,6 +357,7 @@ const ROLE_CATEGORIES = [
   { key: "sales",    label: "営業・セールス", pattern: /営業|sales|セールス/i },
   { key: "mktcs",   label: "マーケ・CS",   pattern: /マーケ|market|cs|カスタマー|customer/i },
   { key: "eng",      label: "エンジニア",   pattern: /エンジニア|engineer|開発|dev|tech/i },
+  { key: "exec",     label: "経営・役員",   pattern: /CEO|CTO|COO|CFO|VP|役員|代表|社長|執行|事業部長/i },
 ] as const;
 
 type RoleCategoryKey = typeof ROLE_CATEGORIES[number]["key"];
@@ -366,10 +369,36 @@ function matchesRoleCategory(card: AmbassadorCard, key: RoleCategoryKey): boolea
   return cat?.pattern ? cat.pattern.test(text) : true;
 }
 
+// ── 企業タイプフィルター定義 ─────────────────────────────────────────
+const COMPANY_TYPE_FILTERS = [
+  { key: "all",        label: "すべての企業",   phasePattern: null as RegExp | null },
+  { key: "startup",    label: "スタートアップ", phasePattern: /シード|seed|シリーズ[ABC]|series[_-]?[abc]/i },
+  { key: "listed",     label: "上場企業",       phasePattern: /listed|上場|IPO/i },
+  { key: "unicorn",    label: "ユニコーン",     phasePattern: /unicorn|ユニコーン/i },
+  { key: "enterprise", label: "大手・外資",     phasePattern: /大手|enterprise|外資/i },
+] as const;
+
+type CompanyTypeKey = typeof COMPANY_TYPE_FILTERS[number]["key"];
+
+function matchesCompanyType(card: AmbassadorCard, key: CompanyTypeKey): boolean {
+  if (key === "all") return true;
+  const phase = (card.companyPhase ?? "").toLowerCase();
+  const name = (card.companyName ?? "").toLowerCase();
+  const cat = COMPANY_TYPE_FILTERS.find((c) => c.key === key);
+  if (!cat?.phasePattern) return true;
+  // 企業名に「外資」含む場合も enterprise にマッチ
+  if (key === "enterprise") {
+    return cat.phasePattern.test(card.companyPhase ?? "") ||
+      /外資|global|インターナショナル/i.test(name);
+  }
+  return cat.phasePattern.test(phase);
+}
+
 // ── PeopleListClient ─────────────────────────────────────────────────
 export function PeopleListClient({ ambassadors, companies: _companies }: Props) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [roleCategory, setRoleCategory] = useState<RoleCategoryKey>("all");
+  const [companyType, setCompanyType] = useState<CompanyTypeKey>("all");
   const [keyword, setKeyword] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -377,6 +406,7 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
       if (!matchesRoleCategory(a, roleCategory)) return false;
+      if (!matchesCompanyType(a, companyType)) return false;
       if (!q) return true;
       return (
         a.name.toLowerCase().includes(q) ||
@@ -385,7 +415,7 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
         (a.department ?? "").toLowerCase().includes(q)
       );
     });
-  }, [ambassadors, roleCategory, keyword]);
+  }, [ambassadors, roleCategory, companyType, keyword]);
 
   if (ambassadors.length === 0) {
     return (
@@ -536,15 +566,53 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
           </div>
         </div>
 
+        {/* 企業タイプフィルター */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>企業タイプ</span>
+          {COMPANY_TYPE_FILTERS.map((cat) => {
+            const count = cat.key === "all"
+              ? ambassadors.length
+              : ambassadors.filter((a) => matchesCompanyType(a, cat.key)).length;
+            const isActive = companyType === cat.key;
+            return (
+              <button
+                key={cat.key}
+                type="button"
+                onClick={() => setCompanyType(cat.key)}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 100,
+                  border: `1.5px solid ${isActive ? "var(--purple)" : "var(--line)"}`,
+                  background: isActive ? "var(--purple)" : "#fff",
+                  color: isActive ? "#fff" : "var(--ink-soft)",
+                  fontSize: 12, fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                {cat.label}
+                <span style={{
+                  marginLeft: 5,
+                  fontSize: 10,
+                  fontFamily: "Inter, sans-serif",
+                  opacity: isActive ? 0.8 : 0.6,
+                }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* アクティブフィルター表示 */}
-        {(keyword || roleCategory !== "all") && (
+        {(keyword || roleCategory !== "all" || companyType !== "all") && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
               {filtered.length}名が見つかりました
             </span>
             <button
               type="button"
-              onClick={() => { setKeyword(""); setRoleCategory("all"); }}
+              onClick={() => { setKeyword(""); setRoleCategory("all"); setCompanyType("all"); }}
               style={{
                 fontSize: 11, fontWeight: 600,
                 padding: "2px 8px", borderRadius: 100,

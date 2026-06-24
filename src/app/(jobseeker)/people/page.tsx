@@ -30,6 +30,8 @@ type DbAmbassador = {
     logo_url: string | null;
     logo_gradient: string | null;
     logo_letter: string | null;
+    phase: string | null;
+    industry: string | null;
   } | null;
 };
 
@@ -49,7 +51,7 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
       department,
       talk_themes,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility),
-      company:ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter)
+      company:ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase, industry)
     `)
     .eq("is_ambassador", true)
     .eq("is_active", true)
@@ -83,6 +85,8 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
         talkThemes: r.talk_themes ?? [],
         companyId: r.company?.id ?? r.company_id,
         companyName: r.company?.brand_name ?? r.company?.name ?? "—",
+        companyPhase: r.company?.phase ?? null,
+        companyIndustry: r.company?.industry ?? null,
         companyLogoUrl: r.company?.logo_url ?? null,
         companyLogoGradient: r.company?.logo_gradient ?? null,
         companyLogoLetter: r.company?.logo_letter ?? null,
