@@ -29,8 +29,6 @@ function getSalaryDiffVal(curve: number[]): number | null {
 // ── TrajectoryPageClient ───────────────────────────────────────────────────────
 
 export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
-  // ① デフォルトをリストに変更
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   // ⑤ ソート機能追加
@@ -284,33 +282,6 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
               </svg>
             </div>
 
-            {/* ⑨ ビュー切替：テキストラベル付きセグメント */}
-            <div className="view-seg">
-              <button
-                className={`view-seg-btn${viewMode === "grid" ? " active" : ""}`}
-                onClick={() => setViewMode("grid")}
-                title="グリッド表示"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-                  <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
-                </svg>
-                グリッド
-              </button>
-              <button
-                className={`view-seg-btn${viewMode === "list" ? " active" : ""}`}
-                onClick={() => setViewMode("list")}
-                title="リスト表示"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-                リスト
-              </button>
-            </div>
           </div>
         </div>
 
@@ -331,12 +302,6 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
             >
               フィルターをリセット
             </button>
-          </div>
-        ) : viewMode === "grid" ? (
-          <div className="trajectory-grid">
-            {filtered.map((card) => (
-              <TrajectoryCardClient key={card.userId} card={card} listMode={false} />
-            ))}
           </div>
         ) : (
           <div className="trajectory-list">

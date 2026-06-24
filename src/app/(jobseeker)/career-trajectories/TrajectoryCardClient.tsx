@@ -448,12 +448,7 @@ export function TrajectoryCardClient({
         <style>{CARD_STYLES}</style>
         <div className="trajectory-list-card" onClick={handleCardClick}>
 
-          {/* 左：ロゴストリップ（最大5社） */}
-          <div style={{ flexShrink: 0 }}>
-            <LogoStrip chipSize={40} />
-          </div>
-
-          {/* 中：役職 + メタ */}
+          {/* 左：役職 + メタ */}
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* ⑧ verified バッジをタイトル行の右に固定 */}
             <div style={{ marginBottom: 4 }}>
@@ -478,6 +473,11 @@ export function TrajectoryCardClient({
               )}
               <MetaBadges />
             </div>
+          </div>
+
+          {/* 中：ロゴストリップ（最大5社） */}
+          <div style={{ flexShrink: 0 }}>
+            <LogoStrip chipSize={40} />
           </div>
 
           {/* 右：⑥ 大型年収diff + ② パーソナライズCTA */}
