@@ -203,6 +203,86 @@ function ArticleCard({ article }: { article: Article }) {
   );
 }
 
+// ─── Article List Row (リスト表示) ────────────────────────────────────────────
+
+function ArticleListRow({ article }: { article: Article }) {
+  const badge = TYPE_BADGE[article.type];
+  const mainSubject = article.subject ?? article.subjects?.[0];
+
+  return (
+    <Link href={`/articles/${article.slug}`} prefetch={true} style={{ textDecoration: "none" }}>
+      <article style={{
+        display: "flex", alignItems: "center", gap: 16,
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 12,
+        padding: "14px 18px",
+        transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+      }} className="article-card">
+        {/* カテゴリバッジ */}
+        <div style={{
+          flexShrink: 0,
+          display: "inline-flex", alignItems: "center",
+          padding: "4px 10px", borderRadius: 100,
+          background: badge.bg, color: badge.color,
+          fontSize: 10, fontWeight: 700, whiteSpace: "nowrap",
+          minWidth: 80, justifyContent: "center",
+        }}>
+          {badge.label}
+        </div>
+
+        {/* タイトル + 取材対象者 */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {mainSubject?.role_at_interview && (
+            <div style={{ fontSize: 10.5, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 3, lineHeight: 1.3 }}>
+              {mainSubject.role_at_interview}
+            </div>
+          )}
+          <div style={{
+            fontSize: 14, fontWeight: 700, color: "var(--ink)",
+            lineHeight: 1.45, fontFamily: "var(--font-noto-serif)",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {article.title}
+          </div>
+        </div>
+
+        {/* 会社 + 読了時間 + 日付 */}
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{
+              width: 18, height: 18, borderRadius: 4,
+              background: article.company_gradient,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontSize: 8, fontWeight: 700, flexShrink: 0,
+            }}>
+              {article.company_initial}
+            </div>
+            <span style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 500, whiteSpace: "nowrap" }}>
+              {article.company_name}
+            </span>
+          </div>
+          {article.read_min && (
+            <span style={{
+              fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap",
+              display: "flex", alignItems: "center", gap: 3,
+              fontFamily: "Inter, sans-serif",
+            }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              {article.read_min}分
+            </span>
+          )}
+          <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+            {article.date.replace(/-/g, "/").slice(2)}
+          </span>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 type SearchParams = { [key: string]: string | string[] | undefined };
@@ -214,6 +294,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
   const sortParam = typeof searchParams.sort === "string" ? searchParams.sort : undefined;
   const qParam    = typeof searchParams.q    === "string" ? searchParams.q    : undefined;
   const pageParam  = typeof searchParams.page === "string" ? Math.max(1, parseInt(searchParams.page, 10)) : 1;
+  const viewParam  = typeof searchParams.view === "string" ? searchParams.view : "grid";
 
   const [_allArticles, filteredArticles] = await Promise.all([
     getArticles(),
@@ -263,8 +344,8 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
             </div>
           ) : (
             <>
-              {/* Featured article (最初の1件を大きく) */}
-              {!typeParam && filteredArticles.length > 0 && (() => {
+              {/* Featured article (グリッド表示時のみ) */}
+              {viewParam !== "list" && !typeParam && filteredArticles.length > 0 && (() => {
                 const featured = filteredArticles[0];
                 const badge = TYPE_BADGE[featured.type];
                 const icon = TYPE_EYECATCH_ICON[featured.type];
@@ -391,14 +472,22 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
               })()}
 
               {/* Rest of articles */}
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {pagedGridArticles.map((article) => (
-                  <ArticleCard key={article.slug} article={article} />
-                ))}
-              </div>
+              {viewParam === "list" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {filteredArticles.map((article) => (
+                    <ArticleListRow key={article.slug} article={article} />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {pagedGridArticles.map((article) => (
+                    <ArticleCard key={article.slug} article={article} />
+                  ))}
+                </div>
+              )}
 
-              {/* ── Pagination ── */}
-              {totalPages > 1 && (
+              {/* ── Pagination（グリッド表示のみ） ── */}
+              {viewParam !== "list" && totalPages > 1 && (
                 <div style={{
                   display: "flex", justifyContent: "center", alignItems: "center",
                   gap: "var(--space-2)", marginTop: 40,

@@ -135,6 +135,53 @@ export default function ArticleFilterBar({ total }: { total: number }) {
             <option value="latest">新着順</option>
             <option value="popular">読了時間順</option>
           </select>
+
+          {/* View toggle */}
+          {(() => {
+            const currentView = searchParams.get("view") ?? "grid";
+            return (
+              <div style={{
+                display: "flex", gap: 2,
+                background: "var(--bg-tint)", border: `1.5px solid ${LINE}`,
+                borderRadius: 9, padding: 3, flexShrink: 0,
+              }}>
+                {([
+                  { mode: "grid", label: "グリッド", icon: (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                      <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                  )},
+                  { mode: "list", label: "リスト", icon: (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                  )},
+                ] as const).map(({ mode, label, icon }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => updateParam("view", mode === "grid" ? null : mode)}
+                    title={label}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: 7, border: "none",
+                      background: currentView === mode ? "#fff" : "transparent",
+                      color: currentView === mode ? "var(--royal)" : INK_MUTE,
+                      cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: 4,
+                      fontSize: 11, fontWeight: 600,
+                      boxShadow: currentView === mode ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                      transition: "all 0.12s",
+                    }}
+                  >
+                    {icon}
+                    {label}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
