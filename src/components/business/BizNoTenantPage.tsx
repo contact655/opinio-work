@@ -60,10 +60,10 @@ export function BizNoTenantPage({ userName = "ご担当者" }: Props) {
               background: "var(--royal)", color: "#fff", textDecoration: "none",
             }}
           >
-            ダッシュボードへ戻る
+            ホームへ戻る
           </Link>
           <Link
-            href="/"
+            href="/biz/companies/add"
             style={{
               display: "block", padding: "10px 24px", borderRadius: 8,
               fontSize: 13, fontWeight: 500,
@@ -71,7 +71,7 @@ export function BizNoTenantPage({ userName = "ご担当者" }: Props) {
               textDecoration: "none", background: "#fff",
             }}
           >
-            候補者サイトへ
+            企業アカウントを追加する →
           </Link>
         </div>
       </div>

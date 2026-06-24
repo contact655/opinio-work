@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 import { updateSession } from "@/lib/supabase/middleware";
 
 /**
@@ -39,7 +38,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // セッション同期（ログイン中ユーザー or 認証が必要なパスのみ）
-  const response = await updateSession(request);
+  // updateSession() が getUser() を内部で呼ぶため、返ってきた user を再利用する。
+  // 別 client を作ると古い request cookies を読み、トークン更新直後に user = null になるバグがあった。
+  const { response, user: sessionUser } = await updateSession(request);
 
   // BIZ_MOCK_MODE=true の場合は /biz/ 認証チェックをスキップ（dev 専用）
   if (process.env.BIZ_MOCK_MODE === "true") {
@@ -51,26 +52,11 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  if (needsAuth) {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll() { /* read-only here */ },
-        },
-      }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      const url = request.nextUrl.clone();
-      url.pathname = pathname.startsWith("/admin") ? "/auth" : "/biz/auth";
-      url.searchParams.set("next", pathname);
-      return NextResponse.redirect(url);
-    }
+  if (needsAuth && !sessionUser) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.startsWith("/admin") ? "/auth" : "/biz/auth";
+    url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
   }
 
   return response;
