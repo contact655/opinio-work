@@ -938,7 +938,6 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
           </span>
         )}
         {data.is_current && <CurrentBadge />}
-        <ParallelBadge />
       </div>
 
       {/* Role info table */}
@@ -1202,8 +1201,18 @@ export default function MergedTimeline({
                 {/* d-2: bg-tint 背景 + border-left 区切り */}
                 <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
                   {/* グループ期間インライン表示 */}
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.4 }}>
-                    {startLabel} – {endLabel}{duration && ` · ${duration}`}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.4 }}>
+                      {startLabel} – {endLabel}{duration && ` · ${duration}`}
+                    </div>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, color: "#7C3AED",
+                      background: "#EDE9FE", border: "1px solid #C4B5FD",
+                      borderRadius: 4, padding: "1px 6px", lineHeight: 1.6,
+                      letterSpacing: "0.02em",
+                    }}>
+                      複数社在籍
+                    </span>
                   </div>
                   <div className="d2-parallel-inner">
                     {items.map((c) => (
