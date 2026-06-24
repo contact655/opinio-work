@@ -1,229 +1,221 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { createClient } from "@/lib/supabase/server";
-import PostCard from "@/components/jobseeker/PostCard";
-import PostsFilterBar from "./PostsFilterBar";
-import type { Database } from "@/lib/supabase/types";
+import { createAdminClient } from "@/lib/supabase/admin";
+import PostsTimelineFilter from "./PostsTimelineFilter";
+import { CATEGORY_META } from "./categoryMeta";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "企業の発信 — OPINIO",
+  title: "企業の投稿 — OPINIO",
   description:
-    "LayerX・SmartHR・HubSpotなど、IT/SaaS企業が発信する記事・動画・SNS投稿をまとめてお届けします。",
+    "IT/SaaS企業からのイベント告知・採用情報・カルチャーストーリーをタイムラインで確認できます。",
 };
 
-// ─── 型定義 ──────────────────────────────────────────────────────────────────
+// ─── 型 ──────────────────────────────────────────────────────────────────────
 
-type PostRow = Database["public"]["Tables"]["ow_company_external_links"]["Row"];
-
-type PostWithCompany = PostRow & {
-  ow_companies: { id: string; name: string } | null;
+type PostWithCompany = {
+  id: string;
+  company_id: string;
+  title: string;
+  body: string;
+  category: string;
+  cover_image_url: string | null;
+  published_at: string | null;
+  created_at: string;
+  ow_companies: {
+    id: string;
+    name: string;
+    logo_gradient: string | null;
+    logo_letter: string | null;
+  } | null;
 };
 
-// ─── 定数 ────────────────────────────────────────────────────────────────────
+// ─── 日付フォーマット ─────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 30;
+function timeAgo(dateStr: string): string {
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60)         return "たった今";
+  if (diff < 3600)       return `${Math.floor(diff / 60)}分前`;
+  if (diff < 86400)      return `${Math.floor(diff / 3600)}時間前`;
+  if (diff < 86400 * 7)  return `${Math.floor(diff / 86400)}日前`;
+  return new Date(dateStr).toLocaleDateString("ja-JP", { month: "short", day: "numeric" });
+}
 
-// ─── Pagination (Server Component、Link ベース) ────────────────────────────
+// ─── PostCard ─────────────────────────────────────────────────────────────────
 
-function Pagination({
-  currentPage,
-  totalPages,
-}: {
-  currentPage: number;
-  totalPages: number;
-}) {
-  if (totalPages <= 1) return null;
-
-  // 表示するページ番号を決定 (最大 7 要素、省略は "ellipsis")
-  const items: (number | "ellipsis")[] = [];
-  if (totalPages <= 7) {
-    for (let i = 1; i <= totalPages; i++) items.push(i);
-  } else {
-    items.push(1);
-    if (currentPage > 3) items.push("ellipsis");
-    for (
-      let i = Math.max(2, currentPage - 1);
-      i <= Math.min(totalPages - 1, currentPage + 1);
-      i++
-    ) {
-      items.push(i);
-    }
-    if (currentPage < totalPages - 2) items.push("ellipsis");
-    items.push(totalPages);
-  }
-
-  const btnBase: React.CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 38,
-    height: 38,
-    padding: "0 12px",
-    borderRadius: 8,
-    border: "1px solid var(--line)",
-    background: "#fff",
-    color: "var(--ink-soft)",
-    fontSize: 13,
-    fontWeight: 500,
-    textDecoration: "none",
-    fontFamily: "Inter, sans-serif",
-    transition: "border-color 0.1s, background 0.1s, color 0.1s",
-  };
-
-  const activeBtnBase: React.CSSProperties = {
-    ...btnBase,
-    background: "var(--royal)",
-    borderColor: "var(--royal)",
-    color: "#fff",
-  };
-
-  const disabledBase: React.CSSProperties = {
-    ...btnBase,
-    opacity: 0.4,
-    cursor: "not-allowed",
-  };
+function PostCard({ post }: { post: PostWithCompany }) {
+  const company = post.ow_companies;
+  const cat = CATEGORY_META[post.category] ?? CATEGORY_META.other;
+  const dateStr = post.published_at ?? post.created_at;
+  const gradient = company?.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 100%)";
+  const letter = company?.logo_letter ?? (company?.name?.[0] ?? "?");
 
   return (
-    <nav
-      aria-label="ページネーション"
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        gap: 6,
-        marginTop: 48,
-        flexWrap: "wrap",
-      }}
-    >
-      {/* 前へ */}
-      {currentPage > 1 ? (
-        <Link href={`/posts?page=${currentPage - 1}`} style={{ ...btnBase, minWidth: 80 }}>
-          ← 前へ
+    <article style={{
+      background: "#fff",
+      border: "1px solid var(--line)",
+      borderRadius: 16,
+      padding: "20px 24px",
+      transition: "box-shadow 0.15s, transform 0.15s",
+    }} className="post-timeline-card">
+
+      {/* ── ヘッダー：会社 + 日時 + カテゴリ ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <Link href={company ? `/companies/${company.id}` : "#"} style={{ flexShrink: 0 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: "50%",
+            background: gradient,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fff", fontSize: 16, fontWeight: 700,
+            border: "2px solid var(--line-soft)",
+          }}>
+            {letter}
+          </div>
         </Link>
-      ) : (
-        <span style={{ ...disabledBase, minWidth: 80 }}>← 前へ</span>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.2 }}>
+            <Link href={company ? `/companies/${company.id}` : "#"} style={{
+              color: "inherit", textDecoration: "none",
+            }} className="company-name-link">
+              {company?.name ?? "企業"}
+            </Link>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
+            {timeAgo(dateStr)}
+          </div>
+        </div>
+
+        <span style={{
+          flexShrink: 0,
+          fontSize: 10, fontWeight: 700,
+          background: cat.bg, color: cat.color,
+          padding: "3px 9px", borderRadius: 100,
+        }}>
+          {cat.emoji} {cat.label}
+        </span>
+      </div>
+
+      {/* ── カバー画像（あれば） ── */}
+      {post.cover_image_url && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={post.cover_image_url}
+          alt=""
+          style={{
+            width: "100%", height: 180, objectFit: "cover",
+            borderRadius: 10, marginBottom: 14,
+            border: "1px solid var(--line-soft)",
+          }}
+        />
       )}
 
-      {/* ページ番号 */}
-      {items.map((item, idx) =>
-        item === "ellipsis" ? (
-          <span
-            key={`ellipsis-${idx}`}
-            style={{ color: "var(--ink-mute)", padding: "0 4px", fontSize: 13 }}
-          >
-            …
-          </span>
-        ) : (
-          <Link
-            key={item}
-            href={`/posts?page=${item}`}
-            style={item === currentPage ? activeBtnBase : btnBase}
-            aria-current={item === currentPage ? "page" : undefined}
-          >
-            {item}
-          </Link>
-        )
+      {/* ── タイトル ── */}
+      <div style={{
+        fontSize: 15, fontWeight: 800, color: "var(--ink)",
+        fontFamily: "var(--font-noto-serif)",
+        lineHeight: 1.5, marginBottom: 8,
+      }}>
+        {post.title}
+      </div>
+
+      {/* ── 本文（3行クランプ） ── */}
+      {post.body && (
+        <p style={{
+          fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.75,
+          margin: "0 0 14px",
+          display: "-webkit-box",
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}>
+          {post.body}
+        </p>
       )}
 
-      {/* 次へ */}
-      {currentPage < totalPages ? (
-        <Link href={`/posts?page=${currentPage + 1}`} style={{ ...btnBase, minWidth: 80 }}>
-          次へ →
+      {/* ── フッター ── */}
+      {company && (
+        <Link href={`/companies/${company.id}`} style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          fontSize: 12, fontWeight: 700, color: "var(--royal)",
+          textDecoration: "none",
+        }}>
+          {company.name} の詳細を見る
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
         </Link>
-      ) : (
-        <span style={{ ...disabledBase, minWidth: 80 }}>次へ →</span>
       )}
-    </nav>
+    </article>
   );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 type Props = {
-  searchParams: { page?: string; q?: string };
+  searchParams: { category?: string; q?: string };
 };
 
 export default async function PostsPage({ searchParams }: Props) {
-  const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+  const adminSupabase = createAdminClient();
+  const category = searchParams.category ?? "all";
   const q = searchParams.q?.trim() ?? "";
-  const offset = (currentPage - 1) * PAGE_SIZE;
 
-  const supabase = createClient();
-
-  // 総件数（キーワードフィルタ込み）
-  let countQuery = supabase
-    .from("ow_company_external_links")
-    .select("*, ow_companies!inner(name)", { count: "exact", head: true })
+  // カテゴリ別件数（フィルター前、全件）
+  const { data: allRaw } = await adminSupabase
+    .from("ow_company_posts")
+    .select("category")
     .eq("is_published", true);
-  if (q) countQuery = countQuery.or(`title.ilike.%${q}%,ow_companies.name.ilike.%${q}%`);
-  const { count } = await countQuery;
+  const allPosts = allRaw ?? [];
+  const categoryCounts: Record<string, number> = { all: allPosts.length };
+  for (const p of allPosts) {
+    categoryCounts[p.category] = (categoryCounts[p.category] ?? 0) + 1;
+  }
 
-  const totalCount = count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-
-  // 該当ページのデータ (ow_companies を JOIN)
-  let dataQuery = supabase
-    .from("ow_company_external_links")
-    .select("*, ow_companies(id, name)")
+  // タイムラインデータ取得
+  let query = adminSupabase
+    .from("ow_company_posts")
+    .select(`
+      id, company_id, title, body, category, cover_image_url, published_at, created_at,
+      ow_companies ( id, name, logo_gradient, logo_letter )
+    `)
     .eq("is_published", true)
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
-    .range(offset, offset + PAGE_SIZE - 1);
-  if (q) dataQuery = (dataQuery as typeof dataQuery).or(`title.ilike.%${q}%`);
+    .limit(50);
 
-  const { data: rawPosts } = await dataQuery;
-  const posts = (rawPosts ?? []) as PostWithCompany[];
+  if (category !== "all") {
+    query = query.eq("category", category);
+  }
+  if (q) {
+    query = query.or(`title.ilike.%${q}%,body.ilike.%${q}%`);
+  }
+
+  const { data: rawPosts } = await query;
+  const posts = (rawPosts ?? []) as unknown as PostWithCompany[];
 
   return (
     <>
-      {/* Breadcrumb */}
-      <nav aria-label="パンくずリスト" style={{
-        background: "var(--bg-tint)",
-        borderBottom: "1px solid var(--line)",
-        padding: "10px 0",
-      }}>
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-          <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
-            <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
-            <span>/</span>
-            <span aria-current="page" style={{ color: "var(--ink-soft)" }}>発信</span>
-          </div>
-        </div>
-      </nav>
-
-      {/* Filter bar */}
+      {/* ── 粘着フィルターバー ── */}
       <Suspense fallback={null}>
-        <PostsFilterBar totalCount={totalCount} />
+        <PostsTimelineFilter
+          currentCategory={category}
+          currentQ={q}
+          categoryCounts={categoryCounts}
+          total={posts.length}
+        />
       </Suspense>
 
-      {/* Grid */}
-      <div style={{ background: "var(--bg-tint)" }}>
-        <div
-          style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
-          className="px-5 py-8 md:px-12 md:py-10"
-        >
-          {posts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {posts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  variant="with-company"
-                  companyName={post.ow_companies?.name}
-                  companyId={post.ow_companies?.id}
-                />
-              ))}
-            </div>
-          ) : (
+      {/* ── タイムライン ── */}
+      <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 20px 80px" }}>
+
+          {posts.length === 0 ? (
             <div style={{
-              textAlign: "center",
-              padding: "80px 0",
+              textAlign: "center", padding: "80px 24px",
               color: "var(--ink-mute)",
-              fontSize: 15,
             }}>
               <div style={{
                 width: 56, height: 56, borderRadius: "50%",
@@ -232,68 +224,64 @@ export default async function PostsPage({ searchParams }: Props) {
                 margin: "0 auto 16px",
               }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.22 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.12 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.09 8.91" />
-                  <path d="M16 3h5v5" /><path d="M21 3l-7 7" />
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
               </div>
-              <div>発信がまだ登録されていません</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
+                まだ投稿がありません
+              </div>
+              <p style={{ fontSize: 13, lineHeight: 1.7, maxWidth: 320, margin: "0 auto" }}>
+                企業からのイベント告知・採用情報・カルチャーストーリーがここに表示されます。
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {posts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
             </div>
           )}
 
-          {/* Pagination */}
-          <Pagination currentPage={safePage} totalPages={totalPages} />
-
-          {/* ── 企業へDM CTA ── */}
+          {/* ── 企業へのCTA ── */}
           <div style={{
-            marginTop: 64,
-            padding: "32px 36px",
-            background: "linear-gradient(135deg, var(--success-soft) 0%, #f0fdf4 100%)",
-            border: "1.5px solid #A7F3D0",
+            marginTop: 48,
+            padding: "28px 32px",
+            background: "linear-gradient(135deg, var(--royal-50) 0%, #f0f4ff 100%)",
+            border: "1.5px solid var(--royal-100)",
             borderRadius: 16,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 24,
-            flexWrap: "wrap",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            gap: 20, flexWrap: "wrap",
           }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--success)", marginBottom: 8, textTransform: "uppercase" }}>
-                NEXT STEP
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: "var(--royal)", marginBottom: 6, textTransform: "uppercase" }}>
+                企業の方へ
               </div>
-              <p style={{
-                fontFamily: "var(--font-noto-serif)",
-                fontSize: "clamp(15px, 2vw, 18px)", fontWeight: 500,
-                color: "var(--ink)", margin: 0, lineHeight: 1.55,
-              }}>
-                気になった投稿者に、DMで直接話しかけてみよう。
+              <p style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0, lineHeight: 1.5 }}>
+                イベント・採用情報を無料で投稿できます
               </p>
-              <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
-                ユーザーのプロフィールページから「DMを送る」で直接コンタクトできます。完全無料。
+              <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 4, lineHeight: 1.6 }}>
+                OPINIOに掲載中の企業は管理画面から投稿可能です。
               </p>
             </div>
-            <Link href="/companies" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
-              background: "linear-gradient(135deg, var(--success) 0%, #10B981 100%)",
-              color: "#fff", textDecoration: "none",
-              boxShadow: "0 4px 16px rgba(5,150,105,0.25)",
+            <a href="mailto:contact@opinio.co.jp" style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 700,
+              background: "var(--royal)", color: "#fff", textDecoration: "none",
               flexShrink: 0,
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              企業を見る（無料）
-            </Link>
+              掲載について問い合わせる →
+            </a>
           </div>
         </div>
       </div>
 
       <style>{`
-        .post-card-link:hover {
-          border-color: var(--royal-100) !important;
-          box-shadow: 0 8px 24px rgba(0,35,102,0.08) !important;
-          transform: translateY(-2px) !important;
+        .post-timeline-card:hover {
+          box-shadow: 0 6px 24px rgba(0,35,102,0.08) !important;
+          transform: translateY(-1px) !important;
         }
+        .company-name-link:hover { text-decoration: underline !important; }
       `}</style>
     </>
   );

@@ -732,7 +732,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                     </svg>
-                    IT/SaaS 求人を見る
+                    IT 求人を見る
                   </Link>
                 )}
               </div>
@@ -2027,7 +2027,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           ) : (
             <>
               <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
-                IT/SaaS業界で働く人のリアルなキャリアが集まっています
+                IT業界で働く人のリアルなキャリアが集まっています
               </p>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                 <Link href="/jobs" style={{
@@ -2039,7 +2039,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                   </svg>
-                  IT/SaaS 求人を見る
+                  IT 求人を見る
                 </Link>
                 <Link href="/companies" style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
