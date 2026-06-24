@@ -81,8 +81,10 @@ function ConsultantCard({ c }: { c: typeof CONSULTANTS[number] }) {
       </div>
 
       {/* CTA */}
-      <Link
-        href={`/career-consultation/apply?consultant=${c.slug}`}
+      <a
+        href="https://app.spirinc.com/t/dYaaXibfGNDVGWc-qqv3v/as/MplNXcvVmuxIH2dTMecpF/confirm"
+        target="_blank"
+        rel="noopener noreferrer"
         style={{
           display: "block", textAlign: "center",
           padding: "14px 24px", borderRadius: 10,
@@ -93,8 +95,8 @@ function ConsultantCard({ c }: { c: typeof CONSULTANTS[number] }) {
           transition: "background 0.15s",
         }}
       >
-        日程を選ぶ
-      </Link>
+        日程を選ぶ →
+      </a>
     </div>
   );
 }
@@ -152,8 +154,10 @@ export default function CareerConsultationPage() {
             ))}
           </div>
 
-          <Link
-            href="/career-consultation/apply"
+          <a
+            href="https://app.spirinc.com/t/dYaaXibfGNDVGWc-qqv3v/as/MplNXcvVmuxIH2dTMecpF/confirm"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               display: "inline-block",
               padding: "14px 40px",
@@ -165,8 +169,8 @@ export default function CareerConsultationPage() {
               boxShadow: "0 4px 16px rgba(0,35,102,0.2)",
             }}
           >
-            面談を申し込む
-          </Link>
+            面談を申し込む →
+          </a>
         </div>
       </section>
 
