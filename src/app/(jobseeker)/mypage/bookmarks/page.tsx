@@ -98,17 +98,17 @@ export default function BookmarksPage() {
         if (companies) {
           const map = new Map(companies.map((c) => [c.id, c]));
           setCompanyBookmarks(
-            companyBmarks.map((b) => {
+            companyBmarks.flatMap((b) => {
               const c = map.get(b.target_id as string);
-              if (!c) return null;
-              return {
+              if (!c) return [];
+              return [{
                 id: b.id as string, type: "company" as const,
                 title: c.name as string,
                 meta: [c.industry, c.employee_count ? `${c.employee_count}名` : null].filter(Boolean).join(" / "),
                 badge_label: (c.industry as string) ?? "企業",
                 href: `/companies/${c.id}`,
-              };
-            }).filter((x): x is Bookmark => x !== null)
+              }];
+            })
           );
         }
       }
@@ -119,23 +119,23 @@ export default function BookmarksPage() {
         const { data: jobs } = await supabase
           .from("ow_jobs").select("id, title, job_category, company_id").in("id", ids);
         if (jobs) {
-          const companyIds = [...new Set(jobs.map((j) => j.company_id as string))];
+          const companyIds = Array.from(new Set(jobs.map((j) => j.company_id as string)));
           const { data: companies } = await supabase
             .from("ow_companies").select("id, name").in("id", companyIds);
           const cMap = new Map((companies ?? []).map((c) => [c.id as string, c.name as string]));
           const jMap = new Map(jobs.map((j) => [j.id, j]));
           setJobBookmarks(
-            jobBmarks.map((b) => {
+            jobBmarks.flatMap((b) => {
               const j = jMap.get(b.target_id as string);
-              if (!j) return null;
-              return {
+              if (!j) return [];
+              return [{
                 id: b.id as string, type: "job" as const,
                 title: j.title as string,
                 meta: [cMap.get(j.company_id as string), j.job_category as string].filter(Boolean).join(" / "),
                 badge_label: (j.job_category as string) ?? "求人",
                 href: `/jobs/${j.id}`,
-              };
-            }).filter((x): x is Bookmark => x !== null)
+              }];
+            })
           );
         }
       }
