@@ -15,7 +15,11 @@ import {
 
 export const metadata = { title: "マイページ — OPINIO" };
 
-export default async function MypagePage() {
+export default async function MypagePage({
+  searchParams,
+}: {
+  searchParams?: { setup?: string };
+}) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -25,7 +29,7 @@ export default async function MypagePage() {
 
   const { data: owUser } = await supabase
     .from("ow_users")
-    .select("id, name, avatar_color, cover_color, about_me, birth_date, location, social_links, future_aspirations")
+    .select("id, name, avatar_color, cover_color, about_me, birth_date, location, social_links, future_aspirations, profile_setup_at")
     .eq("auth_id", user.id)
     .maybeSingle();
 
@@ -311,5 +315,8 @@ export default async function MypagePage() {
     applicationsBadge = appCount ?? 0;
   }
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} />;
+  const showSetupBanner = !owUser?.profile_setup_at;
+  const setupJustDone = searchParams?.setup === "done";
+
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} />;
 }

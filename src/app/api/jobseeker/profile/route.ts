@@ -20,7 +20,7 @@ export async function PUT(req: Request) {
   }
 
   // 許可フィールドのみ（auth_id, id 等は変更不可）
-  const allowed = ["name", "avatar_color", "cover_color", "about_me", "birth_date", "location", "future_aspirations", "social_links", "visibility", "strengths_finder", "is_open_to_work"];
+  const allowed = ["name", "avatar_color", "cover_color", "about_me", "birth_date", "location", "future_aspirations", "social_links", "visibility", "strengths_finder", "is_open_to_work", "profile_setup_at"];
   const patch: Record<string, unknown> = {};
   for (const key of allowed) {
     if (key in body) patch[key] = body[key];

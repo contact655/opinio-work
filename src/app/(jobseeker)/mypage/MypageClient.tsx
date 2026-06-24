@@ -744,6 +744,8 @@ export default function MypageClient({
   conversationsBadge,
   applicationsBadge,
   hasCareerPreferences = false,
+  showSetupBanner = false,
+  setupJustDone = false,
 }: {
   owUser: OwUser;
   skillTags?: { id: string; label: string; sort_order: number }[];
@@ -761,6 +763,8 @@ export default function MypageClient({
   conversationsBadge?: number;
   applicationsBadge?: number;
   hasCareerPreferences?: boolean;
+  showSetupBanner?: boolean;
+  setupJustDone?: boolean;
 }) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
@@ -1010,6 +1014,60 @@ export default function MypageClient({
       applicationsBadge={applicationsBadge}
       rightColumn={activeView === "dashboard" ? dashboardRightColumn : undefined}
     >
+      {/* 公開完了バナー（/profile/start から遷移直後） */}
+      {setupJustDone && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
+          border: "1.5px solid #6EE7B7", borderRadius: 12,
+          padding: "14px 18px", marginBottom: 16,
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: "50%",
+            background: "var(--success)", color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46" }}>プロフィールを公開しました！</div>
+            <div style={{ fontSize: 12, color: "#047857", marginTop: 2 }}>
+              企業やメンターに見つけてもらえる状態になりました。
+              <a href="/profile/edit" style={{ color: "#065F46", fontWeight: 700, marginLeft: 6 }}>さらに詳しく編集する →</a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* セットアップ促進バナー（未完了ユーザー向け） */}
+      {showSetupBanner && !setupJustDone && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 14,
+          background: "linear-gradient(135deg, #EFF3FC 0%, #E8EDFB 100%)",
+          border: "1.5px solid var(--royal-100)", borderRadius: 12,
+          padding: "16px 20px", marginBottom: 16,
+          flexWrap: "wrap",
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+              プロフィールを公開して、企業に見つけてもらいましょう
+            </div>
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+              名前・自己紹介・スキルの3つを入力するだけで完了です。
+            </div>
+          </div>
+          <a href="/profile/start" style={{
+            display: "inline-block", padding: "10px 20px",
+            background: "var(--royal)", color: "#fff",
+            borderRadius: 8, fontSize: 13, fontWeight: 700,
+            textDecoration: "none", flexShrink: 0,
+            boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
+          }}>
+            3ステップで公開する →
+          </a>
+        </div>
+      )}
+
       {activeView === "dashboard" && (
         <DashboardView
           userId={owUser?.id ?? ""}
