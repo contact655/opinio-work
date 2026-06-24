@@ -185,26 +185,7 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
         }
       `}</style>
 
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px 80px" }}>
-
-        {/* ── ページヘッダー ── */}
-        <div style={{ marginBottom: 24 }}>
-          <p style={{
-            fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
-            letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10,
-          }}>
-            Career Trajectories
-          </p>
-          <h1 style={{
-            fontSize: 28, fontWeight: 900, margin: "0 0 8px",
-            fontFamily: "Noto Serif JP, serif", color: "var(--ink)",
-          }}>
-            IT / SaaS 先輩たちのキャリア軌跡
-          </h1>
-          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7, margin: 0 }}>
-            転職前後の年収・職歴を匿名で公開。OPINIO編集部が実際に面談し、内容を確認しています。
-          </p>
-        </div>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 24px 80px" }}>
 
         {/* ── フィルター + ソート + ビュー切替 ── */}
         <div style={{

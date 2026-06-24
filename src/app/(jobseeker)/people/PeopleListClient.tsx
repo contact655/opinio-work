@@ -403,29 +403,8 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
 
   return (
     <div>
-      {/* ── ページタイトル ── */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px", fontFamily: "'Noto Serif JP', serif" }}>
-          話せる人
-        </h1>
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.7 }}>
-          各企業の採用担当・現役社員に直接話を聞けます。転職前提なし・完全無料。
-          <span style={{
-            marginLeft: 10, fontSize: 11, fontWeight: 700,
-            padding: "2px 8px", borderRadius: 100,
-            background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA",
-          }}>
-            {ambassadors.length}名が話せます
-          </span>
-        </p>
-      </div>
-
       {/* ── 検索 + フィルター ── */}
       <div style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 14,
-        padding: "16px 20px",
         marginBottom: 16,
         display: "flex",
         flexDirection: "column",
