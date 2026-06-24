@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import HomeFaq from "@/app/HomeFaq";
-import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -119,14 +118,13 @@ function Hero() {
             color: "var(--ink)", marginBottom: "var(--space-2)",
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            外資・SaaSの転職を、<br />
-            <span style={{ color: "#D97706" }}>深く知って</span>から動く。
+            外資・SaaS転職、データで<br /><span style={{ color: "#D97706" }}>深く知って</span>から動く。
           </h1>
 
           {/* Lead */}
           <p style={{ fontSize: 16, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 28, maxWidth: "var(--max-w-form)" }}>
-            外資IT・国内SaaS・スタートアップへの転職情報が一か所に。<br />
-            <strong style={{ color: "#D97706" }}>登録不要</strong>で閲覧でき、カジュアル面談で<strong style={{ color: "#D97706" }}>現役社員に直接</strong>話を聞けます。
+            外資IT・国内SaaS・スタートアップの企業情報・求人・転職データが一か所に。<br />
+            <strong style={{ color: "#D97706" }}>登録不要</strong>で閲覧でき、求人票には載らない実情を確認できます。
           </p>
 
           {/* CTAs — primary only, secondary as text link */}
@@ -165,21 +163,21 @@ function Hero() {
             {[
               {
                 icon: "🏢", title: "企業の内側を知る",
-                desc: "求人票には載らない組織文化・フェーズ感を取材レポートで確認。",
+                desc: "取材記事・求人・社員情報がひとつの企業ページに集約。登録不要で閲覧できます。",
                 href: "/companies", cta: "企業を見る →",
                 bg: "var(--royal-50)", border: "var(--royal-100)",
               },
               {
-                icon: "💼", title: "ポジションを深掘りする",
-                desc: "職種・年収・働き方でフィルタリング。自分に合う求人を探せます。",
+                icon: "💼", title: "求人をフィルターで探す",
+                desc: "職種・年収・働き方で絞り込み。外資・SaaS・スタートアップの求人を一覧で確認。",
                 href: "/jobs", cta: "求人を探す →",
                 bg: "#FEF3C7", border: "#FDE68A",
               },
               {
-                icon: "💬", title: "先輩に直接相談する",
-                desc: "企業で働く先輩に直接相談。求人票には載らないリアルな声を聞けます。",
-                href: "/people", cta: "話せる人を見る →",
-                bg: "var(--success-soft)", border: "#A7F3D0",
+                icon: "📊", title: "転職者の年収・軌跡を確認",
+                desc: "IT/SaaS転職者の年収変化・転職理由を匿名公開。求人票にない実データが分かります。",
+                href: "/career-trajectories", cta: "キャリア軌跡を見る →",
+                bg: "#EDE9FE", border: "#C4B5FD",
               },
             ].map((item) => (
               <Link key={item.title} href={item.href} style={{ textDecoration: "none", display: "block" }}>
@@ -738,176 +736,6 @@ function FinalCta({ companyNum }: { companyNum: string }) {
   );
 }
 
-// ─── Articles Preview ─────────────────────────────────────────────────────────
-
-type PreviewArticle = {
-  slug: string;
-  type: string;
-  title: string;
-  eyecatch_gradient: string;
-  read_min: number;
-  date: string;
-  company_name: string;
-  company_initial: string;
-  company_gradient: string;
-};
-
-function ArticlesPreview() {
-  const [articles, setArticles] = useState<PreviewArticle[] | null>(null);
-
-  useEffect(() => {
-    fetch("/api/articles/preview")
-      .then((r) => r.json())
-      .then((d) => { setArticles(Array.isArray(d.articles) ? d.articles : []); })
-      .catch(() => { setArticles([]); });
-  }, []);
-
-  // fetch 完了前は非表示（レイアウトシフト防止）
-  if (articles === null) return null;
-
-  const latest = articles;
-  return (
-    <section style={{ background: "var(--bg-tint)", borderTop: "1px solid var(--line)", padding: "72px 0" }}>
-      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "var(--space-8)", flexWrap: "wrap", gap: "var(--space-3)" }}>
-          <div>
-            <div style={{
-              fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.12em",
-              color: "var(--royal)", textTransform: "uppercase" as const, marginBottom: "var(--space-2)",
-            }}>
-              独自取材レポート
-            </div>
-            <h2 style={{
-              fontFamily: 'var(--font-noto-serif)',
-              fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
-              color: "var(--ink)", letterSpacing: "-0.01em", marginBottom: 8,
-            }}>
-              現役社員に会いに行く、<br />
-              <span style={{ color: "var(--royal)" }}>OPINIO の取材記事。</span>
-            </h2>
-            <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", lineHeight: 1.7 }}>
-              CEO・社員・メンター・OGへの独自取材。求人票には載らない「中の声」を届けます。
-            </p>
-          </div>
-          <Link href="/articles" style={{
-            display: "inline-flex", alignItems: "center", gap: 5,
-            padding: "9px 18px", borderRadius: 8,
-            border: "1.5px solid var(--royal)", color: "var(--royal)",
-            fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
-            background: "#fff",
-          }}>
-            すべての記事 →
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {latest.map((article) => {
-            type ArticleType = "employee" | "mentor" | "ceo" | "report";
-            const type = article.type as ArticleType;
-            const badge = TYPE_BADGE[type] ?? TYPE_BADGE["employee"];
-            const _icon  = TYPE_EYECATCH_ICON[type] ?? TYPE_EYECATCH_ICON["employee"]; void _icon;
-            return (
-              <Link key={article.slug} href={`/articles/${article.slug}`} style={{ textDecoration: "none" }}>
-                <article style={{
-                  display: "flex", flexDirection: "column",
-                  background: "#fff", border: "1px solid var(--line)",
-                  borderRadius: 16, overflow: "hidden", height: "100%",
-                  transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
-                }}
-                  className="home-article-card"
-                >
-                  <div style={{
-                    height: 160, background: article.eyecatch_gradient,
-                    position: "relative", overflow: "hidden",
-                    display: "flex", flexDirection: "column", justifyContent: "flex-end",
-                    padding: "12px 14px",
-                  }}>
-                    {/* 背景大文字 */}
-                    <div style={{
-                      position: "absolute", top: -10, right: 10,
-                      fontSize: 100, fontWeight: 900, lineHeight: 1,
-                      color: "#fff", opacity: 0.1,
-                      fontFamily: "Inter, sans-serif",
-                      userSelect: "none",
-                      pointerEvents: "none",
-                    }}>
-                      {article.company_initial}
-                    </div>
-                    {/* ⑧ Dark overlay for title readability */}
-                    <div style={{
-                      position: "absolute", bottom: 0, left: 0, right: 0, height: 90,
-                      background: "linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)",
-                      pointerEvents: "none",
-                    }} />
-                    {/* バッジ */}
-                    <div style={{
-                      position: "absolute", top: 10, left: 12,
-                      display: "inline-flex", alignItems: "center",
-                      padding: "3px 9px", borderRadius: 100,
-                      background: "rgba(255,255,255,0.85)",
-                      backdropFilter: "blur(4px)",
-                      color: badge.color,
-                      fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
-                    }}>
-                      {badge.label}
-                    </div>
-                  </div>
-                  <div style={{ padding: "14px var(--space-4) 18px", flex: 1, display: "flex", flexDirection: "column" }}>
-                    <h3 style={{
-                      fontFamily: 'var(--font-noto-serif)',
-                      fontSize: 13.5, fontWeight: 700, lineHeight: 1.6,
-                      color: "var(--ink)", marginBottom: 10, flex: 1,
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    } as React.CSSProperties}>
-                      {article.title}
-                    </h3>
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 7,
-                      paddingTop: 10, borderTop: "1px solid var(--line-soft, #F1F5F9)",
-                    }}>
-                      <div style={{
-                        width: 20, height: 20, borderRadius: 5,
-                        background: article.company_gradient,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        color: "#fff", fontSize: 7, fontWeight: 700, flexShrink: 0,
-                      }}>
-                        {article.company_initial}
-                      </div>
-                      <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", flex: 1, fontWeight: 500 }}>
-                        {article.company_name}
-                      </span>
-                      <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>
-                        {(() => {
-                          try {
-                            return new Date(article.date).toLocaleDateString("ja-JP", { year: "numeric", month: "long" });
-                          } catch {
-                            return article.date.slice(2).replace(/-/g, "/");
-                          }
-                        })()}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      <style>{`
-        .home-article-card:hover {
-          border-color: var(--royal-100) !important;
-          box-shadow: 0 12px 32px rgba(15,23,42,0.07) !important;
-          transform: translateY(-2px) !important;
-        }
-      `}</style>
-    </section>
-  );
-}
-
 // ─── Career Trajectories Teaser ──────────────────────────────────────────────
 
 function CareerTrajectoriesTeaser() {
@@ -1308,7 +1136,6 @@ export default function HomePage() {
       <HowItWorks />
       <FeaturedCompaniesSection />
       <PainPoints />
-      <ArticlesPreview />
       <CareerTrajectoriesTeaser />
       <SocialProofSection />
       <HomeFaq />
