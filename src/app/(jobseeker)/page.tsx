@@ -483,27 +483,27 @@ function FeaturedCompaniesSection() {
 function HowItWorks() {
   const STEPS = [
     {
-      step: "STEP 01", title: "登録なしで見る", en: "Browse",
-      desc: "会員登録不要。企業の取材記事・求人情報を自由に閲覧できます。",
-      action: "→ まず企業を見てみる",
+      step: "STEP 01", title: "企業の内側を知る", en: "Research",
+      desc: "取材記事・求人票・組織情報が一か所に集約。登録不要で、IT/SaaS企業のリアルを自由に調べられます。",
+      action: "→ 企業を見てみる",
       href: "/companies",
       iconBg: "linear-gradient(135deg, var(--royal), var(--accent))",
       icon: <SearchIcon />,
     },
     {
-      step: "STEP 02", title: "先輩に直接相談する", en: "Connect",
-      desc: "登録後、企業で働く先輩に直接相談。求人票には載らないリアルな声を、エージェントを介さずに聞けます。",
-      action: "→ 話せる人を見る",
-      href: "/people",
-      iconBg: "linear-gradient(135deg, #F59E0B, #D97706)",
+      step: "STEP 02", title: "先輩の軌跡・年収を確認", en: "Explore",
+      desc: "IT/SaaS業界で転職した人たちの年収変化・転職理由を匿名で公開。求人票には載らないリアルな数字を確認できます。",
+      action: "→ キャリア軌跡を見る",
+      href: "/career-trajectories",
+      iconBg: "linear-gradient(135deg, #7C3AED, #A78BFA)",
       icon: <ChatIcon />,
       highlight: true,
       badge: "OPINIOだけの強み",
     },
     {
-      step: "STEP 03", title: "自分で決める", en: "Decide",
-      desc: "応募する、今の会社に残る、もう少し考える。どの選択肢もあなたが主役です。",
-      action: "→ 自分のペースで転職を判断",
+      step: "STEP 03", title: "自分のペースで決める", en: "Decide",
+      desc: "エージェントに急かされず、情報を集めてから動く。応募する・残る・もう少し考える、どの選択もあなたが主役。",
+      action: "→ 求人を探す",
       href: "/jobs",
       iconBg: "linear-gradient(135deg, var(--success), #047857)",
       icon: <CheckMark />,
@@ -516,11 +516,11 @@ function HowItWorks() {
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <SectionTag>使い方</SectionTag>
           <h2 style={{ fontSize: "clamp(28px,3.5vw,42px)", fontWeight: 700, color: "var(--ink)", marginBottom: "var(--space-4)", letterSpacing: "-0.01em" }}>
-            OPINIOの、使い方
+            企業と、そこで働く人の情報を一か所で
           </h2>
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: "var(--max-w-form)", margin: "0 auto" }}>
-            企業を知って、現役社員に話を聞いて、自分で決める。<br />
-            シンプルな3ステップで、納得のいくキャリア判断を。
+            取材記事・求人票・キャリア軌跡・年収データを集約。<br />
+            情報を集めてから、自分のペースで動ける。
           </p>
         </div>
 
@@ -528,18 +528,18 @@ function HowItWorks() {
           {STEPS.map((s, i) => (
             <React.Fragment key={i}>
               <div className="card-hover" style={{
-                background: s.highlight ? "linear-gradient(135deg, #FEF9EC 0%, #fff 100%)" : "#fff",
-                border: s.highlight ? "2px solid #D97706" : "1px solid var(--line)",
+                background: s.highlight ? "linear-gradient(135deg, #F3E8FF 0%, #fff 100%)" : "#fff",
+                border: s.highlight ? "2px solid #A78BFA" : "1px solid var(--line)",
                 borderRadius: 16, padding: 28,
                 cursor: "default",
                 position: "relative", overflow: "hidden",
-                boxShadow: s.highlight ? "0 8px 32px rgba(245,158,11,0.12)" : "none",
+                boxShadow: s.highlight ? "0 8px 32px rgba(124,58,237,0.12)" : "none",
               }}>
                 {/* 背景ステップ数字 */}
                 <div style={{
                   position: "absolute", top: -4, right: 12,
                   fontSize: 96, fontWeight: 900,
-                  color: s.highlight ? "#D97706" : "var(--ink)",
+                  color: s.highlight ? "#7C3AED" : "var(--ink)",
                   opacity: 0.04,
                   fontFamily: "Inter, sans-serif",
                   lineHeight: 1,
@@ -548,14 +548,14 @@ function HowItWorks() {
                 }}>
                   {String(i + 1).padStart(2, "0")}
                 </div>
-                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: s.highlight ? "#D97706" : "var(--royal)", marginBottom: "var(--space-2)" }}>{s.step}</div>
+                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: s.highlight ? "#7C3AED" : "var(--royal)", marginBottom: "var(--space-2)" }}>{s.step}</div>
                 {/* badge for highlight steps */}
                 {"badge" in s && s.badge && (
                   <div style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
                     padding: "3px 10px", borderRadius: 100, marginBottom: 10,
-                    background: "#FEF3C7", border: "1px solid #FDE68A",
-                    fontSize: 10, fontWeight: 700, color: "#D97706",
+                    background: "#EDE9FE", border: "1px solid #C4B5FD",
+                    fontSize: 10, fontWeight: 700, color: "#7C3AED",
                   }}>
                     ★ {s.badge}
                   </div>
