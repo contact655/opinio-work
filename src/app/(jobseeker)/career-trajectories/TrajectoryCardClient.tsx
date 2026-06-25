@@ -178,6 +178,7 @@ function LogoChip({
       alt={name}
       width={size}
       height={size}
+      loading="lazy"
       style={{ borderRadius: 8, objectFit: "contain", background: "#fff", display: "block" }}
     />
   ) : (

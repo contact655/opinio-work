@@ -9,21 +9,6 @@ import { TrajectoryPageClient } from "./TrajectoryPageClient";
 // サーバー側のみで使う型
 // ────────────────────────────────────────────────────────────────
 
-type PublicStep = {
-  id: string;
-  company_id: string | null;
-  company_text: string | null;
-  company_anonymized: string | null;
-  role_title: string | null;
-  started_at: string;
-  ended_at: string | null;
-  is_current: boolean;
-  display_order: number;
-  visibility_company: "real" | "masked" | "hidden";
-  salary_man: number | null;
-  visibility_salary: boolean;
-};
-
 type CompanyLogo = {
   id: string;
   name: string;
@@ -33,111 +18,136 @@ type CompanyLogo = {
   logo_letter: string | null;
 };
 
-type ProfileRow = {
-  user_id: string;
-  headline: string | null;
-  years_of_experience: number | null;
-  gender: string | null;
-  birth_year: number | null;
-  verified: boolean;
-};
-
-type UserRow = {
+type ExpRow = {
   id: string;
-  name: string | null;
+  user_id: string;
+  company_id: string | null;
+  company_text: string | null;
+  company_anonymized: string | null;
+  role_title: string | null;
+  started_at: string;
+  ended_at: string | null;
+  is_current: boolean;
+  display_order: number;
+  visibility_company: string;
+  salary_man: number | null;
+  visibility_salary: boolean;
 };
 
 // ────────────────────────────────────────────────────────────────
 // データ取得
+// N+1解消: 旧 3+N+M クエリ → 4クエリ（うち2つ並列）
 // ────────────────────────────────────────────────────────────────
 
 async function getProfiles(): Promise<CardData[]> {
   noStore();
-  const adminSupabase = createAdminClient();
+  const admin = createAdminClient();
 
-  const { data: publicUsers } = await adminSupabase
-    .from("ow_users")
-    .select("id")
-    .eq("visibility", "public") as { data: { id: string }[] | null };
+  // ① ow_users と ow_career_profiles を並列取得（旧: 3回逐次 → 2回並列）
+  const [usersRes, profilesRes] = await Promise.all([
+    admin.from("ow_users").select("id, name, visibility"),
+    admin
+      .from("ow_career_profiles")
+      .select("user_id, headline, years_of_experience, gender, birth_year, verified")
+      .eq("is_published", true)
+      .order("created_at", { ascending: true })
+      .order("user_id", { ascending: true }),
+  ]);
 
-  const publicUserIds = (publicUsers ?? []).map((u) => u.id);
-  if (publicUserIds.length === 0) return [];
+  const publicUserSet = new Set(
+    (usersRes.data ?? []).filter((u) => u.visibility === "public").map((u) => u.id)
+  );
+  const userNameMap: Record<string, string | null> = {};
+  for (const u of usersRes.data ?? []) userNameMap[u.id] = u.name;
 
-  const { data: rawProfiles } = await adminSupabase
-    .from("ow_career_profiles")
-    .select("user_id, headline, years_of_experience, gender, birth_year, verified")
-    .eq("is_published", true)
-    .in("user_id", publicUserIds)
-    .order("created_at", { ascending: true })
-    .order("user_id", { ascending: true });
+  const profiles = (profilesRes.data ?? [])
+    .filter((p) => publicUserSet.has(p.user_id))
+    .map((p, idx) => ({ ...p, serialNumber: idx + 1 }));
 
-  if (!rawProfiles || rawProfiles.length === 0) return [];
-
-  const profiles: (ProfileRow & { serialNumber: number })[] = rawProfiles.map((p, idx) => ({
-    user_id: p.user_id,
-    headline: p.headline,
-    years_of_experience: p.years_of_experience,
-    gender: (p as { gender?: string | null }).gender ?? null,
-    birth_year: (p as { birth_year?: number | null }).birth_year ?? null,
-    verified: (p as { verified?: boolean }).verified ?? false,
-    serialNumber: idx + 1,
-  }));
+  if (profiles.length === 0) return [];
 
   const userIds = profiles.map((p) => p.user_id);
 
-  const { data: users } = await adminSupabase
-    .from("ow_users")
-    .select("id, name")
-    .in("id", userIds) as { data: UserRow[] | null };
+  // ② 全ユーザー分の ow_experiences を一括取得（旧: N回RPC → 1回直接クエリ）
+  //    一覧カードに必要な列だけ選択（重いテキスト列は除外してデータ転送量削減）
+  const { data: rawExps } = await admin
+    .from("ow_experiences")
+    .select("id, user_id, company_id, company_text, company_anonymized, role_title, started_at, ended_at, is_current, display_order, visibility_company, salary_man, visibility_salary")
+    .in("user_id", userIds)
+    .neq("visibility_company", "hidden")
+    .order("display_order", { ascending: true }) as { data: ExpRow[] | null };
 
-  const userMap: Record<string, string | null> = {};
-  for (const u of users ?? []) userMap[u.id] = u.name;
+  const allExps = rawExps ?? [];
+
+  // ③ 全ユーザー分の企業ロゴを一括取得（旧: M回 → 1回）
+  const allCompanyIds = Array.from(
+    new Set(
+      allExps
+        .filter((e) => e.visibility_company === "real" && e.company_id)
+        .map((e) => e.company_id as string)
+    )
+  );
+
+  const globalLogoMap: Record<string, CompanyLogo> = {};
+  if (allCompanyIds.length > 0) {
+    const { data: logos } = await admin
+      .from("ow_companies")
+      .select("id, name, brand_name, logo_url, logo_gradient, logo_letter")
+      .in("id", allCompanyIds);
+    for (const l of (logos ?? []) as CompanyLogo[]) globalLogoMap[l.id] = l;
+  }
+
+  // ④ ユーザーごとにカードを組み立て（DBアクセスなし）
+  const expsByUser: Record<string, ExpRow[]> = {};
+  for (const e of allExps) {
+    if (!expsByUser[e.user_id]) expsByUser[e.user_id] = [];
+    expsByUser[e.user_id].push(e);
+  }
 
   const cards: CardData[] = [];
-
   for (const profile of profiles) {
-    const { data: steps } = await adminSupabase.rpc("get_public_career_steps", {
-      p_user_id: profile.user_id,
-    });
+    const userExps = expsByUser[profile.user_id] ?? [];
+    if (userExps.length === 0) continue;
 
-    if (!steps || steps.length === 0) continue;
-
-    const typedSteps = steps as PublicStep[];
-
-    const companyIds = typedSteps
-      .filter((s) => s.visibility_company === "real" && s.company_id)
-      .map((s) => s.company_id as string);
+    // visibility_company でマスキング（get_public_career_steps と同ロジック）
+    const steps = userExps.map((e) => ({
+      id: e.id,
+      company_id: e.visibility_company === "real" ? (e.company_id ?? null) : null,
+      company_text: e.company_text,
+      company_anonymized: e.company_anonymized,
+      role_title: e.role_title,
+      started_at: e.started_at,
+      ended_at: e.ended_at,
+      is_current: e.is_current,
+      display_order: e.display_order,
+      visibility_company: e.visibility_company as "real" | "masked" | "hidden",
+      salary_man: e.visibility_salary ? (e.salary_man ?? null) : null,
+      visibility_salary: e.visibility_salary,
+    }));
 
     const logoMap: Record<string, CompanyLogo> = {};
-    if (companyIds.length > 0) {
-      const { data: logos } = await adminSupabase
-        .from("ow_companies")
-        .select("id, name, brand_name, logo_url, logo_gradient, logo_letter")
-        .in("id", companyIds);
-      if (logos) {
-        for (const l of logos as CompanyLogo[]) logoMap[l.id] = l;
+    for (const s of steps) {
+      if (s.company_id && globalLogoMap[s.company_id]) {
+        logoMap[s.company_id] = globalLogoMap[s.company_id];
       }
     }
 
-    // 年収カーブ: visibility_salary=true かつ salary_man 非 null の点を時系列昇順で抽出
-    // display_order は大きいほど「古い」（カードのロゴストリップと同じ降順設計）
-    // → 降順ソートで先頭が最古 = 左から右に時系列順（古→新）
-    const salaryCurve = typedSteps
+    const salaryCurve = steps
       .filter((s) => s.visibility_salary && s.salary_man != null)
       .sort((a, b) => b.display_order - a.display_order)
       .map((s) => s.salary_man as number);
 
     cards.push({
       userId: profile.user_id,
-      userName: userMap[profile.user_id] ?? null,
+      userName: userNameMap[profile.user_id] ?? null,
       headline: profile.headline,
       yearsOfExperience: profile.years_of_experience,
-      gender: profile.gender ?? null,
-      birthYear: profile.birth_year ?? null,
-      steps: typedSteps,
+      gender: (profile as { gender?: string | null }).gender ?? null,
+      birthYear: (profile as { birth_year?: number | null }).birth_year ?? null,
+      steps,
       logoMap,
       salaryCurve,
-      verified: profile.verified,
+      verified: (profile as { verified?: boolean }).verified ?? false,
       serialNumber: profile.serialNumber,
     });
   }
