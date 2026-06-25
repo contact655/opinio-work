@@ -250,6 +250,19 @@ export function BusinessLayout({
                 {tenantName && <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>{tenantName}</div>}
               </div>
               <Link
+                href="/profile/edit"
+                onClick={() => setAvatarOpen(false)}
+                style={{
+                  display: "block", padding: "10px 16px",
+                  fontSize: 13, color: "var(--ink-soft)", fontWeight: 500,
+                  textDecoration: "none",
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
+              >
+                個人プロフィール編集
+              </Link>
+              <Link
                 href="/biz/company"
                 onClick={() => setAvatarOpen(false)}
                 style={{
