@@ -1718,10 +1718,10 @@ export default function JobsClient({
             <select
               value={category}
               onChange={(e) => setParam("category", e.target.value)}
-              style={filterSelectStyle(!!category, 120)}
+              style={filterSelectStyle(!!category, 110)}
               aria-label="職種で絞り込み"
             >
-              <option value="">すべての職種</option>
+              <option value="">職種</option>
               {parentRoles.map((r) => (
                 <option key={r.id} value={r.id}>{r.name}</option>
               ))}
@@ -1731,10 +1731,10 @@ export default function JobsClient({
             <select
               value={work_style}
               onChange={(e) => setParam("work_style", e.target.value)}
-              style={filterSelectStyle(!!work_style, 110)}
+              style={filterSelectStyle(!!work_style, 105)}
               aria-label="勤務形態で絞り込み"
             >
-              <option value="">すべての勤務形態</option>
+              <option value="">勤務形態</option>
               <option value="フルリモート">フルリモート</option>
               <option value="ハイブリッド">ハイブリッド</option>
               <option value="出社">出社</option>
@@ -1744,10 +1744,10 @@ export default function JobsClient({
             <select
               value={salary}
               onChange={(e) => setParam("salary", e.target.value)}
-              style={filterSelectStyle(!!salary, 110)}
+              style={filterSelectStyle(!!salary, 90)}
               aria-label="年収で絞り込み"
             >
-              <option value="">すべての年収</option>
+              <option value="">年収</option>
               {SALARY_PILL_TIERS.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
@@ -1757,10 +1757,10 @@ export default function JobsClient({
             <select
               value={empType}
               onChange={(e) => setParam("emp_type", e.target.value)}
-              style={filterSelectStyle(!!empType, 110)}
+              style={filterSelectStyle(!!empType, 95)}
               aria-label="雇用形態で絞り込み"
             >
-              <option value="">すべての雇用形態</option>
+              <option value="">雇用形態</option>
               <option value="正社員">正社員</option>
               <option value="業務委託">業務委託</option>
               <option value="副業">副業・複業</option>
@@ -1771,10 +1771,10 @@ export default function JobsClient({
               <select
                 value={prefecture}
                 onChange={(e) => setParam("prefecture", e.target.value)}
-                style={filterSelectStyle(!!prefecture, 100)}
+                style={filterSelectStyle(!!prefecture, 82)}
                 aria-label="地域で絞り込み"
               >
-                <option value="">すべての地域</option>
+                <option value="">地域</option>
                 {availablePrefectures.map((p) => (
                   <option key={p} value={p}>{p}</option>
                 ))}
