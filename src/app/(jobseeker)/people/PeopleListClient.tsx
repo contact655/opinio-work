@@ -432,14 +432,10 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
   }
 
   return (
-    <div>
-      {/* ── 検索 + フィルター ── */}
-      <div style={{
-        marginBottom: 16,
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}>
+    <>
+      {/* ── Sticky フィルターバー（企業ページと同パターン） ── */}
+      <div style={{ position: "sticky", top: 60, zIndex: 30, background: "#fff", borderBottom: "1px solid var(--line)", padding: "12px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
         {/* フリーワード検索 */}
         <div style={{ position: "relative" }}>
           <svg
@@ -624,7 +620,10 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
             </button>
           </div>
         )}
+        </div>
       </div>
+
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 24px 80px" }}>
 
       {/* ── リストビュー ── */}
       {viewMode === "list" && (
@@ -729,6 +728,7 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
         ※ このページに掲載されている方は、各企業の採用担当から「話せる人」として承認を受けた現役社員です。<br />
         ※ カジュアルにお話を聞くことができます。転職を前提としない情報収集もお気軽にどうぞ。
       </div>
-    </div>
+      </div>
+    </>
   );
 }

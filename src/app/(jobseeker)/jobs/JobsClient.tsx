@@ -1657,7 +1657,7 @@ export default function JobsClient({
         className="jobs-mobile-filterbar"
         style={{
           zIndex: 50,
-          background: "#F5F7FA",
+          background: "#fff",
           borderBottom: "1px solid var(--line)",
           boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
           padding: "10px 0 0",
