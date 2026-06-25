@@ -1645,7 +1645,7 @@ export default function JobsClient({
                 background: "#fff",
                 border: "1.5px solid #e6e9ef",
                 borderRadius: 999,
-                padding: "0 16px",
+                padding: "0 14px",
                 transition: "border-color 0.15s, box-shadow 0.15s",
                 marginBottom: 8,
                 boxShadow: "0 2px 8px rgba(15,23,42,0.07)",
@@ -1662,8 +1662,8 @@ export default function JobsClient({
                 placeholder="職種・企業名で検索"
                 style={{
                   flex: 1, border: "none", outline: "none",
-                  fontSize: 14, color: "var(--ink)", background: "transparent",
-                  padding: "12px 0", minWidth: 0,
+                  fontSize: 13.5, color: "var(--ink)", background: "transparent",
+                  padding: "9px 0", minWidth: 0,
                 }}
                 onFocus={(e) => {
                   const wrap = e.currentTarget.parentElement as HTMLElement;

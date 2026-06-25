@@ -62,10 +62,10 @@ export default function ArticleFilterBar({ total }: { total: number }) {
               aria-label="記事を検索"
               style={{
                 width: "100%", boxSizing: "border-box",
-                padding: "7px 28px 7px 30px",
+                padding: "9px 28px 9px 30px",
                 border: `1.5px solid ${localQ ? "var(--royal)" : LINE}`,
                 borderRadius: 100,
-                fontSize: 12.5, color: "var(--ink)",
+                fontSize: 13.5, color: "var(--ink)",
                 background: "#fff", outline: "none",
                 fontFamily: "inherit",
                 transition: "border-color 0.15s",
