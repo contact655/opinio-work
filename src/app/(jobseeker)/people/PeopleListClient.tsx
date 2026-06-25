@@ -436,54 +436,51 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
       {/* ── Sticky フィルターバー（企業ページと同パターン） ── */}
       <div style={{ position: "sticky", top: 60, zIndex: 30, background: "#fff", borderBottom: "1px solid var(--line)", padding: "12px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
-        {/* フリーワード検索 */}
-        <div style={{ position: "relative" }}>
-          <svg
-            style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round"
+
+        {/* 1行目: 検索バー + ロールチップ + ビュー切り替え */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+
+        {/* フリーワード検索 — 企業ページと同じpill形状 */}
+        <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            background: "#fff", border: "1.5px solid #e6e9ef", borderRadius: 999,
+            padding: "0 14px", transition: "border-color 0.15s, box-shadow 0.15s",
+          }}
+            onFocus={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
+            onBlur={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#e6e9ef"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
           >
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input
-            ref={inputRef}
-            type="search"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="名前・会社名・役職で検索..."
-            style={{
-              width: "100%",
-              padding: "9px 16px 9px 36px",
-              border: "1.5px solid var(--line)",
-              borderRadius: 9,
-              fontSize: 13,
-              color: "var(--ink)",
-              background: "var(--bg-tint)",
-              outline: "none",
-              boxSizing: "border-box",
-              fontFamily: "inherit",
-              transition: "border-color 0.15s",
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--royal)"; e.currentTarget.style.background = "#fff"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.background = "var(--bg-tint)"; }}
-          />
-          {keyword && (
-            <button
-              type="button"
-              onClick={() => { setKeyword(""); inputRef.current?.focus(); }}
-              style={{
-                position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-                background: "none", border: "none", cursor: "pointer",
-                color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2,
-              }}
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="#8b95a3" strokeWidth="2" strokeLinecap="round"
+              style={{ flexShrink: 0 }} aria-hidden="true"
             >
-              ×
-            </button>
-          )}
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              ref={inputRef}
+              type="search"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="名前・会社名・役職で検索"
+              style={{
+                flex: 1, border: "none", outline: "none",
+                fontSize: 13.5, color: "var(--ink)", background: "transparent",
+                padding: "9px 0", minWidth: 0, fontFamily: "inherit",
+              }}
+            />
+            {keyword && (
+              <button
+                type="button"
+                onClick={() => { setKeyword(""); inputRef.current?.focus(); }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 16, lineHeight: 1, padding: "2px", flexShrink: 0 }}
+              >×</button>
+            )}
+          </div>
         </div>
 
         {/* ロールカテゴリ + ビュー切り替え */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {ROLE_CATEGORIES.map((cat) => {
               const count = cat.key === "all"
@@ -561,6 +558,7 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
             ))}
           </div>
         </div>
+        </div>{/* 1行目 end */}
 
         {/* 企業タイプフィルター */}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>

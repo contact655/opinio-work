@@ -50,7 +50,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
         <div style={{ padding: "0 0 14px", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
 
           {/* Keyword search */}
-          <div style={{ position: "relative", minWidth: 160, flex: "0 1 200px" }}>
+          <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={INK_MUTE} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>

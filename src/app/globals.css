@@ -755,12 +755,16 @@ body {
   background: rgba(255,255,255,0.25);
 }
 .traj-search-input {
-  border: 1.5px solid var(--line); border-radius: 10px;
-  padding: 8px 14px 8px 36px; font-size: 13px;
+  border: 1.5px solid #e6e9ef; border-radius: 999px;
+  padding: 9px 14px 9px 36px; font-size: 13.5px;
   background: #fff; color: var(--ink); outline: none;
-  width: 200px; transition: border-color 0.12s;
+  width: 100%; box-sizing: border-box;
+  font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s;
 }
-.traj-search-input:focus { border-color: var(--royal); }
+.traj-search-input:focus {
+  border-color: var(--royal);
+  box-shadow: 0 0 0 3px rgba(0,35,102,0.08);
+}
 .traj-sort-select {
   border: 1.5px solid var(--line); border-radius: 10px;
   padding: 8px 12px; font-size: 12px; font-weight: 600;

@@ -93,7 +93,7 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
       }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {/* 検索ボックス */}
-          <div style={{ position: "relative", flexShrink: 0 }}>
+          <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
             <svg
               width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
