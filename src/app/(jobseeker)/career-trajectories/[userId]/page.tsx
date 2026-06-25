@@ -344,6 +344,29 @@ export async function generateMetadata({
 // データ取得
 // ────────────────────────────────────────────────────────────────
 
+// 話せる人がいる企業ID Set を返す
+async function getAmbassadorCompanyIds(
+  adminSupabase: ReturnType<typeof createAdminClient>,
+  companyIds: string[],
+): Promise<Set<string>> {
+  if (companyIds.length === 0) return new Set();
+  const { data } = await adminSupabase
+    .from("ow_company_admins")
+    .select("company_id, user:ow_users!user_id(visibility, name)")
+    .eq("is_ambassador", true)
+    .eq("is_active", true)
+    .not("user_id", "is", null)
+    .in("company_id", companyIds);
+  const ids = new Set<string>();
+  type AmbRow = { company_id: string; user: { visibility: string | null; name: string | null } | null };
+  for (const row of (data ?? []) as unknown as AmbRow[]) {
+    if (row.user?.visibility === "public" && row.user?.name) {
+      ids.add(row.company_id);
+    }
+  }
+  return ids;
+}
+
 async function getData(userId: string) {
   const adminSupabase = createAdminClient();
 
@@ -382,27 +405,27 @@ async function getData(userId: string) {
     )
   );
 
+  const [logoRes, rolesRes, ambassadorIds] = await Promise.all([
+    companyIds.length > 0
+      ? adminSupabase
+          .from("ow_companies")
+          .select("id, name, logo_url, logo_gradient, logo_letter")
+          .in("id", companyIds)
+      : Promise.resolve({ data: [] as { id: string; name: string; logo_url: string | null; logo_gradient: string | null; logo_letter: string | null }[] }),
+    adminSupabase.from("ow_roles").select("id, name, parent_id"),
+    getAmbassadorCompanyIds(adminSupabase, companyIds),
+  ]);
+
   const logoMap: Record<string, CompanyLogo> = {};
-  if (companyIds.length > 0) {
-    const { data: logos } = await adminSupabase
-      .from("ow_companies")
-      .select("id, name, logo_url, logo_gradient, logo_letter")
-      .in("id", companyIds);
-    if (logos) {
-      for (const l of logos) logoMap[l.id] = l;
-    }
-  }
+  for (const l of (logoRes.data ?? []) as CompanyLogo[]) logoMap[l.id] = l;
 
   const roleMap: Record<string, RoleInfo> = {};
-  const { data: allRoles } = await adminSupabase
-    .from("ow_roles")
-    .select("id, name, parent_id");
-  if (allRoles) {
+  if (rolesRes.data) {
     const byId: Record<string, { name: string; parent_id: string | null }> = {};
-    for (const r of allRoles as { id: string; name: string; parent_id: string | null }[]) {
+    for (const r of rolesRes.data as { id: string; name: string; parent_id: string | null }[]) {
       byId[r.id] = { name: r.name, parent_id: r.parent_id };
     }
-    for (const r of allRoles as { id: string; name: string; parent_id: string | null }[]) {
+    for (const r of rolesRes.data as { id: string; name: string; parent_id: string | null }[]) {
       roleMap[r.id] = {
         name: r.name,
         parent_name: r.parent_id ? (byId[r.parent_id]?.name ?? null) : null,
@@ -414,7 +437,7 @@ async function getData(userId: string) {
   const serialIdx = allProfiles.findIndex((p) => p.user_id === userId);
   const serialNumber = serialIdx >= 0 ? serialIdx + 1 : null;
 
-  return { profile: profileRes.data, steps, logoMap, roleMap, serialNumber };
+  return { profile: profileRes.data, steps, logoMap, roleMap, serialNumber, ambassadorIds };
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -530,7 +553,7 @@ export default async function CareerTrajectoryPage({
   const data = await getData(params.userId);
   if (!data || data.steps.length === 0) notFound();
 
-  const { profile, steps, logoMap, roleMap, serialNumber } = data;
+  const { profile, steps, logoMap, roleMap, serialNumber, ambassadorIds } = data;
 
   const groups = buildGroups(steps);
   const totalCompanies = groups.length;
@@ -904,29 +927,98 @@ export default async function CareerTrajectoryPage({
           ※ 企業名・年収の一部は本人の希望により非公開にしている場合があります
         </p>
 
-        {/* CTA — 現職に連動した動的文言 */}
+        {/* CTA — 登場企業への導線（話せる人がいる企業のみ） */}
         {(() => {
-          // 現職の情報からCTA文言を生成
-          const isCompanyReal = currentStep?.visibility_company === "real";
-          const ctaCompany = isCompanyReal ? currentCompanyName : null;
+          // 登場企業のうち話せる人がいるものを収集（重複除去・display_order降順）
+          const seenIds = new Set<string>();
+          const companiesWithAmbassador: { companyId: string; companyName: string; isCurrent: boolean }[] = [];
+          for (const s of steps) {
+            if (
+              s.visibility_company === "real" &&
+              s.company_id &&
+              !seenIds.has(s.company_id) &&
+              ambassadorIds.has(s.company_id)
+            ) {
+              seenIds.add(s.company_id);
+              companiesWithAmbassador.push({
+                companyId: s.company_id,
+                companyName: companyDisplay(s, logoMap),
+                isCurrent: s.is_current,
+              });
+            }
+          }
+
+          // 現職を先頭に並べ替え
+          companiesWithAmbassador.sort((a, b) => (b.isCurrent ? 1 : 0) - (a.isCurrent ? 1 : 0));
+
+          const hasCandidates = companiesWithAmbassador.length > 0;
+
+          if (hasCandidates) {
+            const primary = companiesWithAmbassador[0];
+            const others = companiesWithAmbassador.slice(1);
+            return (
+              <div style={{
+                marginTop: 40,
+                background: "linear-gradient(135deg, #001233 0%, #002366 100%)",
+                borderRadius: 16, padding: "32px 28px",
+                position: "relative", overflow: "hidden",
+              }}>
+                <div style={{ position: "absolute", top: -40, right: -20, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+                {/* 主役 CTA */}
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 8, letterSpacing: "0.05em" }}>
+                    {primary.isCurrent
+                      ? `${primary.companyName}への転職を考えていますか？`
+                      : `${primary.companyName}のことをもっと知りたいですか？`}
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 22, fontFamily: "Noto Serif JP, serif", lineHeight: 1.5 }}>
+                    {primary.companyName}の先輩に<br />話を聞いてみる
+                  </div>
+                  <Link
+                    href={`/people?company=${primary.companyId}`}
+                    style={{
+                      display: "inline-block",
+                      background: "linear-gradient(135deg, var(--warm) 0%, #f97316 100%)",
+                      color: "#fff", fontWeight: 700, fontSize: 14,
+                      padding: "12px 32px", borderRadius: 8, textDecoration: "none",
+                      boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+                    }}
+                  >
+                    {primary.companyName}の先輩を探す →
+                  </Link>
+                </div>
+
+                {/* 他企業の控えめな導線 */}
+                {others.length > 0 && (
+                  <div style={{ marginTop: 24, borderTop: "1px solid rgba(255,255,255,0.12)", paddingTop: 20 }}>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 12, letterSpacing: "0.08em", textAlign: "center", fontFamily: "Inter, sans-serif" }}>
+                      他の登場企業の先輩にも話を聞けます
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+                      {others.map((c) => (
+                        <Link
+                          key={c.companyId}
+                          href={`/people?company=${c.companyId}`}
+                          style={{
+                            display: "inline-block",
+                            background: "rgba(255,255,255,0.1)",
+                            border: "1px solid rgba(255,255,255,0.2)",
+                            color: "rgba(255,255,255,0.85)", fontWeight: 600, fontSize: 13,
+                            padding: "8px 18px", borderRadius: 8, textDecoration: "none",
+                          }}
+                        >
+                          {c.companyName}の先輩
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // フォールバック — 話せる人がいる企業がゼロの場合
           const ctaRole = currentStep?.role_title ?? (roleLabels[0] ? `${roleLabels[0]}職` : null);
-
-          const ctaHeading = ctaCompany
-            ? `${ctaCompany}の先輩に\n話を聞いてみる`
-            : ctaRole
-              ? `${ctaRole}の先輩に\n話を聞いてみる`
-              : `先輩アドバイザーに\n直接話を聞いてみる`;
-
-          const ctaButton = ctaCompany
-            ? `${ctaCompany}の先輩を探す →`
-            : ctaRole
-              ? `${ctaRole}の先輩を探す →`
-              : `先輩を探す →`;
-
-          const ctaSub = ctaCompany
-            ? `${ctaCompany}への転職を考えていますか？`
-            : `同じようなキャリアを考えていますか？`;
-
           return (
             <div style={{
               marginTop: 40,
@@ -936,22 +1028,23 @@ export default async function CareerTrajectoryPage({
             }}>
               <div style={{ position: "absolute", top: -40, right: -20, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 8, letterSpacing: "0.05em" }}>
-                {ctaSub}
+                同じようなキャリアを考えていますか？
               </div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 22, fontFamily: "Noto Serif JP, serif", lineHeight: 1.5, whiteSpace: "pre-line" }}>
-                {ctaHeading}
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 22, fontFamily: "Noto Serif JP, serif", lineHeight: 1.5 }}>
+                {ctaRole ? `${ctaRole}の先輩に\n話を聞いてみる` : `先輩に\n直接話を聞いてみる`}
               </div>
               <Link
-                href="/mentors"
+                href="/people"
                 style={{
                   display: "inline-block",
                   background: "linear-gradient(135deg, var(--warm) 0%, #f97316 100%)",
                   color: "#fff", fontWeight: 700, fontSize: 14,
                   padding: "12px 32px", borderRadius: 8, textDecoration: "none",
                   boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+                  whiteSpace: "pre-line",
                 }}
               >
-                {ctaButton}
+                話せる人一覧を見る →
               </Link>
             </div>
           );
