@@ -226,19 +226,46 @@ type ContentBlockConfig = {
   icon: React.ReactNode;
   text: string | null;
   hide?: boolean;
+  prominent?: boolean;
 };
 
 function InterviewContent({ blocks }: { blocks: ContentBlockConfig[] }) {
   const visible = blocks.filter((b) => !b.hide && b.text);
   if (visible.length === 0) return null;
   return (
-    <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-      {visible.map((block) => (
+    <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+      {visible.map((block) => block.prominent ? (
+        /* 入社の決め手 / 仕事の内容・成果 — prominent style */
+        <div key={block.key} style={{
+          borderLeft: `3px solid ${block.color}`,
+          background: block.bg,
+          borderRadius: "0 10px 10px 0",
+          padding: "14px 18px",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
+            <span style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 22, height: 22, borderRadius: "50%",
+              background: block.color, color: "#fff", flexShrink: 0,
+            }}>
+              {block.icon}
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: block.color, letterSpacing: "0.05em", fontFamily: "Inter, sans-serif" }}>
+              {block.label}
+            </span>
+          </div>
+          <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.9, margin: 0, whiteSpace: "pre-wrap" }}>
+            {block.text}
+          </p>
+        </div>
+      ) : (
+        /* 転機 / 次のステップ — standard style */
         <div key={block.key} style={{
           background: block.bg, border: `1px solid ${block.border}`,
-          borderRadius: 10, padding: "12px 16px",
+          borderRadius: 10, padding: "11px 15px",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <span style={{
               display: "flex", alignItems: "center", justifyContent: "center",
               width: 18, height: 18, borderRadius: "50%",
@@ -435,15 +462,17 @@ function buildBlocks(
       border: "var(--royal-100)",
       icon: IconDoor,
       text: step.join_reason,
+      prominent: true,
     },
     {
       key: "desc",
       label: "仕事の内容・成果",
-      color: "#64748B",
-      bg: "var(--bg-tint)",
-      border: "var(--line-soft)",
+      color: "#475569",
+      bg: "#fff",
+      border: "var(--line)",
       icon: IconBriefcase,
       text: step.description,
+      prominent: true,
     },
     {
       key: "turn",
