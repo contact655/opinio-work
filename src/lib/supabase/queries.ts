@@ -112,14 +112,14 @@ function mapJob(row: Record<string, any>): Job {
   const requiredSkills: string[] = Array.isArray(reqRaw)
     ? reqRaw
     : typeof reqRaw === "string" && reqRaw.trim()
-    ? reqRaw.split(/\n|・|、/).map((s: string) => s.trim()).filter(Boolean)
+    ? reqRaw.split(/\n|\\n|・|、/).map((s: string) => s.replace(/\\n/g, "").trim()).filter(Boolean)
     : [];
 
   const prefRaw = row.preferred_skills ?? row.preferred;
   const preferredSkills: string[] = Array.isArray(prefRaw)
     ? prefRaw
     : typeof prefRaw === "string" && prefRaw.trim()
-    ? prefRaw.split(/\n|・|、/).map((s: string) => s.trim()).filter(Boolean)
+    ? prefRaw.split(/\n|\\n|・|、/).map((s: string) => s.replace(/\\n/g, "").trim()).filter(Boolean)
     : [];
 
   // selection_flow: from selection_process (might be string[] or null)

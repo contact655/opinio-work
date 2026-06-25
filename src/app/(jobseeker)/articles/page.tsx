@@ -212,71 +212,66 @@ function ArticleListRow({ article }: { article: Article }) {
   return (
     <Link href={`/articles/${article.slug}`} prefetch={true} style={{ textDecoration: "none" }}>
       <article style={{
-        display: "flex", alignItems: "center", gap: 16,
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 12,
-        padding: "14px 18px",
+        padding: "12px 14px",
         transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-      }} className="article-card">
-        {/* カテゴリバッジ */}
-        <div style={{
-          flexShrink: 0,
-          display: "inline-flex", alignItems: "center",
-          padding: "4px 10px", borderRadius: 100,
-          background: badge.bg, color: badge.color,
-          fontSize: 10, fontWeight: 700, whiteSpace: "nowrap",
-          minWidth: 80, justifyContent: "center",
-        }}>
-          {badge.label}
-        </div>
+      }} className="article-card article-list-row">
 
-        {/* タイトル + 取材対象者 */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {mainSubject?.role_at_interview && (
-            <div style={{ fontSize: 10.5, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 3, lineHeight: 1.3 }}>
-              {mainSubject.role_at_interview}
-            </div>
-          )}
+        {/* 上段: バッジ + 会社 + メタ */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
           <div style={{
-            fontSize: 14, fontWeight: 700, color: "var(--ink)",
-            lineHeight: 1.45, fontFamily: "var(--font-noto-serif)",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            flexShrink: 0,
+            display: "inline-flex", alignItems: "center",
+            padding: "3px 9px", borderRadius: 100,
+            background: badge.bg, color: badge.color,
+            fontSize: 10, fontWeight: 700, whiteSpace: "nowrap",
           }}>
-            {article.title}
+            {badge.label}
           </div>
-        </div>
-
-        {/* 会社 + 読了時間 + 日付 */}
-        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          {/* 会社ロゴ + 名前 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0 }}>
             <div style={{
-              width: 18, height: 18, borderRadius: 4,
+              width: 16, height: 16, borderRadius: 3,
               background: article.company_gradient,
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 8, fontWeight: 700, flexShrink: 0,
+              color: "#fff", fontSize: 7, fontWeight: 700, flexShrink: 0,
             }}>
               {article.company_initial}
             </div>
-            <span style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 500, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {article.company_name}
             </span>
           </div>
-          {article.read_min && (
-            <span style={{
-              fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap",
-              display: "flex", alignItems: "center", gap: 3,
-              fontFamily: "Inter, sans-serif",
-            }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-              </svg>
-              {article.read_min}分
+          {/* 読了時間 + 日付（右寄せ） */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            {article.read_min && (
+              <span style={{ fontSize: 10, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, fontFamily: "Inter, sans-serif" }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                {article.read_min}分
+              </span>
+            )}
+            <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
+              {article.date.replace(/-/g, "/").slice(2)}
             </span>
-          )}
-          <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
-            {article.date.replace(/-/g, "/").slice(2)}
-          </span>
+          </div>
+        </div>
+
+        {/* 下段: 役職 + タイトル */}
+        {mainSubject?.role_at_interview && (
+          <div style={{ fontSize: 10.5, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 2, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {mainSubject.role_at_interview}
+          </div>
+        )}
+        <div style={{
+          fontSize: 14, fontWeight: 700, color: "var(--ink)",
+          lineHeight: 1.45, fontFamily: "var(--font-noto-serif)",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {article.title}
         </div>
       </article>
     </Link>
@@ -294,7 +289,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
   const sortParam = typeof searchParams.sort === "string" ? searchParams.sort : undefined;
   const qParam    = typeof searchParams.q    === "string" ? searchParams.q    : undefined;
   const pageParam  = typeof searchParams.page === "string" ? Math.max(1, parseInt(searchParams.page, 10)) : 1;
-  const viewParam  = typeof searchParams.view === "string" ? searchParams.view : "grid";
+  const viewParam  = typeof searchParams.view === "string" ? searchParams.view : "list";
 
   const [_allArticles, filteredArticles] = await Promise.all([
     getArticles(),
@@ -353,7 +348,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                 return (
                   <Link href={`/articles/${featured.slug}`} style={{ textDecoration: "none", display: "block", marginBottom: "var(--space-6)" }}>
                     <article
-                      className="article-card"
+                      className="article-card article-featured"
                       style={{
                         display: "flex",
                         background: "#fff",
@@ -364,8 +359,8 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                         transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
                       }}
                     >
-                      {/* Eyecatch — left side */}
-                      <div style={{
+                      {/* Eyecatch — left side (desktop) / top (mobile) */}
+                      <div className="article-featured-eyecatch" style={{
                         width: 280,
                         flexShrink: 0,
                         background: featured.eyecatch_gradient,
@@ -595,6 +590,12 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
           transform: translateY(-4px) !important;
         }
         .article-card { cursor: pointer; }
+        .article-featured { flex-direction: row; }
+        .article-featured-eyecatch { min-height: 180px; }
+        @media (max-width: 600px) {
+          .article-featured { flex-direction: column !important; }
+          .article-featured-eyecatch { width: 100% !important; min-height: 140px; }
+        }
       `}</style>
     </>
   );

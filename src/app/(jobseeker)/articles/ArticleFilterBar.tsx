@@ -138,7 +138,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
 
           {/* View toggle */}
           {(() => {
-            const currentView = searchParams.get("view") ?? "grid";
+            const currentView = searchParams.get("view") ?? "list";
             return (
               <div style={{
                 display: "flex", gap: 2,
@@ -161,7 +161,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                   <button
                     key={mode}
                     type="button"
-                    onClick={() => updateParam("view", mode === "grid" ? null : mode)}
+                    onClick={() => updateParam("view", mode === "list" ? null : mode)}
                     title={label}
                     style={{
                       padding: "5px 10px",

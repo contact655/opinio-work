@@ -423,19 +423,27 @@ export function TrajectoryCardClient({
 
   // ⑥ 年収エリア：スパークライン廃止、数値を大型化
   const SalaryArea = ({ compact }: { compact?: boolean }) => (
-    <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0, gap: 2 }}>
       {salaryDiff && (
-        <span style={{
-          fontSize: compact ? 15 : 18, fontWeight: 900,
-          color: salaryDiff.positive ? "var(--success)" : "var(--error)",
-          fontFamily: "Inter, sans-serif",
-          background: salaryDiff.positive ? "var(--success-soft)" : "var(--error-soft)",
-          borderRadius: 8, padding: compact ? "4px 10px" : "6px 12px",
-          whiteSpace: "nowrap",
-          letterSpacing: "-0.02em",
-        }}>
-          {salaryDiff.text}
-        </span>
+        <>
+          <span style={{
+            fontSize: 9, fontWeight: 700, color: "var(--ink-mute)",
+            letterSpacing: "0.04em", textTransform: "uppercase",
+          }}>
+            年収変化
+          </span>
+          <span style={{
+            fontSize: compact ? 15 : 18, fontWeight: 900,
+            color: salaryDiff.positive ? "var(--success)" : "var(--error)",
+            fontFamily: "Inter, sans-serif",
+            background: salaryDiff.positive ? "var(--success-soft)" : "var(--error-soft)",
+            borderRadius: 8, padding: compact ? "4px 10px" : "6px 12px",
+            whiteSpace: "nowrap",
+            letterSpacing: "-0.02em",
+          }}>
+            {salaryDiff.text}
+          </span>
+        </>
       )}
     </div>
   );
@@ -475,8 +483,8 @@ export function TrajectoryCardClient({
             </div>
           </div>
 
-          {/* 中：ロゴストリップ（最大5社） */}
-          <div style={{ flexShrink: 0 }}>
+          {/* 中：ロゴストリップ（最大5社）— 固定幅で1社目の開始を全行で揃える */}
+          <div style={{ flexShrink: 0, width: 280, overflow: "hidden" }}>
             <LogoStrip chipSize={40} />
           </div>
 

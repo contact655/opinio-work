@@ -819,16 +819,16 @@ export function filterArticles(
 export const ARTICLE_TYPES: { value: ArticleType | "all"; label: string }[] = [
   { value: "all", label: "すべて" },
   { value: "employee", label: "社員インタビュー" },
-  { value: "mentor", label: "社員・OBの声" },
+  { value: "mentor", label: "OB・OGの声" },
   { value: "ceo", label: "CEO・経営陣" },
-  { value: "report", label: "取材レポート" },
+  { value: "report", label: "組織レポート" },
 ];
 
 export const TYPE_BADGE: Record<ArticleType, { label: string; bg: string; color: string }> = {
   employee: { label: "社員インタビュー", bg: "#EFF6FF", color: "#1D4ED8" },
-  mentor:   { label: "社員・OBの声",     bg: "#F5F3FF", color: "#7C3AED" },
+  mentor:   { label: "OB・OGの声",       bg: "#F5F3FF", color: "#7C3AED" },
   ceo:      { label: "CEO・経営陣",      bg: "#FEF3C7", color: "#D97706" },
-  report:   { label: "取材レポート",     bg: "#F1F5F9", color: "#475569" },
+  report:   { label: "組織レポート",     bg: "#F1F5F9", color: "#475569" },
 };
 
 export const TYPE_EYECATCH_ICON: Record<ArticleType, string> = {
