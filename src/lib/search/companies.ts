@@ -111,23 +111,13 @@ export async function searchCompanies(
     return q;
   }
 
-  // ── Step 1a: 総件数取得（DB ページネーション時のみ）
-  let totalCount = 0;
-  if (useDbPagination) {
-    const countQuery = applyFilters(
-      supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true)
-    );
-    const { count } = await countQuery;
-    totalCount = count ?? 0;
-  }
-
-  // ── Step 1b: データ取得
-  // #3: company_features を SELECT に追加
-  // #10: sort パラメータに応じて ORDER BY を切り替え（server-side sort）
+  // ── Step 1: データ取得 + 総件数を1クエリで同時取得（count: "exact"）
+  // 旧: COUNT クエリ → await → DATA クエリ（2 hop）
+  // 新: DATA クエリ + count: "exact" で1 hop に統合
   const orderCol = params.sort === "employees" ? "employee_count"
                 : params.sort === "salary"    ? "avg_salary"
                 : "updated_at";
-  const orderAsc = false; // 全ソート DESC
+  const orderAsc = false;
 
   let dataQuery = applyFilters(
     supabase
@@ -135,20 +125,21 @@ export async function searchCompanies(
       .select(
         "id, name, name_en, tagline, industry, funding_stage:phase, employee_count, description, is_foreign, " +
         "accepting_casual_meetings, remote_work_status, location, branch_locations, logo_letter, logo_gradient, logo_url, updated_at, " +
-        "current_member_count, obog_count, avg_salary, company_features"
+        "current_member_count, obog_count, avg_salary, company_features",
+        useDbPagination ? { count: "exact" } : undefined
       )
       .eq("is_published", true)
   ).order(orderCol, { ascending: orderAsc });
 
-  // DB ページネーション適用
   if (useDbPagination) {
     const offset = params.offset ?? 0;
     const limit  = params.limit!;
     dataQuery = dataQuery.range(offset, offset + limit - 1);
   }
 
-  const { data: rawCompanies, error } = await dataQuery;
+  const { data: rawCompanies, count: rawCount, error } = await dataQuery;
   if (error) throw error;
+  let totalCount = rawCount ?? 0;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const companyList: CompanyForCarousel[] = (rawCompanies ?? []) as any[];
@@ -236,26 +227,30 @@ export async function searchCompanies(
 
 // ── 業種一覧取得（フィルタ選択肢用）────────────────────────────────────────────
 
-/** 公開企業の distinct industry リスト（ドロップダウン選択肢） */
-export async function fetchDistinctIndustries(): Promise<string[]> {
-  const supabase = createPublicClient();
-  const { data } = await supabase
-    .from("ow_companies")
-    .select("industry")
-    .eq("is_published", true)
-    .not("industry", "is", null)
-    .order("industry");
+/** 公開企業の distinct industry リスト（ドロップダウン選択肢）— 5分間キャッシュ */
+export const fetchDistinctIndustries = unstable_cache(
+  async (): Promise<string[]> => {
+    const supabase = createPublicClient();
+    const { data } = await supabase
+      .from("ow_companies")
+      .select("industry")
+      .eq("is_published", true)
+      .not("industry", "is", null)
+      .order("industry");
 
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const row of data ?? []) {
-    if (row.industry && !seen.has(row.industry)) {
-      seen.add(row.industry);
-      result.push(row.industry);
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const row of data ?? []) {
+      if (row.industry && !seen.has(row.industry)) {
+        seen.add(row.industry);
+        result.push(row.industry);
+      }
     }
-  }
-  return result;
-}
+    return result;
+  },
+  ["distinct-industries"],
+  { revalidate: 300 }
+);
 
 // branch_locations の値（都道府県サフィックスなし）→ 正式な都道府県名 マッピング
 const BRANCH_TO_PREF: Record<string, string> = {

@@ -12,8 +12,8 @@ import { CompareBar } from "@/components/companies/CompareBar";
 
 type MemberPreview = { id: string; name: string };
 
-// 60秒間ページキャッシュ（ISR）— 開発中は短めに設定
-export const revalidate = 60;
+// 5分間ページキャッシュ（ISR）
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "IT/SaaS企業を知る — OPINIO",
@@ -117,18 +117,19 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const isListView  = !hasFilter && view === "list";
   const needsGrid = isGridView || isListView;
 
-  // ── 並列フェッチ（不要なクエリはスキップ）──────────────────────────────────
+  // ── 全クエリを1段の Promise.all で並列実行 ──────────────────────────────────
+  // 旧: searchCompanies → await → ow_experiences（直列2段）
+  // 新: 全5クエリを同時に投げて最も遅いものを待つだけ
   const supabase = createPublicClient();
 
-  const [locations, industries, companyNamesResult, allCompaniesResult] = await Promise.all([
-    // フィルターバー用ロケーション（キャッシュ済み）
+  const [locations, industries, companyNamesResult, allCompaniesResult, experienceResult] = await Promise.all([
+    // フィルターバー用ロケーション（unstable_cache 300s）
     fetchDistinctLocations(),
-    // フィルターバー用業種リスト
+    // フィルターバー用業種リスト（unstable_cache 300s）
     fetchDistinctIndustries(),
     // 検索サジェスト用企業名リスト
     supabase.from("ow_companies").select("id, name").eq("is_published", true).order("name"),
-    // グリッド/リスト表示: DB側でページ分だけ取得（総件数も同時取得）
-    // #10: sort パラメータをDB側へ渡してサーバーサイドソート
+    // グリッド/リスト: DB側ページネーション + count を1クエリで取得
     needsGrid
       ? searchCompanies({
           limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE,
@@ -136,31 +137,28 @@ export default async function CompaniesPage({ searchParams }: Props) {
           salaryMin: salaryMin ? parseInt(salaryMin, 10) : undefined,
         })
       : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
+    // 在籍メンバー: 全社分を並列取得し、後でメモリ内フィルター
+    needsGrid
+      ? supabase.from("ow_experiences").select("company_id, user_id, ow_users(id, name)").eq("is_current", true)
+      : Promise.resolve({ data: null }),
   ]);
 
   const companySuggestions: { id: string; name: string }[] =
     (companyNamesResult.data ?? []) as { id: string; name: string }[];
 
-  // ── 在籍メンバー取得（表示企業分のみ）─────────────────────────────────────
+  // ── 在籍メンバーをメモリ内でページ企業に絞り込み ─────────────────────────
   const membersByCompany: Record<string, MemberPreview[]> = {};
-  if (needsGrid && allCompaniesResult.companies.length > 0) {
-    const pageCompanyIds = allCompaniesResult.companies.map((c) => c.id);
-    const { data: experienceData } = await supabase
-      .from("ow_experiences")
-      .select("company_id, user_id, ow_users(id, name)")
-      .eq("is_current", true)
-      .in("company_id", pageCompanyIds);  // ページ内企業のみ
-
-    if (experienceData) {
-      for (const exp of experienceData) {
-        const companyId = exp.company_id as string;
-        if (!membersByCompany[companyId]) membersByCompany[companyId] = [];
-        if (membersByCompany[companyId].length < 8) {
-          const user = exp.ow_users as { id: string; name: string } | { id: string; name: string }[] | null;
-          if (user) {
-            const u = Array.isArray(user) ? user[0] : user;
-            if (u) membersByCompany[companyId].push({ id: u.id, name: u.name ?? "?" });
-          }
+  if (needsGrid && experienceResult.data) {
+    const pageCompanyIds = new Set(allCompaniesResult.companies.map((c) => c.id));
+    for (const exp of experienceResult.data) {
+      const companyId = exp.company_id as string;
+      if (!pageCompanyIds.has(companyId)) continue;
+      if (!membersByCompany[companyId]) membersByCompany[companyId] = [];
+      if (membersByCompany[companyId].length < 8) {
+        const user = exp.ow_users as { id: string; name: string } | { id: string; name: string }[] | null;
+        if (user) {
+          const u = Array.isArray(user) ? user[0] : user;
+          if (u) membersByCompany[companyId].push({ id: u.id, name: u.name ?? "?" });
         }
       }
     }
