@@ -1365,7 +1365,7 @@ function ExistingUserNotice({ email, onSwitchToLogin, onChangeEmail }: ExistingU
           ログインして企業情報を追加できます。
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
-          <button type="button" onClick={onSwitchToLogin} style={{
+          <button type="button" onClick={() => onSwitchToLogin(email)} style={{
             padding: "7px 12px", background: "var(--royal)", color: "#fff",
             border: "none", borderRadius: 6, fontFamily: "inherit", fontSize: 11, fontWeight: 600, cursor: "pointer",
           }}>

@@ -15,7 +15,7 @@ export const metadata = {
 
 export default async function CategoriesPage() {
   const ctx = await getTenantContext();
-  if (!ctx) redirect("/biz/auth");
+  if (!ctx) redirect("/biz/dashboard");
 
   const [categories, allRoles] = await Promise.all([
     getCompanyEmployeeCategories(ctx.tenantId),

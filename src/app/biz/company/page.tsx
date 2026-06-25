@@ -14,7 +14,7 @@ export const metadata = {
 
 export default async function BizCompanyPage() {
   const ctx = await getTenantContext();
-  if (!ctx) redirect("/biz/auth");
+  if (!ctx) redirect("/biz/dashboard");
 
   const supabase = createClient();
 
@@ -35,7 +35,7 @@ export default async function BizCompanyPage() {
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
   ]);
 
-  if (!companyRaw) redirect("/biz/auth");
+  if (!companyRaw) redirect("/biz/dashboard");
 
   // 公開済みジャンルの slug 配列（draft_data.genres がない企業の初期値として使用）
   const publishedGenreSlugs: string[] = ((publishedGenresResult.data ?? []) as Record<string, unknown>[])

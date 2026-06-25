@@ -495,6 +495,22 @@ export function CreateCompanyClient({
               >
                 別の会社名で探す
               </button>
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
+                disabled={loading}
+                style={{
+                  padding: "8px 16px",
+                  background: "transparent",
+                  color: "var(--royal)",
+                  border: "1.5px solid var(--royal-100)", borderRadius: 8,
+                  fontSize: 12, fontWeight: 600,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                }}
+              >
+                {loading ? "作成中..." : "この名前で新規作成する"}
+              </button>
               <a
                 href="mailto:info@opinio.jp?subject=同名企業の登録について"
                 style={{
@@ -540,6 +556,22 @@ export function CreateCompanyClient({
                 }}
               >
                 会社名を変更する
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
+                disabled={loading}
+                style={{
+                  padding: "8px 16px",
+                  background: "transparent",
+                  color: "#92400E",
+                  border: "1.5px solid #FCD34D", borderRadius: 8,
+                  fontSize: 12, fontWeight: 600,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                }}
+              >
+                {loading ? "作成中..." : "この名前で新規作成する"}
               </button>
               <a
                 href="mailto:info@opinio.jp?subject=同名企業の登録について"
