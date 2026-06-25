@@ -124,6 +124,12 @@ export type CompanyDetail = {
     usecase: string;
     result: string;
   }> | null;
+  // Reality disclosure
+  reality_disclosure?: {
+    notFor?: string | null;
+    turnoverReasons?: string[] | null;
+    onboardingGaps?: string | null;
+  } | null;
   // Numbers survey timestamp
   numbersUpdatedAt: string | null;
   // Org teams

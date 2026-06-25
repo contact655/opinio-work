@@ -306,6 +306,10 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     orgTeams: Array.isArray(row.org_teams) ? row.org_teams as CompanyDetail["orgTeams"] : null,
     // Customer cases
     customer_cases: Array.isArray(row.customer_cases) ? row.customer_cases as CompanyDetail["customer_cases"] : null,
+    // Reality disclosure
+    reality_disclosure: row.reality_disclosure
+      ? (row.reality_disclosure as CompanyDetail["reality_disclosure"])
+      : null,
   };
 }
 
@@ -501,6 +505,8 @@ const COMPANY_DETAIL_COLS = [
   "culture_keywords",
   // Customer cases (rich JSONB) — Migration 151 applied ✅
   "customer_cases",
+  // Reality disclosure — Migration 202
+  "reality_disclosure",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {

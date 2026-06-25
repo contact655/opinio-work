@@ -13,6 +13,8 @@ import {
   getJobStatusCounts,
 } from "@/lib/business/dashboard";
 import { fetchTeamMembersForDashboard } from "@/lib/business/team";
+import { fetchCompanyForTenant } from "@/lib/business/company";
+import { calcDisclosureScore, scoreLabel, scoreColor } from "@/lib/utils/disclosureScore";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -74,11 +76,25 @@ export default async function BizDashboardPage() {
   }
 
   const supabase = createClient();
-  const [jobPerformance, jobStatusCounts, teamMembers] = await Promise.all([
+  const [jobPerformance, jobStatusCounts, teamMembers, companyRaw] = await Promise.all([
     getJobPerformance(ctx.tenantId),
     getJobStatusCounts(ctx.tenantId),
     fetchTeamMembersForDashboard(supabase, ctx.tenantId),
+    fetchCompanyForTenant(supabase, ctx.tenantId, []),
   ]);
+
+  const disclosureScore = companyRaw ? calcDisclosureScore({
+    realityNotFor: companyRaw.realityDisclosure.notFor,
+    realityTurnoverReasons: companyRaw.realityDisclosure.turnoverReasons,
+    realityOnboardingGaps: companyRaw.realityDisclosure.onboardingGaps,
+    avgOvertimeHours: companyRaw.avgOvertimeHours,
+    paidLeaveRate: companyRaw.paidLeaveRate,
+    tagline: companyRaw.tagline,
+    aboutMarkdown: companyRaw.descriptionMarkdown,
+    whyJoin: companyRaw.whyJoin,
+    fitPositives: companyRaw.fitPositives,
+    fitNegatives: companyRaw.fitNegatives,
+  }) : null;
 
   return (
     <BusinessLayout
@@ -96,6 +112,46 @@ export default async function BizDashboardPage() {
         logoGradient={ctx.logoGradient}
         logoLetter={ctx.logoLetter}
       />
+
+      {/* ── 開示充実度スコア ── */}
+      {disclosureScore && (
+        <div style={{
+          background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
+          padding: "18px 22px", marginTop: 16,
+          display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
+        }}>
+          <div style={{ flex: "0 0 auto" }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: "50%",
+              background: `conic-gradient(${scoreColor(disclosureScore.total)} ${disclosureScore.total * 3.6}deg, var(--line) 0deg)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              position: "relative",
+            }}>
+              <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 18, fontWeight: 800, color: scoreColor(disclosureScore.total) }}>
+                  {disclosureScore.total}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>開示充実度スコア</span>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, color: scoreColor(disclosureScore.total), background: "var(--bg-tint)", border: `1px solid ${scoreColor(disclosureScore.total)}` }}>
+                {scoreLabel(disclosureScore.total)}
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--ink-soft)" }}>
+              <span>リアル開示 {disclosureScore.reality}/40</span>
+              <span>数値 {disclosureScore.numbers}/20</span>
+              <span>プロフィール {disclosureScore.profile}/40</span>
+            </div>
+          </div>
+          <Link href="/biz/company" style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
+            {disclosureScore.total < 80 ? "開示を充実させる →" : "企業情報を確認 →"}
+          </Link>
+        </div>
+      )}
 
       {/* ── Upgrade banner ── */}
       <UpgradeBanner />

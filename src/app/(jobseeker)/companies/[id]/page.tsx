@@ -1164,6 +1164,89 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
   );
 }
 
+// ─── Reality Disclosure Section ──────────────────────────────────────────────
+
+function RealityDisclosureSection({ detail }: { detail: CompanyDetail }) {
+  const rd = detail.reality_disclosure;
+  if (!rd) return null;
+
+  const hasNotFor = !!(rd.notFor?.trim());
+  const hasTurnover = !!(rd.turnoverReasons && rd.turnoverReasons.length > 0);
+  const hasGaps = !!(rd.onboardingGaps?.trim());
+  if (!hasNotFor && !hasTurnover && !hasGaps) return null;
+
+  return (
+    <section
+      id="reality"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: "var(--space-6)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: "50%", background: "var(--error-soft)" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </span>
+        <span style={{ fontWeight: 700, fontSize: 16, color: "var(--ink)" }}>リアル開示</span>
+        <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--error)", fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--error-soft)", border: "1px solid #FECACA" }}>
+          企業自己申告
+        </span>
+      </div>
+      <div style={{ padding: "var(--space-6) 32px" }}>
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 20 }}>
+          GreenやLinkedInには載らない、企業が自ら開示する「本音情報」です。入社後のミスマッチ防止のために公開しています。
+        </p>
+
+        {hasNotFor && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)", marginBottom: 8 }}>
+              こんな方には向かないかもしれません
+            </div>
+            <div style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8, padding: "12px 16px", background: "var(--bg-tint)", borderRadius: 8, borderLeft: "3px solid var(--error)" }}>
+              {rd.notFor}
+            </div>
+          </div>
+        )}
+
+        {hasTurnover && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)", marginBottom: 8 }}>
+              よくある退職理由
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {rd.turnoverReasons!.map((reason) => (
+                <span key={reason} style={{
+                  fontSize: 12, color: "var(--ink-soft)", padding: "4px 10px",
+                  borderRadius: 100, background: "#F8FAFC", border: "1px solid var(--line)",
+                }}>
+                  {reason}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasGaps && (
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)", marginBottom: 8 }}>
+              入社後にギャップを感じやすいこと
+            </div>
+            <div style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8, padding: "12px 16px", background: "var(--bg-tint)", borderRadius: 8, borderLeft: "3px solid var(--warm)" }}>
+              {rd.onboardingGaps}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── Employee Voices Section ─────────────────────────────────────────────────
 
 function EmployeeVoicesSection({ employees }: { employees: CompanyEmployee[] }) {
@@ -3309,6 +3392,7 @@ export default async function CompanyDetailPage({
           { id: "about",            label: "企業概要" },
           ...(company.job_count > 0 ? [{ id: "jobs", label: `求人 ${company.job_count}件` }] : []),
           ...((detail.benefits?.length || detail.evaluationSystem) ? [{ id: "benefits", label: "働く環境" }] : []),
+          ...((detail.reality_disclosure?.notFor || detail.reality_disclosure?.turnoverReasons?.length || detail.reality_disclosure?.onboardingGaps) ? [{ id: "reality", label: "リアル開示" }] : []),
           ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: "組織" }] : []),
           ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
           ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: `社員・OB/OG` }] : []),
@@ -3331,6 +3415,9 @@ export default async function CompanyDetailPage({
 
             {/* 4. 福利厚生・評価制度 */}
             <BenefitsSection detail={detail} />
+
+            {/* 4b. リアル開示 */}
+            <RealityDisclosureSection detail={detail} />
 
             {/* Mid-page CTA after Benefits */}
             {company.accepting_casual_meetings && (

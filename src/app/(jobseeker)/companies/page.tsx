@@ -208,6 +208,14 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     // "jobs" のみアプリ側で補完（job_count は集計値のため DB ソート不可）
                     const paged = [...allCompaniesResult.companies];
                     if (sort === "jobs") paged.sort((a, b) => b.job_count - a.job_count);
+                    if (sort === "disclosure") {
+                      // reality_disclosure が null でないものを上位に
+                      paged.sort((a, b) => {
+                        const aHas = !!((a as Record<string, unknown>).reality_disclosure);
+                        const bHas = !!((b as Record<string, unknown>).reality_disclosure);
+                        return (bHas ? 1 : 0) - (aHas ? 1 : 0);
+                      });
+                    }
                     if (sort === "startup") {
                       const STARTUP_ORDER: Record<string, number> = {
                         "シード": 1, "seed": 1,

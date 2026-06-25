@@ -64,6 +64,13 @@ export type BizCompany = {
   availabilityTimes: string[];   // 例: ["朝（9〜12時）","夜（18〜21時）"]
   availabilityNotes: string;     // 補足コメント（任意）
 
+  // ── リアル開示 ─────────────────────────────────────────
+  realityDisclosure: {
+    notFor: string;              // こんな人には向かない（フリーテキスト）
+    turnoverReasons: string[];   // 退職理由カテゴリ（複数選択）
+    onboardingGaps: string;      // 入社後ギャップ（フリーテキスト）
+  };
+
   // ── モック用メタ ────────────────────────────────────────
   lastPublishedAt: string;    // "2026年4月12日 14:32"
   lastPublishedAgo: string;   // "14日前"
@@ -148,6 +155,13 @@ export const MOCK_COMPANY: BizCompany = {
   availabilityTimes: ["朝（9〜12時）", "昼（12〜15時）"],
   availabilityNotes: "",
 
+  // リアル開示
+  realityDisclosure: {
+    notFor: "",
+    turnoverReasons: [],
+    onboardingGaps: "",
+  },
+
   // メタ
   lastPublishedAt: "2026年4月12日 14:32",
   lastPublishedAgo: "14日前",
@@ -162,6 +176,7 @@ export const COMPANY_SECTIONS = [
   { id: "about",     label: "About",        showStatus: true },
   { id: "data",      label: "数値データ",   showStatus: true },
   { id: "workstyle", label: "働き方",       showStatus: true },
+  { id: "reality",   label: "リアル開示",   showStatus: true },
   { id: "photos",    label: "オフィス写真", showStatus: true },
   { id: "settings",  label: "公開設定",     showStatus: false },
 ] as const;

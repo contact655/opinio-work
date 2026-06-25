@@ -46,6 +46,7 @@ export type DbCompany = {
   draft_data: Record<string, unknown> | null;
   updated_at: string | null;
   numbers_updated_at: string | null;
+  reality_disclosure: { notFor?: string; turnoverReasons?: string[]; onboardingGaps?: string } | null;
 };
 
 const SELECT_COLUMNS = [
@@ -57,6 +58,7 @@ const SELECT_COLUMNS = [
   "workstyle_description", "is_published", "accepting_casual_meetings", "notification_emails", "show_fit_negatives",
   "availability_days", "availability_times", "availability_notes",
   "published_at", "draft_data", "updated_at", "numbers_updated_at",
+  "reality_disclosure",
 ].join(", ");
 
 function formatPublishedAt(iso: string | null): string {
@@ -126,6 +128,11 @@ export function transformDbToForm(row: DbCompany, currentPublishedGenres: string
     availabilityDays: Array.isArray(row.availability_days) ? row.availability_days : [],
     availabilityTimes: Array.isArray(row.availability_times) ? row.availability_times : [],
     availabilityNotes: row.availability_notes ?? "",
+    realityDisclosure: {
+      notFor: row.reality_disclosure?.notFor ?? "",
+      turnoverReasons: row.reality_disclosure?.turnoverReasons ?? [],
+      onboardingGaps: row.reality_disclosure?.onboardingGaps ?? "",
+    },
     lastPublishedAt: formatPublishedAt(row.published_at),
     lastPublishedAgo: formatPublishedAgo(row.published_at),
     hasDraftChanges: row.draft_data != null && Object.keys(row.draft_data).length > 0,
@@ -177,6 +184,13 @@ export function transformFormToDb(form: BizCompany): Record<string, unknown> {
     availability_days: form.availabilityDays.length > 0 ? form.availabilityDays : null,
     availability_times: form.availabilityTimes.length > 0 ? form.availabilityTimes : null,
     availability_notes: form.availabilityNotes || null,
+    reality_disclosure: {
+      notFor: form.realityDisclosure.notFor || null,
+      turnoverReasons: form.realityDisclosure.turnoverReasons.length > 0
+        ? form.realityDisclosure.turnoverReasons
+        : null,
+      onboardingGaps: form.realityDisclosure.onboardingGaps || null,
+    },
     updated_at: new Date().toISOString(),
   };
 }

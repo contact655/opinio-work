@@ -934,6 +934,73 @@ export function CompanyEditClient({
           </>
         );
 
+      case "reality":
+        return (
+          <>
+            <SectionCard title="リアル開示">
+              <div style={{ marginBottom: 16, padding: "12px 16px", background: "var(--royal-50)", borderRadius: 8, fontSize: 13, color: "var(--royal)", lineHeight: 1.7 }}>
+                Greenや転職エージェントには絶対に掲載されない「本音情報」です。正直に開示することで、入社後のミスマッチを防ぎ、Opinioの候補者から信頼されます。
+              </div>
+              <FormGroup>
+                <FormLabel optional htmlFor="ce-not-for">こんな人には向かない</FormLabel>
+                <FormTextarea
+                  id="ce-not-for"
+                  value={form.realityDisclosure.notFor}
+                  onChange={(v) => update("realityDisclosure", { ...form.realityDisclosure, notFor: v })}
+                  rows={3}
+                  placeholder="例: 新しい技術より安定した技術スタックを好む方、指示待ちが得意な方"
+                  maxLength={400}
+                  ariaLabel="こんな人には向かない"
+                />
+                <FormHint>候補者が入社前に知っておくべき正直な情報を書いてください</FormHint>
+              </FormGroup>
+              <FormGroup>
+                <FormLabel optional>よくある退職理由</FormLabel>
+                {[
+                  "成長速度が合わなかった",
+                  "マネジメントとの関係",
+                  "給与水準",
+                  "リモートワーク方針の変化",
+                  "会社の方向性の変化",
+                  "キャリアパスが見えなかった",
+                  "業務範囲が狭すぎた",
+                  "裁量が少なかった",
+                ].map((reason) => (
+                  <label key={reason} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, cursor: "pointer", fontSize: 14 }}>
+                    <input
+                      type="checkbox"
+                      checked={form.realityDisclosure.turnoverReasons.includes(reason)}
+                      onChange={(e) => {
+                        const current = form.realityDisclosure.turnoverReasons;
+                        const next = e.target.checked
+                          ? [...current, reason]
+                          : current.filter((r) => r !== reason);
+                        update("realityDisclosure", { ...form.realityDisclosure, turnoverReasons: next });
+                      }}
+                      style={{ width: 16, height: 16, accentColor: "var(--royal)" }}
+                    />
+                    {reason}
+                  </label>
+                ))}
+                <FormHint>複数選択可。実際に退職した人の声を参考にしてください</FormHint>
+              </FormGroup>
+              <FormGroup>
+                <FormLabel optional htmlFor="ce-onboarding-gaps">入社後にギャップを感じやすいこと</FormLabel>
+                <FormTextarea
+                  id="ce-onboarding-gaps"
+                  value={form.realityDisclosure.onboardingGaps}
+                  onChange={(v) => update("realityDisclosure", { ...form.realityDisclosure, onboardingGaps: v })}
+                  rows={3}
+                  placeholder="例: ドキュメントが整備されていない部分が多く、自走力が必要です"
+                  maxLength={400}
+                  ariaLabel="入社後ギャップ"
+                />
+                <FormHint>オンボーディング期間に候補者が戸惑いがちな点を正直に書いてください</FormHint>
+              </FormGroup>
+            </SectionCard>
+          </>
+        );
+
       case "photos":
         return (
           <>
