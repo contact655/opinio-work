@@ -20,6 +20,7 @@ type PublicStep = {
   is_current: boolean;
   description: string | null;
   join_reason: string | null;
+  learnings: string | null;
   turning_point: string | null;
   exit_reason: string | null;
   employment_type: string | null;
@@ -443,6 +444,11 @@ const IconArrow = (
     <polyline points="12 5 19 12 12 19"/>
   </svg>
 );
+const IconSparkle = (
+  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+  </svg>
+);
 
 // ────────────────────────────────────────────────────────────────
 // インタビューブロックビルダー
@@ -454,6 +460,7 @@ function buildBlocks(
   showExitReason: boolean,
 ): ContentBlockConfig[] {
   return [
+    // 軸1: 入社の決め手
     {
       key: "join",
       label: joinLabel,
@@ -464,6 +471,7 @@ function buildBlocks(
       text: step.join_reason,
       prominent: true,
     },
+    // 仕事の内容・成果（事実）
     {
       key: "desc",
       label: "仕事の内容・成果",
@@ -474,6 +482,18 @@ function buildBlocks(
       text: step.description,
       prominent: true,
     },
+    // 軸2: ここで得たもの・学び（主観）
+    {
+      key: "learnings",
+      label: "ここで得たもの・学び",
+      color: "var(--success)",
+      bg: "var(--success-soft)",
+      border: "#6ee7b7",
+      icon: IconSparkle,
+      text: step.learnings,
+      prominent: true,
+    },
+    // 転機（任意）
     {
       key: "turn",
       label: "転機・成長のポイント",
@@ -483,15 +503,17 @@ function buildBlocks(
       icon: IconStar,
       text: step.turning_point,
     },
+    // 軸3: 次に進んだ理由（現職には非表示）
     {
       key: "exit",
-      label: "次のステップへ",
+      label: "次に進んだ理由",
       color: "var(--purple)",
       bg: "var(--purple-soft)",
       border: "#DDD6FE",
       icon: IconArrow,
       text: step.exit_reason,
       hide: !showExitReason || step.is_current,
+      prominent: true,
     },
   ];
 }

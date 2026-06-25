@@ -23,6 +23,7 @@ export async function PATCH(
     visibilityReason,
     description,
     joinReason,
+    learnings,
     turningPoint,
     exitReason,
   } = body;
@@ -41,6 +42,7 @@ export async function PATCH(
   if (visibilityReason   !== undefined) update.visibility_reason  = visibilityReason;
   if (description        !== undefined) update.description        = description;
   if (joinReason         !== undefined) update.join_reason        = joinReason;
+  if (learnings          !== undefined) update.learnings          = learnings;
   if (turningPoint       !== undefined) update.turning_point      = turningPoint;
   if (exitReason         !== undefined) update.exit_reason        = exitReason;
 

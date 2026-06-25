@@ -17,7 +17,7 @@ async function getUserCareerData(userId: string) {
         id, user_id, company_id, company_text, company_anonymized,
         role_title, started_at, ended_at, is_current, employment_type,
         salary_man, visibility_company, visibility_salary, visibility_reason,
-        display_order, description, join_reason, turning_point, exit_reason
+        display_order, description, join_reason, learnings, turning_point, exit_reason
       `)
       .eq("user_id", userId)
       .order("display_order", { ascending: true }),

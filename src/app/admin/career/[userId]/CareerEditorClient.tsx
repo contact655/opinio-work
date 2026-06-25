@@ -31,6 +31,7 @@ type Experience = {
   display_order: number;
   description: string | null;
   join_reason: string | null;
+  learnings: string | null;
   turning_point: string | null;
   exit_reason: string | null;
 };
@@ -128,6 +129,7 @@ export function CareerEditorClient({
           visibilityReason:  exp.visibility_reason,
           description:       exp.description,
           joinReason:        exp.join_reason,
+          learnings:         exp.learnings,
           turningPoint:      exp.turning_point,
           exitReason:        exp.exit_reason,
         }),
@@ -595,10 +597,26 @@ function ExperienceRow({
             />
           </div>
 
-          {/* ③ 転機・成長のポイント */}
+          {/* ③ ここで得たもの・学び */}
+          <div>
+            <label style={{ ...labelStyle, color: "#059669" }}>
+              ③ ここで得たもの・学び
+              <span style={{ fontWeight: 400, color: "var(--ink-mute)", marginLeft: 6 }}>
+                — 在籍中に身につけたスキル・視点・経験
+              </span>
+            </label>
+            <textarea
+              value={exp.learnings ?? ""}
+              onChange={(e) => onUpdate(exp.id, "learnings", e.target.value || null)}
+              placeholder="「この会社で初めてエンタープライズ営業を経験し、大型案件の...」"
+              style={{ ...textareaStyle, borderColor: exp.learnings ? "#6ee7b7" : undefined }}
+            />
+          </div>
+
+          {/* ④ 転機・成長のポイント */}
           <div>
             <label style={{ ...labelStyle, color: "#D97706" }}>
-              ③ 転機・成長のポイント
+              ④ 転機・成長のポイント
               <span style={{ fontWeight: 400, color: "var(--ink-mute)", marginLeft: 6 }}>
                 — ここで変わったこと、気づいたこと
               </span>
@@ -611,10 +629,10 @@ function ExperienceRow({
             />
           </div>
 
-          {/* ④ 次に進んだ理由 */}
+          {/* ⑤ 次に進んだ理由 */}
           <div>
             <label style={{ ...labelStyle, color: "var(--purple)" }}>
-              ④ 次に進んだ理由
+              ⑤ 次に進んだ理由
               <span style={{ fontWeight: 400, color: "var(--ink-mute)", marginLeft: 6 }}>
                 — なぜ次のステージへ？{exp.is_current ? "（現職のため通常は不要）" : ""}
               </span>
@@ -658,7 +676,7 @@ function ExperienceRow({
         <span>
           インタビュー:{" "}
           <strong style={{ color: exp.visibility_reason ? "var(--success)" : "var(--ink-mute)" }}>
-            {exp.visibility_reason ? `${[exp.join_reason, exp.description, exp.turning_point, exp.exit_reason].filter(Boolean).length}/4フィールド入力済み` : "非公開"}
+            {exp.visibility_reason ? `${[exp.join_reason, exp.description, exp.learnings, exp.turning_point, exp.exit_reason].filter(Boolean).length}/5フィールド入力済み` : "非公開"}
           </strong>
         </span>
       </div>
