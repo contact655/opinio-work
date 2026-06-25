@@ -38,19 +38,22 @@ export default function ArticleFilterBar({ total }: { total: number }) {
     }, 400);
   }, [searchParams, pathname, router]);
 
+  const currentView = searchParams.get("view") ?? "list";
+
   return (
     <div style={{
-      position: "sticky", top: 64, zIndex: 50,
+      position: "sticky", top: 60, zIndex: 50,
       background: "#fff",
       borderBottom: `1px solid ${LINE}`,
       boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-      padding: "20px 0 0",
-    }}>
-      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-        <div style={{ padding: "0 0 14px", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+      padding: "var(--space-2) 0",
+    }} className="px-5 md:px-12">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
 
+        {/* ── 行1: 検索バー + カテゴリタブ + [right: 表示切替] ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
           {/* Keyword search */}
-          <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
+          <div style={{ position: "relative", flex: "0 0 200px" }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={INK_MUTE} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
@@ -64,8 +67,8 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                 width: "100%", boxSizing: "border-box",
                 padding: "9px 28px 9px 30px",
                 border: `1.5px solid ${localQ ? "var(--royal)" : LINE}`,
-                borderRadius: 100,
-                fontSize: 13.5, color: "var(--ink)",
+                borderRadius: 100, height: 38,
+                fontSize: 13, color: "var(--ink)",
                 background: "#fff", outline: "none",
                 fontFamily: "inherit",
                 transition: "border-color 0.15s",
@@ -82,7 +85,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
           </div>
 
           {/* Type filter pills */}
-          <div role="tablist" aria-label="記事タイプで絞り込み" style={{ display: "contents" }}>
+          <div role="tablist" aria-label="記事タイプで絞り込み" style={{ display: "flex", gap: 6, flexWrap: "nowrap" }}>
           {ARTICLE_TYPES.map(({ value, label }) => {
             const active = currentType === value;
             return (
@@ -94,12 +97,12 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                 onClick={() => updateParam("type", value === "all" ? null : value)}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "7px 14px", borderRadius: 100, fontSize: 12.5, fontWeight: 500,
+                  padding: "6px 14px", height: 34, borderRadius: 100, fontSize: 12.5, fontWeight: 500,
                   border: active ? "1.5px solid var(--royal)" : `1.5px solid ${LINE}`,
                   background: active ? "var(--royal)" : "#fff",
                   color: active ? "#fff" : INK_SOFT,
                   cursor: "pointer", whiteSpace: "nowrap",
-                  transition: "all 0.15s",
+                  transition: "all 0.15s", flexShrink: 0,
                 }}
               >
                 {label}
@@ -113,76 +116,81 @@ export default function ArticleFilterBar({ total }: { total: number }) {
           })}
           </div>
 
-          {/* Spacer */}
-          <div style={{ flex: 1 }} />
-
-          {/* Count */}
-          <span aria-live="polite" aria-atomic="true" style={{ fontSize: "var(--text-sm)", color: INK_MUTE, whiteSpace: "nowrap" }}>
-            <strong style={{ color: "var(--royal)", fontSize: 15, fontFamily: "Inter, sans-serif" }}>{total}</strong> 本
-          </span>
-
-          {/* Sort */}
-          <select
-            id="articles-sort"
-            value={currentSort}
-            aria-label="記事の並び順"
-            onChange={(e) => updateParam("sort", e.target.value === "latest" ? null : e.target.value)}
-            style={{
-              padding: "7px 12px", border: `1px solid ${LINE}`, borderRadius: 8,
-              background: "#fff", fontSize: "var(--text-sm)", color: INK_SOFT, cursor: "pointer", outline: "none",
-            }}
-          >
-            <option value="latest">新着順</option>
-            <option value="popular">読了時間順</option>
-          </select>
-
-          {/* View toggle */}
-          {(() => {
-            const currentView = searchParams.get("view") ?? "list";
-            return (
-              <div style={{
-                display: "flex", gap: 2,
-                background: "var(--bg-tint)", border: `1.5px solid ${LINE}`,
-                borderRadius: 9, padding: 3, flexShrink: 0,
-              }}>
-                {([
-                  { mode: "grid", label: "グリッド", icon: (
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                      <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                      <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-                    </svg>
-                  )},
-                  { mode: "list", label: "リスト", icon: (
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-                    </svg>
-                  )},
-                ] as const).map(({ mode, label, icon }) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => updateParam("view", mode === "list" ? null : mode)}
-                    title={label}
-                    style={{
-                      padding: "5px 10px",
-                      borderRadius: 7, border: "none",
-                      background: currentView === mode ? "#fff" : "transparent",
-                      color: currentView === mode ? "var(--royal)" : INK_MUTE,
-                      cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: 4,
-                      fontSize: 11, fontWeight: 600,
-                      boxShadow: currentView === mode ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                      transition: "all 0.12s",
-                    }}
-                  >
-                    {icon}
-                    {label}
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
+          {/* View toggle — right end */}
+          <div style={{
+            display: "flex", gap: 2, marginLeft: "auto", flexShrink: 0,
+            background: "var(--bg-tint)", border: `1.5px solid ${LINE}`,
+            borderRadius: 9, padding: 3,
+          }}>
+            {([
+              { mode: "grid", label: "グリッド", icon: (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+              )},
+              { mode: "list", label: "リスト", icon: (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+              )},
+            ] as const).map(({ mode, label, icon }) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => updateParam("view", mode === "list" ? null : mode)}
+                title={label}
+                style={{
+                  padding: "5px 10px",
+                  borderRadius: 7, border: "none",
+                  background: currentView === mode ? "#fff" : "transparent",
+                  color: currentView === mode ? "var(--royal)" : INK_MUTE,
+                  cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 4,
+                  fontSize: 11, fontWeight: 600,
+                  boxShadow: currentView === mode ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                  transition: "all 0.12s",
+                }}
+              >
+                {icon}
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* ── 行2: 件数 + 並び順 ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 2 }}>
+          <span aria-live="polite" aria-atomic="true" style={{ fontSize: 12, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 600 }}>
+            <strong style={{ color: "var(--royal)", fontSize: 14, fontFamily: "Inter, sans-serif" }}>{total}</strong> 本
+          </span>
+          <div style={{ width: 1, height: 16, background: LINE, marginLeft: 6, marginRight: 6 }} />
+          <span style={{ fontSize: 11, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500, marginRight: 4 }}>並び順:</span>
+          {([
+            { value: "latest",  label: "新着順" },
+            { value: "popular", label: "読了時間順" },
+          ] as const).map(({ value, label }) => {
+            const active = currentSort === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => updateParam("sort", value === "latest" ? null : value)}
+                style={{
+                  height: 32, padding: "0 14px", borderRadius: 8, fontSize: 12,
+                  fontWeight: active ? 700 : 500,
+                  border: `1px solid ${active ? "var(--royal)" : LINE}`,
+                  background: active ? "var(--royal)" : "#fff",
+                  color: active ? "#fff" : INK_MUTE,
+                  cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
       </div>
     </div>
   );

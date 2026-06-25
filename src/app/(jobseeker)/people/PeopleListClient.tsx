@@ -434,14 +434,14 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
   return (
     <>
       {/* ── Sticky フィルターバー（企業ページと同パターン） ── */}
-      <div style={{ position: "sticky", top: 60, zIndex: 30, background: "#fff", borderBottom: "1px solid var(--line)", padding: "12px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ position: "sticky", top: 60, zIndex: 50, background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-2) 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
 
-        {/* 1行目: 検索バー + ロールチップ + ビュー切り替え */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {/* ── 行1: 検索バー + 職種チップ + ビュー切替 ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
 
-        {/* フリーワード検索 — 企業ページと同じpill形状 */}
-        <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
+        {/* フリーワード検索 */}
+        <div style={{ position: "relative", flex: "0 0 200px" }}>
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
             background: "#fff", border: "1.5px solid #e6e9ef", borderRadius: 999,
@@ -479,9 +479,8 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
           </div>
         </div>
 
-        {/* ロールカテゴリ + ビュー切り替え */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {/* ロールカテゴリ */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "nowrap" }}>
             {ROLE_CATEGORIES.map((cat) => {
               const count = cat.key === "all"
                 ? ambassadors.length
@@ -517,11 +516,11 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
             })}
           </div>
 
-          {/* ビュー切り替え */}
+          {/* ビュー切り替え — marginLeft: auto で右端 */}
           <div style={{
-            display: "flex", gap: 2,
+            display: "flex", gap: 2, marginLeft: "auto", flexShrink: 0,
             background: "var(--bg-tint)", border: "1.5px solid var(--line)",
-            borderRadius: 9, padding: 3, flexShrink: 0,
+            borderRadius: 9, padding: 3,
           }}>
             {([
               { mode: "list" as const, label: "リスト", icon: (
@@ -557,11 +556,10 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
               </button>
             ))}
           </div>
-        </div>
-        </div>{/* 1行目 end */}
+        </div>{/* 行1 end */}
 
-        {/* 企業タイプフィルター */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        {/* ── 行2: 企業タイプフィルター（overflowX auto で見切れ解消） ── */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", scrollbarWidth: "none", paddingTop: 2 } as React.CSSProperties}>
           <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>企業タイプ</span>
           {COMPANY_TYPE_FILTERS.map((cat) => {
             const count = cat.key === "all"

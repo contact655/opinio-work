@@ -80,80 +80,90 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
       {/* ── Sticky フィルターバー（企業ページと同パターン） ── */}
       <div style={{
-        position: "sticky", top: 60, zIndex: 30,
+        position: "sticky", top: 60, zIndex: 50,
         background: "#fff",
         borderBottom: "1px solid var(--line)",
         boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-        padding: "12px 0",
-      }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {/* 検索ボックス */}
-          <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
-            <svg
-              width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)" }}
-            >
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              className="traj-search-input"
-              type="text"
-              placeholder="職種・会社名で検索"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+        padding: "var(--space-2) 0",
+      }} className="px-5 md:px-12">
+        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
 
-          {/* 職種フィルターチップ */}
-          <button
-            className={`role-chip${roleFilter === null ? " active" : ""}`}
-            onClick={() => setRoleFilter(null)}
-          >
-            すべて
-            <span className="role-chip-count">{cards.length}</span>
-          </button>
-          {ROLE_FILTERS.map((rf) => {
-            const count = roleCounts[rf.label] ?? 0;
-            return (
-              <button
-                key={rf.label}
-                className={`role-chip${roleFilter === rf.label ? " active" : ""}`}
-                onClick={() => setRoleFilter(roleFilter === rf.label ? null : rf.label)}
-                disabled={count === 0}
+          {/* ── 行1: 検索バー + 職種チップ ── */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
+            {/* 検索ボックス */}
+            <div style={{ position: "relative", flex: "0 0 200px" }}>
+              <svg
+                width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)" }}
               >
-                {rf.label}
-                <span className="role-chip-count">{count}</span>
-              </button>
-            );
-          })}
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                className="traj-search-input"
+                type="text"
+                placeholder="職種・会社名で検索"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
 
-          {/* [Fix #9] ソートをチップの右隣に配置（flex:1の前）— 右端に追いやられず見つけやすく */}
-          <div style={{ position: "relative", marginLeft: 4 }}>
-            <select
-              className="traj-sort-select"
-              value={sort}
-              onChange={(e) => setSort(e.target.value as "default" | "transition" | "exp_desc")}
+            {/* 職種フィルターチップ */}
+            <button
+              className={`role-chip${roleFilter === null ? " active" : ""}`}
+              onClick={() => setRoleFilter(null)}
             >
-              <option value="default">掲載順</option>
-              <option value="transition">職種変遷あり優先</option>
-              <option value="exp_desc">社会人歴が長い順</option>
-            </select>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-              stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+              すべて
+              <span className="role-chip-count">{cards.length}</span>
+            </button>
+            {ROLE_FILTERS.map((rf) => {
+              const count = roleCounts[rf.label] ?? 0;
+              return (
+                <button
+                  key={rf.label}
+                  className={`role-chip${roleFilter === rf.label ? " active" : ""}`}
+                  onClick={() => setRoleFilter(roleFilter === rf.label ? null : rf.label)}
+                  disabled={count === 0}
+                >
+                  {rf.label}
+                  <span className="role-chip-count">{count}</span>
+                </button>
+              );
+            })}
           </div>
 
-          <div style={{ flex: 1 }} />
-
-          {filtered.length < cards.length && (
-            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>
+          {/* ── 行2: 並び替え（左）+ 件数（右）── */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 2 }}>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500, marginRight: 4 }}>
+              並び替え:
+            </span>
+            {([
+              { value: "default",    label: "掲載順" },
+              { value: "transition", label: "職種変遷あり優先" },
+              { value: "exp_desc",   label: "社会人歴が長い順" },
+            ] as const).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setSort(opt.value)}
+                aria-pressed={sort === opt.value}
+                style={{
+                  height: 32, padding: "0 14px", borderRadius: 8, fontSize: 12,
+                  fontWeight: sort === opt.value ? 700 : 500,
+                  border: `1px solid ${sort === opt.value ? "var(--royal)" : "var(--line)"}`,
+                  background: sort === opt.value ? "var(--royal)" : "#fff",
+                  color: sort === opt.value ? "#fff" : "var(--ink-mute)",
+                  cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s",
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+            <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>
               {filtered.length}件
             </span>
-          )}
+          </div>
+
         </div>
       </div>
 
