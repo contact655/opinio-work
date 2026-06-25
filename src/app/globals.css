@@ -848,7 +848,7 @@ body {
   border-radius: 14px;
   padding: 16px 20px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   cursor: pointer;
   transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
@@ -857,6 +857,39 @@ body {
   box-shadow: 0 3px 16px rgba(0,35,102,0.10);
   border-color: var(--royal-100);
   transform: translateX(2px);
+}
+/* ブロック1: 人物情報（固定幅・コンパクト） */
+.traj-person-block {
+  flex: 0 0 auto;
+  min-width: 110px;
+  max-width: 160px;
+}
+/* ブロック3: 職種変遷（補足・控えめ） */
+.traj-role-block {
+  flex: 0 0 auto;
+  max-width: 145px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+/* ブロック間の縦区切り線 */
+.traj-block-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+/* スマホ: 縦積みに変換 */
+@media (max-width: 600px) {
+  .trajectory-list-card {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .traj-person-block { max-width: none; }
+  .traj-role-block { max-width: none; }
+  .traj-block-divider { width: auto; height: 1px; align-self: auto; }
 }
 .older-chip-btn {
   display: flex; flex-direction: column; align-items: center; gap: 4px;

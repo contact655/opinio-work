@@ -215,13 +215,13 @@ function LogoChip({
       >
         {inner}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
         <div
           title={name}
           style={{
-            fontSize: 10, color: isCurrent ? "var(--ink)" : "var(--ink-soft)",
+            fontSize: 11, color: isCurrent ? "var(--ink)" : "var(--ink-soft)",
             fontWeight: isCurrent ? 700 : 500,
-            maxWidth: size + 24, textAlign: "center",
+            maxWidth: Math.max(size + 32, 96), textAlign: "center",
             textDecoration: isClickable ? "underline" : "none",
             textDecorationColor: "var(--line)",
             textUnderlineOffset: 2,
@@ -233,7 +233,7 @@ function LogoChip({
         </div>
         {period && (
           <div style={{
-            fontSize: 9, color: "var(--ink-mute)",
+            fontSize: 10, color: "var(--ink-mute)",
             fontFamily: "Inter, sans-serif", lineHeight: 1,
           }}>
             {period}
@@ -244,16 +244,21 @@ function LogoChip({
   );
 }
 
-// ── Connector ─────────────────────────────────────────────────────────────────
+// ── Connector（矢印付き点線で「渡り歩いた」方向を明示） ────────────────────────
 
-// [Fix #7] 点線を濃くして視認性向上 (#B0BDD0 vs 旧 var(--line)=#E2E8F0)
 function Connector({ small }: { small?: boolean }) {
+  const w = small ? 20 : 28;
+  const mb = small ? 18 : 22;
   return (
     <div style={{
-      width: small ? 18 : 24, height: 1,
-      borderTop: "2px dashed #B0BDD0",
-      margin: `0 ${small ? 2 : 4}px`, marginBottom: small ? 18 : 22, flexShrink: 0,
-    }} />
+      display: "flex", alignItems: "center", flexShrink: 0,
+      width: w, margin: `0 ${small ? 2 : 3}px`, marginBottom: mb,
+    }}>
+      <svg width={w} height="12" viewBox={`0 0 ${w} 12`} fill="none" aria-hidden="true">
+        <line x1="0" y1="6" x2={w - 7} y2="6" stroke="#B0BDD0" strokeWidth="1.5" strokeDasharray="3 2.5" />
+        <path d={`M${w - 9} 3 L${w - 2} 6 L${w - 9} 9`} stroke="#B0BDD0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
   );
 }
 
@@ -429,62 +434,65 @@ export function TrajectoryCardClient({
     return (
       <div className="trajectory-list-card" onClick={handleCardClick}>
 
-        {/* 左：役職 + メタ */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ marginBottom: 4 }}>
-            <div style={{
-              fontSize: 15, fontWeight: 800, color: "var(--ink)",
-              lineHeight: 1.3,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
-              {roleTitle ?? "—"}
-            </div>
+        {/* ブロック1: 人物情報（コンパクト・固定幅） */}
+        <div className="traj-person-block">
+          <div style={{
+            fontSize: 14, fontWeight: 800, color: "var(--ink)",
+            lineHeight: 1.35, marginBottom: 5,
+            display: "-webkit-box", WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical", overflow: "hidden",
+          }}>
+            {roleTitle ?? "—"}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, flexWrap: "wrap" }}>
             {age && (
-              <span style={{ fontSize: 13, color: "var(--ink-soft)", fontWeight: 700 }}>
-                {age}歳
+              <span style={{ fontSize: 13, color: "var(--ink-soft)", fontWeight: 800, fontFamily: "Inter, sans-serif" }}>
+                {age}<span style={{ fontSize: 10, fontWeight: 500, marginLeft: 1 }}>歳</span>
               </span>
             )}
             {card.gender && (
-              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
                 {card.gender}
               </span>
             )}
-            <MetaBadges />
           </div>
+          <MetaBadges />
         </div>
 
-        {/* 中：ロゴストリップ */}
-        <div style={{ flexShrink: 0, width: 280, overflow: "hidden" }}>
-          <LogoStrip chipSize={40} />
+        {/* 区切り線 */}
+        <div className="traj-block-divider" />
+
+        {/* ブロック2: 企業遷移（主役・flex:1 で最大幅を確保） */}
+        <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+          <LogoStrip chipSize={52} />
         </div>
 
-        {/* 右：職種変遷 + CTA */}
-        <div style={{
-          flexShrink: 0, display: "flex", flexDirection: "column",
-          alignItems: "flex-end", gap: 6,
-        }}>
+        {/* 区切り線 */}
+        <div className="traj-block-divider" />
+
+        {/* ブロック3: 職種変遷（補足・控えめ） */}
+        <div className="traj-role-block">
           {roleTransition && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 5 }}>
               <span style={{
-                fontSize: 11, color: "var(--ink-soft)", fontWeight: 600,
-                background: "var(--line-soft)", borderRadius: 6, padding: "3px 8px",
+                fontSize: 10, color: "var(--ink-mute)", fontWeight: 500,
                 whiteSpace: "nowrap",
               }}>
                 {roleTransition.from}
               </span>
-              <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>→</span>
+              <span style={{ fontSize: 9, color: "var(--ink-mute)", opacity: 0.6 }}>→</span>
               <span style={{
-                fontSize: 11, color: "var(--royal)", fontWeight: 700,
-                background: "var(--royal-50)", borderRadius: 6, padding: "3px 8px",
+                fontSize: 10, color: "var(--ink-soft)", fontWeight: 600,
                 whiteSpace: "nowrap",
               }}>
                 {roleTransition.to}
               </span>
             </div>
           )}
-          <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, whiteSpace: "nowrap", maxWidth: 180, textAlign: "right", lineHeight: 1.4 }}>
+          <span style={{
+            fontSize: 11, color: "var(--ink-soft)", fontWeight: 600,
+            lineHeight: 1.5, display: "block",
+          }}>
             {ctaText}
           </span>
         </div>
@@ -533,9 +541,9 @@ export function TrajectoryCardClient({
       {/* 区切り線 */}
       <div style={{ borderTop: "1px solid var(--line-soft)", marginBottom: 16 }} />
 
-      {/* ロゴストリップ */}
+      {/* ロゴストリップ（主役：大きく表示） */}
       <div style={{ flex: 1, paddingBottom: 4 }}>
-        <LogoStrip chipSize={56} />
+        <LogoStrip chipSize={64} />
       </div>
     </div>
   );
