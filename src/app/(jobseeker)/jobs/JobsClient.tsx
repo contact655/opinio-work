@@ -977,8 +977,8 @@ function JobListCard({
         aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
         aria-pressed={bookmarked}
         style={{
-          position: "absolute", top: 12, right: 12, zIndex: 10,
-          width: 32, height: 32, borderRadius: "50%",
+          position: "absolute", top: 10, right: 10, zIndex: 10,
+          width: 28, height: 28, borderRadius: "50%",
           border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid var(--line)",
           cursor: "pointer",
           background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.92)",
@@ -993,10 +993,10 @@ function JobListCard({
       </button>
 
       <Link href={`/jobs/${job.id}`} prefetch className="job-list-card-link" style={{
-        display: "flex", gap: 16, alignItems: "flex-start",
+        display: "flex", gap: 12, alignItems: "flex-start",
         background: bookmarked ? "#FFF8F2" : "#fff",
-        borderRadius: 16,
-        padding: "18px 52px 18px 18px",
+        borderRadius: 12,
+        padding: "12px 44px 12px 14px",
         textDecoration: "none",
         border: "1px solid var(--line)",
         boxShadow: "0 1px 4px rgba(15,23,42,0.07)",
@@ -1006,28 +1006,28 @@ function JobListCard({
         onMouseEnter={() => onHover?.(job)}
         onMouseLeave={() => onHover?.(null)}
       >
-        {/* ③④ Logo — 64px、企業の gradient カラーを使用 */}
+        {/* ロゴ */}
         <div style={{
-          width: 64, height: 64, borderRadius: 14, flexShrink: 0,
+          width: 48, height: 48, borderRadius: 10, flexShrink: 0,
           background: company.logo_url ? "#f8fafc" : (company.gradient || "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)"),
           border: company.logo_url ? "1.5px solid var(--line)" : "none",
           display: "flex", alignItems: "center", justifyContent: "center",
-          color: company.logo_url ? undefined : "#fff", fontSize: 22, fontWeight: 700, overflow: "hidden",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          color: company.logo_url ? undefined : "#fff", fontSize: 18, fontWeight: 700, overflow: "hidden",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.08)", marginTop: 1,
         }}>
           {company.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={company.logo_url} alt={company.name} width={64} height={64} style={{ objectFit: "contain" }} />
+            <img src={company.logo_url} alt={company.name} width={48} height={48} style={{ objectFit: "contain" }} />
           ) : logoLetter}
         </div>
 
-        {/* Content */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Content — flex column with uniform gap */}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
 
           {/* Row 1: タイトル（1行制限） */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{
-              fontSize: 17, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
+              fontSize: 16, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25, letterSpacing: "-0.01em",
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               flex: 1, minWidth: 0,
             }}>
@@ -1036,7 +1036,7 @@ function JobListCard({
           </div>
 
           {/* Row 2: 企業名 + ブランド名 + フェーズバッジ + 勤務地 + 勤務形態 + 雇用形態 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <span
               role="link"
               tabIndex={0}
@@ -1091,8 +1091,8 @@ function JobListCard({
             )}
           </div>
 
-          {/* Row 3: ① 年収（目立つ位置・大きなフォント） */}
-          <div style={{ marginBottom: 8 }}>
+          {/* Row 3: 年収 */}
+          <div>
             {(job.salary_min || job.salary_max) ? (
               <>
                 <span style={{
@@ -1109,10 +1109,10 @@ function JobListCard({
             )}
           </div>
 
-          {/* Row 4: キャッチコピー ④ 1行に固定してカード高さ揃え */}
+          {/* Row 4: キャッチコピー（1行） */}
           {job.highlight && (
             <p className="job-list-mobile-hide" style={{
-              fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.65, margin: "0 0 10px",
+              fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5, margin: 0,
               display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden",
             }}>
               {job.highlight}
@@ -1125,8 +1125,7 @@ function JobListCard({
               role="presentation"
               style={{
                 display: "flex", alignItems: "center", gap: 8,
-                marginBottom: 10,
-                padding: "8px 12px", borderRadius: 10,
+                padding: "6px 10px", borderRadius: 8,
                 background: "linear-gradient(135deg, #EFF3FC 0%, #DCE5F7 100%)",
                 border: "1.5px solid var(--royal-100)",
                 cursor: "pointer",
@@ -2144,7 +2143,7 @@ export default function JobsClient({
         .jobs-list-desktop {
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 6px;
         }
         /* desktop grid mode */
         .jobs-grid-desktop {
@@ -2171,7 +2170,7 @@ export default function JobsClient({
         /* ── Mobile card compression ── */
         @media (max-width: 767px) {
           .job-list-mobile-hide { display: none !important; }
-          .job-list-card-link { padding: 12px 44px 12px 12px !important; }
+          .job-list-card-link { padding: 10px 40px 10px 12px !important; }
         }
 
         /* company name hover */
