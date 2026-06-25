@@ -810,3 +810,68 @@ body {
   .stats-strip { grid-template-columns: 1fr; }
   .traj-search-input { width: 140px; }
 }
+
+/* ── Trajectory card interactive styles ─────────────────────────────────────── */
+@keyframes slideInFromLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeInConnector {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.trajectory-card-interactive {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 20px 16px;
+  height: 100%;
+  min-height: 280px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+  cursor: pointer;
+}
+.trajectory-card-interactive:hover {
+  box-shadow: 0 4px 24px rgba(0,35,102,0.12);
+  border-color: var(--royal-100);
+  transform: translateY(-2px);
+}
+.trajectory-list-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+}
+.trajectory-list-card:hover {
+  box-shadow: 0 3px 16px rgba(0,35,102,0.10);
+  border-color: var(--royal-100);
+  transform: translateX(2px);
+}
+.older-chip-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer; border: none; background: transparent; padding: 0;
+}
+.older-chip {
+  border-radius: 8px;
+  background: var(--royal-50); border: 1.5px solid var(--royal-100);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.older-chip-btn:hover .older-chip {
+  background: var(--royal); border-color: var(--royal);
+  transform: scale(1.08);
+}
+.older-chip-btn:hover .older-chip svg { stroke: #fff; }
+.older-chip-btn:hover .older-chip-label { color: var(--royal); }
+.logo-chip-hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,35,102,0.18);
+  border-color: var(--royal-100) !important;
+}

@@ -133,22 +133,15 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
             );
           })}
 
-          <div style={{ flex: 1 }} />
-
-          {/* 件数 + ソート */}
-          {filtered.length < cards.length && (
-            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>
-              {filtered.length}件表示
-            </span>
-          )}
-          <div style={{ position: "relative" }}>
+          {/* [Fix #9] ソートをチップの右隣に配置（flex:1の前）— 右端に追いやられず見つけやすく */}
+          <div style={{ position: "relative", marginLeft: 4 }}>
             <select
               className="traj-sort-select"
               value={sort}
               onChange={(e) => setSort(e.target.value as "default" | "salary_desc" | "exp_desc")}
             >
               <option value="default">掲載順</option>
-              <option value="salary_desc">年収増加額が多い順</option>
+              <option value="salary_desc">年収増加が多い順</option>
               <option value="exp_desc">社会人歴が長い順</option>
             </select>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
@@ -158,6 +151,14 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </div>
+
+          <div style={{ flex: 1 }} />
+
+          {filtered.length < cards.length && (
+            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>
+              {filtered.length}件
+            </span>
+          )}
         </div>
       </div>
 

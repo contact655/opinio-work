@@ -43,6 +43,30 @@ export type CardData = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// [Fix #4/#10] 英語職種タイトルを日本語に変換
+const EN_TO_JA_ROLES: Record<string, string> = {
+  "Account Executive": "アカウントエグゼクティブ（営業）",
+  "Senior Account Executive": "シニアアカウントエグゼクティブ",
+  "Enterprise Account Executive": "エンタープライズ営業",
+  "People & Culture Manager": "人事・組織開発マネージャー",
+  "People and Culture Manager": "人事・組織開発マネージャー",
+  "Customer Success Manager": "カスタマーサクセスマネージャー",
+  "Solution Engineer": "ソリューションエンジニア",
+  "Sales Development Representative": "インサイドセールス（SDR）",
+  "Business Development Representative": "ビジネスデベロップメント",
+  "Marketing Manager": "マーケティングマネージャー",
+  "Product Manager": "プロダクトマネージャー",
+  "Software Engineer": "ソフトウェアエンジニア",
+  "Sales Manager": "セールスマネージャー",
+  "Territory Account Executive": "テリトリー営業",
+  "Regional Sales Manager": "リージョナルセールスマネージャー",
+};
+
+function translateRoleTitle(title: string | null | undefined): string | null {
+  if (!title) return null;
+  return EN_TO_JA_ROLES[title] ?? title;
+}
+
 function toBrandName(fullName: string): string {
   return fullName
     .replace(/^(株式会社|合同会社|有限会社|一般社団法人|特定非営利活動法人|NPO法人)\s*/, "")
@@ -71,22 +95,22 @@ function getSalaryDiff(curve: number[]): { text: string; value: number; positive
   };
 }
 
-// ② パーソナライズされたCTAテキスト生成
+// [Fix #3] CTAテキストを短縮
 function getCTAText(
   salaryDiff: { text: string; positive: boolean } | null,
   currentCompanyName: string | null,
   headline: string | null,
 ): string {
   if (salaryDiff?.positive) {
-    return `${salaryDiff.text}の年収変化の内訳を見る →`;
+    return `${salaryDiff.text} 内訳を見る →`;
   }
   if (currentCompanyName) {
-    return `${currentCompanyName}に転職した理由 →`;
+    return `${currentCompanyName}への転職理由 →`;
   }
   if (headline) {
-    return `${headline}の軌跡を見る →`;
+    return "軌跡を見る →";
   }
-  return "転職理由・年収変化を見る →";
+  return "転職・年収変化を見る →";
 }
 
 // ── LogoChip ──────────────────────────────────────────────────────────────────
@@ -157,15 +181,18 @@ function LogoChip({
       >
         {inner}
       </div>
-      <div style={{
-        fontSize: 10, color: isCurrent ? "var(--ink)" : "var(--ink-soft)",
-        fontWeight: isCurrent ? 700 : 500,
-        maxWidth: size + 16, overflow: "hidden", textOverflow: "ellipsis",
-        whiteSpace: "nowrap", textAlign: "center",
-        textDecoration: isClickable ? "underline" : "none",
-        textDecorationColor: "var(--line)",
-        textUnderlineOffset: 2,
-      }}>
+      {/* [Fix #1] title属性でツールチップ — 切れた会社名をホバーで確認可能に */}
+      <div
+        title={name}
+        style={{
+          fontSize: 10, color: isCurrent ? "var(--ink)" : "var(--ink-soft)",
+          fontWeight: isCurrent ? 700 : 500,
+          maxWidth: size + 16, overflow: "hidden", textOverflow: "ellipsis",
+          whiteSpace: "nowrap", textAlign: "center",
+          textDecoration: isClickable ? "underline" : "none",
+          textDecorationColor: "var(--line)",
+          textUnderlineOffset: 2,
+        }}>
         {name}
       </div>
     </div>
@@ -174,83 +201,16 @@ function LogoChip({
 
 // ── Connector ─────────────────────────────────────────────────────────────────
 
+// [Fix #7] 点線を濃くして視認性向上 (#B0BDD0 vs 旧 var(--line)=#E2E8F0)
 function Connector({ small }: { small?: boolean }) {
   return (
     <div style={{
       width: small ? 18 : 24, height: 1,
-      borderTop: "2px dashed var(--line)",
+      borderTop: "2px dashed #B0BDD0",
       margin: `0 ${small ? 2 : 4}px`, marginBottom: small ? 18 : 22, flexShrink: 0,
     }} />
   );
 }
-
-// ── Shared card styles ────────────────────────────────────────────────────────
-
-const CARD_STYLES = `
-  @keyframes slideInFromLeft {
-    from { opacity: 0; transform: translateX(-16px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
-  @keyframes fadeInConnector {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
-  .trajectory-card-interactive {
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 20px 20px 16px;
-    height: 100%;
-    min-height: 280px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
-    cursor: pointer;
-  }
-  .trajectory-card-interactive:hover {
-    box-shadow: 0 4px 24px rgba(0,35,102,0.12);
-    border-color: var(--royal-100);
-    transform: translateY(-2px);
-  }
-  .trajectory-list-card {
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    cursor: pointer;
-    transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
-  }
-  .trajectory-list-card:hover {
-    box-shadow: 0 3px 16px rgba(0,35,102,0.10);
-    border-color: var(--royal-100);
-    transform: translateX(2px);
-  }
-  .older-chip-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-    cursor: pointer; border: none; background: transparent; padding: 0;
-  }
-  .older-chip {
-    border-radius: 8px;
-    background: var(--royal-50); border: 1.5px solid var(--royal-100);
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s, border-color 0.15s, transform 0.15s;
-  }
-  .older-chip-btn:hover .older-chip {
-    background: var(--royal); border-color: var(--royal);
-    transform: scale(1.08);
-  }
-  .older-chip-btn:hover .older-chip svg { stroke: #fff; }
-  .older-chip-btn:hover .older-chip-label { color: var(--royal); }
-  .logo-chip-hoverable:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,35,102,0.18);
-    border-color: var(--royal-100) !important;
-  }
-`;
 
 // ── TrajectoryCardClient ───────────────────────────────────────────────────────
 
@@ -277,11 +237,11 @@ export function TrajectoryCardClient({
 
   const currentStep = uniqueSteps.find((s) => s.is_current);
   const age = card.birthYear ? new Date().getFullYear() - card.birthYear : null;
-  const roleTitle = currentStep?.role_title || card.headline;
+  // [Fix #4/#10] 英語タイトルを日本語に変換
+  const roleTitle = translateRoleTitle(currentStep?.role_title ?? card.headline);
 
   const salaryDiff = getSalaryDiff(card.salaryCurve);
 
-  // ② 現職会社名の取得（CTAテキスト用）
   const currentCompanyName = (() => {
     if (!currentStep) return null;
     const logo = currentStep.company_id ? (card.logoMap[currentStep.company_id] ?? null) : null;
@@ -305,15 +265,16 @@ export function TrajectoryCardClient({
 
   const handleCardClick = () => router.push(`/career-trajectories/${card.userId}`);
 
-  // ── メタバッジ行（verified バッジ除外） ─────────────────────────────────────
+  // ── メタバッジ行 ─────────────────────────────────────────────────────────────
 
+  // [Fix #6] フォントサイズ11→12、padding増やして視認性向上
   const MetaBadges = () => (
     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
       {card.yearsOfExperience && (
         <span style={{
           display: "inline-flex", alignItems: "center", gap: 3,
-          fontSize: 11, fontWeight: 600, color: "var(--ink-soft)",
-          background: "var(--line-soft)", borderRadius: 6, padding: "3px 8px",
+          fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
+          background: "var(--line-soft)", borderRadius: 6, padding: "4px 9px",
         }}>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           社会人歴 {card.yearsOfExperience}年
@@ -321,8 +282,8 @@ export function TrajectoryCardClient({
       )}
       <span style={{
         display: "inline-flex", alignItems: "center", gap: 3,
-        fontSize: 11, fontWeight: 600, color: "var(--ink-soft)",
-        background: "var(--line-soft)", borderRadius: 6, padding: "3px 8px",
+        fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
+        background: "var(--line-soft)", borderRadius: 6, padding: "4px 9px",
       }}>
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
         {uniqueSteps.length}社経験
@@ -330,15 +291,13 @@ export function TrajectoryCardClient({
     </div>
   );
 
-  // ── ロゴストリップ（グリッド：直近3社, リスト：直近5社） ───────────────────
+  // ── ロゴストリップ ───────────────────────────────────────────────────────────
 
   const LogoStrip = ({ chipSize }: { chipSize: number }) => {
-    // グリッドモード：直近3社を常に表示、チップは40px固定でスペースを節約
-    const GRID_CHIP_SIZE = 40; // チップを小さく固定してロゴ3社分のスペースを確保
+    const GRID_CHIP_SIZE = 40;
 
     return (
       <div style={{ display: "flex", alignItems: "flex-start", gap: 2, overflow: "hidden" }}>
-        {/* 展開時：折りたたみボタン */}
         {expanded && olderCount > 0 && (
           <div style={{ display: "flex", alignItems: "center" }}>
             <button
@@ -381,7 +340,6 @@ export function TrajectoryCardClient({
           );
         })}
 
-        {/* 折りたたみ時：チップを小さく固定（40px）して直近3社を全て表示 */}
         {!expanded && olderCount > 0 && (
           <div style={{ display: "flex", alignItems: "center" }}>
             <button
@@ -406,7 +364,6 @@ export function TrajectoryCardClient({
           </div>
         )}
 
-        {/* 直近3社を常に全表示 */}
         {recentSteps.map((step, i) => {
           const logo = step.company_id ? (card.logoMap[step.company_id] ?? null) : null;
           const name = getDisplayName(step, logo);
@@ -421,29 +378,21 @@ export function TrajectoryCardClient({
     );
   };
 
-  // ⑥ 年収エリア：スパークライン廃止、数値を大型化
+  // [Fix #2] 「年収変化」ラベルを削除 — 数値だけで十分伝わる
   const SalaryArea = ({ compact }: { compact?: boolean }) => (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0, gap: 2 }}>
       {salaryDiff && (
-        <>
-          <span style={{
-            fontSize: 9, fontWeight: 700, color: "var(--ink-mute)",
-            letterSpacing: "0.04em", textTransform: "uppercase",
-          }}>
-            年収変化
-          </span>
-          <span style={{
-            fontSize: compact ? 15 : 18, fontWeight: 900,
-            color: salaryDiff.positive ? "var(--success)" : "var(--error)",
-            fontFamily: "Inter, sans-serif",
-            background: salaryDiff.positive ? "var(--success-soft)" : "var(--error-soft)",
-            borderRadius: 8, padding: compact ? "4px 10px" : "6px 12px",
-            whiteSpace: "nowrap",
-            letterSpacing: "-0.02em",
-          }}>
-            {salaryDiff.text}
-          </span>
-        </>
+        <span style={{
+          fontSize: compact ? 15 : 18, fontWeight: 900,
+          color: salaryDiff.positive ? "var(--success)" : "var(--error)",
+          fontFamily: "Inter, sans-serif",
+          background: salaryDiff.positive ? "var(--success-soft)" : "var(--error-soft)",
+          borderRadius: 8, padding: compact ? "4px 10px" : "6px 12px",
+          whiteSpace: "nowrap",
+          letterSpacing: "-0.02em",
+        }}>
+          {salaryDiff.text}
+        </span>
       )}
     </div>
   );
@@ -452,106 +401,98 @@ export function TrajectoryCardClient({
 
   if (listMode) {
     return (
-      <>
-        <style>{CARD_STYLES}</style>
-        <div className="trajectory-list-card" onClick={handleCardClick}>
+      <div className="trajectory-list-card" onClick={handleCardClick}>
 
-          {/* 左：役職 + メタ */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {/* ⑧ verified バッジをタイトル行の右に固定 */}
-            <div style={{ marginBottom: 4 }}>
-              <div style={{
-                fontSize: 15, fontWeight: 800, color: "var(--ink)",
-                lineHeight: 1.3,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}>
-                {roleTitle ?? "—"}
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {age && (
-                <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>
-                  {age}歳
-                </span>
-              )}
-              {card.gender && (
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
-                  {card.gender}
-                </span>
-              )}
-              <MetaBadges />
+        {/* 左：役職 + メタ */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ marginBottom: 4 }}>
+            <div style={{
+              fontSize: 15, fontWeight: 800, color: "var(--ink)",
+              lineHeight: 1.3,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {roleTitle ?? "—"}
             </div>
           </div>
-
-          {/* 中：ロゴストリップ（最大5社）— 固定幅で1社目の開始を全行で揃える */}
-          <div style={{ flexShrink: 0, width: 280, overflow: "hidden" }}>
-            <LogoStrip chipSize={40} />
-          </div>
-
-          {/* 右：⑥ 大型年収diff + ② パーソナライズCTA */}
-          <div style={{
-            flexShrink: 0, display: "flex", flexDirection: "column",
-            alignItems: "flex-end", gap: 6,
-          }}>
-            <SalaryArea compact />
-            <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, whiteSpace: "nowrap", maxWidth: 180, textAlign: "right", lineHeight: 1.4 }}>
-              {ctaText}
-            </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {age && (
+              <span style={{ fontSize: 13, color: "var(--ink-soft)", fontWeight: 700 }}>
+                {age}歳
+              </span>
+            )}
+            {card.gender && (
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
+                {card.gender}
+              </span>
+            )}
+            <MetaBadges />
           </div>
         </div>
-      </>
+
+        {/* 中：ロゴストリップ */}
+        <div style={{ flexShrink: 0, width: 280, overflow: "hidden" }}>
+          <LogoStrip chipSize={40} />
+        </div>
+
+        {/* 右：年収diff + CTA */}
+        <div style={{
+          flexShrink: 0, display: "flex", flexDirection: "column",
+          alignItems: "flex-end", gap: 6,
+        }}>
+          <SalaryArea compact />
+          <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, whiteSpace: "nowrap", maxWidth: 180, textAlign: "right", lineHeight: 1.4 }}>
+            {ctaText}
+          </span>
+        </div>
+      </div>
     );
   }
 
   // ── GRID MODE ─────────────────────────────────────────────────────────────
 
   return (
-    <>
-      <style>{CARD_STYLES}</style>
+    <div className="trajectory-card-interactive" onClick={handleCardClick}>
 
-      <div className="trajectory-card-interactive" onClick={handleCardClick}>
-
-        {/* ヘッダー：役職（1行に収める） */}
-        <div style={{ marginBottom: 12 }}>
-          {roleTitle && (
-            <div style={{
-              fontSize: 15, fontWeight: 800, color: "var(--ink)",
-              lineHeight: 1.4, marginBottom: 6,
-              overflow: "hidden", textOverflow: "ellipsis",
-              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-            }}>
-              {roleTitle}
-            </div>
-          )}
-
-          {/* 年齢 + 性別 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            {age && (
-              <span style={{
-                fontSize: 22, fontWeight: 900, color: "var(--ink)",
-                fontFamily: "Inter, sans-serif", lineHeight: 1,
-              }}>
-                {age}<span style={{ fontSize: 12, fontWeight: 600, marginLeft: 1, color: "var(--ink-soft)" }}>歳</span>
-              </span>
-            )}
-            {card.gender && (
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
-                {card.gender}
-              </span>
-            )}
+      {/* ヘッダー：役職 */}
+      <div style={{ marginBottom: 12 }}>
+        {roleTitle && (
+          <div style={{
+            fontSize: 15, fontWeight: 800, color: "var(--ink)",
+            lineHeight: 1.4, marginBottom: 6,
+            overflow: "hidden", textOverflow: "ellipsis",
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+          }}>
+            {roleTitle}
           </div>
+        )}
 
-          <MetaBadges />
+        {/* 年齢 + 性別 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          {age && (
+            <span style={{
+              fontSize: 22, fontWeight: 900, color: "var(--ink)",
+              fontFamily: "Inter, sans-serif", lineHeight: 1,
+            }}>
+              {age}<span style={{ fontSize: 12, fontWeight: 600, marginLeft: 1, color: "var(--ink-soft)" }}>歳</span>
+            </span>
+          )}
+          {card.gender && (
+            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
+              {card.gender}
+            </span>
+          )}
         </div>
 
-        {/* 区切り線 */}
-        <div style={{ borderTop: "1px solid var(--line-soft)", marginBottom: 16 }} />
-
-        {/* ロゴストリップ（グリッドモード） */}
-        <div style={{ flex: 1, paddingBottom: 4 }}>
-          <LogoStrip chipSize={56} />
-        </div>
+        <MetaBadges />
       </div>
-    </>
+
+      {/* 区切り線 */}
+      <div style={{ borderTop: "1px solid var(--line-soft)", marginBottom: 16 }} />
+
+      {/* ロゴストリップ */}
+      <div style={{ flex: 1, paddingBottom: 4 }}>
+        <LogoStrip chipSize={56} />
+      </div>
+    </div>
   );
 }
