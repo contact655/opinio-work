@@ -1337,7 +1337,7 @@ function SimplifiedAccountNotice() {
 
 type ExistingUserNoticeProps = {
   email: string;
-  onSwitchToLogin: () => void;
+  onSwitchToLogin: (email?: string) => void;
   onChangeEmail: () => void;
 };
 
