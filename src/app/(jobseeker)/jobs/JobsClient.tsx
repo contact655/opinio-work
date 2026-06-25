@@ -684,8 +684,30 @@ function getRoleColor(name: string): { color: string; bg: string } {
   return { color: "var(--royal)", bg: "var(--royal-50)" };
 }
 
+// ─── Filter select style helper (matches /companies) ─────────────────────────
+
+function filterSelectStyle(active: boolean, width = 110): React.CSSProperties {
+  return {
+    height: 38,
+    width,
+    padding: "0 8px",
+    border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
+    borderRadius: 8,
+    fontSize: "var(--text-sm)",
+    color: active ? "var(--royal)" : "var(--ink-soft)",
+    background: "#fff",
+    cursor: "pointer",
+    fontWeight: active ? 600 : 400,
+    outline: "none",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  };
+}
+
 // ─── Filter chip (dropdown) ───────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function FilterChip({
   label,
   value,
@@ -1420,15 +1442,12 @@ export default function JobsClient({
   const [meetingOnly, setMeetingOnly] = useState(false);
 
   // Which filter chip dropdown is open
-  const [openChip, setOpenChip] = useState<string | null>(null);
   const filterBarRef = useRef<HTMLDivElement>(null);
 
-  // Close chip dropdowns on outside click
+  // Close filter bar on outside click (for future use)
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (filterBarRef.current && !filterBarRef.current.contains(e.target as Node)) {
-        setOpenChip(null);
-      }
+    function handleClickOutside(_e: MouseEvent) {
+      // no-op: native selects close automatically
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -1635,136 +1654,133 @@ export default function JobsClient({
       >
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }} className="px-5 md:px-12">
 
-          {/* ── 行1: 検索 + 職種カテゴリ + FilterChips + 面談受付中 ── */}
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
-            {/* 検索バー */}
-            <div
-              role="search"
-              style={{
-                display: "flex", alignItems: "center", gap: "var(--space-2)",
-                background: "#fff",
-                border: "1.5px solid #e6e9ef",
-                borderRadius: 999,
-                padding: "0 14px",
-                transition: "border-color 0.15s, box-shadow 0.15s",
-                flex: "0 0 200px",
-                boxShadow: "0 2px 8px rgba(15,23,42,0.07)",
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2.2} strokeLinecap="round" style={{ flexShrink: 0 }} aria-hidden="true">
-                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-              </svg>
+          {/* ── 行1: 検索 + フィルター（/companies と同形式） ── */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap", overflowX: "auto" }}>
+            {/* 検索バー — /companies と同スタイル */}
+            <div role="search" style={{ position: "relative", flex: "0 0 200px" }}>
               <input
                 type="search"
                 aria-label="求人を検索"
+                placeholder="職種・企業名で検索..."
                 value={q}
-                onChange={(e) => { setQ(e.target.value); setOpenChip(null); }}
-                placeholder="職種・企業名で検索"
+                onChange={(e) => setQ(e.target.value)}
                 style={{
-                  flex: 1, border: "none", outline: "none",
-                  fontSize: 13.5, color: "var(--ink)", background: "transparent",
-                  padding: "9px 0", minWidth: 0,
-                }}
-                onFocus={(e) => {
-                  const wrap = e.currentTarget.parentElement as HTMLElement;
-                  if (wrap) { wrap.style.borderColor = "var(--royal)"; wrap.style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }
-                }}
-                onBlur={(e) => {
-                  const wrap = e.currentTarget.parentElement as HTMLElement;
-                  if (wrap) { wrap.style.borderColor = "#e6e9ef"; wrap.style.boxShadow = "none"; }
+                  width: "100%",
+                  height: 38,
+                  padding: q ? "0 32px 0 12px" : "0 12px",
+                  border: "1px solid var(--line)",
+                  borderRadius: 8,
+                  fontSize: "var(--text-sm)",
+                  color: "var(--ink)",
+                  outline: "none",
+                  background: "#fff",
+                  boxSizing: "border-box",
                 }}
               />
               {q && (
-                <button type="button" onClick={() => setQ("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: "var(--text-base)", padding: "2px", lineHeight: 1, flexShrink: 0 }}>×</button>
+                <button
+                  type="button"
+                  onClick={() => setQ("")}
+                  aria-label="検索をクリア"
+                  style={{
+                    position: "absolute", right: 8, top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none", border: "none", cursor: "pointer",
+                    color: "var(--ink-mute)", fontSize: "var(--text-md)",
+                    lineHeight: 1, padding: 2,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >×</button>
               )}
             </div>
 
-            {/* 職種カテゴリードロップダウン */}
-            <FilterChip
-              label="職種"
-              value={category ? (parentRoles.find(r => r.id === category)?.name ?? "") : ""}
-              options={parentRoles.map((r) => ({ value: r.name, label: r.name }))}
-              onSelect={(v) => {
-                const role = v ? parentRoles.find(r => r.name === v) : null;
-                setParam("category", role?.id ?? "");
-                setOpenChip(null);
-              }}
-              isOpen={openChip === "category"}
-              onToggle={() => setOpenChip(openChip === "category" ? null : "category")}
-              colorStyle={true}
-              resultCount={category ? filtered.length : undefined}
-            />
-
-            {/* FilterChips */}
-            <FilterChip
-              label="勤務形態"
-              value={work_style}
-              options={[
-                { value: "フルリモート", label: "🏠 フルリモート" },
-                { value: "ハイブリッド", label: "🔀 ハイブリッド" },
-                { value: "出社",         label: "🏢 出社" },
-              ]}
-              onSelect={(v) => { setParam("work_style", v ?? ""); setOpenChip(null); }}
-              isOpen={openChip === "work_style"}
-              onToggle={() => setOpenChip(openChip === "work_style" ? null : "work_style")}
-              resultCount={work_style ? filtered.length : undefined}
-            />
-            <FilterChip
-              label="年収"
-              value={salary}
-              options={SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label }))}
-              onSelect={(v) => { setParam("salary", v ?? ""); setOpenChip(null); }}
-              isOpen={openChip === "salary"}
-              onToggle={() => setOpenChip(openChip === "salary" ? null : "salary")}
-              resultCount={salary ? filtered.length : undefined}
-            />
-            <FilterChip
-              label="雇用形態"
-              value={empType}
-              options={[
-                { value: "正社員",   label: "正社員" },
-                { value: "業務委託", label: "業務委託" },
-                { value: "副業",     label: "副業・複業" },
-              ]}
-              onSelect={(v) => { setParam("emp_type", v ?? ""); setOpenChip(null); }}
-              isOpen={openChip === "emp_type"}
-              onToggle={() => setOpenChip(openChip === "emp_type" ? null : "emp_type")}
-              resultCount={empType ? filtered.length : undefined}
-            />
-            {availablePrefectures.length > 1 && (
-              <FilterChip
-                label="地域"
-                value={prefecture}
-                options={availablePrefectures.map((p) => ({ value: p, label: p }))}
-                onSelect={(v) => { setParam("prefecture", v ?? ""); setOpenChip(null); }}
-                isOpen={openChip === "prefecture"}
-                onToggle={() => setOpenChip(openChip === "prefecture" ? null : "prefecture")}
-                listStyle
-                resultCount={prefecture ? filtered.length : undefined}
-              />
-            )}
-
-            {/* 面談受付中トグル */}
+            {/* 面談受付中 pill — /companies と同スタイル */}
             <button
               type="button"
               onClick={() => setMeetingOnly((v) => !v)}
+              aria-pressed={meetingOnly}
               style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "5px 13px", borderRadius: 100,
-                border: `1.5px solid ${meetingOnly ? "#EA580C" : "var(--line)"}`,
-                background: meetingOnly ? "#FFF7ED" : "#fff",
-                color: meetingOnly ? "#C2410C" : "var(--ink-soft)",
-                fontSize: 12, fontWeight: meetingOnly ? 700 : 500,
-                cursor: "pointer", whiteSpace: "nowrap",
-                fontFamily: "inherit", transition: "all 0.12s", flexShrink: 0,
+                height: 38,
+                padding: "0 14px",
+                borderRadius: 8,
+                fontSize: "var(--text-sm)",
+                fontWeight: 500,
+                border: `1px solid ${meetingOnly ? "var(--royal)" : "var(--line)"}`,
+                background: meetingOnly ? "var(--royal)" : "#fff",
+                color: meetingOnly ? "#fff" : "var(--ink-soft)",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
-              {meetingOnly && <span style={{ fontSize: 10, fontWeight: 800, marginRight: 1 }}>✓</span>}
               面談受付中
-              {meetingOnly && (
-                <span onClick={(e) => { e.stopPropagation(); setMeetingOnly(false); }} style={{ fontSize: 10, marginLeft: 1, opacity: 0.85, lineHeight: 1 }} aria-label="クリア">✕</span>
-              )}
             </button>
+
+            {/* 職種 select */}
+            <select
+              value={category}
+              onChange={(e) => setParam("category", e.target.value)}
+              style={filterSelectStyle(!!category, 120)}
+              aria-label="職種で絞り込み"
+            >
+              <option value="">すべての職種</option>
+              {parentRoles.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+
+            {/* 勤務形態 select */}
+            <select
+              value={work_style}
+              onChange={(e) => setParam("work_style", e.target.value)}
+              style={filterSelectStyle(!!work_style, 110)}
+              aria-label="勤務形態で絞り込み"
+            >
+              <option value="">すべての勤務形態</option>
+              <option value="フルリモート">フルリモート</option>
+              <option value="ハイブリッド">ハイブリッド</option>
+              <option value="出社">出社</option>
+            </select>
+
+            {/* 年収 select */}
+            <select
+              value={salary}
+              onChange={(e) => setParam("salary", e.target.value)}
+              style={filterSelectStyle(!!salary, 110)}
+              aria-label="年収で絞り込み"
+            >
+              <option value="">すべての年収</option>
+              {SALARY_PILL_TIERS.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+
+            {/* 雇用形態 select */}
+            <select
+              value={empType}
+              onChange={(e) => setParam("emp_type", e.target.value)}
+              style={filterSelectStyle(!!empType, 110)}
+              aria-label="雇用形態で絞り込み"
+            >
+              <option value="">すべての雇用形態</option>
+              <option value="正社員">正社員</option>
+              <option value="業務委託">業務委託</option>
+              <option value="副業">副業・複業</option>
+            </select>
+
+            {/* 地域 select */}
+            {availablePrefectures.length > 1 && (
+              <select
+                value={prefecture}
+                onChange={(e) => setParam("prefecture", e.target.value)}
+                style={filterSelectStyle(!!prefecture, 100)}
+                aria-label="地域で絞り込み"
+              >
+                <option value="">すべての地域</option>
+                {availablePrefectures.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            )}
 
             {(hasFilter || q || meetingOnly) && (
               <button
