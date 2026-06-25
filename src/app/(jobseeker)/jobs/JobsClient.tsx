@@ -1679,38 +1679,21 @@ export default function JobsClient({
               )}
             </div>
 
-            {/* 職種カテゴリーピル */}
-            {parentRoles.map((role) => {
-              const isActive = category === role.id;
-              const rc = getRoleColor(role.name);
-              return (
-                <button
-                  key={role.id}
-                  type="button"
-                  onClick={() => { setParam("category", isActive ? "" : role.id); setOpenChip(null); }}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    padding: "5px 13px", borderRadius: 100,
-                    border: `1.5px solid ${isActive ? rc.color : "var(--line)"}`,
-                    background: isActive ? rc.bg : "#fff",
-                    color: isActive ? rc.color : "var(--ink-soft)",
-                    fontSize: 12, fontWeight: isActive ? 700 : 500,
-                    cursor: "pointer", whiteSpace: "nowrap",
-                    fontFamily: "inherit", transition: "all 0.12s",
-                    flexShrink: 0,
-                  }}
-                >
-                  <span style={{
-                    width: isActive ? 8 : 6, height: isActive ? 8 : 6, borderRadius: "50%",
-                    background: rc.color, flexShrink: 0,
-                    opacity: isActive ? 1 : 0.45,
-                    animation: isActive ? "pulseDot 1.8s ease-in-out infinite" : "none",
-                    transition: "width 0.12s, height 0.12s",
-                  }} />
-                  {role.name}
-                </button>
-              );
-            })}
+            {/* 職種カテゴリードロップダウン */}
+            <FilterChip
+              label="職種"
+              value={category ? (parentRoles.find(r => r.id === category)?.name ?? "") : ""}
+              options={parentRoles.map((r) => ({ value: r.name, label: r.name }))}
+              onSelect={(v) => {
+                const role = v ? parentRoles.find(r => r.name === v) : null;
+                setParam("category", role?.id ?? "");
+                setOpenChip(null);
+              }}
+              isOpen={openChip === "category"}
+              onToggle={() => setOpenChip(openChip === "category" ? null : "category")}
+              colorStyle={true}
+              resultCount={category ? filtered.length : undefined}
+            />
 
             {/* FilterChips */}
             <FilterChip

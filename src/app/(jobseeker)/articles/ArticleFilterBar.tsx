@@ -53,7 +53,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
         {/* ── 行1: 検索バー + カテゴリタブ + [right: 表示切替] ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
           {/* Keyword search */}
-          <div style={{ position: "relative", flex: "0 0 200px" }}>
+          <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={INK_MUTE} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
@@ -116,7 +116,40 @@ export default function ArticleFilterBar({ total }: { total: number }) {
           })}
           </div>
 
-          {/* View toggle — right end */}
+        </div>
+
+        {/* ── 行2: 件数 + 並び順 + 表示切替 ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 2 }}>
+          <span aria-live="polite" aria-atomic="true" style={{ fontSize: 12, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 600 }}>
+            <strong style={{ color: "var(--royal)", fontSize: 14, fontFamily: "Inter, sans-serif" }}>{total}</strong> 本
+          </span>
+          <div style={{ width: 1, height: 16, background: LINE, marginLeft: 6, marginRight: 6 }} />
+          <span style={{ fontSize: 11, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500, marginRight: 4 }}>並び順:</span>
+          {([
+            { value: "latest",  label: "新着順" },
+            { value: "popular", label: "読了時間順" },
+          ] as const).map(({ value, label }) => {
+            const active = currentSort === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => updateParam("sort", value === "latest" ? null : value)}
+                style={{
+                  height: 32, padding: "0 14px", borderRadius: 8, fontSize: 12,
+                  fontWeight: active ? 700 : 500,
+                  border: `1px solid ${active ? "var(--royal)" : LINE}`,
+                  background: active ? "var(--royal)" : "#fff",
+                  color: active ? "#fff" : INK_MUTE,
+                  cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+
+          {/* View toggle — 行2 右端（/companies GridSortBar と同位置） */}
           <div style={{
             display: "flex", gap: 2, marginLeft: "auto", flexShrink: 0,
             background: "var(--bg-tint)", border: `1.5px solid ${LINE}`,
@@ -157,38 +190,6 @@ export default function ArticleFilterBar({ total }: { total: number }) {
               </button>
             ))}
           </div>
-        </div>
-
-        {/* ── 行2: 件数 + 並び順 ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 2 }}>
-          <span aria-live="polite" aria-atomic="true" style={{ fontSize: 12, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 600 }}>
-            <strong style={{ color: "var(--royal)", fontSize: 14, fontFamily: "Inter, sans-serif" }}>{total}</strong> 本
-          </span>
-          <div style={{ width: 1, height: 16, background: LINE, marginLeft: 6, marginRight: 6 }} />
-          <span style={{ fontSize: 11, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500, marginRight: 4 }}>並び順:</span>
-          {([
-            { value: "latest",  label: "新着順" },
-            { value: "popular", label: "読了時間順" },
-          ] as const).map(({ value, label }) => {
-            const active = currentSort === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => updateParam("sort", value === "latest" ? null : value)}
-                style={{
-                  height: 32, padding: "0 14px", borderRadius: 8, fontSize: 12,
-                  fontWeight: active ? 700 : 500,
-                  border: `1px solid ${active ? "var(--royal)" : LINE}`,
-                  background: active ? "var(--royal)" : "#fff",
-                  color: active ? "#fff" : INK_MUTE,
-                  cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s",
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
         </div>
 
       </div>

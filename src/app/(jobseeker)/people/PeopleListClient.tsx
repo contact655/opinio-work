@@ -441,7 +441,7 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
 
         {/* フリーワード検索 */}
-        <div style={{ position: "relative", flex: "0 0 200px" }}>
+        <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
             background: "#fff", border: "1.5px solid #e6e9ef", borderRadius: 999,
@@ -516,7 +516,46 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
             })}
           </div>
 
-          {/* ビュー切り替え — marginLeft: auto で右端 */}
+        </div>{/* 行1 end */}
+
+        {/* ── 行2: 企業タイプフィルター + 表示切替（overflowX auto で見切れ解消） ── */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", scrollbarWidth: "none", paddingTop: 2 } as React.CSSProperties}>
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>企業タイプ</span>
+          {COMPANY_TYPE_FILTERS.map((cat) => {
+            const count = cat.key === "all"
+              ? ambassadors.length
+              : ambassadors.filter((a) => matchesCompanyType(a, cat.key)).length;
+            const isActive = companyType === cat.key;
+            return (
+              <button
+                key={cat.key}
+                type="button"
+                onClick={() => setCompanyType(cat.key)}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 100,
+                  border: `1.5px solid ${isActive ? "var(--purple)" : "var(--line)"}`,
+                  background: isActive ? "var(--purple)" : "#fff",
+                  color: isActive ? "#fff" : "var(--ink-soft)",
+                  fontSize: 12, fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                {cat.label}
+                <span style={{
+                  marginLeft: 5,
+                  fontSize: 10,
+                  fontFamily: "Inter, sans-serif",
+                  opacity: isActive ? 0.8 : 0.6,
+                }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* ビュー切り替え — 行2 右端（/companies GridSortBar と同位置） */}
           <div style={{
             display: "flex", gap: 2, marginLeft: "auto", flexShrink: 0,
             background: "var(--bg-tint)", border: "1.5px solid var(--line)",
@@ -556,44 +595,6 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
               </button>
             ))}
           </div>
-        </div>{/* 行1 end */}
-
-        {/* ── 行2: 企業タイプフィルター（overflowX auto で見切れ解消） ── */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", scrollbarWidth: "none", paddingTop: 2 } as React.CSSProperties}>
-          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>企業タイプ</span>
-          {COMPANY_TYPE_FILTERS.map((cat) => {
-            const count = cat.key === "all"
-              ? ambassadors.length
-              : ambassadors.filter((a) => matchesCompanyType(a, cat.key)).length;
-            const isActive = companyType === cat.key;
-            return (
-              <button
-                key={cat.key}
-                type="button"
-                onClick={() => setCompanyType(cat.key)}
-                style={{
-                  padding: "5px 12px",
-                  borderRadius: 100,
-                  border: `1.5px solid ${isActive ? "var(--purple)" : "var(--line)"}`,
-                  background: isActive ? "var(--purple)" : "#fff",
-                  color: isActive ? "#fff" : "var(--ink-soft)",
-                  fontSize: 12, fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.15s",
-                }}
-              >
-                {cat.label}
-                <span style={{
-                  marginLeft: 5,
-                  fontSize: 10,
-                  fontFamily: "Inter, sans-serif",
-                  opacity: isActive ? 0.8 : 0.6,
-                }}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
         </div>
 
         {/* アクティブフィルター表示 */}
