@@ -21,18 +21,13 @@ function matchesRole(card: CardData, keywords: string[]): boolean {
   return keywords.some((kw) => haystack.includes(kw));
 }
 
-function getSalaryDiffVal(curve: number[]): number | null {
-  if (curve.length < 2) return null;
-  return curve[curve.length - 1] - curve[0];
-}
-
 // ── TrajectoryPageClient ───────────────────────────────────────────────────────
 
 export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   // ⑤ ソート機能追加
-  const [sort, setSort] = useState<"default" | "salary_desc" | "exp_desc">("default");
+  const [sort, setSort] = useState<"default" | "transition" | "exp_desc">("default");
 
   // ④ 各フィルターの件数計算
   const roleCounts = useMemo(() => {
@@ -66,11 +61,11 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
     });
 
     // ⑤ ソート
-    if (sort === "salary_desc") {
+    if (sort === "transition") {
       result = [...result].sort((a, b) => {
-        const da = getSalaryDiffVal(a.salaryCurve) ?? -Infinity;
-        const db = getSalaryDiffVal(b.salaryCurve) ?? -Infinity;
-        return db - da;
+        const aHas = a.steps.filter((s) => s.role_title).length >= 2 ? 1 : 0;
+        const bHas = b.steps.filter((s) => s.role_title).length >= 2 ? 1 : 0;
+        return bHas - aHas;
       });
     } else if (sort === "exp_desc") {
       result = [...result].sort((a, b) =>
@@ -138,10 +133,10 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
             <select
               className="traj-sort-select"
               value={sort}
-              onChange={(e) => setSort(e.target.value as "default" | "salary_desc" | "exp_desc")}
+              onChange={(e) => setSort(e.target.value as "default" | "transition" | "exp_desc")}
             >
               <option value="default">掲載順</option>
-              <option value="salary_desc">年収増加が多い順</option>
+              <option value="transition">職種変遷あり優先</option>
               <option value="exp_desc">社会人歴が長い順</option>
             </select>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none"

@@ -84,25 +84,56 @@ function getDisplayName(step: PublicStep, logo: CompanyLogo | null): string {
   return step.company_anonymized ?? "非公開";
 }
 
-function getSalaryDiff(curve: number[]): { text: string; value: number; positive: boolean } | null {
-  if (curve.length < 2) return null;
-  const diff = curve[curve.length - 1] - curve[0];
-  if (diff === 0) return null;
-  return {
-    text: `${diff > 0 ? "+" : ""}${diff}万円`,
-    value: diff,
-    positive: diff > 0,
-  };
+function formatPeriod(startedAt: string, endedAt: string | null): string {
+  const yr = (s: string) => `'${s.slice(2, 4)}`;
+  return `${yr(startedAt)}〜${endedAt ? yr(endedAt) : "現在"}`;
 }
 
-// [Fix #3] CTAテキストを短縮
+const ROLE_SHORT: Record<string, string> = {
+  "アカウントエグゼクティブ（営業）": "営業",
+  "シニアアカウントエグゼクティブ": "営業(Senior)",
+  "エンタープライズ営業": "エンタープライズ営業",
+  "人事・組織開発マネージャー": "人事",
+  "カスタマーサクセスマネージャー": "CS",
+  "ソリューションエンジニア": "SE",
+  "インサイドセールス（SDR）": "インサイドセールス",
+  "マーケティングマネージャー": "マーケ",
+  "プロダクトマネージャー": "PM",
+  "ソフトウェアエンジニア": "エンジニア",
+  "セールスマネージャー": "営業マネージャー",
+  "テリトリー営業": "テリトリー営業",
+  "リージョナルセールスマネージャー": "営業マネージャー",
+  "ビジネスデベロップメント": "BizDev",
+};
+
+function toShortRole(title: string | null | undefined): string | null {
+  if (!title) return null;
+  const ja = EN_TO_JA_ROLES[title] ?? title;
+  if (ROLE_SHORT[ja]) return ROLE_SHORT[ja];
+  // 括弧前の基本職種名を抽出（例: "営業（メジャー営業統括部）" → "営業"）
+  const base = ja.replace(/[（(].*/, "").trim();
+  const short = base || ja;
+  return short.length > 12 ? `${short.slice(0, 12)}…` : short;
+}
+
+function getRoleTransition(steps: PublicStep[]): { from: string; to: string } | null {
+  const sorted = [...steps]
+    .filter((s) => s.role_title)
+    .sort((a, b) => a.display_order - b.display_order);
+  if (sorted.length < 2) return null;
+  const fromRole = toShortRole(sorted[0].role_title);
+  const toRole = toShortRole(sorted[sorted.length - 1].role_title);
+  if (!fromRole || !toRole || fromRole === toRole) return null;
+  return { from: fromRole, to: toRole };
+}
+
 function getCTAText(
-  salaryDiff: { text: string; positive: boolean } | null,
+  roleTransition: { from: string; to: string } | null,
   currentCompanyName: string | null,
   headline: string | null,
 ): string {
-  if (salaryDiff?.positive) {
-    return `${salaryDiff.text} 内訳を見る →`;
+  if (roleTransition) {
+    return `${roleTransition.to}への転身の理由を見る →`;
   }
   if (currentCompanyName) {
     return `${currentCompanyName}への転職理由 →`;
@@ -110,7 +141,7 @@ function getCTAText(
   if (headline) {
     return "軌跡を見る →";
   }
-  return "転職・年収変化を見る →";
+  return "転職・キャリア変化を見る →";
 }
 
 // ── LogoChip ──────────────────────────────────────────────────────────────────
@@ -121,12 +152,14 @@ function LogoChip({
   isCurrent,
   companyId,
   size = 48,
+  period,
 }: {
   logo: CompanyLogo | null;
   name: string;
   isCurrent: boolean;
   companyId: string | null;
   size?: number;
+  period?: string;
 }) {
   const router = useRouter();
 
@@ -181,19 +214,30 @@ function LogoChip({
       >
         {inner}
       </div>
-      {/* [Fix #1] title属性でツールチップ — 切れた会社名をホバーで確認可能に */}
-      <div
-        title={name}
-        style={{
-          fontSize: 10, color: isCurrent ? "var(--ink)" : "var(--ink-soft)",
-          fontWeight: isCurrent ? 700 : 500,
-          maxWidth: size + 16, overflow: "hidden", textOverflow: "ellipsis",
-          whiteSpace: "nowrap", textAlign: "center",
-          textDecoration: isClickable ? "underline" : "none",
-          textDecorationColor: "var(--line)",
-          textUnderlineOffset: 2,
-        }}>
-        {name}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+        <div
+          title={name}
+          style={{
+            fontSize: 10, color: isCurrent ? "var(--ink)" : "var(--ink-soft)",
+            fontWeight: isCurrent ? 700 : 500,
+            maxWidth: size + 24, textAlign: "center",
+            textDecoration: isClickable ? "underline" : "none",
+            textDecorationColor: "var(--line)",
+            textUnderlineOffset: 2,
+            display: "-webkit-box", WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical", overflow: "hidden",
+            lineHeight: 1.3,
+          }}>
+          {name}
+        </div>
+        {period && (
+          <div style={{
+            fontSize: 9, color: "var(--ink-mute)",
+            fontFamily: "Inter, sans-serif", lineHeight: 1,
+          }}>
+            {period}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -240,7 +284,7 @@ export function TrajectoryCardClient({
   // [Fix #4/#10] 英語タイトルを日本語に変換
   const roleTitle = translateRoleTitle(currentStep?.role_title ?? card.headline);
 
-  const salaryDiff = getSalaryDiff(card.salaryCurve);
+  const roleTransition = getRoleTransition(card.steps);
 
   const currentCompanyName = (() => {
     if (!currentStep) return null;
@@ -249,7 +293,7 @@ export function TrajectoryCardClient({
     return getDisplayName(currentStep, logo);
   })();
 
-  const ctaText = getCTAText(salaryDiff, currentCompanyName, card.headline);
+  const ctaText = getCTAText(roleTransition, currentCompanyName, card.headline);
 
   const handleChipClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -332,7 +376,7 @@ export function TrajectoryCardClient({
                 animation: `slideInFromLeft 0.32s ease ${i * 0.07}s both`,
               }}
             >
-              <LogoChip logo={logo} name={name} isCurrent={false} companyId={step.company_id} size={chipSize} />
+              <LogoChip logo={logo} name={name} isCurrent={false} companyId={step.company_id} size={chipSize} period={formatPeriod(step.started_at, step.ended_at)} />
               <div style={{ animation: `fadeInConnector 0.3s ease ${i * 0.07 + 0.15}s both`, opacity: 0 }}>
                 <Connector small />
               </div>
@@ -369,7 +413,7 @@ export function TrajectoryCardClient({
           const name = getDisplayName(step, logo);
           return (
             <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
-              <LogoChip logo={logo} name={name} isCurrent={step.is_current} companyId={step.company_id} size={chipSize} />
+              <LogoChip logo={logo} name={name} isCurrent={step.is_current} companyId={step.company_id} size={chipSize} period={formatPeriod(step.started_at, step.ended_at)} />
               {i < recentSteps.length - 1 && <Connector small />}
             </div>
           );
@@ -377,25 +421,6 @@ export function TrajectoryCardClient({
       </div>
     );
   };
-
-  // [Fix #2] 「年収変化」ラベルを削除 — 数値だけで十分伝わる
-  const SalaryArea = ({ compact }: { compact?: boolean }) => (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0, gap: 2 }}>
-      {salaryDiff && (
-        <span style={{
-          fontSize: compact ? 15 : 18, fontWeight: 900,
-          color: salaryDiff.positive ? "var(--success)" : "var(--error)",
-          fontFamily: "Inter, sans-serif",
-          background: salaryDiff.positive ? "var(--success-soft)" : "var(--error-soft)",
-          borderRadius: 8, padding: compact ? "4px 10px" : "6px 12px",
-          whiteSpace: "nowrap",
-          letterSpacing: "-0.02em",
-        }}>
-          {salaryDiff.text}
-        </span>
-      )}
-    </div>
-  );
 
   // ── LIST MODE ─────────────────────────────────────────────────────────────
 
@@ -434,12 +459,30 @@ export function TrajectoryCardClient({
           <LogoStrip chipSize={40} />
         </div>
 
-        {/* 右：年収diff + CTA */}
+        {/* 右：職種変遷 + CTA */}
         <div style={{
           flexShrink: 0, display: "flex", flexDirection: "column",
           alignItems: "flex-end", gap: 6,
         }}>
-          <SalaryArea compact />
+          {roleTransition && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{
+                fontSize: 11, color: "var(--ink-soft)", fontWeight: 600,
+                background: "var(--line-soft)", borderRadius: 6, padding: "3px 8px",
+                whiteSpace: "nowrap",
+              }}>
+                {roleTransition.from}
+              </span>
+              <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>→</span>
+              <span style={{
+                fontSize: 11, color: "var(--royal)", fontWeight: 700,
+                background: "var(--royal-50)", borderRadius: 6, padding: "3px 8px",
+                whiteSpace: "nowrap",
+              }}>
+                {roleTransition.to}
+              </span>
+            </div>
+          )}
           <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, whiteSpace: "nowrap", maxWidth: 180, textAlign: "right", lineHeight: 1.4 }}>
             {ctaText}
           </span>
