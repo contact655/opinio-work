@@ -9,6 +9,7 @@ async function getStats() {
   const [
     users, activeCompanies, activeJobs, totalApplications,
     pendingJobs, pendingMeetings, bizAdmins,
+    onboardingCompleted, profileFilled, appliedOrMet,
   ] = await Promise.all([
     supabase.from("ow_users").select("id", { count: "exact", head: true }),
     supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
@@ -17,6 +18,10 @@ async function getStats() {
     supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
     supabase.from("ow_casual_meetings").select("id", { count: "exact", head: true }).eq("status", "pending"),
     admin.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("is_active", true),
+    // オンボーディングファネル
+    admin.from("ow_profiles").select("id", { count: "exact", head: true }).eq("onboarding_completed", true),
+    admin.from("ow_profiles").select("id", { count: "exact", head: true }).not("job_type", "is", null),
+    admin.from("ow_job_applications").select("id", { count: "exact", head: true }),
   ]);
 
   // 未ログインBIZ担当者数を算出（auth.admin → ow_users.auth_id でジョイン）
@@ -63,11 +68,15 @@ async function getStats() {
     totalApplicationsCount: totalApplications.count ?? 0,
     pendingJobsCount: pendingJobs.count ?? 0,
     pendingMeetingsCount: pendingMeetings.count ?? 0,
-    pendingReservationsCount: 0, // ow_mentor_reservations テーブル未作成のため固定値
+    pendingReservationsCount: 0,
     bizAdminsCount: bizAdmins.count ?? 0,
     neverLoggedInBizCount,
     recentUsers: recentUsers ?? [],
     recentCompanies: recentCompanies ?? [],
+    // ファネル
+    onboardingCompletedCount: onboardingCompleted.count ?? 0,
+    profileFilledCount: profileFilled.count ?? 0,
+    appliedOrMetCount: appliedOrMet.count ?? 0,
   };
 }
 
@@ -255,6 +264,71 @@ export default async function AdminDashboard() {
           </Link>
         ))}
       </div>
+
+      {/* ── オンボーディングファネル ── */}
+      {(() => {
+        const total = stats.usersCount;
+        const funnel = [
+          { label: "登録完了", count: total, color: "var(--royal)", bg: "#EFF3FC" },
+          { label: "オンボーディング完了", count: stats.onboardingCompletedCount, color: "#7C3AED", bg: "#F5F3FF" },
+          { label: "プロフィール記入済み", count: stats.profileFilledCount, color: "var(--success)", bg: "#ECFDF5" },
+          { label: "応募・面談実績あり", count: stats.appliedOrMetCount, color: "#D97706", bg: "#FEF3C7" },
+        ];
+        return (
+          <div style={{
+            background: "#fff", border: "1px solid #E2E8F0",
+            borderRadius: 14, padding: "20px 22px", marginBottom: 16,
+          }}>
+            <div style={{
+              fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 16,
+              display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+              </svg>
+              ユーザーファネル（オンボーディング完了率）
+            </div>
+            <div style={{ display: "flex", gap: 0, alignItems: "stretch" }}>
+              {funnel.map((step, i) => {
+                const pct = total > 0 ? Math.round((step.count / total) * 100) : 0;
+                return (
+                  <div key={step.label} style={{ flex: 1, position: "relative" }}>
+                    {/* Arrow connector */}
+                    {i > 0 && (
+                      <div style={{
+                        position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)",
+                        color: "#CBD5E1", fontSize: 18, zIndex: 1, lineHeight: 1,
+                      }}>›</div>
+                    )}
+                    <div style={{
+                      background: step.bg, borderRadius: 10,
+                      padding: "14px 16px", marginLeft: i > 0 ? 12 : 0,
+                    }}>
+                      <div style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: 28, fontWeight: 800, color: step.color, lineHeight: 1, marginBottom: 4,
+                      }}>
+                        {step.count}
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "#94A3B8", marginLeft: 4 }}>人</span>
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>
+                        {step.label}
+                      </div>
+                      {/* Progress bar */}
+                      <div style={{ height: 4, background: "#E2E8F0", borderRadius: 2, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: step.color, borderRadius: 2, transition: "width 0.5s" }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: step.color, fontWeight: 700, fontFamily: "'Inter', sans-serif", marginTop: 4 }}>
+                        {pct}%
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Tasks + Quick Actions ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
