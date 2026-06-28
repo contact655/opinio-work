@@ -13,7 +13,7 @@ import ArticleFilterBar from "./ArticleFilterBar";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "取材記事 — OPINIO",
+  title: { absolute: "取材記事 | OPINIO" },
   description:
     "LayerX・SmartHR・Ubie・Salesforceなど、IT/SaaS業界のリアルな働き方を取材。社員インタビュー・CEO取材・組織レポートを届けます。",
   keywords: ["IT業界インタビュー", "SaaS転職", "社員の声", "組織文化", "キャリア", "OPINIO"],
@@ -305,6 +305,9 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
 
   return (
     <>
+      {/* SEO H1 (visually hidden) */}
+      <h1 className="sr-only">IT/SaaS業界の取材記事</h1>
+
       {/* Filter bar */}
       <Suspense fallback={<div style={{ height: 52, background: "#fff", borderBottom: "1px solid var(--line)" }} />}>
         <ArticleFilterBar total={filteredArticles.length} />

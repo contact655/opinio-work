@@ -8,7 +8,7 @@ import { CATEGORY_META } from "./categoryMeta";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "企業の投稿 — OPINIO",
+  title: { absolute: "企業の投稿 | OPINIO" },
   description:
     "IT/SaaS企業からのイベント告知・採用情報・カルチャーストーリーをタイムラインで確認できます。",
 };

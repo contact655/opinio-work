@@ -16,7 +16,7 @@ type MemberPreview = { id: string; name: string };
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "IT/SaaS企業を知る — OPINIO",
+  title: { absolute: "IT/SaaS企業を知る | OPINIO" },
   description:
     "LayerX・SmartHR・HubSpot・Salesforceなど、IT/SaaS業界の企業の最新求人・組織文化・カジュアル面談情報をまとめて確認。",
   keywords: ["IT企業", "SaaS企業", "カジュアル面談", "スタートアップ", "転職", "企業文化", "OPINIO"],

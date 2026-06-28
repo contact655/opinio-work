@@ -7,7 +7,7 @@ import JobsClient from "./JobsClient";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "求人を見つける — OPINIO",
+  title: { absolute: "IT/SaaS求人を探す | OPINIO" },
   description:
     "LayerX・SmartHR・HubSpot・Salesforceなど、IT/SaaS業界の最新求人情報。フルリモート・高年収・PdM・エンジニア求人を検索。",
   keywords: ["IT転職", "SaaS求人", "エンジニア転職", "PdM求人", "フルリモート", "高年収", "OPINIO"],
