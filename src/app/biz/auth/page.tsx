@@ -454,7 +454,7 @@ function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin
 
       {/* ⑨ Minimal footer */}
       <div style={{ textAlign: "center", padding: "24px 0 12px", fontSize: 11, color: "var(--ink-mute)", marginTop: "auto" }}>
-        <a href="/terms" style={{ color: "var(--ink-mute)", textDecoration: "none", marginRight: 16 }}>利用規約</a>
+        <a href="/terms/business" style={{ color: "var(--ink-mute)", textDecoration: "none", marginRight: 16 }}>利用規約（掲載企業）</a>
         <a href="/privacy" style={{ color: "var(--ink-mute)", textDecoration: "none", marginRight: 16 }}>プライバシーポリシー</a>
         <span>© 2026 Opinio Inc.</span>
       </div>
@@ -1388,7 +1388,7 @@ function ImplicitConsent() {
   return (
     <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", lineHeight: 1.8, marginTop: 12 }}>
       登録することで{" "}
-      <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>利用規約</a>
+      <a href="/terms/business" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>利用規約（掲載企業向け）</a>
       {" "}および{" "}
       <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>プライバシーポリシー</a>
       {" "}に同意したものとみなします。
