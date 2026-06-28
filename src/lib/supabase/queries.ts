@@ -858,7 +858,7 @@ export type CompanyPhoto = {
 };
 
 export async function getCompanyPhotos(companyId: string): Promise<CompanyPhoto[]> {
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("ow_company_office_photos")
     .select("id, image_url, category, caption, display_order, tagged_user_id")
@@ -908,7 +908,7 @@ export type CompanyRecruiter = {
 };
 
 export async function getCompanyRecruiters(companyId: string): Promise<CompanyRecruiter[]> {
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   const { data: adminRows, error } = await supabase
     .from("ow_company_admins")
@@ -986,7 +986,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   current: CompanyEmployee[];
   alumni: CompanyEmployee[];
 }> {
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const EMPTY = { current: [], alumni: [] };
 
   // 全 ow_roles を取得 (カテゴリ名・親情報解決用)
