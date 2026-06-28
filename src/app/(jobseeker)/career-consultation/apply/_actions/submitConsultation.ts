@@ -13,7 +13,7 @@ type Params = {
 export async function submitConsultationRequest(params: Params): Promise<{ ok: boolean }> {
   const { consultantName, name, email, message, timePref } = params;
 
-  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "hshiba@opinio.co.jp";
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "contact@opinio.co.jp";
 
   const timePrefText = timePref.length > 0
     ? timePref.join("、")

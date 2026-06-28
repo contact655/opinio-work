@@ -1,4 +1,4 @@
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "hshiba@opinio.co.jp";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "contact@opinio.co.jp";
 
 // ── Shared inline styles ───────────────────────────────────────────────────────
 const TD_LABEL = "padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;font-weight:600;width:120px;vertical-align:top;font-size:13px";
