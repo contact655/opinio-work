@@ -422,21 +422,31 @@ function OnboardingInner() {
           </div>
         </div>
 
-        {/* スキップ */}
-        <div style={{ textAlign: "center" }}>
+        {/* 戻る / スキップ */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
+          {step > 0 && (
+            <button
+              type="button"
+              onClick={() => setStep((s) => s - 1)}
+              style={{
+                fontSize: 12, color: "var(--ink-soft)", background: "none",
+                border: "1px solid var(--line)", borderRadius: 8,
+                cursor: "pointer", fontFamily: "inherit", padding: "8px 16px",
+                display: "flex", alignItems: "center", gap: 4,
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              前に戻る
+            </button>
+          )}
           <button
             type="button"
             onClick={() => router.push(nextUrl)}
             disabled={saving}
             style={{
-              fontSize: 12,
-              color: "var(--ink-mute)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              padding: "8px 16px",
-              textDecoration: "underline",
+              fontSize: 12, color: "var(--ink-mute)", background: "none",
+              border: "none", cursor: "pointer", fontFamily: "inherit",
+              padding: "8px 16px", textDecoration: "underline",
               textDecorationColor: "var(--line)",
             }}
           >
