@@ -1533,22 +1533,24 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
 
                 {/* 権限バッジ + 話せる人トグル + 操作メニュー */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {/* 話せる人バッジトグル（アクティブメンバーかつ admin 権限がある場合） */}
-                  {member.is_active && isAdmin && (
+                  {/* 話せる人バッジトグル:
+                      - admin: 全メンバーを操作可
+                      - 非admin: 自分自身のみ操作可（セルフ申請） */}
+                  {member.is_active && (isAdmin || isSelf) && (
                     <button
                       type="button"
                       onClick={() => handleToggleAmbassador(member.id, !member.is_ambassador)}
                       disabled={ambassadorTogglingId === member.id}
-                      title={member.is_ambassador ? "「話せる人」バッジを外す" : "「話せる人」バッジを付与する"}
+                      title={member.is_ambassador ? "「話せる人」バッジを外す" : isSelf ? "話せる人として登録する" : "「話せる人」バッジを付与する"}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 5,
                         padding: "4px 10px",
                         borderRadius: 6,
-                        border: `1px solid ${member.is_ambassador ? "#FED7AA" : "var(--line)"}`,
-                        background: member.is_ambassador ? "#FFF7ED" : "var(--bg-tint)",
-                        color: member.is_ambassador ? "#C2410C" : "var(--ink-mute)",
+                        border: `1px solid ${member.is_ambassador ? "#FED7AA" : isSelf && !isAdmin ? "var(--royal-100)" : "var(--line)"}`,
+                        background: member.is_ambassador ? "#FFF7ED" : isSelf && !isAdmin ? "var(--royal-50)" : "var(--bg-tint)",
+                        color: member.is_ambassador ? "#C2410C" : isSelf && !isAdmin ? "var(--royal)" : "var(--ink-mute)",
                         cursor: ambassadorTogglingId === member.id ? "not-allowed" : "pointer",
                         fontSize: 11,
                         fontWeight: 700,
@@ -1561,14 +1563,16 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                         width: 6,
                         height: 6,
                         borderRadius: "50%",
-                        background: member.is_ambassador ? "#F97316" : "var(--line)",
+                        background: member.is_ambassador ? "#F97316" : isSelf && !isAdmin ? "var(--royal)" : "var(--line)",
                         flexShrink: 0,
                       }} />
                       {ambassadorTogglingId === member.id
                         ? "..."
                         : member.is_ambassador
                           ? "話せる人"
-                          : "バッジ付与"}
+                          : isSelf && !isAdmin
+                            ? "話せる人になる"
+                            : "バッジ付与"}
                     </button>
                   )}
                   <span style={{
