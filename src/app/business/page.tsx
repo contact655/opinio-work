@@ -18,6 +18,7 @@ export const metadata: Metadata = {
     description: "業界特化の即戦力人材プラットフォーム。スカウト送信不要で、IT/SaaS経験者から直接コンタクトが届きます。",
     type: "website",
     url: "https://opinio.jp/business",
+    images: [{ url: "https://opinio.jp/api/og?title=OPINIO+for+Business&subtitle=%E3%82%B9%E3%82%AB%E3%82%A6%E3%83%88%E3%81%97%E3%81%AA%E3%81%84%E3%80%81%E6%8E%A1%E7%94%A8%E3%82%92%E3%80%82", width: 1200, height: 630 }],
   },
 };
 

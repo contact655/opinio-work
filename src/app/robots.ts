@@ -21,6 +21,8 @@ export default function robots(): MetadataRoute.Robots {
           "/biz/analytics",
           "/biz/candidates",
           "/biz/organization",
+          "/auth",
+          "/feed",
           "/profile/edit",
           "/mypage/",
           "/onboarding",

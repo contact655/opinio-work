@@ -13,6 +13,8 @@ export const metadata: Metadata = {
     title: "話せる人 | OPINIO",
     description: "企業の現役社員に、仕事のリアルを直接聞いてみませんか。",
     type: "website",
+    url: "https://opinio.jp/people",
+    images: [{ url: "https://opinio.jp/api/og?title=%E8%A9%B1%E3%81%9B%E3%82%8B%E4%BA%BA&subtitle=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E7%8F%BE%E5%BD%B9%E7%A4%BE%E5%93%A1%E3%81%A8%E8%A9%B1%E3%81%9B%E3%82%8B", width: 1200, height: 630 }],
   },
 };
 

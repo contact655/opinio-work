@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     title: "キャリア軌跡 | OPINIO",
     description: "IT/SaaS業界で活躍する人のリアルなキャリア軌跡。転職の経緯・職種変遷をタイムラインで確認。",
     type: "website",
+    url: "https://opinio.jp/career-trajectories",
+    images: [{ url: "https://opinio.jp/api/og?title=%E3%82%AD%E3%83%A3%E3%83%AA%E3%82%A2%E8%BB%8C%E8%B7%A1&subtitle=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%A7%E6%B4%BB%E8%BA%8D%E3%81%99%E3%82%8B%E4%BA%BA%E3%81%AE%E3%82%AD%E3%83%A3%E3%83%AA%E3%82%A2%E3%82%92%E5%85%AC%E9%96%8B", width: 1200, height: 630 }],
   },
 };
 
