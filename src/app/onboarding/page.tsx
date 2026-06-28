@@ -441,7 +441,29 @@ function OnboardingInner() {
           )}
           <button
             type="button"
-            onClick={() => router.push(nextUrl)}
+            onClick={async () => {
+              const supabase = createClient();
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                const { data: existing } = await supabase
+                  .from("ow_profiles")
+                  .select("id")
+                  .eq("user_id", user.id)
+                  .maybeSingle();
+                if (existing) {
+                  await supabase
+                    .from("ow_profiles")
+                    .update({ onboarding_completed: true, updated_at: new Date().toISOString() })
+                    .eq("user_id", user.id);
+                } else {
+                  await supabase.from("ow_profiles").insert({
+                    user_id: user.id,
+                    onboarding_completed: true,
+                  });
+                }
+              }
+              router.push(nextUrl);
+            }}
             disabled={saving}
             style={{
               fontSize: 12, color: "var(--ink-mute)", background: "none",
