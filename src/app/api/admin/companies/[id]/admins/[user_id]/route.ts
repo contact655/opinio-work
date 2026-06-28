@@ -70,10 +70,6 @@ export async function DELETE(
     return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
 
-  console.log(
-    `[DELETE /api/admin/companies/.../admins/...] kicked user_id=${userId} from company_id=${companyId}`
-  );
-
   return NextResponse.json({
     success: true,
     kicked: {

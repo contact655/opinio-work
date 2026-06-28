@@ -144,8 +144,6 @@ export async function POST(req: Request) {
     }
   }
 
-  console.log("[POST /api/biz/companies] SUCCESS:", company.id, name);
-
   // 5.5 ow_company_genres INSERT（best-effort）
   // genres が指定されている場合のみ実行。ow_companies INSERT 成功済みなので失敗しても 201 を返す。
   const genreSlugs: string[] = Array.isArray(body.genres) ? body.genres : [];

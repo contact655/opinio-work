@@ -1,12 +1,22 @@
 "use server";
 
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+
+async function assertAdmin(): Promise<void> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  const { data: isAdmin } = await supabase.rpc("auth_is_admin");
+  if (!isAdmin) throw new Error("Forbidden");
+}
 
 export async function bulkSetVisibility(
   userIds: string[],
   visibility: "public" | "login_only" | "private"
 ): Promise<{ ok: boolean; error?: string }> {
+  await assertAdmin();
   if (userIds.length === 0) return { ok: true };
   const admin = createAdminClient();
   const { error } = await admin

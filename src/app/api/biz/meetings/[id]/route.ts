@@ -5,6 +5,7 @@ import { getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
 import { notify } from "@/lib/notify/email";
 import { meetingStatusTemplate } from "@/lib/notify/templates";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 type Action = "status" | "memo" | "assign_to_me" | "mark_read";
 
@@ -35,6 +36,12 @@ export async function PATCH(
   }
 
   const now = new Date().toISOString();
+
+  // 権限チェック: admin のみ面談を操作できる
+  const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+  const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+  if (!ctx) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
 
   if (body.action === "status") {
     if (!body.value) {

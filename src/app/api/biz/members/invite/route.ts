@@ -11,7 +11,7 @@ function getBaseUrl(req: Request): string {
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   const origin = req.headers.get("origin");
   if (origin) return origin.replace(/\/$/, "");
-  return "http://localhost:3000";
+  return "https://opinio.jp";
 }
 
 export async function POST(req: Request) {

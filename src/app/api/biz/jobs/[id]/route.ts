@@ -61,7 +61,8 @@ export async function PUT(
       first_90_days: body.first90Days as string || null,
       updated_at: now,
     })
-    .eq("id", jobId);
+    .eq("id", jobId)
+    .eq("company_id", ctx0.companyId);
 
   if (updateErr) {
     console.error("[jobs PUT]", updateErr.message);
@@ -140,7 +141,8 @@ export async function PATCH(
   const { error } = await supabase
     .from("ow_jobs")
     .update(patch)
-    .eq("id", jobId);
+    .eq("id", jobId)
+    .eq("company_id", ctx1.companyId);
 
   if (error) {
     console.error("[jobs PATCH status]", error.message);
@@ -184,7 +186,8 @@ export async function DELETE(
   const { error } = await supabase
     .from("ow_jobs")
     .delete()
-    .eq("id", jobId);
+    .eq("id", jobId)
+    .eq("company_id", ctx2.companyId);
 
   if (error) {
     console.error("[jobs DELETE]", error.message);

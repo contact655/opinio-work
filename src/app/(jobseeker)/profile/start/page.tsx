@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ProfileStartClient from "./ProfileStartClient";
 
-export const metadata = { title: { absolute: "プロフィールを公開する | OPINIO" } };
+export const metadata = { title: { absolute: "プロフィールを公開する | OPINIO" }, robots: { index: false, follow: false } };
 
 export default async function ProfileStartPage() {
   const supabase = createClient();

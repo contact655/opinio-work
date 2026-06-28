@@ -1,9 +1,19 @@
 "use server";
 
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
+async function assertAdmin(): Promise<void> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  const { data: isAdmin } = await supabase.rpc("auth_is_admin");
+  if (!isAdmin) throw new Error("Forbidden");
+}
+
 export async function toggleAmbassador(adminId: string, value: boolean): Promise<void> {
+  await assertAdmin();
   const admin = createAdminClient();
   const { error } = await admin
     .from("ow_company_admins")
@@ -20,6 +30,7 @@ export async function toggleAmbassador(adminId: string, value: boolean): Promise
 }
 
 export async function updateTalkThemes(adminId: string, themes: string[]): Promise<void> {
+  await assertAdmin();
   const admin = createAdminClient();
   const { error } = await admin
     .from("ow_company_admins")

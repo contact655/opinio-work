@@ -120,7 +120,7 @@ export async function GET(request: Request) {
         });
         sent++;
       } catch (err: any) {
-        console.error(`[weekly-match] Failed to send to ${email}:`, err.message);
+        console.error(`[weekly-match] Failed to send email:`, err.message);
         errors.push(`${email}: ${err.message}`);
       }
     }

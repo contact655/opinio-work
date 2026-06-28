@@ -1,5 +1,6 @@
 "use server";
 
+import { createClient } from "@/lib/supabase/server";
 import { notify } from "@/lib/notify/email";
 
 type Params = {
@@ -11,6 +12,10 @@ type Params = {
 };
 
 export async function submitConsultationRequest(params: Params): Promise<{ ok: boolean }> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
   const { consultantName, name, email, message, timePref } = params;
 
   const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "contact@opinio.co.jp";
