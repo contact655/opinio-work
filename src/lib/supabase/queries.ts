@@ -1105,6 +1105,25 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   return { current: currentEmps, alumni: alumniEmps };
 }
 
+// キャッシュ済みバリアント（ページ速度改善用）
+export const getCompanyPhotosCached = unstable_cache(
+  getCompanyPhotos,
+  ["company-photos"],
+  { revalidate: 300 }
+);
+
+export const getCompanyRecruitersCached = unstable_cache(
+  getCompanyRecruiters,
+  ["company-recruiters"],
+  { revalidate: 300 }
+);
+
+export const getCompanyEmployeesCached = unstable_cache(
+  getCompanyEmployees,
+  ["company-employees"],
+  { revalidate: 120 }
+);
+
 // ─── Company employee categories (ow_company_employee_categories) ─────────────
 
 /** Phase Q: 各企業のカテゴリ表示設定 (display_order 順) */

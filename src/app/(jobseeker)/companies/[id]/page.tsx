@@ -5,10 +5,10 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import {
   getCompanyById,
-  getCompanyPhotos,
-  getCompanyRecruiters,
+  getCompanyPhotosCached,
+  getCompanyRecruitersCached,
   getArticlesByCompany,
-  getCompanyEmployees,
+  getCompanyEmployeesCached,
 } from "@/lib/supabase/queries";
 import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
@@ -3329,21 +3329,23 @@ export default async function CompanyDetailPage({
 }) {
   const supabase = createClient();
 
-  // Pull auth out first so we can run ow_users lookup in parallel
-  const { data: { user: authUser } } = await supabase.auth.getUser();
+  // auth + all DB queries in parallel (auth no longer blocks data fetching)
+  const [authResult, companyResult, photos, recruiters, companyArticles, employees] = await Promise.all([
+    supabase.auth.getUser(),
+    getCompanyByIdCached(params.id),
+    getCompanyPhotosCached(params.id),
+    getCompanyRecruitersCached(params.id),
+    getArticlesByCompany(params.id),
+    getCompanyEmployeesCached(params.id),
+  ]);
+
+  const authUser = authResult.data.user;
   const isAuthenticated = !!authUser;
 
-  const [companyResult, photos, recruiters, companyArticles, employees, owUserResult] = await Promise.all([
-    getCompanyByIdCached(params.id),
-    getCompanyPhotos(params.id),
-    getCompanyRecruiters(params.id),
-    getArticlesByCompany(params.id),
-    getCompanyEmployees(params.id),
-    // ow_users lookup runs in parallel now (was sequential before)
-    isAuthenticated
-      ? supabase.from("ow_users").select("id").eq("auth_id", authUser!.id).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-  ]);
+  // ow_users lookup (needs auth result, runs after)
+  const owUserResult = isAuthenticated
+    ? await supabase.from("ow_users").select("id").eq("auth_id", authUser!.id).maybeSingle()
+    : { data: null, error: null };
 
   if (!companyResult) return notFound();
 
