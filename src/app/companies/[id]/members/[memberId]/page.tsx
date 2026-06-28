@@ -131,7 +131,6 @@ async function getMemberProfile(
       .limit(1)
       .single();
     if (profileMatch?.user_id) {
-      console.log("[member-profile] resolved user_id from ow_profiles:", profileMatch.user_id, "for name:", memberName);
       return profileMatch.user_id;
     }
     return null;
@@ -141,11 +140,6 @@ async function getMemberProfile(
   const rawUserId = cmMember?.user_id || whMember?.user_id;
   const memberName = cmMember?.name || "";
   const resolvedUserId = await resolveUserId(rawUserId, memberName);
-
-  console.log("[member-profile] auth user id:", user?.id);
-  console.log("[member-profile] raw member user_id:", rawUserId);
-  console.log("[member-profile] resolvedUserId:", resolvedUserId);
-  console.log("[member-profile] company.user_id:", company?.user_id);
 
   // resolvedUserIdを使ってwork_histories・学歴を取得
   let workHistories: WorkHistory[] = [];
@@ -179,7 +173,6 @@ async function getMemberProfile(
 
   if (cmMember) {
     const isOwner = checkIsOwner(resolvedUserId);
-    console.log("[member-profile] isOwner:", isOwner);
     return {
       member: {
         id: cmMember.id,

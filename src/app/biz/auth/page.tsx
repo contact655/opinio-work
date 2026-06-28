@@ -66,6 +66,11 @@ function BizAuthInner() {
   const [prefillEmail, setPrefillEmail] = useState("");
   const [pendingCompany, setPendingCompany] = useState<PendingCompany | null>(null);
   const [inviteContext, setInviteContext] = useState<InviteContext | null>(null);
+  const [siteStats, setSiteStats] = useState<{ companies: number; jobs: number } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats").then(r => r.json()).then(d => setSiteStats(d)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     try {
@@ -288,8 +293,8 @@ function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null })
                 padding: "10px 14px",
               }}>
                 {[
-                  { num: "79社+", label: "掲載中" },
-                  { num: "155件+", label: "公開求人" },
+                  { num: siteStats ? `${siteStats.companies}社+` : "–", label: "掲載中" },
+                  { num: siteStats ? `${siteStats.jobs}件+` : "–", label: "公開求人" },
                   { num: "¥0", label: "掲載費" },
                 ].map(({ num, label }, i) => (
                   <div key={label} style={{
@@ -802,7 +807,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             ))}
           </div>
           <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.4 }}>
-            <strong style={{ color: "var(--royal)" }}>79社+</strong> の企業が採用に活用中
+            <strong style={{ color: "var(--royal)" }}>{siteStats ? `${siteStats.companies}社+` : "–"}</strong> の企業が採用に活用中
           </span>
         </div>
 
