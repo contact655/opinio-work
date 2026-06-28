@@ -489,6 +489,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
   const [showHireForm, setShowHireForm] = useState(false);
   const [hiredSalary, setHiredSalary] = useState("");
   const [hireSubmitting, setHireSubmitting] = useState(false);
+  const [hireTermsAgreed, setHireTermsAgreed] = useState(false);
 
   const statusOptions: { value: ApplicationStatus; label: string }[] = [
     { value: "pending",   label: "新着" },
@@ -709,10 +710,15 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46" }}>採用確定の報告</div>
+
+              {/* 年収入力 */}
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "#047857", display: "block", marginBottom: 6 }}>
-                  採用者の想定年収（万円）
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#047857", display: "block", marginBottom: 4 }}>
+                  採用者の年収（万円）
                 </label>
+                <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 8, lineHeight: 1.5 }}>
+                  採用通知書または雇用契約書に記載の年収をご入力ください。
+                </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <input
                     type="number"
@@ -730,34 +736,57 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
                   />
                   <span style={{ fontSize: 13, color: "#047857" }}>万円</span>
                   {hiredSalary && Number(hiredSalary) > 0 && (
-                    <span style={{ fontSize: 12, color: "#065F46", fontWeight: 600, marginLeft: 4 }}>
-                      → 請求額: {Math.round(Number(hiredSalary) * 0.1)}万円
+                    <span style={{ fontSize: 12, color: "#065F46", fontWeight: 700, marginLeft: 4 }}>
+                      → 請求額: {Math.round(Number(hiredSalary) * 0.1)}万円（税抜）
                     </span>
                   )}
                 </div>
               </div>
+
+              {/* 規約同意チェック */}
+              <label style={{
+                display: "flex", alignItems: "flex-start", gap: 10,
+                background: "#F0FDF4", border: "1px solid #6EE7B7",
+                borderRadius: 8, padding: "12px 14px", cursor: "pointer",
+              }}>
+                <input
+                  type="checkbox"
+                  checked={hireTermsAgreed}
+                  onChange={e => setHireTermsAgreed(e.target.checked)}
+                  style={{ marginTop: 2, accentColor: "var(--success)", flexShrink: 0, width: 15, height: 15 }}
+                />
+                <span style={{ fontSize: 12, color: "#065F46", lineHeight: 1.65 }}>
+                  上記の年収は採用通知書・雇用契約書に基づく正確な金額であることを確認しました。
+                  報告後、OPINIOより<strong>年収の10%を成果報酬として請求</strong>します。
+                  年収の相違が判明した場合、差額を追加請求する場合があります。
+                </span>
+              </label>
+
               <div style={{ display: "flex", gap: 8 }}>
                 <button
                   onClick={async () => {
                     const salary = Number(hiredSalary);
-                    if (!salary || salary < 100) return;
+                    if (!salary || salary < 100 || !hireTermsAgreed) return;
                     setHireSubmitting(true);
                     await onHireConfirm(app.id, salary);
                     setHireSubmitting(false);
                     setShowHireForm(false);
+                    setHireTermsAgreed(false);
                   }}
-                  disabled={hireSubmitting || !hiredSalary || Number(hiredSalary) < 100}
+                  disabled={hireSubmitting || !hiredSalary || Number(hiredSalary) < 100 || !hireTermsAgreed}
                   style={{
                     padding: "10px 24px", borderRadius: 8,
-                    background: hireSubmitting ? "#94a3b8" : "linear-gradient(135deg, var(--success), #047857)",
+                    background: (hireSubmitting || !hireTermsAgreed || !hiredSalary || Number(hiredSalary) < 100)
+                      ? "#94a3b8"
+                      : "linear-gradient(135deg, var(--success), #047857)",
                     color: "#fff", fontSize: 13, fontWeight: 700,
-                    border: "none", cursor: hireSubmitting ? "not-allowed" : "pointer",
+                    border: "none", cursor: (hireSubmitting || !hireTermsAgreed) ? "not-allowed" : "pointer",
                   }}
                 >
                   {hireSubmitting ? "送信中..." : "確定して報告する"}
                 </button>
                 <button
-                  onClick={() => { setShowHireForm(false); setHiredSalary(""); }}
+                  onClick={() => { setShowHireForm(false); setHiredSalary(""); setHireTermsAgreed(false); }}
                   style={{
                     padding: "10px 16px", borderRadius: 8,
                     background: "transparent", color: "#047857",
@@ -769,7 +798,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
                 </button>
               </div>
               <div style={{ fontSize: 11, color: "#6B7280", lineHeight: 1.6 }}>
-                ※ 報告後にOPINIOより請求書メールをお送りします。
+                ※ 報告後にOPINIOより請求書メールをお送りします（請求書番号・振込先は別途ご案内）。
               </div>
             </div>
           )}

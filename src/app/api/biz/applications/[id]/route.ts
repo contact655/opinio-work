@@ -147,10 +147,13 @@ export async function PATCH(
     <tr><td style="padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;font-weight:600">想定年収</td>
         <td style="padding:10px 14px;border:1px solid #e2e8f0">${hiredSalary ? `${hiredSalary}万円` : "未入力"}</td></tr>
     <tr style="background:#D1FAE5"><td style="padding:10px 14px;background:#6EE7B7;border:1px solid #6EE7B7;font-weight:800;color:#065F46">請求額（目安）</td>
-        <td style="padding:10px 14px;border:1px solid #6EE7B7;font-weight:800;font-size:16px;color:#065F46">${fee ? `${fee}万円（年収の10%）` : "年収 × 10%"}</td></tr>
+        <td style="padding:10px 14px;border:1px solid #6EE7B7;font-weight:800;font-size:16px;color:#065F46">${fee ? `${fee}万円（年収の10%・税抜）` : "年収 × 10%（税抜）"}</td></tr>
+    <tr><td style="padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;font-weight:600">申込ID</td>
+        <td style="padding:10px 14px;border:1px solid #e2e8f0;font-size:12px;color:#475569;font-family:monospace">${appId}</td></tr>
   </table>
   <div style="margin-top:24px;padding:16px;background:#FEF3C7;border-radius:8px;font-size:13px;color:#92400E">
-    <strong>次のアクション：</strong>請求書を作成して ${job?.ow_companies?.name ?? "企業担当者"} にお送りください。
+    <strong>次のアクション：</strong>請求書を作成して ${job?.ow_companies?.name ?? "企業担当者"} にお送りください。<br/>
+    <span style="font-size:12px;margin-top:6px;display:block">年収に相違がある場合は申込IDを元に差額を追加請求してください。</span>
   </div>
   <div style="margin-top:16px;font-size:12px;color:#94a3b8">確定日時: ${new Date().toLocaleString("ja-JP")}</div>
 </div></body></html>`,
