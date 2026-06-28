@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "OPINIOについて | OPINIO",
+  title: { absolute: "OPINIOについて" },
   description:
     "IT/SaaS業界に特化したキャリアインフラ「OPINIO」の運営理念・コンセプトについて。",
 };

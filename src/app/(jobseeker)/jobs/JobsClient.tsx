@@ -1639,6 +1639,7 @@ export default function JobsClient({
 
   return (
     <>
+      <h1 className="sr-only">IT/SaaS求人を探す</h1>
       {/* ── 2-row スティッキーフィルターバー（全幅・常時固定） ── */}
       <div
         ref={filterBarRef}
