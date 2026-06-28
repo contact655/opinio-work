@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: { absolute: "OPINIOについて | OPINIO" },
   description:
     "IT/SaaS業界に特化したキャリアインフラ「OPINIO」の運営理念・コンセプトについて。",
+  alternates: { canonical: "https://opinio.jp/about" },
 };
 
 export default function AboutPage() {

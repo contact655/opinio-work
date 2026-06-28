@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: { absolute: "フィード | OPINIO" },
   description: "IT/SaaS業界で働く社員・OBによる最新の発信をまとめてチェック。",
   alternates: { canonical: "https://opinio.jp/feed" },
+  robots: { index: false, follow: false },
 };
 
 type RawPost = {
