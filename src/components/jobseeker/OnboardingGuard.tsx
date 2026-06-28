@@ -27,6 +27,8 @@ export function OnboardingGuard() {
       if (!profile?.onboarding_completed) {
         router.replace(`/onboarding?next=${encodeURIComponent(pathname)}`);
       }
+    }).catch(() => {
+      // Supabase auth lock race condition — non-fatal, ignore silently
     });
   }, [pathname, router]);
 
