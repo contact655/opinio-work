@@ -3,6 +3,7 @@ import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { MobileBottomNav } from "@/components/jobseeker/MobileBottomNav";
 import { GlobalToast } from "@/components/ui/GlobalToast";
+import { OnboardingGuard } from "@/components/jobseeker/OnboardingGuard";
 
 export const metadata: Metadata = {
   title: {
@@ -38,6 +39,7 @@ export default function JobseekerLayout({ children }: { children: React.ReactNod
       <JobseekerFooter />
       <MobileBottomNav />
       <GlobalToast />
+      <OnboardingGuard />
     </div>
   );
 }
