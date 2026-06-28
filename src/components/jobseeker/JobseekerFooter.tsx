@@ -128,8 +128,8 @@ export function JobseekerFooter() {
               Opinio Inc. · 〒107-0062 東京都港区南青山
             </span>
           </div>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.2)", fontStyle: "italic" }}>
-            Truth to Careers.
+          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>
+            IT/SaaS業界特化のキャリアプラットフォーム
           </span>
         </div>
       </div>

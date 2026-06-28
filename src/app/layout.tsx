@@ -27,7 +27,7 @@ const notoSerifJP = Noto_Serif_JP({
 export const metadata: Metadata = {
   metadataBase: new URL("https://opinio.jp"),
   title: {
-    default: "OPINIO｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
+    default: "OPINIO | IT/SaaS業界の転職・求人情報",
     template: "%s | OPINIO",
   },
   description:
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     locale: "ja_JP",
     url: "https://opinio.jp",
     siteName: "OPINIO",
-    title: "OPINIO｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
+    title: "OPINIO | IT/SaaS業界特化のキャリアプラットフォーム",
     description:
       "IT/SaaS業界の転職は、情報戦。OPINIO編集部が120社を取材し、スカウトなし・カジュアル面談で、納得のいくキャリア選択を。完全無料。",
     images: [
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "OPINIO｜キャリアに、第三者の目を。SaaS業界の転職プラットフォーム",
+    title: "OPINIO | IT/SaaS業界特化のキャリアプラットフォーム",
     description:
       "OPINIO編集部が120社を取材し、スカウトなし・カジュアル面談で、納得のいくキャリア選択を。完全無料。",
     images: ["/og-image.png"],

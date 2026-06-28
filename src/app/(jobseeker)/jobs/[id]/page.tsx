@@ -21,7 +21,7 @@ export async function generateMetadata({
   params: { id: string };
 }): Promise<Metadata> {
   const result = await fetchJobById(params.id);
-  if (!result) return { title: "求人 — OPINIO" };
+  if (!result) return { title: "求人 | OPINIO" };
   const { job, company } = result;
 
   const salaryText = job.salary_min && job.salary_max

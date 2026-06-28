@@ -229,9 +229,9 @@ export default function PricingPage() {
             <tbody>
               {[
                 { name: "OPINIO", listing: "無料", fee: "年収10%", casual: true, it: true, highlight: true },
-                { name: "Wantedly", listing: "月額〜10万円+", fee: "なし（月額のみ）", casual: true, it: false, highlight: false },
-                { name: "Green", listing: "月額〜20万円+", fee: "なし", casual: false, it: true, highlight: false },
-                { name: "ビズリーチ", listing: "月額〜60万円+", fee: "なし", casual: false, it: false, highlight: false },
+                { name: "求人掲載型A", listing: "月額〜10万円+", fee: "なし（月額のみ）", casual: true, it: false, highlight: false },
+                { name: "求人掲載型B", listing: "月額〜20万円+", fee: "なし", casual: false, it: true, highlight: false },
+                { name: "スカウト型", listing: "月額〜60万円+", fee: "なし", casual: false, it: false, highlight: false },
                 { name: "人材エージェント", listing: "無料", fee: "年収30〜35%", casual: false, it: false, highlight: false },
               ].map(({ name, listing, fee, casual, it, highlight }) => (
                 <tr key={name} style={{

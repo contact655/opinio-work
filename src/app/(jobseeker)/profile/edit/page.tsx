@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import ProfileEditClient from "./ProfileEditClient";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
 
-export const metadata = { title: "プロフィール設定 — OPINIO" };
+export const metadata = { title: { absolute: "プロフィール設定 | OPINIO" } };
 
 export default async function ProfileEditPage({
   searchParams,

@@ -28,7 +28,7 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   const article = await getArticleBySlug(params.slug);
-  if (!article) return { title: "記事 — OPINIO" };
+  if (!article) return { title: { absolute: "記事 | OPINIO" } };
 
   const typeLabel =
     article.type === "employee" ? "社員インタビュー"
@@ -43,12 +43,12 @@ export async function generateMetadata({
   const ogImageUrl = `/api/og?type=article&name=${encodeURIComponent(article.title)}&sub=${encodeURIComponent(article.company_name)}&badge=${encodeURIComponent(typeLabel)}`;
 
   return {
-    title: `${article.title} — OPINIO`,
+    title: `${article.title} | OPINIO`,
     description,
     alternates: { canonical: `/articles/${params.slug}` },
     keywords: [article.company_name, typeLabel, "IT転職", "SaaS転職", "社員インタビュー"].filter(Boolean),
     openGraph: {
-      title: `${article.title} — OPINIO`,
+      title: `${article.title} | OPINIO`,
       description,
       type: "article",
       url: `/articles/${params.slug}`,
@@ -57,7 +57,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: `${article.title} — OPINIO`,
+      title: `${article.title} | OPINIO`,
       description,
       images: [ogImageUrl],
     },

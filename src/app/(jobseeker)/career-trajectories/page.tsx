@@ -1,3 +1,15 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: { absolute: "キャリア軌跡 | OPINIO" },
+  description: "IT/SaaS業界で活躍する人のキャリア軌跡を公開。転職の経緯・職種変遷・在籍企業の流れをタイムラインで確認できます。",
+  openGraph: {
+    title: "キャリア軌跡 | OPINIO",
+    description: "IT/SaaS業界で活躍する人のリアルなキャリア軌跡。転職の経緯・職種変遷をタイムラインで確認。",
+    type: "website",
+  },
+};
+
 export const dynamic = "force-dynamic";
 
 import { unstable_noStore as noStore } from "next/cache";
