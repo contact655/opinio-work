@@ -96,6 +96,7 @@ export function JobseekerFooter() {
               {[
                 { href: "/about",        label: "OPINIOについて" },
                 { href: "/industries",   label: "対象業界" },
+                { href: "/contact",      label: "お問い合わせ" },
                 { href: "/privacy",        label: "プライバシーポリシー" },
                 { href: "/terms",          label: "利用規約（求職者）" },
                 { href: "/terms/mentor",   label: "利用規約（メンター）" },

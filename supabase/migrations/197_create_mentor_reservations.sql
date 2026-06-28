@@ -61,6 +61,10 @@ CREATE TRIGGER trg_mentor_reservations_updated_at
 
 ALTER TABLE ow_mentor_reservations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "user can manage own reservations" ON ow_mentor_reservations;
+DROP POLICY IF EXISTS "admin can view all reservations" ON ow_mentor_reservations;
+DROP POLICY IF EXISTS "admin can update all reservations" ON ow_mentor_reservations;
+
 CREATE POLICY "user can manage own reservations"
   ON ow_mentor_reservations FOR ALL
   USING (
