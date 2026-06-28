@@ -172,7 +172,7 @@ function BizAuthInner() {
       `}</style>
 
       {/* ④ Updated BrandPanel with social proof numbers */}
-      <BrandPanel inviteCompanyName={inviteContext?.companyName ?? null} />
+      <BrandPanel inviteCompanyName={inviteContext?.companyName ?? null} siteStats={siteStats} />
 
       <FormSide
         mode={mode}
@@ -183,13 +183,14 @@ function BizAuthInner() {
         next={next}
         router={router}
         inviteContext={inviteContext}
+        siteStats={siteStats}
       />
     </div>
   );
 }
 
 // ── ブランドパネル（左） ─────────────────────────────────────────────────────
-function BrandPanel({ inviteCompanyName }: { inviteCompanyName: string | null }) {
+function BrandPanel({ inviteCompanyName, siteStats }: { inviteCompanyName: string | null; siteStats: { companies: number; jobs: number } | null }) {
   const MOCK_CANDIDATES = [
     { init: "山", bg: "linear-gradient(135deg,#002366,#3B5FD9)", name: "山田 健太郎", role: "エンタープライズ営業 5年", co: "SmartHR出身", tag: "SaaS営業", tagColor: "var(--royal)" },
     { init: "中", bg: "linear-gradient(135deg,#059669,#047857)", name: "中村 さやか", role: "カスタマーサクセス 3年", co: "Salesforce Japan出身", tag: "CS", tagColor: "var(--success)" },
@@ -412,9 +413,10 @@ type FormSideProps = {
   next: string;
   router: ReturnType<typeof useRouter>;
   inviteContext: InviteContext | null;
+  siteStats: { companies: number; jobs: number } | null;
 };
 
-function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin, next, router, inviteContext }: FormSideProps) {
+function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin, next, router, inviteContext, siteStats }: FormSideProps) {
   return (
     <div
       className="biz-form-side"
@@ -444,7 +446,7 @@ function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin
         {/* ⑤ Mode tabs — active = solid royal */}
         <ModeTabBar mode={mode} onChange={setMode} />
         {mode === "signup" ? (
-          <SignupForm onSwitchToLogin={onSwitchToLogin} next={next} router={router} inviteContext={inviteContext} />
+          <SignupForm onSwitchToLogin={onSwitchToLogin} next={next} router={router} inviteContext={inviteContext} siteStats={siteStats} />
         ) : (
           <LoginForm
             onSwitchToSignup={() => setMode("signup")}
@@ -543,9 +545,10 @@ type SignupFormProps = {
   next: string;
   router: ReturnType<typeof useRouter>;
   inviteContext: InviteContext | null;
+  siteStats: { companies: number; jobs: number } | null;
 };
 
-function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupFormProps) {
+function SignupForm({ onSwitchToLogin, next, router, inviteContext, siteStats }: SignupFormProps) {
   const isInviteMode = inviteContext !== null;
   const isMockMode = process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true";
 

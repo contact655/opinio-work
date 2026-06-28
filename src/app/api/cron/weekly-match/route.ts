@@ -11,18 +11,22 @@ function getResend() {
 }
 
 export async function GET(request: Request) {
+  // Fail fast if CRON_SECRET is not configured
+  if (!process.env.CRON_SECRET) {
+    return new Response("CRON_SECRET not configured", { status: 500 });
+  }
+  // Cron認証
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
     return NextResponse.json({ success: false, error: "Supabase env vars not configured" }, { status: 503 });
   }
   const supabase = createClient(url, key);
-
-  // Cron認証
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response("Unauthorized", { status: 401 });
-  }
 
   try {
     // 公開中の求人を取得（マッチ用）

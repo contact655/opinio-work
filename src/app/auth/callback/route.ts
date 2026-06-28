@@ -8,7 +8,9 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const type = searchParams.get("type"); // "recovery" for password reset
   const isBiz = searchParams.get("biz") === "1"; // biz側からのOAuth
-  const next = searchParams.get("next") ?? (isBiz ? "/biz/dashboard" : "/companies");
+  const rawNext = searchParams.get("next") ?? "";
+  // Prevent open redirect: only allow same-origin relative paths
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : (isBiz ? "/biz/dashboard" : "/companies");
 
   if (code) {
     const supabase = createClient();
@@ -90,7 +92,7 @@ export async function GET(request: Request) {
 
 // ── Welcome email HTML ────────────────────────────────────────────────────────
 function buildWelcomeHtml(name: string): string {
-  const btn = "display:inline-block;background:var(--royal);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px";
+  const btn = "display:inline-block;background:#002366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px";
   return `<!DOCTYPE html>
 <html lang="ja">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -99,14 +101,14 @@ function buildWelcomeHtml(name: string): string {
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
         <tr>
-          <td style="background:linear-gradient(135deg,var(--royal),#3B5FD9);padding:28px 40px">
+          <td style="background:linear-gradient(135deg,#002366,#3B5FD9);padding:28px 40px">
             <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em">OPINIO</span>
             <span style="font-size:11px;color:rgba(255,255,255,0.7);margin-left:12px">IT/SaaS業界のキャリアインフラ</span>
           </td>
         </tr>
         <tr>
           <td style="padding:32px 40px;color:#0f172a;line-height:1.7;font-size:14px">
-            <h2 style="margin:0 0 8px;font-size:20px;color:var(--royal)">ようこそ、OPINIO へ！</h2>
+            <h2 style="margin:0 0 8px;font-size:20px;color:#002366">ようこそ、OPINIO へ！</h2>
             <p style="margin:0 0 20px;color:#475569">${name} さん、登録ありがとうございます。</p>
 
             <p style="margin:0 0 16px;color:#0f172a;font-weight:600">OPINIO でできること：</p>
@@ -127,7 +129,7 @@ function buildWelcomeHtml(name: string): string {
               <a href="https://opinio.jp/profile/edit?welcome=1" style="${btn}">プロフィールを設定する →</a>
             </p>
 
-            <div style="background:#eff3fc;border-radius:8px;padding:14px 18px;border-left:3px solid var(--royal)">
+            <div style="background:#eff3fc;border-radius:8px;padding:14px 18px;border-left:3px solid #002366">
               <p style="margin:0;font-size:12px;color:#334155;line-height:1.7">
                 💡 プロフィールを充実させると、企業の採用担当者にあなたの経験が伝わりやすくなります。
               </p>

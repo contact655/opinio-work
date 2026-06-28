@@ -39,15 +39,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Cannot DM yourself" }, { status: 400 });
   }
 
-  // Check target user exists
+  // Check target user exists and has public visibility
   const { data: targetUser } = await admin
     .from("ow_users")
-    .select("id, name")
+    .select("id, name, visibility")
     .eq("id", targetUserId)
     .maybeSingle();
 
   if (!targetUser) {
     return NextResponse.json({ error: "Target user not found" }, { status: 404 });
+  }
+
+  if (targetUser.visibility === "private") {
+    return NextResponse.json({ error: "This user is not accepting messages" }, { status: 403 });
   }
 
   // Check if DM conversation already exists between these two users

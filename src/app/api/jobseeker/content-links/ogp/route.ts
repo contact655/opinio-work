@@ -32,8 +32,22 @@ export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url");
   if (!url) return NextResponse.json({ error: "url is required" }, { status: 400 });
 
+  // SSRF guard: only allow http/https to public hosts
   try {
-    new URL(url); // validate
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+    }
+    const h = parsed.hostname.toLowerCase();
+    if (
+      h === "localhost" || h === "127.0.0.1" || h === "0.0.0.0" || h === "[::1]" ||
+      h.startsWith("192.168.") || h.startsWith("10.") ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h) ||
+      h.endsWith(".local") || h.endsWith(".internal") ||
+      h === "169.254.169.254"
+    ) {
+      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+    }
   } catch {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }

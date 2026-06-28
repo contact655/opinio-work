@@ -11,6 +11,10 @@ function getResend() {
 }
 
 export async function GET(request: Request) {
+  // Fail fast if CRON_SECRET is not configured
+  if (!process.env.CRON_SECRET) {
+    return new Response("CRON_SECRET not configured", { status: 500 });
+  }
   // Cron認証
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
