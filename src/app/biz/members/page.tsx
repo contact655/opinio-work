@@ -8,7 +8,7 @@ import { MembersClient } from "./MembersClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "チーム管理 | OPINIO Business",
+  title: { absolute: "チーム管理 | OPINIO Business" },
 };
 
 

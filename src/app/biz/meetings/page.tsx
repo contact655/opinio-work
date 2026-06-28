@@ -9,7 +9,7 @@ import { fetchMeetingsForCompany } from "@/lib/business/meetings";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "カジュアル面談 | OPINIO Business",
+  title: { absolute: "カジュアル面談 | OPINIO Business" },
 };
 
 export default async function BizMeetingsPage() {

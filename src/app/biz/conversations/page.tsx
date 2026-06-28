@@ -7,7 +7,7 @@ import { ConversationsClient } from "./ConversationsClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "対話管理 | OPINIO Business",
+  title: { absolute: "対話管理 | OPINIO Business" },
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────

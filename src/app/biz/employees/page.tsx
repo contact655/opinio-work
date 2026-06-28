@@ -7,7 +7,7 @@ import { EmployeesClient } from "./EmployeesClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "社員管理 | OPINIO Business",
+  title: { absolute: "社員管理 | OPINIO Business" },
 };
 
 export type BizEmployee = {

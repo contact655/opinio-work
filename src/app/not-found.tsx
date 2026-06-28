@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "ページが見つかりません | OPINIO",
+  title: { absolute: "ページが見つかりません | OPINIO" },
   robots: { index: false },
 };
 

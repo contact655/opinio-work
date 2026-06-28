@@ -6,7 +6,7 @@ import { AgentDashboardClient } from "./AgentDashboardClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "ダッシュボード | エージェントポータル | OPINIO",
+  title: { absolute: "ダッシュボード | エージェントポータル | OPINIO" },
 };
 
 export default async function AgentDashboardPage() {

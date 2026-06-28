@@ -10,7 +10,7 @@ import { CategoriesEditor } from "./CategoriesEditor";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "組織体制 | OPINIO Business",
+  title: { absolute: "組織体制 | OPINIO Business" },
 };
 
 export default async function CategoriesPage() {

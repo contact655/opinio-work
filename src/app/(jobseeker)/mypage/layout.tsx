@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import { MypageMockProvider } from "./_components/MypageMockContext";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 /**
  * /mypage 配下の全ページを包むサブレイアウト。

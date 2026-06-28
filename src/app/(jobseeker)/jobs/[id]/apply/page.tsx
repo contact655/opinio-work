@@ -1,8 +1,13 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getJobById } from "@/lib/supabase/queries";
 import ApplicationForm from "./ApplicationForm";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function ApplyPage({ params }: { params: { id: string } }) {
   const supabase = createClient();

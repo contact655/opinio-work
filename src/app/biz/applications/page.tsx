@@ -8,7 +8,7 @@ import { fetchApplicationsForCompany } from "@/lib/business/applications";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "選考管理 | OPINIO Business",
+  title: { absolute: "選考管理 | OPINIO Business" },
 };
 
 export default async function BizApplicationsPage() {

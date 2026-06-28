@@ -5,7 +5,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "会社を追加 | OPINIO Business",
+  title: { absolute: "会社を追加 | OPINIO Business" },
 };
 
 const OPTIONS = [

@@ -7,7 +7,7 @@ import CandidatesClient from "./CandidatesClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "求職者を探す | OPINIO Business",
+  title: { absolute: "求職者を探す | OPINIO Business" },
 };
 
 export default async function CandidatesPage() {

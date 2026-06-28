@@ -7,7 +7,7 @@ import { RecommendClient } from "./RecommendClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "候補者を推薦 | エージェントポータル | OPINIO",
+  title: { absolute: "候補者を推薦 | エージェントポータル | OPINIO" },
 };
 
 export default async function AgentRecommendPage({

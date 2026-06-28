@@ -8,7 +8,7 @@ import { AgentsClient } from "./AgentsClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "エージェント管理 | OPINIO Business",
+  title: { absolute: "エージェント管理 | OPINIO Business" },
 };
 
 export default async function BizAgentsPage() {

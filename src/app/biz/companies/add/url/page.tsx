@@ -6,7 +6,7 @@ import { AddByUrlClient } from "./AddByUrlClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "招待 URL を入力 | OPINIO Business",
+  title: { absolute: "招待 URL を入力 | OPINIO Business" },
 };
 
 export default async function AddByUrlPage() {

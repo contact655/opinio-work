@@ -8,7 +8,7 @@ import { fetchAgenciesForCompany } from "@/lib/business/agents";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "パイプライン | OPINIO Business",
+  title: { absolute: "パイプライン | OPINIO Business" },
 };
 
 export default async function BizPipelinePage() {

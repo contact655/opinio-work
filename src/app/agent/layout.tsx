@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "エージェントポータル | OPINIO",
+  title: { absolute: "エージェントポータル | OPINIO" },
+  robots: { index: false, follow: false },
 };
 
 export default function AgentLayout({ children }: { children: React.ReactNode }) {

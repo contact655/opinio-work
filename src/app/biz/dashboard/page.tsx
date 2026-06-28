@@ -20,7 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "ホーム | OPINIO Business",
+  title: { absolute: "ホーム | OPINIO Business" },
 };
 
 async function NoTenantPage() {
