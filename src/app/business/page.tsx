@@ -9,12 +9,12 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "IT/SaaS採用プラットフォーム｜OPINIO for Business",
+  title: { absolute: "IT/SaaS採用プラットフォーム | OPINIO for Business" },
   description:
     "スカウトしない採用を。IT/SaaS業界に特化した即戦力人材が、次のキャリアを探しています。メンター介在で本気度の高い応募だけが届く採用プラットフォーム。",
   alternates: { canonical: "/business" },
   openGraph: {
-    title: "IT/SaaS採用プラットフォーム｜OPINIO for Business",
+    title: "IT/SaaS採用プラットフォーム | OPINIO for Business",
     description: "業界特化の即戦力人材プラットフォーム。スカウト送信不要で、IT/SaaS経験者から直接コンタクトが届きます。",
     type: "website",
     url: "https://opinio.jp/business",

@@ -4,6 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: { absolute: "お問い合わせ | OPINIO" },
   description: "OPINIO へのお問い合わせ・ご報告はこちらから。",
+  alternates: { canonical: "https://opinio.jp/contact" },
 };
 
 const cards = [

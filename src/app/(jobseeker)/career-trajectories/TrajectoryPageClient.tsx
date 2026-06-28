@@ -88,6 +88,11 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
       }} className="px-5 md:px-12">
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
 
+          {/* ── ページタイトル ── */}
+          <h1 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0, letterSpacing: "-0.01em" }}>
+            キャリア軌跡
+          </h1>
+
           {/* ── 行1: 検索バー + 職種チップ ── */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
             {/* 検索ボックス */}

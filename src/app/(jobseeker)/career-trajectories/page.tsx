@@ -174,10 +174,5 @@ async function getProfiles(): Promise<CardData[]> {
 export default async function CareerTrajectoriesPage() {
   const cards = await getProfiles();
 
-  return (
-    <>
-      <h1 className="sr-only">キャリア軌跡</h1>
-      <TrajectoryPageClient cards={cards} />
-    </>
-  );
+  return <TrajectoryPageClient cards={cards} />;
 }

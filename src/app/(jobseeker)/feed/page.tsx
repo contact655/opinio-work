@@ -3,7 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import FeedClient from "./FeedClient";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: { absolute: "フィード | OPINIO" } };
+export const metadata: Metadata = {
+  title: { absolute: "フィード | OPINIO" },
+  description: "IT/SaaS業界で働く社員・OBによる最新の発信をまとめてチェック。",
+  alternates: { canonical: "https://opinio.jp/feed" },
+};
 
 type RawPost = {
   id: string;
