@@ -277,6 +277,7 @@ function AuthPageInner() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const emailRef = useRef<HTMLInputElement>(null);
 
@@ -365,6 +366,26 @@ function AuthPageInner() {
 
     router.push(nextUrl === "/" ? "/companies" : nextUrl);
     router.refresh();
+  };
+
+  const handleMagicLink = async () => {
+    if (!email) { setError("メールアドレスを入力してください"); return; }
+    setLoading(true);
+    setError("");
+    const supabase = createClient();
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(nextUrl || "/companies")}`,
+      },
+    });
+    if (otpError) {
+      setError(otpError.message);
+      setLoading(false);
+      return;
+    }
+    setMagicLinkSent(true);
+    setLoading(false);
   };
 
   // ── Email confirmation sent state ──
@@ -654,6 +675,24 @@ function AuthPageInner() {
           {/* ── LOGIN ── */}
           {mode === "login" && (
             <>
+              {magicLinkSent ? (
+                <div style={{ textAlign: "center", padding: "40px 0" }}>
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" aria-hidden><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  </div>
+                  <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 20, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
+                    ログインリンクを送りました
+                  </h2>
+                  <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
+                    <strong>{email}</strong> にメールを送信しました。<br />
+                    リンクをクリックしてログインしてください。
+                  </p>
+                  <button type="button" onClick={() => setMagicLinkSent(false)} style={{ ...s.submitBtn, width: "auto", padding: "10px 28px", background: "var(--bg-tint)", color: "var(--ink)", boxShadow: "none", border: "1px solid var(--line)" }}>
+                    戻る
+                  </button>
+                </div>
+              ) : (
+              <>
               <div style={{ marginBottom: 24 }}>
                 <h1 style={s.formTitle}>おかえりなさい。</h1>
                 <p style={s.formSubtitle}>メールアドレスとパスワードでログインしてください。</p>
@@ -744,8 +783,25 @@ function AuthPageInner() {
                 </button>
               </form>
 
+              {/* マジックリンク */}
+              <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--line)", textAlign: "center" }}>
+                <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10 }}>
+                  パスワードを設定していない方・お忘れの方
+                </p>
+                <button
+                  type="button"
+                  onClick={handleMagicLink}
+                  disabled={loading}
+                  style={{ background: "none", border: "1.5px solid var(--royal-100)", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
+                >
+                  📧 メールでログインリンクを受け取る
+                </button>
+              </div>
+
               {/* ⑩ Social proof */}
               <SocialProofStrip />
+              </>
+              )}
             </>
           )}
 
