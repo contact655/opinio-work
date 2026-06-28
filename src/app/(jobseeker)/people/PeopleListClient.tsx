@@ -670,46 +670,6 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
         </div>
       )}
 
-      {/* ── 準備中メッセージ ── */}
-      {ambassadors.length < 8 && (
-        <div style={{
-          marginTop: 20,
-          padding: "20px 24px",
-          background: "linear-gradient(135deg, var(--royal-50), #fff)",
-          border: "1px dashed var(--royal-100)",
-          borderRadius: 12,
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-        }}>
-          <div style={{ fontSize: 28, flexShrink: 0 }}>🤝</div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", marginBottom: 3 }}>
-              話せる人を順次追加中
-            </div>
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-              現在{ambassadors.length}名が登録中です。各企業の採用担当者・現役社員を随時追加しています。
-              気になる企業の社員に話を聞きたい場合は、企業詳細ページからカジュアル面談を申し込めます。
-            </div>
-          </div>
-          <Link
-            href="/companies"
-            style={{
-              flexShrink: 0,
-              padding: "8px 16px",
-              background: "transparent",
-              color: "var(--royal)",
-              borderRadius: 8,
-              fontSize: 12, fontWeight: 700,
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-              border: "1.5px solid var(--royal)",
-            }}
-          >
-            企業を見る →
-          </Link>
-        </div>
-      )}
 
       {/* ── 注意書き ── */}
       <div style={{

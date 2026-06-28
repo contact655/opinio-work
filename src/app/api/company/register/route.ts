@@ -19,7 +19,6 @@ export async function POST(req: Request) {
     );
   }
 
-  console.log("[company/register] authenticated user:", user.id, user.email);
 
   // --- DB操作は管理クライアント（RLSバイパス）で ---
   const admin = createAdminClient();
@@ -65,7 +64,6 @@ export async function POST(req: Request) {
     );
   }
 
-  console.log("[company/register] company created:", company.id, company.name);
 
   // 2. カルチャータグを INSERT
   const tags: { tag_category: string; tag_value: string }[] = body.tags || [];
@@ -149,11 +147,9 @@ export async function POST(req: Request) {
     if (adminError && adminError.code !== "23505") {
       console.error("[company/register] ow_company_admins INSERT failed:", adminError.message);
     } else {
-      console.log("[company/register] ow_company_admins created");
     }
   }
 
-  console.log("[company/register] SUCCESS");
 
   // 運営への新規企業通知（best-effort: 失敗してもメインフローを止めない）
   await notify(
