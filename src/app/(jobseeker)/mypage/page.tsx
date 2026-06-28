@@ -13,7 +13,7 @@ import {
   type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
 
-export const metadata = { title: { absolute: "マイページ | OPINIO" } };
+export const metadata = { title: { absolute: "マイページ | OPINIO" }, robots: { index: false, follow: false } };
 
 export default async function MypagePage({
   searchParams,

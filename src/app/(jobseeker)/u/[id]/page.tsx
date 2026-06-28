@@ -87,7 +87,12 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
     .select("name")
     .eq("id", params.id)
     .maybeSingle();
-  return { title: { absolute: data ? `${data.name} | OPINIO` : "プロフィール | OPINIO" } };
+  return {
+    title: { absolute: data ? `${data.name} | OPINIO` : "プロフィール | OPINIO" },
+    alternates: { canonical: `https://opinio.jp/u/${params.id}` },
+    openGraph: { title: data ? `${data.name} | OPINIO` : "プロフィール | OPINIO" },
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function UserProfilePage({ params }: { params: { id: string } }) {

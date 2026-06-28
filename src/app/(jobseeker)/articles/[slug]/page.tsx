@@ -43,9 +43,9 @@ export async function generateMetadata({
   const ogImageUrl = `/api/og?type=article&name=${encodeURIComponent(article.title)}&sub=${encodeURIComponent(article.company_name)}&badge=${encodeURIComponent(typeLabel)}`;
 
   return {
-    title: `${article.title} | OPINIO`,
+    title: { absolute: `${article.title} | OPINIO` },
     description,
-    alternates: { canonical: `/articles/${params.slug}` },
+    alternates: { canonical: `https://opinio.jp/articles/${params.slug}` },
     keywords: [article.company_name, typeLabel, "IT転職", "SaaS転職", "社員インタビュー"].filter(Boolean),
     openGraph: {
       title: `${article.title} | OPINIO`,

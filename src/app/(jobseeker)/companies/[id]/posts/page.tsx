@@ -22,9 +22,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
   const { data: company } = await metaQuery.single();
 
-  if (!company) return { title: "企業が見つかりません" };
+  if (!company) return { title: { absolute: "企業が見つかりません | OPINIO" } };
   return {
-    title: `${company.name} の発信 | OPINIO`,
+    title: { absolute: `${company.name} の発信 | OPINIO` },
     description: `${company.name} の記事・動画・イベントなど外部発信コンテンツ一覧`,
   };
 }

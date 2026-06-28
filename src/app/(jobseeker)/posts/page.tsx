@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: { absolute: "企業の投稿 | OPINIO" },
   description:
     "IT/SaaS企業からのイベント告知・採用情報・カルチャーストーリーをタイムラインで確認できます。",
+  alternates: { canonical: "https://opinio.jp/posts" },
 };
 
 // ─── 型 ──────────────────────────────────────────────────────────────────────

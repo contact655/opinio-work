@@ -3,8 +3,9 @@ import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import Link from "next/link";
 
 export const metadata = {
-  title: "転職しない人のために | OPINIO",
+  title: { absolute: "転職しない人のために | OPINIO" },
   description: "転職を急がない方へ。社内キャリアの作り方、市場価値を上げる学び方、半年後にもう一度相談する選択肢。",
+  alternates: { canonical: "https://opinio.jp/not-job-changing" },
   openGraph: {
     title: "転職しない人のために | OPINIO",
     description: "転職を急がない方への、OPINIOからの提案です。",

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "分析 | OPINIO Business" };
+export const metadata = { title: { absolute: "分析 | OPINIO Business" }, robots: { index: false, follow: false } };
 
 // ─── 6ヶ月 monthly stats 取得 ───────────────────────────────────────────────
 

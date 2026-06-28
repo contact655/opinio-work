@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: { absolute: "キャリア相談 | OPINIO" },
   description: "IT/SaaS業界に特化した専任アドバイザーが、あなたのキャリア相談に無料で対応します。",
+  alternates: { canonical: "https://opinio.jp/career-consultation" },
 };
 
 // ── 相談員データ（将来的にDBから取得） ─────────────────────────────────────────

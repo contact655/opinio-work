@@ -384,7 +384,7 @@ const COMPANY_LISTPAGE_COLS = [
  * 本番環境では is_published=true の企業のみ表示。
  */
 export async function getCompaniesForList(): Promise<CompanyListRow[]> {
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   let query = supabase
     .from("ow_companies")
@@ -559,7 +559,7 @@ export async function getSimilarCompanies(companyId: string, industry: string, p
 export async function getCompanyById(
   id: string
 ): Promise<{ company: Company; detail: CompanyDetail; employeeCategories: CompanyEmployeeCategoryItem[] } | null> {
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   let companyQuery = supabase
     .from("ow_companies")
@@ -801,7 +801,7 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
 export async function getJobById(
   id: string
 ): Promise<{ job: Job; company: Company; relatedJobs: Job[] } | null> {
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("ow_jobs")
@@ -1320,7 +1320,7 @@ export async function getArticles(filter?: ArticleFilter): Promise<Article[]> {
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("ow_articles")
     .select(ARTICLE_DETAIL_COLS)
@@ -1340,7 +1340,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
 }
 
 export async function getArticlesByCompany(companyId: string): Promise<Article[]> {
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let query: any = supabase

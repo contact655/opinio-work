@@ -326,6 +326,7 @@ export async function generateMetadata({
   return {
     title: { absolute: title },
     description,
+    alternates: { canonical: `https://opinio.jp/career-trajectories/${params.userId}` },
     openGraph: {
       title,
       description,

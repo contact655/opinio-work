@@ -4,8 +4,9 @@ import type { Metadata } from "next";
 import { LegalDocument } from "@/components/legal/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "利用規約（求職者向け） | OPINIO",
+  title: { absolute: "利用規約（求職者向け） | OPINIO" },
   description: "OPINIO の利用規約（求職者向け）です。本サービスをご利用の前に必ずお読みください。",
+  alternates: { canonical: "https://opinio.jp/terms" },
   robots: { index: true, follow: true },
 };
 
