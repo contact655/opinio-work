@@ -305,7 +305,7 @@ export async function generateMetadata({
     .maybeSingle();
 
   if (!profile) {
-    return { title: "キャリア軌跡 | OPINIO" };
+    return { title: { absolute: "キャリア軌跡 | OPINIO" } };
   }
 
   const age = profile.birth_year
@@ -324,7 +324,7 @@ export async function generateMetadata({
     .join(" / ");
 
   return {
-    title,
+    title: { absolute: title },
     description,
     openGraph: {
       title,

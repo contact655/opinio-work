@@ -45,7 +45,7 @@ export async function generateMetadata({
   params: { id: string };
 }): Promise<Metadata> {
   const result = await getCompanyByIdCached(params.id);
-  if (!result) return { title: "企業が見つかりません | OPINIO" };
+  if (!result) return { title: { absolute: "企業が見つかりません | OPINIO" } };
   const { company } = result;
 
   const description = company.tagline
@@ -55,7 +55,7 @@ export async function generateMetadata({
   const ogImageUrl = `/api/og?type=company&name=${encodeURIComponent(company.name)}&sub=${encodeURIComponent(company.tagline ?? "")}&badge=${encodeURIComponent(company.industry ?? "IT/SaaS")}`;
 
   return {
-    title: `${company.name} — 企業情報・求人 | OPINIO`,
+    title: { absolute: `${company.name} — 企業情報・求人 | OPINIO` },
     description,
     alternates: { canonical: `/companies/${params.id}` },
     keywords: [company.name, company.industry ?? "", "カジュアル面談", "IT転職", "SaaS転職"].filter(Boolean),

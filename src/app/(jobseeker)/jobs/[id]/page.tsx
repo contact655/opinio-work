@@ -21,7 +21,7 @@ export async function generateMetadata({
   params: { id: string };
 }): Promise<Metadata> {
   const result = await fetchJobById(params.id);
-  if (!result) return { title: "求人 | OPINIO" };
+  if (!result) return { title: { absolute: "求人 | OPINIO" } };
   const { job, company } = result;
 
   const salaryText = job.salary_min && job.salary_max
@@ -38,7 +38,7 @@ export async function generateMetadata({
   const ogImageUrl = `/api/og?type=job&name=${encodeURIComponent(job.role)}&sub=${encodeURIComponent(company.name)}&badge=${encodeURIComponent(job.dept ?? "")}`;
 
   return {
-    title: `${job.role} — ${company.name} | OPINIO`,
+    title: { absolute: `${job.role} — ${company.name} | OPINIO` },
     description,
     alternates: { canonical: `/jobs/${params.id}` },
     keywords: [job.role, company.name, job.dept ?? "", "IT転職", "SaaS転職", salaryText].filter(Boolean),

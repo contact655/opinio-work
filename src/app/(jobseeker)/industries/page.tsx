@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "対象業界 | OPINIO",
+  title: { absolute: "対象業界 | OPINIO" },
   description:
     "OPINIOが対象とするIT/SaaS業界の定義について。B2B SaaS・外資IT・AIスタートアップなどを網羅。",
   alternates: { canonical: "/industries" },
   openGraph: {
-    title: "対象業界 | OPINIO",
+    title: { absolute: "対象業界 | OPINIO" },
     description: "OPINIOが対象とするIT/SaaS業界の定義。B2B SaaS・外資IT・AIスタートアップなどを網羅。",
     url: "https://opinio.jp/industries",
     type: "website",

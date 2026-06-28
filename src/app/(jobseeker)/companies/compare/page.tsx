@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import CompareClient from "./CompareClient";
 
 export const metadata: Metadata = {
-  title: "企業比較 | OPINIO",
+  title: { absolute: "企業比較 | OPINIO" },
   description: "選択した企業を並べて比較できます。",
 };
 

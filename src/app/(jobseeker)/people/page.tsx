@@ -6,10 +6,10 @@ import type { Metadata } from "next";
 import { PeopleListClient, type AmbassadorCard } from "./PeopleListClient";
 
 export const metadata: Metadata = {
-  title: "話せる人 | OPINIO",
+  title: { absolute: "話せる人 | OPINIO" },
   description: "OPINIO に登録している企業の社員・OB/OGの中から、採用に関わっている方に直接話を聞けます。",
   openGraph: {
-    title: "話せる人 | OPINIO",
+    title: { absolute: "話せる人 | OPINIO" },
     description: "企業の現役社員に、仕事のリアルを直接聞いてみませんか。",
     type: "website",
   },

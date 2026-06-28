@@ -105,12 +105,12 @@ const jsonLd = {
   "@graph": [
     {
       "@type": "Organization",
-      "@id": "https://www.opinio.co.jp/#organization",
+      "@id": "https://opinio.jp/#organization",
       name: "OPINIO",
-      url: "https://www.opinio.co.jp",
+      url: "https://opinio.jp",
       logo: {
         "@type": "ImageObject",
-        url: "https://www.opinio.co.jp/opengraph-image.png",
+        url: "https://opinio.jp/opengraph-image.png",
       },
       description:
         "IT/SaaS業界に特化したキャリアプラットフォーム。企業の今を知り、先輩と話し、自分で決める。完全無料・営業電話なし。",
@@ -118,17 +118,17 @@ const jsonLd = {
     },
     {
       "@type": "WebSite",
-      "@id": "https://www.opinio.co.jp/#website",
-      url: "https://www.opinio.co.jp",
+      "@id": "https://opinio.jp/#website",
+      url: "https://opinio.jp",
       name: "OPINIO",
       description:
         "IT/SaaS業界の転職は、情報戦。OPINIO編集部が取材した企業情報・求人を掲載。スカウトなし・カジュアル面談対応のキャリアプラットフォーム。完全無料。",
-      publisher: { "@id": "https://www.opinio.co.jp/#organization" },
+      publisher: { "@id": "https://opinio.jp/#organization" },
       potentialAction: {
         "@type": "SearchAction",
         target: {
           "@type": "EntryPoint",
-          urlTemplate: "https://www.opinio.co.jp/jobs?q={search_term_string}",
+          urlTemplate: "https://opinio.jp/jobs?q={search_term_string}",
         },
         "query-input": "required name=search_term_string",
       },

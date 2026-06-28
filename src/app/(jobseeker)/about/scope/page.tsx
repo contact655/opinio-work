@@ -1,12 +1,12 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "対象業界 | OPINIO",
+  title: { absolute: "対象業界 | OPINIO" },
   description:
     "OPINIOがカバーするIT/SaaS業界の定義と、対象外の業界について明示します。",
   alternates: { canonical: "/about/scope" },
   openGraph: {
-    title: "対象業界 | OPINIO",
+    title: { absolute: "対象業界 | OPINIO" },
     description: "対象業界の定義と対象外領域について。",
     url: "https://opinio.jp/about/scope",
   },

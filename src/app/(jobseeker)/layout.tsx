@@ -7,7 +7,7 @@ import { OnboardingGuard } from "@/components/jobseeker/OnboardingGuard";
 
 export const metadata: Metadata = {
   title: {
-    default: "OPINIO | IT/SaaS業界の転職・求人情報",
+    default: "IT/SaaS業界の転職・求人情報",
     template: "%s | OPINIO",
   },
   description:
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     title: "OPINIO | IT/SaaS業界特化の転職・求人情報",
     description: "IT/SaaS業界特化。編集部取材の企業情報・求人と、カジュアル面談でリアルな声が聞けるキャリアプラットフォーム。",
     type: "website",
-    url: "https://www.opinio.co.jp",
+    url: "https://opinio.jp",
     siteName: "OPINIO",
   },
   twitter: {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     description: "IT/SaaS業界特化。企業情報・求人・カジュアル面談が揃うキャリアプラットフォーム。完全無料。",
   },
   alternates: {
-    canonical: "https://www.opinio.co.jp",
+    canonical: "https://opinio.jp",
   },
 };
 

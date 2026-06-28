@@ -32,6 +32,16 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: "/mentors",
+        destination: "/people",
+        permanent: true,
+      },
+      {
+        source: "/mentors/:path*",
+        destination: "/people",
+        permanent: true,
+      },
+      {
         source: "/biz/company/employees/categories",
         destination: "/biz/organization",
         permanent: true,

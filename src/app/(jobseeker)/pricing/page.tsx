@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 // import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "企業様向け掲載・料金プラン | OPINIO",
+  title: { absolute: "企業様向け掲載・料金プラン | OPINIO" },
   description:
     "OPINIOへの求人掲載は完全無料。採用が決まった時点のみ、年収の10%をいただく完全成果報酬型です。IT/SaaS業界に特化した転職プラットフォームで、納得採用を実現します。",
   alternates: { canonical: "/pricing" },
