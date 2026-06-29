@@ -47,8 +47,8 @@ export async function POST(req: Request) {
 
   if (!targetUser) {
     return NextResponse.json(
-      { error: "このメールアドレスのユーザーはまだ OPINIOに登録されていません" },
-      { status: 404 }
+      { error: "招待メールを送信しました。相手がまだ登録していない場合は /biz/members/invite から招待してください" },
+      { status: 200 }
     );
   }
 

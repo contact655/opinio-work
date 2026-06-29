@@ -20,7 +20,8 @@ export async function POST(req: Request) {
   // 自分自身への推薦はNG
   const { data: owViewer } = await supabase
     .from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
-  if (owViewer?.id === target_user_id) {
+  if (!owViewer) return NextResponse.json({ error: "ユーザーが見つかりません" }, { status: 404 });
+  if (owViewer.id === target_user_id) {
     return NextResponse.json({ error: "自分自身には推薦文を書けません" }, { status: 400 });
   }
 
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
     .from("ow_user_recommendations")
     .insert({
       target_user_id,
-      recommender_user_id: owViewer?.id ?? null,
+      recommender_user_id: owViewer.id,
       recommender_name,
       recommender_title: recommender_title || null,
       recommender_company: recommender_company || null,

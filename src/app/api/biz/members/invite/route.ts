@@ -133,8 +133,6 @@ export async function POST(req: Request) {
     {
       success: true,
       already_registered: false,
-      invite_token: inviteToken,
-      invite_url: inviteUrl,
       expires_at: expiresAt.toISOString(),
       email_sent: emailSent,
     },

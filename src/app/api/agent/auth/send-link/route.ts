@@ -46,10 +46,8 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (!contact) {
-    return NextResponse.json(
-      { error: "このメールアドレスは登録されていません" },
-      { status: 404 }
-    );
+    // Return 200 regardless to prevent user enumeration
+    return NextResponse.json({ ok: true });
   }
 
   // Verify the agency is still active

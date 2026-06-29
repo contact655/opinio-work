@@ -99,9 +99,14 @@ export async function POST(req: Request) {
     );
   }
   if (type === "video") {
-    if (!videoUrl || !(/youtube\.com|youtu\.be/).test(videoUrl)) {
+    let validYoutube = false;
+    try {
+      const parsed = new URL(videoUrl ?? "");
+      validYoutube = parsed.hostname === "www.youtube.com" || parsed.hostname === "youtube.com" || parsed.hostname === "youtu.be";
+    } catch { /* invalid URL */ }
+    if (!videoUrl || !validYoutube) {
       return NextResponse.json(
-        { error: "INVALID_URL_FORMAT", message: "video タイプには YouTube URL（youtube.com または youtu.be を含む）が必要です。" },
+        { error: "INVALID_URL_FORMAT", message: "video タイプには YouTube URL が必要です。" },
         { status: 400 }
       );
     }
@@ -152,8 +157,11 @@ export async function POST(req: Request) {
   // WITH CHECK(RLS)が「自分の experience に属するセクション ID のみ」を保証するため、
   // API 層での追加検証は不要。
   const sectionId = typeof body.section_id === "string" ? body.section_id : null;
-  // og_image_url / og_title: link type のみ実質使用。null / undefined はいずれも null で保存。
-  const ogImageUrl = typeof body.og_image_url === "string" ? body.og_image_url : null;
+  // og_image_url / og_title: link type のみ実質使用。https:// URLのみ許可。
+  let ogImageUrl: string | null = null;
+  if (typeof body.og_image_url === "string" && body.og_image_url) {
+    try { if (new URL(body.og_image_url).protocol === "https:") ogImageUrl = body.og_image_url.slice(0, 2048); } catch { /* ignore */ }
+  }
   const ogTitle    = typeof body.og_title     === "string" ? body.og_title     : null;
 
   const { data: inserted, error: insertError } = await supabase

@@ -33,6 +33,12 @@ export async function POST(request: Request) {
     if (!image_url || typeof image_url !== "string") {
       return Response.json({ error: "image_url is required" }, { status: 400 });
     }
+    // Only allow Supabase Storage URLs to prevent javascript: URI injection
+    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+    const isStorageUrl = image_url.startsWith(`${SUPABASE_URL}/storage/`);
+    if (!isStorageUrl) {
+      return Response.json({ error: "image_url must be a valid storage URL" }, { status: 400 });
+    }
 
     // Check existing count for this category
     const { count, error: countError } = await supabase

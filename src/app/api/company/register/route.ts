@@ -34,6 +34,12 @@ export async function POST(req: Request) {
     );
   }
 
+  // URL バリデーション（https:// のみ）
+  function safeHttpsUrl(raw: unknown): string | null {
+    if (typeof raw !== "string" || !raw) return null;
+    try { const p = new URL(raw); return p.protocol === "https:" ? raw.slice(0, 2048) : null; } catch { return null; }
+  }
+
   // 1. ow_companies に INSERT
   const { data: company, error: companyError } = await admin
     .from("ow_companies")
@@ -46,10 +52,10 @@ export async function POST(req: Request) {
       location: body.location || null,
       industry: body.industry || null,
       phase: body.phase || null,
-      url: body.url || null,
+      url: safeHttpsUrl(body.url),
       mission: body.mission || null,
       description: body.description || null,
-      logo_url: body.logo_url || null,
+      logo_url: safeHttpsUrl(body.logo_url),
       plan: body.plan || "free",
       status: "active",
     })
@@ -171,6 +177,7 @@ export async function POST(req: Request) {
   });
   res.cookies.set("biz_current_company_id", company.id, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days

@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -24,19 +24,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: [] });
   }
 
-  const admin = createAdminClient();
+  const supabase = createClient();
 
-  // status: 'active' のみ返す（draft は除外）
-  const { data: companies, error } = await admin
+  // is_published = true のみ返す（RLS + 明示フィルター）
+  const { data: companies, error } = await supabase
     .from("ow_companies")
     .select("id, name, logo_url, industry, employee_count")
-    .eq("status", "active")
+    .eq("is_published", true)
     .ilike("name", `%${q}%`)
     .order("name")
     .limit(limit);
 
   if (error) {
-    console.error("[GET /api/companies/search] query failed:", error.message);
+    console.error("[GET /api/companies/search] query failed");
     return NextResponse.json(
       { error: "検索に失敗しました" },
       { status: 500 }
@@ -47,25 +47,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: [] });
   }
 
-  // 各企業の admin_count を取得
-  const companyIds = companies.map((c) => c.id);
-  const { data: adminRows } = await admin
-    .from("ow_company_admins")
-    .select("company_id")
-    .in("company_id", companyIds)
-    .not("user_id", "is", null);
-
-  const adminCountMap: Record<string, number> = {};
-  for (const row of adminRows ?? []) {
-    adminCountMap[row.company_id] = (adminCountMap[row.company_id] ?? 0) + 1;
-  }
-
   const results = companies.map((c) => ({
     id: c.id,
     name: c.name,
     logo_url: c.logo_url ?? null,
     industry: c.industry ?? null,
-    admin_count: adminCountMap[c.id] ?? 0,
     employee_count: c.employee_count ?? null,
   }));
 

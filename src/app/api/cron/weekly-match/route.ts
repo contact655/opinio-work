@@ -121,7 +121,7 @@ export async function GET(request: Request) {
         sent++;
       } catch (err: any) {
         console.error(`[weekly-match] Failed to send email:`, err.message);
-        errors.push(`${email}: ${err.message}`);
+        errors.push("send_failed");
       }
     }
 
@@ -129,7 +129,7 @@ export async function GET(request: Request) {
       success: true,
       sent,
       total: profiles.length,
-      errors: errors.length > 0 ? errors : undefined,
+      errors: errors.length > 0 ? errors.length : undefined,
     });
   } catch (error: any) {
     console.error("[weekly-match] Error:", error);
@@ -151,6 +151,10 @@ function getDefaultReason(job: any): string {
   return "あなたのスキルセットにマッチする求人です";
 }
 
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
 function generateWeeklyEmail(topJobs: any[]): string {
   const jobsHtml = topJobs
     .map((j) => {
@@ -163,8 +167,8 @@ function generateWeeklyEmail(topJobs: any[]): string {
       <div style="border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
-            <div style="font-size:12px;color:#6b7280;margin-bottom:2px">${company?.name ?? ""}</div>
-            <div style="font-size:16px;font-weight:600;color:#111">${j.title}</div>
+            <div style="font-size:12px;color:#6b7280;margin-bottom:2px">${escapeHtml(company?.name ?? "")}</div>
+            <div style="font-size:16px;font-weight:600;color:#111">${escapeHtml(j.title ?? "")}</div>
           </div>
           <div style="background:#E1F5EE;color:#0F6E56;font-weight:600;padding:4px 10px;border-radius:999px;font-size:14px">
             ${j.matchScore}%

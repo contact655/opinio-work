@@ -3,6 +3,18 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+async function resolveOwUserId(
+  supabase: ReturnType<typeof createClient>,
+  authUid: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("ow_users")
+    .select("id")
+    .eq("auth_id", authUid)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
 // PUT /api/jobseeker/achievements/[id]
 export async function PUT(
   req: Request,
@@ -11,6 +23,9 @@ export async function PUT(
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const owUserId = await resolveOwUserId(supabase, user.id);
+  if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   let body: Record<string, unknown>;
   try {
@@ -37,13 +52,15 @@ export async function PUT(
     .from("ow_user_achievements")
     .update({ title, value, unit, description, period_start: periodStart, period_end: periodEnd })
     .eq("id", params.id)
+    .eq("user_id", owUserId)
     .select("id, title, value, unit, description, period_start, period_end, sort_order")
-    .single();
+    .maybeSingle();
 
   if (error) {
-    console.error("[PUT /api/jobseeker/achievements/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[PUT /api/jobseeker/achievements/[id]]");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json(updated);
 }
@@ -57,14 +74,18 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const owUserId = await resolveOwUserId(supabase, user.id);
+  if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
   const { error } = await supabase
     .from("ow_user_achievements")
     .delete()
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .eq("user_id", owUserId);
 
   if (error) {
-    console.error("[DELETE /api/jobseeker/achievements/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/jobseeker/achievements/[id]]");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return new NextResponse(null, { status: 204 });

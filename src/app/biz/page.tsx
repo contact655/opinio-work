@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: { absolute: "採用担当者の方へ | OPINIO for Business" },
   description: "IT/SaaS業界の優秀な人材と出会う。企業情報・求人を掲載して、求職者と対話を始めましょう。OPINIO Business は無料でご利用いただけます。",
-  robots: { index: true },
+  robots: { index: false, follow: false },
 };
 
 const FEATURES: { icon: React.ReactNode; title: string; desc: string }[] = [

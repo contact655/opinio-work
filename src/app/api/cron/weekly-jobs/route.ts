@@ -98,7 +98,8 @@ export async function GET(request: Request) {
         });
         sent++;
       } catch (err: any) {
-        errors.push(`${email}: ${err.message}`);
+        console.error("[weekly-jobs] send error:", err.message);
+        errors.push("send_failed");
       }
     }
 
@@ -106,7 +107,7 @@ export async function GET(request: Request) {
       success: true,
       sent,
       totalJobs: totalCount,
-      errors: errors.length > 0 ? errors : undefined,
+      errors: errors.length > 0 ? errors.length : undefined,
     });
   } catch (error: any) {
     console.error("[weekly-jobs] Error:", error);
@@ -115,6 +116,10 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 function formatSalary(min: number | null, max: number | null): string {
@@ -131,6 +136,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
       const salary = formatSalary(j.salary_min, j.salary_max);
       const meta = [j.job_category, salary, j.location]
         .filter(Boolean)
+        .map(escapeHtml)
         .join(" &middot; ");
 
       return `
@@ -138,8 +144,8 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
         <div style="display:inline-block;background:#002366;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;margin-bottom:8px;letter-spacing:0.05em">
           &#x1F4BC; 新着
         </div>
-        <div style="font-size:12px;color:#6b7280;margin-bottom:4px">${company?.name ?? "企業名"}</div>
-        <div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:8px">${j.title}</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:4px">${escapeHtml(company?.name ?? "企業名")}</div>
+        <div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:8px">${escapeHtml(j.title ?? "")}</div>
         <div style="font-size:12px;color:#6b7280;margin-bottom:12px">${meta}</div>
         <a href="${BASE_URL}/jobs/${j.id}"
            style="display:inline-block;background:#059669;color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500">

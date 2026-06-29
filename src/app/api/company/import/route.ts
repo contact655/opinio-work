@@ -33,6 +33,9 @@ export async function POST(req: Request) {
     if (!text) {
       return NextResponse.json({ error: "テキストが空です" }, { status: 400 });
     }
+    if (typeof text === "string" && text.length > 50000) {
+      return NextResponse.json({ error: "テキストが長すぎます（50,000字以内）" }, { status: 400 });
+    }
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(

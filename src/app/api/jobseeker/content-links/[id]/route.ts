@@ -3,6 +3,18 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+async function resolveOwUserId(
+  supabase: ReturnType<typeof createClient>,
+  authUid: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("ow_users")
+    .select("id")
+    .eq("auth_id", authUid)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
 // PUT /api/jobseeker/content-links/[id] — 発信コンテンツリンク更新
 export async function PUT(
   req: Request,
@@ -21,6 +33,15 @@ export async function PUT(
   if (!url || url.length > 2048) {
     return NextResponse.json({ error: "INVALID_URL", message: "URLを入力してください（2048字以内）" }, { status: 400 });
   }
+  // Protocol validation
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return NextResponse.json({ error: "INVALID_URL", message: "http/https URLを入力してください" }, { status: 400 });
+    }
+  } catch {
+    return NextResponse.json({ error: "INVALID_URL", message: "有効なURLを入力してください" }, { status: 400 });
+  }
 
   const VALID_PLATFORMS = ["youtube", "note", "zenn", "speakerdeck", "podcast", "github", "other"] as const;
   const platform = typeof body.platform === "string" && (VALID_PLATFORMS as readonly string[]).includes(body.platform)
@@ -28,20 +49,27 @@ export async function PUT(
 
   const title = typeof body.title === "string" ? body.title.trim().slice(0, 200) : null;
   const description = typeof body.description === "string" ? body.description.trim().slice(0, 500) : null;
-  const thumbnail_url = typeof body.thumbnail_url === "string" ? body.thumbnail_url.trim() : null;
+  let thumbnail_url: string | null = null;
+  if (typeof body.thumbnail_url === "string" && body.thumbnail_url) {
+    try { if (new URL(body.thumbnail_url).protocol === "https:") thumbnail_url = body.thumbnail_url.trim().slice(0, 2048); } catch { /* ignore */ }
+  }
 
-  // RLS が他人のレコード更新を自動的に弾く
+  const owUserId = await resolveOwUserId(supabase, user.id);
+  if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
   const { data: updated, error } = await supabase
     .from("ow_user_content_links")
     .update({ url, platform, title, description, thumbnail_url })
     .eq("id", params.id)
+    .eq("user_id", owUserId)
     .select("id, url, platform, title, description, thumbnail_url, sort_order")
-    .single();
+    .maybeSingle();
 
   if (error) {
-    console.error("[PUT /api/jobseeker/content-links/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[PUT /api/jobseeker/content-links/[id]]");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json(updated);
 }
@@ -55,14 +83,18 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const owUserId = await resolveOwUserId(supabase, user.id);
+  if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
   const { error } = await supabase
     .from("ow_user_content_links")
     .delete()
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .eq("user_id", owUserId);
 
   if (error) {
-    console.error("[DELETE /api/jobseeker/content-links/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/jobseeker/content-links/[id]]");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return new NextResponse(null, { status: 204 });

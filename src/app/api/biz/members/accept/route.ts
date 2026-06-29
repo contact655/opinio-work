@@ -56,10 +56,7 @@ export async function POST(req: NextRequest) {
   const loggedInEmail = (user.email ?? "").toLowerCase().trim();
   const invitedEmail = (inviteRow.invited_email ?? "").toLowerCase().trim();
   if (loggedInEmail !== invitedEmail) {
-    return err(403, "EMAIL_MISMATCH", "ログイン中のメールアドレスが招待先と一致しません", {
-      invited_email: inviteRow.invited_email ?? "",
-      logged_in_email: user.email ?? "",
-    });
+    return err(403, "EMAIL_MISMATCH", "ログイン中のメールアドレスが招待先と一致しません。招待メール宛のアカウントでログインしてください。");
   }
 
   // 7. owUserId の解決

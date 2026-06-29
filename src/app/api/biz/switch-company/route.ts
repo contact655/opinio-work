@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
   const res = NextResponse.json({ success: true, redirectTo: "/biz/dashboard" });
   res.cookies.set("biz_current_company_id", companyId, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days

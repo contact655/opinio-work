@@ -23,9 +23,14 @@ export async function POST(req: Request) {
     .maybeSingle();
   if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  let imageUrl: string | null = null;
+  if (typeof body.image_url === "string" && body.image_url) {
+    try { if (new URL(body.image_url).protocol === "https:") imageUrl = body.image_url.slice(0, 2048); } catch { /* ignore */ }
+  }
+
   const { data, error } = await supabase
     .from("ow_posts")
-    .insert({ user_id: owUser.id, content, image_url: body.image_url ?? null })
+    .insert({ user_id: owUser.id, content, image_url: imageUrl })
     .select("id, content, image_url, created_at")
     .single();
 

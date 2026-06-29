@@ -31,6 +31,7 @@ export async function bulkSetVisibility(
 export async function bulkDeleteUsers(
   userIds: string[]
 ): Promise<{ ok: boolean; deleted: number; error?: string }> {
+  await assertAdmin();
   if (userIds.length === 0) return { ok: true, deleted: 0 };
   const admin = createAdminClient();
 

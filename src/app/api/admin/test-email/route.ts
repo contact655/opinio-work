@@ -100,7 +100,7 @@ export async function GET(req: Request) {
       sent_to: to,
       type,
       subject,
-      note: "Check your inbox (and spam folder). RESEND_FROM_EMAIL=" + (process.env.RESEND_FROM_EMAIL ?? "not set"),
+      note: "Check your inbox (and spam folder).",
     });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
