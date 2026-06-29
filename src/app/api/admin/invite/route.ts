@@ -92,7 +92,7 @@ export async function POST(req: Request) {
           }).catch(() => {/* best-effort */});
         }
       }
-    } catch (e) {
+    } catch {
       results.push({ email: normalizedEmail, ok: false });
     }
   }
