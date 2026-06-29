@@ -44,7 +44,7 @@ export async function togglePublish(
 
   if (error) {
     console.error("[togglePublish]", error);
-    return { success: false, error: `更新に失敗しました: ${error.message}` };
+    return { success: false, error: "更新に失敗しました" };
   }
 
   revalidatePath("/biz/posts");

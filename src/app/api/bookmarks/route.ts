@@ -65,7 +65,7 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error("[POST /api/bookmarks]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
   return NextResponse.json({ bookmarked: true });
 }
@@ -93,7 +93,7 @@ export async function DELETE(req: Request) {
 
   if (error) {
     console.error("[DELETE /api/bookmarks]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
   return NextResponse.json({ bookmarked: false });
 }

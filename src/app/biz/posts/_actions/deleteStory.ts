@@ -37,7 +37,7 @@ export async function deleteStory(
 
   if (error) {
     console.error("[deleteStory]", error);
-    return { success: false, error: `削除に失敗しました: ${error.message}` };
+    return { success: false, error: "削除に失敗しました" };
   }
 
   revalidatePath("/biz/posts");

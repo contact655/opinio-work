@@ -49,12 +49,8 @@ export async function POST(request: Request) {
     .eq("id", targetUserId)
     .maybeSingle();
 
-  if (!targetUser) {
-    return NextResponse.json({ error: "Target user not found" }, { status: 404 });
-  }
-
-  if (targetUser.visibility === "private" || targetUser.visibility === "login_only") {
-    return NextResponse.json({ error: "This user is not accepting messages" }, { status: 403 });
+  if (!targetUser || targetUser.visibility === "private" || targetUser.visibility === "login_only") {
+    return NextResponse.json({ error: "User not found or not accepting messages" }, { status: 404 });
   }
 
   // Check if DM conversation already exists between these two users

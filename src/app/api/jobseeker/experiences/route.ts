@@ -35,7 +35,7 @@ export async function GET() {
 
   if (rowsErr) {
     console.error("[GET /api/jobseeker/experiences]", rowsErr.message);
-    return NextResponse.json({ error: rowsErr.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // Resolve company names for master entries
@@ -129,28 +129,35 @@ export async function POST(req: Request) {
 
   const roleId = UUID_RE.test(body.role_category_id as string) ? (body.role_category_id as string) : null;
   if (!roleId) {
-    return NextResponse.json({ error: `Unknown role: ${body.role_category_id}` }, { status: 400 });
+    return NextResponse.json({ error: "Invalid role_category_id" }, { status: 400 });
   }
+
+  const companyText = hasCompanyText ? String(body.company_text).slice(0, 200) : null;
+  const companyAnon = hasCompanyAnon ? String(body.company_anonymized).slice(0, 200) : null;
+  const roleTitle  = typeof body.role_title  === "string" ? body.role_title.slice(0, 100)  : null;
+  const department = typeof body.department  === "string" ? body.department.slice(0, 100)  : null;
+  const description = typeof body.description === "string" ? body.description.slice(0, 5000) : null;
+  const joinReason  = typeof body.join_reason  === "string" ? body.join_reason.slice(0, 5000)  : null;
 
   const { data: inserted, error } = await supabase
     .from("ow_experiences")
     .insert({
       user_id: owUserId,
       company_id: hasCompanyId ? (body.company_id as string) : null,
-      company_text: hasCompanyText ? (body.company_text as string) : null,
-      company_anonymized: hasCompanyAnon ? (body.company_anonymized as string) : null,
+      company_text: companyText,
+      company_anonymized: companyAnon,
       role_category_id: roleId,
-      role_title: (body.role_title as string | undefined) ?? null,
-      department: (body.department as string | undefined) ?? null,
-      rank: (body.rank as string | undefined) ?? null,
+      role_title: roleTitle,
+      department,
+      rank: typeof body.rank === "string" ? body.rank.slice(0, 50) : null,
       salary_base: (body.salary_base as number | undefined) ?? null,
       salary_bonus: (body.salary_bonus as number | undefined) ?? null,
       salary_stock: (body.salary_stock as number | undefined) ?? null,
       started_at: `${body.started_at}-01`,
       ended_at: body.ended_at ? `${body.ended_at}-01` : null,
       is_current: (body.is_current as boolean | undefined) ?? false,
-      description: (body.description as string | undefined) ?? null,
-      join_reason: (body.join_reason as string | undefined) ?? null,
+      description,
+      join_reason: joinReason,
       employment_type: (body.employment_type as string | undefined) ?? null,
       display_order: (body.display_order as number | undefined) ?? 0,
       salary_man: (body.salary_man as number | undefined) ?? null,
@@ -164,7 +171,7 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error("[POST /api/jobseeker/experiences]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ id: inserted.id as string }, { status: 201 });

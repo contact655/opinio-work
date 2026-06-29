@@ -79,7 +79,7 @@ export async function POST(req: Request) {
       });
 
       if (error) {
-        results.push({ email: normalizedEmail, ok: false, error: error.message });
+        results.push({ email: normalizedEmail, ok: false });
       } else {
         results.push({ email: normalizedEmail, ok: true });
 
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
         }
       }
     } catch (e) {
-      results.push({ email: normalizedEmail, ok: false, error: String(e) });
+      results.push({ email: normalizedEmail, ok: false });
     }
   }
 

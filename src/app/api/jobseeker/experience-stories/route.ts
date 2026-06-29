@@ -43,7 +43,7 @@ export async function GET(request: Request) {
   const { data, error } = await query;
   if (error) {
     console.error("[GET /api/jobseeker/experience-stories]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // ow_experiences の join フィールドを除去して返す

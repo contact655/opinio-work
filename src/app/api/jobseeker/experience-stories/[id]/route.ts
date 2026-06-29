@@ -34,8 +34,8 @@ export async function PUT(
   const imageUrl    = typeof body.image_url    === "string" ? body.image_url.trim()    : null;
   const videoUrl    = typeof body.video_url    === "string" ? body.video_url.trim()    : null;
   const linkUrl     = typeof body.link_url     === "string" ? body.link_url.trim()     : null;
-  const title       = typeof body.title        === "string" ? body.title.trim()        : null;
-  const description = typeof body.description  === "string" ? body.description.trim()  : null;
+  const title       = typeof body.title        === "string" ? body.title.trim().slice(0, 200)   : null;
+  const description = typeof body.description  === "string" ? body.description.trim().slice(0, 5000) : null;
 
   // type 別の必須フィールドチェック
   if (type === "image" && !imageUrl) {
@@ -107,7 +107,7 @@ export async function PUT(
 
   if (error) {
     console.error("[PUT /api/jobseeker/experience-stories/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json(updated);
@@ -136,7 +136,7 @@ export async function DELETE(
 
   if (error) {
     console.error("[DELETE /api/jobseeker/experience-stories/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // Best-effort Storage cleanup: remove the uploaded image if it lives in ow-uploads
