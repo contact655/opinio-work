@@ -74,7 +74,7 @@ export async function PUT(
 
   if (error) {
     console.error("[PUT /api/jobseeker/educations/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json(updated);
@@ -97,7 +97,7 @@ export async function DELETE(
 
   if (error) {
     console.error("[DELETE /api/jobseeker/educations/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return new NextResponse(null, { status: 204 });

@@ -41,7 +41,7 @@ export async function PUT(req: Request) {
 
   if (error) {
     console.error("[company PUT]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   await insertActivity(supabase, {
@@ -87,7 +87,7 @@ export async function PATCH(req: Request) {
       .eq("id", companyId);
     if (error) {
       console.error("[company PATCH update_numbers_timestamp]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
     return NextResponse.json({ ok: true, numbersUpdatedAt: now });
   }
@@ -103,7 +103,7 @@ export async function PATCH(req: Request) {
 
   if (fetchError) {
     console.error("[company PATCH fetch]", fetchError.message);
-    return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // draft_data.genres を取り出して ow_company_genres 反映用に保持
@@ -131,7 +131,7 @@ export async function PATCH(req: Request) {
 
   if (error) {
     console.error("[company PATCH]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // ── ow_company_genres の反映（パターンX: 全置換）─────────────────────────

@@ -4,29 +4,33 @@ import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
+function str(v: unknown, max: number): string | null {
+  return typeof v === "string" ? v.slice(0, max) || null : null;
+}
+
 function buildJobRecord(body: Record<string, unknown>, companyId: string) {
   const salaryMin = body.salaryMin ? parseInt(String(body.salaryMin)) : null;
   const salaryMax = body.salaryMax ? parseInt(String(body.salaryMax)) : null;
   return {
     company_id: companyId,
-    title: body.title as string || null,
-    employment_type: body.employmentType as string || null,
-    job_category: body.jobCategory as string || null,
-    department: body.department as string || null,
+    title: str(body.title, 200),
+    employment_type: str(body.employmentType, 50),
+    job_category: str(body.jobCategory, 100),
+    department: str(body.department, 100),
     salary_min: isNaN(salaryMin as number) ? null : salaryMin,
     salary_max: isNaN(salaryMax as number) ? null : salaryMax,
-    salary_note: body.salaryNote as string || null,
-    location: body.location as string || null,
-    remote_work_status: body.remoteWorkStatus as string || null,
-    probation_period: body.probationPeriod as string || null,
-    description_markdown: body.descriptionMarkdown as string || null,
-    message_to_candidates: body.messageToCandidates as string || null,
+    salary_note: str(body.salaryNote, 200),
+    location: str(body.location, 200),
+    remote_work_status: str(body.remoteWorkStatus, 50),
+    probation_period: str(body.probationPeriod, 100),
+    description_markdown: str(body.descriptionMarkdown, 50000),
+    message_to_candidates: str(body.messageToCandidates, 2000),
     required_skills: Array.isArray(body.requiredSkills) ? body.requiredSkills : [],
     preferred_skills: Array.isArray(body.preferredSkills) ? body.preferredSkills : [],
-    culture_fit: body.cultureFit as string || null,
+    culture_fit: str(body.cultureFit, 2000),
     selection_steps: Array.isArray(body.selectionSteps) ? body.selectionSteps : [],
-    selection_duration: body.selectionDuration as string || null,
-    start_date_preference: body.startDatePreference as string || null,
+    selection_duration: str(body.selectionDuration, 100),
+    start_date_preference: str(body.startDatePreference, 100),
     status: "draft",
     updated_at: new Date().toISOString(),
   };
@@ -80,7 +84,7 @@ export async function POST(req: Request) {
 
     if (insertErr || !newJob) {
       console.error("[jobs POST duplicate]", insertErr?.message);
-      return NextResponse.json({ error: insertErr?.message ?? "Failed" }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 
     // 担当者も複製

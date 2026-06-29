@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "already_applied" }, { status: 409 });
     }
     console.error("[POST /api/applications]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // ── Activity: application_received (best-effort) ─────────────────────────
