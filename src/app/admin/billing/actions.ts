@@ -30,6 +30,7 @@ export async function updateBillingNote(
   applicationId: string,
   note: string
 ): Promise<void> {
+  await assertAdmin();
   const admin = createAdminClient();
   await admin.from("ow_job_applications").update({ billing_note: note }).eq("id", applicationId);
   revalidatePath("/admin/billing");
