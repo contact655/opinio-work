@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import HomeFaq from "@/app/HomeFaq";
 
@@ -888,6 +889,7 @@ function CareerTrajectoriesTeaser() {
 const FV_KEY = "opinio_ftv_done";
 
 function FirstVisitOnboarding() {
+  const router = useRouter();
   const [show, setShow] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -901,7 +903,7 @@ function FirstVisitOnboarding() {
   const go = (href: string) => {
     localStorage.setItem(FV_KEY, "1");
     setShow(false);
-    setTimeout(() => { window.location.href = href; }, 60);
+    router.push(href);
   };
 
   const skip = () => {

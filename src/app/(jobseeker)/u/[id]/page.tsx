@@ -84,14 +84,16 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   const supabase = createClient();
   const { data } = await supabase
     .from("ow_users")
-    .select("name")
+    .select("name, visibility")
     .eq("id", params.id)
     .maybeSingle();
+  const isPublic = data?.visibility === "public";
+  const title = data ? `${data.name} | OPINIO` : "プロフィール | OPINIO";
   return {
-    title: { absolute: data ? `${data.name} | OPINIO` : "プロフィール | OPINIO" },
-    alternates: { canonical: `https://opinio.jp/u/${params.id}` },
-    openGraph: { title: data ? `${data.name} | OPINIO` : "プロフィール | OPINIO" },
-    robots: { index: false, follow: false },
+    title: { absolute: title },
+    ...(isPublic ? { alternates: { canonical: `https://opinio.jp/u/${params.id}` } } : {}),
+    openGraph: { title },
+    robots: isPublic ? { index: true, follow: true } : { index: false, follow: false },
   };
 }
 

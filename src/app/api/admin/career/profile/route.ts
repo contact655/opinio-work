@@ -14,7 +14,10 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { userId, headline, yearsOfExperience, gender, birthYear, isPublished } = body;
 
-  if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!userId || !UUID_RE.test(userId)) {
+    return NextResponse.json({ error: "userId must be a valid UUID" }, { status: 400 });
+  }
 
   const admin = createAdminClient();
 

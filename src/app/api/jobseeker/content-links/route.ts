@@ -60,7 +60,14 @@ export async function POST(req: Request) {
 
   const title = typeof body.title === "string" ? body.title.trim().slice(0, 200) : null;
   const description = typeof body.description === "string" ? body.description.trim().slice(0, 500) : null;
-  const thumbnail_url = typeof body.thumbnail_url === "string" ? body.thumbnail_url.trim() : null;
+  const rawThumb = typeof body.thumbnail_url === "string" ? body.thumbnail_url.trim() : null;
+  let thumbnail_url: string | null = null;
+  if (rawThumb) {
+    try {
+      const p = new URL(rawThumb);
+      if (p.protocol === "https:") thumbnail_url = rawThumb.slice(0, 2048);
+    } catch { /* invalid URL — ignore */ }
+  }
 
   const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });

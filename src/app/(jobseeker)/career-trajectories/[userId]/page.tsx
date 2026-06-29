@@ -305,7 +305,7 @@ export async function generateMetadata({
     .maybeSingle();
 
   if (!profile) {
-    return { title: { absolute: "キャリア軌跡 | OPINIO" } };
+    return { title: { absolute: "キャリア軌跡 | OPINIO" }, robots: { index: false, follow: false } };
   }
 
   const age = profile.birth_year

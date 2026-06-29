@@ -23,6 +23,22 @@ export async function updateStory(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "ログインしてください" };
 
+  // 所属確認: ストーリーが自社のものかをチェック
+  const { data: existing } = await supabase
+    .from("ow_company_posts")
+    .select("company_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (existing) {
+    const { data: membership } = await supabase
+      .from("ow_company_admins")
+      .select("id")
+      .eq("company_id", existing.company_id)
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    if (!membership) return { success: false, error: "権限がありません" };
+  }
+
   const { data: story, error } = await supabase
     .from("ow_company_posts")
     .update({

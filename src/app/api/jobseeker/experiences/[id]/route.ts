@@ -34,7 +34,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: `Unknown role: ${body.role_category_id}` }, { status: 400 });
   }
 
-  const { error } = await supabase
+  // ow_users.id を解決して所有者フィルターに使う
+  const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  const { data: updated, error } = await supabase
     .from("ow_experiences")
     .update({
       company_id: hasCompanyId ? (body.company_id as string) : null,
@@ -60,30 +64,38 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .eq("user_id", owUser.id)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("[PUT /api/jobseeker/experiences/:id]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "更新に失敗しました" }, { status: 500 });
   }
+  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({ success: true });
 }
 
-// DELETE /api/jobseeker/experiences/[id] — 職歴削除（RLS が本人チェック）
+// DELETE /api/jobseeker/experiences/[id] — 職歴削除（RLS + 明示的な所有者チェック）
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
   const { error } = await supabase
     .from("ow_experiences")
     .delete()
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .eq("user_id", owUser.id);
 
   if (error) {
     console.error("[DELETE /api/jobseeker/experiences/:id]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "削除に失敗しました" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });
