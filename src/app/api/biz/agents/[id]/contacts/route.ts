@@ -20,8 +20,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  if (!body.name?.trim()) return NextResponse.json({ error: "担当者名は必須です" }, { status: 400 });
-  if (!body.email?.trim()) return NextResponse.json({ error: "メールアドレスは必須です" }, { status: 400 });
+  const name = body.name?.trim() ?? "";
+  const email = body.email?.trim().toLowerCase() ?? "";
+  if (!name || name.length > 100) return NextResponse.json({ error: "担当者名は1〜100字で入力してください" }, { status: 400 });
+  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return NextResponse.json({ error: "有効なメールアドレスを入力してください" }, { status: 400 });
 
   const admin = createAdminClient();
 
@@ -38,14 +41,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     .from("ow_agent_contacts")
     .insert({
       agency_id: params.id,
-      name: body.name.trim(),
-      email: body.email.trim().toLowerCase(),
+      name,
+      email,
       is_primary: body.isPrimary ?? false,
     })
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   return NextResponse.json({ contact: data }, { status: 201 });
 }
 
@@ -84,6 +87,6 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     .eq("id", body.contactId)
     .eq("agency_id", params.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

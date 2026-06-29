@@ -33,7 +33,7 @@ export async function GET() {
 
   if (error) {
     console.error("[GET /api/jobseeker/certifications]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ certifications: data ?? [] });
@@ -65,6 +65,15 @@ export async function POST(req: Request) {
   const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  // 上限チェック: 1ユーザー30件まで
+  const { count: certCount } = await supabase
+    .from("ow_user_certifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", owUserId);
+  if ((certCount ?? 0) >= 30) {
+    return NextResponse.json({ error: "資格の登録上限（30件）に達しています" }, { status: 400 });
+  }
+
   // sort_order: 現在の MAX + 1
   const { data: maxRow } = await supabase
     .from("ow_user_certifications")
@@ -84,7 +93,7 @@ export async function POST(req: Request) {
 
   if (insertError) {
     console.error("[POST /api/jobseeker/certifications]", insertError.message);
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json(inserted, { status: 201 });

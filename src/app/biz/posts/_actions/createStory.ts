@@ -29,6 +29,13 @@ export async function createStory(
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
   if (!ctx) return { success: false, error: "企業権限がありません" };
 
+  if (!data.title || data.title.length > 200)
+    return { success: false, error: "タイトルは1〜200字で入力してください" };
+  if (!data.body || data.body.length > 100000)
+    return { success: false, error: "本文が長すぎます" };
+  if (data.category && data.category.length > 50)
+    return { success: false, error: "カテゴリは50字以内で入力してください" };
+
   // author_user_id = ow_users.id
   const { data: owUser } = await supabase
     .from("ow_users")
@@ -53,7 +60,7 @@ export async function createStory(
 
   if (error) {
     console.error("[createStory]", error);
-    return { success: false, error: `保存に失敗しました: ${error.message}` };
+    return { success: false, error: "保存に失敗しました" };
   }
 
   revalidatePath("/biz/posts");

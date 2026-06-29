@@ -18,15 +18,14 @@ export async function deletePost(id: string): Promise<ActionResult<null>> {
     .select("company_id")
     .eq("id", id)
     .maybeSingle();
-  if (post) {
-    const { data: membership } = await supabase
-      .from("ow_company_admins")
-      .select("id")
-      .eq("company_id", post.company_id)
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
-    if (!membership) return { success: false, error: "権限がありません" };
-  }
+  if (!post) return { success: false, error: "権限がありません" };
+  const { data: membership } = await supabase
+    .from("ow_company_admins")
+    .select("id")
+    .eq("company_id", post.company_id)
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+  if (!membership) return { success: false, error: "権限がありません" };
 
   const { error } = await supabase
     .from("ow_company_external_links")
@@ -37,7 +36,7 @@ export async function deletePost(id: string): Promise<ActionResult<null>> {
     console.error("[deletePost] error:", error);
     return {
       success: false,
-      error: `削除に失敗しました: ${error.message}`,
+      error: "削除に失敗しました",
     };
   }
 

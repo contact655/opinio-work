@@ -23,15 +23,14 @@ export async function updatePost(
     .select("company_id")
     .eq("id", id)
     .maybeSingle();
-  if (existing) {
-    const { data: membership } = await supabase
-      .from("ow_company_admins")
-      .select("id")
-      .eq("company_id", existing.company_id)
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
-    if (!membership) return { success: false, error: "権限がありません" };
-  }
+  if (!existing) return { success: false, error: "権限がありません" };
+  const { data: membership } = await supabase
+    .from("ow_company_admins")
+    .select("id")
+    .eq("company_id", existing.company_id)
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+  if (!membership) return { success: false, error: "権限がありません" };
 
   const { data: post, error } = await supabase
     .from("ow_company_external_links")
@@ -52,7 +51,7 @@ export async function updatePost(
     console.error("[updatePost] error:", error);
     return {
       success: false,
-      error: `更新に失敗しました: ${error.message}`,
+      error: "更新に失敗しました",
     };
   }
 
