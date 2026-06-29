@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Target user not found" }, { status: 404 });
   }
 
-  if (targetUser.visibility === "private") {
+  if (targetUser.visibility === "private" || targetUser.visibility === "login_only") {
     return NextResponse.json({ error: "This user is not accepting messages" }, { status: 403 });
   }
 

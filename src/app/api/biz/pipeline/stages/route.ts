@@ -32,7 +32,7 @@ export async function GET() {
     .order("order_index", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ stages: data });
@@ -55,6 +55,12 @@ export async function POST(req: Request) {
 
   if (!body.name || !body.color) {
     return NextResponse.json({ error: "name and color are required" }, { status: 400 });
+  }
+  if (body.name.length > 50) {
+    return NextResponse.json({ error: "ステージ名は50文字以内で入力してください" }, { status: 400 });
+  }
+  if (!/^#[0-9a-fA-F]{6}$/.test(body.color)) {
+    return NextResponse.json({ error: "color must be a valid hex color (e.g. #3B5FD9)" }, { status: 400 });
   }
 
   // Get current max order_index
@@ -81,7 +87,7 @@ export async function POST(req: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ stage: data }, { status: 201 });
@@ -106,6 +112,13 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
 
+  if (body.name !== undefined && body.name.length > 50) {
+    return NextResponse.json({ error: "ステージ名は50文字以内で入力してください" }, { status: 400 });
+  }
+  if (body.color !== undefined && !/^#[0-9a-fA-F]{6}$/.test(body.color)) {
+    return NextResponse.json({ error: "color must be a valid hex color (e.g. #3B5FD9)" }, { status: 400 });
+  }
+
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (body.name !== undefined) updates.name = body.name;
   if (body.color !== undefined) updates.color = body.color;
@@ -120,7 +133,7 @@ export async function PUT(req: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ stage: data });
@@ -171,7 +184,7 @@ export async function DELETE(req: Request) {
     .eq("company_id", companyId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

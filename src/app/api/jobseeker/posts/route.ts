@@ -20,7 +20,7 @@ type RawPost = {
   content: string;
   image_url: string | null;
   created_at: string;
-  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null } | null;
+  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null } | null;
   likes: { count: number }[];
   comments: { count: number }[];
 };
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
     .from("ow_posts")
     .select(`
       id, content, image_url, created_at,
-      user:ow_users!user_id(id, name, avatar_color, avatar_url),
+      user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
     `)
@@ -63,7 +63,7 @@ export async function GET(req: Request) {
 
   if (error) {
     console.error("[GET /api/jobseeker/posts]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   const posts = (data ?? []) as unknown as RawPost[];
@@ -80,12 +80,19 @@ export async function GET(req: Request) {
     likedPostIds = new Set((likedRows ?? []).map((r: { post_id: string }) => r.post_id));
   }
 
-  const result = posts.map((p) => ({
+  // For unauthenticated callers, only show posts from users with public visibility
+  const visiblePosts = myOwUserId
+    ? posts
+    : posts.filter((p) => p.user?.visibility === "public" || p.user?.visibility == null);
+
+  const result = visiblePosts.map((p) => ({
     id: p.id,
     content: p.content,
     image_url: p.image_url,
     created_at: p.created_at,
-    user: p.user ?? { id: "", name: "不明", avatar_color: null, avatar_url: null },
+    user: p.user
+      ? { id: p.user.id, name: p.user.name, avatar_color: p.user.avatar_color, avatar_url: p.user.avatar_url }
+      : { id: "", name: "不明", avatar_color: null, avatar_url: null },
     like_count: p.likes?.[0]?.count ?? 0,
     comment_count: p.comments?.[0]?.count ?? 0,
     liked_by_me: likedPostIds.has(p.id),
@@ -118,9 +125,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "CONTENT_TOO_LONG", message: "本文は500文字以内で入力してください" }, { status: 400 });
   }
 
-  const image_url = typeof body.image_url === "string" && body.image_url.trim().length > 0
+  const image_url_raw = typeof body.image_url === "string" && body.image_url.trim().length > 0
     ? body.image_url.trim()
     : null;
+  if (image_url_raw && !/^https:\/\//i.test(image_url_raw)) {
+    return NextResponse.json({ error: "image_url must use HTTPS" }, { status: 400 });
+  }
+  const image_url = image_url_raw;
 
   const { data: inserted, error } = await supabase
     .from("ow_posts")
@@ -133,7 +144,7 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error("[POST /api/jobseeker/posts]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({

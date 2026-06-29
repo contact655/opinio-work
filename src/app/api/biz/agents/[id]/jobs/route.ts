@@ -31,19 +31,30 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     .maybeSingle();
   if (!agency) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const jobIds = Array.isArray(body.jobIds) ? body.jobIds : [];
+  const rawJobIds = Array.isArray(body.jobIds) ? body.jobIds : [];
+
+  // Verify all supplied jobIds belong to this company (cross-tenant prevention)
+  let jobIds: string[] = [];
+  if (rawJobIds.length > 0) {
+    const { data: validJobs } = await admin
+      .from("ow_jobs")
+      .select("id")
+      .in("id", rawJobIds)
+      .eq("company_id", ctx.companyId);
+    jobIds = (validJobs ?? []).map((j: { id: string }) => j.id);
+  }
 
   // Delete existing, then insert new ones
   const { error: delErr } = await admin
     .from("ow_agent_jobs")
     .delete()
     .eq("agency_id", params.id);
-  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+  if (delErr) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
 
   if (jobIds.length > 0) {
     const rows = jobIds.map((jobId) => ({ agency_id: params.id, job_id: jobId }));
     const { error: insErr } = await admin.from("ow_agent_jobs").insert(rows);
-    if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+    if (insErr) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, jobIds });

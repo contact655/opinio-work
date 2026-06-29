@@ -27,7 +27,12 @@ export async function PATCH(
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if ("pipeline_stage_id" in body) updates.pipeline_stage_id = body.pipeline_stage_id ?? null;
-  if ("memo" in body) updates.memo = body.memo ?? null;
+  if ("memo" in body) {
+    if (body.memo !== null && body.memo !== undefined && typeof body.memo === "string" && body.memo.length > 5000) {
+      return NextResponse.json({ error: "memo は5000文字以内で入力してください" }, { status: 400 });
+    }
+    updates.memo = body.memo ?? null;
+  }
 
   // Verify the application belongs to this company (via ow_jobs.company_id)
   const { data: app } = await supabase
@@ -52,7 +57,7 @@ export async function PATCH(
     .eq("id", params.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

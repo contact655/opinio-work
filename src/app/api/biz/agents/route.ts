@@ -38,6 +38,12 @@ export async function POST(req: Request) {
   if (!body.agencyName?.trim()) {
     return NextResponse.json({ error: "エージェント会社名は必須です" }, { status: 400 });
   }
+  if (body.agencyName.trim().length > 100) {
+    return NextResponse.json({ error: "エージェント会社名は100文字以内で入力してください" }, { status: 400 });
+  }
+  if (body.memo && body.memo.trim().length > 1000) {
+    return NextResponse.json({ error: "メモは1000文字以内で入力してください" }, { status: 400 });
+  }
 
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -51,6 +57,6 @@ export async function POST(req: Request) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   return NextResponse.json({ agency: data }, { status: 201 });
 }

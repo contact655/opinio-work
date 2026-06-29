@@ -37,6 +37,12 @@ export async function POST(req: Request) {
     );
   }
 
+  // Allowlist: only "candidate" is self-assignable. "admin" must never be self-granted.
+  const SELF_ASSIGNABLE_ROLES = ["candidate"];
+  if (!SELF_ASSIGNABLE_ROLES.includes(role)) {
+    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
+
   const ok = await addUserRole(supabase, role);
   if (!ok) {
     return NextResponse.json({ error: "Invalid role or insert failed" }, { status: 400 });
