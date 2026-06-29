@@ -38,6 +38,9 @@ export async function POST(req: Request) {
   if (!job_id) {
     return NextResponse.json({ error: "job_id required" }, { status: 400 });
   }
+  if (typeof message === "string" && message.length > 3000) {
+    return NextResponse.json({ error: "メッセージは3000文字以内で入力してください" }, { status: 400 });
+  }
 
   // 重複応募チェック（race condition 軽減: UI 側でも button disable）
   const { data: existing } = await supabase

@@ -50,6 +50,16 @@ export async function POST(req: Request) {
   if (intent && !VALID_INTENTS.includes(intent as string)) {
     return NextResponse.json({ error: "Invalid intent value" }, { status: 400 });
   }
+  // 入力長制限
+  if (typeof interest_reason === "string" && interest_reason.length > 2000) {
+    return NextResponse.json({ error: "interest_reason は2000文字以内で入力してください" }, { status: 400 });
+  }
+  if (typeof questions === "string" && questions.length > 2000) {
+    return NextResponse.json({ error: "questions は2000文字以内で入力してください" }, { status: 400 });
+  }
+  if (typeof preferred_format === "string" && preferred_format.length > 500) {
+    return NextResponse.json({ error: "preferred_format は500文字以内で入力してください" }, { status: 400 });
+  }
 
   // App-level check: company must accept casual meetings
   const { data: company } = await supabase

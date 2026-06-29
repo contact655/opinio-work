@@ -27,6 +27,18 @@ export async function PUT(req: Request) {
   if (body.type !== "cover" && body.type !== "avatar") {
     return NextResponse.json({ error: "type must be cover or avatar" }, { status: 400 });
   }
+  // URL検証: https のみ許可、長さ上限
+  try {
+    const parsed = new URL(body.url);
+    if (parsed.protocol !== "https:") {
+      return NextResponse.json({ error: "https URL only" }, { status: 400 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+  }
+  if (body.url.length > 2048) {
+    return NextResponse.json({ error: "URL too long" }, { status: 400 });
+  }
 
   // ow_users.id を auth_id から解決
   const { data: owUser } = await supabase

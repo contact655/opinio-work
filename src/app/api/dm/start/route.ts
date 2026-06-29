@@ -23,6 +23,9 @@ export async function POST(request: Request) {
   if (!targetUserId || !message?.trim()) {
     return NextResponse.json({ error: "targetUserId and message are required" }, { status: 400 });
   }
+  if (message.trim().length > 2000) {
+    return NextResponse.json({ error: "メッセージは2000文字以内で入力してください" }, { status: 400 });
+  }
 
   // ow_users.id (app UUID) for the current auth user
   const { data: owMe } = await supabase

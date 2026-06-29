@@ -17,6 +17,22 @@ export async function updatePost(
     return { success: false, error: "ログインしてください" };
   }
 
+  // 所属確認: 更新対象の投稿が自社のものかをチェック
+  const { data: existing } = await supabase
+    .from("ow_company_external_links")
+    .select("company_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (existing) {
+    const { data: membership } = await supabase
+      .from("ow_company_admins")
+      .select("id")
+      .eq("company_id", existing.company_id)
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    if (!membership) return { success: false, error: "権限がありません" };
+  }
+
   const { data: post, error } = await supabase
     .from("ow_company_external_links")
     .update({

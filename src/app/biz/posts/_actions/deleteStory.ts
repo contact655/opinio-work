@@ -15,6 +15,22 @@ export async function deleteStory(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "ログインしてください" };
 
+  // 所属確認: 削除対象のストーリーが自社のものかをチェック
+  const { data: story } = await supabase
+    .from("ow_company_posts")
+    .select("company_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (story) {
+    const { data: membership } = await supabase
+      .from("ow_company_admins")
+      .select("id")
+      .eq("company_id", story.company_id)
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    if (!membership) return { success: false, error: "権限がありません" };
+  }
+
   const { error } = await supabase
     .from("ow_company_posts")
     .delete()

@@ -126,7 +126,7 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (owUserError || !owUser) {
-    console.error("[POST /api/biz/companies] ow_users not found:", user.id);
+    console.error("[POST /api/biz/companies] ow_users not found for current user");
     // ow_users が見つからない場合も company は作成済みなのでエラーにしない
     // ただし admin 登録はできないためログに記録
   } else {

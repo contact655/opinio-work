@@ -28,6 +28,17 @@ export async function createPost(
     return { success: false, error: "ログインしてください" };
   }
 
+  // 所属確認: 呼び出し元のユーザーが data.company_id に所属しているか検証
+  const { data: membership } = await supabase
+    .from("ow_company_admins")
+    .select("id")
+    .eq("company_id", data.company_id)
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+  if (!membership) {
+    return { success: false, error: "権限がありません" };
+  }
+
   const { data: post, error } = await supabase
     .from("ow_company_external_links")
     .insert({
