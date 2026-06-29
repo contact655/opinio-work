@@ -29,15 +29,14 @@ export async function updateStory(
     .select("company_id")
     .eq("id", id)
     .maybeSingle();
-  if (existing) {
-    const { data: membership } = await supabase
-      .from("ow_company_admins")
-      .select("id")
-      .eq("company_id", existing.company_id)
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
-    if (!membership) return { success: false, error: "権限がありません" };
-  }
+  if (!existing) return { success: false, error: "権限がありません" };
+  const { data: membership } = await supabase
+    .from("ow_company_admins")
+    .select("id")
+    .eq("company_id", existing.company_id)
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+  if (!membership) return { success: false, error: "権限がありません" };
 
   const { data: story, error } = await supabase
     .from("ow_company_posts")

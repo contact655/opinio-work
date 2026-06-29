@@ -34,8 +34,23 @@ export async function POST(req: Request) {
   if (!body.external_name) {
     return NextResponse.json({ error: "氏名は必須です" }, { status: 400 });
   }
+  if (body.external_name.length > 100) {
+    return NextResponse.json({ error: "氏名は100字以内で入力してください" }, { status: 400 });
+  }
+  if (body.external_email && body.external_email.length > 200) {
+    return NextResponse.json({ error: "メールアドレスが長すぎます" }, { status: 400 });
+  }
   if (!body.source) {
     return NextResponse.json({ error: "応募経路は必須です" }, { status: 400 });
+  }
+  if (body.source.length > 100) {
+    return NextResponse.json({ error: "応募経路は100字以内で入力してください" }, { status: 400 });
+  }
+  if (body.agent_company && body.agent_company.length > 100) {
+    return NextResponse.json({ error: "エージェント会社名は100字以内で入力してください" }, { status: 400 });
+  }
+  if (body.memo && body.memo.length > 1000) {
+    return NextResponse.json({ error: "メモは1000字以内で入力してください" }, { status: 400 });
   }
   if (!body.job_id) {
     return NextResponse.json({ error: "対象求人は必須です" }, { status: 400 });

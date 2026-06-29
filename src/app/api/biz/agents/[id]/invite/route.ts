@@ -57,7 +57,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
       if (linkErr || !linkData?.properties?.action_link) {
         console.error("[agents/invite] generateLink error:", linkErr);
-        throw new Error(`Failed to generate link for ${contact.email}`);
+        throw new Error("Failed to generate magic link");
       }
 
       const magicLink = linkData.properties.action_link;

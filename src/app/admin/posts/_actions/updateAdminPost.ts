@@ -34,7 +34,7 @@ export async function updateAdminPost(
 
   if (error) {
     console.error("[updateAdminPost] error:", error);
-    return { success: false, error: `更新に失敗しました: ${error.message}` };
+    return { success: false, error: "更新に失敗しました" };
   }
 
   revalidatePath("/admin/posts");

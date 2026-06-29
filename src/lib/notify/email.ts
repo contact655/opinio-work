@@ -14,9 +14,7 @@ export async function sendEmail(params: EmailParams): Promise<void> {
   // dev / API キーなしの場合は console.log で代替 (mock パターン)
   if (!RESEND_API_KEY) {
     console.log("[notify] sendEmail (mock):", {
-      to: params.to,
       subject: params.subject,
-      preview: params.html.substring(0, 100) + "...",
     });
     return;
   }

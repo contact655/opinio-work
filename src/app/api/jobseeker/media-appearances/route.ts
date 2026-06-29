@@ -63,18 +63,18 @@ export async function POST(req: Request) {
   const description  = typeof body.description   === "string" ? body.description.trim() || null : null;
   const appearedAt   = typeof body.appeared_at   === "string" && body.appeared_at   ? body.appeared_at   : null;
 
-  // URL バリデーション: 指定された場合は http(s):// で始まること
+  // URL バリデーション: 指定された場合は https:// で始まること
   const url = typeof body.url === "string" ? body.url.trim() || null : null;
-  if (url && !/^https?:\/\//i.test(url)) {
+  if (url && !/^https:\/\//i.test(url)) {
     return NextResponse.json(
-      { error: "INVALID_URL_FORMAT", message: "URL は http:// または https:// で始めてください。" },
+      { error: "INVALID_URL_FORMAT", message: "URL は https:// で始めてください。" },
       { status: 400 }
     );
   }
   const thumbnailUrl = typeof body.thumbnail_url === "string" ? body.thumbnail_url.trim() || null : null;
-  if (thumbnailUrl && !/^https?:\/\//i.test(thumbnailUrl)) {
+  if (thumbnailUrl && !/^https:\/\//i.test(thumbnailUrl)) {
     return NextResponse.json(
-      { error: "INVALID_URL_FORMAT", message: "サムネ URL は http:// または https:// で始めてください。" },
+      { error: "INVALID_URL_FORMAT", message: "サムネ URL は https:// で始めてください。" },
       { status: 400 }
     );
   }

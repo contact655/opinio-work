@@ -59,6 +59,7 @@ export async function GET() {
 
     return Response.json({ members });
   } catch (e) {
-    return Response.json({ error: "Server error", detail: String(e) }, { status: 500 });
+    console.error("[GET /api/biz/company/members]", e);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }

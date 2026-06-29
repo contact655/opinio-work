@@ -3,6 +3,18 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+async function resolveOwUserId(
+  supabase: ReturnType<typeof createClient>,
+  authUid: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("ow_users")
+    .select("id")
+    .eq("auth_id", authUid)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
 // PUT /api/jobseeker/awards/[id]
 export async function PUT(
   req: Request,
@@ -11,6 +23,9 @@ export async function PUT(
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const owUserId = await resolveOwUserId(supabase, user.id);
+  if (!owUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   let body: Record<string, unknown>;
   try {
@@ -35,12 +50,13 @@ export async function PUT(
     .from("ow_user_awards")
     .update({ title, issuer, awarded_at: awardedAt, description })
     .eq("id", params.id)
+    .eq("user_id", owUserId)
     .select("id, title, issuer, awarded_at, description, sort_order")
     .single();
 
   if (error) {
-    console.error("[PUT /api/jobseeker/awards/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[PUT /api/jobseeker/awards/[id]]", error.code);
+    return NextResponse.json({ error: "更新に失敗しました" }, { status: 500 });
   }
 
   return NextResponse.json(updated);
@@ -55,14 +71,18 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const owUserId = await resolveOwUserId(supabase, user.id);
+  if (!owUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { error } = await supabase
     .from("ow_user_awards")
     .delete()
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .eq("user_id", owUserId);
 
   if (error) {
-    console.error("[DELETE /api/jobseeker/awards/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/jobseeker/awards/[id]]", error.code);
+    return NextResponse.json({ error: "削除に失敗しました" }, { status: 500 });
   }
 
   return new NextResponse(null, { status: 204 });

@@ -17,9 +17,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // admin チェック (ow_users.role = 'admin' または ADMIN_EMAILS 環境変数)
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
-  if (!adminEmails.includes(user.email ?? "")) {
+  const { data: isAdmin } = await supabase.rpc("auth_is_admin");
+  if (!isAdmin) {
     return NextResponse.json({ error: "Forbidden: admin only" }, { status: 403 });
   }
 

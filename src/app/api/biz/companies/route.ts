@@ -59,6 +59,12 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+  if (name.length > 200) {
+    return NextResponse.json(
+      { error: "会社名は200字以内で入力してください" },
+      { status: 400 }
+    );
+  }
 
   const admin = createAdminClient();
 
@@ -225,6 +231,7 @@ export async function POST(req: Request) {
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30日
+    secure: process.env.NODE_ENV === "production",
   });
 
   return res;

@@ -49,7 +49,7 @@ export async function createAdminPost(
 
   if (error) {
     console.error("[createAdminPost] error:", error);
-    return { success: false, error: `保存に失敗しました: ${error.message}` };
+    return { success: false, error: "保存に失敗しました" };
   }
 
   revalidatePath("/admin/posts");

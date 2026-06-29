@@ -19,7 +19,7 @@ export async function deleteAdminPost(id: string): Promise<AdminActionResult<nul
 
   if (error) {
     console.error("[deleteAdminPost] error:", error);
-    return { success: false, error: `削除に失敗しました: ${error.message}` };
+    return { success: false, error: "削除に失敗しました" };
   }
 
   revalidatePath("/admin/posts");
