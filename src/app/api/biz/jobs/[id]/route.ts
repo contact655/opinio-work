@@ -5,6 +5,10 @@ import { getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
+function str(v: unknown, max: number): string | null {
+  return typeof v === "string" ? v.slice(0, max) || null : null;
+}
+
 const VALID_STATUSES = new Set(["draft", "pending_review", "published", "rejected", "private"]);
 
 export async function PUT(
@@ -37,28 +41,28 @@ export async function PUT(
   const { error: updateErr } = await supabase
     .from("ow_jobs")
     .update({
-      title: body.title as string || null,
-      employment_type: body.employmentType as string || null,
-      job_category: body.jobCategory as string || null,
-      department: body.department as string || null,
+      title: str(body.title, 200),
+      employment_type: str(body.employmentType, 50),
+      job_category: str(body.jobCategory, 100),
+      department: str(body.department, 100),
       salary_min: isNaN(salaryMin as number) ? null : salaryMin,
       salary_max: isNaN(salaryMax as number) ? null : salaryMax,
-      salary_note: body.salaryNote as string || null,
-      location: body.location as string || null,
-      remote_work_status: body.remoteWorkStatus as string || null,
-      probation_period: body.probationPeriod as string || null,
-      description_markdown: body.descriptionMarkdown as string || null,
-      message_to_candidates: body.messageToCandidates as string || null,
+      salary_note: str(body.salaryNote, 200),
+      location: str(body.location, 200),
+      remote_work_status: str(body.remoteWorkStatus, 50),
+      probation_period: str(body.probationPeriod, 100),
+      description_markdown: str(body.descriptionMarkdown, 50000),
+      message_to_candidates: str(body.messageToCandidates, 2000),
       required_skills: Array.isArray(body.requiredSkills) ? body.requiredSkills : [],
       preferred_skills: Array.isArray(body.preferredSkills) ? body.preferredSkills : [],
-      culture_fit: body.cultureFit as string || null,
+      culture_fit: str(body.cultureFit, 2000),
       selection_steps: Array.isArray(body.selectionSteps) ? body.selectionSteps : [],
-      selection_duration: body.selectionDuration as string || null,
-      start_date_preference: body.startDatePreference as string || null,
+      selection_duration: str(body.selectionDuration, 100),
+      start_date_preference: str(body.startDatePreference, 100),
       urgency: (body.urgency === "hot") ? "hot" : "open",
-      why_hire: body.whyHire as string || null,
-      team_composition: body.teamComposition as string || null,
-      first_90_days: body.first90Days as string || null,
+      why_hire: str(body.whyHire, 5000),
+      team_composition: str(body.teamComposition, 5000),
+      first_90_days: str(body.first90Days, 5000),
       updated_at: now,
     })
     .eq("id", jobId)
@@ -66,7 +70,7 @@ export async function PUT(
 
   if (updateErr) {
     console.error("[jobs PUT]", updateErr.message);
-    return NextResponse.json({ error: updateErr.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // Option A: 担当者を完全 replace
@@ -146,7 +150,7 @@ export async function PATCH(
 
   if (error) {
     console.error("[jobs PATCH status]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // Activity: job_published (best-effort, only on publish) — ctx1 を再利用
@@ -191,7 +195,7 @@ export async function DELETE(
 
   if (error) {
     console.error("[jobs DELETE]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

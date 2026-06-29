@@ -34,17 +34,19 @@ export async function PATCH(
     updated_at: new Date().toISOString(),
   };
 
+  function s(v: unknown, max: number) { return typeof v === "string" ? v.slice(0, max) : v; }
+
   if (salaryMan          !== undefined) update.salary_man         = salaryMan;
-  if (roleTitle          !== undefined) update.role_title         = roleTitle;
-  if (companyAnonymized  !== undefined) update.company_anonymized = companyAnonymized;
+  if (roleTitle          !== undefined) update.role_title         = s(roleTitle, 100);
+  if (companyAnonymized  !== undefined) update.company_anonymized = s(companyAnonymized, 200);
   if (visibilityCompany  !== undefined) update.visibility_company = visibilityCompany;
   if (visibilitySalary   !== undefined) update.visibility_salary  = visibilitySalary;
   if (visibilityReason   !== undefined) update.visibility_reason  = visibilityReason;
-  if (description        !== undefined) update.description        = description;
-  if (joinReason         !== undefined) update.join_reason        = joinReason;
-  if (learnings          !== undefined) update.learnings          = learnings;
-  if (turningPoint       !== undefined) update.turning_point      = turningPoint;
-  if (exitReason         !== undefined) update.exit_reason        = exitReason;
+  if (description        !== undefined) update.description        = s(description, 5000);
+  if (joinReason         !== undefined) update.join_reason        = s(joinReason, 5000);
+  if (learnings          !== undefined) update.learnings          = s(learnings, 5000);
+  if (turningPoint       !== undefined) update.turning_point      = s(turningPoint, 5000);
+  if (exitReason         !== undefined) update.exit_reason        = s(exitReason, 5000);
 
   const { error } = await admin
     .from("ow_experiences")
@@ -53,7 +55,7 @@ export async function PATCH(
 
   if (error) {
     console.error("experience update error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

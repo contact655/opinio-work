@@ -21,13 +21,15 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
 
+  const headlineTrimmed = typeof headline === "string" ? headline.slice(0, 200) : null;
+
   // ow_career_profiles を UPSERT（user_id は UNIQUE）
   const { data, error } = await admin
     .from("ow_career_profiles")
     .upsert(
       {
         user_id: userId,
-        headline: headline ?? null,
+        headline: headlineTrimmed,
         years_of_experience: yearsOfExperience ?? null,
         gender: gender ?? null,
         birth_year: birthYear ?? null,
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     console.error("career profile upsert error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, id: data.id });

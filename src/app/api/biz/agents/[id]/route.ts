@@ -42,7 +42,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   return NextResponse.json({ agency: data });
 }
 
@@ -71,6 +71,6 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     .delete()
     .eq("id", params.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

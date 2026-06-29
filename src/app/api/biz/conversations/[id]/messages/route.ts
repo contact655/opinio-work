@@ -88,7 +88,7 @@ export async function POST(
       "[conversations/messages POST] insert error:",
       insertError.message
     );
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // ── UPDATE last_message_at (best-effort) ───────────────────────────────────

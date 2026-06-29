@@ -126,7 +126,7 @@ export async function POST(req: Request) {
 
   if (insertErr || !newJob) {
     console.error("[jobs POST create]", insertErr?.message);
-    return NextResponse.json({ error: insertErr?.message ?? "Failed" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   const assigneeIds = Array.isArray(body.assigneeIds) ? (body.assigneeIds as string[]) : [];

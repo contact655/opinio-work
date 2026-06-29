@@ -46,7 +46,7 @@ export async function addExistingUserToCompany(params: {
 
     if (error) {
       console.error("[members _lib reactivate]", error.message);
-      return { ok: false, status: 500, code: "DB_ERROR", message: error.message };
+      return { ok: false, status: 500, code: "DB_ERROR", message: "Internal server error" };
     }
 
     return {
@@ -64,7 +64,7 @@ export async function addExistingUserToCompany(params: {
 
   if (insertErr || !newRow) {
     console.error("[members _lib insert]", insertErr?.message);
-    return { ok: false, status: 500, code: "DB_ERROR", message: insertErr?.message ?? "Failed" };
+    return { ok: false, status: 500, code: "DB_ERROR", message: "Internal server error" };
   }
 
   return {

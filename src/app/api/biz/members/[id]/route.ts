@@ -100,7 +100,7 @@ export async function PATCH(
 
     if (error) {
       console.error("[members PATCH permission]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
 
@@ -132,7 +132,7 @@ export async function PATCH(
 
     if (error) {
       console.error("[members PATCH deactivate]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
 
@@ -145,7 +145,7 @@ export async function PATCH(
 
     if (error) {
       console.error("[members PATCH reactivate]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
 
@@ -171,7 +171,7 @@ export async function PATCH(
 
     if (error) {
       console.error("[members PATCH update_profile]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
 
@@ -185,7 +185,7 @@ export async function PATCH(
 
     if (error) {
       console.error("[members PATCH ambassador]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
 

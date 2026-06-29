@@ -63,7 +63,7 @@ export async function PATCH(
       .maybeSingle();
     if (error) {
       console.error("[meetings PATCH status]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
     if (!updated) {
       // 0 rows: RLS blocked the UPDATE or meetingId not found
@@ -123,7 +123,7 @@ export async function PATCH(
       .eq("id", meetingId);
     if (error) {
       console.error("[meetings PATCH memo]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
 
@@ -142,7 +142,7 @@ export async function PATCH(
       .eq("id", meetingId);
     if (error) {
       console.error("[meetings PATCH assign_to_me]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
 
@@ -154,7 +154,7 @@ export async function PATCH(
       .is("company_read_at", null);
     if (error) {
       console.error("[meetings PATCH mark_read]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
 

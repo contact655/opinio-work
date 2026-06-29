@@ -65,7 +65,7 @@ export async function POST(req: Request) {
   if (companyError) {
     console.error("[company/register] INSERT failed:", JSON.stringify(companyError));
     return NextResponse.json(
-      { error: `企業登録に失敗: ${companyError.message}` },
+      { error: "企業登録に失敗しました。しばらくしてから再試行してください。" },
       { status: 500 }
     );
   }
