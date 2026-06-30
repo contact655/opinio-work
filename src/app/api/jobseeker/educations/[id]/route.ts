@@ -12,6 +12,9 @@ export async function PUT(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -61,11 +64,11 @@ export async function PUT(
     updatePayload.school_id = typeof body.school_id === "string" ? body.school_id : null;
   }
 
-  // RLS の update_own が他人のレコード更新を自動的に弾く
   const { data: updated, error } = await supabase
     .from("ow_user_educations")
     .update(updatePayload)
     .eq("id", params.id)
+    .eq("user_id", owUser.id)
     .select(`
       id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order,
       school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)
@@ -81,7 +84,6 @@ export async function PUT(
 }
 
 // DELETE /api/jobseeker/educations/[id] — 学歴削除
-// RLS（ow_user_educations_delete_own）が他人のレコードへの操作を自動的に弾く
 export async function DELETE(
   _req: Request,
   { params }: { params: { id: string } }
@@ -90,10 +92,14 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
   const { error } = await supabase
     .from("ow_user_educations")
     .delete()
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .eq("user_id", owUser.id);
 
   if (error) {
     console.error("[DELETE /api/jobseeker/educations/[id]]", error.message);

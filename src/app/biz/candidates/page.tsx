@@ -44,11 +44,10 @@ export default async function CandidatesPage() {
     .map((u: any) => u.auth_id as string);
 
   // ow_profiles: user_id = auth.users.id（= ow_users.auth_id）経由で取得
+  // desired_salary_min/max は機微情報のため除外
   const profilesByAuthId = new Map<string, {
     onboarding_completed: boolean;
     desired_work_style: string | null;
-    desired_salary_min: number | null;
-    desired_salary_max: number | null;
     job_type: string | null;
     desired_phase: string[] | null;
     transfer_timing: string | null;
@@ -60,7 +59,7 @@ export default async function CandidatesPage() {
     const adminClient = createAdminClient();
     const { data: profileRows } = await adminClient
       .from("ow_profiles")
-      .select("user_id, onboarding_completed, desired_work_style, desired_salary_min, desired_salary_max, job_type, desired_phase, transfer_timing")
+      .select("user_id, onboarding_completed, desired_work_style, job_type, desired_phase, transfer_timing")
       .in("user_id", authIds);
 
     for (const p of profileRows ?? []) {
@@ -104,8 +103,6 @@ export default async function CandidatesPage() {
       currentCompany: currentExp?.company ?? null,
       jobType: profile?.job_type || null,
       workStyle: profile?.desired_work_style || null,
-      desiredSalaryMin: profile?.desired_salary_min || null,
-      desiredSalaryMax: profile?.desired_salary_max || null,
       desiredPhase: profile?.desired_phase || null,
       transferTiming: profile?.transfer_timing || null,
       onboardingCompleted: profile?.onboarding_completed || false,

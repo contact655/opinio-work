@@ -50,10 +50,12 @@ export async function POST(req: Request) {
   }
 
   // ── 複製モード ──────────────────────────────────────────
-  // sourceId がある場合: RLS が自社求人のみアクセスを保証するため
-  // getCompanyContext は不要（SELECT 自体が RLS で保護）
   if (body.sourceId) {
     const sourceId = body.sourceId as string;
+    const cookieCompanyIdDup = cookies().get("biz_current_company_id")?.value;
+    const ctxDup = await getCompanyContext(supabase, user.id, cookieCompanyIdDup);
+    if (!ctxDup) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { data: source } = await supabase
       .from("ow_jobs")
       .select(
@@ -63,6 +65,11 @@ export async function POST(req: Request) {
       .single();
 
     if (!source) return NextResponse.json({ error: "source job not found" }, { status: 404 });
+
+    // 複製元が自社求人であることを明示検証
+    if (source.company_id !== ctxDup.companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const now = new Date().toISOString();
     const { data: newJob, error: insertErr } = await supabase

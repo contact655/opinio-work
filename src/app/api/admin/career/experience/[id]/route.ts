@@ -39,7 +39,12 @@ export async function PATCH(
   if (salaryMan          !== undefined) update.salary_man         = salaryMan;
   if (roleTitle          !== undefined) update.role_title         = s(roleTitle, 100);
   if (companyAnonymized  !== undefined) update.company_anonymized = s(companyAnonymized, 200);
-  if (visibilityCompany  !== undefined) update.visibility_company = visibilityCompany;
+  if (visibilityCompany  !== undefined) {
+    if (!["real", "masked", "hidden"].includes(visibilityCompany)) {
+      return NextResponse.json({ error: "Invalid visibilityCompany value" }, { status: 400 });
+    }
+    update.visibility_company = visibilityCompany;
+  }
   if (visibilitySalary   !== undefined) update.visibility_salary  = visibilitySalary;
   if (visibilityReason   !== undefined) update.visibility_reason  = visibilityReason;
   if (description        !== undefined) update.description        = s(description, 5000);

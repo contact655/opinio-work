@@ -5,9 +5,9 @@ export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const name = searchParams.get("name") ?? "OPINIO";
-  const sub = searchParams.get("sub") ?? "IT/SaaS業界のキャリアインフラ";
-  const badge = searchParams.get("badge") ?? "";
+  const name = (searchParams.get("name") ?? "OPINIO").slice(0, 100);
+  const sub = (searchParams.get("sub") ?? "IT/SaaS業界のキャリアインフラ").slice(0, 120);
+  const badge = (searchParams.get("badge") ?? "").slice(0, 50);
   const type = searchParams.get("type") ?? "default";
 
   return new ImageResponse(

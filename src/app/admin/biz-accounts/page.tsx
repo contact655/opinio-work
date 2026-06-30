@@ -75,7 +75,20 @@ async function getBizAccounts(): Promise<BizAccount[]> {
         .order("created_at", { ascending: false }),
       admin.from("ow_users").select("id, auth_id, name, email, avatar_color"),
       admin.from("ow_companies").select("id, name, engagement_status, is_published"),
-      admin.auth.admin.listUsers({ perPage: 1000 }),
+      (async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const allUsers: any[] = [];
+        let page = 1;
+        while (true) {
+          const { data } = await admin.auth.admin.listUsers({ perPage: 1000, page });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const batch = (data as any)?.users ?? [];
+          allUsers.push(...batch);
+          if (batch.length < 1000) break;
+          page++;
+        }
+        return { data: { users: allUsers } };
+      })(),
     ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

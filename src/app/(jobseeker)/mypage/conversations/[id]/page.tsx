@@ -78,7 +78,7 @@ export default function ConversationDetailPage() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      window.location.href = "/auth/login?next=" + encodeURIComponent(window.location.pathname);
+      window.location.href = "/auth?next=" + encodeURIComponent(window.location.pathname);
       return;
     }
 
@@ -108,7 +108,8 @@ export default function ConversationDetailPage() {
       .maybeSingle();
 
     if (convError) {
-      setError(convError.message);
+      console.error("[conversation load]", convError.message);
+      setError("データの読み込みに失敗しました");
       setLoading(false);
       return;
     }
@@ -151,7 +152,8 @@ export default function ConversationDetailPage() {
       .order("sent_at", { ascending: true });
 
     if (msgsError) {
-      setError(msgsError.message);
+      console.error("[messages load]", msgsError.message);
+      setError("メッセージの読み込みに失敗しました");
     } else {
       setMessages((msgs as MessageRow[]) || []);
     }
@@ -186,6 +188,10 @@ export default function ConversationDetailPage() {
 
   const handleSend = async () => {
     if (!inputText.trim() || !myParticipantId || sending) return;
+    if (inputText.trim().length > 5000) {
+      setError("メッセージは5000文字以内で入力してください");
+      return;
+    }
     setSending(true);
 
     const supabase = createClient();
@@ -199,7 +205,8 @@ export default function ConversationDetailPage() {
       });
 
     if (insertError) {
-      setError(insertError.message);
+      console.error("[message send]", insertError.message);
+      setError("メッセージの送信に失敗しました");
     } else {
       setInputText("");
       await loadData();

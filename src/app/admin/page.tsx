@@ -629,7 +629,7 @@ export default async function AdminDashboard() {
                       )}
                     </div>
                     <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {u.email}
+                      {u.email ? u.email.replace(/[^@]*/, "***") : "—"}
                     </p>
                   </div>
                   <span style={{

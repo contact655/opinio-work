@@ -11,8 +11,6 @@ type Candidate = {
   currentCompany: string | null;
   jobType: string | null;
   workStyle: string | null;
-  desiredSalaryMin: number | null;
-  desiredSalaryMax: number | null;
   desiredPhase: string[] | null;
   transferTiming: string | null;
   onboardingCompleted: boolean;
@@ -66,23 +64,12 @@ const TRANSFER_TIMING_OPTIONS = [
   { value: "情報収集中", label: "情報収集中" },
 ];
 
-const SALARY_MIN_OPTIONS = [
-  { value: 0,   label: "年収下限なし" },
-  { value: 400, label: "400万円〜" },
-  { value: 500, label: "500万円〜" },
-  { value: 600, label: "600万円〜" },
-  { value: 700, label: "700万円〜" },
-  { value: 800, label: "800万円〜" },
-  { value: 1000, label: "1000万円〜" },
-];
-
 export default function CandidatesClient({ candidates }: { candidates: Candidate[] }) {
   const [q, setQ] = useState("");
   const [workStyle, setWorkStyle] = useState("");
   const [jobType, setJobType] = useState("");
   const [phase, setPhase] = useState("");
   const [transferTiming, setTransferTiming] = useState("");
-  const [salaryMin, setSalaryMin] = useState(0);
   const [_mentorOnly] = useState(false);
 
   const filtered = useMemo(() => {
@@ -100,19 +87,14 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
     if (jobType)        list = list.filter((c) => c.jobType === jobType);
     if (phase)          list = list.filter((c) => c.desiredPhase?.includes(phase));
     if (transferTiming) list = list.filter((c) => c.transferTiming === transferTiming);
-    if (salaryMin > 0)  list = list.filter((c) =>
-      (c.desiredSalaryMin != null && c.desiredSalaryMin >= salaryMin) ||
-      (c.desiredSalaryMax != null && c.desiredSalaryMax >= salaryMin)
-    );
 
     return list;
-  }, [candidates, q, workStyle, jobType, phase, transferTiming, salaryMin]);
+  }, [candidates, q, workStyle, jobType, phase, transferTiming]);
 
-  const activeFilterCount = [workStyle, jobType, phase, transferTiming, salaryMin > 0].filter(Boolean).length;
+  const activeFilterCount = [workStyle, jobType, phase, transferTiming].filter(Boolean).length;
 
   function clearAllFilters() {
-    setWorkStyle(""); setJobType(""); setPhase("");
-    setTransferTiming(""); setSalaryMin(0);
+    setWorkStyle(""); setJobType(""); setPhase(""); setTransferTiming("");
   }
 
   return (
@@ -201,23 +183,6 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
               <option key={v} value={v}>{l}</option>
             ))}
           </select>
-          <select
-            id="candidates-salary-min"
-            value={salaryMin}
-            aria-label="希望年収で絞り込み"
-            onChange={(e) => setSalaryMin(Number(e.target.value))}
-            style={{
-              height: 36, padding: "0 10px",
-              border: "1px solid var(--line)", borderRadius: 8,
-              fontSize: 13, color: salaryMin > 0 ? "var(--ink)" : "var(--ink-soft)", background: "#fff",
-              outline: "none", fontFamily: "inherit",
-            }}
-          >
-            {SALARY_MIN_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-
           {/* Result count + clear */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
             <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
@@ -400,18 +365,6 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
                     </span>
                   )}
                 </div>
-
-                {/* Salary */}
-                {(c.desiredSalaryMin || c.desiredSalaryMax) && (
-                  <div style={{ fontSize: 12, color: "var(--success)", fontWeight: 700, marginBottom: 12 }}>
-                    希望年収：
-                    {c.desiredSalaryMin && c.desiredSalaryMax
-                      ? `${c.desiredSalaryMin}〜${c.desiredSalaryMax}万円`
-                      : c.desiredSalaryMin
-                      ? `${c.desiredSalaryMin}万円〜`
-                      : `〜${c.desiredSalaryMax}万円`}
-                  </div>
-                )}
 
                 {/* Footer */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
