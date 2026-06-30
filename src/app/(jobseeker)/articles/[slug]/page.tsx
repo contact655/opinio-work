@@ -231,29 +231,31 @@ function CompanyCTA({ article }: { article: Article }) {
       }}>
         {article.company_name}で、働く。
       </h3>
-      <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "center", flexWrap: "wrap" }}>
-        <Link
-          href={`/jobs?company=${article.company_id}`}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "11px var(--space-6)", background: "#fff", color: ROYAL,
-            borderRadius: 9, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
-          }}
-        >
-          求人を見る
-        </Link>
-        <Link
-          href={`/companies/${article.company_id}`}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "11px var(--space-6)", background: "transparent", color: "#fff",
-            border: "2px solid rgba(255,255,255,0.5)",
-            borderRadius: 9, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
-          }}
-        >
-          企業を見る
-        </Link>
-      </div>
+      {article.company_id && (
+        <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "center", flexWrap: "wrap" }}>
+          <Link
+            href={`/jobs?company=${article.company_id}`}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "11px var(--space-6)", background: "#fff", color: ROYAL,
+              borderRadius: 9, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
+            }}
+          >
+            求人を見る
+          </Link>
+          <Link
+            href={`/companies/${article.company_id}`}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "11px var(--space-6)", background: "transparent", color: "#fff",
+              border: "2px solid rgba(255,255,255,0.5)",
+              borderRadius: 9, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
+            }}
+          >
+            企業を見る
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -75,11 +75,10 @@ export default function ConversationDetailPage() {
     const supabase = createClient();
 
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      setLoading(false);
+      window.location.href = "/auth/login?next=" + encodeURIComponent(window.location.pathname);
       return;
     }
 
@@ -128,7 +127,14 @@ export default function ConversationDetailPage() {
       .eq("user_id", owUser.id)
       .maybeSingle();
 
-    setMyParticipantId(myParticipant?.id ?? null);
+    // Ownership check: verify user is a participant in this conversation
+    if (!myParticipant) {
+      setError("対話が見つかりませんでした");
+      setLoading(false);
+      return;
+    }
+
+    setMyParticipantId(myParticipant.id);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: msgs, error: msgsError } = await (supabase as any)

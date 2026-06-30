@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -96,6 +96,16 @@ function OnboardingInner() {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const current = STEPS[step];
+
+  // Auth guard: redirect to login if not authenticated
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        router.push("/auth/login?next=" + encodeURIComponent("/onboarding"));
+      }
+    });
+  }, [router]);
 
   const select = async (value: string) => {
     const newAnswers = { ...answers, [current.id]: value };

@@ -12,6 +12,20 @@ export const metadata = {
 
 export default async function CandidatesPage() {
   const ctx = await getTenantContext();
+  if (!ctx) {
+    return (
+      <BusinessLayout userName="担当者">
+        <div style={{
+          background: "#fff", borderRadius: 14, border: "1px solid var(--line)",
+          padding: 40, textAlign: "center", maxWidth: "var(--max-w-form)", margin: "60px auto",
+        }}>
+          <p style={{ fontSize: 14, color: "var(--error)" }}>
+            企業アカウントが見つかりませんでした。ログインし直してください。
+          </p>
+        </div>
+      </BusinessLayout>
+    );
+  }
   const supabase = createClient();
 
   // 公開プロフィールの求職者を取得（visibility = 'public'）

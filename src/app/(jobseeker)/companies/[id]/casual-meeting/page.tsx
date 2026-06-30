@@ -16,7 +16,7 @@ export default async function CasualMeetingPage({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/auth?next=/companies/${params.id}/casual-meeting`);
+    redirect(`/auth/login?next=/companies/${params.id}/casual-meeting`);
   }
 
   const result = await getCompanyById(params.id);

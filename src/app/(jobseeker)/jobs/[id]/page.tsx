@@ -396,7 +396,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
             employmentType: job.employment_type ?? "FULL_TIME",
             description: job.highlight ?? "",
             url: `https://opinio.jp/jobs/${params.id}`,
-          }),
+          }).replace(/</g, "\\u003c"),
         }}
       />
       {/* Breadcrumb */}
@@ -438,7 +438,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   {company.name}
                 </Link>
                 <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-                  {company.industry} · {company.employee_count.toLocaleString()}名
+                  {company.industry}{company.employee_count != null ? ` · ${company.employee_count.toLocaleString()}名` : ""}
                 </span>
               </div>
 
@@ -1065,7 +1065,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     </div>
                     <div style={{ display: "flex", gap: "var(--space-4)", fontSize: 11, color: "var(--ink-mute)", flexWrap: "wrap" }}>
                       <span>業種 <strong style={{ color: "var(--ink)" }}>{company.industry}</strong></span>
-                      <span>従業員 <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{company.employee_count.toLocaleString()}</strong>名</span>
+                      <span>従業員 <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{company.employee_count?.toLocaleString() ?? "—"}</strong>名</span>
                     </div>
                   </div>
                 </div>

@@ -33,5 +33,11 @@ export default async function AdminJobDetailPage({ params }: Props) {
 
   if (error || !job) notFound();
 
-  return <JobDetailClient job={job as any} />;
+  // Cast the Supabase join result to the shape JobDetailClient expects.
+  // The join returns ow_companies as an object or null; the `as unknown` bridge
+  // avoids the unsafe `as any` while keeping the explicit target type.
+  type JobForClient = Omit<typeof job, "ow_companies"> & {
+    ow_companies: { id: string; name: string; industry: string | null; employee_count: string | null; is_published: boolean } | null;
+  };
+  return <JobDetailClient job={job as unknown as JobForClient} />;
 }

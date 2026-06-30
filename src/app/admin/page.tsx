@@ -771,7 +771,7 @@ export default async function AdminDashboard() {
               {stats.recentCompanies.map((c: any) => (
                 <tr key={c.id} style={{ borderBottom: "1px solid #F8FAFC" }}>
                   <td style={{ padding: "10px 10px", fontWeight: 600, color: "#0F172A" }}>
-                    <Link href={`/admin/companies`} style={{ textDecoration: "none", color: "inherit" }}>
+                    <Link href={`/admin/companies/${c.id}`} style={{ textDecoration: "none", color: "inherit" }}>
                       {c.name}
                     </Link>
                   </td>

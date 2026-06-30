@@ -259,7 +259,7 @@ export default async function MypagePage({
 
       casualMeetings = meetings.map((m): CasualMeeting => {
         const c = companyMap.get(m.company_id as string);
-        const appliedAt = new Date(m.created_at as string)
+        const appliedAt = (m.created_at ? new Date(m.created_at as string) : new Date())
           .toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
           .replace(/\//g, ".");
         return {

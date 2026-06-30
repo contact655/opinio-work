@@ -291,10 +291,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
   const pageParam  = typeof searchParams.page === "string" ? Math.max(1, parseInt(searchParams.page, 10)) : 1;
   const viewParam  = typeof searchParams.view === "string" ? searchParams.view : "list";
 
-  const [_allArticles, filteredArticles] = await Promise.all([
-    getArticles(),
-    getArticles({ type: typeParam, sort: sortParam, q: qParam }),
-  ]);
+  const filteredArticles = await getArticles({ type: typeParam, sort: sortParam, q: qParam });
 
 
   // Pagination (フィーチャー記事を除いたグリッド分を対象)

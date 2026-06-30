@@ -185,7 +185,7 @@ export default async function ProfileEditPage({
       roleCategoryId: roleUuid,
       roleLabel: roleNameById.get(roleUuid) ?? roleUuid,
       roleTitle: (r.role_title as string | null) ?? undefined,
-      startedAt: (r.started_at as string).slice(0, 7),
+      startedAt: r.started_at ? (r.started_at as string).slice(0, 7) : "",
       endedAt: r.ended_at ? (r.ended_at as string).slice(0, 7) : undefined,
       isCurrent: r.is_current as boolean,
       description: (r.description as string | null) ?? undefined,
