@@ -139,6 +139,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid role_category_id" }, { status: 400 });
   }
 
+  const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+  if (!DATE_RE.test(body.started_at as string)) {
+    return NextResponse.json({ error: "started_at は YYYY-MM 形式で入力してください" }, { status: 400 });
+  }
+  if (body.ended_at && !DATE_RE.test(body.ended_at as string)) {
+    return NextResponse.json({ error: "ended_at は YYYY-MM 形式で入力してください" }, { status: 400 });
+  }
+  if (hasCompanyId && !UUID_RE.test(body.company_id as string)) {
+    return NextResponse.json({ error: "Invalid company_id" }, { status: 400 });
+  }
+
   const companyText = hasCompanyText ? String(body.company_text).slice(0, 200) : null;
   const companyAnon = hasCompanyAnon ? String(body.company_anonymized).slice(0, 200) : null;
   const roleTitle  = typeof body.role_title  === "string" ? body.role_title.slice(0, 100)  : null;

@@ -53,10 +53,10 @@ export async function PUT(
       probation_period: str(body.probationPeriod, 100),
       description_markdown: str(body.descriptionMarkdown, 50000),
       message_to_candidates: str(body.messageToCandidates, 2000),
-      required_skills: Array.isArray(body.requiredSkills) ? body.requiredSkills : [],
-      preferred_skills: Array.isArray(body.preferredSkills) ? body.preferredSkills : [],
+      required_skills: Array.isArray(body.requiredSkills) ? body.requiredSkills.filter((x: unknown): x is string => typeof x === "string").slice(0, 30).map((s: string) => s.slice(0, 200)) : [],
+      preferred_skills: Array.isArray(body.preferredSkills) ? body.preferredSkills.filter((x: unknown): x is string => typeof x === "string").slice(0, 30).map((s: string) => s.slice(0, 200)) : [],
       culture_fit: str(body.cultureFit, 2000),
-      selection_steps: Array.isArray(body.selectionSteps) ? body.selectionSteps : [],
+      selection_steps: Array.isArray(body.selectionSteps) ? body.selectionSteps.filter((x: unknown): x is string => typeof x === "string").slice(0, 20).map((s: string) => s.slice(0, 200)) : [],
       selection_duration: str(body.selectionDuration, 100),
       start_date_preference: str(body.startDatePreference, 100),
       urgency: (body.urgency === "hot") ? "hot" : "open",
@@ -75,6 +75,9 @@ export async function PUT(
 
   // Option A: 担当者を完全 replace
   const assigneeIds = Array.isArray(body.assigneeIds) ? (body.assigneeIds as string[]) : [];
+  // 担当者削除は company_id による ownership 確認後にのみ実行
+  const { count: jobCount } = await supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("id", jobId).eq("company_id", ctx0.companyId);
+  if (!jobCount) return NextResponse.json({ error: "Job not found" }, { status: 404 });
   await supabase.from("ow_job_assignees").delete().eq("job_id", jobId);
   if (assigneeIds.length > 0) {
     const { data: validMembers } = await supabase

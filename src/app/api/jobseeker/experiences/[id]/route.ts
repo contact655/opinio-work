@@ -38,7 +38,18 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
   const roleId = UUID_RE.test(body.role_category_id as string) ? (body.role_category_id as string) : null;
   if (!roleId) {
-    return NextResponse.json({ error: `Unknown role: ${body.role_category_id}` }, { status: 400 });
+    return NextResponse.json({ error: "Invalid role_category_id" }, { status: 400 });
+  }
+
+  const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+  if (!DATE_RE.test(body.started_at as string)) {
+    return NextResponse.json({ error: "started_at は YYYY-MM 形式で入力してください" }, { status: 400 });
+  }
+  if (body.ended_at && !DATE_RE.test(body.ended_at as string)) {
+    return NextResponse.json({ error: "ended_at は YYYY-MM 形式で入力してください" }, { status: 400 });
+  }
+  if (hasCompanyId && !UUID_RE.test(body.company_id as string)) {
+    return NextResponse.json({ error: "Invalid company_id" }, { status: 400 });
   }
 
   // ow_users.id を解決して所有者フィルターに使う

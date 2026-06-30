@@ -36,7 +36,18 @@ export async function PUT(req: Request) {
       }
     }
     if (key === "birth_date") {
-      if (typeof val === "string" && val.length > 20) continue;
+      if (typeof val !== "string") continue;
+      const BIRTH_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+      if (!BIRTH_RE.test(val)) continue;
+    }
+    if (key === "avatar_color" || key === "cover_color") {
+      if (typeof val !== "string" || val.length > 100) continue;
+    }
+    if (key === "strengths_finder") {
+      if (typeof val !== "string" || val.length > 500) continue;
+    }
+    if (key === "profile_setup_at") {
+      if (typeof val !== "string") continue;
     }
     const limit = TEXT_LIMITS[key];
     if (limit && typeof val === "string" && val.length > limit) {

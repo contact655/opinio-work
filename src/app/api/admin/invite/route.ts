@@ -128,7 +128,7 @@ function buildInviteHtml(email: string, role: string, message: string, siteUrl: 
         <tr>
           <td style="padding:32px 40px;color:#0f172a;line-height:1.7;font-size:14px">
             <h2 style="margin:0 0 8px;font-size:20px;color:#002366">OPINIO へ招待されました</h2>
-            <p style="margin:0 0 20px;color:#475569">${email} 様</p>
+            <p style="margin:0 0 20px;color:#475569">${email.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")} 様</p>
 
             <div style="background:#eff3fc;border-radius:8px;padding:16px 20px;margin-bottom:20px;border-left:3px solid #002366">
               <p style="margin:0;font-size:13px;color:#334155;line-height:1.7;white-space:pre-wrap">${message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
