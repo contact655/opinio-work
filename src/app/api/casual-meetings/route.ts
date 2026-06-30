@@ -10,15 +10,15 @@ import { insertActivity } from "@/lib/business/activities";
 
 export const dynamic = "force-dynamic";
 
-async function resolveOwUserId(supabase: ReturnType<typeof createClient>): Promise<string | null> {
+async function resolveOwUserId(supabase: ReturnType<typeof createClient>): Promise<{ owUserId: string | null; email: string | null }> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) return { owUserId: null, email: null };
   const { data } = await supabase
     .from("ow_users")
     .select("id")
     .eq("auth_id", user.id)
     .maybeSingle();
-  return data?.id ?? null;
+  return { owUserId: data?.id ?? null, email: user.email ?? null };
 }
 
 const VALID_INTENTS = ["info_gathering", "good_opportunity", "within_6", "within_3"];
@@ -26,8 +26,8 @@ const VALID_INTENTS = ["info_gathering", "good_opportunity", "within_6", "within
 // POST /api/casual-meetings — submit casual meeting request (authenticated)
 export async function POST(req: Request) {
   const supabase = createClient();
-  const owUserId = await resolveOwUserId(supabase);
-  if (!owUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { owUserId, email: authEmail } = await resolveOwUserId(supabase);
+  if (!owUserId || !authEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   let body: Record<string, unknown>;
   try {
@@ -37,16 +37,17 @@ export async function POST(req: Request) {
   }
 
   const {
-    company_id, contact_email, job_id,
+    company_id, job_id,
     share_profile, intent, interest_reason, questions, preferred_format,
   } = body;
 
   if (!company_id || typeof company_id !== "string") {
     return NextResponse.json({ error: "company_id required" }, { status: 400 });
   }
-  if (!contact_email || typeof contact_email !== "string" || !contact_email.includes("@")) {
-    return NextResponse.json({ error: "Valid contact_email required" }, { status: 400 });
-  }
+
+  // contact_email は request body ではなく認証済みセッションのメールを使用（H-1修正）
+  const contact_email = authEmail;
+
   if (intent && !VALID_INTENTS.includes(intent as string)) {
     return NextResponse.json({ error: "Invalid intent value" }, { status: 400 });
   }
@@ -76,6 +77,19 @@ export async function POST(req: Request) {
       { error: "This company is not currently accepting casual meeting requests" },
       { status: 403 }
     );
+  }
+
+  // 重複申込チェック（H-2修正）
+  const { data: existing } = await supabase
+    .from("ow_casual_meetings")
+    .select("id")
+    .eq("user_id", owUserId)
+    .eq("company_id", company_id)
+    .not("status", "in", '("declined","completed")')
+    .maybeSingle();
+
+  if (existing) {
+    return NextResponse.json({ error: "already_applied", id: existing.id }, { status: 409 });
   }
 
   const { data: meeting, error } = await supabase
@@ -111,8 +125,6 @@ export async function POST(req: Request) {
   });
 
   // ── 対話生成 (best-effort, Y2) ───────────────────────────────────────────
-  // notify より前に実行することで、notify が throw しても対話生成は実行済み。
-  // §4-9: notify 処理自体の best-effort 化は Phase η 前で対処予定。
   try {
     await createConversation(supabase, {
       kind: "company",
@@ -134,7 +146,7 @@ export async function POST(req: Request) {
     await notify(
       casualMeetingAdminTemplate({
         companyName: companyForNotify.name,
-        contactEmail: contact_email as string,
+        contactEmail: contact_email,
         intent: (intent as string | null) ?? null,
         interestReason: (interest_reason as string | null) ?? null,
         questions: (questions as string | null) ?? null,
@@ -142,7 +154,7 @@ export async function POST(req: Request) {
     );
     await notify(
       casualMeetingUserTemplate({
-        to: contact_email as string,
+        to: contact_email,
         companyName: companyForNotify.name,
       })
     );

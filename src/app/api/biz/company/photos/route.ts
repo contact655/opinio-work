@@ -78,3 +78,45 @@ export async function POST(request: Request) {
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
+    const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
+    if (!ctx) {
+      return Response.json({ error: "Company context not found" }, { status: 404 });
+    }
+    const { companyId } = ctx;
+
+    try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+
+    const { searchParams } = new URL(request.url);
+    const photoId = searchParams.get("id");
+    if (!photoId) {
+      return Response.json({ error: "id is required" }, { status: 400 });
+    }
+
+    // 所有権確認: companyId が一致する行のみ削除
+    const { error } = await supabase
+      .from("ow_company_office_photos")
+      .delete()
+      .eq("id", photoId)
+      .eq("company_id", companyId);
+
+    if (error) {
+      console.error("[DELETE /api/biz/company/photos]", error.message);
+      return Response.json({ error: "Internal server error" }, { status: 500 });
+    }
+
+    return Response.json({ ok: true });
+  } catch {
+    return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
