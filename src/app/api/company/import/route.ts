@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 const CATEGORIES: Record<string, string> = {
   overview: "会社概要・ミッション・事業内容",
@@ -23,7 +22,6 @@ export async function POST(req: Request) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const admin = createAdminClient();
   const { data: isAdmin } = await supabase.rpc("auth_is_admin");
   if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
