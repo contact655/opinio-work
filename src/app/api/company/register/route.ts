@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   // genres は ow_companies のカラムではないため分離（best-effort で ow_company_genres に INSERT）
   const genreSlugs: string[] = Array.isArray(body.genres) ? body.genres : [];
 
-  if (!body.name || body.name.trim() === "") {
+  if (!body.name || (typeof body.name === "string" && body.name.trim() === "")) {
     return NextResponse.json(
       { error: "会社名は必須です" },
       { status: 400 }
@@ -40,23 +40,35 @@ export async function POST(req: Request) {
     try { const p = new URL(raw); return p.protocol === "https:" ? raw.slice(0, 2048) : null; } catch { return null; }
   }
 
+  function strReg(v: unknown, max: number): string | null {
+    return typeof v === "string" ? v.trim().slice(0, max) || null : null;
+  }
+
+  const VALID_PLANS = new Set(["free", "paid"]);
+  const plan = VALID_PLANS.has(body.plan) ? body.plan : "free";
+
+  const VALID_PHASES = new Set(["seed", "シード", "series_a", "シリーズA", "series_b", "シリーズB", "series_c", "シリーズC", "listed", "上場", "unicorn", "ユニコーン", "IPO準備中", "private"]);
+  const phase = typeof body.phase === "string" && VALID_PHASES.has(body.phase) ? body.phase : null;
+
+  const tags = ((body.tags as unknown[]) ?? []).slice(0, 50);
+
   // 1. ow_companies に INSERT
   const { data: company, error: companyError } = await admin
     .from("ow_companies")
     .insert({
       user_id: user.id,
-      name: body.name.trim(),
-      name_en: body.name_en || null,
+      name: typeof body.name === "string" ? body.name.trim().slice(0, 200) : body.name,
+      name_en: strReg(body.name_en, 200),
       founded_at: body.founded_at || null,
       employee_count: body.employee_count || null,
-      location: body.location || null,
-      industry: body.industry || null,
-      phase: body.phase || null,
+      location: strReg(body.location, 200),
+      industry: strReg(body.industry, 100),
+      phase,
       url: safeHttpsUrl(body.url),
-      mission: body.mission || null,
-      description: body.description || null,
+      mission: strReg(body.mission, 1000),
+      description: strReg(body.description, 5000),
       logo_url: safeHttpsUrl(body.logo_url),
-      plan: body.plan || "free",
+      plan,
       status: "active",
     })
     .select("id, name, created_at")
@@ -72,16 +84,18 @@ export async function POST(req: Request) {
 
 
   // 2. カルチャータグを INSERT
-  const tags: { tag_category: string; tag_value: string }[] = body.tags || [];
   if (tags.length > 0) {
     const { error: tagError } = await admin
       .from("ow_company_culture_tags")
       .insert(
-        tags.map((t) => ({
-          company_id: company.id,
-          tag_category: t.tag_category,
-          tag_value: t.tag_value,
-        }))
+        tags.map((t: unknown) => {
+          const tag = t as Record<string, unknown>;
+          return {
+            company_id: company.id,
+            tag_category: typeof tag.tag_category === "string" ? tag.tag_category.slice(0, 100) : null,
+            tag_value: typeof tag.tag_value === "string" ? tag.tag_value.slice(0, 100) : null,
+          };
+        })
       );
     if (tagError) {
       console.error("[company/register] tags INSERT failed:", tagError.message);

@@ -62,6 +62,7 @@ export async function POST(req: Request) {
         "company_id, title, employment_type, job_category, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference"
       )
       .eq("id", sourceId)
+      .eq("company_id", ctxDup.companyId)
       .single();
 
     if (!source) return NextResponse.json({ error: "source job not found" }, { status: 404 });

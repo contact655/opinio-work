@@ -31,10 +31,14 @@ export async function toggleAmbassador(adminId: string, value: boolean): Promise
 
 export async function updateTalkThemes(adminId: string, themes: string[]): Promise<void> {
   await assertAdmin();
+  if (themes.length > 20) {
+    throw new Error("テーマは20件以内にしてください");
+  }
+  const safeThemes = themes.map((t) => (typeof t === "string" ? t.slice(0, 200) : ""));
   const admin = createAdminClient();
   const { error } = await admin
     .from("ow_company_admins")
-    .update({ talk_themes: themes })
+    .update({ talk_themes: safeThemes })
     .eq("id", adminId);
 
   if (error) {

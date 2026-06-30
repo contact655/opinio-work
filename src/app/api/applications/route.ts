@@ -45,6 +45,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "電話番号は30文字以内で入力してください" }, { status: 400 });
   }
 
+  // 求人の存在・公開状態チェック
+  const { data: job } = await supabase
+    .from("ow_jobs")
+    .select("id, status")
+    .eq("id", job_id)
+    .maybeSingle();
+  if (!job || job.status !== "published") {
+    return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  }
+
   // 重複応募チェック（race condition 軽減: UI 側でも button disable）
   const { data: existing } = await supabase
     .from("ow_job_applications")

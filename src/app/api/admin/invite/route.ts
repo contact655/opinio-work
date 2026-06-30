@@ -38,6 +38,10 @@ export async function POST(req: Request) {
 
   const { emails, role, message } = body;
 
+  if (message && typeof message === "string" && message.length > 2000) {
+    return NextResponse.json({ error: "Message too long" }, { status: 400 });
+  }
+
   if (!Array.isArray(emails) || emails.length === 0) {
     return NextResponse.json({ error: "emails must be a non-empty array" }, { status: 400 });
   }
@@ -64,7 +68,7 @@ export async function POST(req: Request) {
 
   for (const email of emails) {
     const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail.includes("@")) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       results.push({ email: normalizedEmail, ok: false, error: "invalid email" });
       continue;
     }

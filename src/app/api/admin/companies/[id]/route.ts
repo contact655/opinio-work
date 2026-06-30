@@ -54,10 +54,23 @@ export async function PUT(
     'opinio_comment',
   ];
 
+  const FIELD_LIMITS: Record<string, number> = {
+    name: 200, tagline: 300, mission: 1000, description: 5000,
+    why_join: 3000, culture_description: 3000, location: 200, industry: 100, phase: 100,
+    url: 2048, ceo_name: 200, headquarters_address: 300, nearest_station: 200,
+    recruiter_name: 200, recruiter_role: 200, recruiter_message: 2000,
+    opinio_comment: 3000, funding_stage: 100,
+  };
+
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   for (const key of allowedFields) {
     if (key in body) {
-      updates[key] = body[key];
+      const val = body[key];
+      if (typeof val === "string" && FIELD_LIMITS[key]) {
+        updates[key] = val.slice(0, FIELD_LIMITS[key]);
+      } else {
+        updates[key] = val;
+      }
     }
   }
 

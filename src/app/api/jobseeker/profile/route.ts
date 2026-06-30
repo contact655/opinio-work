@@ -22,10 +22,22 @@ export async function PUT(req: Request) {
   // 許可フィールドのみ（auth_id, id 等は変更不可）
   const allowed = ["name", "avatar_color", "cover_color", "about_me", "birth_date", "location", "future_aspirations", "social_links", "visibility", "strengths_finder", "is_open_to_work", "profile_setup_at"];
   const TEXT_LIMITS: Record<string, number> = { name: 100, about_me: 2000, future_aspirations: 2000, location: 100 };
+  const VALID_VISIBILITY = new Set(["public", "login_only", "private"]);
   const patch: Record<string, unknown> = {};
   for (const key of allowed) {
     if (!(key in body)) continue;
     const val = body[key];
+    if (key === "visibility") {
+      if (typeof val !== "string" || !VALID_VISIBILITY.has(val)) continue;
+    }
+    if (key === "social_links") {
+      if (JSON.stringify(val).length > 2000) {
+        return NextResponse.json({ error: "social_links が大きすぎます" }, { status: 400 });
+      }
+    }
+    if (key === "birth_date") {
+      if (typeof val === "string" && val.length > 20) continue;
+    }
     const limit = TEXT_LIMITS[key];
     if (limit && typeof val === "string" && val.length > limit) {
       return NextResponse.json({ error: `${key} は${limit}字以内で入力してください` }, { status: 400 });

@@ -55,6 +55,9 @@ export async function POST(req: Request) {
   if (!["article", "company", "job", "mentor"].includes(target_type)) {
     return NextResponse.json({ error: "Invalid target_type" }, { status: 400 });
   }
+  if (target_id.length > 36) {
+    return NextResponse.json({ error: "Invalid target_id" }, { status: 400 });
+  }
 
   const { error } = await supabase
     .from("ow_bookmarks")
@@ -82,6 +85,12 @@ export async function DELETE(req: Request) {
   const { target_type, target_id } = body ?? {};
   if (!target_type || !target_id) {
     return NextResponse.json({ error: "target_type and target_id required" }, { status: 400 });
+  }
+  if (!["article", "company", "job", "mentor"].includes(target_type)) {
+    return NextResponse.json({ error: "Invalid target_type" }, { status: 400 });
+  }
+  if (target_id.length > 36) {
+    return NextResponse.json({ error: "Invalid target_id" }, { status: 400 });
   }
 
   const { error } = await supabase

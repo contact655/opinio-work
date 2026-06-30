@@ -31,8 +31,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (body.agencyName !== undefined) updates.agency_name = body.agencyName.trim();
-  if (body.memo !== undefined) updates.memo = body.memo.trim() || null;
+  if (body.agencyName !== undefined) updates.agency_name = (body.agencyName ?? "").trim().slice(0, 200);
+  if (body.memo !== undefined) updates.memo = (body.memo ?? "").trim().slice(0, 2000) || null;
   if (body.isActive !== undefined) updates.is_active = body.isActive;
 
   const { data, error } = await admin

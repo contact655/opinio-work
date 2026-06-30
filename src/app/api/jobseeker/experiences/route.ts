@@ -113,6 +113,13 @@ export async function POST(req: Request) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
+  const VALID_VISIBILITY = new Set(["real", "masked", "hidden"]);
+  const VALID_EMPLOYMENT = new Set(["正社員", "契約社員", "業務委託", "アルバイト", "インターン", "その他"]);
+  function safeSalary(v: unknown): number | null {
+    if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 100000) return null;
+    return Math.floor(v);
+  }
+
   const hasCompanyId = !!body.company_id;
   const hasCompanyText = !!body.company_text;
   const hasCompanyAnon = !!body.company_anonymized;
@@ -150,19 +157,19 @@ export async function POST(req: Request) {
       role_title: roleTitle,
       department,
       rank: typeof body.rank === "string" ? body.rank.slice(0, 50) : null,
-      salary_base: (body.salary_base as number | undefined) ?? null,
-      salary_bonus: (body.salary_bonus as number | undefined) ?? null,
-      salary_stock: (body.salary_stock as number | undefined) ?? null,
+      salary_base: safeSalary(body.salary_base),
+      salary_bonus: safeSalary(body.salary_bonus),
+      salary_stock: safeSalary(body.salary_stock),
       started_at: `${body.started_at}-01`,
       ended_at: body.ended_at ? `${body.ended_at}-01` : null,
       is_current: (body.is_current as boolean | undefined) ?? false,
       description,
       join_reason: joinReason,
-      employment_type: (body.employment_type as string | undefined) ?? null,
+      employment_type: VALID_EMPLOYMENT.has(body.employment_type as string) ? body.employment_type : null,
       display_order: (body.display_order as number | undefined) ?? 0,
-      salary_man: (body.salary_man as number | undefined) ?? null,
-      visibility_company: (body.visibility_company as string | undefined) ?? "real",
-      visibility_company_profile: (body.visibility_company_profile as string | undefined) ?? "real",
+      salary_man: safeSalary(body.salary_man),
+      visibility_company: VALID_VISIBILITY.has(body.visibility_company as string) ? body.visibility_company : "real",
+      visibility_company_profile: VALID_VISIBILITY.has(body.visibility_company_profile as string) ? body.visibility_company_profile : "real",
       visibility_salary: (body.visibility_salary as boolean | undefined) ?? false,
       visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
     })

@@ -47,11 +47,13 @@ export async function PUT(
     ? body.degree
     : null;
 
-  const enrolled_at = typeof body.enrolled_at === "string" && body.enrolled_at ? body.enrolled_at : null;
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+  const enrolled_at = typeof body.enrolled_at === "string" && DATE_RE.test(body.enrolled_at) ? body.enrolled_at : null;
   const is_current = body.is_current === true;
-  const graduated_at = is_current ? null : (typeof body.graduated_at === "string" && body.graduated_at ? body.graduated_at : null);
+  const graduated_at = is_current ? null : (typeof body.graduated_at === "string" && DATE_RE.test(body.graduated_at) ? body.graduated_at : null);
 
-  // school_id: body に明示的に含まれる場合のみ更新(undefined = 変更なし、null = クリア、string = セット)
+  // school_id: body に明示的に含まれる場合のみ更新(undefined = 変更なし、null = クリア、UUID string = セット)
   const updatePayload: Record<string, unknown> = {
     school,
     faculty: faculty || null,
@@ -61,7 +63,7 @@ export async function PUT(
     is_current,
   };
   if ("school_id" in body) {
-    updatePayload.school_id = typeof body.school_id === "string" ? body.school_id : null;
+    updatePayload.school_id = typeof body.school_id === "string" && UUID_RE.test(body.school_id) ? body.school_id : null;
   }
 
   const { data: updated, error } = await supabase

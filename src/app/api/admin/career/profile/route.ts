@@ -23,19 +23,34 @@ export async function POST(request: NextRequest) {
 
   const headlineTrimmed = typeof headline === "string" ? headline.slice(0, 200) : null;
 
+  const VALID_GENDERS = new Set(["male", "female", "non_binary", "prefer_not_to_say"]);
+  const safeGender = typeof gender === "string" && VALID_GENDERS.has(gender)
+    ? gender
+    : (gender === null ? null : undefined);
+
+  const safeBirthYear = typeof birthYear === "number" && Number.isFinite(birthYear)
+    ? Math.max(1920, Math.min(2010, Math.floor(birthYear)))
+    : undefined;
+
+  const safeYearsOfExperience = typeof yearsOfExperience === "number" && Number.isFinite(yearsOfExperience)
+    ? Math.max(0, Math.min(60, Math.floor(yearsOfExperience)))
+    : undefined;
+
   // ow_career_profiles を UPSERT（user_id は UNIQUE）
+  const upsertData: Record<string, unknown> = {
+    user_id: userId,
+    headline: headlineTrimmed,
+    years_of_experience: safeYearsOfExperience ?? null,
+    is_published: isPublished ?? false,
+    updated_at: new Date().toISOString(),
+  };
+  if (safeGender !== undefined) upsertData.gender = safeGender;
+  if (safeBirthYear !== undefined) upsertData.birth_year = safeBirthYear;
+
   const { data, error } = await admin
     .from("ow_career_profiles")
     .upsert(
-      {
-        user_id: userId,
-        headline: headlineTrimmed,
-        years_of_experience: yearsOfExperience ?? null,
-        gender: gender ?? null,
-        birth_year: birthYear ?? null,
-        is_published: isPublished ?? false,
-        updated_at: new Date().toISOString(),
-      },
+      upsertData,
       { onConflict: "user_id" }
     )
     .select("id")

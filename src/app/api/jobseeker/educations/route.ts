@@ -88,9 +88,11 @@ export async function POST(req: Request) {
     ? body.degree
     : null;
 
-  const enrolled_at = typeof body.enrolled_at === "string" && body.enrolled_at ? body.enrolled_at : null;
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+  const enrolled_at = typeof body.enrolled_at === "string" && DATE_RE.test(body.enrolled_at) ? body.enrolled_at : null;
   const is_current = body.is_current === true;
-  const graduated_at = is_current ? null : (typeof body.graduated_at === "string" && body.graduated_at ? body.graduated_at : null);
+  const graduated_at = is_current ? null : (typeof body.graduated_at === "string" && DATE_RE.test(body.graduated_at) ? body.graduated_at : null);
 
   const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -115,8 +117,8 @@ export async function POST(req: Request) {
 
   const nextSortOrder = (maxRow?.sort_order ?? 0) + 1;
 
-  // school_id: 文字列なら採用、null 明示なら null、省略なら null
-  const school_id = typeof body.school_id === "string" ? body.school_id : null;
+  // school_id: UUID 形式の場合のみ採用
+  const school_id = typeof body.school_id === "string" && UUID_RE.test(body.school_id) ? body.school_id : null;
 
   const { data: inserted, error: insertError } = await supabase
     .from("ow_user_educations")
