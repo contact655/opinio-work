@@ -44,7 +44,7 @@ export async function PUT(
 
   if (error) {
     console.error("[PUT /api/jobseeker/experience-story-sections/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json(updated);
@@ -68,7 +68,7 @@ export async function DELETE(
 
   if (error) {
     console.error("[DELETE /api/jobseeker/experience-story-sections/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // 204 No Content: stories の section_id は DB 側で ON DELETE SET NULL により自動的に NULL になる

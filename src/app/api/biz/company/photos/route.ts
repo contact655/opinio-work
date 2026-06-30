@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       .eq("category", category);
 
     if (countError) {
-      return Response.json({ error: "Count check failed", detail: countError.message }, { status: 500 });
+      return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 
     if ((count ?? 0) >= MAX_PHOTOS_PER_CATEGORY) {
@@ -70,15 +70,11 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      return Response.json({
-        error: "Insert failed",
-        detail: error.message,
-        code: error.code,
-      }, { status: 500 });
+      return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 
     return Response.json({ data }, { status: 201 });
-  } catch (e) {
-    return Response.json({ error: "Server error", detail: String(e) }, { status: 500 });
+  } catch {
+    return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }

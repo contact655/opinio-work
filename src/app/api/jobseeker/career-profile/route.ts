@@ -32,7 +32,7 @@ export async function GET() {
 
   if (error) {
     console.error("[GET /api/jobseeker/career-profile]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ careerProfile: data ?? null });
@@ -66,7 +66,7 @@ export async function PUT(req: Request) {
 
   if (error) {
     console.error("[PUT /api/jobseeker/career-profile]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

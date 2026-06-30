@@ -43,7 +43,7 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error("[GET /api/jobseeker/experience-story-sections]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ sections: data ?? [] });
@@ -120,7 +120,7 @@ export async function POST(req: Request) {
 
   if (insertError) {
     console.error("[POST /api/jobseeker/experience-story-sections]", insertError.message);
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json(inserted, { status: 201 });

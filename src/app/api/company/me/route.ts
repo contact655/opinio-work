@@ -27,7 +27,7 @@ export async function GET() {
 
   if (error) {
     console.error("[company/me GET] error:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   const companies = data || [];
@@ -140,7 +140,7 @@ export async function PUT(req: Request) {
 
   if (updateError) {
     console.error("[company/me PUT] update error:", updateError.message);
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // メンバーを置換

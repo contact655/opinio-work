@@ -131,10 +131,10 @@ export async function GET(request: Request) {
       total: profiles.length,
       errors: errors.length > 0 ? errors.length : undefined,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[weekly-match] Error:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }

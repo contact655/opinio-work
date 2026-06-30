@@ -37,7 +37,7 @@ export async function PATCH(
 
   if (error) {
     console.error("[PATCH /api/jobseeker/skill-tags/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json(data);
@@ -60,7 +60,7 @@ export async function DELETE(
 
   if (error) {
     console.error("[DELETE /api/jobseeker/skill-tags/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // sort_order のリインデックスは行わない（歯抜け許容、ν-9 並び替えと衝突するため）

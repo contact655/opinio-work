@@ -34,6 +34,6 @@ export async function POST(req: Request) {
     .select("id, content, image_url, created_at")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
 }

@@ -39,7 +39,7 @@ export async function POST(
 
   if (error) {
     console.error("[POST /api/jobseeker/posts/[id]/likes]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ liked: true });
@@ -67,7 +67,7 @@ export async function DELETE(
 
   if (error) {
     console.error("[DELETE /api/jobseeker/posts/[id]/likes]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ liked: false });

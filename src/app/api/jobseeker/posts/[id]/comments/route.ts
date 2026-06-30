@@ -35,7 +35,7 @@ export async function GET(
 
   if (error) {
     console.error("[GET /api/jobseeker/posts/[id]/comments]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ comments: data ?? [] });
@@ -81,7 +81,7 @@ export async function POST(
 
   if (error) {
     console.error("[POST /api/jobseeker/posts/[id]/comments]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ comment: inserted }, { status: 201 });

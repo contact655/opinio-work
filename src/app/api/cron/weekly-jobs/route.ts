@@ -109,10 +109,10 @@ export async function GET(request: Request) {
       totalJobs: totalCount,
       errors: errors.length > 0 ? errors.length : undefined,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[weekly-jobs] Error:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }

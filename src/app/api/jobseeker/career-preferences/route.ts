@@ -57,7 +57,7 @@ export async function PUT(req: Request) {
 
     if (error) {
       console.error("[PUT /api/jobseeker/career-preferences] update", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   } else {
     // レコードがない場合は新規作成（auth.users.id を user_id として使う）
@@ -67,7 +67,7 @@ export async function PUT(req: Request) {
 
     if (error) {
       console.error("[PUT /api/jobseeker/career-preferences] insert", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
 

@@ -38,7 +38,7 @@ export async function DELETE(
 
   if (fetchError) {
     console.error("[DELETE /api/jobseeker/posts/[id]] fetch", fetchError.message);
-    return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (post.user_id !== owUserId) {
@@ -53,7 +53,7 @@ export async function DELETE(
 
   if (error) {
     console.error("[DELETE /api/jobseeker/posts/[id]]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

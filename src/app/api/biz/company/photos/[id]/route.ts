@@ -46,12 +46,12 @@ export async function PATCH(
       .single();
 
     if (error) {
-      return Response.json({ error: "Update failed", detail: error.message }, { status: 500 });
+      return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 
     return Response.json({ data });
-  } catch (e) {
-    return Response.json({ error: "Server error", detail: String(e) }, { status: 500 });
+  } catch {
+    return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -96,7 +96,7 @@ export async function DELETE(
       .eq("company_id", companyId);
 
     if (deleteError) {
-      return Response.json({ error: "Delete failed", detail: deleteError.message }, { status: 500 });
+      return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 
     // 3. Storage から削除（best-effort — 失敗しても DB 削除は完了済みなので orphan 容認）
@@ -120,7 +120,7 @@ export async function DELETE(
     }
 
     return Response.json({ success: true });
-  } catch (e) {
-    return Response.json({ error: "Server error", detail: String(e) }, { status: 500 });
+  } catch {
+    return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -47,7 +47,7 @@ export async function DELETE(
 
   if (error) {
     console.error("[employee-categories DELETE]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   if (count === 0) {

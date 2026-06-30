@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "すでに追加済みのカテゴリです" }, { status: 409 });
     }
     console.error("[employee-categories POST]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, id: data.id }, { status: 201 });

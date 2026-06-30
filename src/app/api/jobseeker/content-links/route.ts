@@ -32,7 +32,7 @@ export async function GET() {
 
   if (error) {
     console.error("[GET /api/jobseeker/content-links]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ links: data ?? [] });
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
 
   if (insertError) {
     console.error("[POST /api/jobseeker/content-links]", insertError.message);
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json(inserted, { status: 201 });

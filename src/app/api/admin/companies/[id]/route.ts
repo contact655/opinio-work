@@ -72,7 +72,7 @@ export async function PUT(
 
   if (error) {
     console.error('[PUT /api/admin/companies/[id]]', error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ company: data });

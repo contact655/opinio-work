@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // 各求人の応募数を取得（ow_job_applications が正規テーブル）

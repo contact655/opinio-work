@@ -48,7 +48,7 @@ export async function DELETE(
 
   if (findError) {
     console.error("[DELETE /api/admin/companies/.../admins/...] find error:", findError.message);
-    return NextResponse.json({ error: findError.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   if (!existing) {
@@ -67,7 +67,7 @@ export async function DELETE(
 
   if (deleteError) {
     console.error("[DELETE /api/admin/companies/.../admins/...] delete error:", deleteError.message);
-    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({

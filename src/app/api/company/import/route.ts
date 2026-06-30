@@ -95,10 +95,10 @@ JSONのみ返してください。説明文は不要です。
 
     const extracted = JSON.parse(jsonStr);
     return NextResponse.json({ extracted, fileName });
-  } catch (err: any) {
-    console.error("[company/import] Error:", err.message);
+  } catch (err: unknown) {
+    console.error("[company/import] Error:", err instanceof Error ? err.message : err);
     return NextResponse.json(
-      { error: err.message || "AI解析に失敗しました" },
+      { error: "AI解析に失敗しました" },
       { status: 500 }
     );
   }

@@ -51,7 +51,7 @@ export async function POST(
 
   if (error) {
     console.error('[POST /api/admin/companies/[id]/genres]', error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true, added: genre_ids.length });
@@ -88,7 +88,7 @@ export async function DELETE(
 
   if (error) {
     console.error('[DELETE /api/admin/companies/[id]/genres]', error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true, removed: genre_ids.length });

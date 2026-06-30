@@ -26,6 +26,6 @@ export async function DELETE(
     .eq("id", params.id)
     .eq("user_id", owUser.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   return new NextResponse(null, { status: 204 });
 }
