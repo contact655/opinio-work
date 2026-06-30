@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 // POST /api/biz/agents/[id]/contacts — add contact
 // Body: { name, email, isPrimary? }
@@ -14,6 +15,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
+  try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
 
   let body: { name: string; email: string; isPrimary?: boolean };
   try { body = await req.json(); } catch {
@@ -62,6 +64,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
+  try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
 
   let body: { contactId: string };
   try { body = await req.json(); } catch {

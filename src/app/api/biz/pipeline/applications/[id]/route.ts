@@ -62,6 +62,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Application not found" }, { status: 404 });
   }
 
+  // Ownership already verified above via ow_jobs.company_id join — safe to update by id only
   const { error } = await supabase
     .from("ow_job_applications")
     .update(updates)

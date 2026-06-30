@@ -4,27 +4,15 @@ import { NextResponse, NextRequest } from "next/server";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
 
-// Simple in-memory rate limit: 5 requests per IP per 10 minutes
-const ipMap = new Map<string, { count: number; resetAt: number }>();
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = ipMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    ipMap.set(ip, { count: 1, resetAt: now + 10 * 60 * 1000 });
-    return true;
-  }
-  if (entry.count >= 5) return false;
-  entry.count++;
-  return true;
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
+
+// Rate limiting is handled by Supabase Auth's built-in magic link rate limits
 
 // POST /api/agent/auth/send-link
 // Body: { email }
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (!checkRateLimit(ip)) {
-    return NextResponse.json({ error: "リクエストが多すぎます。しばらくしてから再試行してください。" }, { status: 429 });
-  }
 
   let body: { email: string };
   try { body = await req.json(); } catch {
@@ -99,7 +87,7 @@ export async function POST(req: NextRequest) {
     </div>
     <div style="padding:32px;">
       <p style="font-size:16px;font-weight:700;color:#0F172A;margin:0 0 8px;">
-        ${contact.name} さん
+        ${esc(contact.name)} さん
       </p>
       <p style="font-size:14px;color:#475569;line-height:1.7;margin:0 0 8px;">
         OPINIOエージェントポータルへのログインリクエストを受け付けました。

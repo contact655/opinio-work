@@ -36,7 +36,13 @@ export async function PATCH(
 
   function s(v: unknown, max: number) { return typeof v === "string" ? v.slice(0, max) : v; }
 
-  if (salaryMan          !== undefined) update.salary_man         = salaryMan;
+  if (salaryMan !== undefined) {
+    const n = Number(salaryMan);
+    if (!Number.isInteger(n) || n < 0 || n > 100_000_000) {
+      return NextResponse.json({ error: "Invalid salaryMan value" }, { status: 400 });
+    }
+    update.salary_man = n;
+  }
   if (roleTitle          !== undefined) update.role_title         = s(roleTitle, 100);
   if (companyAnonymized  !== undefined) update.company_anonymized = s(companyAnonymized, 200);
   if (visibilityCompany  !== undefined) {

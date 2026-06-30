@@ -87,10 +87,9 @@ export async function POST(req: NextRequest) {
       url,
       timeout: 5, // 5 秒（open-graph-scraper v6 は秒単位）
       fetchOptions: {
+        redirect: "manual" as RequestRedirect,
         headers: {
-          // 一部サイトは User-Agent なしを弾くため付与
-          "User-Agent":
-            "Mozilla/5.0 (compatible; OpinioBot/1.0; +https://opinio.work)",
+          "User-Agent": "OPINIOBot/1.0",
         },
       },
     });

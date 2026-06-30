@@ -16,6 +16,10 @@ export async function updateBillingStatus(
   applicationId: string,
   status: "unpaid" | "invoiced" | "paid"
 ): Promise<void> {
+  const VALID_BILLING_STATUSES = new Set(["unpaid", "invoiced", "paid"]);
+  if (!VALID_BILLING_STATUSES.has(status)) {
+    return;
+  }
   await assertAdmin();
   const admin = createAdminClient();
   const now = new Date().toISOString();

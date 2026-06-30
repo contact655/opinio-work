@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { notify } from "@/lib/notify/email";
 
 function esc(s: string): string {
@@ -18,6 +19,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
+  try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
 
   const admin = createAdminClient();
 

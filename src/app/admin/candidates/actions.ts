@@ -18,6 +18,10 @@ export async function bulkSetVisibility(
 ): Promise<{ ok: boolean; error?: string }> {
   await assertAdmin();
   if (userIds.length === 0) return { ok: true };
+  const VALID_VISIBILITY = new Set(["public", "login_only", "private"]);
+  if (!VALID_VISIBILITY.has(visibility)) {
+    return { ok: false, error: "Invalid visibility value" };
+  }
   const admin = createAdminClient();
   const { error } = await admin
     .from("ow_users")

@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
+import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 // PUT /api/biz/agents/[id] — update agency
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
@@ -13,6 +14,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
+  try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
 
   let body: { agencyName?: string; memo?: string; isActive?: boolean };
   try { body = await req.json(); } catch {
@@ -55,6 +57,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
+  try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
 
   const admin = createAdminClient();
 
